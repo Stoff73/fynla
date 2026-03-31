@@ -1,250 +1,395 @@
 ---
 name: vault-sync
-description: Sync project documentation to the fynlaBrain Obsidian vault, update version numbers across CLAUDE.md/README/vault, ensure git history is current, and audit memory files. Use when the user says "sync vault", "update vault", "update fynlaBrain", "sync docs", "update versions", "update README", "update CLAUDE.md metrics", or at session end after significant work. Also use proactively after any feature that changes component/service/controller/model counts.
+description: Sync project documentation to the fynlaBrain Obsidian vault, update version numbers, git history, March Index, Home.md, and audit all vault formatting/connections. Use when the user says "sync vault", "update vault", "update fynlaBrain", "sync docs", or at session end after significant work.
 disable-model-invocation: true
 ---
 
-# Vault Sync — Documentation & Version Maintenance
+# Vault Sync — Full Documentation & Integrity Check
 
-Keep all project documentation, version numbers, and the fynlaBrain Obsidian vault in sync with the actual codebase.
+Sync all project documentation to the fynlaBrain Obsidian vault, then verify every file is correctly formatted, connected, and up to date.
 
-## Step 1: Count Current Codebase Metrics
+**Vault location:** `/Users/CSJ/Desktop/fynlaBrain/` (NOT a git repo — write files directly)
+**Obsidian config:** `/Users/CSJ/Desktop/fynlaBrain/.obsidian/` (stock config, no custom plugins)
+**Source docs:** `/Users/CSJ/Desktop/fynla/March/March[DD]Updates/`
 
-Get the actual counts from the codebase:
+---
 
-```bash
-# Vue Components
-find resources/js/components resources/js/views resources/js/mobile -name "*.vue" 2>/dev/null | wc -l
+## Phase 1: Codebase Metrics
 
-# PHP Services
-find app/Services -name "*.php" 2>/dev/null | wc -l
-
-# Controllers
-find app/Http/Controllers -name "*.php" 2>/dev/null | wc -l
-
-# Models
-find app/Models -name "*.php" 2>/dev/null | wc -l
-
-# API Endpoints (approximate)
-php artisan route:list --json 2>/dev/null | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "N/A"
-
-# Vuex Store Modules
-find resources/js/store/modules -name "*.js" 2>/dev/null | wc -l
-
-# Agents
-find app/Agents -name "*Agent.php" 2>/dev/null | wc -l
-
-# Test Cases
-./vendor/bin/pest --no-coverage 2>/dev/null | tail -5 | grep -oP '\d+ passed' || echo "N/A"
-
-# Services directories
-find app/Services -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l
-
-# API Services (frontend)
-find resources/js/services -name "*.js" 2>/dev/null | wc -l
-
-# Factories
-find database/factories -name "*.php" 2>/dev/null | wc -l
-
-# Migrations
-find database/migrations -name "*.php" 2>/dev/null | wc -l
-
-# Database tables
-php artisan tinker --execute="echo \Illuminate\Support\Facades\Schema::getAllTables()->count();" 2>/dev/null || echo "N/A"
-```
-
-Store these counts for comparison.
-
-## Step 2: Update CLAUDE.md Metrics
-
-Read the current CLAUDE.md and compare the metrics table against actual counts:
+Count current codebase metrics and compare with CLAUDE.md:
 
 ```bash
-head -20 CLAUDE.md
+echo "Vue Components: $(find resources/js/components resources/js/views resources/js/mobile -name '*.vue' 2>/dev/null | wc -l | tr -d ' ')"
+echo "PHP Services: $(find app/Services -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Controllers: $(find app/Http/Controllers -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Models: $(find app/Models -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Vuex Stores: $(find resources/js/store/modules -name '*.js' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Agents: $(find app/Agents -name '*Agent.php' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Migrations: $(find database/migrations -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Factories: $(find database/factories -name '*.php' 2>/dev/null | wc -l | tr -d ' ')"
+echo "Service dirs: $(find app/Services -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
+echo "API Services: $(find resources/js/services -name '*.js' 2>/dev/null | wc -l | tr -d ' ')"
 ```
 
-If any counts have changed, update the table:
+If any counts changed vs CLAUDE.md metrics table, update them. Also check README.md Quick Stats table.
+
+---
+
+## Phase 2: Sync Update Notes to Vault
+
+### 2a: Identify all unsynced files
+
+Compare the local `March/March[DD]Updates/` folders against the vault:
+
+```bash
+# For each date folder in local repo
+for dir in /Users/CSJ/Desktop/fynla/March/March*Updates; do
+  folder=$(basename "$dir")
+  vault_dir="/Users/CSJ/Desktop/fynlaBrain/March/$folder"
+
+  if [ -d "$dir" ]; then
+    for file in "$dir"/*.md; do
+      [ -f "$file" ] || continue
+      filename=$(basename "$file")
+      if [ ! -f "$vault_dir/$filename" ]; then
+        echo "NEW: $folder/$filename"
+      elif ! diff -q "$file" "$vault_dir/$filename" > /dev/null 2>&1; then
+        echo "CHANGED: $folder/$filename"
+      fi
+    done
+  fi
+done
+```
+
+### 2b: Copy all new/changed files
+
+For each file identified above:
+
+1. Create the vault directory if it doesn't exist: `mkdir -p "$vault_dir"`
+2. Copy the file: `cp "$file" "$vault_dir/$filename"`
+3. After copying, verify frontmatter (see Phase 4)
+
+### 2c: Check for subdirectories
+
+Some update folders have subdirectories (e.g. `testFix/`, `plan/`). Sync those too:
+
+```bash
+for dir in /Users/CSJ/Desktop/fynla/March/March*Updates; do
+  find "$dir" -type d -mindepth 1 | while read subdir; do
+    rel_path="${subdir#/Users/CSJ/Desktop/fynla/}"
+    vault_path="/Users/CSJ/Desktop/fynlaBrain/$rel_path"
+    if [ ! -d "$vault_path" ]; then
+      echo "NEW DIR: $rel_path"
+      mkdir -p "$vault_path"
+    fi
+    for file in "$subdir"/*.md; do
+      [ -f "$file" ] || continue
+      filename=$(basename "$file")
+      if [ ! -f "$vault_path/$filename" ]; then
+        cp "$file" "$vault_path/$filename"
+        echo "  SYNCED: $filename"
+      fi
+    done
+  done
+done
+```
+
+---
+
+## Phase 3: Update Git History
+
+### 3a: Create/update today's daily commit log
+
+Get today's date and commits:
+
+```bash
+TODAY=$(date +%d)
+TODAY_FULL=$(date +%Y-%m-%d)
+COMMITS=$(git log --oneline --since="$(date +%Y-%m-%d) 00:00:00" --until="$(date -v+1d +%Y-%m-%d) 00:00:00" 2>/dev/null)
+COMMIT_COUNT=$(echo "$COMMITS" | grep -c '^' 2>/dev/null || echo 0)
+```
+
+Create/update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar${TODAY}.md` following this exact format:
 
 ```markdown
-| Metric | Count |
-|--------|-------|
-| Vue Components | [actual] |
-| PHP Services | [actual] |
-| Controllers | [actual] |
-| Models | [actual] |
-| Vuex Stores | [actual] |
-| Agents | [actual] |
+---
+tags:
+  - git-history
+  - mar-2026
+date: [TODAY_FULL]
+commits: [COMMIT_COUNT]
+---
+
+# Commits — [DAY] March 2026
+
+Back to [[Git History/Mar2026/Mar2026 Commits|March 2026 Commits]]
+
+**[N] commits** — [breakdown by type: N feat, N fix, N docs, etc.]
+
+**Related:** [[Architecture/v083/...]] (relevant cross-links based on what was changed)
+
+---
+
+| Time | Hash | Type | Message |
+|------|------|------|---------|
+| HH:MM | `abcd1234` | + | feat: description |
+| HH:MM | `efgh5678` | ~ | fix: description |
 ```
 
-Also check the version number matches the latest:
+**Type codes:**
+- `+` = feat
+- `~` = fix
+- `D` = docs
+- `^` = refactor
+- `T` = test
+- `C` = chore
+- `S` = style
+- `P` = perf
+- `-` = other/merge
 
+Generate the table from:
 ```bash
-grep "Version" CLAUDE.md
+git log --format="%H %ai %s" --since="$(date +%Y-%m-%d) 00:00:00" --until="$(date -v+1d +%Y-%m-%d) 00:00:00" 2>/dev/null
 ```
 
-If a new version has been deployed, update it.
+### 3b: Update monthly commits index
 
-## Step 3: Update README.md
+Read and update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar2026 Commits.md`:
+- Update total commit count
+- Update the commit type breakdown
+- Add/update today's row in the Daily Logs table: `| [[Mar${TODAY}]] | [N] | [highlight] |`
 
-Read the current README.md Quick Stats table and update if any counts changed:
+### 3c: Update Home.md git history count
 
-```bash
-head -30 README.md
+Update the March 2026 row in the Git History table:
+```
+| [[Git History/Mar2026/Mar2026 Commits|March 2026]] | [NEW_TOTAL] | [DAYS] |
 ```
 
-Update the Quick Stats table to match current codebase counts. Also check the test badge count.
+---
 
-## Step 4: Sync Update Notes to fynlaBrain
+## Phase 4: Vault Formatting & Frontmatter Audit
 
-### 4a: Copy new/changed March update files
+Check ALL files in today's update folder (and any other recently synced folders) for correct Obsidian formatting.
+
+### 4a: Frontmatter check
+
+Every `.md` file in the vault should ideally have YAML frontmatter. For update notes, this is optional but recommended. For git history files, it's required.
+
+**Required frontmatter for git history files:**
+```yaml
+---
+tags:
+  - git-history
+  - mar-2026
+date: YYYY-MM-DD
+commits: N
+---
+```
+
+**Recommended frontmatter for update notes:**
+```yaml
+---
+tags:
+  - march-2026
+  - [topic tag: deploy, bug-fix, code-review, feature, etc.]
+date: YYYY-MM-DD
+---
+```
+
+If files are missing frontmatter, add it. If they have it but it's malformed, fix it.
+
+### 4b: Wikilink format check
+
+Scan synced files for broken patterns:
+- Links should use `[[Target]]` or `[[Path/To/Target|Display Text]]` format
+- File references in update note indices should NOT include `.md` extension
+- Check that wikilink targets actually exist as files in the vault
 
 ```bash
-# Determine today's date folder
-TODAY=$(date +%d)
-SRC="/Users/CSJ/Desktop/fynla/March/March${TODAY}Updates"
-DST="/Users/CSJ/Desktop/fynlaBrain/March/March${TODAY}Updates"
+# Find all wikilinks in recently synced files
+grep -oP '\[\[([^\]|]+)' /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/*.md 2>/dev/null | sort -u
+```
 
-if [ -d "$SRC" ]; then
-  mkdir -p "$DST"
-  for file in "$SRC"/*.md; do
-    if [ -f "$file" ]; then
-      filename=$(basename "$file")
-      # Copy if new or changed
-      if [ ! -f "$DST/$filename" ] || ! diff -q "$file" "$DST/$filename" > /dev/null 2>&1; then
-        cp "$file" "$DST/$filename"
-        echo "Synced: $filename"
-      fi
+### 4c: No orphaned files
+
+Every file in an update folder should be linked from the March Index. Check:
+
+```bash
+# Files in vault update folders
+for folder in /Users/CSJ/Desktop/fynlaBrain/March/March*Updates; do
+  foldername=$(basename "$folder")
+  for file in "$folder"/*.md; do
+    [ -f "$file" ] || continue
+    filename=$(basename "$file" .md)
+    if ! grep -q "\[\[$filename\]\]" "/Users/CSJ/Desktop/fynlaBrain/March/March Index.md" 2>/dev/null; then
+      echo "UNLINKED: $foldername/$filename"
     fi
   done
-fi
+done
 ```
 
-### 4b: Sync any other changed docs
+---
 
-Check for docs in other March update folders that may have been modified:
+## Phase 5: Update March Index
+
+### 5a: Add session entry
+
+If there isn't already a session entry for today under `## Sessions`, add one:
+
+```markdown
+### March[DD] ([N] sessions — [N] commits)
+
+Session [N]: [Brief summary of what was done — features, fixes, deploys]
+```
+
+Follow the style of existing entries (see March30, March27, etc.).
+
+### 5b: Add update note links
+
+Under `## Update Notes`, add/update the section for today's update folder:
+
+```markdown
+### March[DD]Updates
+
+- [[filename1]] — Brief one-line description
+- [[filename2]] — Brief one-line description
+```
+
+**Rules:**
+- Use `[[filename]]` without `.md` extension (Obsidian wikilink format)
+- Use `[[filename|Display Name]]` only if the filename isn't human-readable
+- Add a brief `—` description after each link
+- If the file has subdirectories, use indented sub-sections
+
+### 5c: Verify all existing links resolve
+
+For the section just added, verify every `[[wikilink]]` target exists as a file:
 
 ```bash
-# Find recently modified docs in March/
-find /Users/CSJ/Desktop/fynla/March -name "*.md" -newer /Users/CSJ/Desktop/fynla/CLAUDE.md -mtime -1 2>/dev/null
+# Extract wikilinks from the March[DD]Updates section
+# Check each one exists in the vault
 ```
 
-Copy any that are newer than what's in fynlaBrain.
+---
 
-## Step 5: Update Git History in fynlaBrain
+## Phase 6: Update Home.md
 
-### 5a: Create/update today's git history file
+Read `/Users/CSJ/Desktop/fynlaBrain/Home.md` and check:
+
+1. **Version number** — matches the current deployed version in CLAUDE.md
+2. **Git History table** — March 2026 commit count and day count are current
+3. **Reports section** — any new reports from this session are linked
+4. **Current State docs** — if a module's state changed significantly, note it
+
+Only update what actually changed.
+
+---
+
+## Phase 7: Cross-Link Integrity
+
+### 7a: Check bidirectional links
+
+For key documents (deploy guides, code reviews, session summaries), verify:
+- The March Index links TO the file
+- The file links BACK to `[[March Index]]` or `[[Home]]` where appropriate
+
+### 7b: Architecture cross-references
+
+If today's work touched a module, check that the relevant update notes cross-reference the architecture doc:
+- `[[Architecture/v083/09-MODULES|Module Guide]]` for module changes
+- `[[Architecture/v083/03-AUTHENTICATION-SECURITY|Auth & Security]]` for auth changes
+- `[[Architecture/v083/10-NEW-SYSTEMS|New Systems]]` for payment/AI changes
+
+### 7c: Current State doc freshness
+
+Check if any Current State docs are stale relative to today's changes:
 
 ```bash
-TODAY=$(date +%d)
-HISTORY_FILE="/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar${TODAY}.md"
+ls -lt /Users/CSJ/Desktop/fynlaBrain/Current\ State/*.md | head -10
 ```
 
-Get today's commits and create/update the daily log following the established format (see `Mar07.md` as template):
+If a Current State doc hasn't been updated in 2+ weeks and today's work touched that module, flag it for the user.
 
-- YAML frontmatter with tags, date, commit count
-- Commit table with Time, Hash, Type, Message columns
-- Type codes: `+` feat, `~` fix, `D` docs, `R` refactor/review, `S` style, `C` chore, `T` test, `-` merge
+---
 
-### 5b: Update monthly commits index
+## Phase 8: Memory File Audit
 
-Update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar2026 Commits.md`:
-- Total commit count
-- Today's row in the Daily Logs table
-
-### 5c: Update March session index
-
-Update `/Users/CSJ/Desktop/fynlaBrain/March/March Index.md`:
-- Session entries under today's date
-- Update Notes section with links to new files
-- Use `[[wikilinks]]` matching filenames without `.md`
-
-### 5d: Update Home.md
-
-Update `/Users/CSJ/Desktop/fynlaBrain/Home.md`:
-- Version number if changed
-- Git commit count for March
-- Any new reports added to Reports section
-
-## Step 6: Audit Memory Files
-
-Check that memory files are current and not stale:
+### 8a: Check for stale memories
 
 ```bash
-ls -lt /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/
+ls -lt /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/*.md
 ```
 
-### 6a: Check for stale memories
+Read each memory file. Flag any that:
+- Reference code/files that no longer exist
+- Contain project status that's outdated
+- Have contradictory information vs current state
 
-Read each memory file and verify it's still accurate:
-- Project memories with dates — are they still relevant?
-- Feedback memories — are they still applicable or has the pattern been fixed?
-- Reference memories — do the external references still exist?
+### 8b: Check MEMORY.md index
 
-### 6b: Check for missing memories
+Verify every `.md` file in the memory directory has an entry in MEMORY.md, and every MEMORY.md entry points to an existing file.
 
-After this session, should any new memories be saved?
-- New patterns learned
-- New preferences expressed by the user
-- New external references discovered
-- New project state changes
+### 8c: Suggest new memories
 
-### 6c: Update MEMORY.md index
+Based on this session's work, should any new memories be saved? Only suggest if the information is:
+- Not derivable from the code
+- Useful across future sessions
+- Not already captured in an existing memory
 
-Ensure `/Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/MEMORY.md` has entries for all memory files and no orphaned references.
+---
 
-## Step 7: Version Consistency Check
-
-Verify the version number is consistent across all locations:
-
-```bash
-# CLAUDE.md
-grep "Version" /Users/CSJ/Desktop/fynla/CLAUDE.md
-
-# README.md (if version is mentioned)
-grep -i "version" /Users/CSJ/Desktop/fynla/README.md | head -3
-
-# package.json
-grep '"version"' /Users/CSJ/Desktop/fynla/package.json 2>/dev/null
-
-# Home.md in vault
-grep "Version" /Users/CSJ/Desktop/fynlaBrain/Home.md
-
-# Version page (if exists)
-find /Users/CSJ/Desktop/fynla/resources -name "*version*" -o -name "*Version*" 2>/dev/null | head -5
-```
-
-If any are out of sync, update them all to match the latest deployed version.
-
-## Step 8: Summary Report
+## Phase 9: Summary Report
 
 ```markdown
 ## Vault Sync Complete
 
-**Metrics updated:** CLAUDE.md [updated/no change] | README.md [updated/no change]
+**Date:** [today]
 **Version:** v[X.Y.Z] — consistent across [N] locations
 
-**fynlaBrain synced:**
-- Update notes: [N] files synced to March[DD]Updates
-- Git history: Mar[DD].md [created/updated] ([N] commits)
-- March Index: [updated/no change]
-- Home.md: [updated/no change]
+### Metrics
+| Metric | CLAUDE.md | Actual | Status |
+|--------|-----------|--------|--------|
+| [only rows where count differs, or "All metrics current"] |
 
-**Memory audit:**
-- [N] memory files checked
-- [N] stale memories found [details]
-- [N] new memories saved
+### Files Synced
+- [N] new files copied to vault
+- [N] changed files updated
+- [folder list]
 
-**Counts changed:**
-| Metric | Was | Now |
-|--------|-----|-----|
-| [only rows where count changed] |
+### Git History
+- Mar[DD].md: [created/updated] ([N] commits)
+- Monthly index: updated ([TOTAL] total March commits)
+
+### March Index
+- Session entry: [added/updated]
+- Update notes: [N] wikilinks [added/verified]
+
+### Formatting
+- Frontmatter: [N] files checked, [N] fixed
+- Wikilinks: [N] checked, [N] broken (list any)
+- Orphaned files: [N] (list any)
+
+### Cross-Links
+- [N] bidirectional links verified
+- [N] architecture cross-references added
+- Stale Current State docs: [list or "none"]
+
+### Memory
+- [N] memory files audited
+- [N] stale, [N] updated, [N] new
 ```
 
-## Important
+---
 
-- The fynlaBrain vault is at `/Users/CSJ/Desktop/fynlaBrain/` — it is NOT a git repo, just write files directly.
-- Use Obsidian format: YAML frontmatter with tags, `[[wikilinks]]`, MOC index files.
-- Never invent version numbers — only use the version that's actually deployed.
-- Match the existing file structure and naming patterns in fynlaBrain.
-- This skill is safe to run multiple times — it's idempotent (only updates what changed).
-- If README.md or CLAUDE.md metrics haven't changed, don't touch them.
+## Important Rules
+
+- The vault is at `/Users/CSJ/Desktop/fynlaBrain/` — NOT a git repo, write files directly
+- Use Obsidian format: YAML frontmatter with `tags`, `[[wikilinks]]`, MOC index files
+- Wikilinks use `[[filename]]` WITHOUT `.md` extension
+- Never invent version numbers — use what's deployed
+- Match existing naming conventions (CamelCase for files, kebab-case for some older ones)
+- This skill is idempotent — safe to run multiple times
+- If nothing changed, say so — don't create fake updates
+- Run the formatting checks on ALL synced files, not just new ones
+- The March Index format has evolved — use the style from March25+ entries (session summaries + update note sections)
