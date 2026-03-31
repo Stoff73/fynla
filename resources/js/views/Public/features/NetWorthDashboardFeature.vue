@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'NetWorthDashboardFeature',
@@ -80,24 +81,7 @@ export default {
           { label: "Time to set up", values: ["15-20 minutes", "5 mins (limited)", "Hours", "Weeks"] },
         ],
       },
-      faq: [
-        {
-          q: "How do I value my property?",
-          a: "Enter your best estimate of current market value. You can update this periodically — many people check Zoopla or Rightmove for comparable sales. Fynla doesn't auto-value property, so you stay in control of the estimate.",
-        },
-        {
-          q: "Does it connect to my bank accounts?",
-          a: "Currently, you enter balances manually. This means you're in full control of your data and don't need to share bank credentials. We're exploring open banking integrations for future releases.",
-        },
-        {
-          q: "How often should I update it?",
-          a: "Property and pension values: every 3-6 months. Savings and investment balances: monthly if you want precision, quarterly if you want simplicity. Fynla prompts you when data is getting stale.",
-        },
-        {
-          q: "Is net worth the same as wealth?",
-          a: "Net worth is a snapshot of assets minus liabilities at a point in time. It doesn't account for your earning capacity, pension income rights, or state benefits — but it's the best single measure of your financial position.",
-        },
-      ],
+      faq: getFeatureFaqs('net-worth-dashboard'),
       finalCta: {
         headline: "Start With the Number That Matters Most",
         body: "Your net worth is the foundation of every financial decision. See it clearly, track it over time, and build your plan from there.",

@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'ProtectionGapFeature',
@@ -80,28 +81,7 @@ export default {
           { label: "Time to see your gap", values: ["10 minutes", "N/A", "2-4 weeks", "Never"] },
         ],
       },
-      faq: [
-        {
-          q: "Does Fynla sell insurance?",
-          a: "No. Fynla calculates your protection gap — we don't sell insurance products, earn commissions, or recommend specific providers.",
-        },
-        {
-          q: "What's the difference between life insurance, income protection, and critical illness?",
-          a: "Life insurance pays out when you die. Income protection replaces your income if you can't work. Critical illness pays a lump sum if diagnosed with a specified condition. You may need all three.",
-        },
-        {
-          q: "Does it factor in state benefits?",
-          a: "Yes. Fynla includes bereavement support payment, child benefit, and statutory sick pay in the calculations. But these are typically far less than most families need.",
-        },
-        {
-          q: "What about my employer's death-in-service benefit?",
-          a: "Add it in. Most employers offer 2-4x salary. Fynla includes this in your existing cover and shows the remaining gap.",
-        },
-        {
-          q: "My partner works — does that change things?",
-          a: "Absolutely. A dual-income household has a different protection need. Fynla models both scenarios and accounts for the surviving partner's income.",
-        },
-      ],
+      faq: getFeatureFaqs('protection-gap'),
       finalCta: {
         headline: "The Number You Don't Want to Need — But Need to Know",
         body: "It takes 10 minutes to see your family's protection gap. The demo uses sample data so you can explore without entering personal details.",

@@ -417,6 +417,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getPricingFaqs } from '@/constants/faqData';
 
 export default {
   name: 'PricingPage',
@@ -437,32 +438,7 @@ export default {
     return {
       isYearly: true,
       openFaq: null,
-      faqs: [
-        {
-          question: 'What happens when my free trial ends?',
-          answer: 'After 7 days, you will be asked to choose a plan to continue. If you do not subscribe, your account will become read-only — you can still view your data, but cannot make changes until you activate a plan.',
-        },
-        {
-          question: 'Can I switch plans later?',
-          answer: 'Yes, you can upgrade or downgrade your plan at any time from your account settings. When upgrading, you will be charged the prorated difference. When downgrading, the change takes effect at the end of your current billing period.',
-        },
-        {
-          question: 'What payment methods do you accept?',
-          answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express) through our secure payment processor Revolut. All payments are processed securely and we never store your card details.',
-        },
-        {
-          question: 'Is my financial data safe?',
-          answer: 'Absolutely. We use AES-256 encryption for sensitive data, store everything in UK-based data centres, and are fully GDPR compliant. Your data is never shared with third parties. You can export or delete your data at any time.',
-        },
-        {
-          question: 'What is the difference between the plans?',
-          answer: 'Student covers the core modules — protection, savings, investments, retirement, and goal tracking. Standard adds property, business, personal valuables, letter to spouse, and coordination. Family includes everything in Standard plus the family module. Pro gives full access to all features including estate planning, holistic plan, wills, trusts, AI document extraction, advanced projections, and priority support.',
-        },
-        {
-          question: 'Can I cancel my subscription?',
-          answer: 'Yes, you can cancel at any time from your account settings. There are no lock-in contracts or cancellation fees. Your access continues until the end of your current billing period.',
-        },
-      ],
+      faqs: getPricingFaqs().map(item => ({ question: item.q, answer: item.a })),
     };
   },
 

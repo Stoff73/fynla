@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'MonteCarloFeature',
@@ -72,28 +73,7 @@ export default {
         headline: "What Is Monte Carlo Simulation? (In Plain English)",
         body: "Imagine you're planning a road trip. You could assume the motorway is always clear and you'll average 60mph. But in reality, you might hit traffic, roadworks, or detours.\n\nMonte Carlo simulation is like running that road trip 10,000 times with random traffic conditions each time. Instead of one estimated arrival time, you get a range: you'll arrive between 2pm and 4pm, with 85% confidence you'll be there by 3pm.\n\nFynla does the same thing with your finances. Instead of one projection with one assumed growth rate, we run thousands of scenarios using historical market data — including crashes, booms, and flat periods. The result isn't a single number. It's a probability.",
       },
-      faq: [
-        {
-          q: "How many simulations does Fynla run?",
-          a: "Fynla runs thousands of scenarios using randomised sequences based on historical UK and global market data. This is enough to produce statistically robust results.",
-        },
-        {
-          q: "What data drives the simulations?",
-          a: "Historical returns data for UK equities, bonds, property, and cash — adjusted for different asset allocations. We use established financial modelling assumptions for inflation, fees, and tax treatment.",
-        },
-        {
-          q: "What confidence level should I aim for?",
-          a: "Financial planners generally consider 80%+ a solid plan and 90%+ a very robust one. Below 70% suggests meaningful risk. Fynla shows you what changes would improve your level.",
-        },
-        {
-          q: "Is this the same as what an IFA would do?",
-          a: "Many IFAs use similar Monte Carlo tools — but charge £1,000+ for the privilege. Fynla puts the same analytical power in your hands for a fraction of the cost.",
-        },
-        {
-          q: "Can I see individual scenario paths?",
-          a: "Yes. The fan chart shows the distribution, and you can explore specific scenario paths including worst-case, best-case, and median outcomes.",
-        },
-      ],
+      faq: getFeatureFaqs('monte-carlo'),
       finalCta: {
         headline: "How Confident Is Your Plan? Find Out in Minutes.",
         body: "The demo runs Monte Carlo simulations on sample data so you can see exactly how it works — no maths degree required.",

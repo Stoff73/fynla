@@ -42,7 +42,7 @@
             v-for="article in filteredArticles"
             :key="article.slug"
             :to="article.slug"
-            class="flex flex-col sm:flex-row bg-white rounded-2xl border border-light-gray overflow-hidden hover:shadow-md hover:border-raspberry-300 transition-all group"
+            class="flex flex-col sm:flex-row bg-white rounded-2xl overflow-hidden hover:bg-light-pink-100 hover:shadow-md transition-all group"
           >
             <!-- Image -->
             <div class="sm:w-[280px] flex-shrink-0 bg-gradient-to-br from-horizon-500 to-raspberry-500 flex items-center justify-center p-8 sm:p-6">
