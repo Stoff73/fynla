@@ -2,7 +2,7 @@
 
 **Date:** 31 March 2026
 **Branch:** `journeyLink`
-**Status:** Tested on localhost, ready for deploy
+**Status:** DEPLOYED — production tested 31 March 2026
 
 ---
 
@@ -65,3 +65,8 @@ No migrations, no model changes, no backend changes. Frontend only.
 - Logged in as John → signed out → clicked "Start your journey" on Starting Out → registered new user → journey map showed "Starting Out" with correct 6 steps → clicked "Start My Journey" → Personal Info form had only registration data (name, email), all other fields empty
 - Tested stage ID corrections: `mid_career` (not `family_building`), `peak` (not `peak_earning`)
 - CTA text updated to "Start your journey" on all 5 stage pages
+
+### Production Testing
+- All 5 CTAs verified on fynla.org with correct stage params and "Start your journey" text
+- Full end-to-end: `/stage/protecting-and-growing` → "Start your journey" → register as prodtest@fynla.org → verify code → `/onboarding?stage=mid_career` → journey map showed "Protecting What Matters" with 9 steps
+- Test user cleaned up after testing
