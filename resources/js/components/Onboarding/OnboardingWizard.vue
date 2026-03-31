@@ -24,7 +24,7 @@
     <!-- ================================================================== -->
     <!-- LIFE STAGE MODE: Progress bar, two-column layout, learning sidebar -->
     <!-- ================================================================== -->
-    <template v-if="isLifeStageMode">
+    <template v-if="isLifeStageMode && !showStageMap">
       <!-- Progress Bar -->
       <div v-if="lifeStageSteps.length > 0" class="max-w-6xl mx-auto mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
@@ -241,10 +241,10 @@
 
       <!-- Main Content -->
       <div class="max-w-5xl mx-auto">
-        <!-- Focus Area Selection (welcome screen - non-journey modes only) -->
+        <!-- Focus Area Selection (welcome screen - non-journey modes only, or forced by ?stage= query) -->
         <FocusAreaSelection
-          v-if="!focusArea && !isJourneyMode && !isLifeStageMode"
-          @stage-selected="handleStageSelected"
+          v-if="showStageMap || (!focusArea && !isJourneyMode && !isLifeStageMode)"
+          @stage-selected="handleStageMapStart"
           @focus-selected="handleFocusAreaSelected"
           @selected="handleFocusAreaSelected"
         />
@@ -491,6 +491,7 @@ export default {
     const showJourneyCompletion = ref(false);
     const showJourneyMapModal = ref(false);
     const selectedStageId = ref(null);
+    const showStageMap = ref(false);
 
     // ================================================================
     // LIFE STAGE MODE
@@ -832,6 +833,19 @@ export default {
 
       // Advance to next step
       handleLifeStageNext();
+    };
+
+    // Handle start from the inline stage map (shown via ?stage= query param)
+    const handleStageMapStart = async (stageId) => {
+      showStageMap.value = false;
+      await store.dispatch('lifeStage/setStage', stageId);
+      lifeStageStarted.value = true;
+      lifeStageCurrentIndex.value = 0;
+      // Fetch fresh progress so steps render correctly for a new user
+      await Promise.all([
+        store.dispatch('userProfile/fetchProfile').catch(() => {}),
+        store.dispatch('lifeStage/fetchStage').catch(() => {}),
+      ]);
     };
 
     // Journey Map Modal handlers
@@ -1248,14 +1262,10 @@ export default {
     };
 
     onMounted(async () => {
-      // Auto-select stage if user came from a stage page (e.g. /register?stage=early_career)
+      // If ?stage= is present, show the journey map for that stage instead of form steps
       const stageFromQuery = route.query?.stage;
-      if (stageFromQuery && LIFE_STAGES[stageFromQuery] && !currentLifeStage.value) {
-        await store.dispatch('lifeStage/setStage', stageFromQuery);
-        lifeStageStarted.value = true;
-        lifeStageCurrentIndex.value = 0;
-        // Re-fetch to ensure steps are loaded for the newly set stage
-        await store.dispatch('lifeStage/fetchStage').catch(() => {});
+      if (stageFromQuery && LIFE_STAGES[stageFromQuery]) {
+        showStageMap.value = true;
         return;
       }
 
@@ -1367,6 +1377,8 @@ export default {
 
       // Journey map modal
       showJourneyMapModal,
+      showStageMap,
+      handleStageMapStart,
       selectedStageId,
       selectedStageConfig,
       handleStageSelected,
