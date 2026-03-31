@@ -40,7 +40,7 @@
                 </router-link>
               </li>
               <li>
-                <router-link to="/learning-centre" class="text-violet-600 hover:text-violet-800 hover:underline flex items-center">
+                <router-link to="/learn" class="text-violet-600 hover:text-violet-800 hover:underline flex items-center">
                   <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                   Learning Centre
                 </router-link>

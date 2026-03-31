@@ -7,7 +7,6 @@ import { platform } from '@/utils/platform';
 // Public pages
 const LandingPage = () => import('@/views/Public/LandingPage.vue');
 const CalculatorsPage = () => import('@/views/Public/CalculatorsPage.vue');
-const LearningCentre = () => import('@/views/Public/LearningCentre.vue');
 const SecurityPage = () => import('@/views/Public/SecurityPage.vue');
 const AboutPage = () => import('@/views/Public/AboutPage.vue');
 const PricingPage = () => import('@/views/Public/PricingPage.vue');
@@ -15,6 +14,7 @@ const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
 const PrivacyPolicyPage = () => import('@/views/Public/PrivacyPolicyPage.vue');
 const TermsOfServicePage = () => import('@/views/Public/TermsOfServicePage.vue');
 const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
+const AdvisorsPage = () => import('@/views/Public/AdvisorsPage.vue');
 const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
@@ -149,9 +149,7 @@ const routes = [
   },
   {
     path: '/learning-centre',
-    name: 'LearningCentre',
-    component: LearningCentre,
-    meta: { public: true },
+    redirect: '/learn',
   },
   {
     path: '/security',
@@ -323,6 +321,8 @@ const routes = [
   { path: '/compare/fynla-vs-spreadsheets', name: 'CompareSpreadsheets', component: FynlaVsSpreadsheetsPage, meta: { public: true } },
   { path: '/compare/best-financial-planning-tools-uk', name: 'CompareBest', component: BestFinancialPlanningToolsPage, meta: { public: true } },
   { path: '/compare/fynla-vs-moneyhelper', name: 'CompareMoneyHelper', component: FynlaVsMoneyHelperPage, meta: { public: true } },
+  // Advisors
+  { path: '/advisors', name: 'Advisors', component: AdvisorsPage, meta: { public: true } },
   // Contact
   { path: '/contact', name: 'Contact', component: ContactPage, meta: { public: true } },
 
@@ -1307,7 +1307,7 @@ router.afterEach((to) => {
   }
 
   // Skip for public/auth pages
-  const publicRoutes = ['/login', '/register', '/', '/calculators', '/learning-centre', '/about', '/pricing'];
+  const publicRoutes = ['/login', '/register', '/', '/calculators', '/learn', '/about', '/pricing'];
   if (publicRoutes.some(route => to.path === route || to.path.startsWith('/forgot') || to.path.startsWith('/reset'))) {
     return;
   }

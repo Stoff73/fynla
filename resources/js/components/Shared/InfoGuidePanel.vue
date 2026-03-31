@@ -215,7 +215,7 @@ export default {
       immediate: true,
       handler(newPath) {
         // Skip public routes
-        const publicRoutes = ['/login', '/register', '/', '/calculators', '/learning-centre'];
+        const publicRoutes = ['/login', '/register', '/', '/calculators', '/learn'];
         if (publicRoutes.some(route => newPath === route || newPath.startsWith('/forgot') || newPath.startsWith('/reset'))) {
           return;
         }

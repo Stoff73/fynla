@@ -369,9 +369,9 @@
           <div>
             <h3 class="text-sm font-bold text-white mb-4">Help centre</h3>
             <ul class="space-y-2">
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">FAQs</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Ask Fyn</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Learning Centre</router-link></li>
+              <li><router-link to="/faq" class="text-sm text-white/70 hover:text-white transition-colors">FAQs</router-link></li>
+              <li><router-link to="/contact" class="text-sm text-white/70 hover:text-white transition-colors">Ask Fyn</router-link></li>
+              <li><router-link to="/learn" class="text-sm text-white/70 hover:text-white transition-colors">Guides and explainers</router-link></li>
             </ul>
           </div>
 
@@ -389,18 +389,18 @@
             <h3 class="text-sm font-bold text-white mb-4">Tools</h3>
             <ul class="space-y-2">
               <li><router-link to="/calculators" class="text-sm text-white/70 hover:text-white transition-colors">Calculators</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Resources</router-link></li>
+              <li><router-link to="/learn" class="text-sm text-white/70 hover:text-white transition-colors">Resources</router-link></li>
               <li><a href="#" @click.prevent="showDemoModal = true" class="text-sm text-white/70 hover:text-white transition-colors">View demo</a></li>
             </ul>
           </div>
 
           <!-- Advisors -->
           <div>
-            <h3 class="text-sm font-bold text-white mb-4">Advisors</h3>
+            <h3 class="text-sm font-bold text-white mb-4">Advisers</h3>
             <ul class="space-y-2">
-              <li><router-link to="/advisors" class="text-sm text-white/70 hover:text-white transition-colors">Why Fynla Advisors</router-link></li>
-              <li><router-link to="/advisors" class="text-sm text-white/70 hover:text-white transition-colors">Advisor features</router-link></li>
-              <li><router-link to="/register" class="text-sm text-white/70 hover:text-white transition-colors">Advisor sign up</router-link></li>
+              <li><router-link to="/advisors" class="text-sm text-white/70 hover:text-white transition-colors">Why Fynla advisers</router-link></li>
+              <li><router-link to="/advisors?scrollTo=adviser-features" class="text-sm text-white/70 hover:text-white transition-colors">Adviser features</router-link></li>
+              <li><router-link to="/advisors?scrollTo=adviser-signup" class="text-sm text-white/70 hover:text-white transition-colors">Adviser sign up</router-link></li>
             </ul>
           </div>
         </div>
