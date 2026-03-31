@@ -31,11 +31,11 @@
           <div>
             <h3 class="text-h4 font-semibold text-horizon-500">Free Trial</h3>
             <p class="mt-1 text-body-sm text-neutral-500">
-              You have full access to all {{ planDisplayName }} features during your trial
+              You have full access to all features during your 7-day free trial
             </p>
           </div>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800">
-            Trial
+            Free Trial
           </span>
         </div>
 
@@ -45,7 +45,7 @@
             <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="text-body-sm font-medium text-violet-800">Trial ends in</span>
+            <span class="text-body-sm font-medium text-violet-800">Your free trial ends in</span>
           </div>
           <div class="flex gap-4">
             <div class="text-center">
@@ -73,24 +73,8 @@
           </div>
         </div>
 
-        <!-- Plan Details -->
-        <div class="space-y-3 mb-6">
-          <div class="flex justify-between">
-            <span class="text-body-sm text-neutral-500">Plan:</span>
-            <span class="text-body-sm text-horizon-500">{{ planDisplayName }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-body-sm text-neutral-500">Billing Cycle:</span>
-            <span class="text-body-sm text-horizon-500 capitalize">{{ subscriptionData.billing_cycle }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-body-sm text-neutral-500">Price After Trial:</span>
-            <span class="text-body-sm text-horizon-500">{{ formatCurrencyWithPence(subscriptionData.amount / 100) }}</span>
-          </div>
-        </div>
-
         <button @click="showPlanModal = true" class="btn-primary w-full text-center block">
-          Subscribe Now
+          Choose a Plan
         </button>
       </div>
 

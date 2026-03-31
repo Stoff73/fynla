@@ -31,7 +31,7 @@
           <div v-if="trialData && trialData.status === 'trialing'" class="flex items-center gap-3">
             <div>
               <p class="text-xs font-medium text-horizon-500">
-                Your {{ trialPlanName }} trial ends in {{ trialData.days_remaining }} {{ trialData.days_remaining === 1 ? 'day' : 'days' }}
+                Free trial ends in {{ trialData.days_remaining }} {{ trialData.days_remaining === 1 ? 'day' : 'days' }}
               </p>
               <div class="mt-1 w-full bg-white/50 rounded-full h-1">
                 <div
@@ -41,14 +41,13 @@
               </div>
             </div>
             <button
-              v-if="trialData.plan !== 'pro'"
               @click="showPlanModal = true"
               class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
             >
               <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
               </svg>
-              Upgrade Now
+              Choose a Plan
             </button>
           </div>
 
