@@ -20,7 +20,7 @@
 
         <!-- Overview -->
         <div class="bg-light-blue-100 rounded-xl p-8">
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">How We Compared</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">How we compared</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             We looked at the most popular financial planning tools available to UK individuals in 2025. Each has
             genuine strengths. We have tried to be honest about where Fynla fits &mdash; and where others may be
@@ -30,7 +30,7 @@
 
         <!-- Comparison Table -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Feature Comparison</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Feature comparison</h2>
           <div class="bg-white rounded-lg border border-light-gray overflow-x-auto">
             <table class="w-full text-sm min-w-[600px]">
               <thead>
@@ -152,7 +152,7 @@
 
         <!-- Individual Summaries -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Tool-by-Tool Summary</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Tool-by-tool summary</h2>
           <div class="space-y-3">
             <div class="bg-white rounded-lg border border-light-gray p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Fynla</p>

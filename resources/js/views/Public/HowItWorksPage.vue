@@ -4,9 +4,10 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
-          Simple to Set Up.
-          <span class="text-raspberry-300">Powerful</span> to Use.
+          Getting started<br/>
+          <span class="text-raspberry-300">with Fynla</span>
         </h1>
+        <p class="text-xl text-white/90 font-semibold mb-2">Simple to set up. Powerful to use.</p>
         <p class="text-lg text-white/70 max-w-2xl mb-8">
           Fynla turns your scattered financial data into a clear, actionable plan. Three steps, 15 minutes, and you'll see your complete financial picture for the first time.
         </p>
@@ -15,13 +16,13 @@
             href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
             class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors"
           >
-            Try the Free Demo
+            Try the free demo
           </a>
           <router-link
             to="/register"
             class="px-6 py-2.5 bg-light-pink-100 text-horizon-500 text-sm font-semibold rounded-lg hover:bg-light-pink-200 transition-colors"
           >
-            Start Your Free Trial
+            Start your free trial
           </router-link>
         </div>
       </div>
@@ -30,7 +31,7 @@
     <!-- Steps Section -->
     <section class="py-16 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-10">Getting started with Fynla</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-10">Fynla is as easy as 1-2-3...</h2>
 
         <!-- Step 1 — dark grey to light grey gradient -->
         <div class="rounded-2xl overflow-hidden mb-16" style="background: linear-gradient(135deg, #4A4A4A, #9E9E9E);">
@@ -234,8 +235,8 @@
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">15 minutes to clarity</h2>
         <p class="text-sm text-neutral-500 max-w-lg mx-auto mb-6">That's all it takes to see your complete financial picture. Start with the demo, or go straight to your free trial.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">Try the Free Demo</a>
-          <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Start Your Free Trial</router-link>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">Try the free demo</a>
+          <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Start your free trial</router-link>
         </div>
       </div>
     </section>

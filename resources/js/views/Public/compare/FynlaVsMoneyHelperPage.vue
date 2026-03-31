@@ -18,9 +18,9 @@
     <section class="py-10 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
 
-        <!-- What MoneyHelper Does Well -->
+        <!-- What MoneyHelper does well -->
         <div class="bg-light-blue-100 rounded-xl p-8">
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What MoneyHelper Does Well</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What MoneyHelper does well</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             MoneyHelper is a free, government-backed service that provides basic financial education, simple
             calculators, and signposting to regulated advice. It&rsquo;s a genuinely good starting point for
@@ -31,9 +31,9 @@
           </p>
         </div>
 
-        <!-- Where MoneyHelper Falls Short -->
+        <!-- Where MoneyHelper falls short -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where MoneyHelper Falls Short</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where MoneyHelper falls short</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-raspberry-500 mt-1.5 flex-shrink-0"></span>
@@ -64,7 +64,7 @@
 
         <!-- What to Use Instead -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What to Use Instead of MoneyHelper</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What to use instead of MoneyHelper</h2>
           <p class="text-sm text-neutral-600 leading-relaxed mb-3">
             If you&rsquo;re asking &ldquo;what can I use instead of MoneyHelper?&rdquo;, the answer depends on what you need:
           </p>
@@ -84,9 +84,9 @@
           </div>
         </div>
 
-        <!-- Feature Comparison -->
+        <!-- Feature comparison -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Fynla vs MoneyHelper &mdash; Feature Comparison</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Fynla vs MoneyHelper &mdash; Feature comparison</h2>
           <p class="text-sm text-neutral-600 leading-relaxed mb-3">
             If you&rsquo;re looking for a MoneyHelper pension calculator alternative or a better retirement planning tool, here&rsquo;s how the two compare across key areas:
           </p>

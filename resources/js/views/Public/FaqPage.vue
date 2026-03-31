@@ -4,7 +4,7 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
-          Frequently Asked <span class="text-raspberry-300">Questions</span>
+          Frequently asked <span class="text-raspberry-300">questions</span>
         </h1>
         <p class="text-lg text-white/70">
           Everything you need to know about Fynla — from what it does, to how it works, to whether it's right for you.
@@ -75,7 +75,7 @@
     <!-- Still Have Questions -->
     <section class="py-12 bg-light-pink-100">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-2">Still Have Questions?</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-2">Still have questions?</h2>
         <p class="text-sm text-neutral-500 mb-6">Can't find what you're looking for? Get in touch and we'll help.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
           <router-link

@@ -29,7 +29,7 @@
 
         <!-- Spreadsheet Strengths -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where Spreadsheets Excel</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where spreadsheets excel</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -50,9 +50,9 @@
           </ul>
         </div>
 
-        <!-- What You Gain With Fynla -->
+        <!-- What you gain with Fynla -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What You Gain With Fynla</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What you gain with Fynla</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -81,9 +81,9 @@
           </ul>
         </div>
 
-        <!-- The Hidden Cost of Spreadsheets -->
+        <!-- The hidden cost of spreadsheets -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">The Hidden Cost of Spreadsheets</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">The hidden cost of spreadsheets</h2>
           <div class="bg-white rounded-lg border border-light-gray p-5">
             <ul class="space-y-1.5 text-sm text-neutral-600">
               <li class="flex items-start gap-2">

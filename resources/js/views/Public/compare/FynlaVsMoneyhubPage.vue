@@ -19,7 +19,7 @@
 
         <!-- Overview -->
         <div class="bg-light-blue-100 rounded-xl p-8">
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Different Questions, Different Tools</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Different questions, different tools</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             A financial centralisation platform answers &ldquo;where did my money go?&rdquo; Fynla answers &ldquo;where is my money going?&rdquo;
             A centralisation platform connects to your bank accounts and tracks spending. Fynla goes deeper into planning &mdash; pensions,
@@ -29,7 +29,7 @@
 
         <!-- Moneyhub Strengths -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where a Centralisation Platform Excels</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where a centralisation platform excels</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -52,7 +52,7 @@
 
         <!-- Fynla Strengths -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where Fynla Excels</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where Fynla excels</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -79,7 +79,7 @@
 
         <!-- Use Cases -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">When to Use Each</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">When to use each</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="bg-light-pink-100 rounded-xl p-6">
               <p class="text-base font-bold text-horizon-500 mb-3">A centralisation platform is better for</p>

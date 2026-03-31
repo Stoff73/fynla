@@ -36,7 +36,7 @@
 
         <!-- FAQ Link -->
         <div class="bg-white rounded-lg border border-light-gray p-5">
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Frequently Asked Questions</h2>
+          <h2 class="text-base font-bold text-horizon-500 mb-2">Frequently asked questions</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             Many common questions are answered in our FAQ. It covers pricing, data security, supported features, and more.
           </p>

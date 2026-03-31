@@ -19,7 +19,7 @@
 
         <!-- Overview -->
         <div class="bg-light-blue-100 rounded-xl p-8">
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Investment Platforms are for Advisers. Fynla is for You.</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Investment platforms are for advisers. Fynla is for you.</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             A financial investment platform is professional financial planning software built exclusively for regulated financial advisers. It's not available to consumers &mdash; you can't sign up and use it yourself. If you've heard of one, it's because your adviser uses it behind the scenes.
           </p>
@@ -30,7 +30,7 @@
 
         <!-- Voyant Strengths -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where an Investment Platform Excels</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where an investment platform excels</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -53,7 +53,7 @@
 
         <!-- Fynla Strengths -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where Fynla Excels</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where Fynla excels</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -91,7 +91,7 @@
 
         <!-- Who Is Each Best For -->
         <div>
-          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Who Is Each Best For?</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Who is each best for?</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="bg-light-pink-100 rounded-xl p-6">
               <p class="text-base font-bold text-horizon-500 mb-3">Choose Fynla if you</p>

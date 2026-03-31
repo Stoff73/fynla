@@ -362,7 +362,7 @@
     <div class="bg-horizon-500 py-16">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
-          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Frequently Asked Questions</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Frequently asked questions</h2>
           <p class="text-white/70">Everything you need to know about Fynla plans</p>
         </div>
 
@@ -395,7 +395,7 @@
     <!-- CTA Section -->
     <div class="relative bg-light-pink-100 py-16 overflow-hidden">
       <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to Take Control of Your Finances?</h2>
+        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to take control of your finances?</h2>
         <p class="text-neutral-500 mb-8">
           <template v-if="isAuthenticated">Upgrade your plan to unlock more features.</template>
           <template v-else>Start your 7-day free trial today. No credit card required.</template>
@@ -404,7 +404,7 @@
           to="/register"
           class="inline-flex items-center px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
         >
-          Get Started Free
+          Get started free
           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>

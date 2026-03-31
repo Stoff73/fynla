@@ -10,7 +10,7 @@
             {{ hero.primaryCta || 'Try the Demo' }}
           </a>
           <router-link :to="hero.secondaryCtaLink || '/how-it-works'" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors text-sm">
-            {{ hero.secondaryCta || 'See How It Works' }}
+            {{ hero.secondaryCta || 'See how it works' }}
           </router-link>
         </div>
         <p v-if="hero.socialProof" class="mt-4 text-xs text-white/50 italic max-w-lg">{{ hero.socialProof }}</p>
@@ -94,7 +94,7 @@
     <!-- FAQ -->
     <section class="py-14" :class="comparison ? 'bg-white' : 'bg-eggshell-500'">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl font-bold text-horizon-500 mb-6">Common Questions</h2>
+        <h2 class="text-xl font-bold text-horizon-500 mb-6">Common questions</h2>
         <div class="space-y-2">
           <div v-for="(item, idx) in faq" :key="idx" class="bg-white rounded-lg border border-light-gray overflow-hidden">
             <button @click="toggleFaq(idx)" class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-savannah-50 transition-colors">
@@ -121,7 +121,7 @@
             Try the Demo
           </a>
           <router-link to="/register" class="px-6 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-colors">
-            Start Your Free Trial
+            Start your free trial
           </router-link>
         </div>
       </div>

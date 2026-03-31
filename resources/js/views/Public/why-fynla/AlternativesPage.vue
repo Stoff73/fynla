@@ -82,7 +82,7 @@
           href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
           class="inline-block px-8 py-3 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors"
         >
-          Try the Free Demo
+          Try the free demo
         </a>
       </div>
     </section>
