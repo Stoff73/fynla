@@ -42,10 +42,8 @@ const actions = {
     commit('onboarding/RESET_STATE', null, { root: true });
     dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
-    // If was in preview mode, clear both storage types (don't redirect via exitPreview)
-    if (wasInPreviewMode) {
-      await removeToken();
-    }
+    // ALWAYS clear the stored token to prevent previous user's session leaking
+    await removeToken();
 
     try {
       const response = await authService.register(userData);
@@ -81,10 +79,8 @@ const actions = {
     commit('onboarding/RESET_STATE', null, { root: true });
     dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
-    // If was in preview mode, clear both storage types (don't redirect via exitPreview)
-    if (wasInPreviewMode) {
-      await removeToken();
-    }
+    // ALWAYS clear the stored token to prevent previous user's session leaking
+    await removeToken();
 
     try {
       const response = await authService.login(credentials);
