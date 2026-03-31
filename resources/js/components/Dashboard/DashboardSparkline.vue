@@ -100,9 +100,14 @@ export default {
         },
         grid: {
           show: false,
-          padding: { left: 0, right: 0, top: -10, bottom: 0 },
+          padding: { left: 10, right: 10, top: -10, bottom: 0 },
         },
-        tooltip: { enabled: false },
+        tooltip: {
+          enabled: true,
+          y: {
+            formatter: (val) => '£' + val.toLocaleString('en-GB'),
+          },
+        },
         legend: { show: false },
         dataLabels: { enabled: false },
       };

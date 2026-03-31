@@ -94,7 +94,7 @@
         </div>
 
         <!-- MIDDLE: Profile Completeness (progress ring + category links) -->
-        <div class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40 status-divider">
+        <div class="flex flex-shrink-0 w-1/3 flex-col pl-5 status-divider">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Profile Completeness
             <span class="relative group">
@@ -135,7 +135,7 @@
         </div>
 
         <!-- RIGHT: Recommended Actions (desktop only) -->
-        <div v-if="topActions.length" class="flex flex-shrink-0 w-1/3 flex-col pl-5 border-l border-white/40 status-divider">
+        <div v-if="topActions.length" class="flex flex-shrink-0 w-1/3 flex-col pl-5 status-divider">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Fyn's Recommended Actions
             <span class="relative group">

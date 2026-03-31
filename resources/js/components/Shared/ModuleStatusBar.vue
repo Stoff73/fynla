@@ -59,28 +59,55 @@
       </div>
     </button>
 
-    <!-- Expanded checklist -->
+    <!-- Expanded three-column layout -->
     <div
       class="checklist-body transition-all duration-200 ease-out"
       :class="expanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'"
       style="overflow: hidden;"
     >
       <div class="px-4 pb-4 pt-1 border-t border-light-pink-200">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
-          <div
-            v-for="item in allRequirements"
-            :key="item.key"
-            class="flex items-center gap-2 py-1"
-          >
-            <!-- Filled -->
-            <template v-if="item.status === 'filled'">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+          <!-- LEFT: Completed -->
+          <div>
+            <div class="col-header text-spring-500">
+              <svg class="inline w-3.5 h-3.5 -mt-0.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              Completed ({{ filledCount }})
+            </div>
+            <div
+              v-for="item in filledItems"
+              :key="item.key"
+              class="flex items-center gap-2 py-1"
+            >
               <svg class="w-4 h-4 flex-shrink-0 text-spring-500" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
-              <span class="text-neutral-400 line-through">{{ item.label }}</span>
-            </template>
-            <!-- Missing -->
-            <template v-else>
+              <span class="text-sm text-spring-500">{{ item.label }}</span>
+            </div>
+            <div v-if="filledItems.length === 0" class="text-sm text-neutral-400 py-1">
+              No items completed yet
+            </div>
+          </div>
+
+          <!-- MIDDLE: Outstanding -->
+          <div>
+            <div class="col-header text-violet-600">
+              <svg class="inline w-3.5 h-3.5 -mt-0.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Outstanding ({{ missingItems.length }})
+            </div>
+            <div
+              v-for="item in missingItems"
+              :key="item.key"
+              class="flex items-center gap-2 py-1 rounded-md px-1 -mx-1 transition-colors"
+              :class="hoveredItem?.key === item.key ? 'bg-violet-500/10' : ''"
+              @mouseenter="hoveredItem = item"
+              @mouseleave="hoveredItem = null"
+            >
               <svg class="w-4 h-4 flex-shrink-0 text-violet-500" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -88,11 +115,32 @@
               <router-link
                 v-if="item.link"
                 :to="item.link"
-                class="text-violet-600 hover:text-violet-700 hover:underline"
+                class="text-sm text-violet-600 hover:text-violet-700 hover:underline"
               >{{ item.label }}</router-link>
-              <span v-else class="text-violet-600">{{ item.label }}</span>
-            </template>
+              <span v-else class="text-sm text-violet-600">{{ item.label }}</span>
+            </div>
+            <div v-if="missingItems.length === 0" class="text-sm text-neutral-400 py-1">
+              All items complete
+            </div>
           </div>
+
+          <!-- RIGHT: Why we need this -->
+          <div>
+            <div class="col-header text-neutral-400">
+              <svg class="inline w-3.5 h-3.5 -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Why we need this
+            </div>
+            <div class="bg-white rounded-lg p-3 min-h-[80px] flex flex-col justify-center">
+              <template v-if="hoveredItem">
+                <span class="text-xs font-semibold text-horizon-500 mb-1">{{ hoveredItem.label }}</span>
+                <span class="text-xs text-neutral-500 leading-relaxed">{{ hoveredItem.why }}</span>
+              </template>
+              <span v-else class="text-xs text-neutral-300">Hover over an outstanding item to see why it's needed</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -124,6 +172,7 @@ export default {
     const route = useRoute();
 
     const expanded = ref(storage.get(STORAGE_KEY) === 'true');
+    const hoveredItem = ref(null);
 
     const toggle = () => {
       expanded.value = !expanded.value;
@@ -144,6 +193,7 @@ export default {
     const loading = computed(() => store.state.infoGuide?.loading ?? false);
     const allRequirements = computed(() => store.getters['infoGuide/allRequirements'] || []);
     const filledItems = computed(() => store.getters['infoGuide/filledItems'] || []);
+    const missingItems = computed(() => store.getters['infoGuide/missingItems'] || []);
     const completionPercentage = computed(() => store.getters['infoGuide/completionPercentage'] || 0);
 
     const filledCount = computed(() => filledItems.value.length);
@@ -161,9 +211,12 @@ export default {
 
     return {
       expanded,
+      hoveredItem,
       toggle,
       loading,
       allRequirements,
+      filledItems,
+      missingItems,
       filledCount,
       totalCount,
       completionPercentage,
@@ -174,3 +227,15 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.col-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #FECDD3;
+}
+</style>

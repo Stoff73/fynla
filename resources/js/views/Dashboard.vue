@@ -1,10 +1,10 @@
 <template>
   <AppLayout>
     <div class="py-2 sm:py-3">
-      <!-- 2FA Security Reminder Banner -->
+      <!-- 2FA Security Reminder Notification -->
       <div
         v-if="showMFABanner"
-        class="mb-6 bg-spring-100 border border-spring-300 rounded-lg p-4 shadow-sm"
+        class="mb-6 bg-spring-100 border border-spring-200 rounded-lg p-4 shadow-sm"
       >
         <div class="flex items-start gap-4">
           <div class="flex-shrink-0">
@@ -15,31 +15,22 @@
             </div>
           </div>
           <div class="flex-1">
-            <h3 class="text-sm font-semibold text-spring-800">Secure Your Account with Two-Factor Authentication</h3>
+            <h3 class="text-sm font-semibold text-spring-800">Secure your account with two-factor authentication</h3>
             <p class="mt-1 text-sm text-spring-700">
-              Protect your financial data by enabling two-factor authentication. It adds an extra layer of security using an authenticator app on your phone.
+              Protect your financial data by adding an extra layer of security using an authenticator app on your phone.
             </p>
-            <div class="mt-3 flex items-center gap-3">
+            <div class="mt-3">
               <router-link
                 to="/settings/security"
-                class="inline-flex items-center px-4 py-2 bg-raspberry-500 text-white text-sm font-medium rounded-button hover:bg-raspberry-600 transition-colors"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-button border border-spring-300 text-spring-800 bg-white hover:bg-spring-50 transition-colors"
               >
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Enable Two-Factor Authentication
+                Enable Two-Factor Authentication →
               </router-link>
-              <button
-                @click="dismissMFABanner"
-                class="text-sm text-spring-700 hover:text-spring-900 underline"
-              >
-                Remind me later
-              </button>
             </div>
           </div>
           <button
             @click="dismissMFABanner"
-            class="flex-shrink-0 text-spring-500 hover:text-spring-700"
+            class="flex-shrink-0 text-spring-400 hover:text-spring-600"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -234,9 +225,9 @@
 
             <!-- Desktop: Custom SVG donut ring (V6 design — 40px stroke, gradients, rounded caps) -->
             <template v-else>
-              <div class="flex justify-center">
-                <div class="relative" style="width: 240px; height: 240px;">
-                  <svg viewBox="0 0 220 220" width="240" height="240">
+              <div class="flex justify-center" style="overflow: visible; position: relative; z-index: 1;">
+                <div class="relative" style="width: 240px; height: 240px; overflow: visible;">
+                  <svg viewBox="0 0 220 220" width="240" height="240" overflow="visible" @click.stop>
                     <defs>
                       <linearGradient
                         v-for="(seg, idx) in netWorthDonutSegments"
@@ -259,9 +250,13 @@
                       :stroke-dasharray="seg.arcLength + ' ' + 471.2"
                       :stroke-dashoffset="-seg.offset"
                       transform="rotate(-90 110 110)"
+                      class="cursor-pointer"
+                      @mouseenter="nwHoveredIndex = idx; nwMouseX = $event.clientX; nwMouseY = $event.clientY"
+                      @mousemove="nwMouseX = $event.clientX; nwMouseY = $event.clientY"
+                      @mouseleave="nwHoveredIndex = null"
                     />
                   </svg>
-                  <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <span
                       class="text-xl font-black"
                       :class="netWorthData.netWorth >= 0 ? 'text-spring-600' : 'text-raspberry-600'"
@@ -440,8 +435,15 @@
               </div>
             </div>
 
-            <!-- 6-month sparkline -->
-            <DashboardSparkline :data="investmentSparklineData" />
+            <!-- Investment accounts bar chart -->
+            <div v-if="investmentBarData.length > 0" class="investment-bar-chart">
+              <apexchart
+                type="bar"
+                :options="investmentBarOptions"
+                :series="investmentBarSeries"
+                :height="120"
+              />
+            </div>
 
             <!-- Collapsible accounts -->
             <div class="border-t border-light-gray pt-2">
@@ -694,6 +696,7 @@
         <DashboardCard
           v-if="isCardVisible('tax-allowances')"
           title="Allowances"
+          :subtitle="'Tax year ' + currentTaxYear"
           :loading="loading.taxAllowances"
           :clickable="false"
         >
@@ -914,6 +917,19 @@
       </div>
     </div>
   </AppLayout>
+
+  <!-- Net Worth donut hover tooltip (teleported to body to avoid overflow:hidden clipping) -->
+  <Teleport to="body">
+    <div
+      v-if="nwHoveredIndex !== null && netWorthDonutSegments[nwHoveredIndex]"
+      class="nw-donut-tooltip"
+      :style="{ left: nwMouseX + 12 + 'px', top: nwMouseY - 40 + 'px', background: netWorthDonutSegments[nwHoveredIndex].color }"
+    >
+      <span class="font-semibold">{{ netWorthDonutSegments[nwHoveredIndex].label }}</span>
+      <span>{{ formatCurrency(netWorthDonutSegments[nwHoveredIndex].value) }}</span>
+      <span class="text-white/70">{{ netWorthDonutSegments[nwHoveredIndex].percent }}%</span>
+    </div>
+  </Teleport>
 </template>
 
 <script>
@@ -972,7 +988,7 @@ export default {
         estate: null,
       },
       dataLoaded: false,
-      mfaBannerDismissed: storage.get('mfaBannerDismissed') === 'true',
+      mfaBannerDismissed: sessionStorage.getItem('mfaBannerDismissed') === 'true',
       knowledgeNudgeDismissed: storage.get('knowledgeNudgeDismissed') === 'true',
       savingKnowledgeLevel: false,
       savingsAccountsExpanded: false,
@@ -980,6 +996,9 @@ export default {
       financialCommitmentsData: null,
       willSelection: null,
       isMobile: window.innerWidth < 768,
+      nwHoveredIndex: null,
+      nwMouseX: 0,
+      nwMouseY: 0,
     };
   },
 
@@ -1233,6 +1252,9 @@ export default {
         const proportion = cat.value / total;
         const arcLength = Math.max(proportion * circumference - gap, 2);
         const seg = {
+          label: cat.label,
+          value: cat.value,
+          percent: (proportion * 100).toFixed(1),
           color: cat.color,
           colorLight: this.lightenColor(cat.color, 0.35),
           arcLength,
@@ -1796,8 +1818,8 @@ export default {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         labels.push(d.toLocaleString('en-GB', { month: 'short' }));
       }
-      // Natural growth curve with slight dips for realism
-      const factors = [0.88, 0.91, 0.89, 0.93, 0.96, 1.0];
+      // Realistic savings growth: small steady increases (~0.3-0.5% per month from interest + contributions)
+      const factors = [0.985, 0.988, 0.991, 0.994, 0.997, 1.0];
       return labels.map((label, i) => ({
         label,
         value: Math.round(total * factors[i]),
@@ -1812,20 +1834,47 @@ export default {
       return sorted.slice(0, 3);
     },
 
-    investmentSparklineData() {
-      const total = this.investmentPortfolioValue || 0;
-      const labels = [];
-      const now = new Date();
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString('en-GB', { month: 'short' }));
-      }
-      // Volatile growth curve typical of investments
-      const factors = [0.85, 0.90, 0.87, 0.94, 0.92, 1.0];
-      return labels.map((label, i) => ({
-        label,
-        value: Math.round(total * factors[i]),
-      }));
+    investmentBarData() {
+      return (this.$store.state.investment.accounts || [])
+        .map(acc => ({
+          name: acc.account_name || acc.provider || 'Account',
+          value: acc.current_value || acc.total_value || 0,
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6);
+    },
+
+    investmentBarSeries() {
+      return [{ name: 'Value', data: this.investmentBarData.map(d => d.value) }];
+    },
+
+    investmentBarOptions() {
+      return {
+        chart: { toolbar: { show: false }, parentHeightOffset: 0 },
+        plotOptions: { bar: { horizontal: false, columnWidth: this.investmentBarData.length === 1 ? '35%' : '55%', borderRadius: 4, distributed: true } },
+        colors: ['#5854E6', '#6C83BC', '#20B486', '#E83E6D', '#E6C9A8', '#1F2A44'],
+        xaxis: {
+          categories: this.investmentBarData.map(d => d.name.length > 12 ? d.name.substring(0, 12) + '…' : d.name),
+          labels: { style: { fontSize: '10px', colors: '#6B7280' }, trim: false },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
+        },
+        yaxis: {
+          show: true,
+          labels: {
+            style: { fontSize: '9px', colors: ['#6B7280'] },
+            formatter: (val) => val >= 1000 ? '£' + Math.round(val / 1000) + 'k' : '£' + val,
+          },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
+        },
+        legend: { show: false },
+        grid: { show: false, padding: { left: 2, right: 2, top: -15, bottom: 0 } },
+        dataLabels: { enabled: false },
+        tooltip: {
+          y: { formatter: (val) => '£' + val.toLocaleString('en-GB') },
+        },
+      };
     },
 
     visibleInvestmentAccounts() {
@@ -1939,7 +1988,7 @@ export default {
 
     dismissMFABanner() {
       this.mfaBannerDismissed = true;
-      storage.set('mfaBannerDismissed', 'true');
+      sessionStorage.setItem('mfaBannerDismissed', 'true');
     },
 
     dismissKnowledgeNudge() {
@@ -2122,7 +2171,31 @@ export default {
 <style scoped>
 /* Empty cards use order-last to sink below populated cards in the grid */
 
+.dashboard-grid {
+  align-items: stretch;
+}
+
 .dashboard-grid > * {
   min-width: 0;
+  height: 100%;
+}
+
+</style>
+
+<style>
+.nw-donut-tooltip {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: white;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 </style>

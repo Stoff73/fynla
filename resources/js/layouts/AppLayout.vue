@@ -21,7 +21,7 @@
       :class="contentMarginClass"
     >
       <div ref="appHeader">
-        <Navbar :subscription-data="subscriptionData" @open-chat="openChat" />
+        <Navbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" />
 
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />

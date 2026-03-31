@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup — Module Status Bar Redesign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #F5F0EB; font-family: 'Segoe UI', Inter, system-ui, sans-serif; }
+    .light-pink-100 { background: #FFF0F3; }
+    .light-pink-200 { background: #FECDD3; }
+    .spring-500 { color: #20B486; }
+    .violet-500 { color: #5854E6; }
+    .violet-600 { color: #4945CC; }
+    .horizon-500 { color: #1F2A44; }
+    .raspberry-500 { color: #E8326E; }
+
+    .status-bar {
+      background: #FFF0F3;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .status-bar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .status-bar-header:hover {
+      background: rgba(254, 205, 211, 0.5);
+    }
+
+    .status-bar-body {
+      border-top: 1px solid #FECDD3;
+      padding: 16px;
+    }
+
+    .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+    }
+
+    .col-header {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #FECDD3;
+    }
+
+    .item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .item-filled {
+      color: #20B486;
+    }
+
+    .item-missing {
+      color: #4945CC;
+    }
+
+    .item-missing a {
+      color: #4945CC;
+      text-decoration: none;
+    }
+
+    .item-missing a:hover {
+      text-decoration: underline;
+    }
+
+    .icon-check {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: #20B486;
+      margin-top: 1px;
+    }
+
+    .icon-missing {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: #5854E6;
+      margin-top: 1px;
+    }
+
+    /* Right column: why text appears on hover */
+    .why-panel {
+      font-size: 13px;
+      color: #6B7280;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 8px;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .why-panel .why-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1F2A44;
+      margin-bottom: 4px;
+    }
+
+    .why-panel .why-text {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #6B7280;
+    }
+
+    .why-panel .why-placeholder {
+      font-size: 12px;
+      color: #D1D5DB;
+    }
+
+    /* Hover highlight on outstanding items */
+    .item-missing.active {
+      background: rgba(88, 84, 230, 0.08);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin: 0 -8px;
+    }
+
+    /* Module gradient simulation */
+    .module-sim {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #E5E7EB;
+      padding: 24px;
+      max-width: 900px;
+      margin: 40px auto;
+      position: relative;
+    }
+
+    .module-sim::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #DDE7F9, #F5D8E0);
+      border-radius: 0 0 12px 12px;
+    }
+
+    h2.section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1F2A44;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="module-sim">
+    <h2 class="section-title">Dashboard — What Powers This View</h2>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <!-- Collapsed header -->
+      <div class="status-bar-header" onclick="document.getElementById('body1').style.display = document.getElementById('body1').style.display === 'none' ? 'block' : 'none'">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <!-- Progress ring -->
+          <svg width="28" height="28" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#FECDD3" stroke-width="3"/>
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#E8326E" stroke-width="3" stroke-linecap="round"
+              stroke-dasharray="97.4" stroke-dashoffset="36.5" transform="rotate(-90 18 18)"/>
+            <text x="18" y="18" text-anchor="middle" dominant-baseline="central" fill="#E8326E" font-size="8" font-weight="700">63%</text>
+          </svg>
+          <span style="font-size: 13px; font-weight: 500; color: #1F2A44;">5 of 8 items complete</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 12px; color: #9CA3AF;">What powers this view</span>
+          <svg width="14" height="14" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Expanded body -->
+      <div id="body1" class="status-bar-body">
+        <div class="three-col">
+          <!-- LEFT: Completed -->
+          <div>
+            <div class="col-header spring-500">
+              <svg style="display:inline; width:14px; height:14px; vertical-align:-2px; margin-right:4px;" viewBox="0 0 24 24" fill="#20B486">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              Completed (5)
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your date of birth</span>
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your annual income</span>
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your properties</span>
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your savings accounts</span>
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your marital status</span>
+            </div>
+          </div>
+
+          <!-- MIDDLE: Outstanding -->
+          <div>
+            <div class="col-header violet-600">
+              <svg style="display:inline; width:14px; height:14px; vertical-align:-2px; margin-right:4px;" viewBox="0 0 24 24" fill="#5854E6">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Outstanding (3)
+            </div>
+            <div class="item item-missing" onmouseenter="showWhy(0)" onmouseleave="clearWhy()">
+              <svg class="icon-missing" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <a href="#">Your monthly spending</a>
+            </div>
+            <div class="item item-missing" onmouseenter="showWhy(1)" onmouseleave="clearWhy()">
+              <svg class="icon-missing" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <a href="#">Your investment accounts</a>
+            </div>
+            <div class="item item-missing" onmouseenter="showWhy(2)" onmouseleave="clearWhy()">
+              <svg class="icon-missing" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <a href="#">Your pension details</a>
+            </div>
+          </div>
+
+          <!-- RIGHT: Why this data is needed -->
+          <div>
+            <div class="col-header" style="color: #6B7280;">
+              <svg style="display:inline; width:14px; height:14px; vertical-align:-2px; margin-right:4px;" fill="none" stroke="#6B7280" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Why we need this
+            </div>
+            <div class="why-panel" id="why-panel">
+              <div class="why-placeholder" id="why-placeholder">Hover over an outstanding item to see why it's needed</div>
+              <div id="why-content" style="display:none;">
+                <div class="why-label" id="why-label"></div>
+                <div class="why-text" id="why-text"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Second example: Protection module -->
+    <h2 class="section-title" style="margin-top: 32px;">Protection — What Powers This View</h2>
+
+    <div class="status-bar">
+      <div class="status-bar-header" onclick="document.getElementById('body2').style.display = document.getElementById('body2').style.display === 'none' ? 'block' : 'none'">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <svg width="28" height="28" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#FECDD3" stroke-width="3"/>
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#E8326E" stroke-width="3" stroke-linecap="round"
+              stroke-dasharray="97.4" stroke-dashoffset="58.4" transform="rotate(-90 18 18)"/>
+            <text x="18" y="18" text-anchor="middle" dominant-baseline="central" fill="#E8326E" font-size="8" font-weight="700">40%</text>
+          </svg>
+          <span style="font-size: 13px; font-weight: 500; color: #1F2A44;">2 of 5 items complete</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 12px; color: #9CA3AF;">What powers this view</span>
+          <svg width="14" height="14" fill="none" stroke="#9CA3AF" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </div>
+
+      <div id="body2" class="status-bar-body" style="display:none;">
+        <div class="three-col">
+          <!-- LEFT: Completed -->
+          <div>
+            <div class="col-header spring-500">
+              <svg style="display:inline; width:14px; height:14px; vertical-align:-2px; margin-right:4px;" viewBox="0 0 24 24" fill="#20B486">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              Completed (2)
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your date of birth</span>
+            </div>
+            <div class="item item-filled">
+              <svg class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <span>Your annual income</span>
+            </div>
+          </div>
+
+          <!-- MIDDLE: Outstanding -->
+          <div>
+            <div class="col-header violet-600">
+              <svg style="display:inline; width:14px; height:14px; vertical-align:-2px; margin-right:4px;" viewBox="0 0 24 24" fill="#5854E6">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Outstanding (3)
+            </div>
+            <div class="item item-missing" onmouseenter="showWhy2(0)" onmouseleave="clearWhy2()">
+              <svg class="icon-missing" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <a href="#">Your marital status</a>
+            </div>
+            <div class="item item-missing" onmouseenter="showWhy2(1)" onmouseleave="clearWhy2()">
+              <svg class="icon-missing" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <a href="#">Your monthly spending</a>
+            </div>
+            <div class="item item-missing" onmouseenter="showWhy2(2)" onmouseleave="clearWhy2()">
+              <svg class="icon-missing" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+              <a href="#">Your occupation</a>
+            </div>
+          </div>
+
+          <!-- RIGHT: Why -->
+          <div>
+            <div class="col-header" style="color: #6B7280;">
+              <svg style="display:inline; width:14px; height:14px; vertical-align:-2px; margin-right:4px;" fill="none" stroke="#6B7280" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Why we need this
+            </div>
+            <div class="why-panel" id="why-panel-2">
+              <div class="why-placeholder" id="why-placeholder-2">Hover over an outstanding item to see why it's needed</div>
+              <div id="why-content-2" style="display:none;">
+                <div class="why-label" id="why-label-2"></div>
+                <div class="why-text" id="why-text-2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dashboard why data
+    const whyData = [
+      { label: 'Your monthly spending', text: 'Helps track your budget and calculate how much you can save each month. This powers your savings rate calculation and identifies opportunities to save more.' },
+      { label: 'Your investment accounts', text: 'Investment accounts are key to tracking your portfolio performance, asset allocation, and progress towards financial goals.' },
+      { label: 'Your pension details', text: 'Pensions are typically your largest retirement asset. Adding them lets Fynla project when you can retire and how much income you\'ll have.' },
+    ];
+
+    function showWhy(idx) {
+      document.getElementById('why-placeholder').style.display = 'none';
+      document.getElementById('why-content').style.display = 'block';
+      document.getElementById('why-label').textContent = whyData[idx].label;
+      document.getElementById('why-text').textContent = whyData[idx].text;
+    }
+
+    function clearWhy() {
+      document.getElementById('why-placeholder').style.display = 'block';
+      document.getElementById('why-content').style.display = 'none';
+    }
+
+    // Protection why data
+    const whyData2 = [
+      { label: 'Your marital status', text: 'Determines whether your protection needs include a partner\'s income and lifestyle. Married couples have different cover requirements than single individuals.' },
+      { label: 'Your monthly spending', text: 'Used to calculate how much income protection you\'d need if you couldn\'t work. Your spending level determines the minimum cover amount.' },
+      { label: 'Your occupation', text: 'Your job type affects insurance premiums and the likelihood of certain claims. Manual work typically costs more to insure than desk-based roles.' },
+    ];
+
+    function showWhy2(idx) {
+      document.getElementById('why-placeholder-2').style.display = 'none';
+      document.getElementById('why-content-2').style.display = 'block';
+      document.getElementById('why-label-2').textContent = whyData2[idx].label;
+      document.getElementById('why-text-2').textContent = whyData2[idx].text;
+    }
+
+    function clearWhy2() {
+      document.getElementById('why-placeholder-2').style.display = 'block';
+      document.getElementById('why-content-2').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
