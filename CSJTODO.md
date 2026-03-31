@@ -54,15 +54,52 @@ Content branch has journey page redesign committed and pushed (2 commits: `e5ecd
 - [x] Mobile layout fixes for homepage and calculators
 
 ### New Outstanding Items
+- [x] Create PR from resources-pages branch to main — PR #177
 - [ ] Delete mockup HTML files from public/ before deploy (insights, learn, journey, persona, mobile)
 - [ ] Browser test persona selection modal on desktop and mobile
-- [ ] Browser test journey maps render correctly on all 5 pages (especially Protecting/Planning with 8-9 steps)
-- [ ] Browser test footer social media icons link correctly
-- [ ] Create PR from resources-pages branch to main
-- [ ] Run production build after PR merge
+- [ ] Browser test contact form submission (requires mail config on production)
+- [ ] Merge PR #177 and deploy (see March/March31Updates/deployResourcePages.md)
+- [ ] Submit updated sitemap.xml to Google Search Console after deploy
+- [ ] Monitor old comparison page URLs for 404s (/fynla-vs-moneyhub, /fynla-vs-projectionlab, /fynla-vs-voyant)
 
 ### Context
-Resources-pages branch has 2 commits (`03466d0c`, `42469e6b`). 50 files changed across resource pages, journey pages, insights, learn, persona modal, and footer. All frontend-only. Deploy notes at `March/March30Updates/deploy.md`. Mockup files in public/ need deleting before deploy.
+Resources-pages branch has 25 commits today (662a512f latest). PR #177 created. 421 files changed. Deploy notes at `March/March31Updates/deployResourcePages.md`.
+
+---
+
+## Session 31 March 2026 — Public pages redesign, new pages, centralised FAQs, contact form
+
+### Completed This Session
+- [x] Features page: eggshell bg, light-pink/light-blue columns, harvey balls, comparison links
+- [x] GA tag moved to app.blade.php head for full site coverage
+- [x] SEO meta descriptions and structured data schemas on learn pages
+- [x] Comparison pages: platform names replace competitors, new slugs, redesigned sections
+- [x] Glossary page: full-width, pink letter boxes, larger fonts
+- [x] FAQ page: full-width, centralised FAQ data (constants/faqData.js), intro, pink section boxes
+- [x] Demo modal opens in-place on current page (PublicLayout global modal)
+- [x] Security page: full redesign with palette colours, tick icons, horizon notice
+- [x] Our approach page: pink content boxes, horizon-blue values grid
+- [x] One platform page: homepage-style feature/journey cards, centre-aligned
+- [x] Financial companion page: new hero, IFA vs Fynla pricing comparison
+- [x] Getting started page: new title, "Fynla is as easy as 1-2-3" steps section
+- [x] Sentence case applied across all titles and buttons site-wide
+- [x] Advisors page: new page with hero, intro, feature cards, sign-up CTA with smooth scroll
+- [x] Contact page: contact form with captcha, Ask Fyn box, horizon email cards
+- [x] ContactFormController backend with rate limiting and email routing
+- [x] Insights hub: light-pink hover on articles
+- [x] Footer: FAQs→/faq, Learning Centre→Guides and explainers at /learn, adviser scroll links
+- [x] Mega menu: "One Platform Story"→"One platform", "Not Tied to an Adviser"→"Your financial companion"
+- [x] Terms & Privacy pages: full-width content
+- [x] Deleted LearningCentre.vue (route redirects to /learn)
+- [x] Sitemap updated with all 60+ public URLs
+- [x] PR #177 created
+- [x] Production build completed (6.9M)
+
+### Outstanding
+- [ ] Merge PR #177 and deploy
+- [ ] Test contact form on production (requires mail config)
+- [ ] Submit sitemap to Google Search Console
+- [ ] Monitor old comparison URLs for 404s
 
 ---
 
@@ -109,6 +146,12 @@ Resources-pages branch has 2 commits (`03466d0c`, `42469e6b`). 50 files changed 
 
 ## Deploy Status
 
+### Branch: resources-pages (PR #177 — NOT merged to main)
+- Deploy guide: March/March31Updates/deployResourcePages.md
+- Requires: merge to main, build, 4 PHP files upload, sitemap upload, cache clear
+- No migrations needed
+- Contact form requires mail config on production
+
 ### Branch: adminUserView (NOT merged to main)
 - Deploy guide: March/March31Updates/deployAdminUser.md
 - Requires: merge to main, build, PHP upload, 2 migrations, seeder, cache clear
@@ -119,10 +162,10 @@ Resources-pages branch has 2 commits (`03466d0c`, `42469e6b`). 50 files changed 
 
 ## Context for Next Session
 
-Session 18 built the admin user metrics dashboard and updated subscription tiers (branch: adminUserView). Both session 17 and session 18 changes need to be deployed. The recommended sequence is: (1) merge adminUserView into main, (2) resolve any conflicts with session 17 changes, (3) do a single production deploy covering both sessions. The deploy guide at March/March31Updates/deployAdminUser.md covers the admin metrics work specifically. Feature-level plan gating (restricting features per tier) is not yet implemented in CheckSubscription middleware — it only checks active subscription status.
+Session 31 March completed a comprehensive public pages redesign on the resources-pages branch (PR #177, 421 files). Key changes: all public pages restyled to consistent design system, competitor names replaced with platform categories on comparison pages (with new URL slugs), centralised FAQ data, new advisors page, contact form with backend, demo modal opens in-place, sentence case across site, sitemap updated with 60+ URLs. The branch needs merging to main and deploying. Old comparison page URLs (/fynla-vs-moneyhub etc.) have router-level redirects but should be monitored for SEO impact. Contact form requires mail config on production server. Three branches pending deploy: resources-pages, adminUserView, and session 17 fixes.
 
 ## Files to Review
+- March/March31Updates/deployResourcePages.md — Resource pages deploy guide
 - March/March31Updates/deployAdminUser.md — Admin user metrics deploy guide
-- March/March30Updates/admin-user-metrics-completeness-report.md — Full implementation report
-- docs/superpowers/specs/2026-03-30-admin-user-metrics-design.md — Design spec
-- docs/superpowers/plans/2026-03-30-admin-user-metrics.md — Implementation plan
+- resources/js/constants/faqData.js — Centralised FAQ data (single source of truth)
+- app/Http/Controllers/Api/ContactFormController.php — New contact form backend
