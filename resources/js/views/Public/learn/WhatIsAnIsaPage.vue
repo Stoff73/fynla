@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">What is an ISA?</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           Tax-free savings and investments, explained without the jargon.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-12 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- The Short Answer -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-lg font-bold text-horizon-500 mb-2">The Short Answer</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             An Individual Savings Account (ISA) is a tax-free wrapper for your savings or investments. You can save up to
@@ -27,7 +30,7 @@
         <div>
           <h2 class="text-lg font-bold text-horizon-500 mb-3">Types of ISA</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div v-for="isa in isaTypes" :key="isa.name" class="bg-white rounded-lg border border-light-gray p-4">
+            <div v-for="isa in isaTypes" :key="isa.name" class="bg-eggshell-500 rounded-lg p-4">
               <p class="text-sm font-semibold text-horizon-500 mb-1">{{ isa.name }}</p>
               <p class="text-xs text-neutral-500 leading-relaxed">{{ isa.desc }}</p>
             </div>
@@ -82,38 +85,22 @@
           </ul>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/calculators" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Savings goal calculator</router-link>
-            <router-link to="/learn/glossary" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary</router-link>
-            <router-link to="/stage/starting-out" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Starting Out stage</router-link>
-            <router-link to="/learn" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">All guides</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="py-12 bg-white">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-xl font-bold text-horizon-500 mb-2">Track your ISA allowance in Fynla</h2>
-        <p class="text-sm text-neutral-500 mb-6">See exactly how much of your &pound;20,000 allowance you have used &mdash; and where to put the rest.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </section>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'WhatIsAnIsaPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   data() {
     return {

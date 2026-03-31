@@ -43,11 +43,12 @@
           </div>
         </div>
 
-        <!-- Launch Discount Banner -->
+        <!-- Launch Offer Banner -->
         <div class="flex justify-center mb-10">
-          <span class="inline-block bg-raspberry-50 text-raspberry-500 text-sm font-bold px-4 py-2 rounded-full">
-            Launch Discount — First 500 Users
-          </span>
+          <div class="bg-gradient-to-r from-raspberry-500 to-violet-500 rounded-xl px-8 py-4 text-center shadow-lg">
+            <p class="text-xl sm:text-2xl font-bold text-white mb-1">Limited Time Offer</p>
+            <p class="text-sm text-white/80">Lock in discounted pricing today &mdash; prices will increase when this offer expires</p>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
@@ -60,10 +61,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£45.00' : '£4.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£2.50/mo — save 33%</p>
             </div>
@@ -131,10 +131,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£135.00' : '£14.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£8.33/mo — save 26%</p>
             </div>
@@ -204,10 +203,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£199.00' : '£21.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£12.50/mo — save 25%</p>
             </div>
@@ -250,10 +248,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£269.99' : '£29.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£16.67/mo — save 26%</p>
             </div>

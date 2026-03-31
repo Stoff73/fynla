@@ -96,6 +96,7 @@
       <JourneyProgressHero
         v-if="currentStage"
         class="mb-3"
+        @toggle-chat="toggleFynChat"
       />
 
       <!-- Empty Dashboard (no financial data) -->
@@ -1989,6 +1990,10 @@ export default {
     dismissMFABanner() {
       this.mfaBannerDismissed = true;
       sessionStorage.setItem('mfaBannerDismissed', 'true');
+    },
+
+    toggleFynChat() {
+      window.dispatchEvent(new CustomEvent('fyn-toggle-chat'));
     },
 
     dismissKnowledgeNudge() {

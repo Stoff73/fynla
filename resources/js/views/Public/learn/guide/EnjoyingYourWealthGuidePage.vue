@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Enjoying Your Wealth &mdash; Estate Planning Guide</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           A practical estate planning guide covering Inheritance Tax, gifting strategies, wills, Lasting Powers of Attorney, and protecting your family&rsquo;s inheritance.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- This Guide is For You If... -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">This Guide is For You If&hellip;</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
@@ -189,28 +192,22 @@
             <router-link to="/insights/pension-iht-changes-2027" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Pension Inheritance Tax changes 2027</router-link>
           </div>
         </div>
+        </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-base font-bold text-white mb-2">Calculate your Inheritance Tax exposure in Fynla</h2>
-        <p class="text-xs text-white/80 mb-6">See your estate value, allowances, and potential tax liability &mdash; model gifting and 2027 pension changes.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </div>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'EnjoyingYourWealthGuidePage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'Estate Planning Guide UK — Protect Your Legacy | Fynla';

@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Inheritance Tax Thresholds 2025/26</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           The nil rate band, residence nil rate band, and how they work together.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- Overview -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">Current Thresholds</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             Inheritance Tax is charged at <strong>40%</strong> on the value of your estate above the available
@@ -62,7 +65,7 @@
         </div>
 
         <!-- Combined Couple Allowance -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">Combined Couple Allowance</h2>
           <div class="bg-white rounded-lg border border-light-gray overflow-hidden mt-3">
             <table class="w-full text-sm">
@@ -126,28 +129,22 @@
             <router-link to="/insights/pension-iht-changes-2027" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Pension Inheritance Tax changes 2027</router-link>
           </div>
         </div>
+        </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-xl font-bold text-white mb-2">See your Inheritance Tax exposure in Fynla</h2>
-        <p class="text-lg text-white/70 mb-6">Calculate your estimated Inheritance Tax bill &mdash; and find ways to reduce it.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </div>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'IhtThresholdsPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'Inheritance Tax Thresholds & Residence Nil Rate Band 2025/26 | Fynla';

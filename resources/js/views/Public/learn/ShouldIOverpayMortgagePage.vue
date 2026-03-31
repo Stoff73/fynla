@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Should I Overpay My Mortgage?</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           A practical guide to one of the most common financial decisions.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-12 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- The Quick Answer -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-lg font-bold text-horizon-500 mb-2">The Quick Answer</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             It depends on your mortgage rate versus what you would earn elsewhere. If your mortgage rate is higher
@@ -99,38 +102,22 @@
           </p>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/calculators" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Mortgage repayment calculator</router-link>
-            <router-link to="/learn/glossary" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary</router-link>
-            <router-link to="/stage/building-foundations" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Building Foundations stage</router-link>
-            <router-link to="/learn" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">All guides</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="py-12 bg-white">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-xl font-bold text-horizon-500 mb-2">Model mortgage overpayment in your full financial plan</h2>
-        <p class="text-sm text-neutral-500 mb-6">See how overpaying affects your net worth, mortgage term, and total interest paid.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </section>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'ShouldIOverpayMortgagePage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'Should I Overpay My Mortgage? — UK Guide | Fynla';

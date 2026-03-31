@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Protecting and Growing &mdash; Family Finances Guide</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           A practical guide to life insurance, income protection, investment basics, and joint financial planning for UK families.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- This Guide is For You If... -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">This Guide is For You If&hellip;</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
@@ -163,38 +166,22 @@
           </ul>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-xs font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/stage/protecting-and-growing" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Protecting and Growing stage</router-link>
-            <router-link to="/features/protection-gap" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Protection gap analysis</router-link>
-            <router-link to="/features/ice-letters" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">ICE letters</router-link>
-            <router-link to="/learn/glossary" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-base font-bold text-white mb-2">Check your family&rsquo;s protection gap in Fynla</h2>
-        <p class="text-xs text-white/80 mb-6">See where you are covered and where the gaps are &mdash; for both of you.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </div>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'ProtectingAndGrowingGuidePage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'Family Financial Protection & Investment Guide UK | Fynla';

@@ -156,6 +156,13 @@
               <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
             </router-link>
           </div>
+          <button
+            class="mt-3 flex items-center gap-1.5 text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+            @click="$emit('toggle-chat')"
+          >
+            <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full" />
+            Got a question? Ask Fyn
+          </button>
         </div>
       </div>
 
@@ -297,6 +304,13 @@
                 <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 truncate transition-colors">{{ action.title }}</span>
               </router-link>
             </div>
+            <button
+              class="mt-3 flex items-center gap-1.5 text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+              @click="$emit('toggle-chat')"
+            >
+              <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full" />
+              Got a question? Ask Fyn
+            </button>
           </div>
         </div>
 
@@ -339,6 +353,8 @@ import storage from '@/utils/storage';
 
 export default {
   name: 'JourneyProgressHero',
+
+  emits: ['toggle-chat'],
 
   props: {
     suggestedGoals: {

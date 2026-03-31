@@ -189,6 +189,10 @@ export default {
       this.checkTrialStatus();
     }
 
+    // Listen for Fyn chat toggle from child views (e.g. Dashboard)
+    this._onFynToggle = () => this.toggleChat();
+    window.addEventListener('fyn-toggle-chat', this._onFynToggle);
+
     // Note: do NOT auto-collapse side menu here — AppLayout remounts on every
     // route change, which would override the user's explicit expand/collapse choice.
     // The watcher on showDockedChat handles the initial collapse when chat first opens.
@@ -231,6 +235,9 @@ export default {
     }
     if (this._headerObserver) {
       this._headerObserver.disconnect();
+    }
+    if (this._onFynToggle) {
+      window.removeEventListener('fyn-toggle-chat', this._onFynToggle);
     }
   },
 

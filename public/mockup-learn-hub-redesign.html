@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup — Guides & Explainers Redesign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            horizon: { 500: '#1F2A44', 600: '#171F33' },
+            raspberry: { 400: '#F06292', 500: '#E8326E', 600: '#C62D57' },
+            spring: { 400: '#4CD9A0', 500: '#20B486', 600: '#1A9A72' },
+            violet: { 400: '#7C78ED', 500: '#5854E6', 600: '#4945CC' },
+            savannah: { 400: '#F0D4B4', 500: '#E6C9A8', 600: '#D4B08A' },
+            eggshell: { 500: '#F5F0EB' },
+            'light-pink': { 50: '#FFF5F7', 100: '#FFF0F3', 200: '#FECDD3' },
+            'light-gray': '#E2E0DC',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; margin: 0; }
+
+    .category-tab {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+      color: #6B7280;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+
+    .category-tab:hover { color: #1F2A44; }
+    .category-tab.active { color: #E8326E; border-bottom-color: #E8326E; }
+
+    .guide-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #FFF0F3;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: #1F2A44;
+      cursor: pointer;
+    }
+
+    .guide-link:hover { background: #FECDD3; color: #E8326E; }
+    .guide-link.active-link { background: #E8326E; color: white; }
+    .guide-link.active-link .guide-dot { background: white !important; }
+
+    .guide-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .resource-card {
+      background: #FFF0F3;
+      border-radius: 8px;
+      padding: 20px;
+      text-decoration: none;
+      display: block;
+      transition: all 0.2s;
+    }
+
+    .resource-card:hover { background: #FECDD3; }
+    .resource-card:hover h3 { color: #E8326E; }
+
+    .article-panel {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #E2E0DC;
+      padding: 32px;
+      margin-top: 20px;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .article-panel .close-btn {
+      float: right;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9CA3AF;
+      padding: 4px;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+
+    .article-panel .close-btn:hover { color: #E8326E; background: #FFF0F3; }
+
+    .article-section {
+      background: #F5F0EB;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .article-bullet {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #4B5563;
+      line-height: 1.6;
+    }
+
+    .article-bullet .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <div style="background: linear-gradient(to right, #1F2A44, #E8326E); overflow: hidden;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 40px 24px;">
+      <h1 style="font-size: clamp(2.25rem, 5vw, 3.75rem); font-weight: 900; color: white; margin: 0 0 16px 0;">Guides & Explainers</h1>
+      <p style="font-size: 18px; color: rgba(255,255,255,0.7); max-width: 600px; margin: 0;">
+        Understand your finances. Make better decisions.
+      </p>
+    </div>
+  </div>
+
+  <!-- Intro -->
+  <section style="background: white; padding: 32px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
+      <p style="font-size: 14px; color: #4B5563; line-height: 1.7; max-width: none; margin: 0;">
+        Whether you're trying to understand what a pension drawdown is, deciding if you should overpay your mortgage, or checking this year's tax allowances &mdash; we've written a guide for it. Everything here is free, jargon-free, and written for real people, not finance professionals.
+      </p>
+    </div>
+  </section>
+
+  <!-- Category Filter Tabs -->
+  <section style="background: #F5F0EB; padding: 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
+      <div style="display: flex; gap: 4px; border-bottom: 2px solid #E2E0DC; padding-top: 16px;">
+        <button class="category-tab active" onclick="showCategory('all', this)">All</button>
+        <button class="category-tab" onclick="showCategory('explainers', this)">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#E8326E; margin-right:6px; vertical-align:middle;"></span>Concept Explainers
+        </button>
+        <button class="category-tab" onclick="showCategory('decisions', this)">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#20B486; margin-right:6px; vertical-align:middle;"></span>Decision Guides
+        </button>
+        <button class="category-tab" onclick="showCategory('stages', this)">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#5854E6; margin-right:6px; vertical-align:middle;"></span>Life Stage Guides
+        </button>
+        <button class="category-tab" onclick="showCategory('tax', this)">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#E6C9A8; margin-right:6px; vertical-align:middle;"></span>Tax & Allowances
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Guide Links + Inline Article -->
+  <section style="background: #F5F0EB; padding: 24px 0 32px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
+
+      <!-- All -->
+      <div id="cat-all">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <a class="guide-link active-link" onclick="openArticle('isa'); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is an ISA?</a>
+          <a class="guide-link" onclick="openArticle('drawdown'); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Drawdown?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Salary Sacrifice?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is a Lasting Power of Attorney?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is a Self-Invested Personal Pension?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Inheritance Tax?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Financial Planning?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>Should I overpay my mortgage?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>Should I consolidate my pensions?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>When should I make a will?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>Lifetime ISA or ISA?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>When can I afford to retire?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Starting Out: money basics</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Building Foundations: first home</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Protecting and Growing: family finances</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Planning Your Future: retirement</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Enjoying Your Wealth: estate planning</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>ISA allowance guide</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Pension annual allowance</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Inheritance Tax thresholds</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Capital gains tax rates</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Tax year checklist</a>
+        </div>
+      </div>
+
+      <!-- Explainers only -->
+      <div id="cat-explainers" style="display:none;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <a class="guide-link" onclick="openArticle('isa'); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is an ISA?</a>
+          <a class="guide-link" onclick="openArticle('drawdown'); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Drawdown?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Salary Sacrifice?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is a Lasting Power of Attorney?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is a Self-Invested Personal Pension?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Inheritance Tax?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E8326E;"></span>What is Financial Planning?</a>
+        </div>
+      </div>
+
+      <!-- Decisions only -->
+      <div id="cat-decisions" style="display:none;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>Should I overpay my mortgage?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>Should I consolidate my pensions?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>When should I make a will?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>Lifetime ISA or ISA?</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#20B486;"></span>When can I afford to retire?</a>
+        </div>
+      </div>
+
+      <!-- Stages only -->
+      <div id="cat-stages" style="display:none;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Starting Out: money basics</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Building Foundations: first home</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Protecting and Growing: family finances</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Planning Your Future: retirement</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#5854E6;"></span>Enjoying Your Wealth: estate planning</a>
+        </div>
+      </div>
+
+      <!-- Tax only -->
+      <div id="cat-tax" style="display:none;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>ISA allowance guide</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Pension annual allowance</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Inheritance Tax thresholds</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Capital gains tax rates</a>
+          <a class="guide-link" onclick="openArticle(null); return false;"><span class="guide-dot" style="background:#E6C9A8;"></span>Tax year checklist</a>
+        </div>
+      </div>
+
+      <!-- Inline Article Panel (shown when a link is clicked) -->
+      <div id="article-panel" class="article-panel">
+        <button class="close-btn" onclick="closeArticle()" title="Close">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+
+        <div id="article-isa">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#E8326E;"></span>
+            <span style="font-size: 12px; font-weight: 600; color: #E8326E; text-transform: uppercase; letter-spacing: 0.05em;">Concept Explainer</span>
+          </div>
+          <h2 style="font-size: 28px; font-weight: 900; color: #1F2A44; margin: 0 0 20px 0;">What is an ISA?</h2>
+
+          <div class="article-section">
+            <h3 style="font-size: 16px; font-weight: 700; color: #1F2A44; margin: 0 0 8px 0;">The Short Answer</h3>
+            <p style="font-size: 14px; color: #4B5563; line-height: 1.7; margin: 0;">
+              An Individual Savings Account (ISA) is a tax-free wrapper for your savings or investments. You can save up to <strong>&pound;20,000 per tax year</strong> and pay no tax on the interest or investment returns.
+            </p>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 700; color: #1F2A44; margin: 0 0 12px 0;">Types of ISA</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+            <div class="article-section" style="margin-bottom: 0;">
+              <p style="font-size: 14px; font-weight: 600; color: #1F2A44; margin: 0 0 4px 0;">Cash ISA</p>
+              <p style="font-size: 13px; color: #6B7280; margin: 0;">Like a savings account, but interest is tax-free. Best for short-term goals or your emergency fund.</p>
+            </div>
+            <div class="article-section" style="margin-bottom: 0;">
+              <p style="font-size: 14px; font-weight: 600; color: #1F2A44; margin: 0 0 4px 0;">Stocks & Shares ISA</p>
+              <p style="font-size: 13px; color: #6B7280; margin: 0;">Invest in funds, shares, and bonds with no Capital Gains Tax or dividend tax. Best for 5+ year goals.</p>
+            </div>
+            <div class="article-section" style="margin-bottom: 0;">
+              <p style="font-size: 14px; font-weight: 600; color: #1F2A44; margin: 0 0 4px 0;">Lifetime ISA</p>
+              <p style="font-size: 13px; color: #6B7280; margin: 0;">Save up to &pound;4,000/year towards your first home or retirement and get a 25% government bonus.</p>
+            </div>
+            <div class="article-section" style="margin-bottom: 0;">
+              <p style="font-size: 14px; font-weight: 600; color: #1F2A44; margin: 0 0 4px 0;">Innovative Finance ISA</p>
+              <p style="font-size: 13px; color: #6B7280; margin: 0;">Peer-to-peer lending within an ISA wrapper. Higher risk, potentially higher returns.</p>
+            </div>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 700; color: #1F2A44; margin: 0 0 12px 0;">ISA Allowance 2025/26</h3>
+          <div style="margin-bottom: 20px;">
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span><strong>&pound;20,000</strong> total across all ISAs per tax year.</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span>You can split the allowance between different ISA types.</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span>Lifetime ISA has a <strong>&pound;4,000</strong> sub-limit within the &pound;20,000.</span></div>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 700; color: #1F2A44; margin: 0 0 12px 0;">ISA Tips</h3>
+          <div style="margin-bottom: 20px;">
+            <div class="article-bullet"><span class="dot" style="background: #5854E6;"></span><span><strong>Use it or lose it.</strong> Your annual allowance does not roll over to the next tax year.</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #5854E6;"></span><span><strong>Start early in the tax year.</strong> The sooner your money is sheltered, the more tax-free growth you capture.</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #5854E6;"></span><span><strong>Consider Stocks and Shares</strong> for longer-term goals (5+ years) where you can ride out short-term volatility.</span></div>
+          </div>
+
+          <!-- Related links within article -->
+          <div style="border-top: 1px solid #E2E0DC; padding-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 700; color: #1F2A44;">Related:</span>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">ISA allowance guide</a>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">Lifetime ISA or ISA?</a>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">Glossary: ISA</a>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">Savings tracker</a>
+          </div>
+        </div>
+
+        <div id="article-drawdown" style="display:none;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#E8326E;"></span>
+            <span style="font-size: 12px; font-weight: 600; color: #E8326E; text-transform: uppercase; letter-spacing: 0.05em;">Concept Explainer</span>
+          </div>
+          <h2 style="font-size: 28px; font-weight: 900; color: #1F2A44; margin: 0 0 20px 0;">What is Drawdown?</h2>
+
+          <div class="article-section">
+            <h3 style="font-size: 16px; font-weight: 700; color: #1F2A44; margin: 0 0 8px 0;">The Short Answer</h3>
+            <p style="font-size: 14px; color: #4B5563; line-height: 1.7; margin: 0;">
+              Pension drawdown (also called flexi-access drawdown) lets you take income from your pension pot while keeping the rest invested. Unlike an annuity, your money stays invested and you choose how much to withdraw and when.
+            </p>
+          </div>
+
+          <h3 style="font-size: 16px; font-weight: 700; color: #1F2A44; margin: 0 0 12px 0;">How It Works</h3>
+          <div style="margin-bottom: 20px;">
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span>You can take 25% of your pension pot tax-free (the tax-free lump sum).</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span>The remaining 75% stays invested and you draw income as needed.</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span>Income withdrawals are taxed as earnings at your marginal rate.</span></div>
+            <div class="article-bullet"><span class="dot" style="background: #20B486;"></span><span>Your pot can grow or shrink depending on investment performance.</span></div>
+          </div>
+
+          <div style="border-top: 1px solid #E2E0DC; padding-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 700; color: #1F2A44;">Related:</span>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">When can I afford to retire?</a>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">Pension tracker</a>
+            <a href="#" style="font-size: 12px; color: #E8326E; text-decoration: none;">Glossary: Drawdown</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Glossary / Insights / FAQ links -->
+  <section style="background: #F5F0EB; padding: 0 0 32px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <a href="#" class="resource-card">
+          <h3 style="font-size: 18px; font-weight: 700; color: #1F2A44; margin: 0 0 6px 0;">Glossary A-Z</h3>
+          <p style="font-size: 13px; color: #6B7280; margin: 0;">37 financial terms explained in plain English</p>
+        </a>
+        <a href="#" class="resource-card">
+          <h3 style="font-size: 18px; font-weight: 700; color: #1F2A44; margin: 0 0 6px 0;">Latest Insights</h3>
+          <p style="font-size: 13px; color: #6B7280; margin: 0;">Timely commentary on tax changes and financial news</p>
+        </a>
+        <a href="#" class="resource-card">
+          <h3 style="font-size: 18px; font-weight: 700; color: #1F2A44; margin: 0 0 6px 0;">FAQ</h3>
+          <p style="font-size: 13px; color: #6B7280; margin: 0;">Common questions about Fynla answered</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="background: white; padding: 40px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
+      <div style="background: linear-gradient(to right, #1F2A44, #E8326E); border-radius: 16px; padding: 32px;">
+        <h2 style="font-size: clamp(1.25rem, 3vw, 2.25rem); font-weight: 700; color: white; margin: 0 0 8px 0;">Ready to put knowledge into action?</h2>
+        <p style="font-size: 18px; color: rgba(255,255,255,0.7); margin: 0 0 20px 0;">Try Fynla free and see your full financial picture in minutes.</p>
+        <a href="#" style="display: inline-block; padding: 12px 24px; background: #20B486; color: white; font-size: 14px; font-weight: 600; border-radius: 8px; text-decoration: none;">
+          Try the demo
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function showCategory(cat, btn) {
+      document.querySelectorAll('[id^="cat-"]').forEach(el => el.style.display = 'none');
+      document.getElementById('cat-' + cat).style.display = 'block';
+      document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      closeArticle();
+    }
+
+    function openArticle(id) {
+      // Remove active from all links
+      document.querySelectorAll('.guide-link').forEach(l => l.classList.remove('active-link'));
+
+      if (!id) {
+        closeArticle();
+        return;
+      }
+
+      // Mark clicked link as active
+      event.currentTarget.classList.add('active-link');
+
+      // Show panel
+      const panel = document.getElementById('article-panel');
+      panel.style.display = 'block';
+
+      // Hide all articles, show selected
+      document.getElementById('article-isa').style.display = 'none';
+      document.getElementById('article-drawdown').style.display = 'none';
+      document.getElementById('article-' + id).style.display = 'block';
+
+      // Scroll to article
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeArticle() {
+      document.getElementById('article-panel').style.display = 'none';
+      document.querySelectorAll('.guide-link').forEach(l => l.classList.remove('active-link'));
+    }
+  </script>
+
+</body>
+</html>

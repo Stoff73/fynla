@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">What is Inheritance Tax?</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           Inheritance Tax explained simply &mdash; thresholds, exemptions, and how to reduce your bill.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- The Short Answer -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">The Short Answer</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             Inheritance Tax is a tax on your estate (everything you own) when you die. It is charged at
@@ -48,7 +51,7 @@
         <div>
           <h2 class="text-base font-bold text-horizon-500 mb-2">What Is Included in Your Estate</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-xs font-semibold text-horizon-500 mb-2">Included</p>
               <ul class="space-y-1 text-xs text-neutral-500">
                 <li>Property</li>
@@ -59,7 +62,7 @@
                 <li>Personal possessions of value</li>
               </ul>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-xs font-semibold text-horizon-500 mb-2">Deducted</p>
               <ul class="space-y-1 text-xs text-neutral-500">
                 <li>Outstanding debts</li>
@@ -104,7 +107,7 @@
         <!-- The April 2027 Change -->
         <div>
           <h2 class="text-base font-bold text-horizon-500 mb-2">The April 2027 Change</h2>
-          <div class="bg-white rounded-lg border border-light-gray p-5">
+          <div class="bg-eggshell-500 rounded-lg p-5">
             <p class="text-sm text-neutral-600 leading-relaxed">
               Currently, unused pension pots sit outside your estate. From <strong>April 2027</strong>, they will be
               included. This is a major change that could push many estates above the tax-free threshold for the first
@@ -140,39 +143,22 @@
           </ul>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/features/iht-planning" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Inheritance Tax planning</router-link>
-            <router-link to="/insights/pension-iht-changes-2027" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Pension Inheritance Tax changes 2027</router-link>
-            <router-link to="/learn/glossary#inheritance-tax" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary: Inheritance Tax</router-link>
-            <router-link to="/stage/enjoying-your-wealth" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Enjoying Your Wealth</router-link>
-            <router-link to="/learn" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">All guides</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-xl font-bold text-white mb-2">Calculate your Inheritance Tax exposure in Fynla</h2>
-        <p class="text-lg text-white/70 mb-6">See your estimated Inheritance Tax bill &mdash; and what you can do to reduce it.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </div>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'WhatIsInheritanceTaxPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'What is Inheritance Tax? — IHT Explained Simply | Fynla';

@@ -4,18 +4,21 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">When Should I Make a Will?</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           A practical UK guide to wills, intestacy, and protecting your family.
         </p>
       </div>
     </div>
 
+    <GuideNav />
+
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- The Short Answer -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">The Short Answer</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             If you own anything, have children, or have people who depend on you, you need a will. Without one, the law
@@ -97,15 +100,15 @@
         <div>
           <h2 class="text-base font-bold text-horizon-500 mb-2">How to Make One</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">DIY online</p>
               <p class="text-xs text-neutral-500 leading-relaxed">&pound;30&ndash;100. Fine for simple situations with no property or dependants.</p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Solicitor</p>
               <p class="text-xs text-neutral-500 leading-relaxed">&pound;200&ndash;500. Recommended if you have property, children, or complex assets.</p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Will-writing service</p>
               <p class="text-xs text-neutral-500 leading-relaxed">&pound;100&ndash;300. A mid-range option between DIY and a solicitor.</p>
             </div>
@@ -128,39 +131,22 @@
           </p>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-xs font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/learn/what-is-an-lpa" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">What is a Lasting Power of Attorney?</router-link>
-            <router-link to="/features/ice-letters" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">ICE letters</router-link>
-            <router-link to="/learn/glossary#estate" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary: Estate</router-link>
-            <router-link to="/stage/protecting-and-growing" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Protecting and Growing stage</router-link>
-            <router-link to="/learn" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">All guides</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-xl font-bold text-white mb-2">Plan your estate in Fynla</h2>
-        <p class="text-lg text-white/70 mb-6">See your Inheritance Tax position, track your will, and organise your estate &mdash; all in one place.</p>
-        <router-link to="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </router-link>
-      </div>
-    </div>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'WhenShouldIMakeAWillPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'When Should I Make a Will? — UK Guide | Fynla';
