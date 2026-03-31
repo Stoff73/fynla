@@ -207,10 +207,13 @@ export default {
 
     planPrice() {
       if (!this.planData) return '...';
-      const pence = this.billingCycle === 'monthly'
+      const launchPence = this.billingCycle === 'monthly'
+        ? this.planData.launch_monthly_price
+        : this.planData.launch_yearly_price;
+      const fullPence = this.billingCycle === 'monthly'
         ? this.planData.monthly_price
         : this.planData.yearly_price;
-      return this.formatCurrencyWithPence(pence / 100);
+      return this.formatCurrencyWithPence((launchPence || fullPence) / 100);
     },
   },
 

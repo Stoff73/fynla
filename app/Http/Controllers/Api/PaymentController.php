@@ -67,7 +67,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,pro',
+            'plan' => 'required|string|in:student,standard,family,pro',
             'billing_cycle' => 'required|string|in:monthly,yearly',
         ]);
 
@@ -77,7 +77,7 @@ class PaymentController extends Controller
         }
 
         $billingCycle = $request->input('billing_cycle');
-        $amount = $plan->getPriceForCycle($billingCycle);
+        $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
         $description = "{$plan->name} — ".ucfirst($billingCycle);
 
         try {
@@ -237,7 +237,9 @@ class PaymentController extends Controller
                     'status' => 'active',
                     'plan' => $planSlug,
                     'billing_cycle' => $billingCycle,
-                    'amount' => $subscriptionPlan ? $subscriptionPlan->getPriceForCycle($billingCycle) : $payment->amount,
+                    'amount' => $subscriptionPlan
+                        ? ($subscriptionPlan->getLaunchPriceForCycle($billingCycle) ?? $subscriptionPlan->getPriceForCycle($billingCycle))
+                        : $payment->amount,
                     'current_period_start' => now(),
                     'current_period_end' => $periodEnd,
                     'revolut_order_id' => $orderId,
