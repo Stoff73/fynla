@@ -109,20 +109,40 @@
       </div>
 
       <!-- Upgrade / Sign Up link -->
-      <div class="border-t border-light-gray p-2 flex-shrink-0">
+      <div v-if="showUpgradeLink" class="border-t border-light-gray p-2 flex-shrink-0">
         <router-link
-          :to="isPreviewMode ? '/register' : '/pricing'"
+          v-if="isPreviewMode"
+          to="/register"
           class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
-          :title="effectiveCollapsed ? (isPreviewMode ? 'Sign Up Now' : 'Upgrade Now') : ''"
+          :title="effectiveCollapsed ? 'Sign Up Now' : ''"
           @click="closeMobile"
         >
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
-          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ isPreviewMode ? 'Sign Up Now' : 'Upgrade Now' }}</span>
+          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Sign Up Now</span>
         </router-link>
+        <button
+          v-else
+          class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
+          :class="effectiveCollapsed ? 'justify-center' : ''"
+          :title="effectiveCollapsed ? 'Upgrade Now' : ''"
+          @click="showPlanModal = true; closeMobile()"
+        >
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Upgrade Now</span>
+        </button>
       </div>
+
+      <PlanSelectionModal
+        v-if="showPlanModal"
+        :current-plan="currentPlanSlug"
+        @select="handlePlanSelect"
+        @close="showPlanModal = false"
+      />
 
       <!-- Logout button -->
       <div class="border-t border-light-gray p-2 flex-shrink-0">
@@ -152,6 +172,8 @@ import { useRoute, useRouter } from 'vue-router';
 import SideMenuItem from './SideMenuItem.vue';
 import SideMenuSection from './SideMenuSection.vue';
 import BugReportModal from './BugReportModal.vue';
+import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
+import api from '@/services/api';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 import storage from '@/utils/storage';
 
@@ -163,6 +185,7 @@ export default {
     SideMenuItem,
     SideMenuSection,
     BugReportModal,
+    PlanSelectionModal,
   },
 
   props: {
@@ -186,6 +209,8 @@ export default {
     const logoUrl = '/images/logos/LogoHiResFynlaDark.png';
     const faviconUrl = '/images/logos/favicon.png';
     const showBugReportModal = ref(false);
+    const showPlanModal = ref(false);
+    const subscriptionData = ref(null);
     const isAdmin = computed(() => store.getters['auth/isAdmin']);
     const isAdvisor = computed(() => store.getters['auth/isAdvisor']);
     const isPreviewMode = computed(() => store.getters['preview/isPreviewMode']);
@@ -450,9 +475,31 @@ export default {
       }
     };
 
-    // No complex flyout — explore items toggle inline in collapsed mode
+    // Subscription data for upgrade button visibility
+    const currentPlanSlug = computed(() => subscriptionData.value?.plan || null);
+    const showUpgradeLink = computed(() => {
+      if (isPreviewMode.value) return true; // Shows "Sign Up Now"
+      if (!subscriptionData.value) return false;
+      if (subscriptionData.value.plan === 'pro') return false;
+      return true;
+    });
+
+    const fetchSubscriptionData = async () => {
+      try {
+        const response = await api.get('/payment/trial-status');
+        subscriptionData.value = response.data;
+      } catch {
+        // Silently fail
+      }
+    };
+
+    const handlePlanSelect = ({ plan, billingCycle }) => {
+      showPlanModal.value = false;
+      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
+    };
 
     onMounted(() => {
+      fetchSubscriptionData();
       document.addEventListener('keydown', handleKeydown);
       loadExpandedState();
 
@@ -517,6 +564,10 @@ export default {
       openBugReport,
       handleLogout,
       isPreviewMode,
+      showPlanModal,
+      showUpgradeLink,
+      currentPlanSlug,
+      handlePlanSelect,
     };
   },
 };

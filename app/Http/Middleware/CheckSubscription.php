@@ -67,12 +67,13 @@ class CheckSubscription
             return $next($request);
         }
 
-        // User is in grace period — allow read-only access (Task 8 will enforce full overlay)
-        if ($user->isInGracePeriod()) {
-            if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
-                return $next($request);
-            }
+        // Expired trial or grace period — allow read-only access so users can see
+        // their data behind the plan selection modal. Writes are blocked.
+        if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
+            return $next($request);
+        }
 
+        if ($user->isInGracePeriod()) {
             return response()->json([
                 'error' => 'grace_period',
                 'message' => 'Your subscription has expired. You have read-only access during the grace period.',

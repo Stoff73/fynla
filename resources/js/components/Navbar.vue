@@ -27,7 +27,7 @@
 
         <div class="flex items-center flex-shrink-0">
         <div class="hidden sm:flex sm:items-center space-x-4">
-          <!-- Trial info (inline) -->
+          <!-- Trial info (inline — only during free trial, not for active subscribers) -->
           <div v-if="trialData && trialData.status === 'trialing'" class="flex items-center gap-3">
             <div>
               <p class="text-xs font-medium text-horizon-500">
@@ -41,6 +41,7 @@
               </div>
             </div>
             <button
+              v-if="trialData.plan !== 'pro'"
               @click="showPlanModal = true"
               class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
             >
@@ -77,17 +78,29 @@
             Advisor
           </router-link>
 
-          <!-- Upgrade / Sign Up (hidden when trial upgrade is already showing) -->
+          <!-- Sign Up (preview mode only) -->
           <router-link
-            v-if="isPreviewMode || !(trialData && trialData.status === 'trialing')"
-            :to="isPreviewMode ? '/register' : '/pricing'"
+            v-if="isPreviewMode"
+            to="/register"
             class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
           >
             <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
-            {{ isPreviewMode ? 'Sign Up Now' : 'Upgrade Now' }}
+            Sign Up Now
           </router-link>
+
+          <!-- Upgrade (non-trial, non-pro subscribers only) -->
+          <button
+            v-else-if="showUpgradeButton"
+            @click="showPlanModal = true"
+            class="inline-flex items-center text-sm font-semibold text-raspberry-500 hover:text-raspberry-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
+          >
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+            Upgrade Now
+          </button>
 
           <!-- Support Dropdown -->
           <div class="relative" data-dropdown="support">
@@ -260,6 +273,7 @@
 
   <PlanSelectionModal
     v-if="showPlanModal"
+    :current-plan="currentPlanSlug"
     @select="handlePlanSelect"
     @close="showPlanModal = false"
   />
@@ -380,6 +394,24 @@ export default {
       return store.getters['preview/isPreviewMode'];
     });
 
+    const currentPlanSlug = computed(() => {
+      return trialData.value?.plan || null;
+    });
+
+    // Show upgrade for non-pro subscribers (trialing or active on student/standard/family)
+    const showUpgradeButton = computed(() => {
+      if (!trialData.value) return false;
+      if (isPreviewMode.value) return false;
+      const plan = trialData.value.plan;
+      const status = trialData.value.status;
+      // Don't show for pro users
+      if (plan === 'pro') return false;
+      // Don't show if already showing the trial upgrade inline
+      if (status === 'trialing') return false;
+      // Show for active subscribers on student/standard/family
+      return status === 'active';
+    });
+
     // Show 2FA reminder if MFA is not enabled and user is not a preview user
     const showMFAReminder = computed(() => {
       const user = store.getters['auth/currentUser'];
@@ -457,6 +489,8 @@ export default {
       isAdmin,
       isAdvisor,
       isPreviewMode,
+      currentPlanSlug,
+      showUpgradeButton,
       trialData,
       trialPlanName,
       showPlanModal,

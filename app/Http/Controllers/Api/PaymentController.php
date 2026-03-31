@@ -44,6 +44,8 @@ class PaymentController extends Controller
                 'name' => $plan->name,
                 'monthly_price' => $plan->monthly_price,
                 'yearly_price' => $plan->yearly_price,
+                'launch_monthly_price' => $plan->launch_monthly_price,
+                'launch_yearly_price' => $plan->launch_yearly_price,
                 'features' => $plan->features,
             ]),
         ]);

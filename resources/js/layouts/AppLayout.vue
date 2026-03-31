@@ -78,6 +78,13 @@
     <!-- AI Chat floating button + panel (real users only, hidden when docked chat is active) -->
     <AiChatButton v-if="!showDockedChat && !isPreviewMode" />
     <AiChatPanel v-if="!showDockedChat && !isPreviewMode" />
+
+    <!-- Trial Expired — non-dismissable plan selection -->
+    <PlanSelectionModal
+      v-if="showTrialExpiredModal"
+      :dismissable="false"
+      @select="handleExpiredPlanSelect"
+    />
   </div>
 </template>
 
@@ -96,6 +103,8 @@ import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
 import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import SubNavBar from '@/components/SubNavBar.vue';
+import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
+import api from '@/services/api';
 import storage from '@/utils/storage';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
@@ -117,6 +126,7 @@ export default {
     OfflineBanner,
     AdvisorBanner,
     SubNavBar,
+    PlanSelectionModal,
   },
 
   data() {
@@ -126,6 +136,8 @@ export default {
       chatCollapsed: storage.get('fynChatCollapsed') === null ? false : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
+      showTrialExpiredModal: false,
+      subscriptionPlan: null,
     };
   },
 
@@ -164,6 +176,9 @@ export default {
   mounted() {
     if (this.isAuthenticated || this.isPreviewMode) {
       this.fetchInfoGuidePreference();
+    }
+    if (this.isAuthenticated) {
+      this.checkTrialStatus();
     }
 
     // Note: do NOT auto-collapse side menu here — AppLayout remounts on every
@@ -227,6 +242,28 @@ export default {
     openChat() {
       this.chatCollapsed = false;
       storage.set('fynChatCollapsed', false);
+    },
+
+    async checkTrialStatus() {
+      if (this.isPreviewMode) return;
+      try {
+        const response = await api.get('/payment/trial-status');
+        const data = response.data;
+        if (!data.has_subscription) return;
+        this.subscriptionPlan = data.plan;
+        // Show modal if trial expired and no active subscription
+        const status = data.status;
+        if (status !== 'trialing' && status !== 'active') {
+          this.showTrialExpiredModal = true;
+        }
+      } catch {
+        // Silently fail
+      }
+    },
+
+    handleExpiredPlanSelect({ plan, billingCycle }) {
+      this.showTrialExpiredModal = false;
+      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
     },
   },
 };
