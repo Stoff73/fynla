@@ -390,8 +390,11 @@ export default {
       return store.getters['preview/isPreviewMode'];
     });
 
+    // Only set currentPlan for active paid subscribers (filters upgrade options)
+    // Trial users see all plans — they haven't paid yet
     const currentPlanSlug = computed(() => {
-      return trialData.value?.plan || null;
+      if (!trialData.value || trialData.value.status !== 'active') return null;
+      return trialData.value.plan;
     });
 
     // Show upgrade for non-pro subscribers (trialing or active on student/standard/family)

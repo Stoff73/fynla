@@ -478,7 +478,11 @@ export default {
     };
 
     // Subscription data for upgrade button visibility (from AppLayout prop)
-    const currentPlanSlug = computed(() => props.subscriptionData?.plan || null);
+    // Only filter plans for active paid subscribers — trial users see all plans
+    const currentPlanSlug = computed(() => {
+      if (!props.subscriptionData || props.subscriptionData.status !== 'active') return null;
+      return props.subscriptionData.plan;
+    });
     const showUpgradeLink = computed(() => {
       if (isPreviewMode.value) return true; // Shows "Sign Up Now"
       if (!props.subscriptionData) return false;

@@ -172,6 +172,13 @@ export default {
         storage.set(STORAGE_KEY, true);
       }
     },
+
+    // Re-fetch subscription data on route change (AppLayout doesn't remount)
+    '$route.path'() {
+      if (this.isAuthenticated && !this.isPreviewMode) {
+        this.checkTrialStatus();
+      }
+    },
   },
 
   mounted() {
