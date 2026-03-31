@@ -92,6 +92,7 @@ export default {
 
   computed: {
     categories() {
+      if (!Array.isArray(this.activity)) return [];
       return this.activity.map(item => item.period_label || item.period);
     },
 
@@ -142,7 +143,7 @@ export default {
     },
 
     registrationSeries() {
-      if (!this.activity.length) return [];
+      if (!Array.isArray(this.activity) || !this.activity.length) return [];
       return [
         {
           name: 'Registrations',
@@ -175,7 +176,7 @@ export default {
     },
 
     revenueSeries() {
-      if (!this.activity.length) return [];
+      if (!Array.isArray(this.activity) || !this.activity.length) return [];
       return [
         {
           name: 'Revenue',
@@ -192,7 +193,7 @@ export default {
     },
 
     churnSeries() {
-      if (!this.activity.length) return [];
+      if (!Array.isArray(this.activity) || !this.activity.length) return [];
       return [
         {
           name: 'Trial Expired',

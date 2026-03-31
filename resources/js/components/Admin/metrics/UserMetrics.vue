@@ -148,7 +148,7 @@ export default {
         this.snapshot = snapshotRes.data;
         this.trials = trialsRes.data;
         this.plans = plansRes.data;
-        this.activity = activityRes.data;
+        this.activity = Array.isArray(activityRes.data) ? activityRes.data : [];
         this.engagement = engagementRes.data;
       } catch (err) {
         this.error = err.response?.data?.message || err.message || 'An unexpected error occurred';
@@ -164,7 +164,7 @@ export default {
 
       try {
         const response = await adminService.getUserMetricsActivity(period, DEFAULT_RANGES[period]);
-        this.activity = response.data;
+        this.activity = Array.isArray(response.data) ? response.data : [];
       } catch (err) {
         // Keep existing data on period change failure
       } finally {

@@ -6,39 +6,28 @@
   />
 
   <nav class="bg-light-blue-100 shadow-sm border-b border-light-gray">
-    <div class="relative mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between py-[15px]">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center py-[15px]">
 
         <!-- Page Title -->
-        <h1 v-if="pageTitle" class="text-2xl font-bold text-horizon-500 pl-12 sm:pl-0">{{ pageTitle }}</h1>
-        <div v-else></div>
+        <h1 v-if="pageTitle" class="text-2xl font-bold text-horizon-500 pl-12 sm:pl-0 flex-shrink-0">{{ pageTitle }}</h1>
+        <div v-else class="flex-shrink-0"></div>
 
-        <!-- Fyn Chat (centred) -->
-        <button
-          v-if="!isPreviewMode"
-          @click="$emit('open-chat')"
-          class="absolute left-1/2 -translate-x-1/2 inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-2 py-1.5 rounded-md transition-all"
-          title="Chat with Fyn"
-        >
-          <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-12 h-12 rounded-full" />
-        </button>
+        <!-- Fyn Chat (fills remaining space, centres icon) -->
+        <div class="hidden sm:flex flex-1 min-w-0 justify-center">
+          <button
+            v-if="!isPreviewMode"
+            @click="$emit('open-chat')"
+            class="inline-flex items-center hover:bg-white/40 p-1 rounded-full transition-all flex-shrink-0"
+            title="Chat with Fyn"
+          >
+            <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-10 h-10 rounded-full" />
+          </button>
+        </div>
 
-        <div class="flex items-center">
+        <div class="flex items-center flex-shrink-0">
         <div class="hidden sm:flex sm:items-center space-x-4">
-          <!-- Countdown Timer -->
-          <div v-if="countdown" class="flex items-center space-x-1 text-body-sm font-semibold tabular-nums">
-            <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.days }}</span>
-            <span class="text-neutral-500">:</span>
-            <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.hours }}</span>
-            <span class="text-neutral-500">:</span>
-            <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.minutes }}</span>
-            <span class="text-neutral-500">:</span>
-            <span class="bg-horizon-500 text-white px-1.5 py-0.5 rounded">{{ countdown.seconds }}</span>
-          </div>
-
-          <!-- Pipe separator -->
-          <span v-if="countdown && (trialData && trialData.status === 'trialing')" class="text-horizon-500 text-lg font-light">|</span>
-          <!-- Trial countdown (inline) -->
+          <!-- Trial info (inline) -->
           <div v-if="trialData && trialData.status === 'trialing'" class="flex items-center gap-3">
             <div>
               <p class="text-xs font-medium text-horizon-500">
@@ -61,9 +50,6 @@
               Upgrade Now
             </button>
           </div>
-
-          <!-- Pipe separator -->
-          <span v-if="(trialData && trialData.status === 'trialing') && showMFAReminder" class="text-horizon-500 text-lg font-light">|</span>
 
           <!-- 2FA Reminder -->
           <router-link
@@ -89,16 +75,6 @@
               <path d="M20 8v6M23 11h-6" />
             </svg>
             Advisor
-          </router-link>
-          <router-link
-            v-if="isAdmin"
-            to="/admin"
-            class="inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-white bg-raspberry-600 hover:bg-raspberry-700"
-          >
-            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            Admin
           </router-link>
 
           <!-- Upgrade / Sign Up (hidden when trial upgrade is already showing) -->
@@ -268,6 +244,20 @@
     </div>
 
   </nav>
+
+  <!-- Countdown Bar -->
+  <div v-if="countdown" class="bg-horizon-500 text-white">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-center space-x-1 text-body-sm font-semibold tabular-nums">
+      <span class="bg-white/20 px-1.5 py-0.5 rounded">{{ countdown.days }}</span>
+      <span class="text-white/50">:</span>
+      <span class="bg-white/20 px-1.5 py-0.5 rounded">{{ countdown.hours }}</span>
+      <span class="text-white/50">:</span>
+      <span class="bg-white/20 px-1.5 py-0.5 rounded">{{ countdown.minutes }}</span>
+      <span class="text-white/50">:</span>
+      <span class="bg-white/20 px-1.5 py-0.5 rounded">{{ countdown.seconds }}</span>
+    </div>
+  </div>
+
   <PlanSelectionModal
     v-if="showPlanModal"
     @select="handlePlanSelect"
