@@ -121,6 +121,13 @@ export default {
 
   mounted() {
     document.title = 'Should I Overpay My Mortgage? — UK Guide | Fynla';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'Overpaying your mortgage can save thousands in interest. Compare overpaying vs investing, understand early repayment charges, and find out if mortgage overpayments are right for you.');
   },
 };
 </script>

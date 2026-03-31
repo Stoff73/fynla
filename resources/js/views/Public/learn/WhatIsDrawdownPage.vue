@@ -111,7 +111,14 @@ export default {
   components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
-    document.title = 'What is Pension Drawdown? — Explained Simply | Fynla';
+    document.title = 'What is Pension Drawdown? — Flexi-Access Drawdown Explained | Fynla';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'Pension drawdown lets you take flexible income from your pension while keeping the rest invested. Learn how drawdown works, tax implications, and whether it is right for your retirement.');
   },
 };
 </script>

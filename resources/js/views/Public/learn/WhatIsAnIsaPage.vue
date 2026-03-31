@@ -114,7 +114,14 @@ export default {
   },
 
   mounted() {
-    document.title = 'What is an ISA? — ISA Explained Simply | Fynla';
+    document.title = 'What is an ISA? — Individual Savings Account Explained | Fynla';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'An ISA is a tax-free savings and investment wrapper. Learn about Cash ISAs, Stocks and Shares ISAs, Lifetime ISAs, the £20,000 annual allowance, and how to maximise your tax-free savings in the UK.');
   },
 };
 </script>

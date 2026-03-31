@@ -153,7 +153,40 @@ export default {
   },
 
   mounted() {
-    document.title = 'Guides & Explainers — Financial Planning Education | Fynla';
+    document.title = 'Guides & Explainers — Free UK Financial Planning Guides | Fynla';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'Free jargon-free guides to UK financial planning. Learn about ISAs, pensions, drawdown, inheritance tax, salary sacrifice, mortgages and more. Written for real people.');
+
+    // ItemList schema for GEO (AI search engines)
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      'name': 'Fynla Guides & Explainers',
+      'description': 'Free UK financial planning guides covering savings, investments, pensions, tax, and estate planning.',
+      'url': 'https://fynla.org/learn',
+      'numberOfItems': this.allGuides.length,
+      'itemListElement': this.allGuides.map((guide, i) => ({
+        '@type': 'ListItem',
+        'position': i + 1,
+        'name': guide.title,
+        'url': 'https://fynla.org' + guide.to,
+      })),
+    };
+    const script = document.createElement('script');
+    script.id = 'learn-hub-schema';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+  },
+
+  beforeUnmount() {
+    const el = document.getElementById('learn-hub-schema');
+    if (el) el.remove();
   },
 };
 </script>

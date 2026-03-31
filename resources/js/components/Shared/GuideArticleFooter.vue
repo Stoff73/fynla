@@ -62,6 +62,61 @@
 <script>
 export default {
   name: 'GuideArticleFooter',
+
+  mounted() {
+    this.injectStructuredData();
+  },
+
+  beforeUnmount() {
+    const el = document.getElementById('guide-article-schema');
+    if (el) el.remove();
+  },
+
+  methods: {
+    injectStructuredData() {
+      // Remove any existing schema from a previous page
+      const existing = document.getElementById('guide-article-schema');
+      if (existing) existing.remove();
+
+      const title = document.title.split(' — ')[0] || document.title;
+      const description = document.querySelector('meta[name="description"]')?.content || '';
+      const url = window.location.href;
+
+      const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        'headline': title,
+        'description': description,
+        'url': url,
+        'inLanguage': 'en-GB',
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'Fynla',
+          'url': 'https://fynla.org',
+          'logo': {
+            '@type': 'ImageObject',
+            'url': 'https://fynla.org/images/logos/LogoHiResFynlaDark.png',
+          },
+        },
+        'isPartOf': {
+          '@type': 'WebSite',
+          'name': 'Fynla',
+          'url': 'https://fynla.org',
+        },
+        'about': {
+          '@type': 'Thing',
+          'name': 'Personal Finance',
+          'description': 'UK personal finance planning including savings, investments, pensions, retirement and estate planning',
+        },
+      };
+
+      const script = document.createElement('script');
+      script.id = 'guide-article-schema';
+      script.type = 'application/ld+json';
+      script.textContent = JSON.stringify(schema);
+      document.head.appendChild(script);
+    },
+  },
 };
 </script>
 

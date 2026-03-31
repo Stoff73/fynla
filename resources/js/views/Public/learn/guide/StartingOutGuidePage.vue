@@ -130,7 +130,14 @@ export default {
   components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
-    document.title = 'Financial Planning for Beginners — UK Starting Out Guide | Fynla';
+    document.title = 'Starting Out — Money Basics for Beginners | Fynla';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'A beginner-friendly guide to managing your money in the UK. Covers budgeting, emergency funds, student loans, workplace pensions, and building good financial habits from the start.');
   },
 };
 </script>

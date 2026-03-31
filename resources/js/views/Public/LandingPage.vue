@@ -391,6 +391,8 @@ export default {
   },
 
   mounted() {
+    document.title = 'Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments';
+    this.setMetaDescription('Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place.');
     this.checkDemoParam();
   },
 
@@ -406,6 +408,16 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
+
+    setMetaDescription(content) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'description');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    },
 
     trackGA(eventName, label) {
       if (typeof gtag === 'function') {

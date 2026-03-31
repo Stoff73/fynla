@@ -14,7 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Fyn, your financial companion</title>
+    <title>Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments</title>
     <meta name="description" content="Fynla helps you plan savings, investments, retirement, and estate with confidence. One platform for your complete financial picture, powered by our proprietary Fynla Brain.">
 
     <!-- Canonical & Hreflang -->

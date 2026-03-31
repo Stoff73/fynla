@@ -55,7 +55,6 @@
         <p class="text-sm text-neutral-700 leading-relaxed">
           Fynla covers all six areas in one platform. Add your data, see your complete picture, model scenarios, and make informed decisions. No jargon, no commission, no sales pressure.
         </p>
-        </div>
       </div>
     </section>
 

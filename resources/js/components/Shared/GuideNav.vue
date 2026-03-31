@@ -107,6 +107,43 @@ export default {
     // Default to the current article's category
     this.activeCategory = this.currentCategory || 'all';
   },
+
+  mounted() {
+    this.injectBreadcrumbSchema();
+  },
+
+  beforeUnmount() {
+    const el = document.getElementById('guide-breadcrumb-schema');
+    if (el) el.remove();
+  },
+
+  methods: {
+    injectBreadcrumbSchema() {
+      const existing = document.getElementById('guide-breadcrumb-schema');
+      if (existing) existing.remove();
+
+      const guide = this.allGuides.find(g => g.to === this.currentPath);
+      if (!guide) return;
+
+      const cat = this.categories.find(c => c.key === guide.category);
+      const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        'itemListElement': [
+          { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': 'https://fynla.org/' },
+          { '@type': 'ListItem', 'position': 2, 'name': 'Guides & Explainers', 'item': 'https://fynla.org/learn' },
+          { '@type': 'ListItem', 'position': 3, 'name': cat ? cat.label : 'Guide', 'item': 'https://fynla.org/learn' },
+          { '@type': 'ListItem', 'position': 4, 'name': guide.title },
+        ],
+      };
+
+      const script = document.createElement('script');
+      script.id = 'guide-breadcrumb-schema';
+      script.type = 'application/ld+json';
+      script.textContent = JSON.stringify(schema);
+      document.head.appendChild(script);
+    },
+  },
 };
 </script>
 
