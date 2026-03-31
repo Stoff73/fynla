@@ -46,7 +46,7 @@
         <!-- Launch Discount Banner -->
         <div class="flex justify-center mb-10">
           <span class="inline-block bg-raspberry-50 text-raspberry-500 text-sm font-bold px-4 py-2 rounded-full">
-            Launch Discount — Limited Time
+            Launch Discount — First 500 Users
           </span>
         </div>
 
@@ -62,7 +62,7 @@
             <div class="mb-6">
               <div class="flex items-baseline flex-wrap gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£45.00' : '£4.99' }}</span>
-                <span class="text-3xl font-black text-white ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span>
+                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span>
                 <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£2.50/mo — save 33%</p>
@@ -122,11 +122,8 @@
             </button>
           </div>
 
-          <!-- Standard Plan (Featured) -->
-          <div class="bg-horizon-500 rounded-2xl border-[3px] border-raspberry-500 p-8 flex flex-col relative">
-            <div class="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span class="px-4 py-1.5 bg-raspberry-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
-            </div>
+          <!-- Standard Plan -->
+          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
 
             <div class="mb-6">
               <h3 class="text-lg font-semibold text-white mb-1">Standard</h3>
@@ -136,7 +133,7 @@
             <div class="mb-6">
               <div class="flex items-baseline flex-wrap gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£135.00' : '£14.99' }}</span>
-                <span class="text-3xl font-black text-white ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span>
+                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span>
                 <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£8.33/mo — save 26%</p>
@@ -196,8 +193,11 @@
             </button>
           </div>
 
-          <!-- Family Plan -->
-          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
+          <!-- Family Plan (Featured) -->
+          <div class="bg-horizon-500 rounded-2xl border-[3px] border-raspberry-500 p-8 flex flex-col relative">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span class="px-4 py-1.5 bg-raspberry-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
+            </div>
             <div class="mb-6">
               <h3 class="text-lg font-semibold text-white mb-1">Family</h3>
               <p class="text-sm text-white/60">Plan together as a household</p>
@@ -206,7 +206,7 @@
             <div class="mb-6">
               <div class="flex items-baseline flex-wrap gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£199.00' : '£21.99' }}</span>
-                <span class="text-3xl font-black text-white ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span>
+                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span>
                 <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£12.50/mo — save 25%</p>
@@ -252,7 +252,7 @@
             <div class="mb-6">
               <div class="flex items-baseline flex-wrap gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£269.99' : '£29.99' }}</span>
-                <span class="text-3xl font-black text-white ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span>
+                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span>
                 <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£16.67/mo — save 26%</p>
