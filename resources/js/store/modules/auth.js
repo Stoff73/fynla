@@ -36,13 +36,14 @@ const actions = {
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
-    // CRITICAL: Reset userProfile state to prevent data leakage between users
+    // CRITICAL: Reset ALL module states to prevent data leakage between users
     commit('userProfile/resetState', null, { root: true });
+    commit('lifeStage/resetState', null, { root: true });
+    commit('onboarding/RESET_STATE', null, { root: true });
+    dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
-    // If was in preview mode, clear both storage types (don't redirect via exitPreview)
-    if (wasInPreviewMode) {
-      await removeToken();
-    }
+    // ALWAYS clear the stored token to prevent previous user's session leaking
+    await removeToken();
 
     try {
       const response = await authService.register(userData);
@@ -72,13 +73,14 @@ const actions = {
     // Clear any existing auth state to prevent data leakage
     commit('clearAuth');
 
-    // CRITICAL: Reset userProfile state to prevent data leakage between users
+    // CRITICAL: Reset ALL module states to prevent data leakage between users
     commit('userProfile/resetState', null, { root: true });
+    commit('lifeStage/resetState', null, { root: true });
+    commit('onboarding/RESET_STATE', null, { root: true });
+    dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
 
-    // If was in preview mode, clear both storage types (don't redirect via exitPreview)
-    if (wasInPreviewMode) {
-      await removeToken();
-    }
+    // ALWAYS clear the stored token to prevent previous user's session leaking
+    await removeToken();
 
     try {
       const response = await authService.login(credentials);

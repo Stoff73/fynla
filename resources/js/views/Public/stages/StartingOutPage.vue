@@ -13,7 +13,7 @@
         </p>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
           <router-link
-            to="/register"
+            to="/register?stage=university"
             class="inline-block px-8 py-3 bg-spring-500 text-white font-semibold rounded-lg hover:bg-spring-600 transition-colors"
           >
             Start your journey

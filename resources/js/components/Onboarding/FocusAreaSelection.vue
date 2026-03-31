@@ -216,6 +216,14 @@ export default {
     };
   },
 
+  mounted() {
+    // Auto-select stage if user came from a stage page (e.g. /onboarding?stage=early_career)
+    const stageFromQuery = this.$route.query?.stage;
+    if (stageFromQuery && LIFE_STAGES[stageFromQuery]) {
+      this.selectedStage = stageFromQuery;
+    }
+  },
+
   computed: {
     stages() {
       return STAGE_ORDER.map(id => LIFE_STAGES[id]);
