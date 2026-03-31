@@ -2,43 +2,7 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if [[ \"$filepath\" == *.php ]]; then ./vendor/bin/pint \"$filepath\" --quiet 2>/dev/null; fi"
-          },
-          {
-            "type": "command",
-            "command": "python3 /Users/CSJ/Desktop/fynla/.claude/hooks/security_reminder_hook.py"
-          },
-          {
-            "type": "command",
-            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/vault_reminder_hook.sh"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [],
-    "Stop": []
-  },
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
-    "fynla-dev-skills@fynla-marketplace": true,
-    "fynla-compliance@fynla-marketplace": true,
-    "fynla-design@fynla-marketplace": true,
-    "fynla-ops@fynla-marketplace": true
-  },
-  "extraKnownMarketplaces": {
-    "fynla-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "Stoff73/fynla"
-      },
-      "autoUpdate": true
-    }
+    "superpowers@claude-plugins-official": true
   }
 }

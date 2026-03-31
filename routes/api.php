@@ -982,6 +982,7 @@ Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/plans', [\App\Http\Controllers\Api\PaymentController::class, 'plans']);
     Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
     Route::post('/confirm', [\App\Http\Controllers\Api\PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
+    Route::post('/upgrade', [\App\Http\Controllers\Api\PaymentController::class, 'upgradeSubscription'])->middleware('throttle:10,1');
     Route::post('/cancel-subscription', [\App\Http\Controllers\Api\PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
     Route::post('/delete-all-data', [\App\Http\Controllers\Api\PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
 });

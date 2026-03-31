@@ -1,45 +1,46 @@
 # CSJTODO — Fynla
 
-*Last updated: 31 March 2026 — session 19*
-*Previous session: 30 March 2026 session 18 (admin user metrics, subscription tiers)*
+*Last updated: 31 March 2026 — session 20*
+*Previous session: 31 March 2026 session 19 (subscription UI, deploy)*
 
 ---
 
-## Session 19 (31 March) — Dashboard UI + Subscription & Upgrade Logic
+## Session 20 (31 March) — Subscription Upgrade Proration + Bug Fixes
 
-### Completed
-- [x] Merged adminUserView branch into main, deleted branch
-- [x] Pricing page: raspberry launch prices, "First 500 Users" banner, Family as Most Popular
-- [x] Preview banner moved above SubNavBar (stays below top nav on all screens)
-- [x] Session timeout fix: await preview store init (personas no longer get 15min timeout)
-- [x] Fyn chat icon centred in top nav, opens docked chat panel
-- [x] Countdown timer moved to own bar below nav
-- [x] Admin button removed from top nav (still in sidebar)
-- [x] Sign Up Now / Choose a Plan / Upgrade Now context-aware buttons in nav + sidebar
-- [x] PlanSelectionModal: currentPlan filter, dismissable prop, launch pricing from DB
-- [x] Trial expiry: non-dismissable modal showing all 4 plans
-- [x] Upgrade: modal filtered to plans above current tier (active subscribers only)
-- [x] Pro subscribers: no upgrade buttons anywhere
-- [x] Launch prices flow through entire checkout (Revolut order, confirm, checkout page display)
-- [x] Family plan added to createOrder validation
-- [x] CheckSubscription middleware: read-only GET access for expired users
-- [x] Subscription data centralised: single fetch in AppLayout, passed as props
-- [x] Re-fetches on route change so UI updates after payment
-- [x] PlanSelectionModal moved to AppLayout (was rendering inside sidebar DOM)
-- [x] Payment confirm: retry up to 5 times with 2s delay for Revolut state settlement
-- [x] Backend accepts 'pending' state from Revolut
-- [x] verify-code added to API interceptor auth endpoint list (was redirecting to login on wrong code)
-- [x] Browser tested on localhost: all 4 subscription states (trial, active standard, active pro, expired)
-- [x] Deployed to production, browser tested login flow
+### Completed This Session
+- [x] Removed stale worktree `.claude/worktrees/agent-a9856e54` (admin analytics already on main)
+- [x] Fixed inverted progress bar in Navbar (`100 - progress` → `progress`)
+- [x] Added `upgrade_from_plan` column to payments table (migration)
+- [x] Added `status` + `revolut_order_id` to Subscription model fillable
+- [x] Built `POST /api/payment/upgrade` endpoint with proration calculation
+- [x] Proration formula: yearly = `(price_diff / 12) * months_remaining`, monthly = full price diff
+- [x] Modified `confirmPayment` to keep period dates for upgrades (don't reset to now)
+- [x] PlanSelectionModal emits `isUpgrade` flag when `currentPlan` set
+- [x] AppLayout + SubscriptionManagement route to checkout with `&upgrade=true`
+- [x] CheckoutPage: calls `/payment/upgrade` in upgrade mode, shows "Upgrade Summary" with prorated amount
+- [x] Added "Upgrade" button to subscription tab (active non-pro subscribers only)
+- [x] SubscriptionManagement passes `currentPlan` to modal (filters to higher tiers)
+- [x] 9/9 Pest tests pass (proration math, validation, period date handling)
+- [x] Browser tested all 4 states: trial, active standard, active pro, expired
+- [x] Database seeded
 
-### NOT Done — Production Issues Remaining
-- [ ] **CRITICAL: Production rate limiting (429)** — subscription tab fails to load on production. Need SSH `php artisan cache:clear` to reset rate limiters. I could not SSH (key not set up for this session).
-- [ ] **Production subscription status** — chris@fynla.org has `plan: pro, status: trialing` on production. If payment was made, need to verify and fix via tinker: `$u->subscription->update(['status' => 'active'])`
-- [ ] **Full production browser test** — login verified, dashboard verified, but subscription tab and plan selection modal NOT fully tested on production due to 429 rate limits
+### Session 19 Completed (earlier today)
+- [x] Full subscription/upgrade UI flow (see previous section below)
+- [x] Deployed to production (all files, SSH, migrations, caches, seeders)
+
+### NOT Done — Needs Deployment
+- [ ] **Build for production:** `./deploy/fynla-org/build.sh` (session 20 changes not yet built)
+- [ ] **Deploy session 20 changes:** New migration, updated PHP files, new frontend build
+- [ ] **Deploy guide:** needs generating from `git diff`
+
+### NOT Done — Production Issues (carried from session 19)
+- [ ] **Production rate limiting (429)** — may still need `php artisan cache:clear` if not resolved
+- [ ] **chris@fynla.org subscription status** — has `plan: pro, status: trialing`. May need tinker fix: `$u->subscription->update(['status' => 'active'])`
+- [ ] **Full production browser test** of subscription + upgrade flow
 
 ### Not Yet Done — Feature Gaps
 - [ ] Feature access gating per tier (CheckSubscription middleware only checks active status, not plan-specific features)
-- [ ] Subscription management page for active subscribers (change plan, cancel, billing history display)
+- [ ] Recurring billing / auto-renewal (currently one-time Revolut orders only)
 
 ---
 
@@ -86,20 +87,23 @@
 
 ## Deploy Status
 
-### Deployed 31 March (partially)
-- Frontend build uploaded
-- PHP files uploaded: PaymentController.php, CheckSubscription.php
-- **NEEDS: `php artisan cache:clear` on production** (rate limiters blocking subscription tab)
-- Deploy guide: March/March31Updates/deployUpgrade.md
-- Also need to upload: resources/js/services/api.js change is in the build already
+### Session 20 — NOT YET DEPLOYED
+- Code complete, tested on localhost
+- Needs: `./deploy/fynla-org/build.sh` → upload build + PHP files → run migration → clear caches
+- Changed files: PaymentController.php, Payment.php, Subscription.php, routes/api.php, Navbar.vue, PlanSelectionModal.vue, AppLayout.vue, SubscriptionManagement.vue, CheckoutPage.vue, new migration, new test file
+
+### Session 19 — DEPLOYED
+- Frontend build + PHP files uploaded
+- All SSH commands run, migrations run, caches cleared, seeders run
+- Deploy guides: March/March31Updates/deployUpgrade.md, deployUI.md, deployFull.md
 
 ### Previous (sessions 17-18 — deployed)
 - Admin user metrics, subscription tiers, Family plan — all deployed
 
 ## Context for Next Session
 
-Session 19 built the full subscription/upgrade UI flow. The code is correct and browser tested on localhost for all 4 states (trial, active standard, active pro, expired). Production deployment is partially done — the build and PHP files are uploaded but rate limiters need clearing via SSH (`php artisan cache:clear`). After clearing, test the subscription tab and plan selection modal on production. The production subscription for chris@fynla.org may need status fixed to 'active' via tinker if payment went through.
+Session 20 implemented the upgrade proration system. A user on Standard clicking "Upgrade Now" sees Family + Pro plans. Selecting one routes to checkout with `&upgrade=true`, which calls `POST /api/payment/upgrade` to calculate the prorated amount (e.g. Standard→Pro, 9 months remaining = £74.97). On payment confirmation, the plan upgrades but period dates stay unchanged. All 4 subscription states browser tested. 9 Pest tests pass. Needs building and deploying.
 
 ## Files to Review
-- March/March31Updates/deployUpgrade.md — Full deploy guide with all changes
-- March/March31Updates/deployUI.md — Earlier UI-only deploy guide
+- March/March31Updates/subscriptionPlan.md — Full plan with proration formula and architecture
+- March/March31Updates/subscriptionTaskList.md — Task list with all checkboxes marked

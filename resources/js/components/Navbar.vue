@@ -36,7 +36,7 @@
               <div class="mt-1 w-full bg-white/50 rounded-full h-1">
                 <div
                   class="bg-violet-500 h-1 rounded-full transition-all duration-500"
-                  :style="{ width: (100 - trialData.progress) + '%' }"
+                  :style="{ width: trialData.progress + '%' }"
                 ></div>
               </div>
             </div>

@@ -283,6 +283,7 @@ export default {
       this.$emit('select', {
         plan: this.selectedPlan,
         billingCycle: this.billingCycle,
+        isUpgrade: !!this.currentPlan,
       });
     },
   },

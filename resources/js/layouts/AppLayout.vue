@@ -189,10 +189,14 @@ export default {
       }
     },
 
-    // Re-fetch subscription data on route change (AppLayout doesn't remount)
+    // Re-fetch subscription data on route change, throttled to once per 5 minutes
     '$route.path'() {
       if (this.isAuthenticated && !this.isPreviewMode) {
-        this.checkTrialStatus();
+        const now = Date.now();
+        if (!this._lastTrialCheck || now - this._lastTrialCheck > 300000) {
+          this._lastTrialCheck = now;
+          this.checkTrialStatus();
+        }
       }
     },
   },
@@ -283,10 +287,11 @@ export default {
       }
     },
 
-    handlePlanSelect({ plan, billingCycle }) {
+    handlePlanSelect({ plan, billingCycle, isUpgrade }) {
       this.showTrialExpiredModal = false;
       this.showPlanModal = false;
-      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
+      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
+      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}`);
     },
   },
 };

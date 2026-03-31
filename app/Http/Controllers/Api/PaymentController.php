@@ -25,6 +25,8 @@ class PaymentController extends Controller
 {
     use SanitizedErrorResponse;
 
+    private const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
+
     public function __construct(
         private readonly RevolutService $revolutService
     ) {}
@@ -218,12 +220,12 @@ class PaymentController extends Controller
                 // Read plan and billing cycle from the Payment record (source of truth)
                 $planSlug = $payment->plan_slug;
                 $billingCycle = $payment->billing_cycle;
-
-                $periodEnd = $billingCycle === 'monthly'
-                    ? now()->addMonth()
-                    : now()->addYear();
+                $isUpgrade = ! empty($payment->upgrade_from_plan);
 
                 $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
+                $fullPrice = $subscriptionPlan
+                    ? ($subscriptionPlan->getLaunchPriceForCycle($billingCycle) ?? $subscriptionPlan->getPriceForCycle($billingCycle))
+                    : $payment->amount;
 
                 // Update Payment
                 $payment->update([
@@ -233,19 +235,25 @@ class PaymentController extends Controller
 
                 // Update Subscription
                 $subscription = $payment->subscription;
-                $subscription->update([
+                $subscriptionUpdate = [
                     'status' => 'active',
                     'plan' => $planSlug,
                     'billing_cycle' => $billingCycle,
-                    'amount' => $subscriptionPlan
-                        ? ($subscriptionPlan->getLaunchPriceForCycle($billingCycle) ?? $subscriptionPlan->getPriceForCycle($billingCycle))
-                        : $payment->amount,
-                    'current_period_start' => now(),
-                    'current_period_end' => $periodEnd,
+                    'amount' => $fullPrice,
                     'revolut_order_id' => $orderId,
                     'cancelled_at' => null,
                     'cancellation_reason' => null,
-                ]);
+                ];
+
+                // Upgrades keep existing period dates; new subscriptions set fresh dates
+                if (! $isUpgrade) {
+                    $subscriptionUpdate['current_period_start'] = now();
+                    $subscriptionUpdate['current_period_end'] = $billingCycle === 'monthly'
+                        ? now()->addMonth()
+                        : now()->addYear();
+                }
+
+                $subscription->update($subscriptionUpdate);
 
                 // Update User denormalised fields
                 $user->update([
@@ -274,6 +282,122 @@ class PaymentController extends Controller
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Confirming payment');
+        }
+    }
+
+    /**
+     * Upgrade an active subscription to a higher-tier plan.
+     *
+     * POST /api/payment/upgrade
+     *
+     * Calculates a prorated amount for the remaining billing period
+     * and creates a Revolut order for that amount.
+     */
+    public function upgradeSubscription(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->is_preview_user) {
+            return response()->json(['success' => false, 'message' => 'Payment is not available in preview mode'], 403);
+        }
+
+        $request->validate([
+            'plan' => 'required|string|in:student,standard,family,pro',
+        ]);
+
+        $subscription = $user->subscription;
+
+        if (! $subscription || $subscription->status !== 'active') {
+            return response()->json(['success' => false, 'message' => 'You must have an active subscription to upgrade'], 403);
+        }
+
+        $currentPlanSlug = $subscription->plan;
+        $newPlanSlug = $request->input('plan');
+
+        $currentIndex = array_search($currentPlanSlug, self::PLAN_ORDER);
+        $newIndex = array_search($newPlanSlug, self::PLAN_ORDER);
+
+        if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
+            return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
+        }
+
+        $currentPlan = SubscriptionPlan::findBySlug($currentPlanSlug);
+        $newPlan = SubscriptionPlan::findBySlug($newPlanSlug);
+
+        if (! $currentPlan || ! $newPlan) {
+            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+        }
+
+        $billingCycle = $subscription->billing_cycle;
+
+        // Get effective prices (launch price if available)
+        $currentPrice = $currentPlan->getLaunchPriceForCycle($billingCycle) ?? $currentPlan->getPriceForCycle($billingCycle);
+        $newPrice = $newPlan->getLaunchPriceForCycle($billingCycle) ?? $newPlan->getPriceForCycle($billingCycle);
+        $priceDiff = $newPrice - $currentPrice;
+
+        if ($billingCycle === 'yearly') {
+            $monthlyDiff = (int) round($priceDiff / 12);
+            $monthsUsed = (int) $subscription->current_period_start->diffInMonths(now());
+            $monthsRemaining = max(1, 12 - $monthsUsed);
+            $upgradeAmount = $monthlyDiff * $monthsRemaining;
+        } else {
+            // Monthly: charge the full month difference
+            $upgradeAmount = $priceDiff;
+        }
+
+        // Minimum charge of 1p (Revolut requires > 0)
+        $upgradeAmount = max(1, $upgradeAmount);
+
+        $description = "Upgrade: ".ucfirst($currentPlanSlug)." \u{2192} ".ucfirst($newPlanSlug);
+
+        try {
+            $payment = Payment::create([
+                'subscription_id' => $subscription->id,
+                'user_id' => $user->id,
+                'revolut_order_id' => 'pending',
+                'amount' => $upgradeAmount,
+                'currency' => 'GBP',
+                'status' => 'pending',
+                'description' => $description,
+                'plan_slug' => $newPlanSlug,
+                'billing_cycle' => $billingCycle,
+                'upgrade_from_plan' => $currentPlanSlug,
+            ]);
+
+            $baseUrl = config('services.revolut.sandbox')
+                ? 'https://fynla.org'
+                : config('app.url');
+            $redirectUrl = $baseUrl.'/checkout?plan='.$newPlanSlug
+                .'&cycle='.$billingCycle.'&upgrade=true&status=complete';
+
+            $revolutOrder = $this->revolutService->createOrder(
+                $upgradeAmount,
+                'GBP',
+                $description,
+                $redirectUrl,
+                "upgrade_{$payment->id}",
+                $user->email
+            );
+
+            $payment->update([
+                'revolut_order_id' => $revolutOrder['id'],
+                'revolut_payment_data' => [
+                    'order_id' => $revolutOrder['id'],
+                    'token' => $revolutOrder['token'],
+                    'state' => $revolutOrder['state'],
+                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
+                ],
+            ]);
+
+            return response()->json([
+                'token' => $revolutOrder['token'],
+                'order_id' => $revolutOrder['id'],
+                'upgrade_amount' => $upgradeAmount,
+                'new_plan' => $newPlanSlug,
+                'months_remaining' => $billingCycle === 'yearly' ? (12 - (int) $subscription->current_period_start->diffInMonths(now())) : 1,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Creating upgrade order');
         }
     }
 

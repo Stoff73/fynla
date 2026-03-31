@@ -24,7 +24,9 @@
           <!-- Order Summary (left) -->
           <div class="lg:col-span-2">
             <div class="bg-white rounded-xl border border-light-gray p-6 sticky top-24">
-              <h2 class="text-h4 font-semibold text-horizon-500 mb-4">Order Summary</h2>
+              <h2 class="text-h4 font-semibold text-horizon-500 mb-4">
+                {{ isUpgrade ? 'Upgrade Summary' : 'Order Summary' }}
+              </h2>
 
               <div class="space-y-3">
                 <div class="flex justify-between">
@@ -35,13 +37,22 @@
                   <span class="text-body-sm text-neutral-500">Billing</span>
                   <span class="text-body-sm font-medium text-horizon-500 capitalize">{{ billingCycle }}</span>
                 </div>
+                <div v-if="isUpgrade && monthsRemaining" class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Prorated</span>
+                  <span class="text-body-sm font-medium text-horizon-500">{{ monthsRemaining }} {{ monthsRemaining === 1 ? 'month' : 'months' }} remaining</span>
+                </div>
                 <div class="border-t border-light-gray pt-3">
                   <div class="flex justify-between">
-                    <span class="text-body-base font-semibold text-horizon-500">Total</span>
                     <span class="text-body-base font-semibold text-horizon-500">
-                      {{ planPrice }}
+                      {{ isUpgrade ? 'Upgrade Cost' : 'Total' }}
+                    </span>
+                    <span class="text-body-base font-semibold text-horizon-500">
+                      {{ isUpgrade && upgradeAmount ? formatCurrencyWithPence(upgradeAmount / 100) : planPrice }}
                     </span>
                   </div>
+                  <p v-if="isUpgrade" class="text-caption text-neutral-500 mt-1">
+                    Prorated difference until your next renewal
+                  </p>
                 </div>
               </div>
             </div>
@@ -67,7 +78,9 @@
               v-show="!paymentComplete && !error"
               class="bg-white rounded-xl border border-light-gray p-6"
             >
-              <h2 class="text-h4 font-semibold text-horizon-500 mb-4">Payment Method</h2>
+              <h2 class="text-h4 font-semibold text-horizon-500 mb-4">
+                {{ isUpgrade ? 'Upgrade Payment' : 'Payment Method' }}
+              </h2>
               <div ref="checkoutContainer" class="min-h-[300px] revolut-checkout-container"></div>
             </div>
 
@@ -96,9 +109,14 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 class="text-h3 font-semibold text-horizon-500 mb-2">Payment Successful</h2>
+            <h2 class="text-h3 font-semibold text-horizon-500 mb-2">
+              {{ isUpgrade ? 'Upgrade Successful' : 'Payment Successful' }}
+            </h2>
             <p class="text-body-sm text-neutral-500 mb-6">
-              Your {{ planDisplayName }} plan is now active. Enjoy full access to all features.
+              {{ isUpgrade
+                ? `You have been upgraded to the ${planDisplayName} plan.`
+                : `Your ${planDisplayName} plan is now active. Enjoy full access to all features.`
+              }}
             </p>
             <button
               @click="goToDashboard"
@@ -184,6 +202,8 @@ export default {
       destroyWidget: null,
       revolutOrderId: null,
       planData: null,
+      upgradeAmount: null,
+      monthsRemaining: null,
     };
   },
 
@@ -199,6 +219,10 @@ export default {
     planDisplayName() {
       if (!this.plan) return '';
       return this.plan.charAt(0).toUpperCase() + this.plan.slice(1);
+    },
+
+    isUpgrade() {
+      return this.$route.query.upgrade === 'true';
     },
 
     userEmail() {
@@ -264,13 +288,19 @@ export default {
           target: this.$refs.checkoutContainer,
           createOrder: async () => {
             // Called by widget when user clicks Pay
-            const response = await api.post('/payment/create-order', {
+            const endpoint = this.isUpgrade ? '/payment/upgrade' : '/payment/create-order';
+            const response = await api.post(endpoint, {
               plan: this.plan,
               billing_cycle: this.billingCycle,
             });
             // Store the internal UUID for confirmPayment call
             // CRITICAL: onSuccess's orderId is the TOKEN, not the UUID
             this.revolutOrderId = response.data.order_id;
+            // Store upgrade details for display
+            if (this.isUpgrade && response.data.upgrade_amount) {
+              this.upgradeAmount = response.data.upgrade_amount;
+              this.monthsRemaining = response.data.months_remaining;
+            }
             // Return token to widget as { publicId }
             return { publicId: response.data.token };
           },

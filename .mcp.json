@@ -14,6 +14,10 @@
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "ssh-fynla": {
+      "command": "node",
+      "args": ["/Users/CSJ/Desktop/fynla/mcp-servers/ssh/server.mjs"]
     }
   }
 }

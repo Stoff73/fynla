@@ -1,303 +1,259 @@
 ---
 name: session-start
-description: Bootstrap a new development session. Checks for overnight issues, cleans up stale worktrees/branches, syncs git, audits for broken code, seeds the database, starts the dev server, and displays context. Run at the start of every session. Use when the user says "start session", "get ready", "set up", "begin", or at the start of any new conversation.
-disable-model-invocation: true
+description: Bootstrap a new Fynla development session with full project context. Syncs git, loads the fynlaBrain vault (design system, past bugs, feedback rules, deployment history), reads all memory files, seeds the database, and starts the dev server. This skill exists because Claude repeatedly makes the same mistakes across sessions — skipping tests, ignoring the design system, claiming work is done without browser verification. Running this skill prevents that cycle. Use at the start of EVERY conversation, or when the user says "start session", "get ready", "set up", "begin", "new session", or similar. Also use if you notice you're missing project context mid-session.
 ---
 
-# Session Start - Pre-Session Bootstrap
+# Session Start — Full Context Bootstrap
 
-Prepare the development environment for a new Fynla session. This is the FIRST thing that runs in every session.
+This skill exists because of a real, recurring problem: new Claude instances start sessions without knowing the project's hard-won lessons, design rules, or past mistakes — and then repeat them. The user has been through this cycle dozens of times and it causes genuine frustration.
 
-## Step 1: Read Memory, TODO & Context
+Your job here is to load everything you need so that when the user gives you work, you already know the rules, the patterns, the gotchas, and the history. No excuses for ignorance after this skill runs.
 
-Read the project memory to understand current state:
+## Phase 1: Git Sync
 
-```bash
-cat /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/MEMORY.md
-```
+Make sure you're working on the latest code. Do these checks in order — stop and report to the user if anything is wrong.
 
-**Read CSJTODO.md** — this is the handover from the previous session. It contains outstanding items, tech debt, known issues, and context for what to pick up:
-
-```bash
-cat CSJTODO.md 2>/dev/null || echo "No CSJTODO.md — clean slate"
-```
-
-If CSJTODO.md exists and has unchecked items, present them to the user prominently:
-
-```markdown
-## Outstanding from Previous Session
-
-[items from CSJTODO.md]
-
-Would you like to address these first, or work on something else?
-```
-
-Check for any other handover notes from previous sessions:
-
-```bash
-# Check for recent handover/update notes
-find March/ -name "*.md" -newer CLAUDE.md -mtime -1 2>/dev/null | head -10
-```
-
-## Step 1b: Load Vault Context (fynlaBrain)
-
-Load accumulated knowledge from the fynlaBrain Obsidian vault. This ensures every session starts with the lessons learned from all previous sessions.
-
-### Read ALL feedback rules (NON-NEGOTIABLE)
-
-```bash
-ls /Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/feedback_*.md
-```
-
-Read EVERY `feedback_*.md` file and present a summary of each rule. These rules apply to ALL work in ALL sessions. Present them prominently:
-
-```markdown
-### Active Rules (from previous sessions)
-- [rule name]: [one-line summary]
-```
-
-### Read recent session history from vault
-
-```bash
-# Get the 3 most recent session update folders
-ls -d /Users/CSJ/Desktop/fynlaBrain/March/March*Updates 2>/dev/null | sort -V | tail -3
-```
-
-For each of the 3 most recent folders, read:
-- Deploy notes (`deploy*.md`, `*deploy*.md`) — what was deployed, what broke
-- Session summaries (`session*.md`, `*summary*.md`) — what was worked on
-- TODO files (`*TODO*.md`, `CSJTODO.md`) — outstanding items
-
-Present key items from each session.
-
-### Read vault TODO (may be newer than repo)
-
-```bash
-find /Users/CSJ/Desktop/fynlaBrain/March -name "CSJTODO.md" -type f 2>/dev/null | sort -V | tail -1
-```
-
-If it exists and has content not in the repo TODO.md, present both and note the difference.
-
-### Check recent reports
-
-```bash
-find /Users/CSJ/Desktop/fynlaBrain/Reports -name "*.md" -mtime -7 2>/dev/null
-```
-
-If any reports from the last 7 days, read and summarise key findings (tech debt, security, code review).
-
-### Present vault context
-
-```markdown
-## Vault Context Loaded
-
-**Feedback Rules (MUST follow):**
-- [each rule — name and one-line summary]
-
-**Recent Sessions:**
-- [date]: [what was worked on, deployed, outstanding]
-
-**Outstanding from Vault:**
-- [items from vault CSJTODO if different from repo TODO]
-
-**Recent Reports:**
-- [findings from last 7 days, or "None"]
-```
-
-## Step 2: Git Sync & Cleanup
-
-### 2a: Check current state
+### 1a. Current state
 
 ```bash
 git status
 git rev-parse --abbrev-ref HEAD
+```
+
+If there are uncommitted changes, **report them to the user** before doing anything else. Do not silently stash or discard.
+
+### 1b. Fetch and compare with remote
+
+```bash
 git fetch origin
+git rev-list --left-right --count HEAD...origin/main
 ```
 
-### 2b: Clean up stale worktrees and branches
+The output is `LOCAL_AHEAD  REMOTE_AHEAD`. Interpret:
+- `0  0` → Up to date. Good.
+- `0  N` → Behind by N commits. Pull needed.
+- `N  0` → Ahead by N commits. Fine, local work not yet pushed.
+- `N  M` → Diverged. Report to user — do not auto-resolve.
 
-Previous sessions may have left orphaned worktrees or unmerged branches. Clean them up:
+### 1c. Pull if behind (and working tree is clean)
 
-```bash
-# List all worktrees
-git worktree list
-
-# Remove any orphaned worktrees (agent-* or worktree-*)
-for dir in .claude/worktrees/agent-*/; do
-  if [ -d "$dir" ]; then
-    agent=$(basename "$dir")
-    # Check if it has uncommitted changes
-    changes=$(cd "$dir" && git diff --name-only HEAD 2>/dev/null | wc -l)
-    if [ "$changes" -gt 0 ]; then
-      echo "WARNING: $agent has $changes uncommitted changes — review before removing"
-    else
-      git worktree remove "$dir" --force 2>/dev/null
-      git branch -D "worktree-$agent" 2>/dev/null
-      echo "Cleaned up: $agent"
-    fi
-  fi
-done
-```
-
-If worktrees with uncommitted changes are found, report them to the user before removing.
-
-### 2c: Clean up stale branches
-
-```bash
-# List local branches that no longer have a remote
-git branch -vv | grep ': gone]' | awk '{print $1}'
-
-# List feature branches (but don't delete — report to user)
-git branch | grep -v main | grep -v '\*'
-```
-
-Report any stale branches but do NOT auto-delete. Ask the user.
-
-### 2d: Sync main
+If behind and no uncommitted changes:
 
 ```bash
 git pull origin main
 ```
 
-If there are conflicts, resolve them or report to the user.
+If there are uncommitted changes AND you're behind, tell the user:
+> "You have uncommitted changes and main has new commits. Would you like me to stash your changes and pull, or leave things as-is?"
 
-### 2e: Check what changed since last session
+### 1d. Clean up stale worktrees
 
-```bash
-# Last session's commits
-git log --since="yesterday" --oneline
-
-# Any uncommitted work
-git diff --stat HEAD
-```
-
-## Step 3: Overnight Issue Detection
-
-Check for common issues that accumulate between sessions:
-
-### 3a: Syntax check recently changed PHP files
+Previous sessions leave orphaned agent worktrees. Clean up any that have no uncommitted changes:
 
 ```bash
-# Check PHP syntax on files changed in the last 24 hours
-for file in $(git diff --name-only HEAD~5 -- '*.php' 2>/dev/null); do
-  php -l "$file" 2>&1 | grep -v "No syntax errors"
-done
+git worktree list
 ```
 
-### 3b: Check for broken imports/references
+For each worktree in `.claude/worktrees/agent-*/`:
+- If it has uncommitted changes → report to user, do NOT delete
+- If it's clean → remove it: `git worktree remove <path> --force`
+
+Report what was cleaned up and what needs user attention.
+
+### 1e. Recent changes
 
 ```bash
-# Check for any PHP files referencing classes that don't exist
-# (catches namespace issues from merges)
-php artisan route:list --json 2>&1 | head -5
+git log --oneline -10
 ```
 
-If `route:list` throws errors, there are broken references that need fixing before anything else.
+Note the recent commits so you understand what was last worked on.
 
-### 3c: Check migration status
+---
+
+## Phase 2: Load Project Context
+
+This is the critical phase. Read these files and **internalise their content** — not just skim them. The user will know immediately if you didn't actually absorb this context because you'll violate a rule that's been established for weeks.
+
+### 2a. Read ALL memory files
+
+Read every file in the memory directory:
+
+```
+/Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/
+```
+
+Start with `MEMORY.md` (the index), then read every `feedback_*.md`, `project_*.md`, `reference_*.md`, and `critical_*.md` file.
+
+**Every feedback file is a rule that was created because Claude violated it.** These are not suggestions. They are laws born from frustration. Internalise each one.
+
+The key feedback themes you will encounter (and must follow):
+
+**Testing is mandatory, not optional:**
+- "Browser tested" means you CLICKED, FILLED, SUBMITTED in Playwright and verified the result
+- Reading a diff is NOT testing. A snapshot without interaction is NOT testing
+- After ANY fix, re-test from Step 1 — never skip to the fix point
+- Never say "verified", "pass", or "confirmed" for items you didn't interact with
+- Never write a completion report until ALL browser testing is done
+- If blocked (login, verification code), ASK THE USER — do not skip
+
+**Don't hack the system:**
+- Never modify .env or insert DB records to work around issues
+- Never run artisan/composer/npm in the main directory if agents are working in worktrees
+- Never use `npx vite build` — use `./deploy/fynla-org/build.sh`
+- Never use `migrate:fresh` or `migrate:refresh` — they destroy data
+
+**Scope discipline:**
+- Only change what was asked for
+- Don't "improve" unrelated code while fixing a bug
+- Don't add features that weren't requested
+- If you notice something, REPORT it — don't silently fix it
+
+**Honesty:**
+- If something is broken, say it's broken
+- If you skipped testing, say you skipped testing
+- Never self-approve your own work
+- Never accept sub-agent claims without verification
+
+### 2b. Read the design guide
+
+```
+/Users/CSJ/Desktop/fynlaBrain/Design/fynlaDesignGuide.md
+```
+
+This is the single source of truth for all visual decisions. Read it and know:
+- **Color palette**: raspberry (CTAs), horizon (text/nav), spring (success), violet (warnings/focus), savannah (hover/subtle), eggshell (page bg)
+- **Banned colors**: amber-*, orange-*, primary-*, secondary-*, gray-* for general UI
+- **Typography**: Segoe UI primary, Inter fallback, weights 900 (display/h1), 700 (h2-h5)
+- **Component patterns**: buttons, cards, forms, modals, badges
+- **Chart colors**: use `designSystem.js` constants, never hardcode hex
+
+If you make ANY UI change this session without following this guide, you have failed.
+
+### 2c. Read the TODO / handover
 
 ```bash
-php artisan migrate:status 2>&1 | grep -i "pending\|No\|error" | head -5
+cat CSJTODO.md 2>/dev/null || echo "No TODO file"
 ```
 
-If there are pending migrations, report them but do NOT auto-run. Ask the user.
-
-### 3d: Check for merge conflict markers left in code
+If it exists, present outstanding items to the user. Also check the vault for a potentially newer version:
 
 ```bash
-# Search for unresolved conflict markers
-grep -rn "<<<<<<< " --include="*.php" --include="*.vue" --include="*.js" app/ resources/ 2>/dev/null | head -10
+ls -t /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/CSJTODO.md 2>/dev/null | head -1
 ```
 
-If found, these MUST be fixed immediately — they will cause runtime errors.
+### 2d. Read recent vault session notes
 
-## Step 4: Database Seed
+Check the 3 most recent session update folders for deploy notes, bug fixes, and outstanding issues:
 
-Seed the database to ensure all reference data is current:
+```bash
+ls -d /Users/CSJ/Desktop/fynlaBrain/March/March*Updates 2>/dev/null | sort -V | tail -3
+```
+
+For each folder, look for:
+- Deploy notes (`*deploy*.md`, `*Deploy*.md`) — what was deployed, what broke
+- Fix notes (`*fix*.md`, `*Fix*.md`, `*bug*.md`) — what went wrong and how it was resolved
+- Session summaries — what was worked on
+
+This gives you the narrative of recent work so you don't repeat fixed bugs or re-introduce solved issues.
+
+### 2e. Read recent reports (if any)
+
+```bash
+find /Users/CSJ/Desktop/fynlaBrain/Reports -name "*.md" -mtime -7 2>/dev/null
+```
+
+If any reports from the last 7 days, read key findings (tech debt, security, code review issues).
+
+---
+
+## Phase 3: Environment Setup
+
+### 3a. Database seed (NON-NEGOTIABLE)
 
 ```bash
 php artisan db:seed
 ```
 
-If seeding fails, diagnose immediately:
+This must happen every session. No exceptions. If it fails:
 
 | Error | Fix |
 |-------|-----|
 | Table doesn't exist | `php artisan migrate && php artisan db:seed` |
 | Duplicate key | Safe to ignore — seeders use `updateOrCreate()` |
-| Connection refused | Check MySQL is running: `mysql.server start` |
+| Connection refused | MySQL not running: `mysql.server start` |
 
-## Step 5: Start Dev Server
-
-Check if already running, then start if needed:
+### 3b. Check for code issues
 
 ```bash
-# Check if Laravel/Vite are running
-lsof -i :8000 2>/dev/null | head -3
-lsof -i :5173 2>/dev/null | head -3
+# Check for unresolved merge conflict markers
+grep -rn "<<<<<<< " --include="*.php" --include="*.vue" --include="*.js" app/ resources/ 2>/dev/null | head -10
+
+# Check PHP syntax on recently changed files
+for file in $(git diff --name-only HEAD~5 -- '*.php' 2>/dev/null); do
+  php -l "$file" 2>&1 | grep -v "No syntax errors"
+done
+
+# Check migration status
+php artisan migrate:status 2>&1 | grep -i "pending\|error" | head -5
+
+# Check routes compile
+php artisan route:list --json 2>&1 | head -3
 ```
 
-If not running:
+If conflict markers are found, they MUST be resolved before any other work.
+If pending migrations exist, report to user — do NOT auto-run.
+
+### 3c. Start dev server (if not running)
 
 ```bash
-./dev.sh
+lsof -i :8000 2>/dev/null | head -1
+lsof -i :5173 2>/dev/null | head -1
 ```
 
-Run in background so bootstrap can continue.
+If not running: `./dev.sh` (run in background so bootstrap can continue).
 
-## Step 6: Quick Health Check
+---
 
-Run a fast compilation check to catch any broken Vue/JS:
+## Phase 4: Session Report
 
-```bash
-# Check Vite can resolve all imports (will show errors in dev.sh output)
-# If dev.sh is running, check for compilation errors in its output
-```
-
-Also check for any TODO/FIXME items from the last session:
-
-```bash
-# Recent TODOs in changed files
-git diff --name-only HEAD~5 -- '*.php' '*.vue' 2>/dev/null | xargs grep -n "TODO\|FIXME\|HACK\|XXX" 2>/dev/null | head -10
-```
-
-## Step 7: Session Context Display
-
-Present a clean summary:
+Present a clean summary to the user. This is what they see — make it useful, not verbose.
 
 ```markdown
 ## Session Ready
 
-**Date:** [today's date]
-**Branch:** `branch-name`
-**Status:** Clean / X uncommitted changes
-**Last work:** [summary of recent commits]
+**Date:** [today]
+**Branch:** `main` (or current branch)
+**Git:** Up to date / Pulled N new commits / X uncommitted changes
+**Database:** Seeded
+**Dev server:** Running on :8000/:5173
 
-**Environment:**
-- Database: Seeded successfully
-- Dev server: Running on :8000/:5173
-- PHP syntax: All clear / X errors found
-- Migrations: Up to date / X pending
-- Conflict markers: None / X found (CRITICAL)
+### Recent Work
+- [last 3-5 commits summarised]
 
-**Stale worktrees:** None / X cleaned up / X need review
-**Stale branches:** None / X reported
+### Outstanding Items
+- [from CSJTODO.md or vault TODO, if any]
 
-**Recent changes (last 24hrs):**
-- [list from git log]
+### Issues Found
+- [conflict markers / broken imports / pending migrations / stale worktrees — or "None"]
 
-**Overnight issues found:**
-- [any issues from Step 3, or "None"]
+### Rules Loaded
+[number] feedback rules loaded from [number] memory files.
+Key reminders for this session:
+- Browser testing is mandatory — click, fill, submit, verify
+- Design system compliance — all colors from fynlaDesignGuide.md palette
+- Scope discipline — only change what's asked for
+- Honesty — never claim "done" without evidence
 
-**Ready to work.** What would you like to do?
+**Ready. What would you like to work on?**
 ```
 
-## Important
+---
 
-- ALWAYS seed the database. No exceptions.
-- Do NOT run `migrate:fresh` or `migrate:refresh` — these destroy data.
-- Do NOT auto-delete branches with uncommitted work — ask the user.
-- Do NOT make code changes in this skill — this is diagnostic and bootstrap only.
-- If overnight issues are found (conflict markers, broken imports), fix those FIRST before accepting new work.
-- Clean up worktrees that have no changes — they're from completed agent runs.
-- Report stale branches but let the user decide what to do with them.
+## What NOT to Do
+
+- Do NOT make code changes during session start — this is diagnostic and context-loading only
+- Do NOT auto-delete branches with uncommitted work
+- Do NOT run `migrate:fresh` or `migrate:refresh`
+- Do NOT skip the database seed
+- Do NOT skip reading the feedback files — they are the most important part of this skill
+- Do NOT summarise the feedback rules as "follow best practices" — they are specific, concrete rules with specific reasons

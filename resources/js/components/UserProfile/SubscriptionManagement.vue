@@ -112,6 +112,14 @@
         </div>
 
         <button
+          v-if="subscriptionData.plan !== 'pro'"
+          @click="showPlanModal = true"
+          class="btn-primary w-full text-center block mb-3"
+        >
+          Upgrade
+        </button>
+
+        <button
           @click="showCancelModal = true"
           class="text-body-sm text-raspberry-600 hover:text-raspberry-700 transition-colors"
         >
@@ -316,6 +324,7 @@
     <!-- Plan Selection Modal -->
     <PlanSelectionModal
       v-if="showPlanModal"
+      :current-plan="currentPlanForModal"
       @select="handlePlanSelect"
       @close="showPlanModal = false"
     />
@@ -508,6 +517,13 @@ export default {
       return subscriptionData.value?.is_in_grace_period || false;
     });
 
+    const currentPlanForModal = computed(() => {
+      if (subscriptionState.value === 'active' && subscriptionData.value?.plan) {
+        return subscriptionData.value.plan;
+      }
+      return null;
+    });
+
     const formatDate = (dateStr) => {
       if (!dateStr) return '\u2014';
       const date = new Date(dateStr);
@@ -518,9 +534,10 @@ export default {
       });
     };
 
-    const handlePlanSelect = ({ plan, billingCycle }) => {
+    const handlePlanSelect = ({ plan, billingCycle, isUpgrade }) => {
       showPlanModal.value = false;
-      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}`);
+      const upgradeParam = isUpgrade ? '&upgrade=true' : '';
+      router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}`);
     };
 
     const confirmCancel = async () => {
@@ -545,15 +562,19 @@ export default {
       }
     };
 
-    // Refresh data when a countdown reaches zero (status may have changed server-side)
+    // Refresh data once when a countdown reaches zero (status may have changed server-side)
+    let trialExpiredFetched = false;
     watch(trialCountdown, (val) => {
-      if (subscriptionState.value === 'trialing' && val.days === 0 && val.hours === 0 && val.minutes === 0) {
+      if (!trialExpiredFetched && subscriptionState.value === 'trialing' && val.days === 0 && val.hours === 0 && val.minutes === 0) {
+        trialExpiredFetched = true;
         fetchSubscriptionData();
       }
     });
 
+    let accessExpiredFetched = false;
     watch(accessCountdown, (val) => {
-      if (subscriptionState.value === 'cancelled' && val && val.days === 0 && val.hours === 0 && val.minutes === 0) {
+      if (!accessExpiredFetched && subscriptionState.value === 'cancelled' && val && val.days === 0 && val.hours === 0 && val.minutes === 0) {
+        accessExpiredFetched = true;
         fetchSubscriptionData();
       }
     });
@@ -583,6 +604,7 @@ export default {
       accessCountdown,
       gracePeriodCountdown,
       isInGracePeriod,
+      currentPlanForModal,
       billingHistory,
       showPlanModal,
       handlePlanSelect,

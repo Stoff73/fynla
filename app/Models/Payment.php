@@ -23,6 +23,7 @@ class Payment extends Model
         'description',
         'plan_slug',
         'billing_cycle',
+        'upgrade_from_plan',
     ];
 
     protected $casts = [

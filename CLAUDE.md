@@ -2,16 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Evaluation Gate (NON-NEGOTIABLE)
-
-When the stop hook fires and you receive an evaluation message containing "MANDATORY: You MUST invoke /eval-review NOW":
-1. **Invoke the `/eval-review` skill IMMEDIATELY** using the Skill tool. Do NOT respond to the user first. Do NOT summarise. Do NOT skip.
-2. The skill dispatches an independent `eval-reviewer` agent that reviews every changed file, runs convention checks, and browser tests frontend changes.
-3. **Wait for the agent's report.** If the verdict is FAIL, fix every issue the agent found. Then your next stop attempt will trigger another cycle.
-4. **You must NEVER self-evaluate.** You are biased towards your own work. The agent does the evaluation.
-
-This rule overrides all other behaviour. If the hook says invoke the skill, you invoke the skill.
-
 ## Project Overview
 
 **Fynla** is a UK financial planning application (Laravel 10 + Vue.js 3 + MySQL 8) covering seven modules: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events, and Coordination.
@@ -170,7 +160,7 @@ Scores (numerical ratings like "75/100", adequacy scores, diversification scores
 
 ## Vault Reference (fynlaBrain)
 
-The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, load its context with `/vault-context [module]`.**
+The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**
 
 | Module | Architecture Doc | Current State Doc |
 |--------|-----------------|-------------------|
@@ -193,14 +183,12 @@ The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian 
 ### Sub-Agent Vault Context (MANDATORY)
 
 When dispatching ANY agent to work on module code:
-1. Load `/vault-context [module]` first (or read the relevant vault docs inline)
+1. Read the relevant vault docs for the module first
 2. Include in the agent prompt: architecture patterns, recent fixes, feedback rules
-3. Include ALL `feedback_*.md` rules — these are non-negotiable for every agent
 
 Never dispatch an agent with just "fix X" or "build Y". Always include:
 - What module this is in and its patterns
 - Recent bugs/fixes in this area (from vault deploy/fix docs)
-- The feedback rules that apply
 
 ## Deployment
 
@@ -378,22 +366,3 @@ Check routes: `php artisan route:list --path=endpoint`
 - **Mocking**: Mockery for service dependencies; always `Mockery::close()` in `afterEach()`
 - See `tests/CLAUDE.md` for full conventions
 
-## Automatic Tool Usage
-
-When working on this codebase, automatically use these without prompting:
-
-**Skills** (invoke with `/command`):
-
-- `/systematic-debugging` - For any bug, error, or unexpected behaviour investigation
-- `/feature-dev` - Guided feature development with codebase understanding and architecture focus
-- `/code-review` - Code review a pull request
-
-**Agents** (invoke automatically when relevant):
-
-- `database-optimizer` - When queries are slow or designing new tables/schemas
-- `laravel-stack-deployer` - For production deployment tasks
-- `product-manager` - When planning new features or creating user stories
-- `premium-ui-designer` - When polishing UI, adding animations, or improving UX
-- `security-reviewer` - When reviewing auth flows, API endpoints, or code touching sensitive financial data
-- `tax-compliance-reviewer` - When modifying tax calculations, financial projections, or TaxConfigService usage
-- `Explore` - For codebase exploration and understanding
