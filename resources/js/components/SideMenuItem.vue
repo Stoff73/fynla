@@ -1,7 +1,39 @@
 <template>
+  <!-- Locked item (feature-gated) -->
+  <div
+    v-if="locked"
+    class="flex items-center mx-2 rounded-md text-neutral-300 cursor-not-allowed"
+    :class="collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2'"
+    @mouseenter="showLockedTooltip"
+    @mouseleave="hideLockedTooltip"
+  >
+    <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" />
+    <span v-if="!collapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ label }}</span>
+
+    <!-- Tooltip (teleported to body, fixed position) -->
+    <Teleport to="body">
+      <div
+        v-if="tooltipVisible"
+        class="fixed z-[9999] pointer-events-auto"
+        :style="{ top: tooltipTop + 'px', left: tooltipLeft + 'px' }"
+        @mouseenter="tooltipHovered = true"
+        @mouseleave="hideLockedTooltip"
+      >
+        <div class="bg-horizon-600 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+          <div>Available on <strong>{{ requiredPlan }}</strong> plan</div>
+          <router-link
+            to="/settings?tab=subscription"
+            class="text-raspberry-300 hover:text-raspberry-200 underline text-[11px]"
+            @click="hideLockedTooltip"
+          >Upgrade now &rarr;</router-link>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+
   <!-- External link -->
   <a
-    v-if="external && href"
+    v-else-if="external && href"
     :href="href"
     target="_blank"
     rel="noopener noreferrer"
@@ -49,6 +81,7 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 import SideMenuIcon from './SideMenuIcon.vue';
 
 export default {
@@ -95,9 +128,49 @@ export default {
       type: Boolean,
       default: false,
     },
+    locked: {
+      type: Boolean,
+      default: false,
+    },
+    requiredPlan: {
+      type: String,
+      default: '',
+    },
   },
 
   emits: ['navigate', 'action'],
+
+  setup() {
+    const tooltipVisible = ref(false);
+    const tooltipHovered = ref(false);
+    const tooltipTop = ref(0);
+    const tooltipLeft = ref(0);
+
+    const showLockedTooltip = (event) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      tooltipTop.value = rect.top + rect.height / 2 - 20;
+      tooltipLeft.value = rect.right + 8;
+      tooltipVisible.value = true;
+    };
+
+    const hideLockedTooltip = () => {
+      setTimeout(() => {
+        if (!tooltipHovered.value) {
+          tooltipVisible.value = false;
+        }
+        tooltipHovered.value = false;
+      }, 100);
+    };
+
+    return {
+      tooltipVisible,
+      tooltipHovered,
+      tooltipTop,
+      tooltipLeft,
+      showLockedTooltip,
+      hideLockedTooltip,
+    };
+  },
 
   computed: {
     itemClasses() {

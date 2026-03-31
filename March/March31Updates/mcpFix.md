@@ -35,21 +35,54 @@ The `mcp__ssh-fynla__ssh_upload_file` tool reported "Successfully wrote" for mul
 
 ---
 
-## Root Cause Hypothesis
+## Root Cause — CONFIRMED
 
-The upload tool claims to write to paths relative to `~/www/fynla.org/public_html` but:
+**The tilde (`~`) in the path was not being expanded because it was inside single quotes.**
 
-1. Files may be written to a temporary location or buffer that is not flushed/committed
-2. The tool may have a file size limit — the PaymentController is ~630 lines / ~20KB
-3. The tool may have a character encoding issue with PHP content (e.g. `<?php` opening tag, special characters like `\u{2192}`)
-4. There may be a permission issue where the tool creates files owned by a different user/process that gets cleaned up
-5. The write may succeed in a different working directory than expected (though the success message showed the correct full path)
+In `mcp-servers/ssh/server.mjs` line 197 (old code):
+```js
+const cmd = `mkdir -p '${dir}' && cat > '${filePath}' << 'MCPEOF'\n${args.content}\nMCPEOF`;
+```
 
-The migration file was attempted **twice** and failed both times — `find ~ -name "*upgrade_from_plan*"` found nothing after both attempts.
+When `filePath` = `~/www/fynla.org/public_html/app/Models/Payment.php`, the single quotes around `'${filePath}'` prevent shell tilde expansion. The shell interprets `~` as a literal character, creating a directory literally named `~` inside the CWD.
+
+**Proof:** After the failed uploads, a literal `~` directory tree was found on the server:
+- `~/~/www/fynla.org/` (inside the home directory, from `ssh_exec`'s `cd ~/www/... &&` prefix)
+- `./~/www/` (from the CWD)
+
+All "successfully written" files went into this phantom directory tree, not the real application directory. The tool reported success because `cat >` returned exit code 0 (writing to the wrong path still succeeds).
+
+**Why `ssh_exec` worked fine:** Line 162 uses `cd ${cwd}` with the tilde **unquoted**, so tilde expansion works. Only the upload tool's single-quoted paths were broken.
 
 ---
 
-## Workarounds Used
+## Fix Applied
+
+**File:** `mcp-servers/ssh/server.mjs`
+
+### Change 1: Add `resolveTilde()` helper (line 38)
+```js
+function resolveTilde(p) {
+  return p.startsWith("~/") ? `$HOME/${p.slice(2)}` : p;
+}
+```
+Replaces `~` with `$HOME` which expands correctly inside double quotes.
+
+### Change 2: Fix `ssh_upload_file` handler
+- Resolve tilde before using the path
+- Use double quotes instead of single quotes for `mkdir -p` and `cat >`
+- Use unique heredoc delimiter (`MCPEOF_${Date.now()}`) to avoid content collisions
+- Increased timeout from 15s to 30s for larger files
+- **Added write verification**: after writing, checks file exists and has non-zero size
+- Returns byte count in success message
+
+### Change 3: Fix `ssh_read_file` handler
+- Added `resolveTilde()` to the read path
+- Added double quotes around file path in `cat` and `tail` commands
+
+---
+
+## Workarounds Used (before fix)
 
 ### For small changes (1-3 lines):
 ```bash
@@ -84,33 +117,18 @@ rsync -avz --delete -e "ssh -p 18765 -i ~/.ssh/production" \
 
 ---
 
-## Recommended Fix
+## Status: FIXED
 
-### 1. Investigate the MCP server implementation
+All three issues have been fixed in `mcp-servers/ssh/server.mjs`:
+1. Tilde resolution via `resolveTilde()` helper
+2. Write verification (file existence + byte count check)
+3. Double-quoted paths throughout
 
-Check the SSH MCP server source code. The tool description says:
-> "Write content to a file on the Fynla production server via SSH. Creates parent directories automatically."
+The MCP server needs to be restarted for changes to take effect (restart Claude Code or the MCP server process).
 
-Verify:
-- Is it using `sftp`, `scp`, or piping content through `ssh exec`?
-- Is there a content size limit?
-- Is the write atomic (temp file + rename) or direct?
-- Does it properly handle PHP `<?php` opening tags and Unicode characters?
+### Remaining recommendation: rsync for large uploads
 
-### 2. Add verification to the tool
-
-The tool should verify the file was written by:
-- Checking file size after write matches expected size
-- Or reading back a hash of the file content
-- Returning an error if verification fails instead of "Successfully wrote"
-
-### 3. Add a test
-
-Create a simple test: write a known file, read it back, compare content. Run this before trusting the tool for deployments.
-
-### 4. Fallback strategy
-
-Until fixed, use `ssh_exec` with heredocs for PHP files, and `rsync` via local Bash for large uploads. The `ssh_exec` tool is reliable.
+For bulk uploads (e.g. the entire `public/build/` directory with 289 files), `rsync` via the local Bash tool is still the best approach — it handles delta transfers, permissions, and deletions. The MCP upload tool is designed for individual file writes, not bulk directory syncs.
 
 ---
 

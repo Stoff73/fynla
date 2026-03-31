@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 31 March 2026 — session 20*
-*Previous session: 31 March 2026 session 19 (subscription UI, deploy)*
+*Last updated: 31 March 2026 — production review*
+*Previous session: 31 March 2026 session 20 (subscription upgrade proration)*
 
 ---
 
@@ -28,15 +28,13 @@
 - [x] Full subscription/upgrade UI flow (see previous section below)
 - [x] Deployed to production (all files, SSH, migrations, caches, seeders)
 
-### NOT Done — Needs Deployment
-- [ ] **Build for production:** `./deploy/fynla-org/build.sh` (session 20 changes not yet built)
-- [ ] **Deploy session 20 changes:** New migration, updated PHP files, new frontend build
-- [ ] **Deploy guide:** needs generating from `git diff`
-
-### NOT Done — Production Issues (carried from session 19)
-- [ ] **Production rate limiting (429)** — may still need `php artisan cache:clear` if not resolved
-- [ ] **chris@fynla.org subscription status** — has `plan: pro, status: trialing`. May need tinker fix: `$u->subscription->update(['status' => 'active'])`
-- [ ] **Full production browser test** of subscription + upgrade flow
+### Deployment — VERIFIED 31 March 2026
+- [x] **Build deployed:** Frontend build manifest matches local (md5: cd6d813d)
+- [x] **All PHP files match:** 19/19 files verified via MD5 checksums
+- [x] **All migrations ran:** Including session 20 `add_upgrade_from_plan_to_payments_table`
+- [x] **All 9 payment routes registered:** Including `POST api/payment/upgrade`
+- [x] **Subscription.php synced:** Local updated to match production patch (fillable ordering)
+- [x] **Production env:** `production`, Laravel 10.49.1
 
 ### Not Yet Done — Feature Gaps
 - [ ] Feature access gating per tier (CheckSubscription middleware only checks active status, not plan-specific features)
@@ -87,22 +85,14 @@
 
 ## Deploy Status
 
-### Session 20 — NOT YET DEPLOYED
-- Code complete, tested on localhost
-- Needs: `./deploy/fynla-org/build.sh` → upload build + PHP files → run migration → clear caches
-- Changed files: PaymentController.php, Payment.php, Subscription.php, routes/api.php, Navbar.vue, PlanSelectionModal.vue, AppLayout.vue, SubscriptionManagement.vue, CheckoutPage.vue, new migration, new test file
-
-### Session 19 — DEPLOYED
-- Frontend build + PHP files uploaded
-- All SSH commands run, migrations run, caches cleared, seeders run
+### All Sessions Through 20 — DEPLOYED & VERIFIED
+- Production verified via SSH MD5 comparison on 31 March 2026
+- All PHP files, frontend build, migrations, routes confirmed matching local
 - Deploy guides: March/March31Updates/deployUpgrade.md, deployUI.md, deployFull.md
-
-### Previous (sessions 17-18 — deployed)
-- Admin user metrics, subscription tiers, Family plan — all deployed
 
 ## Context for Next Session
 
-Session 20 implemented the upgrade proration system. A user on Standard clicking "Upgrade Now" sees Family + Pro plans. Selecting one routes to checkout with `&upgrade=true`, which calls `POST /api/payment/upgrade` to calculate the prorated amount (e.g. Standard→Pro, 9 months remaining = £74.97). On payment confirmation, the plan upgrades but period dates stay unchanged. All 4 subscription states browser tested. 9 Pest tests pass. Needs building and deploying.
+All sessions through 20 are deployed and verified on production. The subscription upgrade proration system is live. Local codebase matches production exactly (Subscription.php synced to match server patch).
 
 ## Files to Review
 - March/March31Updates/subscriptionPlan.md — Full plan with proration formula and architecture

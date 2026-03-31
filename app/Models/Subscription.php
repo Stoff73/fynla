@@ -19,15 +19,15 @@ class Subscription extends Model
         'user_id',
         'plan',
         'billing_cycle',
-        'status',
         'amount',
         'trial_started_at',
         'trial_ends_at',
         'current_period_start',
         'current_period_end',
-        'revolut_order_id',
         'cancelled_at',
         'cancellation_reason',
+        'status',
+        'revolut_order_id',
         'data_retention_starts_at',
     ];
 

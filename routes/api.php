@@ -217,15 +217,15 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/letter-to-spouse', [LetterToSpouseController::class, 'show']);
     Route::get('/letter-to-spouse/exists', [LetterToSpouseController::class, 'exists']);
     Route::get('/letter-to-spouse/spouse', [LetterToSpouseController::class, 'showSpouse']);
-    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update']);
+    Route::put('/letter-to-spouse', [LetterToSpouseController::class, 'update'])->middleware('feature:standard');
 
     // Family Members CRUD
     Route::prefix('family-members')->group(function () {
         Route::get('/', [FamilyMembersController::class, 'index']);
-        Route::post('/', [FamilyMembersController::class, 'store']);
+        Route::post('/', [FamilyMembersController::class, 'store'])->middleware('feature:family');
         Route::get('/{id}', [FamilyMembersController::class, 'show']);
-        Route::put('/{id}', [FamilyMembersController::class, 'update']);
-        Route::delete('/{id}', [FamilyMembersController::class, 'destroy']);
+        Route::put('/{id}', [FamilyMembersController::class, 'update'])->middleware('feature:family');
+        Route::delete('/{id}', [FamilyMembersController::class, 'destroy'])->middleware('feature:family');
     });
 
     // Personal Accounts (P&L, Cashflow, Balance Sheet)
@@ -281,7 +281,7 @@ Route::middleware('auth:sanctum')->prefix('joint-account-logs')->group(function 
 });
 
 // Property routes (Phase 4)
-Route::middleware('auth:sanctum')->prefix('properties')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('properties')->group(function () {
     // Property CRUD
     Route::get('/', [PropertyController::class, 'index']);
     Route::post('/', [PropertyController::class, 'store']);
@@ -304,7 +304,7 @@ Route::middleware('auth:sanctum')->prefix('properties')->group(function () {
 });
 
 // Mortgage routes (Phase 4)
-Route::middleware('auth:sanctum')->prefix('mortgages')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('mortgages')->group(function () {
     Route::get('/{id}', [MortgageController::class, 'show']);
     Route::put('/{id}', [MortgageController::class, 'update']);
     Route::delete('/{id}', [MortgageController::class, 'destroy']);
@@ -313,7 +313,7 @@ Route::middleware('auth:sanctum')->prefix('mortgages')->group(function () {
 });
 
 // Business Interest routes
-Route::middleware('auth:sanctum')->prefix('business-interests')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('business-interests')->group(function () {
     Route::get('/', [BusinessInterestController::class, 'index']);
     Route::post('/', [BusinessInterestController::class, 'store']);
     Route::get('/{id}', [BusinessInterestController::class, 'show']);
@@ -324,7 +324,7 @@ Route::middleware('auth:sanctum')->prefix('business-interests')->group(function 
 });
 
 // Chattel routes (personal property / chattels & valuables)
-Route::middleware('auth:sanctum')->prefix('chattels')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('chattels')->group(function () {
     Route::get('/', [ChattelController::class, 'index']);
     Route::post('/', [ChattelController::class, 'store']);
     Route::get('/{id}', [ChattelController::class, 'show']);
@@ -755,7 +755,7 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
 });
 
 // Estate Planning module routes
-Route::middleware('auth:sanctum')->prefix('estate')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(function () {
     // Main estate data
     Route::get('/', [EstateController::class, 'index']);
 
@@ -931,7 +931,7 @@ Route::middleware('auth:sanctum')->prefix('household')->group(function () {
 });
 
 // Holistic Planning routes (coordinating agent)
-Route::middleware('auth:sanctum')->prefix('holistic')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('holistic')->group(function () {
     // Main holistic analysis and plan
     Route::post('/analyze', [HolisticPlanningController::class, 'analyze']);
     Route::post('/plan', [HolisticPlanningController::class, 'plan']);
@@ -1127,7 +1127,7 @@ Route::middleware('auth:sanctum')
     ->get('/occupations/search', [OccupationController::class, 'search']);
 
 // What-If Scenarios
-Route::middleware('auth:sanctum')->prefix('what-if-scenarios')->group(function () {
+Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenarios')->group(function () {
     Route::get('/', [WhatIfScenarioController::class, 'index']);
     Route::get('/count', [WhatIfScenarioController::class, 'count']);
     Route::get('/{id}', [WhatIfScenarioController::class, 'show']);
