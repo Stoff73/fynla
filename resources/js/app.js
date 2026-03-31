@@ -83,7 +83,7 @@ async function initAndMount() {
   }
 
   logger.debug('App Init', 'Step 4: Dispatching preview/initFromStorage');
-  store.dispatch('preview/initFromStorage').catch(() => {});
+  await store.dispatch('preview/initFromStorage').catch(() => {});
 
   logger.debug('App Init', 'Step 5: initSessionLifecycle');
   initSessionLifecycle(store, router);

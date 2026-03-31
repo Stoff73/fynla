@@ -108,19 +108,19 @@
         </SideMenuSection>
       </div>
 
-      <!-- Upgrade Now link -->
+      <!-- Upgrade / Sign Up link -->
       <div class="border-t border-light-gray p-2 flex-shrink-0">
         <router-link
-          to="/pricing"
+          :to="isPreviewMode ? '/register' : '/pricing'"
           class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
-          :title="effectiveCollapsed ? 'Upgrade Now' : ''"
+          :title="effectiveCollapsed ? (isPreviewMode ? 'Sign Up Now' : 'Upgrade Now') : ''"
           @click="closeMobile"
         >
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
-          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Upgrade Now</span>
+          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ isPreviewMode ? 'Sign Up Now' : 'Upgrade Now' }}</span>
         </router-link>
       </div>
 
@@ -516,6 +516,7 @@ export default {
       closeMobile,
       openBugReport,
       handleLogout,
+      isPreviewMode,
     };
   },
 };

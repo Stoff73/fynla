@@ -20,7 +20,11 @@
       :class="contentMarginClass"
     >
       <div ref="appHeader">
-        <Navbar />
+        <Navbar @open-chat="openChat" />
+
+        <!-- Preview Mode Banner — always directly below nav -->
+        <PreviewBanner v-if="isPreviewMode" />
+
         <SubNavBar />
 
         <!-- Offline Indicator Banner -->
@@ -28,9 +32,6 @@
 
         <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
         <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
-
-        <!-- Preview Mode Banner -->
-        <PreviewBanner v-if="isPreviewMode" />
       </div>
 
       <!-- Content area -->
@@ -221,6 +222,11 @@ export default {
     toggleChat() {
       this.chatCollapsed = !this.chatCollapsed;
       storage.set('fynChatCollapsed', this.chatCollapsed);
+    },
+
+    openChat() {
+      this.chatCollapsed = false;
+      storage.set('fynChatCollapsed', false);
     },
   },
 };
