@@ -4,7 +4,8 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
-          One <span class="text-raspberry-300">platform</span>
+          One<br/>
+          <span class="text-raspberry-300">platform</span>
         </h1>
         <p class="text-xl text-white/90 font-semibold mb-2">You don't outgrow Fynla</p>
         <p class="text-lg text-white/70">
