@@ -79,12 +79,12 @@
           >
             Contact Us
           </a>
-          <router-link
-            to="/?demo=true"
+          <a
+            href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
             class="px-6 py-2.5 bg-white text-horizon-500 text-sm font-semibold rounded-lg border border-light-gray hover:bg-savannah-50 transition-colors"
           >
             Try the Demo
-          </router-link>
+          </a>
         </div>
       </div>
     </section>

@@ -124,7 +124,7 @@
           See how the new rules affect your Inheritance Tax position &mdash; before they take effect.
         </p>
         <a
-          href="/?demo=true"
+          href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
           class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
         >
           Try the demo

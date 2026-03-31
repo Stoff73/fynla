@@ -68,12 +68,12 @@
         <p class="text-sm text-neutral-500 mb-6 max-w-lg mx-auto">
           See how all seven modules work together with sample data. No sign-up required.
         </p>
-        <router-link
-          to="/?demo=true"
+        <a
+          href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
           class="inline-block px-8 py-3 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors"
         >
           Try the Free Demo
-        </router-link>
+        </a>
       </div>
     </section>
   </PublicLayout>

@@ -4,7 +4,7 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Glossary</h1>
-        <p class="text-lg text-white/70 max-w-xl mx-auto">
+        <p class="text-lg text-white/70">
           Financial terms explained in plain English.
         </p>
       </div>
@@ -12,13 +12,13 @@
 
     <!-- Alphabet Nav -->
     <section class="bg-white border-b border-light-gray sticky top-16 z-40">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-wrap gap-1 py-2">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-wrap gap-1.5 py-4">
           <a
             v-for="letter in activeLetters"
             :key="letter"
             :href="`#letter-${letter}`"
-            class="w-7 h-7 flex items-center justify-center text-xs font-semibold rounded transition-colors"
+            class="w-9 h-9 flex items-center justify-center text-sm font-bold rounded-lg transition-colors"
             :class="glossary[letter] ? 'text-horizon-500 hover:bg-raspberry-100 hover:text-raspberry-500' : 'text-neutral-300 pointer-events-none'"
           >
             {{ letter }}
@@ -29,11 +29,11 @@
 
     <!-- Glossary Content -->
     <section class="py-12 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div v-for="letter in activeLetters" :key="letter">
           <template v-if="glossary[letter]">
             <div :id="`letter-${letter}`" class="pt-6 mb-4">
-              <h2 class="text-xl font-black text-raspberry-500">{{ letter }}</h2>
+              <h2 class="text-2xl font-black text-raspberry-500 bg-light-pink-100 rounded-lg px-4 py-1.5">{{ letter }}</h2>
             </div>
             <div class="space-y-3 mb-8">
               <div
@@ -42,12 +42,12 @@
                 :id="term.anchor"
                 class="bg-white rounded-lg border border-light-gray p-4"
               >
-                <h3 class="text-sm font-bold text-horizon-500 mb-1">{{ term.name }}</h3>
-                <p class="text-xs text-neutral-600 leading-relaxed">{{ term.definition }}</p>
+                <h3 class="text-base font-bold text-horizon-500 mb-1">{{ term.name }}</h3>
+                <p class="text-sm text-neutral-600 leading-relaxed">{{ term.definition }}</p>
                 <router-link
                   v-if="term.link"
                   :to="term.link.to"
-                  class="inline-block mt-1.5 text-xs text-raspberry-500 hover:text-raspberry-600 underline"
+                  class="inline-block mt-1.5 text-sm text-raspberry-500 hover:text-light-pink-400 transition-colors"
                 >
                   {{ term.link.label }}
                 </router-link>
@@ -59,13 +59,15 @@
     </section>
 
     <!-- CTA -->
-    <section class="py-12 bg-white">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h2 class="text-xl font-bold text-horizon-500 mb-2">See these concepts in action</h2>
-        <p class="text-sm text-neutral-500 mb-6">Fynla brings all of these terms to life in your personal financial plan.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </a>
+    <section class="py-10 bg-light-pink-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-6 py-6">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">See these concepts in action</h2>
+          <p class="text-lg text-white/70 mb-4">Fynla brings all of these terms to life in your personal financial plan.</p>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
+            Try the demo
+          </a>
+        </div>
       </div>
     </section>
   </PublicLayout>

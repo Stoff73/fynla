@@ -140,7 +140,7 @@
           See how much of your &pound;20,000 you've used, across all your ISA accounts, in one place.
         </p>
         <a
-          href="/?demo=true"
+          href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
           class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
         >
           Try the demo

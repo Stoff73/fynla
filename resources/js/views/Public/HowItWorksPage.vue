@@ -11,12 +11,12 @@
           Fynla turns your scattered financial data into a clear, actionable plan. Three steps, 15 minutes, and you'll see your complete financial picture for the first time.
         </p>
         <div class="flex flex-col sm:flex-row items-start gap-3">
-          <router-link
-            to="/?demo=true"
+          <a
+            href="#" @click.prevent="$router.push({ query: { demo: 'true' } })"
             class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors"
           >
             Try the Free Demo
-          </router-link>
+          </a>
           <router-link
             to="/register"
             class="px-6 py-2.5 bg-light-pink-100 text-horizon-500 text-sm font-semibold rounded-lg hover:bg-light-pink-200 transition-colors"
@@ -223,7 +223,7 @@
           </div>
         </div>
         <div class="text-center mt-10">
-          <router-link to="/?demo=true" class="inline-flex px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Explore demo</router-link>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-flex px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Explore demo</a>
         </div>
       </div>
     </section>
@@ -234,7 +234,7 @@
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">15 minutes to clarity</h2>
         <p class="text-sm text-neutral-500 max-w-lg mx-auto mb-6">That's all it takes to see your complete financial picture. Start with the demo, or go straight to your free trial.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <router-link to="/?demo=true" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">Try the Free Demo</router-link>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">Try the Free Demo</a>
           <router-link to="/register" class="px-6 py-2.5 bg-light-blue-500 text-white text-sm font-semibold rounded-lg hover:bg-light-blue-600 transition-colors">Start Your Free Trial</router-link>
         </div>
       </div>

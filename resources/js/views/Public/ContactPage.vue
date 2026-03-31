@@ -50,7 +50,7 @@
             Want to see Fynla in action before getting in touch? Our interactive demo lets you explore the full platform
             with sample data &mdash; no sign-up required.
           </p>
-          <a href="/?demo=true" class="text-sm text-raspberry-500 hover:text-raspberry-600 underline mt-2 inline-block">Launch demo</a>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="text-sm text-raspberry-500 hover:text-raspberry-600 underline mt-2 inline-block">Launch demo</a>
         </div>
       </div>
     </section>

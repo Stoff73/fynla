@@ -6,9 +6,9 @@
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">{{ hero.headline }}</h1>
         <p class="text-lg text-white/70 max-w-2xl mb-6">{{ hero.subheadline }}</p>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <router-link to="/?demo=true" class="px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
             {{ hero.primaryCta || 'Try the Demo' }}
-          </router-link>
+          </a>
           <router-link :to="hero.secondaryCtaLink || '/how-it-works'" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors text-sm">
             {{ hero.secondaryCta || 'See How It Works' }}
           </router-link>
@@ -117,9 +117,9 @@
         <h2 class="text-2xl font-bold text-white mb-3">{{ finalCta.headline }}</h2>
         <p class="text-sm text-horizon-200 max-w-lg mx-auto mb-6">{{ finalCta.body }}</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <router-link to="/?demo=true" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">
             Try the Demo
-          </router-link>
+          </a>
           <router-link to="/register" class="px-6 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-colors">
             Start Your Free Trial
           </router-link>

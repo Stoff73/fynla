@@ -390,7 +390,7 @@
             <ul class="space-y-2">
               <li><router-link to="/calculators" class="text-sm text-white/70 hover:text-white transition-colors">Calculators</router-link></li>
               <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Resources</router-link></li>
-              <li><a href="/?demo=true" class="text-sm text-white/70 hover:text-white transition-colors">View demo</a></li>
+              <li><a href="#" @click.prevent="showDemoModal = true" class="text-sm text-white/70 hover:text-white transition-colors">View demo</a></li>
             </ul>
           </div>
 
@@ -426,14 +426,29 @@
         </div>
       </div>
     </footer>
+
+    <!-- Global Persona Selection Modal -->
+    <PersonaSelectionModal
+      :is-open="showDemoModal"
+      :personas="availablePersonas"
+      :error="demoError"
+      @close="closeDemoModal"
+      @select="handleDemoPersonaSelect"
+    />
   </div>
 </template>
 
 <script>
 import { mapGetters } from 'vuex';
+import { nextTick } from 'vue';
+import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vue';
 
 export default {
   name: 'PublicLayout',
+
+  components: {
+    PersonaSelectionModal,
+  },
 
   data() {
     return {
@@ -442,6 +457,9 @@ export default {
       resourcesOpen: false,
       whyOpen: false,
       userDropdownOpen: false,
+      showDemoModal: false,
+      demoError: '',
+      enteringDemo: false,
       logoUrl: '/images/logos/LogoHiResFynlaDark.png',
       footerLogoUrl: '/images/logos/LogoHiResFynlaLight.png',
       stages: [
@@ -456,6 +474,7 @@ export default {
 
   computed: {
     ...mapGetters('auth', ['isAuthenticated']),
+    ...mapGetters('preview', ['availablePersonas']),
     userName() {
       return this.$store.state.auth.user?.first_name || 'Account';
     },
@@ -484,10 +503,34 @@ export default {
         this.userDropdownOpen = false;
       }
     },
+    checkDemoQuery() {
+      if (this.$route.query.demo === 'true' && this.$route.path !== '/') {
+        this.showDemoModal = true;
+        this.$router.replace({ query: { ...this.$route.query, demo: undefined } });
+      }
+    },
+    closeDemoModal() {
+      this.showDemoModal = false;
+      this.demoError = '';
+    },
+    async handleDemoPersonaSelect(persona) {
+      if (this.enteringDemo) return;
+      this.enteringDemo = true;
+      this.demoError = '';
+      try {
+        await this.$store.dispatch('preview/loadPersona', persona.id);
+        await nextTick();
+        this.$router.push('/dashboard');
+      } catch (error) {
+        this.demoError = 'Unable to load demo. Please try again or check your connection.';
+        this.enteringDemo = false;
+      }
+    },
   },
 
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
+    this.checkDemoQuery();
   },
 
   beforeUnmount() {
@@ -495,13 +538,16 @@ export default {
   },
 
   watch: {
-    $route() {
+    $route(to) {
       this.mobileMenuOpen = false;
       this.howOpen = false;
       this.resourcesOpen = false;
       this.whyOpen = false;
       this.userDropdownOpen = false;
-    }
+      if (to.query.demo === 'true') {
+        this.checkDemoQuery();
+      }
+    },
   }
 };
 </script>

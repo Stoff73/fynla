@@ -89,9 +89,9 @@
         <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-6 py-6">
           <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Ready to put knowledge into action?</h2>
           <p class="text-lg text-white/70 mb-4">Try Fynla free and see your full financial picture in minutes.</p>
-          <router-link to="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
             Try the demo
-          </router-link>
+          </a>
         </div>
       </div>
     </section>
