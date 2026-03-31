@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
 import analyticsService from '@/services/analyticsService';
 import { platform } from '@/utils/platform';
+import { getRequiredTier, hasFeatureAccess } from '@/constants/featureGating';
 
 // Lazy load components
 // Public pages
@@ -1292,6 +1293,21 @@ router.beforeEach(async (to, from, next) => {
     // Redirect to dashboard if route requires advisor access
     next({ name: 'Dashboard' });
   } else {
+    // Feature gating: redirect to dashboard if user navigates to a gated route via URL
+    if (requiresAuth && isAuthenticated && !isPreviewMode) {
+      const requiredTier = getRequiredTier(to.path, to.query);
+      if (requiredTier) {
+        // Subscription data may not be in Vuex — this is defence-in-depth (backend is primary enforcement)
+        const subscriptionData = store.state.auth?.subscriptionData;
+        if (subscriptionData && subscriptionData.status !== 'trialing') {
+          const userPlan = subscriptionData.plan || 'student';
+          if (!hasFeatureAccess(userPlan, requiredTier)) {
+            next({ name: 'Dashboard' });
+            return;
+          }
+        }
+      }
+    }
     next();
   }
 });

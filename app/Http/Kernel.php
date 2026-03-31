@@ -80,5 +80,6 @@ class Kernel extends HttpKernel
         'agent.token' => \App\Http\Middleware\AgentTokenAuth::class,
         'advisor' => \App\Http\Middleware\AdvisorMiddleware::class,
         'advisor.impersonate' => \App\Http\Middleware\AdvisorImpersonationMiddleware::class,
+        'feature' => \App\Http\Middleware\CheckFeatureAccess::class,
     ];
 }
