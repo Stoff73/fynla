@@ -181,8 +181,8 @@ class PaymentController extends Controller
             $captureMode = $revolutOrder['capture_mode'] ?? 'automatic';
 
             $acceptableStates = $captureMode === 'manual'
-                ? ['completed', 'authorised', 'processing']
-                : ['completed', 'processing'];
+                ? ['completed', 'authorised', 'processing', 'pending']
+                : ['completed', 'processing', 'pending'];
 
             if (! in_array($state, $acceptableStates)) {
                 Log::warning('Revolut order not in acceptable state for confirmation', [

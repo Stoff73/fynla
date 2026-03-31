@@ -300,14 +300,29 @@ export default {
 
     async handlePaymentSuccess() {
       this.processing = true;
-      try {
-        await api.post('/payment/confirm', { order_id: this.revolutOrderId });
-        this.paymentComplete = true;
-      } catch {
-        // Webhook will handle as backup — still show success to user
-        this.paymentComplete = true;
-      } finally {
-        this.processing = false;
+      // Revolut fires onSuccess while order may still be 'processing'.
+      // Retry confirm up to 5 times with delay to allow Revolut state to settle.
+      const maxRetries = 5;
+      const delayMs = 2000;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await api.post('/payment/confirm', { order_id: this.revolutOrderId });
+          this.paymentComplete = true;
+          this.processing = false;
+          return;
+        } catch (err) {
+          const state = err.response?.data?.state;
+          // If Revolut state hasn't settled yet, wait and retry
+          if (attempt < maxRetries && (state === 'pending' || state === 'processing' || err.response?.status === 400)) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          // Final attempt failed — still show success (webhook backup will handle)
+          this.paymentComplete = true;
+          this.processing = false;
+          return;
+        }
       }
     },
 
