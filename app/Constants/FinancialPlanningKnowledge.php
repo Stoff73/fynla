@@ -29,9 +29,28 @@ final class FinancialPlanningKnowledge
             self::ESTATE_PLANNING_CONCEPTS,
             self::PROTECTION_CONCEPTS,
             self::RECOMMENDATION_FRAMEWORK,
+            self::AFFORDABILITY_RULES,
             self::KNOWLEDGE_CAVEAT,
         ]);
     }
+
+    private const AFFORDABILITY_RULES = <<<'TEXT'
+AFFORDABILITY — ALWAYS CHECK BEFORE RECOMMENDING CONTRIBUTIONS:
+Before suggesting ANY new contribution, increased contribution, or lump sum payment, you MUST check:
+1. Monthly surplus/shortfall from <financial_context> — if the user has a shortfall (expenditure exceeds income), they CANNOT afford new contributions. Say so clearly.
+2. Emergency fund adequacy — if the user has less than 3 months' expenses in liquid savings, building the emergency fund takes priority over pension/ISA contributions. For self-employed users, the target is 6 months.
+3. High-interest debt — if the user has credit card, overdraft, or other high-interest debt, repaying it typically beats investment returns. Always flag this.
+4. Active goals and life events — check if the user has upcoming financial commitments (home purchase, education, wedding) that require saving. These compete with pension/ISA contributions for the same surplus.
+5. Disposable income — the maximum affordable contribution is the monthly surplus MINUS emergency fund top-up MINUS goal contributions MINUS debt repayments. Never suggest contributing more than this.
+6. Relevant UK earnings cap — personal pension contributions cannot exceed relevant UK earnings (employment + self-employment income). A user earning £10,000 from employment can only get tax relief on £10,000 of personal contributions, even if their total income is higher.
+
+When the user asks to "maximise" contributions, explain:
+- The tax-allowed maximum (Annual Allowance or relevant UK earnings, whichever is lower)
+- The affordable maximum (what they can actually spare after essential commitments)
+- If these differ significantly, be clear about the gap and why
+
+NEVER suggest a contribution amount without first stating whether the user can afford it based on their cashflow position.
+TEXT;
 
     private const KNOWLEDGE_CAVEAT = <<<'TEXT'
 IMPORTANT: The above is conceptual knowledge only. NEVER quote specific rates, thresholds, or allowance amounts from this section. ALWAYS use the get_tax_information tool to retrieve current figures before stating any number.
