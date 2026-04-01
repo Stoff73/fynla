@@ -93,7 +93,13 @@ class SystemPromptBuilder
             $layers[] = $knowledgeBlock;
         }
 
-        // Layer 9: KYC Check Result (DYNAMIC/query) — Phase 2 placeholder
+        // Layer 8b: Required Tools + Relevant Triggers (DYNAMIC/query)
+        $toolsAndTriggers = $this->buildToolsAndTriggersBlock($classification);
+        if ($toolsAndTriggers !== '') {
+            $layers[] = $toolsAndTriggers;
+        }
+
+        // Layer 9: KYC Check Result (DYNAMIC/query)
         if ($kycResult !== null && isset($kycResult['prompt_text']) && $kycResult['prompt_text'] !== '') {
             $layers[] = $kycResult['prompt_text'];
         }
@@ -631,6 +637,56 @@ PROMPT;
         }
 
         return "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
+    }
+
+    // ─── Layer 8b: Required Tools + Triggers ───────────────────────────
+
+    private function buildToolsAndTriggersBlock(?array $classification): string
+    {
+        if ($classification === null) {
+            return '';
+        }
+
+        $primary = $classification['primary'];
+
+        // Skip for bypass types and general queries
+        if (QuerySchemas::isBypassType($primary) || $primary === QuerySchemas::GENERAL) {
+            return '';
+        }
+
+        $parts = [];
+
+        // Required tools
+        $tools = QuerySchemas::getRequiredToolsForClassification($classification);
+        if (! empty($tools)) {
+            $toolList = implode("\n", array_map(fn ($t) => "- {$t}", $tools));
+            $parts[] = <<<PROMPT
+<required_tools>
+Before responding to this query, you MUST call the following tools to retrieve current data. Do not answer from memory — use these tools first:
+
+{$toolList}
+
+Call these tools BEFORE writing your response. If a tool fails, note it and continue with the others.
+</required_tools>
+PROMPT;
+        }
+
+        // Relevant triggers
+        $triggers = QuerySchemas::getRelevantTriggersForClassification($classification);
+        if (! empty($triggers)) {
+            $triggerList = implode("\n", array_map(fn ($t) => "- {$t}", $triggers));
+            $parts[] = <<<PROMPT
+<relevant_triggers>
+The following decision tree triggers are relevant to this query. Check the recommendations in <financial_context> for these triggers and reference their results in your advice:
+
+{$triggerList}
+
+If a trigger has fired (appears in the ranked recommendations), explain what it means for this user with specific amounts. Do not mention triggers that have not fired.
+</relevant_triggers>
+PROMPT;
+        }
+
+        return implode("\n\n", $parts);
     }
 
     // ─── Layer 10: Module Context ────────────────────────────────────
