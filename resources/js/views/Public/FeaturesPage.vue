@@ -20,23 +20,23 @@
     </div>
 
     <!-- Comparison Table -->
-    <div class="bg-gradient-to-r from-horizon-600 to-horizon-700 py-14">
+    <div class="bg-eggshell-500 py-14">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center mb-4">Everything you need, one platform</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-4">Everything you need, one platform</h2>
 
         <!-- Legend -->
         <div class="flex items-center justify-center gap-6 mb-8">
           <div class="flex items-center gap-2">
             <span class="inline-block w-4 h-4 rounded-full bg-spring-500"></span>
-            <span class="text-xs text-white/50">Full feature</span>
+            <span class="text-xs text-neutral-500">Full feature</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="inline-block w-4 h-4 rounded-full harvey-half"></span>
-            <span class="text-xs text-white/50">Partial / limited</span>
+            <span class="text-xs text-neutral-500">Partial / limited</span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="inline-block w-4 h-4 rounded-full bg-white/[0.08] border-2 border-white/[0.15]"></span>
-            <span class="text-xs text-white/50">Not available</span>
+            <span class="inline-block w-4 h-4 rounded-full bg-horizon-500/10 border-2 border-horizon-500/20"></span>
+            <span class="text-xs text-neutral-500">Not available</span>
           </div>
         </div>
 
@@ -53,19 +53,19 @@
             <thead>
               <tr>
                 <th class="text-left py-5 px-5">
-                  <span class="text-base font-bold text-white uppercase tracking-wider">Feature</span>
+                  <span class="text-base font-bold text-horizon-500 uppercase tracking-wider">Feature</span>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <span class="text-base font-bold text-raspberry-300 uppercase tracking-wider">Fynla</span>
+                  <span class="text-base font-bold text-raspberry-500 uppercase tracking-wider">Fynla</span>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <span class="text-base font-bold text-white uppercase tracking-wider leading-tight">Financial centralisation<br/>platform</span>
+                  <router-link to="/compare/fynla-vs-financial-centralisation-platform" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial centralisation<br/>platform</router-link>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <span class="text-base font-bold text-white uppercase tracking-wider leading-tight">Financial planning<br/>platform</span>
+                  <router-link to="/compare/fynla-vs-financial-planning-platform" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial planning<br/>platform</router-link>
                 </th>
                 <th class="text-center py-5 px-4">
-                  <span class="text-base font-bold text-white uppercase tracking-wider leading-tight">Financial investment<br/>platform</span>
+                  <router-link to="/compare/fynla-vs-financial-investment-platform" class="text-base font-bold text-horizon-500 uppercase tracking-wider leading-tight hover:text-light-pink-400 transition-colors">Financial investment<br/>platform</router-link>
                 </th>
               </tr>
             </thead>
@@ -74,7 +74,7 @@
                 <!-- Section heading -->
                 <tr>
                   <td class="pt-6 pb-2 px-5">
-                    <p class="text-[0.85rem] font-bold text-neutral-300 uppercase tracking-widest">{{ section.heading }}</p>
+                    <p class="text-[0.85rem] font-bold text-neutral-500 uppercase tracking-widest">{{ section.heading }}</p>
                   </td>
                   <td :class="sIdx === 0 ? 'fynla-border-top' : 'fynla-border-mid'" style="padding: 0;"></td>
                   <td :class="sIdx === 0 ? 'other-border-top' : 'other-border-mid'" style="padding: 0;"></td>
@@ -85,11 +85,11 @@
                 <tr
                   v-for="(feat, fIdx) in section.features"
                   :key="sIdx+'-'+fIdx"
-                  class="hover:bg-white/[0.04] transition-colors"
+                  class="feature-row transition-colors"
                 >
-                  <td class="py-4 px-5 border-b border-white/[0.05]">
-                    <p class="text-base font-semibold text-white">{{ feat.name }}</p>
-                    <p v-if="feat.desc" class="text-[0.8rem] text-white/[0.45] mt-0.5">{{ feat.desc }}</p>
+                  <td class="py-4 px-5 border-b border-horizon-500/[0.08]">
+                    <p class="text-base font-semibold text-horizon-500">{{ feat.name }}</p>
+                    <p v-if="feat.desc" class="text-[0.8rem] text-neutral-500 mt-0.5">{{ feat.desc }}</p>
                   </td>
                   <td
                     class="py-4 px-4 text-center"
@@ -119,6 +119,20 @@
               </template>
             </tbody>
           </table>
+        </div>
+
+        <!-- Footnote -->
+        <p class="text-sm text-neutral-500 text-center mt-6">
+          Feature comparisons have been taken from current platforms that are on the market. You can also see a full overview of each:
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2">
+          <router-link to="/compare/fynla-vs-financial-centralisation-platform" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial centralisation platform</router-link>
+          <span class="text-neutral-500">|</span>
+          <router-link to="/compare/fynla-vs-financial-planning-platform" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial planning platform</router-link>
+          <span class="text-neutral-500">|</span>
+          <router-link to="/compare/fynla-vs-financial-investment-platform" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Financial investment platform</router-link>
+          <span class="text-neutral-500">|</span>
+          <router-link to="/compare/fynla-vs-spreadsheets" class="text-sm text-raspberry-500 hover:text-light-pink-400 font-medium transition-colors">Spreadsheets</router-link>
         </div>
       </div>
     </div>
@@ -194,7 +208,7 @@ export default {
     harveyClass(value) {
       if (value === 'full') return 'bg-spring-500';
       if (value === 'half') return 'harvey-half';
-      return 'bg-white/[0.08] border-2 border-white/[0.15]';
+      return 'bg-horizon-500/10 border-2 border-horizon-500/20';
     },
 
     isLastFeature(sIdx, fIdx) {
@@ -214,31 +228,49 @@ export default {
 
 <style scoped>
 .harvey-half {
-  background: linear-gradient(to right, #37B679 50%, rgba(255, 255, 255, 0.08) 50%);
+  background: linear-gradient(to right, #37B679 50%, rgba(31, 42, 68, 0.1) 50%);
 }
 
-/* Column border styles using box-shadow (avoids table border-radius issues) */
+/* Row hover highlight */
+.feature-row:hover td {
+  @apply bg-white;
+}
+
+/* Fynla column — light pink background with dark pink border */
 .fynla-border-top {
-  box-shadow: inset 2px 0 0 #F06595, inset -2px 0 0 #F06595, inset 0 2px 0 #F06595;
+  @apply bg-light-pink-100 border-light-pink-300;
+  border-top-width: 3px;
+  border-left-width: 3px;
+  border-right-width: 3px;
+  border-bottom-width: 0;
   border-radius: 16px 16px 0 0;
 }
 .fynla-border-mid {
-  box-shadow: inset 2px 0 0 #F06595, inset -2px 0 0 #F06595;
+  @apply bg-light-pink-100 border-light-pink-300;
+  border-left-width: 3px;
+  border-right-width: 3px;
+  border-top-width: 0;
+  border-bottom-width: 0;
 }
 .fynla-border-bot {
-  box-shadow: inset 2px 0 0 #F06595, inset -2px 0 0 #F06595, inset 0 -2px 0 #F06595;
+  @apply bg-light-pink-100 border-light-pink-300;
+  border-top-width: 0;
+  border-left-width: 3px;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
   border-radius: 0 0 16px 16px;
 }
 
+/* Other columns — light blue background */
 .other-border-top {
-  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08), inset -2px 0 0 rgba(255, 255, 255, 0.08), inset 0 2px 0 rgba(255, 255, 255, 0.08);
+  @apply bg-light-blue-100;
   border-radius: 16px 16px 0 0;
 }
 .other-border-mid {
-  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08), inset -2px 0 0 rgba(255, 255, 255, 0.08);
+  @apply bg-light-blue-100;
 }
 .other-border-bot {
-  box-shadow: inset 2px 0 0 rgba(255, 255, 255, 0.08), inset -2px 0 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(255, 255, 255, 0.08);
+  @apply bg-light-blue-100;
   border-radius: 0 0 16px 16px;
 }
 </style>

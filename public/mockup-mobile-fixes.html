@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Mobile Fixes (Homepage + Calculators)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F5F0EB; color: #1F2A44; max-width: 375px; margin: 0 auto; }
+  :root {
+    --horizon-500: #1F2A44;
+    --raspberry-500: #D6336C;
+    --raspberry-300: #F06595;
+    --spring-500: #37B679;
+    --eggshell-500: #F5F0EB;
+    --light-pink-100: #FCE4EC;
+    --light-blue-100: #DBEAFE;
+    --light-gray: #E5E7EB;
+    --neutral-400: #9CA3AF;
+    --neutral-500: #6B7280;
+  }
+
+  .section-divider {
+    background: #FEF3C7; border: 2px dashed #F59E0B; padding: 12px 16px;
+    font-size: 0.8rem; color: #92400E; font-weight: 700; text-align: center;
+    margin: 0;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /* MOCKUP 1: HOMEPAGE MOBILE HERO             */
+  /* ═══════════════════════════════════════════ */
+  .homepage-hero {
+    background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+    padding: 24px 16px 0;
+  }
+  .homepage-hero h1 { font-size: 1.75rem; font-weight: 900; color: #fff; margin-bottom: 8px; line-height: 1.2; }
+  .homepage-hero p { font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-bottom: 16px; line-height: 1.5; }
+  .homepage-hero .cta { display: inline-block; padding: 10px 28px; background: var(--spring-500); color: #fff; font-weight: 600; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
+  .homepage-hero .sub-links { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 8px; }
+  .homepage-hero .sub-links a { color: rgba(255,255,255,0.9); text-decoration: none; }
+
+  /* Brain GIF box — NEW: separate white rounded box above caption cards */
+  .brain-box {
+    background: rgba(255,255,255,0.95); border-radius: 12px; padding: 16px;
+    margin-top: 20px; display: flex; justify-content: center; align-items: center;
+  }
+  .brain-box img { width: 120px; height: auto; border-radius: 8px; }
+
+  /* Caption cards */
+  .caption-cards { display: flex; flex-direction: column; gap: 10px; padding: 12px 0 20px; }
+  .caption-card {
+    background: rgba(255,255,255,0.95); border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .caption-card h3 { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 4px; }
+  .caption-card p { font-size: 0.8rem; color: var(--neutral-500); line-height: 1.4; }
+
+  .annotation {
+    background: rgba(254,243,199,0.9); border: 1px dashed #F59E0B; border-radius: 6px;
+    padding: 6px 10px; font-size: 0.7rem; color: #92400E; font-style: italic; margin-top: 8px;
+  }
+
+  /* ═══════════════════════════════════════════ */
+  /* MOCKUP 2: CALCULATORS MOBILE               */
+  /* ═══════════════════════════════════════════ */
+  .calc-hero {
+    background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+    padding: 24px 16px;
+  }
+  .calc-hero h1 { font-size: 1.75rem; font-weight: 900; color: #fff; margin-bottom: 6px; }
+  .calc-hero h1 span { color: var(--raspberry-300); }
+  .calc-hero p { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
+
+  .calc-content { padding: 16px; }
+
+  /* Compact horizontal scrolling category pills */
+  .category-pills {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .category-pills::-webkit-scrollbar { display: none; }
+  .category-pill {
+    display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+    background: #fff; border: 1px solid var(--light-gray); border-radius: 20px;
+    white-space: nowrap; font-size: 0.75rem; font-weight: 600;
+    color: var(--horizon-500); cursor: pointer; flex-shrink: 0;
+  }
+  .category-pill.active { background: var(--horizon-500); color: #fff; border-color: var(--horizon-500); }
+  .category-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Calculator items as compact horizontal pills below category */
+  .calc-items {
+    display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 12px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .calc-items::-webkit-scrollbar { display: none; }
+  .calc-item {
+    padding: 6px 12px; background: var(--eggshell-500); border-radius: 16px;
+    font-size: 0.75rem; color: var(--neutral-500); white-space: nowrap;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .calc-item.active { background: var(--light-blue-100); color: var(--horizon-500); font-weight: 600; }
+
+  /* Calculator panel */
+  .calc-title-box {
+    background: var(--horizon-500); border-radius: 12px; padding: 16px; margin-top: 4px;
+  }
+  .calc-title-box h2 { font-size: 1.1rem; font-weight: 700; color: #fff; }
+  .calc-title-box p { font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .calc-body {
+    background: #fff; border-radius: 12px; border: 1px solid var(--light-gray);
+    padding: 16px; margin-top: 10px;
+  }
+  .calc-input-label { font-size: 0.8rem; font-weight: 600; color: var(--horizon-500); margin-bottom: 4px; }
+  .calc-input {
+    width: 100%; padding: 10px 12px 10px 32px; border: 1px solid var(--light-gray);
+    border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px;
+  }
+  .calc-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--neutral-400); font-size: 0.85rem; }
+  .calc-input-wrap { position: relative; }
+  .calc-btn {
+    width: 100%; padding: 12px; background: var(--raspberry-500); color: #fff;
+    border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">MOCKUP 1: HOMEPAGE MOBILE — Brain GIF in separate box above cards</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="homepage-hero">
+  <h1>Change your<br/>financial future</h1>
+  <p>We help create your path to financial freedom with clear recommendations from our proprietary Fynla Brain&reg;</p>
+  <a href="#" class="cta">Get started</a>
+  <div class="sub-links" style="margin-top: 8px; padding-bottom: 12px;">
+    <a href="#">View the video</a> | <a href="#">See our demo</a> | <a href="#">Ask Fyn</a>
+  </div>
+
+  <!-- NEW: Brain GIF in its own white rounded box (mobile only) -->
+  <div class="brain-box">
+    <img src="/images/Website/Fyn-Brain-Animated-Short.gif" alt="Fynla Brain animation" />
+  </div>
+  <div class="annotation">NEW: Brain GIF moved to its own white rounded box above the caption cards. Only on mobile — desktop keeps the current composite layout.</div>
+
+  <!-- Caption cards (brain removed from "One financial brain" card) -->
+  <div class="caption-cards">
+    <div class="caption-card">
+      <h3>One financial view.</h3>
+      <p>Use Fynla to securely centralise and view all your financial data.</p>
+    </div>
+    <div class="caption-card">
+      <h3>One financial brain.</h3>
+      <p>Our proprietary brain does the calculations so you don't have to.</p>
+    </div>
+    <div class="caption-card">
+      <h3>One financial voice.</h3>
+      <p>We will give you clear, simple and tailored advice to help your financial freedom.</p>
+    </div>
+  </div>
+</div>
+
+<div style="height: 40px; background: var(--eggshell-500);"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-divider">MOCKUP 2: CALCULATORS MOBILE — Compact pills + calculator visible above fold</div>
+<!-- ═══════════════════════════════════════════ -->
+
+<div class="calc-hero">
+  <h1>Free Financial <span>Calculators</span></h1>
+  <p>Free tools to help you understand your finances.</p>
+</div>
+
+<div class="calc-content">
+  <!-- Category pills: horizontal scroll -->
+  <div class="category-pills">
+    <div class="category-pill">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Starting Out
+    </div>
+    <div class="category-pill">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Building Foundations
+    </div>
+    <div class="category-pill">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      Protecting
+    </div>
+    <div class="category-pill active">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Planning
+    </div>
+    <div class="category-pill">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7"/></svg>
+      Enjoying
+    </div>
+  </div>
+
+  <!-- Calculator items for selected category -->
+  <div class="calc-items">
+    <div class="calc-item active">Income Tax</div>
+    <div class="calc-item">Pension Growth</div>
+    <div class="calc-item">Tax Relief</div>
+    <div class="calc-item">Salary Sacrifice</div>
+    <div class="calc-item">Retirement Budget</div>
+  </div>
+
+  <div class="annotation">CHANGED: Categories are horizontal scrolling pills instead of vertical collapsible list. Calculator items show as compact pill row below. This keeps the menu compact so the calculator appears above the fold.</div>
+
+  <!-- Calculator panel — visible above fold -->
+  <div class="calc-title-box">
+    <h2>Income Tax Calculator</h2>
+    <p>Calculate your UK income tax and National Insurance for 2025/26</p>
+  </div>
+
+  <div class="calc-body">
+    <div>
+      <p class="calc-input-label">Annual Gross Income</p>
+      <div class="calc-input-wrap">
+        <span class="calc-prefix">£</span>
+        <input type="text" class="calc-input" value="55,000" />
+      </div>
+    </div>
+    <div>
+      <p class="calc-input-label">Pension Contributions</p>
+      <div class="calc-input-wrap">
+        <span class="calc-prefix">£</span>
+        <input type="text" class="calc-input" value="3,000" />
+      </div>
+    </div>
+    <button class="calc-btn">Calculate Tax</button>
+  </div>
+</div>
+
+<div style="height: 20px; background: var(--eggshell-500);"></div>
+<div style="background: var(--horizon-500); padding: 16px; text-align: center;">
+  <span style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">footer placeholder</span>
+</div>
+
+</body>
+</html>

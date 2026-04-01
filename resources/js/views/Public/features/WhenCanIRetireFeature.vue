@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'WhenCanIRetireFeature',
@@ -81,28 +82,7 @@ export default {
           { label: "Time to answer", values: ["10 minutes", "5 mins (oversimplified)", "2-4 weeks"] },
         ],
       },
-      faq: [
-        {
-          q: "How accurate is the retirement date?",
-          a: "The calculation is only as good as the data you provide. Fynla uses evidence-based defaults for growth, inflation, and longevity — but lets you adjust all of them. The Monte Carlo analysis gives you a probability range rather than a single number.",
-        },
-        {
-          q: "Does this account for inflation?",
-          a: "Yes. All projections are shown in today's money by default, so you can understand what your retirement income actually buys.",
-        },
-        {
-          q: "What about early retirement / FIRE?",
-          a: "Fynla is particularly useful for early retirement planning because it models the income bridge between stopping work and accessing state pension, including changing spending patterns and sequence of returns risk.",
-        },
-        {
-          q: "Does it include state pension?",
-          a: "Yes. Enter your state pension forecast from gov.uk and Fynla models when it starts, how much you'll get, and what that means for your other drawdown requirements.",
-        },
-        {
-          q: "Can I model part-time work / semi-retirement?",
-          a: "Yes. You can model reduced income over a transition period — for example, earning £20,000/year from part-time work between ages 58-63, then fully retiring.",
-        },
-      ],
+      faq: getFeatureFaqs('when-can-i-retire'),
       finalCta: {
         headline: "Find Out Your Number. It Might Surprise You.",
         body: "Whether it's 55 or 68, you deserve to know. The demo lets you explore with sample data in under 5 minutes.",

@@ -34,6 +34,12 @@
         </svg>
         <p>No investment accounts found</p>
         <p class="empty-subtitle">Add your first investment account to track your portfolio</p>
+        <button v-preview-disabled="'add'" @click="editingAccount = null; showAccountForm = true;" class="add-first-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Add Your First Investment
+        </button>
       </div>
 
       <!-- Full-width layout: Chart first, account cards below -->
@@ -1059,6 +1065,26 @@ export default {
   @apply text-horizon-400;
   font-size: 14px;
   font-weight: 400;
+}
+
+.add-first-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 12px 24px;
+  @apply bg-horizon-500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-first-button:hover {
+  @apply bg-horizon-600;
 }
 
 /* Wealth Summary */

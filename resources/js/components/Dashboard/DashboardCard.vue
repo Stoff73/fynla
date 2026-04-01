@@ -28,7 +28,8 @@
       <!-- Card header with title -->
       <div class="mb-4 flex items-start justify-between">
         <h3 class="text-lg font-semibold text-horizon-500">{{ title }}</h3>
-        <svg v-if="clickable" class="w-4 h-4 text-neutral-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span v-if="subtitle" class="text-xs text-neutral-400 mt-1 flex-shrink-0">{{ subtitle }}</span>
+        <svg v-else-if="clickable" class="w-4 h-4 text-neutral-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
@@ -63,6 +64,10 @@ export default {
     noGradient: {
       type: Boolean,
       default: false,
+    },
+    subtitle: {
+      type: String,
+      default: '',
     },
   },
 

@@ -1,21 +1,24 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-16 sm:py-20">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">Starting Out</h1>
-        <p class="text-base text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Starting Out</h1>
+        <p class="text-lg text-white/70">
           Your first steps in financial planning.
         </p>
       </div>
-    </section>
+    </div>
+
+    <GuideNav />
 
     <!-- Content -->
-    <section class="py-12 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- Intro -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-lg font-bold text-horizon-500 mb-2">You Don't Need to Know Everything</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             You just need to get the basics right. This guide covers what matters most when you are starting out &mdash;
@@ -109,42 +112,32 @@
           </p>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/stage/starting-out" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Starting Out stage</router-link>
-            <router-link to="/learn/what-is-an-isa" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">What is an ISA?</router-link>
-            <router-link to="/calculators" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Calculators</router-link>
-            <router-link to="/learn/glossary" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary</router-link>
-            <router-link to="/learn" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">All guides</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="py-12 bg-white">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-horizon-500 mb-2">Start tracking your finances in Fynla</h2>
-        <p class="text-sm text-neutral-500 mb-6">See your net worth, ISA allowance, pensions, and emergency fund &mdash; all in one place.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </section>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'StartingOutGuidePage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
-    document.title = 'Financial Planning for Beginners — UK Starting Out Guide | Fynla';
+    document.title = 'Starting Out — Money Basics for Beginners | Fynla';
+    let meta = document.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'description');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', 'A beginner-friendly guide to managing your money in the UK. Covers budgeting, emergency funds, student loans, workplace pensions, and building good financial habits from the start.');
   },
 };
 </script>

@@ -47,6 +47,7 @@ class PreviewWriteInterceptor
     private const EXCLUDED_ROUTES = [
         'api/preview/exit',
         'api/preview/switch',
+        'api/contact',            // Contact form works regardless of preview mode
         'api/auth/login',         // Allow real login even with stale preview token
         'api/auth/logout',
         'api/auth/logout-beacon', // Beacon logout for browser/tab close

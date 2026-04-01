@@ -1,21 +1,24 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">ISA Allowance and Rules</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">ISA Allowance and Rules</h1>
+        <p class="text-lg text-white/70">
           Everything you need to know about ISAs &mdash; types, limits, and strategies for maximising your tax-free savings.
         </p>
       </div>
-    </section>
+    </div>
+
+    <GuideNav />
 
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- The Annual Allowance -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">The Annual Allowance</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             The ISA allowance is <strong>&pound;20,000</strong> per tax year (6 April to 5 April). You can split
@@ -28,25 +31,25 @@
         <div>
           <h2 class="text-base font-bold text-horizon-500 mb-2">Types of ISA</h2>
           <div class="space-y-3">
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Cash ISA</p>
               <p class="text-xs text-neutral-500">
                 Tax-free savings account. Interest earned is free from income tax. You can hold one Cash ISA per tax year (multiple from different years).
               </p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Stocks and Shares ISA</p>
               <p class="text-xs text-neutral-500">
                 Invest in funds, shares, and bonds with no Capital Gains Tax or income tax on returns. Best suited for goals five or more years away.
               </p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Lifetime ISA</p>
               <p class="text-xs text-neutral-500">
                 For 18&ndash;39 year olds saving for a first home or retirement. &pound;4,000 annual sub-limit (counts towards &pound;20,000 total). 25% government bonus on contributions &mdash; up to &pound;1,000 per year. 25% penalty on withdrawals for other purposes.
               </p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Innovative Finance ISA</p>
               <p class="text-xs text-neutral-500">
                 Holds peer-to-peer lending investments. Interest and gains are tax-free, but the underlying investments carry higher risk.
@@ -138,28 +141,22 @@
             <router-link to="/insights/isa-allowance-2025-26" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">ISA Allowance 2025/26 (Insights)</router-link>
           </div>
         </div>
+        </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-white mb-2">Track your ISA allowance in Fynla</h2>
-        <p class="text-sm text-white/80 mb-6">See how much of your &pound;20,000 you have used &mdash; across all your ISA accounts, in one place.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </section>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'IsaAllowanceTaxPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'ISA Allowance & Rules \u2014 Complete UK Guide | Fynla';

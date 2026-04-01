@@ -1,22 +1,25 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">Fynla vs Spreadsheets</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Fynla vs<br/>
+          <span class="text-raspberry-300">Spreadsheets</span>
+        </h1>
+        <p class="text-lg text-white/70">
           Spreadsheets are free and flexible. Here is what you gain by upgrading to a dedicated planning tool.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Content -->
     <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
 
         <!-- Overview -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
-          <h2 class="text-base font-bold text-horizon-500 mb-2">We Get It &mdash; Spreadsheets Are Great</h2>
+        <div class="bg-light-blue-100 rounded-xl p-8">
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">We Get It &mdash; Spreadsheets Are Great</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             Many serious financial planners start with a spreadsheet. They are free, endlessly customisable, and you
             have full control. But as your finances grow more complex, spreadsheets start to show their limits &mdash;
@@ -26,7 +29,7 @@
 
         <!-- Spreadsheet Strengths -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Where Spreadsheets Excel</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where spreadsheets excel</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -47,9 +50,9 @@
           </ul>
         </div>
 
-        <!-- What You Gain With Fynla -->
+        <!-- What you gain with Fynla -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">What You Gain With Fynla</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What you gain with Fynla</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -78,9 +81,9 @@
           </ul>
         </div>
 
-        <!-- The Hidden Cost of Spreadsheets -->
+        <!-- The hidden cost of spreadsheets -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">The Hidden Cost of Spreadsheets</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">The hidden cost of spreadsheets</h2>
           <div class="bg-white rounded-lg border border-light-gray p-5">
             <ul class="space-y-1.5 text-sm text-neutral-600">
               <li class="flex items-start gap-2">
@@ -104,25 +107,27 @@
         </div>
 
         <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/compare/best-financial-planning-tools-uk" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Best Financial Planning Tools UK</router-link>
-            <router-link to="/compare/fynla-vs-projectionlab" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Fynla vs ProjectionLab</router-link>
-            <router-link to="/pricing" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Fynla Pricing</router-link>
-          </div>
+        <div class="border-t border-light-gray pt-6 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span class="text-sm font-bold text-horizon-500">Related</span>
+          <router-link to="/compare/best-financial-planning-tools-uk" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Best Financial Planning Tools UK</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/compare/fynla-vs-financial-planning-platform" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Fynla vs Financial Planning Platform</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/pricing" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Fynla Pricing</router-link>
         </div>
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-white mb-2">Try Fynla free</h2>
-        <p class="text-sm text-white/80 mb-6">Professional-grade financial planning without the spreadsheet headaches.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
+    <section class="py-10 bg-light-pink-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-6 py-6">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Ditch the spreadsheet headaches</h2>
+          <p class="text-lg text-white/70 mb-4">Professional-grade financial planning &mdash; no formulas required.</p>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
+            Try the demo
+          </a>
+        </div>
       </div>
     </section>
   </PublicLayout>

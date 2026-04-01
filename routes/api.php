@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContactFormController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
@@ -78,6 +79,9 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Contact form (public, rate-limited)
+Route::post('/contact', [ContactFormController::class, 'submit'])->middleware('throttle:3,5');
 
 // Authentication routes
 Route::prefix('auth')->group(function () {

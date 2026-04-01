@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'IhtPlanningFeature',
@@ -81,28 +82,7 @@ export default {
           { label: "Annual cost", values: ["£102-£240", "£1,500-5,000+", "Free but risky"] },
         ],
       },
-      faq: [
-        {
-          q: "Is Fynla giving me tax advice?",
-          a: "No. Fynla is a planning tool that helps you understand your position based on current UK tax rules. For complex estate planning, we'd recommend consulting a qualified adviser — and Fynla gives you the numbers to make that conversation productive.",
-        },
-        {
-          q: "How does Fynla handle the April 2027 pension changes?",
-          a: "We've built the new pension inclusion rules into our modelling engine. You can toggle between current rules and post-April 2027 rules to see exactly how the change affects your estate.",
-        },
-        {
-          q: "Does this work for married couples?",
-          a: "Yes. Fynla models transferable nil rate bands, residence nil rate band, and joint estate planning. You can see your position individually and as a couple.",
-        },
-        {
-          q: "How accurate is the Inheritance Tax calculation?",
-          a: "Fynla applies current HMRC rules including all standard bands, taper thresholds, and exemptions. Accuracy depends on the completeness of your asset data.",
-        },
-        {
-          q: "What about trusts and business property relief?",
-          a: "Fynla covers the most common planning strategies including gifting, pension drawdown, and standard exemptions. For complex trust structures, we'd recommend using Fynla's numbers alongside professional advice.",
-        },
-      ],
+      faq: getFeatureFaqs('iht-planning'),
       finalCta: {
         headline: "Don't Leave Your Family a Tax Bill They Didn't Expect",
         body: "It takes 10 minutes to see your Inheritance Tax exposure. The demo lets you explore with sample data — no sign-up needed.",

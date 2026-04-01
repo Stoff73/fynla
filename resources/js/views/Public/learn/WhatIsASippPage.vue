@@ -1,21 +1,24 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">What is a SIPP?</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">What is a SIPP?</h1>
+        <p class="text-lg text-white/70">
           Self-Invested Personal Pensions explained &mdash; more control over your retirement savings.
         </p>
       </div>
-    </section>
+    </div>
+
+    <GuideNav />
 
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- The Short Answer -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">The Short Answer</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             A Self-Invested Personal Pension (SIPP) is a pension that gives you full control over how your money is
@@ -28,7 +31,7 @@
         <div>
           <h2 class="text-base font-bold text-horizon-500 mb-3">SIPP vs Workplace Pension</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">Workplace Pension</p>
               <ul class="space-y-1 text-xs text-neutral-500">
                 <li>Employer contributes alongside you</li>
@@ -37,7 +40,7 @@
                 <li>Simple &mdash; set and forget</li>
               </ul>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
+            <div class="bg-eggshell-500 rounded-lg p-5">
               <p class="text-sm font-semibold text-horizon-500 mb-1">SIPP</p>
               <ul class="space-y-1 text-xs text-neutral-500">
                 <li>You choose your investments</li>
@@ -123,39 +126,22 @@
           </p>
         </div>
 
-        <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/features/pension-tracker" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Pension tracker</router-link>
-            <router-link to="/learn/glossary#self-invested-personal-pension" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Glossary: SIPP</router-link>
-            <router-link to="/learn/should-i-consolidate-pensions" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Should I consolidate my pensions?</router-link>
-            <router-link to="/stage/planning-your-future" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Planning Your Future</router-link>
-            <router-link to="/learn" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">All guides</router-link>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-white mb-2">Track your SIPP alongside all your pensions in Fynla</h2>
-        <p class="text-sm text-white/80 mb-6">See every pension in one place &mdash; workplace, SIPP, and Defined Benefit &mdash; with projections to retirement.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </section>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'WhatIsASippPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'What is a SIPP? — Self-Invested Personal Pension Explained | Fynla';

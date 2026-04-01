@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'IceLettersFeature',
@@ -72,28 +73,7 @@ export default {
         headline: "The Most Loving Document You'll Ever Write",
         body: "This isn't about spreadsheets or financial planning. It's about making sure the people you love don't have to search through drawers, emails, and filing cabinets during the worst week of their lives.\n\nCreating an ICE letter takes about 15 minutes if your Fynla profile is up to date. It's one of those things that costs nothing to do and everything not to.",
       },
-      faq: [
-        {
-          q: "What's included in the ICE letter?",
-          a: "Everything your family needs: a summary of your assets and liabilities, all pension and insurance details, bank account information, key contacts, document locations, and an immediate actions checklist.",
-        },
-        {
-          q: "Is it automatically kept up to date?",
-          a: "The ICE letter pulls from your Fynla data, so when you update a pension value or add a new savings account, the ICE letter reflects it. We recommend downloading a fresh copy every 6-12 months.",
-        },
-        {
-          q: "Can I customise it?",
-          a: "Yes. You can add personal notes, instructions, and wishes that go beyond the financial data. Some people include messages to family members, funeral preferences, or specific instructions.",
-        },
-        {
-          q: "Who should I give it to?",
-          a: "At minimum, your partner/spouse and your solicitor. Some people also give a copy to an adult child or trusted family member. Store a physical copy in a fireproof safe or with your will.",
-        },
-        {
-          q: "Do I need a will as well?",
-          a: "Yes. An ICE letter complements a will — it doesn't replace one. Your will is the legal document that determines who gets what. Your ICE letter is the practical guide that helps your family navigate the process.",
-        },
-      ],
+      faq: getFeatureFaqs('ice-letters'),
       finalCta: {
         headline: "15 Minutes Now Could Save Your Family Months of Stress",
         body: "The demo includes a sample ICE letter so you can see exactly what it looks like. It's the feature people didn't know they needed — until they see it.",

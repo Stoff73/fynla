@@ -1,21 +1,24 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">Capital Gains Tax Rates 2025/26</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Capital Gains Tax Rates 2025/26</h1>
+        <p class="text-lg text-white/70">
           Current rates, annual exempt amount, and how to reduce your Capital Gains Tax bill.
         </p>
       </div>
-    </section>
+    </div>
+
+    <GuideNav />
 
     <!-- Content -->
-    <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <section class="py-8 bg-eggshell-500">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl border border-light-gray p-6 sm:p-8 space-y-8">
 
         <!-- Overview -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
+        <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">What is Capital Gains Tax?</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             Capital Gains Tax is charged on the profit you make when you sell or dispose of an asset that has
@@ -119,28 +122,22 @@
             <router-link to="/learn/tax/tax-year-checklist" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Tax Year Checklist</router-link>
           </div>
         </div>
+        </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-white mb-2">Track your investments and tax wrappers in Fynla</h2>
-        <p class="text-sm text-white/80 mb-6">See your ISA usage, investment performance, and tax efficiency in one place.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
-      </div>
-    </section>
+    <GuideArticleFooter />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import GuideNav from '@/components/Shared/GuideNav.vue';
+import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
 
 export default {
   name: 'CapitalGainsTaxPage',
-  components: { PublicLayout },
+  components: { PublicLayout, GuideNav, GuideArticleFooter },
 
   mounted() {
     document.title = 'Capital Gains Tax Rates 2025/26 \u2014 UK Guide | Fynla';

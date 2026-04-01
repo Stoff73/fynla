@@ -1,21 +1,21 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-br from-horizon-500 via-horizon-600 to-horizon-700 py-16 sm:py-20">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-4">{{ hero.headline }}</h1>
-        <p class="text-base text-horizon-200 max-w-2xl mx-auto mb-8">{{ hero.subheadline }}</p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <router-link to="/?demo=true" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">{{ hero.headline }}</h1>
+        <p class="text-lg text-white/70 max-w-2xl mb-6">{{ hero.subheadline }}</p>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
             {{ hero.primaryCta || 'Try the Demo' }}
-          </router-link>
-          <router-link :to="hero.secondaryCtaLink || '/how-it-works'" class="px-6 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-colors">
-            {{ hero.secondaryCta || 'See How It Works' }}
+          </a>
+          <router-link :to="hero.secondaryCtaLink || '/how-it-works'" class="text-white/85 underline underline-offset-3 hover:text-white transition-colors text-sm">
+            {{ hero.secondaryCta || 'See how it works' }}
           </router-link>
         </div>
-        <p v-if="hero.socialProof" class="mt-6 text-xs text-horizon-300 italic max-w-lg mx-auto">{{ hero.socialProof }}</p>
+        <p v-if="hero.socialProof" class="mt-4 text-xs text-white/50 italic max-w-lg">{{ hero.socialProof }}</p>
       </div>
-    </section>
+    </div>
 
     <!-- Problem -->
     <section class="py-14 bg-white">
@@ -94,7 +94,7 @@
     <!-- FAQ -->
     <section class="py-14" :class="comparison ? 'bg-white' : 'bg-eggshell-500'">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl font-bold text-horizon-500 mb-6">Common Questions</h2>
+        <h2 class="text-xl font-bold text-horizon-500 mb-6">Common questions</h2>
         <div class="space-y-2">
           <div v-for="(item, idx) in faq" :key="idx" class="bg-white rounded-lg border border-light-gray overflow-hidden">
             <button @click="toggleFaq(idx)" class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-savannah-50 transition-colors">
@@ -117,11 +117,11 @@
         <h2 class="text-2xl font-bold text-white mb-3">{{ finalCta.headline }}</h2>
         <p class="text-sm text-horizon-200 max-w-lg mx-auto mb-6">{{ finalCta.body }}</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <router-link to="/?demo=true" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="px-6 py-2.5 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">
             Try the Demo
-          </router-link>
+          </a>
           <router-link to="/register" class="px-6 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-lg border border-white/20 hover:bg-white/20 transition-colors">
-            Start Your Free Trial
+            Start your free trial
           </router-link>
         </div>
       </div>

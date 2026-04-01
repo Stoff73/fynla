@@ -1,45 +1,85 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-16 sm:py-20">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-3xl sm:text-4xl font-black text-white mb-3">Insights</h1>
-        <p class="text-base text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Fynla
+          <span class="text-raspberry-300">Insights</span>
+        </h1>
+        <p class="text-lg text-white/70">
           Timely commentary on what's changing — and what it means for you.
         </p>
       </div>
-    </section>
+    </div>
 
-    <!-- Intro + Articles -->
+    <!-- Intro + Articles — full width -->
     <section class="py-12 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p class="text-sm text-neutral-500 mb-10 leading-relaxed">
-          We don't call this a blog. These are focused, practical pieces about tax changes, pension rules, budget updates, and their impact on your financial plan.
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p class="text-sm text-neutral-500 mb-8 leading-relaxed">
+          Focused, practical pieces about tax changes, pension rules, budget updates, and their impact on your financial plan.
+          Our insights draw on information from key financial institutions and regulatory bodies, advice from certified advisors,
+          and updates on the Fynla platform including upcoming releases.
         </p>
+
+        <!-- Category filter -->
+        <div class="flex flex-wrap gap-2 mb-8">
+          <button
+            v-for="cat in categories"
+            :key="cat"
+            type="button"
+            class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all"
+            :class="activeCategory === cat ? 'bg-horizon-500 text-white' : 'bg-white border border-light-gray text-neutral-500 hover:border-raspberry-300 hover:text-horizon-500'"
+            @click="activeCategory = cat"
+          >
+            {{ cat }}
+          </button>
+        </div>
 
         <!-- Article Cards -->
         <div class="space-y-4">
           <router-link
-            v-for="article in articles"
+            v-for="article in filteredArticles"
             :key="article.slug"
             :to="article.slug"
-            class="block bg-white rounded-lg border border-light-gray p-5 hover:shadow-md hover:border-raspberry-300 transition-all group"
+            class="flex flex-col sm:flex-row bg-white rounded-2xl overflow-hidden hover:bg-light-pink-100 hover:shadow-md transition-all group"
           >
-            <p class="text-xs text-neutral-400 mb-1">{{ article.date }}</p>
-            <h2 class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-1">
-              {{ article.title }}
-            </h2>
-            <p class="text-xs text-neutral-500 mb-2">{{ article.summary }}</p>
-            <span class="text-xs font-semibold text-raspberry-500">Read &rarr;</span>
+            <!-- Image -->
+            <div class="sm:w-[280px] flex-shrink-0 bg-gradient-to-br from-horizon-500 to-raspberry-500 flex items-center justify-center p-8 sm:p-6">
+              <div class="w-full aspect-video sm:aspect-auto sm:h-full rounded-lg bg-white/10 flex items-center justify-center">
+                <svg class="w-12 h-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" :d="article.icon" />
+                </svg>
+              </div>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 p-5 sm:p-6 flex flex-col justify-center">
+              <p class="text-xs text-neutral-400 mb-1">{{ article.date }}</p>
+              <h2 class="text-lg lg:text-xl xl:text-2xl font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+                {{ article.title }}
+              </h2>
+              <p class="text-sm text-neutral-500 mb-3 leading-relaxed">{{ article.summary }}</p>
+              <div class="flex flex-wrap gap-1 mb-3">
+                <span
+                  v-for="tag in article.tags"
+                  :key="tag"
+                  class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide"
+                  :class="tagClass(tag)"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+              <span class="text-base font-semibold text-raspberry-500">Read &rarr;</span>
+            </div>
           </router-link>
         </div>
       </div>
     </section>
 
-    <!-- Stay Updated -->
-    <section class="py-12 bg-white">
+    <!-- Stay Updated — light pink bg -->
+    <section class="py-14 bg-light-pink-100">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-lg font-bold text-horizon-500 mb-2">Want to stay updated?</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Want to stay updated?</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
           More insights are on the way. Register for a free Fynla account and we'll let you know when new articles are published.
         </p>
@@ -63,25 +103,53 @@ export default {
 
   data() {
     return {
+      activeCategory: 'All',
+      categories: ['All', 'Tax changes', 'Pensions', 'Savings & ISA', 'Estate planning', 'Platform updates'],
       articles: [
         {
           slug: '/insights/pension-iht-changes-2027',
           title: 'Pension Inheritance Tax Changes: April 2027',
           date: 'March 2026',
           summary: 'From April 2027, unused pension pots will be included in your estate for Inheritance Tax. Here\'s what\'s changing and what you can do.',
+          tags: ['Pensions', 'Estate planning'],
+          icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
         },
         {
           slug: '/insights/isa-allowance-2025-26',
           title: 'ISA Allowance 2025/26: Make the Most of Your \u00A320,000',
           date: 'March 2026',
           summary: 'The ISA allowance remains at \u00A320,000. Types, deadlines, and strategies for maximising your tax-free savings.',
+          tags: ['Savings & ISA'],
+          icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
         },
       ],
     };
   },
 
+  computed: {
+    filteredArticles() {
+      if (this.activeCategory === 'All') return this.articles;
+      return this.articles.filter(a => a.tags.includes(this.activeCategory));
+    },
+  },
+
+  methods: {
+    tagClass(tag) {
+      const classes = {
+        'Tax changes': 'bg-amber-50 text-amber-700',
+        'Pensions': 'bg-violet-50 text-violet-700',
+        'Savings & ISA': 'bg-spring-50 text-spring-700',
+        'Estate planning': 'bg-amber-50 text-amber-700',
+        'Platform updates': 'bg-light-blue-100 text-light-blue-700',
+      };
+      return classes[tag] || 'bg-neutral-100 text-neutral-600';
+    },
+  },
+
   mounted() {
     document.title = 'Insights \u2014 UK Financial Planning News & Commentary | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'UK financial planning insights covering tax changes, pension rules, budget updates, and platform news from Fynla.');
   },
 };
 </script>

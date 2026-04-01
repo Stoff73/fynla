@@ -138,7 +138,7 @@ cat CSJTODO.md 2>/dev/null || echo "No TODO file"
 If it exists, present outstanding items to the user. Also check the vault for a potentially newer version:
 
 ```bash
-ls -t /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/CSJTODO.md 2>/dev/null | head -1
+ls -t /Users/CSJ/Desktop/fynlaBrain/April/April*Updates/CSJTODO.md 2>/dev/null | head -1
 ```
 
 ### 2d. Read recent vault session notes
@@ -146,7 +146,7 @@ ls -t /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/CSJTODO.md 2>/dev/null |
 Check the 3 most recent session update folders for deploy notes, bug fixes, and outstanding issues:
 
 ```bash
-ls -d /Users/CSJ/Desktop/fynlaBrain/March/March*Updates 2>/dev/null | sort -V | tail -3
+ls -d /Users/CSJ/Desktop/fynlaBrain/April/April*Updates 2>/dev/null | sort -V | tail -3
 ```
 
 For each folder, look for:

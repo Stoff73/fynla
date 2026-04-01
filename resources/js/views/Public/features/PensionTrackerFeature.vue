@@ -12,6 +12,7 @@
 
 <script>
 import FeaturePageLayout from '@/components/Public/FeaturePageLayout.vue';
+import { getFeatureFaqs } from '@/constants/faqData';
 
 export default {
   name: 'PensionTrackerFeature',
@@ -80,28 +81,7 @@ export default {
           { label: "Cost", values: ["£102-£240/yr", "Free (fragmented)", "£500-1,500/yr", "Free (limited)"] },
         ],
       },
-      faq: [
-        {
-          q: "Can Fynla connect directly to my pension providers?",
-          a: "Currently, you add your pension details manually — provider, value, contribution rate, and fund type. The manual setup takes about 5 minutes per pension.",
-        },
-        {
-          q: "Does this include the state pension?",
-          a: "Yes. Enter your state pension forecast from gov.uk and Fynla incorporates it into your total retirement income projection.",
-        },
-        {
-          q: "What about defined benefit (final salary) pensions?",
-          a: "Yes, Fynla supports defined benefit pensions. Enter the projected annual pension amount and retirement age, and it's included in your retirement income modelling.",
-        },
-        {
-          q: "Should I consolidate my pensions?",
-          a: "That depends on your specific situation — fees, fund performance, guaranteed benefits, and employer match all factor in. Fynla gives you the data to make that decision.",
-        },
-        {
-          q: "How does this connect to the retirement calculator?",
-          a: "Your pension data feeds directly into Fynla's \"When Can I Retire?\" calculator. Change a contribution rate here, and your retirement date updates automatically.",
-        },
-      ],
+      faq: getFeatureFaqs('pension-tracker'),
       finalCta: {
         headline: "Stop Guessing What Your Retirement Looks Like",
         body: "Add your pensions in under 10 minutes. See what you've really got — and what you need to do about it.",

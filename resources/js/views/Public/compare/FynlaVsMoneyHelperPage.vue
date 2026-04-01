@@ -1,23 +1,26 @@
 <template>
   <PublicLayout>
     <!-- Hero -->
-    <section class="bg-gradient-to-r from-horizon-500 to-raspberry-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-xl font-black text-white mb-2">Looking for a MoneyHelper Alternative?</h1>
-        <p class="text-sm text-white/80 max-w-xl mx-auto">
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Looking for a<br/>
+          <span class="text-raspberry-300">MoneyHelper Alternative?</span>
+        </h1>
+        <p class="text-lg text-white/70">
           MoneyHelper provides basic calculators and guidance. Fynla takes it further &mdash; with personalised
           financial planning, pension tracking, retirement projections, and tools that work with your actual data.
         </p>
       </div>
-    </section>
+    </div>
 
     <!-- Content -->
     <section class="py-10 bg-eggshell-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
 
-        <!-- What MoneyHelper Does Well -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
-          <h2 class="text-base font-bold text-horizon-500 mb-2">What MoneyHelper Does Well</h2>
+        <!-- What MoneyHelper does well -->
+        <div class="bg-light-blue-100 rounded-xl p-8">
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What MoneyHelper does well</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             MoneyHelper is a free, government-backed service that provides basic financial education, simple
             calculators, and signposting to regulated advice. It&rsquo;s a genuinely good starting point for
@@ -28,9 +31,9 @@
           </p>
         </div>
 
-        <!-- Where MoneyHelper Falls Short -->
+        <!-- Where MoneyHelper falls short -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Where MoneyHelper Falls Short</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Where MoneyHelper falls short</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-raspberry-500 mt-1.5 flex-shrink-0"></span>
@@ -61,29 +64,29 @@
 
         <!-- What to Use Instead -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">What to Use Instead of MoneyHelper</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">What to use instead of MoneyHelper</h2>
           <p class="text-sm text-neutral-600 leading-relaxed mb-3">
             If you&rsquo;re asking &ldquo;what can I use instead of MoneyHelper?&rdquo;, the answer depends on what you need:
           </p>
           <div class="space-y-3">
-            <div class="bg-white rounded-lg border border-light-gray p-5">
-              <p class="text-xs font-semibold text-horizon-500 mb-1">For quick one-off calculations</p>
-              <p class="text-xs text-neutral-500">MoneyHelper&rsquo;s free financial planning tools are still fine for basic checks &mdash; pension estimates, budget snapshots, and general guidance.</p>
+            <div class="bg-light-pink-100 rounded-xl p-6">
+              <p class="text-base font-bold text-horizon-500 mb-3">For quick one-off calculations</p>
+              <p class="text-sm text-neutral-500">MoneyHelper&rsquo;s free financial planning tools are still fine for basic checks &mdash; pension estimates, budget snapshots, and general guidance.</p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
-              <p class="text-xs font-semibold text-horizon-500 mb-1">For ongoing financial planning</p>
-              <p class="text-xs text-neutral-500">Fynla gives you a connected, personalised view of your entire financial life &mdash; a genuine MoneyHelper replacement for anyone who wants more than generic calculators.</p>
+            <div class="bg-light-pink-100 rounded-xl p-6">
+              <p class="text-base font-bold text-horizon-500 mb-3">For ongoing financial planning</p>
+              <p class="text-sm text-neutral-500">Fynla gives you a connected, personalised view of your entire financial life &mdash; a genuine MoneyHelper replacement for anyone who wants more than generic calculators.</p>
             </div>
-            <div class="bg-white rounded-lg border border-light-gray p-5">
-              <p class="text-xs font-semibold text-horizon-500 mb-1">For regulated advice</p>
-              <p class="text-xs text-neutral-500">A qualified Independent Financial Adviser (IFA) is the right choice for complex situations. Neither MoneyHelper nor Fynla replaces regulated advice.</p>
+            <div class="bg-light-pink-100 rounded-xl p-6">
+              <p class="text-base font-bold text-horizon-500 mb-3">For regulated advice</p>
+              <p class="text-sm text-neutral-500">A qualified Independent Financial Adviser (IFA) is the right choice for complex situations. Neither MoneyHelper nor Fynla replaces regulated advice.</p>
             </div>
           </div>
         </div>
 
-        <!-- Feature Comparison -->
+        <!-- Feature comparison -->
         <div>
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Fynla vs MoneyHelper &mdash; Feature Comparison</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Fynla vs MoneyHelper &mdash; Feature comparison</h2>
           <p class="text-sm text-neutral-600 leading-relaxed mb-3">
             If you&rsquo;re looking for a MoneyHelper pension calculator alternative or a better retirement planning tool, here&rsquo;s how the two compare across key areas:
           </p>
@@ -122,8 +125,8 @@
         </div>
 
         <!-- Pricing -->
-        <div class="bg-white rounded-lg border border-light-gray p-5">
-          <h2 class="text-base font-bold text-horizon-500 mb-2">Fynla Pricing vs MoneyHelper</h2>
+        <div class="bg-light-blue-100 rounded-xl p-8">
+          <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-horizon-500 mb-4">Fynla Pricing vs MoneyHelper</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
             MoneyHelper is free &mdash; funded by the government levy on financial services. Fynla starts from
             &pound;8.50/month. The difference: MoneyHelper gives you generic information. Fynla gives you a
@@ -135,27 +138,31 @@
         </div>
 
         <!-- Related Links -->
-        <div class="border-t border-light-gray pt-6">
-          <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
-          <div class="flex flex-wrap gap-2">
-            <router-link to="/compare/best-financial-planning-tools-uk" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Best Financial Planning Tools UK</router-link>
-            <router-link to="/compare/fynla-vs-spreadsheets" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Fynla vs Spreadsheets</router-link>
-            <router-link to="/features/pension-tracker" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Pension Tracker</router-link>
-            <router-link to="/features/when-can-i-retire" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">When Can I Retire?</router-link>
-            <router-link to="/pricing" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Fynla Pricing</router-link>
-          </div>
+        <div class="border-t border-light-gray pt-6 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span class="text-sm font-bold text-horizon-500">Related</span>
+          <router-link to="/compare/best-financial-planning-tools-uk" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Best Financial Planning Tools UK</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/compare/fynla-vs-spreadsheets" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Fynla vs Spreadsheets</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/features/pension-tracker" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Pension Tracker</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/features/when-can-i-retire" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">When Can I Retire?</router-link>
+          <span class="text-neutral-300">|</span>
+          <router-link to="/pricing" class="text-xs text-raspberry-500 hover:text-light-pink-400 transition-colors">Fynla Pricing</router-link>
         </div>
       </div>
     </section>
 
     <!-- CTA -->
-    <section class="py-10 bg-gradient-to-r from-horizon-500 to-raspberry-500">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-xl font-bold text-white mb-2">Try Fynla free</h2>
-        <p class="text-sm text-white/80 mb-6">See what personalised financial planning looks like &mdash; pensions, retirement, estate, and protection in one place.</p>
-        <a href="/?demo=true" class="inline-block px-6 py-2.5 bg-white text-horizon-600 text-sm font-semibold rounded-lg hover:bg-eggshell-500 transition-colors">
-          Try the demo
-        </a>
+    <section class="py-10 bg-light-pink-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-gradient-to-r from-horizon-500 to-raspberry-500 rounded-xl px-6 py-6">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">Ready to go beyond the basics?</h2>
+          <p class="text-lg text-white/70 mb-4">See what personalised financial planning looks like &mdash; pensions, retirement, estate, and protection in one place.</p>
+          <a href="#" @click.prevent="$router.push({ query: { demo: 'true' } })" class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors">
+            Try the demo
+          </a>
+        </div>
       </div>
     </section>
   </PublicLayout>

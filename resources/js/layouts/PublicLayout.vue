@@ -161,15 +161,15 @@
                       <router-link to="/why-fynla/one-platform" class="flex items-start gap-3 p-3 rounded-lg bg-eggshell-500 hover:bg-light-pink-100 transition-colors group" @click="whyOpen = false">
                         <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                         <div>
-                          <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">One Platform Story</p>
+                          <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">One platform</p>
                           <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Everything in one place — no spreadsheets needed.</p>
                         </div>
                       </router-link>
                       <router-link to="/why-fynla/independent" class="flex items-start gap-3 p-3 rounded-lg bg-eggshell-500 hover:bg-light-pink-100 transition-colors group" @click="whyOpen = false">
                         <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                         <div>
-                          <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Not Tied to an Adviser</p>
-                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Independent, unbiased, and always on your side.</p>
+                          <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">Your financial companion</p>
+                          <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">Not tied to an adviser — independent, unbiased, and always on your side.</p>
                         </div>
                       </router-link>
                       <router-link to="/security" class="flex items-start gap-3 p-3 rounded-lg bg-eggshell-500 hover:bg-light-pink-100 transition-colors group" @click="whyOpen = false">
@@ -324,8 +324,8 @@
             </button>
             <div v-if="whyOpen" class="pl-6 pb-1 space-y-0.5">
               <router-link to="/why-fynla/our-approach" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Our Approach</router-link>
-              <router-link to="/why-fynla/one-platform" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">One Platform Story</router-link>
-              <router-link to="/why-fynla/independent" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Not Tied to an Adviser</router-link>
+              <router-link to="/why-fynla/one-platform" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">One platform</router-link>
+              <router-link to="/why-fynla/independent" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Your financial companion</router-link>
               <router-link to="/security" class="block py-1.5 text-sm text-neutral-500 hover:text-raspberry-500" @click="mobileMenuOpen = false; whyOpen = false">Security &amp; Privacy</router-link>
             </div>
           </div>
@@ -369,9 +369,9 @@
           <div>
             <h3 class="text-sm font-bold text-white mb-4">Help centre</h3>
             <ul class="space-y-2">
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">FAQs</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Ask Fyn</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Learning Centre</router-link></li>
+              <li><router-link to="/faq" class="text-sm text-white/70 hover:text-white transition-colors">FAQs</router-link></li>
+              <li><router-link to="/contact" class="text-sm text-white/70 hover:text-white transition-colors">Ask Fyn</router-link></li>
+              <li><router-link to="/learn" class="text-sm text-white/70 hover:text-white transition-colors">Guides and explainers</router-link></li>
             </ul>
           </div>
 
@@ -389,37 +389,66 @@
             <h3 class="text-sm font-bold text-white mb-4">Tools</h3>
             <ul class="space-y-2">
               <li><router-link to="/calculators" class="text-sm text-white/70 hover:text-white transition-colors">Calculators</router-link></li>
-              <li><router-link to="/learning-centre" class="text-sm text-white/70 hover:text-white transition-colors">Resources</router-link></li>
-              <li><a href="/?demo=true" class="text-sm text-white/70 hover:text-white transition-colors">View demo</a></li>
+              <li><router-link to="/learn" class="text-sm text-white/70 hover:text-white transition-colors">Resources</router-link></li>
+              <li><a href="#" @click.prevent="showDemoModal = true" class="text-sm text-white/70 hover:text-white transition-colors">View demo</a></li>
             </ul>
           </div>
 
           <!-- Advisors -->
           <div>
-            <h3 class="text-sm font-bold text-white mb-4">Advisors</h3>
+            <h3 class="text-sm font-bold text-white mb-4">Advisers</h3>
             <ul class="space-y-2">
-              <li><router-link to="/advisors" class="text-sm text-white/70 hover:text-white transition-colors">Why Fynla Advisors</router-link></li>
-              <li><router-link to="/advisors" class="text-sm text-white/70 hover:text-white transition-colors">Advisor features</router-link></li>
-              <li><router-link to="/register" class="text-sm text-white/70 hover:text-white transition-colors">Advisor sign up</router-link></li>
+              <li><router-link to="/advisors" class="text-sm text-white/70 hover:text-white transition-colors">Why Fynla advisers</router-link></li>
+              <li><router-link to="/advisors?scrollTo=adviser-features" class="text-sm text-white/70 hover:text-white transition-colors">Adviser features</router-link></li>
+              <li><router-link to="/advisors?scrollTo=adviser-signup" class="text-sm text-white/70 hover:text-white transition-colors">Adviser sign up</router-link></li>
             </ul>
           </div>
         </div>
 
-        <div class="border-t border-white/20 mt-8 pt-8">
+        <div class="border-t border-white/20 mt-8 pt-8 flex items-center justify-between">
           <p class="text-sm text-white/70">
             &copy; Fynla 2026
           </p>
+          <div class="flex items-center gap-4">
+            <a href="https://www.youtube.com/@HelloFynla" target="_blank" rel="noopener noreferrer" class="text-white/70 hover:text-white transition-colors" aria-label="YouTube">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/HelloFynla" target="_blank" rel="noopener noreferrer" class="text-white/70 hover:text-white transition-colors" aria-label="Facebook">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <a href="https://www.instagram.com/HelloFynla" target="_blank" rel="noopener noreferrer" class="text-white/70 hover:text-white transition-colors" aria-label="Instagram">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+            </a>
+            <a href="https://www.tiktok.com/@HelloFynla" target="_blank" rel="noopener noreferrer" class="text-white/70 hover:text-white transition-colors" aria-label="TikTok">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+            </a>
+          </div>
         </div>
       </div>
     </footer>
+
+    <!-- Global Persona Selection Modal -->
+    <PersonaSelectionModal
+      :is-open="showDemoModal"
+      :personas="availablePersonas"
+      :error="demoError"
+      @close="closeDemoModal"
+      @select="handleDemoPersonaSelect"
+    />
   </div>
 </template>
 
 <script>
 import { mapGetters } from 'vuex';
+import { nextTick } from 'vue';
+import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vue';
 
 export default {
   name: 'PublicLayout',
+
+  components: {
+    PersonaSelectionModal,
+  },
 
   data() {
     return {
@@ -428,6 +457,9 @@ export default {
       resourcesOpen: false,
       whyOpen: false,
       userDropdownOpen: false,
+      showDemoModal: false,
+      demoError: '',
+      enteringDemo: false,
       logoUrl: '/images/logos/LogoHiResFynlaDark.png',
       footerLogoUrl: '/images/logos/LogoHiResFynlaLight.png',
       stages: [
@@ -442,6 +474,7 @@ export default {
 
   computed: {
     ...mapGetters('auth', ['isAuthenticated']),
+    ...mapGetters('preview', ['availablePersonas']),
     userName() {
       return this.$store.state.auth.user?.first_name || 'Account';
     },
@@ -470,10 +503,34 @@ export default {
         this.userDropdownOpen = false;
       }
     },
+    checkDemoQuery() {
+      if (this.$route.query.demo === 'true' && this.$route.path !== '/') {
+        this.showDemoModal = true;
+        this.$router.replace({ query: { ...this.$route.query, demo: undefined } });
+      }
+    },
+    closeDemoModal() {
+      this.showDemoModal = false;
+      this.demoError = '';
+    },
+    async handleDemoPersonaSelect(persona) {
+      if (this.enteringDemo) return;
+      this.enteringDemo = true;
+      this.demoError = '';
+      try {
+        await this.$store.dispatch('preview/loadPersona', persona.id);
+        await nextTick();
+        this.$router.push('/dashboard');
+      } catch (error) {
+        this.demoError = 'Unable to load demo. Please try again or check your connection.';
+        this.enteringDemo = false;
+      }
+    },
   },
 
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
+    this.checkDemoQuery();
   },
 
   beforeUnmount() {
@@ -481,13 +538,16 @@ export default {
   },
 
   watch: {
-    $route() {
+    $route(to) {
       this.mobileMenuOpen = false;
       this.howOpen = false;
       this.resourcesOpen = false;
       this.whyOpen = false;
       this.userDropdownOpen = false;
-    }
+      if (to.query.demo === 'true') {
+        this.checkDemoQuery();
+      }
+    },
   }
 };
 </script>

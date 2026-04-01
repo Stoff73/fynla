@@ -22,14 +22,22 @@
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
             <a href="#dashboard" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToDashboard">View the video</a>
             <span class="text-white/40">|</span>
-            <a href="/?demo=true" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="trackGA('cta_click', 'see_demo'); enterPreviewMode()">See our demo</a>
-            <span class="text-white/40">|</span>
             <a href="#meet-fyn" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToMeetFyn">Ask Fyn</a>
+            <span class="text-white/40">|</span>
+            <a href="/?demo=true" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="trackGA('cta_click', 'see_demo'); enterPreviewMode()">See our demo</a>
           </p>
         </div>
 
-        <!-- Mobile: stacked caption cards (shown below lg) -->
+        <!-- Mobile: brain GIF + stacked caption cards (shown below lg) -->
         <div class="flex flex-col gap-3 mt-6 pb-6 lg:hidden">
+          <!-- Brain GIF in its own box above caption cards -->
+          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm flex justify-center">
+            <img
+              src="/images/Website/Fyn-Brain-Animated-Short.gif"
+              alt="Fynla Brain animation"
+              class="w-28 h-auto rounded-lg"
+            />
+          </div>
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial view.</p>
             <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
@@ -37,13 +45,6 @@
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial brain.</p>
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
-            <div class="flex justify-center mt-3">
-              <img
-                src="/images/Website/Fyn-Brain-Animated-Short.gif"
-                alt="Fynla Brain"
-                class="w-24 h-auto rounded-lg"
-              />
-            </div>
           </div>
           <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice.</p>
@@ -390,6 +391,8 @@ export default {
   },
 
   mounted() {
+    document.title = 'Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments';
+    this.setMetaDescription('Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place.');
     this.checkDemoParam();
   },
 
@@ -405,6 +408,16 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
+
+    setMetaDescription(content) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'description');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    },
 
     trackGA(eventName, label) {
       if (typeof gtag === 'function') {

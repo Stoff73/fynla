@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — Journey Page Additions (Starting Out example)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F5F0EB; color: #1F2A44; }
+  :root {
+    --horizon-500: #1F2A44;
+    --raspberry-500: #D6336C;
+    --raspberry-300: #F06595;
+    --spring-500: #37B679;
+    --spring-100: #D1FAE5;
+    --spring-600: #059669;
+    --eggshell-500: #F5F0EB;
+    --light-pink-100: #FCE4EC;
+    --light-blue-100: #DBEAFE;
+    --light-gray: #E5E7EB;
+    --neutral-400: #9CA3AF;
+    --neutral-500: #6B7280;
+    --violet-500: #7C3AED;
+  }
+  .max-w { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+  /* Annotation */
+  .annotation { background: #FEF3C7; border: 2px dashed #F59E0B; border-radius: 6px; padding: 8px 14px; margin: 12px 0; font-size: 0.75rem; color: #92400E; font-style: italic; }
+  .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: #9CA3AF; padding: 6px 24px; background: #F3F4F6; border-bottom: 1px solid var(--light-gray); }
+
+  /* Is this the right stage — two column */
+  .stage-section { padding: 48px 0; background: var(--eggshell-500); }
+  .stage-flex { display: flex; gap: 40px; align-items: flex-start; }
+  .stage-left { flex: 1; }
+  .stage-right { width: 420px; flex-shrink: 0; }
+  .stage-title { font-size: 1.5rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 24px; }
+
+  /* Checklist */
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .check-item { display: flex; align-items: flex-start; gap: 8px; }
+  .check-icon { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--spring-100); display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .check-icon svg { width: 14px; height: 14px; color: var(--spring-600); }
+  .check-item p { color: var(--neutral-500); font-size: 0.875rem; }
+
+  /* Journey map image */
+  .journey-map-box {
+    background: #fff; border-radius: 16px; border: 1px solid var(--light-gray);
+    padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .journey-map-box img { width: 100%; border-radius: 8px; }
+  .journey-map-label { font-size: 0.7rem; font-weight: 600; color: var(--neutral-400); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+
+  /* Journey path visual (CSS-drawn simplified version) */
+  .journey-path { position: relative; padding: 20px 0; }
+  .journey-steps { display: flex; justify-content: space-between; align-items: center; position: relative; }
+  .journey-step { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; }
+  .journey-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #fff; }
+  .journey-dot.active { background: var(--spring-500); box-shadow: 0 0 0 4px rgba(55,182,121,0.2); }
+  .journey-dot.future { background: var(--neutral-400); }
+  .journey-dot.done { background: var(--spring-500); }
+  .journey-label { font-size: 0.6rem; color: var(--neutral-500); text-align: center; max-width: 60px; line-height: 1.2; }
+  .journey-label.active-label { color: var(--horizon-500); font-weight: 600; }
+  .journey-line { position: absolute; top: 16px; left: 16px; right: 16px; height: 2px; background: var(--light-gray); z-index: 0; }
+  .journey-line-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--spring-500); border-radius: 1px; }
+
+  /* What do I need section */
+  .need-section { padding: 48px 0; background: #fff; }
+  .need-title { font-size: 1.5rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 8px; text-align: center; }
+  .need-subtitle { font-size: 0.875rem; color: var(--neutral-500); text-align: center; margin-bottom: 32px; max-width: 640px; margin-left: auto; margin-right: auto; }
+  .need-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .need-card { background: var(--eggshell-500); border-radius: 12px; padding: 20px; }
+  .need-card-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .need-card h3 { font-size: 0.9rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 4px; }
+  .need-card p { font-size: 0.8rem; color: var(--neutral-500); line-height: 1.4; }
+  .need-card ul { list-style: none; margin-top: 6px; }
+  .need-card ul li { font-size: 0.75rem; color: var(--neutral-500); padding: 2px 0; display: flex; align-items: center; gap: 6px; }
+  .need-card ul li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--raspberry-500); flex-shrink: 0; }
+
+  /* Features placeholder */
+  .features-placeholder { padding: 48px 0; background: var(--light-pink-100); text-align: center; }
+  .features-placeholder h2 { font-size: 1.5rem; font-weight: 700; color: var(--horizon-500); }
+  .features-placeholder p { color: var(--neutral-400); font-size: 0.85rem; margin-top: 4px; }
+
+  .footer-placeholder { background: var(--horizon-500); padding: 24px; text-align: center; }
+  .footer-placeholder span { color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<div class="section-label">MOCKUP: Starting Out page — two new sections</div>
+
+<!-- ═══════ SECTION 1: Is this the right stage (with journey map) ═══════ -->
+<div class="stage-section">
+  <div class="max-w">
+    <div class="stage-flex">
+      <!-- Left: existing checklist -->
+      <div class="stage-left">
+        <h2 class="stage-title">Is this the right stage of your journey?</h2>
+        <div class="check-grid">
+          <div class="check-item">
+            <span class="check-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
+            <p>You've just started earning for the first time</p>
+          </div>
+          <div class="check-item">
+            <span class="check-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
+            <p>You have student loan debt and need graduate money management</p>
+          </div>
+          <div class="check-item">
+            <span class="check-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
+            <p>You're not sure what a pension even does</p>
+          </div>
+          <div class="check-item">
+            <span class="check-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
+            <p>You want to build first-time savings habits</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: journey map -->
+      <div class="stage-right">
+        <div class="journey-map-box">
+          <p class="journey-map-label">Your onboarding journey</p>
+          <div class="journey-path">
+            <div class="journey-line"><div class="journey-line-fill" style="width: 14%;"></div></div>
+            <div class="journey-steps">
+              <div class="journey-step">
+                <div class="journey-dot active">1</div>
+                <span class="journey-label active-label">About You</span>
+              </div>
+              <div class="journey-step">
+                <div class="journey-dot future">2</div>
+                <span class="journey-label">Income & Tax</span>
+              </div>
+              <div class="journey-step">
+                <div class="journey-dot future">3</div>
+                <span class="journey-label">Your Spending</span>
+              </div>
+              <div class="journey-step">
+                <div class="journey-dot future">4</div>
+                <span class="journey-label">Assets</span>
+              </div>
+              <div class="journey-step">
+                <div class="journey-dot future">5</div>
+                <span class="journey-label">Liabilities</span>
+              </div>
+              <div class="journey-step">
+                <div class="journey-dot future">6</div>
+                <span class="journey-label">Your Dashboard</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size: 0.7rem; color: #9CA3AF; margin-top: 8px; text-align: center;">Takes about 10 minutes to complete</p>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">NEW: Journey onboarding map added on the right of "Is this the right stage" section. Shows the steps the user will go through. Each journey page shows different steps relevant to that stage.</div>
+  </div>
+</div>
+
+<!-- ═══════ Features placeholder ═══════ -->
+<div class="features-placeholder">
+  <h2>Features that may be relevant to you</h2>
+  <p>(existing section — unchanged)</p>
+</div>
+
+<!-- ═══════ SECTION 2: What do I need to start my journey ═══════ -->
+<div class="need-section">
+  <div class="max-w">
+    <h2 class="need-title">What do I need to start my journey?</h2>
+    <p class="need-subtitle">To get the most from Fynla, have these details ready. You don't need everything at once — you can always come back and add more later.</p>
+
+    <div class="need-grid">
+      <!-- About You -->
+      <div class="need-card">
+        <div class="need-card-icon" style="background: rgba(214,51,108,0.1);">
+          <svg style="width:18px;height:18px;color:#D6336C;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </div>
+        <h3>About You</h3>
+        <p>Basic personal details</p>
+        <ul>
+          <li>Date of birth</li>
+          <li>Employment status</li>
+          <li>Marital status</li>
+          <li>Number of dependants</li>
+        </ul>
+      </div>
+
+      <!-- Income & Tax -->
+      <div class="need-card">
+        <div class="need-card-icon" style="background: rgba(55,182,121,0.1);">
+          <svg style="width:18px;height:18px;color:#37B679;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3>Income & Tax</h3>
+        <p>Your earnings and tax details</p>
+        <ul>
+          <li>Annual salary or income</li>
+          <li>Tax code (from payslip)</li>
+          <li>Student loan plan type</li>
+          <li>Any additional income</li>
+        </ul>
+      </div>
+
+      <!-- Spending -->
+      <div class="need-card">
+        <div class="need-card-icon" style="background: rgba(124,58,237,0.1);">
+          <svg style="width:18px;height:18px;color:#7C3AED;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+        </div>
+        <h3>Monthly Spending</h3>
+        <p>A rough idea of your outgoings</p>
+        <ul>
+          <li>Rent or mortgage payment</li>
+          <li>Bills and utilities</li>
+          <li>Food and essentials</li>
+          <li>Subscriptions</li>
+        </ul>
+      </div>
+
+      <!-- Savings & Assets -->
+      <div class="need-card">
+        <div class="need-card-icon" style="background: rgba(59,130,246,0.1);">
+          <svg style="width:18px;height:18px;color:#3B82F6;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        </div>
+        <h3>Savings & Assets</h3>
+        <p>What you have right now</p>
+        <ul>
+          <li>Savings account balances</li>
+          <li>ISA balances</li>
+          <li>Workplace pension value</li>
+          <li>Any other savings</li>
+        </ul>
+      </div>
+
+      <!-- Debts -->
+      <div class="need-card">
+        <div class="need-card-icon" style="background: rgba(217,119,6,0.1);">
+          <svg style="width:18px;height:18px;color:#D97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+        </div>
+        <h3>Debts & Liabilities</h3>
+        <p>What you currently owe</p>
+        <ul>
+          <li>Student loan balance</li>
+          <li>Credit card balances</li>
+          <li>Personal loans</li>
+          <li>Overdraft amounts</li>
+        </ul>
+      </div>
+
+      <!-- Goals -->
+      <div class="need-card">
+        <div class="need-card-icon" style="background: rgba(214,51,108,0.1);">
+          <svg style="width:18px;height:18px;color:#D6336C;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <h3>Your Goals</h3>
+        <p>What you want to achieve</p>
+        <ul>
+          <li>Emergency fund target</li>
+          <li>Savings goals</li>
+          <li>Short-term priorities</li>
+          <li>What matters most to you</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 24px;">
+      <a href="#" style="display: inline-block; padding: 12px 32px; background: #37B679; color: #fff; font-weight: 600; border-radius: 8px; text-decoration: none; font-size: 0.95rem;">Start your journey</a>
+      <p style="font-size: 0.75rem; color: #9CA3AF; margin-top: 8px;">You can always skip steps and come back later</p>
+    </div>
+
+    <div class="annotation">NEW: "What do I need to start my journey?" section placed after Features. Shows 6 card groups of information the user should have for onboarding. Each journey page tailors these to the relevant stage (e.g. Starting Out focuses on income, spending, basic savings. Planning Your Future adds pension statements, retirement age target).</div>
+  </div>
+</div>
+
+<div class="footer-placeholder"><span>footer placeholder</span></div>
+
+</body>
+</html>

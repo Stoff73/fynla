@@ -43,11 +43,12 @@
           </div>
         </div>
 
-        <!-- Launch Discount Banner -->
+        <!-- Launch Offer Banner -->
         <div class="flex justify-center mb-10">
-          <span class="inline-block bg-raspberry-50 text-raspberry-500 text-sm font-bold px-4 py-2 rounded-full">
-            Launch Discount — First 500 Users
-          </span>
+          <div class="bg-gradient-to-r from-raspberry-500 to-violet-500 rounded-xl px-8 py-4 text-center shadow-lg">
+            <p class="text-xl sm:text-2xl font-bold text-white mb-1">Limited Time Offer</p>
+            <p class="text-sm text-white/80">Lock in discounted pricing today &mdash; prices will increase when this offer expires</p>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
@@ -60,10 +61,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£45.00' : '£4.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£2.50/mo — save 33%</p>
             </div>
@@ -131,10 +131,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£135.00' : '£14.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£8.33/mo — save 26%</p>
             </div>
@@ -204,10 +203,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£199.00' : '£21.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£12.50/mo — save 25%</p>
             </div>
@@ -250,10 +248,9 @@
             </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline flex-wrap gap-1">
+              <div class="flex items-baseline gap-1">
                 <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£269.99' : '£29.99' }}</span>
-                <span class="text-3xl font-black text-raspberry-500 ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span>
-                <span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
               <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£16.67/mo — save 26%</p>
             </div>
@@ -365,7 +362,7 @@
     <div class="bg-horizon-500 py-16">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
-          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Frequently Asked Questions</h2>
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Frequently asked questions</h2>
           <p class="text-white/70">Everything you need to know about Fynla plans</p>
         </div>
 
@@ -398,7 +395,7 @@
     <!-- CTA Section -->
     <div class="relative bg-light-pink-100 py-16 overflow-hidden">
       <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to Take Control of Your Finances?</h2>
+        <h2 class="text-3xl font-bold text-horizon-500 mb-4">Ready to take control of your finances?</h2>
         <p class="text-neutral-500 mb-8">
           <template v-if="isAuthenticated">Upgrade your plan to unlock more features.</template>
           <template v-else>Start your 7-day free trial today. No credit card required.</template>
@@ -407,7 +404,7 @@
           to="/register"
           class="inline-flex items-center px-8 py-4 bg-raspberry-500 text-white rounded-xl font-semibold text-lg hover:bg-raspberry-600 transition-all shadow-lg hover:shadow-xl"
         >
-          Get Started Free
+          Get started free
           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
@@ -420,6 +417,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getPricingFaqs } from '@/constants/faqData';
 
 export default {
   name: 'PricingPage',
@@ -440,32 +438,7 @@ export default {
     return {
       isYearly: true,
       openFaq: null,
-      faqs: [
-        {
-          question: 'What happens when my free trial ends?',
-          answer: 'After 7 days, you will be asked to choose a plan to continue. If you do not subscribe, your account will become read-only — you can still view your data, but cannot make changes until you activate a plan.',
-        },
-        {
-          question: 'Can I switch plans later?',
-          answer: 'Yes, you can upgrade or downgrade your plan at any time from your account settings. When upgrading, you will be charged the prorated difference. When downgrading, the change takes effect at the end of your current billing period.',
-        },
-        {
-          question: 'What payment methods do you accept?',
-          answer: 'We accept all major credit and debit cards (Visa, Mastercard, American Express) through our secure payment processor Revolut. All payments are processed securely and we never store your card details.',
-        },
-        {
-          question: 'Is my financial data safe?',
-          answer: 'Absolutely. We use AES-256 encryption for sensitive data, store everything in UK-based data centres, and are fully GDPR compliant. Your data is never shared with third parties. You can export or delete your data at any time.',
-        },
-        {
-          question: 'What is the difference between the plans?',
-          answer: 'Student covers the core modules — protection, savings, investments, retirement, and goal tracking. Standard adds property, business, personal valuables, letter to spouse, and coordination. Family includes everything in Standard plus the family module. Pro gives full access to all features including estate planning, holistic plan, wills, trusts, AI document extraction, advanced projections, and priority support.',
-        },
-        {
-          question: 'Can I cancel my subscription?',
-          answer: 'Yes, you can cancel at any time from your account settings. There are no lock-in contracts or cancellation fees. Your access continues until the end of your current billing period.',
-        },
-      ],
+      faqs: getPricingFaqs().map(item => ({ question: item.q, answer: item.a })),
     };
   },
 

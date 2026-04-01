@@ -1,14 +1,20 @@
 <template>
   <PublicLayout>
+    <!-- Hero Header -->
+    <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
+          Site
+          <span class="text-raspberry-300">Map</span>
+        </h1>
+        <p class="text-lg text-white/70">
+          Navigate to all sections of the Fynla financial planning system.
+        </p>
+      </div>
+    </div>
+
     <div class="min-h-screen bg-savannah-100 py-12">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="text-center mb-12">
-          <h1 class="text-4xl font-bold text-horizon-500 mb-4">Sitemap</h1>
-          <p class="text-lg text-neutral-500">
-            Navigate to all sections of the Fynla Financial Planning System
-          </p>
-        </div>
 
         <!-- Main Content -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -34,7 +40,7 @@
                 </router-link>
               </li>
               <li>
-                <router-link to="/learning-centre" class="text-violet-600 hover:text-violet-800 hover:underline flex items-center">
+                <router-link to="/learn" class="text-violet-600 hover:text-violet-800 hover:underline flex items-center">
                   <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                   Learning Centre
                 </router-link>
