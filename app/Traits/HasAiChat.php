@@ -132,6 +132,7 @@ trait HasAiChat
                         'messages' => $xaiMessages,
                         'max_tokens' => $maxTokens,
                         'stream' => true,
+                        'stream_options' => ['include_usage' => true],
                     ];
                     if (! empty($xaiTools)) {
                         $params['tools'] = $xaiTools;
@@ -193,8 +194,10 @@ trait HasAiChat
 
                     // Track token usage from stream (may not be available in all streaming responses)
                     if (isset($response->usage)) {
-                        $totalInputTokens += $response->usage->promptTokens ?? 0;
-                        $totalOutputTokens += $response->usage->completionTokens ?? 0;
+                        $totalInputTokens += $response->usage->promptTokens
+                            ?? $response->usage->prompt_tokens ?? 0;
+                        $totalOutputTokens += $response->usage->completionTokens
+                            ?? $response->usage->completion_tokens ?? 0;
                     }
 
                     // Build content blocks from accumulated text

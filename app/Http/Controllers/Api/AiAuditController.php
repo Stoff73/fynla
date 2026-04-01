@@ -63,6 +63,7 @@ class AiAuditController extends Controller
         $user = User::findOrFail($userId);
 
         $conversations = AiConversation::where('user_id', $userId)
+            ->where('message_count', '>', 0)
             ->orderByDesc('created_at')
             ->get()
             ->map(fn ($c) => [
