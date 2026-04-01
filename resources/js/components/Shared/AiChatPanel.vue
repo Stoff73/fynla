@@ -196,7 +196,9 @@
                     <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
                     <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
                   </div>
-                  <span class="text-xs text-neutral-500">Thinking...</span>
+                  <transition name="fade" mode="out-in">
+                    <span :key="thinkingStatus" class="text-xs text-neutral-500">{{ thinkingStatus }}...</span>
+                  </transition>
                 </div>
               </div>
             </div>
@@ -214,6 +216,9 @@
               </button>
             </div>
           </template>
+
+          <!-- Spacer to allow last message to scroll to top of container -->
+          <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
 
           <!-- Error message -->
           <div v-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
@@ -370,13 +375,21 @@
         <div v-if="streaming" class="flex justify-start">
           <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-savannah-100 text-horizon-500 rounded-bl-sm">
             <AiMessageContent v-if="streamingText" :message="{ role: 'assistant', content: streamingText }" />
-            <span v-else class="flex items-center gap-1 text-neutral-500">
-              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            <span v-else class="flex items-center gap-1.5 text-neutral-500">
+              <span class="flex gap-1">
+                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+              </span>
+              <transition name="fade" mode="out-in">
+                <span :key="thinkingStatus" class="text-xs">{{ thinkingStatus }}...</span>
+              </transition>
             </span>
           </div>
         </div>
+
+        <!-- Spacer to allow last message to scroll to top of container -->
+        <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
       </div>
 
       <!-- Stop streaming button (docked) -->
@@ -487,6 +500,8 @@ export default {
             _resizing: false,
             _resizeStartY: 0,
             _resizeStartHeight: 0,
+            thinkingStatusIndex: 0,
+            _thinkingTimer: null,
         };
     },
 
@@ -507,6 +522,21 @@ export default {
 
         isMobile() {
             return this.windowWidth < 768;
+        },
+
+        thinkingStatusMessages() {
+            return [
+                'Processing your request',
+                'Reviewing your financial data',
+                'Checking your accounts',
+                'Analysing your position',
+                'Running calculations',
+                'Preparing your response',
+            ];
+        },
+
+        thinkingStatus() {
+            return this.thinkingStatusMessages[this.thinkingStatusIndex % this.thinkingStatusMessages.length];
         },
 
         canSend() {
@@ -604,6 +634,9 @@ export default {
         if (this._onResizeEnd) {
             document.removeEventListener('mouseup', this._onResizeEnd);
         }
+        if (this._thinkingTimer) {
+            clearInterval(this._thinkingTimer);
+        }
     },
 
     watch: {
@@ -628,9 +661,28 @@ export default {
         },
 
         streaming(isStreaming) {
-            // When streaming starts, scroll to show the top of the response area
             if (isStreaming) {
-                this.$nextTick(() => this.scrollToLastAssistantMessage());
+                // Scroll user message to top now that thinking indicator is in the DOM
+                this.$nextTick(() => {
+                    const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+                    if (!container) return;
+                    const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
+                    const lastBubble = userBubbles[userBubbles.length - 1];
+                    if (lastBubble) {
+                        lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
+                    }
+                });
+                // Start rotating status messages
+                this.thinkingStatusIndex = 0;
+                this._thinkingTimer = setInterval(() => {
+                    this.thinkingStatusIndex++;
+                }, 2500);
+            } else {
+                // Stop rotating status messages
+                if (this._thinkingTimer) {
+                    clearInterval(this._thinkingTimer);
+                    this._thinkingTimer = null;
+                }
             }
         },
 
@@ -754,9 +806,32 @@ export default {
             await this.sendMessage(message);
         },
 
-        sendSuggested(prompt) {
-            this.inputMessage = prompt;
-            this.send();
+        async sendSuggested(prompt) {
+            const message = prompt.trim();
+            if (!message || this.streaming || this.loading) return;
+
+            this.inputMessage = '';
+
+            const navMatch = matchNavigationIntent(message);
+            if (navMatch) {
+                this.$store.commit('aiChat/ADD_MESSAGE', {
+                    id: 'user_' + Date.now(),
+                    role: 'user',
+                    content: message,
+                    created_at: new Date().toISOString(),
+                });
+                this.$store.commit('aiChat/ADD_MESSAGE', {
+                    id: 'nav_' + Date.now(),
+                    role: 'assistant',
+                    content: navMatch.response,
+                    created_at: new Date().toISOString(),
+                });
+                this.handleNavigation(navMatch.route);
+                return;
+            }
+
+            analyticsService.trackChatMessageSent(message.length);
+            await this.sendMessage(message);
         },
 
         handleNavigation(routePath) {
@@ -776,6 +851,20 @@ export default {
         scrollToBottom() {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        },
+
+        scrollToLastUserMessage() {
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+            if (!container) return;
+
+            const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
+            const lastBubble = userBubbles[userBubbles.length - 1];
+
+            if (lastBubble) {
+                lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
+            } else {
                 container.scrollTop = container.scrollHeight;
             }
         },
@@ -835,5 +924,15 @@ export default {
     .chat-mobile-container {
         height: 100dvh;
     }
+}
+
+/* Fade transition for rotating thinking status */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

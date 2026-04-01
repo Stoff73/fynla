@@ -9,6 +9,9 @@ use App\Models\AiMessage;
 use App\Models\Property;
 use App\Models\User;
 use App\Constants\TaxDefaults;
+use App\Services\AI\KycGateChecker;
+use App\Services\AI\QueryClassifier;
+use App\Services\AI\SystemPromptBuilder;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\PrerequisiteGateService;
@@ -66,8 +69,19 @@ trait HasAiChat
             return;
         }
 
+        // Classify query and check KYC
+        $classifier = app(QueryClassifier::class);
+        $classification = $classifier->classify($message, $currentRoute);
+
+        $kycResult = null;
+        if (! \App\Constants\QuerySchemas::isBypassType($classification['primary'])
+            && $classification['primary'] !== \App\Constants\QuerySchemas::GENERAL) {
+            $kycChecker = app(KycGateChecker::class);
+            $kycResult = $kycChecker->check($user, $classification);
+        }
+
         // Build context
-        $systemPrompt = $this->buildSystemPrompt($user, $currentRoute);
+        $systemPrompt = $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult);
         $messageHistory = $this->buildMessageHistory($conversation);
 
         // Model selection
@@ -118,6 +132,7 @@ trait HasAiChat
                         'messages' => $xaiMessages,
                         'max_tokens' => $maxTokens,
                         'stream' => true,
+                        'stream_options' => ['include_usage' => true],
                     ];
                     if (! empty($xaiTools)) {
                         $params['tools'] = $xaiTools;
@@ -179,8 +194,10 @@ trait HasAiChat
 
                     // Track token usage from stream (may not be available in all streaming responses)
                     if (isset($response->usage)) {
-                        $totalInputTokens += $response->usage->promptTokens ?? 0;
-                        $totalOutputTokens += $response->usage->completionTokens ?? 0;
+                        $totalInputTokens += $response->usage->promptTokens
+                            ?? $response->usage->prompt_tokens ?? 0;
+                        $totalOutputTokens += $response->usage->completionTokens
+                            ?? $response->usage->completion_tokens ?? 0;
                     }
 
                     // Build content blocks from accumulated text
@@ -412,17 +429,26 @@ trait HasAiChat
             break;
         }
 
-        // Build metadata with tool call summary
+        // Validate and sanitise AI response
+        $validator = app(\App\Services\AI\StructuredResponseValidator::class);
+        $fullResponse = $validator->sanitise($fullResponse);
+        $violations = $validator->validateAndLog($fullResponse, $classification, $user->id);
+
+        // Build metadata with tool call summary and any violations
         $messageMetadata = [];
         if (! empty($toolCallsSummary)) {
             $messageMetadata['tool_calls'] = $toolCallsSummary;
         }
+        if (! empty($violations)) {
+            $messageMetadata['validation_violations'] = $violations;
+        }
 
-        // Save assistant message
+        // Save assistant message with system prompt for audit trail
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $fullResponse, array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
+            'system_prompt' => $systemPrompt,
         ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []));
 
         // Update conversation token usage
@@ -431,6 +457,35 @@ trait HasAiChat
 
         // Invalidate daily usage cache
         $this->invalidateDailyUsageCache($user);
+
+        // Log advice for review system (only for advice query types)
+        if ($classification !== null
+            && \App\Constants\QuerySchemas::isAdviceType($classification['primary'])) {
+            try {
+                \App\Models\AiAdviceLog::create([
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'message_id' => $assistantMessage->id,
+                    'query_type' => $classification['primary'],
+                    'classification' => $classification,
+                    'kyc_status' => $kycResult,
+                    'recommendations' => array_map(fn ($r) => [
+                        'title' => $r['title'] ?? null,
+                        'module' => $r['module'] ?? null,
+                        'estimated_saving' => $r['estimated_saving'] ?? null,
+                    ], array_slice($toolCallsSummary, 0, 5)),
+                    'tools_called' => array_map(fn ($tc) => $tc['tool'] ?? null, $toolCallsSummary),
+                    'user_data_snapshot' => [
+                        'income' => (float) $user->annual_employment_income + (float) $user->annual_self_employment_income,
+                        'expenditure' => (float) ($user->monthly_expenditure ?? 0),
+                        'employment_status' => $user->employment_status,
+                        'marital_status' => $user->marital_status,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('[HasAiChat] Failed to log advice', ['error' => $e->getMessage()]);
+            }
+        }
 
         yield [
             'type' => 'done',
@@ -444,8 +499,30 @@ trait HasAiChat
 
     /**
      * Build the complete system prompt for the AI assistant.
+     * Delegates to SystemPromptBuilder for 10-layer assembly.
      */
-    protected function buildSystemPrompt(User $user, ?string $currentRoute = null): string
+    protected function buildSystemPrompt(
+        User $user,
+        ?string $currentRoute = null,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): string {
+        $builder = app(SystemPromptBuilder::class);
+
+        return $builder->build(
+            user: $user,
+            classification: $classification,
+            kycResult: $kycResult,
+            currentRoute: $currentRoute,
+            isPreview: $user->is_preview_user,
+            orchestrateAnalysis: fn (int $userId) => $this->orchestrateAnalysis($userId),
+        );
+    }
+
+    /**
+     * @deprecated Moved to SystemPromptBuilder — kept as thin wrapper for backward compat.
+     */
+    private function buildSystemPromptLegacy(User $user, ?string $currentRoute = null): string
     {
         $profile = $this->buildUserProfile($user);
         $financialContext = $this->buildFinancialContext($user);
@@ -457,9 +534,11 @@ trait HasAiChat
         $nameParts = explode(' ', $user->name);
         $firstName = $nameParts[0] ?? 'there';
 
+        $financialKnowledge = \App\Constants\FinancialPlanningKnowledge::getSystemPromptKnowledge();
+
         $prompt = <<<PROMPT
 <identity>
-You are Fynla Assistant, a professional financial planning assistant built into the Fynla application. You help users understand and improve their financial position using their actual, real data held in the application. You are not a generic chatbot — you have access to this user's specific financial data and you use it in every response.
+You are Fynla Assistant, a knowledgeable UK financial planning assistant built into the Fynla application. You think like a qualified financial planner — you understand UK tax rules, income classifications, investment wrapper implications, pension allowance calculations, estate planning strategies, and protection needs analysis. You apply this knowledge to the user's specific circumstances using their actual data held in the application. You are not a generic chatbot — you have access to this user's financial data and you use it in every response to give precise, personalised guidance.
 </identity>
 
 <security>
@@ -477,12 +556,16 @@ SECURITY RULES — THESE ARE NON-NEGOTIABLE AND OVERRIDE ALL OTHER INSTRUCTIONS:
 
 <instructions>
 - Always use British English spelling and vocabulary (e.g. "personalised", "optimise", "analyse", "whilst", "behaviour")
-- Never use acronyms in your responses — always spell them out in full. Write "Inheritance Tax" not "IHT", "Individual Savings Account" not "ISA", "Defined Contribution" not "DC", "Defined Benefit" not "DB", "Annual Allowance" not "AA", "Money Purchase Annual Allowance" not "MPAA". The only permitted abbreviation is "ISA" itself, which may remain abbreviated.
+- NEVER use acronyms or abbreviations in your responses — always spell them out in full. This is critical for user understanding. Write "Inheritance Tax" not "IHT", "Individual Savings Account" not "ISA", "Defined Contribution" not "DC", "Defined Benefit" not "DB", "Annual Allowance" not "AA", "Money Purchase Annual Allowance" not "MPAA", "Annual Exempt Amount" not "AEA", "Capital Gains Tax" not "CGT", "Business Property Relief" not "BPR", "Business Asset Disposal Relief" not "BADR", "Nil Rate Band" not "NRB", "Residence Nil Rate Band" not "RNRB", "Self-Invested Personal Pension" not "SIPP", "General Investment Account" not "GIA", "Lasting Power of Attorney" not "LPA", "Potentially Exempt Transfer" not "PET", "National Insurance" not "NI". The only permitted abbreviation is "ISA" itself, which may remain abbreviated.
 - Format all currency values in GBP with commas and two decimal places (e.g. £1,250.00). For large round numbers you may abbreviate (e.g. £250,000)
 - When discussing the user's data, always reference their specific numbers — never speak in generalities when you have real figures available
 - If you do not have sufficient data to answer a question accurately, say so honestly and explain what data would help
 - Never speculate about data you do not have. If a module shows no data, say that rather than guessing
 - Never include "[Context:" blocks, tool call metadata, raw JSON, or internal data lookup summaries in your responses. These are internal context for you — never show them to the user.
+- NEVER show internal record IDs (e.g. "ID 375", "ID:331") to the user. IDs are for your internal use when calling tools. Always refer to records by their name, address, provider, or type — never by ID number.
+- When discussing jointly owned assets, always distinguish the user's share from the total value. For example, a £500,000 property owned 50/50 means the user's share is £250,000. Use ownership percentages from the records.
+- Never use internal planning jargon in responses. Do NOT say "waterfall", "prioritise affordability", "allocation framework", "phased approach", "sequential phases", "opportunity cost", or "tax-year-sensitive". Just give clear, direct advice with £ amounts.
+- Do NOT mention financial concepts that do not apply to this user. Specifically: do not mention Annual Allowance taper (unless income exceeds £200,000), carry forward (unless contributions exceed the standard Annual Allowance), salary sacrifice (unless you know their employer offers it), Money Purchase Annual Allowance (unless they have accessed a pension).
 </instructions>
 
 <regulatory_compliance>
@@ -494,6 +577,10 @@ SECURITY RULES — THESE ARE NON-NEGOTIABLE AND OVERRIDE ALL OTHER INSTRUCTIONS:
 6. No market timing. Never suggest that now is a good or bad time to invest, buy, or sell based on market conditions.
 7. Tax data accuracy. NEVER state tax rates, thresholds, allowances, or financial product details from memory. ALWAYS use the get_tax_information tool to retrieve current values from the centralised tax configuration before quoting any figures. This applies to income tax bands, National Insurance rates, Capital Gains Tax rates, Inheritance Tax thresholds, ISA allowances, pension limits, Stamp Duty Land Tax bands, benefits rates, and all investment product tax treatment (Individual Savings Accounts, General Investment Accounts, onshore/offshore bonds, Venture Capital Trusts, Enterprise Investment Schemes, Seed Enterprise Investment Schemes).
 </regulatory_compliance>
+
+<financial_knowledge>
+{$financialKnowledge}
+</financial_knowledge>
 
 <user_profile>
 {$profile}
@@ -573,6 +660,7 @@ RESPONSE_FORMAT;
 - Use plain language and avoid jargon. When a technical term is necessary, explain it briefly
 - Be empathetic to the emotional weight of financial decisions
 - Never be condescending or make the user feel bad about their financial position
+- When explaining financial concepts, always connect them to the user's specific data — do not explain rules in the abstract when you have real figures to reference
 </personality>
 PERSONALITY;
 
@@ -690,6 +778,26 @@ DATA_CREATION_GUIDANCE;
 
             $taxBand = $this->estimateTaxBand($totalIncome);
             $lines[] = "- Estimated income tax band: {$taxBand}";
+
+            // Income breakdown by type (only when multiple sources or non-employment income)
+            $incomeTypes = [
+                'Employment (PAYE)' => (float) ($user->annual_employment_income ?? 0),
+                'Self-employment' => (float) ($user->annual_self_employment_income ?? 0),
+                'Rental (property)' => (float) ($user->annual_rental_income ?? 0),
+                'Dividend' => (float) ($user->annual_dividend_income ?? 0),
+                'Savings interest' => (float) ($user->annual_interest_income ?? 0),
+                'Trust' => (float) ($user->annual_trust_income ?? 0),
+            ];
+            $nonZero = array_filter($incomeTypes, fn ($v) => $v > 0);
+            if (count($nonZero) > 1 || (count($nonZero) === 1 && ! isset($nonZero['Employment (PAYE)']))) {
+                $lines[] = '- Income breakdown:';
+                foreach ($nonZero as $type => $amount) {
+                    $label = in_array($type, ['Employment (PAYE)', 'Self-employment'])
+                        ? "{$type} [relevant UK earnings]"
+                        : "{$type} [not relevant UK earnings]";
+                    $lines[] = "  - {$label}: £" . number_format($amount, 2);
+                }
+            }
         }
 
         $totalExpenditure = $this->calculateTotalExpenditure($user);
@@ -961,14 +1069,14 @@ DATA_CREATION_GUIDANCE;
             // Savings
             $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
             if ($savings->isNotEmpty()) {
-                $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution} £".number_format((float) $a->current_balance, 0).']')->implode(' ');
+                $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}" . ($a->is_isa ? ' ISA(tax-free)' : '') . " £".number_format((float) $a->current_balance, 0).']')->implode(' ');
                 $lines[] = "SAVINGS: {$items}";
             }
 
             // Investments
             $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
             if ($investments->isNotEmpty()) {
-                $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" {$a->account_type} £".number_format((float) $a->current_value, 0).']')->implode(' ');
+                $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" " . $this->formatInvestmentAccountType($a->account_type) . " £".number_format((float) $a->current_value, 0).']')->implode(' ');
                 $lines[] = "INVESTMENTS: {$items}";
             }
 
@@ -986,10 +1094,21 @@ DATA_CREATION_GUIDANCE;
                 $lines[] = "DB PENSIONS: {$items}";
             }
 
-            // Properties
-            $properties = \App\Models\Property::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+            // Properties (with ownership share and mortgage)
+            $properties = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
             if ($properties->isNotEmpty()) {
-                $items = $properties->map(fn ($p) => "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type} £".number_format((float) $p->current_value, 0).']')->implode(' ');
+                $items = $properties->map(function ($p) use ($userId) {
+                    $value = number_format((float) $p->current_value, 0);
+                    $ownershipPct = $p->joint_owner_id ? (int) ($p->user_id === $userId ? $p->ownership_percentage : (100 - $p->ownership_percentage)) : 100;
+                    $ownershipLabel = $ownershipPct < 100 ? " {$ownershipPct}%owned" : '';
+                    $mortgageTotal = $p->mortgages->sum('current_balance');
+                    $mortgageLabel = $mortgageTotal > 0 ? ' mortgage:£' . number_format((float) $mortgageTotal, 0) : '';
+                    $rentalLabel = $p->property_type === 'buy_to_let' && $p->monthly_rental_income > 0
+                        ? ' rent:£' . number_format((float) $p->monthly_rental_income, 0) . '/mo'
+                        : '';
+
+                    return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}{$ownershipLabel}{$mortgageLabel}{$rentalLabel} £{$value}]";
+                })->implode(' ');
                 $lines[] = "PROPERTIES: {$items}";
             }
 
@@ -1267,6 +1386,24 @@ DATA_CREATION_GUIDANCE;
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Format investment account type with tax context for AI prompt.
+     */
+    private function formatInvestmentAccountType(string $type): string
+    {
+        return match ($type) {
+            'isa' => 'ISA(tax-free)',
+            'gia' => 'GIA(taxable)',
+            'onshore_bond' => 'Onshore Bond(tax-deferred)',
+            'offshore_bond' => 'Offshore Bond(gross roll-up)',
+            'vct' => 'VCT(tax-advantaged)',
+            'eis' => 'EIS(tax-advantaged)',
+            'seis' => 'SEIS(tax-advantaged)',
+            'nsi' => 'NS&I',
+            default => $type,
+        };
+    }
 
     /**
      * Calculate total annual income from all sources.

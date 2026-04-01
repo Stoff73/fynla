@@ -12,6 +12,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
+use App\Services\Plans\DisposableIncomeAccessor;
 use App\Traits\ResolvesExpenditure;
 
 /**
@@ -25,9 +26,11 @@ class CashFlowCoordinator
     use ResolvesExpenditure;
 
     /**
-     * Calculate available monthly surplus
+     * Calculate available monthly surplus using the same disposable income
+     * figure shown on the user's income tab (net income minus expenditure),
+     * then deducting committed contributions.
      *
-     * @return float Monthly surplus after all expenses
+     * @return float Monthly surplus after all expenses and contributions
      */
     public function calculateAvailableSurplus(int $userId): float
     {
@@ -36,14 +39,11 @@ class CashFlowCoordinator
             return 0.0;
         }
 
-        $monthlyIncome = $this->calculateMonthlyIncome($user);
-        $resolved = $this->resolveMonthlyExpenditure($user);
-        $monthlyExpenditure = $resolved['amount'];
+        $disposableAccessor = app(DisposableIncomeAccessor::class);
+        $monthlyDisposable = $disposableAccessor->getMonthlyForUser($user);
         $committedContributions = $this->calculateCommittedContributions($userId);
 
-        $surplus = $monthlyIncome - $monthlyExpenditure - $committedContributions;
-
-        return max(0.0, round($surplus, 2));
+        return round($monthlyDisposable - $committedContributions, 2);
     }
 
     /**
@@ -208,17 +208,13 @@ class CashFlowCoordinator
      */
     private function calculateMonthlyIncome(User $user): float
     {
-        $annualIncome = 0.0;
-
-        // Primary employment income
-        if ($user->annual_employment_income > 0) {
-            $annualIncome += (float) $user->annual_employment_income;
-        }
-
-        // Rental income (if tracked on user)
-        if (property_exists($user, 'annual_rental_income') && $user->annual_rental_income > 0) {
-            $annualIncome += (float) $user->annual_rental_income;
-        }
+        $annualIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
 
         return round($annualIncome / 12, 2);
     }

@@ -259,27 +259,6 @@
             </p>
           </div>
 
-          <!-- Other Income (always shown when status is selected) -->
-          <div v-if="formData.employment_status">
-            <label for="annual_other_income" class="label">
-              Annual Other Income
-            </label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
-              <input
-                id="annual_other_income"
-                v-model.number="formData.annual_other_income"
-                type="number"
-                min="0"
-                step="1000"
-                class="input-field pl-8"
-                placeholder="0"
-              >
-            </div>
-            <p class="mt-1 text-body-sm text-neutral-500">
-              Any other income sources
-            </p>
-          </div>
 
           <!-- Total Income (calculated) -->
           <div v-if="formData.employment_status" class="bg-eggshell-500 rounded-lg p-4">
@@ -387,7 +366,6 @@ export default {
         (formData.value.annual_benefit_income || 0) +
         (formData.value.annual_dividend_income || 0) +
         (formData.value.annual_interest_income || 0) +
-        (formData.value.annual_other_income || 0) +
         (annualRentalIncome.value || 0)
       );
     });

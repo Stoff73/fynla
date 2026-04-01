@@ -1,7 +1,35 @@
 # CSJTODO — Fynla
 
-*Last updated: 1 April 2026 — session 24*
-*Previous session: 31 March 2026 sessions 21-23*
+*Last updated: 1 April 2026 — session 25*
+*Previous session: 1 April 2026 session 24*
+
+---
+
+## Session 25 (1 April) — Fyn AI Phase 2 Implementation
+
+### Completed This Session
+- [x] **Fyn AI Phase 2 implemented** — 6 phases, 5 commits, 16 new files, 49 tests (112 assertions)
+- [x] Phase 1: System prompt refactored into 10-layer `SystemPromptBuilder` (extracted from 670-line monolith in HasAiChat)
+- [x] Phase 2: `QueryClassifier` (22 query types, multi-label, keyword + route fallback) + `KycGateChecker` (data completeness with mandatory navigation routes)
+- [x] Phase 3: Query-aware knowledge RAG — pension query saves ~1,328 tokens, data entry saves ~3,109 tokens
+- [x] Phase 4: Mandatory tool sequences injected per query type (`<required_tools>` block)
+- [x] Phase 5: Decision tree binding — recommendations include description, £ amounts, action steps, triggers
+- [x] Phase 6: Review system — `ai_advice_logs` table, `AdviceReviewService` (data change detection, annual review prompts), KYC mandatory navigation fix
+- [x] Full regression: 2,139 passed, 9 pre-existing failures (unrelated to this work)
+- [x] Browser tested: KYC blocking, data entry bypass, navigation, pension advice, IHT query, mandatory navigation to expenditure page
+
+### Key Files Created
+- `app/Services/AI/SystemPromptBuilder.php` — 10-layer prompt assembly
+- `app/Services/AI/QueryClassifier.php` — multi-label query classification
+- `app/Services/AI/KycGateChecker.php` — KYC data completeness with mandatory routes
+- `app/Services/AI/Prompts/` — CoreIdentity, ComplianceRules, FcaProcessInstructions, QueryKnowledge
+- `app/Services/AI/AdviceReviewService.php` — data change + annual review detection
+- `app/Constants/QuerySchemas.php` — all query types, tools, triggers, knowledge domains
+- `app/Models/AiAdviceLog.php` + migration
+
+### Plan & Task Docs
+- Plan: `April/April1Updates/fynUpgrade2.md` (marked IMPLEMENTED)
+- Tasks: `April/April1Updates/fyn2Tasks.md` (all checkboxes marked)
 
 ---
 

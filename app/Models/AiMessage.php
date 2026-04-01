@@ -13,6 +13,7 @@ class AiMessage extends Model
         'conversation_id',
         'role',
         'content',
+        'system_prompt',
         'tool_calls',
         'tool_results',
         'input_tokens',

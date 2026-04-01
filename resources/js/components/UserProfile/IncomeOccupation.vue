@@ -142,10 +142,6 @@
                     <span class="text-body-sm text-neutral-500">Trust Income:</span>
                     <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_trust_income) }}</span>
                   </div>
-                  <div v-if="form.annual_other_income > 0" class="flex justify-between">
-                    <span class="text-body-sm text-neutral-500">Other Income:</span>
-                    <span class="text-body-sm text-horizon-500 text-right">{{ formatCurrency(form.annual_other_income) }}</span>
-                  </div>
                   <!-- Child Benefit -->
                   <div v-if="childBenefitAmount > 0" class="flex justify-between">
                     <span class="text-body-sm text-neutral-500">Child Benefit:</span>
@@ -333,28 +329,6 @@
               <p class="text-body-xs text-neutral-500">Income received from trusts (taxable)</p>
             </div>
 
-            <!-- Annual Other Income -->
-            <div>
-              <label class="block text-body-sm font-medium text-neutral-500 mb-1">
-                Other Income
-              </label>
-              <div class="relative rounded-md shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span class="text-neutral-500 sm:text-sm">£</span>
-                </div>
-                <input
-                  id="annual_other_income"
-                  v-model.number="form.annual_other_income"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="input-field pl-7"
-                  placeholder="0.00"
-                />
-              </div>
-              <p class="text-body-xs text-neutral-500">Any other taxable income not listed above</p>
-            </div>
-
             <!-- Registered Blind -->
             <div class="col-span-full border-t pt-4">
               <div class="flex items-center gap-3">
@@ -520,7 +494,6 @@ export default {
         { label: 'Interest', value: form.value.annual_interest_income || 0 },
         { label: 'Pension', value: form.value.annual_pension_income || 0 },
         { label: 'Trust', value: form.value.annual_trust_income || 0 },
-        { label: 'Other', value: form.value.annual_other_income || 0 },
       ];
       return sources.filter(s => s.value > 0);
     });
@@ -563,8 +536,7 @@ export default {
         (form.value.annual_dividend_income || 0) +
         (form.value.annual_interest_income || 0) +
         (form.value.annual_pension_income || 0) +
-        (form.value.annual_trust_income || 0) +
-        (form.value.annual_other_income || 0);
+        (form.value.annual_trust_income || 0);
     });
 
     // Use saved expenditure directly (Expenditure form saves total including commitments)
