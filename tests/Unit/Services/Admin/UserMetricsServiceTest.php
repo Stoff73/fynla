@@ -309,20 +309,20 @@ describe('getActivity', function () {
     });
 
     it('tracks conversions and cancellations', function () {
-        // Active subscription started this month
+        // Active subscription started today (within the current month bucket)
         $user1 = User::factory()->create(['is_preview_user' => false]);
         Subscription::factory()->create([
             'user_id' => $user1->id,
             'status' => 'active',
-            'current_period_start' => now()->subDays(3),
+            'current_period_start' => now()->subHour(),
             'amount' => 1099,
         ]);
 
-        // Cancelled subscription this month
+        // Cancelled subscription today
         $user2 = User::factory()->create(['is_preview_user' => false]);
         Subscription::factory()->cancelled()->create([
             'user_id' => $user2->id,
-            'cancelled_at' => now()->subDays(1),
+            'cancelled_at' => now()->subHour(),
         ]);
 
         $activity = $this->service->getActivity('month', 1);
