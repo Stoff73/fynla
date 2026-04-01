@@ -34,6 +34,43 @@ final class FinancialPlanningKnowledge
         ]);
     }
 
+    // ─── Per-Domain Accessors (used by QueryKnowledge in Phase 3) ───
+
+    public static function getIncomeClassifications(): string
+    {
+        return self::INCOME_CLASSIFICATIONS;
+    }
+
+    public static function getPensionKnowledge(): string
+    {
+        return self::PENSION_KNOWLEDGE;
+    }
+
+    public static function getInvestmentTaxWrappers(): string
+    {
+        return self::INVESTMENT_TAX_WRAPPERS;
+    }
+
+    public static function getEstatePlanningConcepts(): string
+    {
+        return self::ESTATE_PLANNING_CONCEPTS;
+    }
+
+    public static function getProtectionConcepts(): string
+    {
+        return self::PROTECTION_CONCEPTS;
+    }
+
+    public static function getRecommendationFramework(): string
+    {
+        return self::RECOMMENDATION_FRAMEWORK;
+    }
+
+    public static function getAffordabilityRules(): string
+    {
+        return self::AFFORDABILITY_RULES;
+    }
+
     private const AFFORDABILITY_RULES = <<<'TEXT'
 AFFORDABILITY — ALWAYS CHECK BEFORE RECOMMENDING CONTRIBUTIONS:
 Before suggesting ANY new contribution, increased contribution, or lump sum payment, you MUST check:

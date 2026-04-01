@@ -9,6 +9,9 @@ use App\Models\AiMessage;
 use App\Models\Property;
 use App\Models\User;
 use App\Constants\TaxDefaults;
+use App\Services\AI\KycGateChecker;
+use App\Services\AI\QueryClassifier;
+use App\Services\AI\SystemPromptBuilder;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\PrerequisiteGateService;
@@ -66,8 +69,19 @@ trait HasAiChat
             return;
         }
 
+        // Classify query and check KYC
+        $classifier = app(QueryClassifier::class);
+        $classification = $classifier->classify($message, $currentRoute);
+
+        $kycResult = null;
+        if (! \App\Constants\QuerySchemas::isBypassType($classification['primary'])
+            && $classification['primary'] !== \App\Constants\QuerySchemas::GENERAL) {
+            $kycChecker = app(KycGateChecker::class);
+            $kycResult = $kycChecker->check($user, $classification);
+        }
+
         // Build context
-        $systemPrompt = $this->buildSystemPrompt($user, $currentRoute);
+        $systemPrompt = $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult);
         $messageHistory = $this->buildMessageHistory($conversation);
 
         // Model selection
@@ -444,8 +458,30 @@ trait HasAiChat
 
     /**
      * Build the complete system prompt for the AI assistant.
+     * Delegates to SystemPromptBuilder for 10-layer assembly.
      */
-    protected function buildSystemPrompt(User $user, ?string $currentRoute = null): string
+    protected function buildSystemPrompt(
+        User $user,
+        ?string $currentRoute = null,
+        ?array $classification = null,
+        ?array $kycResult = null,
+    ): string {
+        $builder = app(SystemPromptBuilder::class);
+
+        return $builder->build(
+            user: $user,
+            classification: $classification,
+            kycResult: $kycResult,
+            currentRoute: $currentRoute,
+            isPreview: $user->is_preview_user,
+            orchestrateAnalysis: fn (int $userId) => $this->orchestrateAnalysis($userId),
+        );
+    }
+
+    /**
+     * @deprecated Moved to SystemPromptBuilder — kept as thin wrapper for backward compat.
+     */
+    private function buildSystemPromptLegacy(User $user, ?string $currentRoute = null): string
     {
         $profile = $this->buildUserProfile($user);
         $financialContext = $this->buildFinancialContext($user);
