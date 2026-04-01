@@ -12,6 +12,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
+use App\Services\Plans\DisposableIncomeAccessor;
 use App\Traits\ResolvesExpenditure;
 
 /**
@@ -25,9 +26,11 @@ class CashFlowCoordinator
     use ResolvesExpenditure;
 
     /**
-     * Calculate available monthly surplus
+     * Calculate available monthly surplus using the same disposable income
+     * figure shown on the user's income tab (net income minus expenditure),
+     * then deducting committed contributions.
      *
-     * @return float Monthly surplus after all expenses
+     * @return float Monthly surplus after all expenses and contributions
      */
     public function calculateAvailableSurplus(int $userId): float
     {
@@ -36,14 +39,11 @@ class CashFlowCoordinator
             return 0.0;
         }
 
-        $monthlyIncome = $this->calculateMonthlyIncome($user);
-        $resolved = $this->resolveMonthlyExpenditure($user);
-        $monthlyExpenditure = $resolved['amount'];
+        $disposableAccessor = app(DisposableIncomeAccessor::class);
+        $monthlyDisposable = $disposableAccessor->getMonthlyForUser($user);
         $committedContributions = $this->calculateCommittedContributions($userId);
 
-        $surplus = $monthlyIncome - $monthlyExpenditure - $committedContributions;
-
-        return round($surplus, 2);
+        return round($monthlyDisposable - $committedContributions, 2);
     }
 
     /**
