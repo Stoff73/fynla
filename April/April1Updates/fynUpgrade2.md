@@ -36,9 +36,29 @@ SystemPromptBuilder
   Total: ~3,100-3,900 tokens (down from ~6,700)
 ```
 
-### B. Query Classification — New Pre-Processing Step
+### B. Query Classification — Multi-Label, Not Single-Label
 
-Before calling the AI, classify the user's message in PHP (fast, deterministic, no AI cost):
+Most user queries span multiple areas. "How do I maximise my pension contributions?" is retirement + tax + savings (emergency fund) + affordability. "What should I do with my £50k bonus?" is savings + investment + pension + debt + tax. Single-label classification misses critical context.
+
+**The classifier returns a PRIMARY type plus RELATED types:**
+
+```php
+QueryClassifier::classify("How do I maximise my pension contributions?", "/dashboard")
+→ {
+    primary: "retirement_contribution",
+    related: ["tax_optimisation", "savings_emergency", "affordability"],
+    modules: ["retirement", "tax", "savings"],
+  }
+```
+
+**This affects every downstream component:**
+- **KYC gates:** check requirements for ALL classified modules, not just the primary
+- **Tool sequences:** merge required tools from primary + related types (deduplicated)
+- **Knowledge retrieval:** include knowledge domains for ALL matched types
+- **Decision tree triggers:** check triggers from ALL matched modules
+- **Record filtering:** include records relevant to ALL matched types
+
+**Query types (can overlap — a message may match several):**
 
 | Query Type | Triggers On | Module |
 |-----------|------------|--------|
@@ -63,6 +83,28 @@ Before calling the AI, classify the user's message in PHP (fast, deterministic, 
 | `general` | Net worth, simple factual queries | general |
 | `data_entry` | User providing data (I have a pension, I earn X) | data_entry |
 | `navigation` | Take me to, show me, go to | navigation |
+| `affordability` | Surplus, can I afford, disposable income, budget | cross-cutting |
+
+**Implicit related types (always added):**
+- Any contribution/savings advice → always add `affordability` (must check surplus)
+- Any tax-relief advice → always add `tax_optimisation`
+- Any pension advice → always add `retirement_contribution` + `tax_optimisation` + `affordability`
+- Any "maximise" or "best use of money" → always add `savings_emergency` (check emergency fund first)
+
+**Example classifications:**
+
+| User Message | Primary | Related |
+|-------------|---------|---------|
+| "How do I maximise my pension contributions?" | `retirement_contribution` | `tax_optimisation`, `savings_emergency`, `affordability` |
+| "What should I do with my £50k bonus?" | `holistic_health` | `savings_emergency`, `savings_debt`, `retirement_contribution`, `investment_tax`, `affordability` |
+| "Do I have enough life cover?" | `protection_cover` | (none — focused query) |
+| "What is my Inheritance Tax position?" | `estate_iht` | `property` (estates depend on property data) |
+| "Should I pay off my mortgage or invest?" | `savings_debt` | `investment_tax`, `retirement_contribution`, `affordability` |
+| "Am I on track for retirement?" | `retirement_readiness` | `retirement_contribution`, `tax_optimisation` |
+| "What is my net worth?" | `general` | (none — factual, no advice needed) |
+| "I have a new ISA with £10,000" | `data_entry` | (none — just creating a record) |
+
+**When `holistic_health` is primary, ALL modules are related — this is the full review.**
 
 ### C. KYC Gates — Data Check Before Advice
 
@@ -86,11 +128,13 @@ Pre-computed in PHP, injected into prompt as `<kyc_status>`. Plain text, no icon
 | Estate | At least one asset, UK residency/domicile, family members |
 | Holistic | ALL module gates must pass |
 
+**KYC checks ALL classified modules** — if primary is `retirement_contribution` with related `savings_emergency` and `affordability`, KYC checks retirement requirements AND savings requirements AND affordability requirements. A single missing field blocks the entire response if it's blocking for ANY classified type.
+
 **If KYC fails:** Fyn lists what's missing, explains why, offers to help enter it conversationally. Does NOT give advice.
 
-### D. Mandatory Tool Sequences — Per Query Type
+### D. Mandatory Tool Sequences — Merged From All Classified Types
 
-Each query type defines tools that MUST be called before responding:
+Tool sequences from primary + all related types are merged and deduplicated. For example, "maximise pension" classified as `retirement_contribution` + `tax_optimisation` + `savings_emergency` + `affordability` would merge to:
 
 | Query Type | Required Tool Calls |
 |-----------|-------------------|
@@ -106,9 +150,9 @@ Each query type defines tools that MUST be called before responding:
 | `data_entry` | No tools — use create/update tools directly |
 | `navigation` | No tools — use navigate_to_page |
 
-### E. Decision Tree Binding — Per Query Type
+### E. Decision Tree Binding — Merged From All Classified Types
 
-Each query type maps to specific ActionDefinition triggers. The AI checks these conditions and references the trigger results in its advice:
+Triggers from primary + all related types are merged. The AI checks ALL matched triggers and references the results in its advice:
 
 | Query Type | Triggers |
 |-----------|---------|
@@ -141,11 +185,11 @@ All module KYC gates must pass. Cross-module conflicts resolved. Response as num
 
 ### G. RAG-Like Retrieval
 
-Three levels of query-relevant filtering:
+Three levels of filtering based on ALL classified types (primary + related):
 
-1. **Knowledge retrieval** — only the relevant financial domain(s) for this query type
-2. **Recommendation retrieval** — only recommendations from relevant modules
-3. **Record retrieval** — only records relevant to the query (pension question → pension records, not chattels)
+1. **Knowledge retrieval** — union of knowledge domains from all classified types. "Maximise pension" gets pension + tax + savings + affordability knowledge, not just pension.
+2. **Recommendation retrieval** — recommendations from all matched modules. Pension question with related savings gets retirement AND savings recommendations.
+3. **Record retrieval** — records relevant to all matched types. Pension question with affordability gets pension records AND savings records (for emergency fund check).
 
 ### H. Response Rules
 
