@@ -53,7 +53,16 @@ NEVER suggest a contribution amount without first stating whether the user can a
 TEXT;
 
     private const KNOWLEDGE_CAVEAT = <<<'TEXT'
-IMPORTANT: The above is conceptual knowledge only. NEVER quote specific rates, thresholds, or allowance amounts from this section. ALWAYS use the get_tax_information tool to retrieve current figures before stating any number.
+CRITICAL RULES FOR USING THIS KNOWLEDGE:
+1. NEVER quote specific rates, thresholds, or allowance amounts from this section. ALWAYS use the get_tax_information tool to retrieve current figures before stating any number.
+2. ONLY mention concepts that are RELEVANT to this user's actual position. Do NOT explain rules that do not apply. For example:
+   - Do NOT mention Annual Allowance taper unless the user's income is near the taper thresholds
+   - Do NOT mention Money Purchase Annual Allowance unless the user has accessed a pension
+   - Do NOT mention carry forward unless the user actually needs to contribute more than the standard Annual Allowance
+   - Do NOT mention Business Property Relief unless the user has a business interest
+   - Do NOT explain Lifetime ISA rules to a user over 40
+   - Do NOT discuss salary sacrifice if the user is self-employed
+3. Keep responses focused on what MATTERS for THIS user. A user with £100,000 employment income cares about Personal Allowance reclaim and higher-rate relief — not about rules that apply to £260,000+ earners.
 TEXT;
 
     private const INCOME_CLASSIFICATIONS = <<<'TEXT'
@@ -72,17 +81,18 @@ TEXT;
 
     private const PENSION_KNOWLEDGE = <<<'TEXT'
 PENSION KNOWLEDGE (UK):
-- Annual Allowance (AA): maximum tax-relieved pension contributions per tax year across ALL schemes. Use get_tax_information for current limit
-- AA Taper: AA reduces for high earners but BOTH tests must be met: threshold income exceeds first limit AND adjusted income exceeds second limit. Reduction is £1 AA lost per £2 of adjusted income over the threshold, down to a minimum. Use get_tax_information for thresholds
-- Money Purchase Annual Allowance (MPAA): triggered when a user flexibly accesses a defined contribution pension. Permanently reduces available AA. Check with get_tax_information
-- Carry Forward: unused AA from the previous 3 tax years can be carried forward — the user must have been a member of a registered pension scheme in those years
+- Annual Allowance: maximum tax-relieved pension contributions per tax year across ALL schemes. Use get_tax_information for current limit
 - Tax Relief: contributions receive relief at the member's marginal income tax rate. Relief at source: provider claims basic rate; member claims higher/additional via self-assessment. Net pay: employer deducts before tax (full relief immediate)
+- Personal Allowance reclaim (60% effective relief): when income is between £100,000 and £125,140, the Personal Allowance tapers away at £1 for every £2 above £100,000. Pension contributions reduce taxable income — so contributing enough to bring income below £100,000 effectively restores the Personal Allowance. This creates an effective 60% tax relief rate in that band (40% higher rate + 20% PA restoration). THIS IS A MAJOR PLANNING OPPORTUNITY — always flag it when the user's employment income is in the £100k-£125k range
 - Salary Sacrifice: employer contributes instead of employee — saves both employer and employee National Insurance. The contribution counts as employer (not employee) for taper calculations
-- Relevant UK Earnings cap: personal contributions cannot exceed your relevant UK earnings in the tax year (even if AA is higher)
+- Relevant UK Earnings cap: personal contributions cannot exceed your relevant UK earnings in the tax year (even if Annual Allowance is higher)
 - 25% Tax-Free Lump Sum: up to 25% of the pension can typically be taken tax-free. The remainder is taxed as income
 - Pension access age: currently 55, rising to 57 in 2028
 - Defined Benefit pensions: provide guaranteed annual income linked to salary and service years. Spouse entitlement typically 50-67%. Transfer values available but regulated advice required for transfers above threshold
 - State Pension: requires minimum National Insurance qualifying years. Deferral increases weekly amount. Use get_tax_information for current rates
+- Annual Allowance Taper: only relevant when BOTH threshold income exceeds £200,000 AND adjusted income exceeds £260,000. Do NOT mention this unless the user's income is near these levels
+- Money Purchase Annual Allowance: only triggered when a user has flexibly accessed a defined contribution pension. Do NOT mention this unless the user has drawn from a pension
+- Carry Forward: unused Annual Allowance from prior 3 years CAN be carried forward, but only mention this if the user is actually trying to contribute more than the standard Annual Allowance in the current year
 TEXT;
 
     private const INVESTMENT_TAX_WRAPPERS = <<<'TEXT'
