@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth Pages Mockup — Register & Sign In</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, -apple-system, sans-serif; background: #f0f0f0; }
+
+  :root {
+    --eggshell-500: #F7F6F4;
+    --horizon-500: #1F2A44;
+    --horizon-600: #0F172A;
+    --light-blue-100: #DDE2EF;
+    --light-blue-500: #6C83BC;
+    --light-gray: #EEEEEE;
+    --raspberry-500: #E11D48;
+    --raspberry-600: #BE123C;
+    --neutral-500: #737373;
+  }
+
+  .mockup-wrapper { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
+
+  .mockup-header { text-align: center; margin-bottom: 40px; }
+  .mockup-header h1 { font-size: 28px; font-weight: 700; color: var(--horizon-500); }
+  .mockup-header p { color: var(--neutral-500); margin-top: 8px; font-size: 14px; }
+
+  .version-label {
+    text-align: center;
+    margin: 50px 0 20px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--horizon-500);
+    padding-top: 30px;
+    border-top: 2px solid #ddd;
+  }
+  .version-label span {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--neutral-500);
+    display: block;
+    margin-top: 4px;
+  }
+
+  .mockup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .mockup-grid { grid-template-columns: 1fr; } }
+
+  .mockup-section {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .mockup-label {
+    background: var(--horizon-500);
+    color: white;
+    padding: 12px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mockup-label .badge {
+    background: var(--raspberry-500);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .change-list {
+    background: #FFFBE6;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 14px 20px;
+    font-size: 13px;
+    color: #555;
+  }
+  .change-list strong {
+    display: block; margin-bottom: 6px;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888;
+  }
+  .change-list ul { margin: 0; padding-left: 18px; }
+  .change-list li { margin-bottom: 3px; }
+  .change-list li span.hl { background: #FEF08A; padding: 0 3px; border-radius: 2px; }
+
+  /* ===== PAGE FRAME ===== */
+  .page-frame {
+    min-height: 700px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: var(--eggshell-500);
+  }
+
+  /* ===== VERSION A: Horizon Blue (dark navy) box ===== */
+  .auth-box-v1 {
+    max-width: 520px; width: 100%;
+    background: var(--horizon-500);
+    border-radius: 16px;
+    padding: 32px 40px 40px;
+  }
+  .auth-box-v1 .logo-link { display: flex; justify-content: center; text-decoration: none; cursor: pointer; }
+  .auth-box-v1 .logo-link:hover { opacity: 0.9; }
+  .auth-box-v1 .logo-img { height: 80px; width: auto; }
+  .auth-box-v1 h2 { text-align: center; color: white; font-size: 22px; font-weight: 700; margin-top: 8px; }
+  .auth-box-v1 .subtitle { text-align: center; color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 8px; }
+  .auth-box-v1 .subtitle a { color: var(--raspberry-500); text-decoration: none; font-weight: 500; }
+
+  .auth-box-v1 .form-group label { display: block; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9); margin-bottom: 5px; }
+  .auth-box-v1 .form-group input {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.95);
+    font-size: 14px; font-family: inherit; color: var(--horizon-500); outline: none;
+  }
+  .auth-box-v1 .form-group input::placeholder { color: #999; }
+  .auth-box-v1 .form-group input:focus { border-color: var(--raspberry-500); box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.15); }
+  .auth-box-v1 .hint { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+  .auth-box-v1 .terms-text { text-align: center; font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 14px; }
+  .auth-box-v1 .terms-text a { color: var(--raspberry-500); text-decoration: underline; }
+  .auth-box-v1 .forgot-link { text-align: right; margin-top: -4px; margin-bottom: 8px; }
+  .auth-box-v1 .forgot-link a { font-size: 13px; color: var(--raspberry-500); text-decoration: none; font-weight: 500; }
+
+  /* ===== VERSION B: White-to-grey gradient, grey border (card style) ===== */
+  .auth-box-v2 {
+    max-width: 520px; width: 100%;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F3F3F3 100%);
+    border: 1px solid var(--light-gray);
+    border-radius: 16px;
+    padding: 32px 40px 40px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.08);
+  }
+  .auth-box-v2 .logo-link { display: flex; justify-content: center; text-decoration: none; cursor: pointer; }
+  .auth-box-v2 .logo-link:hover { opacity: 0.85; }
+  .auth-box-v2 .logo-img { height: 80px; width: auto; }
+  .auth-box-v2 h2 { text-align: center; color: var(--horizon-500); font-size: 22px; font-weight: 700; margin-top: 8px; }
+  .auth-box-v2 .subtitle { text-align: center; color: var(--neutral-500); font-size: 14px; margin-top: 8px; }
+  .auth-box-v2 .subtitle a { color: var(--raspberry-500); text-decoration: none; font-weight: 500; }
+
+  .auth-box-v2 .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--horizon-500); margin-bottom: 5px; }
+  .auth-box-v2 .form-group input {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #D1D5DB; background: white;
+    font-size: 14px; font-family: inherit; color: var(--horizon-500); outline: none;
+  }
+  .auth-box-v2 .form-group input::placeholder { color: #999; }
+  .auth-box-v2 .form-group input:focus { border-color: var(--raspberry-500); box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1); }
+  .auth-box-v2 .hint { font-size: 12px; color: var(--neutral-500); margin-top: 4px; }
+  .auth-box-v2 .terms-text { text-align: center; font-size: 12px; color: var(--neutral-500); margin-top: 14px; }
+  .auth-box-v2 .terms-text a { color: var(--raspberry-500); text-decoration: underline; }
+  .auth-box-v2 .forgot-link { text-align: right; margin-top: -4px; margin-bottom: 8px; }
+  .auth-box-v2 .forgot-link a { font-size: 13px; color: var(--raspberry-500); text-decoration: none; font-weight: 500; }
+
+  /* ===== Shared ===== */
+  .beta-warning-blue {
+    background: var(--light-blue-100); border: 2px solid var(--light-blue-500);
+    border-radius: 8px; padding: 12px 14px; margin-top: 16px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .beta-warning-blue .icon { flex-shrink: 0; width: 20px; height: 20px; margin-top: 2px; color: var(--light-blue-500); }
+  .beta-warning-blue .title { font-size: 13px; font-weight: 600; color: var(--horizon-500); }
+  .beta-warning-blue .desc { font-size: 13px; color: var(--horizon-500); opacity: 0.8; margin-top: 2px; }
+
+  .auth-form { margin-top: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .btn-primary {
+    width: 100%; padding: 12px; background: var(--raspberry-500); color: white;
+    border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit; margin-top: 6px;
+  }
+  .btn-primary:hover { background: var(--raspberry-600); }
+
+  .below-links { text-align: center; margin-top: 20px; }
+  .below-links a { display: block; font-size: 13px; font-weight: 500; color: var(--horizon-500); text-decoration: none; margin-bottom: 10px; }
+  .below-links a:hover { color: var(--raspberry-500); }
+  .below-links .wishlist { color: var(--raspberry-500); display: inline-flex; align-items: center; gap: 5px; }
+
+  /* Warning icon SVG path for reuse */
+  .warn-svg { display: inline; }
+</style>
+</head>
+<body>
+
+<div class="mockup-wrapper">
+  <div class="mockup-header">
+    <h1>Auth Pages Redesign — Mockup</h1>
+    <p>Register + Sign In page updates &bull; April 2026 &bull; Two style options</p>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- VERSION A: Horizon Blue (dark navy) box      -->
+  <!-- ============================================ -->
+  <div class="version-label">
+    Version A — Horizon Blue Box
+    <span>Dark navy background (#1F2A44), white text, light-blue beta warning</span>
+  </div>
+
+  <div class="mockup-grid">
+
+    <!-- REGISTER — Version A -->
+    <div class="mockup-section">
+      <div class="mockup-label">Register Page <span class="badge">Version A</span></div>
+      <div class="change-list">
+        <strong>Changes from current</strong>
+        <ul>
+          <li><span class="hl">Box background → horizon blue</span> (#1F2A44) with white text</li>
+          <li><span class="hl">Beta message → light blue</span> (#DDE2EF bg, #6C83BC border)</li>
+          <li><span class="hl">First name & middle name on same line</span> (side by side)</li>
+          <li><span class="hl">Last name on its own full-width line</span></li>
+          <li><span class="hl">Logo clickable → homepage</span></li>
+        </ul>
+      </div>
+      <div class="page-frame">
+        <div>
+          <div class="auth-box-v1">
+            <a href="https://fynla.org" class="logo-link" title="Go to Fynla homepage">
+              <img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" class="logo-img"
+                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:white;letter-spacing:2px&quot;>FYNLA</div>';">
+            </a>
+            <h2>Create your account</h2>
+            <p class="subtitle">Already have an account? <a href="#">Sign in</a></p>
+
+            <div class="beta-warning-blue">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <div>
+                <p class="title">Beta Version</p>
+                <p class="desc">This application is currently in beta. Any information entered may be deleted or altered without notice.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group"><label>First Name</label><input type="text" placeholder="John"></div>
+                <div class="form-group"><label>Middle Name</label><input type="text" placeholder="David"></div>
+              </div>
+              <div class="form-group"><label>Last Name</label><input type="text" placeholder="Smith"></div>
+              <div class="form-group"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+              <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"><p class="hint">Must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)</p></div>
+              <div class="form-group"><label>Confirm Password</label><input type="password" placeholder="••••••••"></div>
+              <button class="btn-primary" type="button">Create Account</button>
+              <p class="terms-text">By creating an account, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></p>
+            </form>
+          </div>
+          <div class="below-links">
+            <a href="#">Go to Fynla homepage</a>
+            <a href="#" class="wishlist">&#9733; Wishlist for priority access on release</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGN IN — Version A -->
+    <div class="mockup-section">
+      <div class="mockup-label">Sign In Page <span class="badge">Version A</span></div>
+      <div class="change-list">
+        <strong>Changes from current</strong>
+        <ul>
+          <li><span class="hl">Box background → horizon blue</span> (matching register)</li>
+          <li><span class="hl">Beta message → light blue</span></li>
+          <li><span class="hl">Increased bottom padding</span> (pb-12)</li>
+        </ul>
+      </div>
+      <div class="page-frame">
+        <div>
+          <div class="auth-box-v1" style="padding-bottom: 52px;">
+            <a href="https://fynla.org" class="logo-link" title="Go to Fynla homepage">
+              <img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" class="logo-img"
+                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:white;letter-spacing:2px&quot;>FYNLA</div>';">
+            </a>
+            <h2 style="margin-top: 16px;">Sign in to your account</h2>
+            <p class="subtitle">Not registered? You can <a href="#">register a new account</a>.</p>
+
+            <div class="beta-warning-blue">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <div>
+                <p class="title">Beta Version</p>
+                <p class="desc">This application is currently in beta. Any information entered may be deleted or altered without notice.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <div class="form-group"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+              <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"></div>
+              <div class="forgot-link"><a href="#">Forgot your password?</a></div>
+              <button class="btn-primary" type="button">Sign in</button>
+            </form>
+          </div>
+          <div class="below-links">
+            <a href="#">Go to Fynla homepage</a>
+            <a href="#" class="wishlist">&#9733; Wishlist for priority access on release</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- VERSION B: White-to-grey gradient, card style -->
+  <!-- ============================================ -->
+  <div class="version-label">
+    Version B — White-to-Grey Gradient Card
+    <span>White→#F3F3F3 gradient, #EEEEEE border, subtle shadow — matches dashboard cards</span>
+  </div>
+
+  <div class="mockup-grid">
+
+    <!-- REGISTER — Version B -->
+    <div class="mockup-section">
+      <div class="mockup-label">Register Page <span class="badge">Version B</span></div>
+      <div class="change-list">
+        <strong>Changes from current</strong>
+        <ul>
+          <li><span class="hl">Box → white-to-grey gradient</span> with #EEEEEE border (card style)</li>
+          <li><span class="hl">Beta message → light blue</span> (#DDE2EF bg, #6C83BC border)</li>
+          <li><span class="hl">First name & middle name on same line</span> (side by side)</li>
+          <li><span class="hl">Last name on its own full-width line</span></li>
+          <li><span class="hl">Logo clickable → homepage</span></li>
+        </ul>
+      </div>
+      <div class="page-frame">
+        <div>
+          <div class="auth-box-v2">
+            <a href="https://fynla.org" class="logo-link" title="Go to Fynla homepage">
+              <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img"
+                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#1F2A44;letter-spacing:2px&quot;>FYNLA</div>';">
+            </a>
+            <h2>Create your account</h2>
+            <p class="subtitle">Already have an account? <a href="#">Sign in</a></p>
+
+            <div class="beta-warning-blue">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <div>
+                <p class="title">Beta Version</p>
+                <p class="desc">This application is currently in beta. Any information entered may be deleted or altered without notice.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group"><label>First Name</label><input type="text" placeholder="John"></div>
+                <div class="form-group"><label>Middle Name</label><input type="text" placeholder="David"></div>
+              </div>
+              <div class="form-group"><label>Last Name</label><input type="text" placeholder="Smith"></div>
+              <div class="form-group"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+              <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"><p class="hint">Must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)</p></div>
+              <div class="form-group"><label>Confirm Password</label><input type="password" placeholder="••••••••"></div>
+              <button class="btn-primary" type="button">Create Account</button>
+              <p class="terms-text">By creating an account, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></p>
+            </form>
+          </div>
+          <div class="below-links">
+            <a href="#">Go to Fynla homepage</a>
+            <a href="#" class="wishlist">&#9733; Wishlist for priority access on release</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGN IN — Version B -->
+    <div class="mockup-section">
+      <div class="mockup-label">Sign In Page <span class="badge">Version B</span></div>
+      <div class="change-list">
+        <strong>Changes from current</strong>
+        <ul>
+          <li><span class="hl">Box → white-to-grey gradient</span> with #EEEEEE border (card style)</li>
+          <li><span class="hl">Beta message → light blue</span></li>
+          <li><span class="hl">Increased bottom padding</span> (pb-12)</li>
+        </ul>
+      </div>
+      <div class="page-frame">
+        <div>
+          <div class="auth-box-v2" style="padding-bottom: 52px;">
+            <a href="https://fynla.org" class="logo-link" title="Go to Fynla homepage">
+              <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img"
+                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#1F2A44;letter-spacing:2px&quot;>FYNLA</div>';">
+            </a>
+            <h2 style="margin-top: 16px;">Sign in to your account</h2>
+            <p class="subtitle">Not registered? You can <a href="#">register a new account</a>.</p>
+
+            <div class="beta-warning-blue">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <div>
+                <p class="title">Beta Version</p>
+                <p class="desc">This application is currently in beta. Any information entered may be deleted or altered without notice.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <div class="form-group"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+              <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"></div>
+              <div class="forgot-link"><a href="#">Forgot your password?</a></div>
+              <button class="btn-primary" type="button">Sign in</button>
+            </form>
+          </div>
+          <div class="below-links">
+            <a href="#">Go to Fynla homepage</a>
+            <a href="#" class="wishlist">&#9733; Wishlist for priority access on release</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- VERSION C: White-to-grey card on blue→pink gradient bg -->
+  <!-- ============================================ -->
+  <div class="version-label">
+    Version C — Card on Homepage Gradient
+    <span>White→grey card with grey border, on horizon-500→raspberry-500 gradient background (like homepage banner)</span>
+  </div>
+
+  <div class="mockup-grid">
+
+    <!-- REGISTER — Version C -->
+    <div class="mockup-section">
+      <div class="mockup-label">Register Page <span class="badge">Version C</span></div>
+      <div class="change-list">
+        <strong>Changes from current</strong>
+        <ul>
+          <li><span class="hl">Page background → blue-to-pink gradient</span> (horizon-500 → raspberry-500)</li>
+          <li><span class="hl">Box → white-to-grey gradient card</span> with #EEEEEE border</li>
+          <li><span class="hl">Beta message → light blue</span></li>
+          <li><span class="hl">First name & middle name on same line</span> (side by side)</li>
+          <li><span class="hl">Last name on its own full-width line</span></li>
+          <li><span class="hl">Logo clickable → homepage</span></li>
+        </ul>
+      </div>
+      <div class="page-frame" style="background: linear-gradient(135deg, #1F2A44 0%, #E11D48 100%);">
+        <div>
+          <div class="auth-box-v2">
+            <a href="https://fynla.org" class="logo-link" title="Go to Fynla homepage">
+              <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img"
+                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#1F2A44;letter-spacing:2px&quot;>FYNLA</div>';">
+            </a>
+            <h2>Create your account</h2>
+            <p class="subtitle">Already have an account? <a href="#">Sign in</a></p>
+
+            <div class="beta-warning-blue">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <div>
+                <p class="title">Beta Version</p>
+                <p class="desc">This application is currently in beta. Any information entered may be deleted or altered without notice.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group"><label>First Name</label><input type="text" placeholder="John"></div>
+                <div class="form-group"><label>Middle Name</label><input type="text" placeholder="David"></div>
+              </div>
+              <div class="form-group"><label>Last Name</label><input type="text" placeholder="Smith"></div>
+              <div class="form-group"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+              <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"><p class="hint">Must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)</p></div>
+              <div class="form-group"><label>Confirm Password</label><input type="password" placeholder="••••••••"></div>
+              <button class="btn-primary" type="button">Create Account</button>
+              <p class="terms-text">By creating an account, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></p>
+            </form>
+          </div>
+          <div class="below-links" style="color: white;">
+            <a href="#" style="color: rgba(255,255,255,0.85);">Go to Fynla homepage</a>
+            <a href="#" class="wishlist" style="color: rgba(255,255,255,0.9);">&#9733; Wishlist for priority access on release</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGN IN — Version C -->
+    <div class="mockup-section">
+      <div class="mockup-label">Sign In Page <span class="badge">Version C</span></div>
+      <div class="change-list">
+        <strong>Changes from current</strong>
+        <ul>
+          <li><span class="hl">Page background → blue-to-pink gradient</span></li>
+          <li><span class="hl">Box → white-to-grey gradient card</span> with #EEEEEE border</li>
+          <li><span class="hl">Beta message → light blue</span></li>
+          <li><span class="hl">Increased bottom padding</span> (pb-12)</li>
+        </ul>
+      </div>
+      <div class="page-frame" style="background: linear-gradient(135deg, #1F2A44 0%, #E11D48 100%);">
+        <div>
+          <div class="auth-box-v2" style="padding-bottom: 52px;">
+            <a href="https://fynla.org" class="logo-link" title="Go to Fynla homepage">
+              <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img"
+                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#1F2A44;letter-spacing:2px&quot;>FYNLA</div>';">
+            </a>
+            <h2 style="margin-top: 16px;">Sign in to your account</h2>
+            <p class="subtitle">Not registered? You can <a href="#">register a new account</a>.</p>
+
+            <div class="beta-warning-blue">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <div>
+                <p class="title">Beta Version</p>
+                <p class="desc">This application is currently in beta. Any information entered may be deleted or altered without notice.</p>
+              </div>
+            </div>
+
+            <form class="auth-form" onsubmit="return false;">
+              <div class="form-group"><label>Email address</label><input type="email" placeholder="you@example.com"></div>
+              <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"></div>
+              <div class="forgot-link"><a href="#">Forgot your password?</a></div>
+              <button class="btn-primary" type="button">Sign in</button>
+            </form>
+          </div>
+          <div class="below-links" style="color: white;">
+            <a href="#" style="color: rgba(255,255,255,0.85);">Go to Fynla homepage</a>
+            <a href="#" class="wishlist" style="color: rgba(255,255,255,0.9);">&#9733; Wishlist for priority access on release</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

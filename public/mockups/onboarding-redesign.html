@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding Redesign — Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, -apple-system, sans-serif; }
+
+  :root {
+    --eggshell-500: #F7F6F4;
+    --horizon-500: #1F2A44;
+    --horizon-600: #0F172A;
+    --horizon-700: #020617;
+    --light-blue-100: #DDE2EF;
+    --light-blue-500: #6C83BC;
+    --light-gray: #EEEEEE;
+    --light-pink-100: #FFF0F3;
+    --raspberry-400: #FB7185;
+    --raspberry-500: #E11D48;
+    --spring-500: #22C55E;
+    --neutral-500: #737373;
+  }
+
+  /* Mockup chrome */
+  .mockup-wrapper { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+  .mockup-header { text-align: center; margin-bottom: 30px; }
+  .mockup-header h1 { font-size: 28px; font-weight: 700; color: var(--horizon-500); }
+  .mockup-header p { color: var(--neutral-500); margin-top: 8px; font-size: 14px; }
+
+  .change-list {
+    background: #FFFBE6; border: 1px solid #E5E7EB; border-radius: 8px;
+    padding: 16px 20px; margin-bottom: 30px; font-size: 13px; color: #555;
+  }
+  .change-list strong { display: block; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+  .change-list ul { margin: 0; padding-left: 18px; }
+  .change-list li { margin-bottom: 4px; }
+  .change-list .hl { background: #FEF08A; padding: 0 3px; border-radius: 2px; }
+
+  /* ===== MOCKUP PAGE ===== */
+  .page-frame {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+
+  /* White header bar */
+  .top-bar {
+    background: white;
+    border-bottom: 1px solid var(--light-gray);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+  }
+  .top-bar .logo-img { height: 40px; width: auto; }
+  .top-bar .exit-link {
+    font-size: 14px; color: var(--neutral-500); text-decoration: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .top-bar .exit-link:hover { color: var(--horizon-500); }
+
+  /* Gradient background (same as register/login) */
+  .onboarding-body {
+    background: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%);
+    padding: 32px 24px 48px;
+    min-height: 700px;
+  }
+
+  /* Main card — white-to-grey gradient like register */
+  .onboarding-card {
+    max-width: 1050px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F3F3F3 100%);
+    border: 1px solid var(--light-gray);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.08);
+    padding: 40px 48px;
+  }
+
+  /* Welcome header — NO logo on right */
+  .welcome-header h1 {
+    font-size: clamp(24px, 4vw, 48px);
+    font-weight: 900;
+    color: var(--horizon-500);
+    margin-bottom: 8px;
+  }
+  .welcome-header p {
+    font-size: 15px;
+    color: var(--neutral-500);
+  }
+
+  /* Checklist intro box */
+  .intro-box {
+    background: var(--light-pink-100);
+    border: 1px solid var(--light-gray);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0 32px;
+  }
+  .intro-box .intro-text {
+    font-size: 14px;
+    color: var(--horizon-500);
+    margin-bottom: 12px;
+  }
+  .intro-box ul { list-style: none; padding: 0; }
+  .intro-box li {
+    display: flex;
+    align-items: flex-start;
+    font-size: 14px;
+    color: var(--neutral-500);
+    margin-bottom: 8px;
+    padding: 4px 0;
+    border-radius: 0;
+  }
+  .intro-box li .tick {
+    width: 16px; height: 16px;
+    color: var(--spring-500);
+    flex-shrink: 0;
+    margin-right: 8px;
+    margin-top: 2px;
+  }
+  .intro-box .skip-note {
+    font-size: 14px;
+    color: var(--neutral-500);
+    margin-top: 12px;
+  }
+
+  /* Stage section title */
+  .stage-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--horizon-500);
+    margin-bottom: 16px;
+  }
+
+  /* Stage cards — homepage style: horizon gradient, white text, raspberry accent */
+  .stage-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 900px) {
+    .stage-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .stage-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .stage-card {
+    background: linear-gradient(135deg, var(--horizon-600), var(--horizon-700));
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    aspect-ratio: 1;
+  }
+  .stage-card:hover {
+    border-color: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .stage-card .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+  .stage-card .card-title .accent {
+    color: var(--raspberry-400);
+  }
+  .stage-card .card-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.4;
+    flex: 1;
+  }
+  .stage-card .start-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--raspberry-400);
+    margin-top: 10px;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .stage-card:hover .start-link { color: white; }
+
+  /* Skip to dashboard */
+  .skip-section {
+    text-align: center;
+    font-size: 14px;
+    color: var(--neutral-500);
+  }
+  .skip-section a {
+    color: var(--raspberry-500);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  .skip-section a:hover { color: var(--horizon-500); }
+</style>
+</head>
+<body>
+
+<div class="mockup-wrapper">
+  <div class="mockup-header">
+    <h1>Onboarding Page Redesign — Mockup</h1>
+    <p>Stage selection screen updates · April 2026</p>
+  </div>
+
+  <div class="change-list">
+    <strong>Changes from current</strong>
+    <ul>
+      <li><span class="hl">Background → blue-to-pink gradient</span> (matching register/login), white header bar kept</li>
+      <li><span class="hl">Card → white-to-grey gradient</span> with shadow (matching register/login)</li>
+      <li><span class="hl">Fynla logo removed</span> from right side of card</li>
+      <li><span class="hl">"Welcome to Fynla" title enlarged</span> to match "How Fyn can help" size on homepage</li>
+      <li><span class="hl">Stage boxes → homepage style</span> (horizon-600→700 gradient, white text, raspberry accent, square aspect)</li>
+      <li><span class="hl">Skip text updated</span> → "Alternatively, you can skip and go straight to your dashboard." with "your dashboard" linked</li>
+      <li><span class="hl">Middle checklist points highlighted</span> in light pink (#FFF0F3)</li>
+      <li><span class="hl">"Your Journey" title removed</span> from top header bar</li>
+    </ul>
+  </div>
+
+  <div class="page-frame">
+    <!-- White header bar — no "Your Journey" title -->
+    <div class="top-bar">
+      <a href="#">
+        <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img"
+             onerror="this.outerHTML='<span style=&quot;font-size:20px;font-weight:900;color:#1F2A44;letter-spacing:1px&quot;>FYNLA</span>';">
+      </a>
+      <!-- No "Your Journey" title in the center -->
+      <a href="#" class="exit-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        Exit
+      </a>
+    </div>
+
+    <!-- Gradient background body -->
+    <div class="onboarding-body">
+      <div class="onboarding-card">
+
+        <!-- Welcome header — no logo on right -->
+        <div class="welcome-header">
+          <h1>Welcome to Fynla</h1>
+          <p>Your personal financial companion — let's get you set up.</p>
+        </div>
+
+        <!-- Intro checklist box -->
+        <div class="intro-box">
+          <p class="intro-text">In just a few minutes, we'll build a personalised picture of your finances. By the end, you'll have:</p>
+          <ul>
+            <li>
+              <svg class="tick" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              A clear view of your income, spending, and savings
+            </li>
+            <li>
+              <svg class="tick" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Personalised insights tailored to your life stage
+            </li>
+            <li>
+              <svg class="tick" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Actionable goals and a dashboard to track your progress
+            </li>
+            <li>
+              <svg class="tick" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Links to helpful resources from Gov.uk, MoneyHelper, and more
+            </li>
+          </ul>
+          <p class="skip-note">You can skip any step and come back to it later — nothing is locked in.</p>
+        </div>
+
+        <!-- Stage selection title -->
+        <h2 class="stage-title">Where are you in your financial journey?</h2>
+
+        <!-- Stage cards — homepage style -->
+        <div class="stage-grid">
+          <div class="stage-card">
+            <p class="card-title"><span class="accent">Starting</span><br>out</p>
+            <p class="card-desc">Build strong financial habits for your future.</p>
+            <span class="start-link">Start here <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+          </div>
+          <div class="stage-card">
+            <p class="card-title"><span class="accent">Building</span><br>foundations</p>
+            <p class="card-desc">Save, invest, and grow your wealth with confidence.</p>
+            <span class="start-link">Start here <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+          </div>
+          <div class="stage-card">
+            <p class="card-title"><span class="accent">Protecting</span><br>and growing</p>
+            <p class="card-desc">Ensure your family and assets are fully covered.</p>
+            <span class="start-link">Start here <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+          </div>
+          <div class="stage-card">
+            <p class="card-title"><span class="accent">Planning</span><br>your future</p>
+            <p class="card-desc">Retirement projections, pension tracking, and estate planning.</p>
+            <span class="start-link">Start here <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+          </div>
+          <div class="stage-card">
+            <p class="card-title"><span class="accent">Enjoying</span><br>your wealth</p>
+            <p class="card-desc">Make the most of your financial success.</p>
+            <span class="start-link">Start here <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+          </div>
+        </div>
+
+        <!-- Skip to dashboard — updated text -->
+        <div class="skip-section">
+          Alternatively, you can skip and go straight to <a href="#">your dashboard</a>.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

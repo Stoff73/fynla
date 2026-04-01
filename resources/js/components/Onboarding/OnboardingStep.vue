@@ -9,7 +9,7 @@
       </p>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
+    <div class="p-0">
       <slot></slot>
     </div>
 
@@ -17,8 +17,8 @@
       <p class="text-body-sm text-raspberry-700">{{ error }}</p>
     </div>
 
-    <!-- Navigation -->
-    <div class="mt-6 flex items-center justify-between">
+    <!-- Navigation (hidden when hideNav is true — wizard provides its own styled nav) -->
+    <div v-if="!hideNav" class="mt-6 flex items-center justify-between">
       <button
         v-if="canGoBack"
         @click="onBack"
@@ -92,6 +92,10 @@ export default {
     error: {
       type: String,
       default: null,
+    },
+    hideNav: {
+      type: Boolean,
+      default: true,
     },
     nextButtonText: {
       type: String,

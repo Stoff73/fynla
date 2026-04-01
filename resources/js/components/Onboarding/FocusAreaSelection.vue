@@ -1,22 +1,19 @@
 <template>
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <!-- STATE 1: Stage Selection (no stage chosen yet) -->
-    <div v-if="!selectedStage" class="bg-white rounded-lg border border-light-gray shadow-sm p-6 mb-6">
-      <!-- Welcome Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-h2 font-display text-horizon-500 mb-2">
-            Welcome to Fynla
-          </h1>
-          <p class="text-body text-neutral-500">
-            Your personal financial companion — let's get you set up.
-          </p>
-        </div>
-        <img :src="logoImage" alt="Fynla" class="h-24 w-auto hidden sm:block">
+    <div v-if="!selectedStage" class="onboarding-selection-card rounded-xl sm:rounded-2xl border border-light-gray p-5 sm:p-8 lg:p-10 mb-6">
+      <!-- Welcome Header — no logo -->
+      <div class="mb-6">
+        <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-2">
+          Welcome to Fynla
+        </h1>
+        <p class="text-body text-neutral-500">
+          Your personal financial companion — let's get you set up.
+        </p>
       </div>
 
-      <!-- Onboarding Intro -->
-      <div class="bg-eggshell-500 border border-light-gray rounded-lg p-5 mb-8">
+      <!-- Onboarding Intro — light pink box -->
+      <div class="bg-light-pink-100 border border-light-gray rounded-lg p-5 mb-8">
         <p class="text-body-sm text-horizon-500 mb-3">
           In just a few minutes, we'll build a personalised picture of your finances. By the end, you'll have:
         </p>
@@ -46,50 +43,61 @@
       <!-- Stage Selection -->
       <h2 class="text-lg font-bold text-horizon-500 mb-4">Where are you in your financial journey?</h2>
 
-      <!-- Life Stage Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <!-- Life Stage Cards — homepage style -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-8">
         <button
           v-for="stage in stages"
           :key="stage.id"
           type="button"
-          class="card group text-left transition-all duration-200 hover:shadow-md hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 cursor-pointer"
-          :class="stageCardBorderClass(stage)"
+          class="stage-card group text-left focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500"
           @click="selectStage(stage.id)"
         >
-          <h3 class="text-base font-bold text-horizon-500 text-center mb-1 mt-2">{{ stage.label }}</h3>
-          <p class="text-xs text-neutral-500 text-center leading-relaxed mt-1">{{ stage.tagline }}</p>
+          <p class="text-base sm:text-lg font-bold text-white mb-1 leading-tight">
+            <span class="text-raspberry-400">{{ stage.label.split(' ')[0] }}</span><br>{{ stage.label.split(' ').slice(1).join(' ') }}
+          </p>
+          <p class="text-xs text-white/70 leading-snug flex-1">{{ stage.tagline }}</p>
+          <span class="inline-flex items-center gap-1 text-xs font-semibold text-raspberry-400 mt-2 group-hover:text-white transition-colors">
+            Start here
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+          </span>
         </button>
       </div>
 
-      <!-- Skip -->
-      <div class="text-center">
-        <button
-          type="button"
-          class="inline-flex items-center text-sm font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
-          @click="skipOnboarding"
+      <!-- Skip + Back -->
+      <div class="flex items-center justify-between mt-2">
+        <router-link
+          to="/dashboard"
+          class="inline-flex items-center px-5 py-2.5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
         >
-          Skip to Dashboard
-          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </button>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+          Back
+        </router-link>
+        <div class="text-sm text-neutral-500">
+          Alternatively, you can skip and go straight to
+          <button
+            type="button"
+            class="text-raspberry-500 hover:text-raspberry-700 underline font-medium transition-colors"
+            @click="skipOnboarding"
+          >your dashboard</button>.
+        </div>
       </div>
     </div>
 
     <!-- STATE 2: Journey Map (stage selected, shown inline) -->
     <div v-else class="bg-white rounded-lg border border-light-gray shadow-sm overflow-hidden mb-6">
-      <!-- Stage hero header -->
-      <div
-        class="px-8 py-6 text-white text-center"
-        :style="{ background: `linear-gradient(135deg, ${stageHex}, ${stageHexLight})` }"
-      >
-        <div class="text-3xl mb-1">{{ selectedStageConfig.icon === 'graduation-cap' ? '🎓' : selectedStageConfig.icon === 'briefcase' ? '🏠' : selectedStageConfig.icon === 'shield' ? '👨‍👩‍👧‍👦' : selectedStageConfig.icon === 'chart-line' ? '📈' : '🌅' }}</div>
-        <h2 class="text-xl font-black mb-1">{{ selectedStageConfig.label }}</h2>
-        <p class="text-sm opacity-90">{{ selectedStageConfig.tagline }}</p>
-        <p class="text-xs opacity-70 mt-1">{{ stageSteps.length }} steps · About {{ stageSteps.length * 2 }} minutes</p>
+      <!-- Stage hero — horizon blue gradient, no icon -->
+      <div class="px-8 py-6 bg-gradient-to-br from-horizon-500 to-horizon-600 text-white">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-1 text-left">{{ selectedStageConfig.label }}</h2>
+        <p class="text-sm opacity-90 text-left">{{ selectedStageConfig.tagline }}</p>
       </div>
 
-      <!-- Journey Map SVG — matching approved v6 mockup -->
+      <!-- Steps info — centred, larger -->
+      <div class="py-5 px-8 text-center border-b border-light-gray">
+        <p class="text-lg sm:text-xl font-bold text-horizon-500">{{ stageSteps.length }} steps · Approx {{ stageSteps.length * 2 }} minutes</p>
+        <p class="text-sm text-neutral-500 mt-1">You can skip steps and come back to them later</p>
+      </div>
+
+      <!-- Journey Map SVG -->
       <div class="px-6 pt-8 pb-4">
         <svg :viewBox="svgViewBoxX + ' 0 ' + svgWidth + ' ' + svgHeight" class="w-full" :style="{ height: svgHeight + 'px' }" preserveAspectRatio="xMidYMid meet">
           <defs>
@@ -104,7 +112,7 @@
             </filter>
           </defs>
 
-          <!-- Shadow path (v6: stage colour at 12% alpha) -->
+          <!-- Shadow path -->
           <path :d="pathD" fill="none" :stroke="stageHex + '12'" stroke-width="8" stroke-linecap="round" />
 
           <!-- Main dashed path -->
@@ -113,19 +121,16 @@
           <!-- Destination connector -->
           <path v-if="destinationPathD" :d="destinationPathD" fill="none" stroke="#20B48640" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round" />
 
-          <!-- Step nodes -->
+          <!-- Step nodes — full opacity -->
           <g v-for="(node, i) in nodes" :key="'node-' + i">
-            <!-- Node circle -->
             <circle
               v-if="!node.isDestination"
               :cx="node.x" :cy="node.y" r="22"
               :fill="stageHex"
-              :opacity="1 - (i * 0.1)"
               :filter="i === 0 ? 'url(#journeyGlow)' : undefined"
               class="cursor-pointer"
               @click="selectNode(i)"
             />
-            <!-- Destination circle -->
             <circle
               v-else
               :cx="node.x" :cy="node.y" r="24"
@@ -133,21 +138,18 @@
               filter="url(#journeyGlow)"
             />
 
-            <!-- Step number -->
             <text
               v-if="!node.isDestination"
               :x="node.x" :y="node.y + 5"
               text-anchor="middle" fill="white" font-weight="800" font-size="14"
             >{{ i + 1 }}</text>
 
-            <!-- Destination flag -->
             <text
               v-if="node.isDestination"
               :x="node.x" :y="node.y + 5"
               text-anchor="middle" fill="white" font-size="16"
             >🏁</text>
 
-            <!-- Label -->
             <text
               :x="node.labelX" :y="node.labelY"
               :text-anchor="node.labelAnchor"
@@ -163,38 +165,64 @@
         </svg>
       </div>
 
-      <!-- Detail card when a node is tapped -->
-      <div v-if="selectedNodeIndex !== null && selectedMilestone" class="mx-6 mb-4 p-5 rounded-xl border-2" :class="detailCardClass">
+      <!-- Detail card — light pink, always visible -->
+      <div class="mx-6 mb-4 p-5 rounded-xl bg-light-pink-100">
         <div class="flex items-center gap-3 mb-2">
-          <div class="w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center" :class="detailNodeClass">
-            {{ selectedNodeIndex + 1 }}
+          <div class="w-7 h-7 rounded-full bg-raspberry-500 text-white text-xs font-bold flex items-center justify-center">
+            {{ (selectedNodeIndex !== null ? selectedNodeIndex : 0) + 1 }}
           </div>
-          <div class="text-sm font-bold text-horizon-500">{{ nodes[selectedNodeIndex]?.title }}</div>
-          <div class="text-xs text-neutral-500 ml-auto">Tap any step to learn more</div>
+          <div class="text-sm font-bold text-horizon-500">{{ nodes[selectedNodeIndex !== null ? selectedNodeIndex : 0]?.title }}</div>
+          <div class="text-xs text-neutral-500 italic ml-auto">Explore each step on the map above</div>
         </div>
-        <p class="text-sm text-neutral-500 leading-relaxed">{{ selectedMilestone.didYouKnow }}</p>
+        <p class="text-sm text-horizon-500 leading-relaxed mb-3">
+          {{ selectedMilestone ? selectedMilestone.didYouKnow : (nodes[0]?.title ? 'Click on any step in the journey map above to learn what it covers and what information you\'ll need.' : '') }}
+        </p>
+
+        <!-- Collapsible "What you'll need" -->
+        <div class="rounded-lg overflow-hidden">
+          <button
+            type="button"
+            class="w-full flex items-center gap-2 px-3.5 py-2.5 bg-white/60 hover:bg-white/85 rounded-lg transition-colors text-left"
+            @click="showNeeds = !showNeeds"
+          >
+            <span class="text-sm font-semibold text-horizon-500">What you'll need for this step</span>
+            <svg
+              class="w-4 h-4 text-neutral-500 ml-auto transition-transform duration-200"
+              :class="{ 'rotate-180': showNeeds }"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div v-if="showNeeds" class="px-3.5 pt-2.5 pb-1">
+            <ul class="space-y-1">
+              <li v-for="(need, ni) in currentStepNeeds" :key="ni" class="flex items-center gap-2 text-sm text-neutral-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-raspberry-400 flex-shrink-0"></span>
+                {{ need }}
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      <!-- CTAs -->
+      <!-- CTAs — light pink Back + Start My Journey with chevron -->
       <div class="px-8 pb-6 text-center">
         <div class="flex gap-3 justify-center pt-5 border-t border-light-gray">
           <button
-            class="bg-raspberry-500 hover:bg-raspberry-600 text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors"
+            class="bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 px-6 py-3 rounded-lg font-bold text-sm transition-colors inline-flex items-center gap-1.5"
+            @click="selectedStage = null"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            Back
+          </button>
+          <button
+            class="bg-raspberry-500 hover:bg-raspberry-600 text-white px-8 py-3 rounded-lg font-bold text-sm transition-colors inline-flex items-center gap-1.5"
             @click="startJourney"
           >
             Start My Journey
-          </button>
-          <button
-            class="bg-white hover:bg-savannah-100 text-horizon-500 px-8 py-3 rounded-lg font-bold text-sm border border-light-gray transition-colors"
-            @click="seeInAction"
-          >
-            See It in Action
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
-        <p class="text-xs text-neutral-500 mt-3">You can skip steps and come back to them later</p>
-        <button class="text-xs text-neutral-500 hover:text-horizon-500 mt-2" @click="selectedStage = null">
-          ← Choose a different stage
-        </button>
       </div>
     </div>
   </div>
@@ -213,6 +241,7 @@ export default {
       logoImage: '/images/logos/LogoHiResFynlaDark.png',
       selectedStage: null,
       selectedNodeIndex: null,
+      showNeeds: false,
     };
   },
 
@@ -251,6 +280,23 @@ export default {
         'light-blue': '#8fa3d0', horizon: '#3a4a6a',
       };
       return map[this.selectedStageConfig?.colour] || '#7c79ff';
+    },
+
+    currentStepNeeds() {
+      const needsMap = {
+        'Your profile': ['Your date of birth', 'Employment status and occupation', 'Whether you have a partner or dependents'],
+        'Income': ['Your annual salary or self-employment income', 'Any additional income sources (rental, dividends)'],
+        'Spending': ['Monthly household bills estimate', 'Regular commitments (subscriptions, memberships)'],
+        'Protection': ['Details of any life insurance policies', 'Critical illness or income protection cover'],
+        'Savings': ['Current savings account balances', 'ISA balances and types'],
+        'Property': ['Property value and mortgage balance', 'Mortgage interest rate and term remaining'],
+        'Investments': ['Investment account values', 'Fund names or platform details'],
+        'Retirement': ['Pension scheme details and current values', 'State pension forecast (from Gov.uk)'],
+        'Estate': ['Whether you have a will', 'Any gifts or trust arrangements'],
+      };
+      const idx = this.selectedNodeIndex !== null ? this.selectedNodeIndex : 0;
+      const title = this.nodes[idx]?.title;
+      return needsMap[title] || ['Information related to this topic'];
     },
 
     // Exact coordinates from approved v6 mockup for "Starting Out" (6 steps).
@@ -489,3 +535,22 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.onboarding-selection-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F3F3F3 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 8px 40px rgba(0, 0, 0, 0.08);
+}
+
+.stage-card {
+  @apply bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 p-4 sm:p-5 flex flex-col items-start justify-center cursor-pointer transition-all duration-200;
+}
+@media (min-width: 1024px) {
+  .stage-card {
+    aspect-ratio: 1;
+  }
+}
+.stage-card:hover {
+  @apply border-white/30 -translate-y-0.5 shadow-lg;
+}
+</style>

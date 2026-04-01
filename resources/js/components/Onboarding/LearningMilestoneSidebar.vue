@@ -1,85 +1,48 @@
 <template>
-  <aside class="bg-light-gray h-full overflow-y-auto rounded-xl">
-    <div v-if="milestone" class="p-6 space-y-6">
+  <aside class="h-full">
+    <div v-if="milestone">
 
-      <!-- Did you know? — stage-coloured gradient card -->
-      <div
-        :class="gradientCardClasses"
-        class="rounded-xl p-5 shadow-sm"
-      >
-        <div class="flex items-start gap-3 mb-3">
-          <svg class="w-5 h-5 flex-shrink-0 mt-0.5" :class="iconColourClass" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-          <h3 class="text-sm font-bold" :class="headingColourClass">Did you know?</h3>
-        </div>
-        <p class="text-sm leading-relaxed" :class="textColourClass">
-          {{ milestone.didYouKnow }}
+      <!-- How this fits your journey — 2 lines collapsed -->
+      <div ref="journeySection" class="pb-4 mb-5 border-b border-light-gray/50">
+        <h3 class="text-lg font-bold text-horizon-500 mb-2">How this fits your journey</h3>
+        <p v-if="journeyExpanded" class="text-sm text-neutral-500 leading-relaxed">
+          {{ milestone.howItFits }}
+          <button type="button" class="text-raspberry-500 hover:text-raspberry-700 font-medium ml-1" @click="journeyExpanded = false">Read less</button>
         </p>
-      </div>
-
-      <!-- Why we ask this -->
-      <div class="space-y-2">
+        <p v-else class="text-sm text-neutral-500 leading-relaxed journey-truncated">
+          {{ milestone.howItFits }}
+        </p>
         <button
+          v-if="!journeyExpanded && milestone.howItFits && milestone.howItFits.length > 60"
           type="button"
-          class="w-full flex items-center justify-between text-left"
-          @click="toggleSection('whyWeAsk')"
-        >
-          <h4 class="text-sm font-semibold text-horizon-500">Why we ask this</h4>
-          <svg
-            class="w-4 h-4 text-neutral-500 transition-transform duration-200"
-            :class="{ 'rotate-180': expandedSections.whyWeAsk }"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        <transition name="expand">
-          <p v-if="expandedSections.whyWeAsk" class="text-sm text-neutral-500 leading-relaxed pl-0">
-            {{ milestone.whyWeAsk }}
-          </p>
-        </transition>
+          class="text-sm text-raspberry-500 hover:text-raspberry-700 font-medium mt-1"
+          @click="journeyExpanded = true"
+        >Read more</button>
       </div>
 
-      <!-- How this fits your journey -->
-      <div class="space-y-2 border-t border-light-gray pt-4">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between text-left"
-          @click="toggleSection('howItFits')"
-        >
-          <h4 class="text-sm font-semibold text-horizon-500">How this fits your journey</h4>
-          <svg
-            class="w-4 h-4 text-neutral-500 transition-transform duration-200"
-            :class="{ 'rotate-180': expandedSections.howItFits }"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      <!-- Why we ask this — positioned to align with active field -->
+      <div
+        class="why-box-wrapper flex items-start transition-all duration-300 ease-out"
+        :style="whyBoxStyle"
+      >
+        <!-- Arrow element (hidden on mobile) -->
+        <div class="hidden lg:block flex-shrink-0 -ml-6 mt-5">
+          <svg width="12" height="22" viewBox="0 0 12 22" class="text-horizon-500">
+            <polygon points="12,0 0,11 12,22" fill="currentColor" />
           </svg>
-        </button>
-        <transition name="expand">
-          <p v-if="expandedSections.howItFits" class="text-sm text-neutral-500 leading-relaxed pl-0">
-            {{ milestone.howItFits }}
-          </p>
-        </transition>
-      </div>
-
-      <!-- Quick stat (optional) -->
-      <div v-if="milestone.quickStat" class="border-t border-light-gray pt-4">
-        <div class="rounded-lg p-4" :class="statBgClass">
-          <p class="text-2xl font-bold" :class="statValueClass">
-            {{ milestone.quickStat.value }}
-          </p>
-          <p class="text-xs mt-1" :class="statLabelClass">
-            {{ milestone.quickStat.label }}
+        </div>
+        <div class="flex-1 bg-white rounded-lg p-4 border-2 border-horizon-500">
+          <h4 class="text-lg font-bold text-horizon-500 mb-2">Why we ask this</h4>
+          <p class="text-sm text-horizon-500/80 leading-relaxed">
+            {{ activeWhyText }}
           </p>
         </div>
       </div>
 
     </div>
 
-    <!-- Fallback when no milestone data -->
-    <div v-else class="p-6">
+    <!-- Fallback -->
+    <div v-else>
       <p class="text-sm text-neutral-500">
         Complete each step to learn more about your financial journey.
       </p>
@@ -109,6 +72,7 @@ export default {
   data() {
     return {
       collapsed: true,
+      journeyExpanded: false,
       expandedSections: {
         whyWeAsk: true,
         howItFits: false,
@@ -116,9 +80,49 @@ export default {
     };
   },
 
+  watch: {
+    override() {
+      this.journeyExpanded = false;
+    },
+    step() {
+      this.journeyExpanded = false;
+      this.expandedSections = { whyWeAsk: true, howItFits: false };
+    },
+  },
+
   computed: {
     milestone() {
-      return this.override || this.$store.getters['lifeStage/learningMilestone'](this.step);
+      return this.$store.getters['lifeStage/learningMilestone']?.(this.step);
+    },
+
+    activeWhyText() {
+      if (this.override?.whyWeAsk) return this.override.whyWeAsk;
+      return this.milestone?.whyWeAsk || '';
+    },
+
+    whyBoxStyle() {
+      const offsetY = this.override?.fieldOffsetY;
+      if (!offsetY || offsetY <= 0) return {};
+
+      // fieldOffsetY = input centre relative to form column top (includes form padding)
+      // The sidebar has the same padding, then the "How this fits" section, then the why-box.
+      // We want the why-box arrow (at mt-5 = 20px from box top) to align with fieldOffsetY.
+      const journeySectionHeight = this.$refs.journeySection?.offsetHeight || 100;
+      // Natural Y of why-box top = journeySectionHeight + gap(20px from mb-5)
+      const naturalTop = journeySectionHeight + 20;
+      // Arrow sits at 20px from box top (mt-5 on the arrow div)
+      const arrowY = naturalTop + 20;
+      // How much to push down so arrow aligns with field centre
+      const topPx = Math.max(0, offsetY - arrowY);
+      return { marginTop: topPx + 'px' };
+    },
+
+    truncatedHowItFits() {
+      const text = this.milestone?.howItFits || '';
+      // Show first 2 sentences
+      const sentences = text.match(/[^.!?]+[.!?]+/g);
+      if (!sentences || sentences.length <= 2) return text;
+      return sentences.slice(0, 2).join('').trim() + '..';
     },
 
     // Stage colour mapping:
@@ -213,15 +217,6 @@ export default {
     },
   },
 
-  watch: {
-    step() {
-      // Reset accordion sections when step changes
-      this.expandedSections = {
-        whyWeAsk: true,
-        howItFits: false,
-      };
-    },
-  },
 
   methods: {
     toggleSection(section) {
@@ -253,4 +248,13 @@ export default {
   opacity: 1;
   max-height: 500px;
 }
+
+/* 2-line clamp for collapsed journey text */
+.journey-truncated {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 </style>

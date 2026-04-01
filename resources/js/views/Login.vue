@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-eggshell-500 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-horizon-500 to-raspberry-500 py-12 px-4 sm:px-6 lg:px-8">
     <!-- Change Password Modal -->
     <ChangePasswordModal
       :show="showPasswordModal"
@@ -33,30 +33,30 @@
     />
 
     <div class="max-w-2xl w-full">
-      <div class="bg-light-blue-100 rounded-2xl py-8 px-6 sm:px-12 lg:px-32 space-y-6">
+      <div class="auth-card rounded-2xl py-8 pb-12 px-6 sm:px-12 lg:px-16 space-y-6">
         <div>
           <div class="text-center">
-            <a href="https://fynla.org" class="inline-block">
-              <img :src="logoUrl" alt="Fynla" class="h-[100px] w-auto mx-auto" />
-            </a>
+            <router-link to="/" class="inline-block hover:opacity-85 transition-opacity">
+              <img :src="logoUrl" alt="Fynla" class="h-[75px] w-auto mx-auto" />
+            </router-link>
           </div>
-          <h2 class="mt-6 text-center text-h3 text-horizon-500">
+          <h2 class="mt-1 text-center text-h3 text-horizon-500">
             Sign in to your account
           </h2>
           <p class="mt-2 text-center text-sm text-neutral-500">
             Not registered? You can
-            <a href="https://fynla.org/register" class="text-raspberry-500 hover:text-raspberry-600 font-medium">register a new account</a>.
+            <router-link to="/register" class="text-raspberry-500 hover:text-raspberry-600 font-medium">register a new account</router-link>.
           </p>
 
           <!-- Beta Warning -->
-          <div class="mt-4 bg-spring-200 border-2 border-spring-500 rounded-lg p-4">
+          <div class="mt-4 bg-light-blue-100 border-2 border-light-blue-500 rounded-lg p-4">
             <div class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-spring-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-light-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
-                <p class="text-sm font-semibold text-spring-900">Beta Version</p>
-                <p class="text-sm text-spring-800 mt-1">
+                <p class="text-sm font-semibold text-horizon-500">Beta Version</p>
+                <p class="text-sm text-horizon-500/80 mt-1">
                   This application is currently in beta. Any information entered may be deleted or altered without notice.
                 </p>
               </div>
@@ -98,7 +98,7 @@
         <div class="space-y-4">
           <div>
             <label for="email" class="label">
-              Email address
+              Email address <span class="text-raspberry-500">*</span>
             </label>
             <input
               id="email"
@@ -116,7 +116,7 @@
 
           <div>
             <label for="password" class="label">
-              Password
+              Password <span class="text-raspberry-500">*</span>
             </label>
             <input
               id="password"
@@ -161,14 +161,14 @@
 
       <!-- Links below the box -->
       <div class="mt-6 text-center space-y-3">
-        <a href="https://fynla.org" class="block text-sm font-medium text-horizon-500 hover:text-raspberry-500 transition-colors">
+        <router-link to="/" class="block text-sm font-medium text-white/85 hover:text-white transition-colors">
           Go to Fynla homepage
-        </a>
+        </router-link>
         <a
           href="https://docs.google.com/forms/d/e/1FAIpQLSds1-zixuMDTjkBCZ3lEl-q5NzA0pwXyvb8cJIuNrz2fwjSXg/viewform?usp=publish-editor"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-2 text-raspberry-500 hover:text-raspberry-700 font-medium text-sm"
+          class="inline-flex items-center gap-2 text-white/90 hover:text-white font-medium text-sm"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -389,3 +389,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.auth-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F3F3F3 100%);
+  border: 1px solid theme('colors.light-gray');
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 8px 40px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card :deep(.label) {
+  @apply text-horizon-500 mb-1;
+}
+
+.auth-card :deep(.input-field) {
+  @apply border-light-blue-500/40 focus:border-horizon-500 focus:ring-horizon-500 focus:ring-opacity-20;
+}
+</style>

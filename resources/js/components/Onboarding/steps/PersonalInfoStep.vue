@@ -1,106 +1,93 @@
 <template>
   <OnboardingStep
     title="Personal Information"
-    description="Tell us about yourself to help us tailor your estate plan"
+    description="Tell us about yourself to help us tailor your financial plan"
     :can-go-back="false"
     :can-skip="false"
+    :hide-nav="true"
     :loading="loading"
     :error="error"
     @next="handleNext"
   >
-    <div class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- First Name (from registration) -->
-        <div>
-          <label class="label">First Name</label>
-          <input
-            :value="formData.first_name"
-            type="text"
-            class="input-field bg-eggshell-500 cursor-not-allowed"
-            disabled
-          >
-          <p class="mt-1 text-body-sm text-neutral-500">From your registration</p>
-        </div>
-
-        <!-- Surname (from registration) -->
-        <div>
-          <label class="label">Surname</label>
-          <input
-            :value="formData.surname"
-            type="text"
-            class="input-field bg-eggshell-500 cursor-not-allowed"
-            disabled
-          >
-          <p class="mt-1 text-body-sm text-neutral-500">From your registration</p>
-        </div>
-
-        <!-- Email (from registration) -->
-        <div>
-          <label class="label">Email Address</label>
-          <input
-            :value="formData.email"
-            type="text"
-            class="input-field bg-eggshell-500 cursor-not-allowed"
-            disabled
-          >
-          <p class="mt-1 text-body-sm text-neutral-500">From your registration</p>
-        </div>
+    <div class="space-y-4">
+      <!-- First Name (pre-populated) -->
+      <div class="prepop-field" title="Pre-populated from your registration information">
+        <label class="onb-label">First Name</label>
+        <input :value="formData.first_name" type="text" class="onb-input prepop-input" disabled>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Date of Birth -->
-        <div>
-          <label for="date_of_birth" class="label">
-            Date of Birth          </label>
-          <input
-            id="date_of_birth"
-            v-model="formData.date_of_birth"
-            type="date"
-            class="input-field"
-            :max="maxDob"
-            :min="minDob"
-          >
-          <p class="mt-1 text-body-sm text-neutral-500">
-            Used for age-based calculations and projections. Check your <a :href="LINKS.GOV_STATE_PENSION_AGE" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">State Pension age</a>
-          </p>
-        </div>
+      <!-- Middle Name (editable — first empty field) -->
+      <div>
+        <label class="onb-label">
+          Middle Name
+          <span class="q-icon" @click="emitWhyField($event,'middle_name')" title="Why we ask this">?</span>
+        </label>
+        <input
+          v-model="formData.middle_name"
+          type="text"
+          class="onb-input"
+          placeholder="Enter your middle name (optional)"
+          @focus="emitWhyField($event,'middle_name')"
+        >
+      </div>
 
-        <!-- Gender -->
-        <div>
-          <label for="gender" class="label">
-            Gender          </label>
-          <select
-            id="gender"
-            v-model="formData.gender"
-            class="input-field"
-          >
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
+      <!-- Surname (pre-populated) -->
+      <div class="prepop-field" title="Pre-populated from your registration information">
+        <label class="onb-label">Surname</label>
+        <input :value="formData.surname" type="text" class="onb-input prepop-input" disabled>
+      </div>
 
-        <!-- Marital Status -->
-        <div v-if="isFieldVisible('marital_status')">
-          <label for="marital_status" class="label">
-            Marital Status          </label>
-          <select
-            id="marital_status"
-            v-model="formData.marital_status"
-            class="input-field"
-          >
-            <option value="">Select marital status</option>
-            <option value="single">Single</option>
-            <option value="married">Married</option>
-            <option value="divorced">Divorced</option>
-            <option value="widowed">Widowed</option>
-          </select>
-          <p class="mt-1 text-body-sm text-neutral-500">
-            Affects spouse exemption and transferable nil rate band
-          </p>
-        </div>
+      <!-- Email (pre-populated) -->
+      <div class="prepop-field" title="Pre-populated from your registration information">
+        <label class="onb-label">Email Address</label>
+        <input :value="formData.email" type="text" class="onb-input prepop-input" disabled>
+      </div>
 
+      <!-- Date of Birth -->
+      <div>
+        <label for="date_of_birth" class="onb-label">
+          Date of Birth
+          <span class="q-icon" @click="emitWhyField($event,'date_of_birth')" title="Why we ask this">?</span>
+        </label>
+        <input
+          id="date_of_birth"
+          v-model="formData.date_of_birth"
+          type="date"
+          class="onb-input"
+          :max="maxDob"
+          :min="minDob"
+          @focus="emitWhyField($event,'date_of_birth')"
+        >
+      </div>
+
+      <!-- Gender -->
+      <div>
+        <label for="gender" class="onb-label">
+          Gender
+          <span class="q-icon" @click="emitWhyField($event,'gender')" title="Why we ask this">?</span>
+        </label>
+        <select id="gender" v-model="formData.gender" class="onb-input" @focus="emitWhyField($event,'gender')">
+          <option value="">Select gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+          <option value="prefer_not_to_say">Prefer not to say</option>
+        </select>
+      </div>
+
+      <!-- Marital Status -->
+      <div v-if="isFieldVisible('marital_status')">
+        <label for="marital_status" class="onb-label">
+          Marital Status
+          <span class="q-icon" @click="emitWhyField($event,'marital_status')" title="Why we ask this">?</span>
+        </label>
+        <select id="marital_status" v-model="formData.marital_status" class="onb-input" @focus="emitWhyField($event,'marital_status')">
+          <option value="">Select marital status</option>
+          <option value="single">Single</option>
+          <option value="married">Married</option>
+          <option value="divorced">Divorced</option>
+          <option value="widowed">Widowed</option>
+        </select>
       </div>
 
       <!-- Address Section -->
@@ -111,66 +98,66 @@
 
         <div class="grid grid-cols-1 gap-4">
           <div>
-            <label for="address_line_1" class="label">
+            <label for="address_line_1" class="onb-label">
               Address Line 1            </label>
             <input
               id="address_line_1"
               v-model="formData.address_line_1"
               type="text"
-              class="input-field"
+              class="onb-input"
               
               placeholder="123 Test Street"
             >
           </div>
 
           <div>
-            <label for="address_line_2" class="label">
+            <label for="address_line_2" class="onb-label">
               Address Line 2
             </label>
             <input
               id="address_line_2"
               v-model="formData.address_line_2"
               type="text"
-              class="input-field"
+              class="onb-input"
               placeholder="Apartment, suite, etc. (optional)"
             >
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 gap-4">
             <div>
-              <label for="city" class="label">
+              <label for="city" class="onb-label">
                 City              </label>
               <input
                 id="city"
                 v-model="formData.city"
                 type="text"
-                class="input-field"
+                class="onb-input"
                 
                 placeholder="London"
               >
             </div>
 
             <div>
-              <label for="county" class="label">
+              <label for="county" class="onb-label">
                 County
               </label>
               <input
                 id="county"
                 v-model="formData.county"
                 type="text"
-                class="input-field"
+                class="onb-input"
                 placeholder="Greater London"
               >
             </div>
 
             <div>
-              <label for="postcode" class="label">
+              <label for="postcode" class="onb-label">
                 Postcode              </label>
               <input
                 id="postcode"
                 v-model="formData.postcode"
                 type="text"
-                class="input-field"
+                class="onb-input"
                 
                 placeholder="SW1A 1AA"
                 maxlength="8"
@@ -180,14 +167,14 @@
           </div>
 
           <div>
-            <label for="phone" class="label">
+            <label for="phone" class="onb-label">
               Phone Number
             </label>
             <input
               id="phone"
               v-model="formData.phone"
               type="tel"
-              class="input-field"
+              class="onb-input"
               placeholder="07700 900000"
             >
           </div>
@@ -199,16 +186,16 @@
         <h4 class="text-body font-medium text-horizon-500 mb-4">
           Health & Lifestyle Information
         </h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-4">
           <!-- Health Status -->
           <div>
-            <label for="health_status" class="label">
+            <label for="health_status" class="onb-label">
               Are you in good health?
             </label>
             <select
               id="health_status"
               v-model="formData.health_status"
-              class="input-field"
+              class="onb-input"
             >
               <option value="">Select...</option>
               <option value="yes">Yes</option>
@@ -217,20 +204,17 @@
               <option value="no_existing">No, existing health conditions</option>
               <option value="no_both">No, previous and existing health conditions</option>
             </select>
-            <p class="mt-1 text-body-sm text-neutral-500">
-              Affects protection insurance premiums
-            </p>
           </div>
 
           <!-- Smoking Status -->
           <div>
-            <label for="smoking_status" class="label">
+            <label for="smoking_status" class="onb-label">
               Do you smoke?
             </label>
             <select
               id="smoking_status"
               v-model="formData.smoking_status"
-              class="input-field"
+              class="onb-input"
             >
               <option value="">Select...</option>
               <option value="never">Never smoked</option>
@@ -238,20 +222,17 @@
               <option value="quit_long_ago">No, gave up more than 12 months ago</option>
               <option value="yes">Yes</option>
             </select>
-            <p class="mt-1 text-body-sm text-neutral-500">
-              Significantly impacts insurance premiums
-            </p>
           </div>
 
           <!-- Education Level -->
           <div>
-            <label for="education_level" class="label">
+            <label for="education_level" class="onb-label">
               Highest Education Level
             </label>
             <select
               id="education_level"
               v-model="formData.education_level"
-              class="input-field"
+              class="onb-input"
             >
               <option value="">Select...</option>
               <option value="secondary">Secondary (GCSE/O-Levels)</option>
@@ -261,9 +242,6 @@
               <option value="professional">Professional Qualification</option>
               <option value="other">Other</option>
             </select>
-            <p class="mt-1 text-body-sm text-neutral-500">
-              Optional - helps with occupation profiling
-            </p>
           </div>
         </div>
       </div>
@@ -289,7 +267,7 @@ export default {
     UsefulResources,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -301,6 +279,7 @@ export default {
     const currentUser = store.getters['auth/currentUser'];
     const formData = ref({
       first_name: currentUser?.first_name || '',
+      middle_name: currentUser?.middle_name || '',
       surname: currentUser?.surname || currentUser?.last_name || '',
       email: currentUser?.email || '',
       date_of_birth: '',
@@ -346,6 +325,47 @@ export default {
       formData.value.city = address.city || '';
       formData.value.county = address.county || '';
       formData.value.postcode = address.postcode || '';
+    };
+
+    const WHY_FIELD_DATA = {
+      middle_name: { whyWeAsk: 'Your middle name helps us match your identity accurately across financial accounts and official records.' },
+      date_of_birth: { whyWeAsk: 'Your date of birth affects pension eligibility, life expectancy projections, and State Pension age calculations.' },
+      gender: { whyWeAsk: 'Gender affects life expectancy projections, pension eligibility dates, and Lifetime ISA access rules.' },
+      marital_status: { whyWeAsk: 'Marital status affects spouse exemption, transferable nil rate band, and joint asset planning.' },
+      address_line_1: { whyWeAsk: 'Your address is used for regional tax calculations and property-related planning.' },
+      health_status: { whyWeAsk: 'Health status affects protection insurance premiums and life expectancy projections.' },
+      smoking_status: { whyWeAsk: 'Smoking status significantly impacts life insurance and income protection premiums.' },
+      education_level: { whyWeAsk: 'Education level helps with occupation profiling for income projections.' },
+    };
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      let fieldOffsetY = 0;
+      let inputEl = null;
+
+      if (event?.target) {
+        // Find the field's parent div (contains both label and input)
+        const fieldDiv = event.target.closest('div:not(.q-icon)');
+        // Get the input/select in this field group
+        inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select') || event.target;
+
+        // If the click was on the ? icon (not from focus), focus the input
+        if (event.type === 'click' && inputEl && !inputEl.disabled) {
+          inputEl.focus();
+        }
+
+        // Calculate input's vertical centre relative to form column
+        const formCol = (inputEl || event.target).closest('.flex-1');
+        if (formCol && inputEl) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
     };
 
     const handleNext = async () => {
@@ -438,6 +458,9 @@ export default {
       } catch (err) {
         // No existing step data, use pre-populated values from user table
       }
+
+      // Auto-emit why data for first empty field
+      emitWhyField(null, 'middle_name');
     });
 
     return {
@@ -450,9 +473,16 @@ export default {
       handleNext,
       handleAddressSelected,
       isFieldVisible,
+      emitWhyField,
       LINKS,
       STEP_RESOURCES,
     };
   },
 };
 </script>
+
+<style scoped>
+.prepop-field {
+  cursor: not-allowed;
+}
+</style>

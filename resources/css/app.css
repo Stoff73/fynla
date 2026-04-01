@@ -76,6 +76,23 @@
     @apply block text-body-sm font-medium text-neutral-500 mb-2;
   }
 
+  /* Onboarding-specific field styles */
+  .onb-label {
+    @apply flex items-center gap-1.5 text-sm font-semibold text-horizon-500 mb-1;
+  }
+
+  .onb-input {
+    @apply w-full px-4 py-2.5 bg-white border border-light-blue-500/40 rounded-lg text-horizon-500 placeholder-neutral-400 transition-all duration-150 focus:outline-none focus:border-horizon-500 focus:ring-2 focus:ring-horizon-500/20;
+  }
+
+  .onb-input.prepop-input {
+    @apply bg-neutral-200 text-neutral-400 cursor-not-allowed border-neutral-300;
+  }
+
+  .q-icon {
+    @apply w-[18px] h-[18px] rounded-full bg-neutral-300 text-white text-[11px] font-bold inline-flex items-center justify-center cursor-pointer transition-colors flex-shrink-0 hover:bg-horizon-500;
+  }
+
   .badge-success {
     @apply inline-flex items-center px-3 py-1 rounded-full text-body-sm font-medium bg-success-100 text-success-700;
   }

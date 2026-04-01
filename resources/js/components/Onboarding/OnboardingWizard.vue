@@ -1,20 +1,19 @@
 <template>
-  <div class="min-h-screen bg-eggshell-500">
+  <div class="min-h-screen onboarding-page">
     <!-- Top Navigation Bar -->
     <div class="bg-white border-b border-light-gray">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-        <router-link to="/dashboard" class="flex-shrink-0">
+        <router-link to="/" class="flex-shrink-0">
           <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="h-10" />
         </router-link>
-        <h1 class="text-base font-bold text-horizon-500 absolute left-1/2 -translate-x-1/2">Your Journey</h1>
         <router-link
           to="/dashboard"
           class="text-sm text-neutral-500 hover:text-horizon-500 transition-colors flex items-center gap-1"
         >
+          <span>Go to dashboard</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
-          <span class="hidden sm:inline">Exit</span>
         </router-link>
       </div>
     </div>
@@ -27,70 +26,64 @@
     <template v-if="isLifeStageMode && !showStageMap">
       <!-- Progress Bar -->
       <div v-if="lifeStageSteps.length > 0" class="max-w-6xl mx-auto mb-6">
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-light-gray p-5">
           <div class="overflow-x-auto scrollbar-hide">
-            <div class="flex items-start justify-between min-w-max px-2">
+            <div class="progress-track flex items-start justify-between min-w-max px-2">
               <div
                 v-for="(stepId, index) in lifeStageSteps"
                 :key="stepId"
                 class="flex-1 flex flex-col items-center relative min-w-[80px] cursor-pointer"
                 @click="goToStep(index)"
               >
-                <!-- Step Circle -->
+                <!-- Step Circle — larger, horizon blue -->
                 <div
-                  class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
+                  class="w-[52px] h-[52px] rounded-full flex items-center justify-center border-[3px] transition-all text-lg font-bold relative z-10"
                   :class="getLifeStageStepCircleClass(stepId, index)"
                 >
-                  <!-- Tick for complete (all fields filled) -->
-                  <svg v-if="getLifeStageStepStatus(stepId, index) === 'complete'" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg v-if="getLifeStageStepStatus(stepId, index) === 'complete'" class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                   </svg>
-                  <!-- Dash for skipped (no fields filled, already passed) -->
-                  <svg v-else-if="getLifeStageStepStatus(stepId, index) === 'skipped'" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg v-else-if="getLifeStageStepStatus(stepId, index) === 'skipped'" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
                   </svg>
-                  <!-- Partial indicator (some fields filled) -->
                   <span v-else-if="getLifeStageStepStatus(stepId, index) === 'partial'" class="text-xs font-bold text-white">
                     {{ getStepCompletenessPercentage(stepId) }}%
                   </span>
-                  <!-- Number for current/upcoming -->
-                  <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
+                  <span v-else>{{ index + 1 }}</span>
                 </div>
                 <!-- Step Label -->
                 <span
-                  class="text-xs mt-1.5 text-center leading-tight max-w-[70px]"
+                  class="text-xs mt-2 text-center leading-tight max-w-[70px]"
                   :class="getLifeStageStepLabelClass(stepId, index)"
                 >{{ getLifeStageStepLabel(stepId) }}</span>
-                <!-- Connecting Line -->
+                <!-- Connecting Line — blue for completed, grey for upcoming -->
                 <div
                   v-if="index < lifeStageSteps.length - 1"
-                  class="absolute h-0.5 top-[18px] left-1/2 -z-10"
+                  class="absolute h-1 top-[26px] left-1/2 z-0 rounded-full"
+                  :class="index < lifeStageCurrentIndex ? 'bg-horizon-500' : 'bg-neutral-300'"
                   :style="{ width: 'calc(100% - 20px)' }"
-                  :class="getLifeStageConnectingLineClass(index)"
                 ></div>
               </div>
             </div>
           </div>
           <!-- Skip to Dashboard -->
-          <div class="mt-3 text-center">
+          <div class="mt-5 pt-4 border-t border-light-gray text-center text-sm text-neutral-500">
+            Alternatively, you can skip and go straight to
             <button
               type="button"
-              class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
+              class="text-raspberry-500 hover:text-raspberry-700 underline font-medium transition-colors"
               @click="showSkipToDashboardModal = true"
-            >
-              Skip to Dashboard
-            </button>
+            >your dashboard</button>.
           </div>
         </div>
       </div>
 
-      <!-- Two-Column Layout -->
+      <!-- Full-Width Card with Sidebar Inside -->
       <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col lg:flex-row gap-6">
-          <!-- Left Column: Form -->
-          <div class="flex-1 min-w-0">
-            <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
-              <!-- No Transition wrapper: mode="out-in" causes stuck renders on async component swap -->
+        <div class="bg-white rounded-xl shadow-sm border border-light-gray overflow-hidden">
+          <div class="flex flex-col lg:flex-row">
+            <!-- Left: Form -->
+            <div class="flex-1 min-w-0 p-6 sm:p-8">
               <component
                 v-if="lifeStageCurrentComponent"
                 :is="lifeStageCurrentComponent"
@@ -108,59 +101,64 @@
                 <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
                 <p class="text-sm text-neutral-500">Loading step...</p>
               </div>
-
-              <!-- Navigation Buttons (hidden for deprecated steps that have their own nav) -->
-              <div v-if="!stepHasOwnNav" class="flex items-center justify-between mt-6 pt-6 border-t border-light-gray">
-                <button
-                  v-if="lifeStageCurrentIndex > 0"
-                  type="button"
-                  class="inline-flex items-center px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
-                  @click="handleLifeStageBack"
-                >
-                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back
-                </button>
-                <div v-else></div>
-
-                <div class="flex items-center gap-3">
-                  <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
-                    @click="handleLifeStageSkip"
-                  >
-                    Skip this step
-                  </button>
-                  <button
-                    type="button"
-                    class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors"
-                    @click="handleLifeStageNext"
-                  >
-                    Continue
-                    <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
             </div>
-          </div>
 
-          <!-- Right Column: Learning Sidebar + Useful Resources (desktop) -->
-          <div class="w-full lg:w-[340px] flex-shrink-0">
-            <div class="lg:sticky lg:top-8 space-y-4">
+            <!-- Right: Sidebar (inside card, light pink) -->
+            <div class="w-full lg:w-[320px] flex-shrink-0 bg-light-pink-100 border-t lg:border-t-0 lg:border-l border-light-gray p-6">
               <LearningMilestoneSidebar
                 :step="lifeStageCurrentStepId"
                 :stage="currentLifeStage"
                 :override="sidebarOverride"
-                class="rounded-lg shadow-sm border border-light-gray"
-              />
-              <UsefulResources
-                v-if="currentStepResources && currentStepResources.length"
-                :links="currentStepResources"
               />
             </div>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="flex items-center justify-between px-6 sm:px-8 py-5 border-t border-light-gray">
+            <button
+              type="button"
+              class="inline-flex items-center px-5 py-2.5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
+              @click="lifeStageCurrentIndex > 0 ? handleLifeStageBack() : showStageMap = true"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+
+            <div class="flex items-center gap-3">
+              <router-link
+                to="/dashboard"
+                class="text-sm text-neutral-500 hover:text-horizon-500 underline transition-colors"
+              >
+                Skip to dashboard
+              </router-link>
+              <button
+                type="button"
+                class="inline-flex items-center px-6 py-2.5 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors gap-1.5"
+                @click="handleLifeStageNext"
+              >
+                Continue
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Did You Know — full width below form card -->
+      <div v-if="currentDidYouKnow" class="max-w-6xl mx-auto mt-4">
+        <div class="bg-white rounded-xl shadow-sm border border-light-gray p-5 flex items-start gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-raspberry-500 to-raspberry-400 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-horizon-500 mb-1">Did you know?</p>
+            <p class="text-sm text-neutral-500 leading-relaxed">{{ currentDidYouKnow }}</p>
           </div>
         </div>
       </div>
@@ -528,10 +526,17 @@ export default {
       return resourceKey ? (STEP_RESOURCES[resourceKey] || null) : null;
     });
 
+    const currentDidYouKnow = computed(() => {
+      const stepId = lifeStageCurrentStepId.value;
+      if (!stepId) return null;
+      const milestone = store.getters['lifeStage/learningMilestone']?.(stepId);
+      return milestone?.didYouKnow || null;
+    });
+
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
     // Deprecated steps using OnboardingStep wrapper have their own Back/Skip/Continue nav
     const stepsWithOwnNav = [
-      'personal-info', 'student-loan',
+      'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
       'goals', 'assets', 'liabilities', 'protection-insurance',
@@ -637,15 +642,15 @@ export default {
 
       switch (status) {
         case 'current':
-          return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+          return 'bg-white border-horizon-500 text-horizon-500';
         case 'complete':
-          return 'bg-spring-500 border-spring-500 text-white';
+          return 'bg-horizon-500 border-horizon-500 text-white';
         case 'partial':
-          return 'bg-raspberry-500 border-spring-500 text-white';
+          return 'bg-horizon-500 border-horizon-500 text-white';
         case 'skipped':
-          return 'bg-raspberry-500 border-raspberry-500 text-white';
+          return 'bg-horizon-500 border-horizon-500 text-white';
         default: // upcoming
-          return 'bg-white border-light-gray text-neutral-500';
+          return 'bg-white border-neutral-300 text-neutral-500';
       }
     };
 
@@ -654,13 +659,13 @@ export default {
 
       switch (status) {
         case 'current':
-          return stageColourClasses.value.text + ' font-semibold';
+          return 'text-horizon-500 font-bold';
         case 'complete':
-          return 'text-spring-600';
+          return 'text-horizon-500';
         case 'partial':
-          return 'text-violet-600';
+          return 'text-horizon-500';
         case 'skipped':
-          return 'text-raspberry-500';
+          return 'text-neutral-500';
         default:
           return 'text-neutral-500';
       }
@@ -1360,6 +1365,7 @@ export default {
       savedStepData,
       sidebarOverride,
       currentStepResources,
+      currentDidYouKnow,
       stageColour,
       stageColourClasses,
       getLifeStageStepStatus,
@@ -1454,5 +1460,9 @@ export default {
   50% {
     box-shadow: 0 0 0 6px transparent;
   }
+}
+
+.onboarding-page {
+  @apply bg-gradient-to-br from-horizon-500 to-raspberry-500;
 }
 </style>
