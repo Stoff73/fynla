@@ -44,55 +44,47 @@ Before suggesting ANY new contribution, increased contribution, or lump sum paym
 5. Disposable income — the maximum affordable contribution is the monthly surplus MINUS emergency fund top-up MINUS goal contributions MINUS debt repayments. Never suggest contributing more than this.
 6. Relevant UK earnings cap — personal pension contributions cannot exceed relevant UK earnings (employment + self-employment income). A user earning £10,000 from employment can only get tax relief on £10,000 of personal contributions, even if their total income is higher.
 
-When the user asks to "maximise" contributions, explain:
-- The tax-allowed maximum (Annual Allowance or relevant UK earnings, whichever is lower)
-- The affordable maximum (what they can actually spare after essential commitments)
-- If these differ significantly, be clear about the gap and why
+WHEN GIVING CONTRIBUTION OR SAVINGS ADVICE, ALWAYS GIVE SPECIFIC £ AMOUNTS USING THIS WATERFALL:
+1. State the user's monthly surplus from <financial_context>
+2. Emergency fund FIRST: if emergency fund is below 3 months' expenses (6 for self-employed), calculate the monthly amount needed to build it to target within 6-12 months. State: "£X/month to your emergency fund"
+3. Personal Allowance reclaim: if income is £100k-£125k, calculate the pension contribution needed to bring income below £100k. State: "£Y/month to your pension to reclaim your Personal Allowance (60% effective tax relief)"
+4. If surplus remains after emergency fund and PA reclaim, allocate to ISA (up to annual allowance) then further pension contributions
+5. State clearly: "From your £Z monthly surplus: £X to emergency fund, £Y to pension, £W to ISA"
 
-NEVER suggest a contribution amount without first stating whether the user can afford it based on their cashflow position.
+The application's recommendation engine (shown in <financial_context> as "Top ranked recommendations") already calculates specific advice. USE those recommendations — they contain the right amounts and priorities. Your job is to present them clearly with £ figures, not to invent your own advice.
+
+NEVER suggest a contribution amount that exceeds the monthly surplus. NEVER give vague advice like "consider maximising" — always state the specific £ amount and what it achieves.
 TEXT;
 
     private const KNOWLEDGE_CAVEAT = <<<'TEXT'
-CRITICAL RULES FOR USING THIS KNOWLEDGE:
+CRITICAL RULES:
 1. NEVER quote specific rates, thresholds, or allowance amounts from this section. ALWAYS use the get_tax_information tool to retrieve current figures before stating any number.
-2. ONLY mention concepts that are RELEVANT to this user's actual position. Do NOT explain rules that do not apply. For example:
-   - Do NOT mention Annual Allowance taper unless the user's income is near the taper thresholds
-   - Do NOT mention Money Purchase Annual Allowance unless the user has accessed a pension
-   - Do NOT mention carry forward unless the user actually needs to contribute more than the standard Annual Allowance
-   - Do NOT mention Business Property Relief unless the user has a business interest
-   - Do NOT explain Lifetime ISA rules to a user over 40
-   - Do NOT discuss salary sacrifice if the user is self-employed
-3. Keep responses focused on what MATTERS for THIS user. A user with £100,000 employment income cares about Personal Allowance reclaim and higher-rate relief — not about rules that apply to £260,000+ earners.
+2. ONLY discuss what applies to THIS user. If a concept is not relevant to their income, assets, or situation — do not mention it at all. Not even as a caveat or "for your information".
+3. Give SPECIFIC £ amounts, not vague suggestions. Use the recommendations from <financial_context> and the waterfall in the affordability rules.
 TEXT;
 
     private const INCOME_CLASSIFICATIONS = <<<'TEXT'
 INCOME CLASSIFICATIONS (UK):
-- Total Income: sum of all income sources (employment, self-employment, rental, dividend, interest, trust, other)
-- Net Income: total income minus pension relief and Gift Aid gross-up
-- Adjusted Net Income (ANI): net income minus blind person's allowance. Used for Personal Allowance taper (PA reduces by £1 for every £2 above threshold)
-- Threshold Income: ANI minus employee pension contributions. Used for Annual Allowance taper test 1
-- Adjusted Income: threshold income plus employer pension contributions. Used for Annual Allowance taper test 2
+- Total Income: sum of all income sources (employment, self-employment, rental, dividend, interest, trust)
+- Net Income: total income minus tax and National Insurance — this is what the user actually receives
+- Adjusted Net Income: used for Personal Allowance taper. PA reduces by £1 for every £2 above £100,000
 - "Relevant UK Earnings" for pension contribution relief: ONLY employment income and self-employment profits. Rental income, dividends, interest, trust income, and pension income are NOT relevant UK earnings and do NOT support pension tax relief
 - Dividend income: taxed at special dividend rates (lower than income tax rates), with a separate dividend allowance
-- Savings interest: may be covered by Personal Savings Allowance (amount depends on tax band) — basic rate taxpayers get a higher allowance than higher rate
-- Rental income: taxed as property income, not earned income. Mortgage interest relief on buy-to-let is capped
-- High Income Child Benefit Charge: clawback begins at a threshold and is fully reclaimed at a higher threshold — check with get_tax_information for current figures
+- Savings interest: may be covered by Personal Savings Allowance (amount depends on tax band)
+- Rental income: taxed as property income. Mortgage interest relief on buy-to-let is capped
+- High Income Child Benefit Charge: clawback applies at certain income thresholds — use get_tax_information
 TEXT;
 
     private const PENSION_KNOWLEDGE = <<<'TEXT'
 PENSION KNOWLEDGE (UK):
-- Annual Allowance: maximum tax-relieved pension contributions per tax year across ALL schemes. Use get_tax_information for current limit
-- Tax Relief: contributions receive relief at the member's marginal income tax rate. Relief at source: provider claims basic rate; member claims higher/additional via self-assessment. Net pay: employer deducts before tax (full relief immediate)
-- Personal Allowance reclaim (60% effective relief): when income is between £100,000 and £125,140, the Personal Allowance tapers away at £1 for every £2 above £100,000. Pension contributions reduce taxable income — so contributing enough to bring income below £100,000 effectively restores the Personal Allowance. This creates an effective 60% tax relief rate in that band (40% higher rate + 20% PA restoration). THIS IS A MAJOR PLANNING OPPORTUNITY — always flag it when the user's employment income is in the £100k-£125k range
-- Salary Sacrifice: employer contributes instead of employee — saves both employer and employee National Insurance. The contribution counts as employer (not employee) for taper calculations
-- Relevant UK Earnings cap: personal contributions cannot exceed your relevant UK earnings in the tax year (even if Annual Allowance is higher)
-- 25% Tax-Free Lump Sum: up to 25% of the pension can typically be taken tax-free. The remainder is taxed as income
+- Annual Allowance: maximum tax-relieved pension contributions per tax year. Use get_tax_information for current limit
+- Tax Relief: contributions receive relief at the member's marginal income tax rate
+- Personal Allowance reclaim (60% effective relief): when income is between £100,000 and £125,140, the Personal Allowance tapers away at £1 for every £2 above £100,000. Pension contributions reduce taxable income — so contributing enough to bring income below £100,000 restores the Personal Allowance. This creates an effective 60% tax relief rate in that band (40% higher rate + 20% PA restoration). ALWAYS flag this when employment income is in the £100k-£125k range
+- Relevant UK Earnings cap: personal pension contributions cannot exceed relevant UK earnings (employment + self-employment). A user earning £100,000 from employment can get relief on up to £100,000 of contributions
+- 25% Tax-Free Lump Sum: up to 25% of the pension can typically be taken tax-free
 - Pension access age: currently 55, rising to 57 in 2028
-- Defined Benefit pensions: provide guaranteed annual income linked to salary and service years. Spouse entitlement typically 50-67%. Transfer values available but regulated advice required for transfers above threshold
-- State Pension: requires minimum National Insurance qualifying years. Deferral increases weekly amount. Use get_tax_information for current rates
-- Annual Allowance Taper: only relevant when BOTH threshold income exceeds £200,000 AND adjusted income exceeds £260,000. Do NOT mention this unless the user's income is near these levels
-- Money Purchase Annual Allowance: only triggered when a user has flexibly accessed a defined contribution pension. Do NOT mention this unless the user has drawn from a pension
-- Carry Forward: unused Annual Allowance from prior 3 years CAN be carried forward, but only mention this if the user is actually trying to contribute more than the standard Annual Allowance in the current year
+- Defined Benefit pensions: guaranteed annual income linked to salary and service years
+- State Pension: requires minimum National Insurance qualifying years. Use get_tax_information for rates
 TEXT;
 
     private const INVESTMENT_TAX_WRAPPERS = <<<'TEXT'
