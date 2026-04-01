@@ -1032,6 +1032,13 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('/ai-provider', [\App\Http\Controllers\Api\AdminController::class, 'getAiProvider']);
     Route::post('/ai-provider', [\App\Http\Controllers\Api\AdminController::class, 'setAiProvider']);
 
+    // AI Audit trail
+    Route::prefix('ai-audit')->group(function () {
+        Route::get('/users', [\App\Http\Controllers\Api\AiAuditController::class, 'users']);
+        Route::get('/users/{userId}/conversations', [\App\Http\Controllers\Api\AiAuditController::class, 'conversations']);
+        Route::get('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\AiAuditController::class, 'messages']);
+    });
+
     // Database backup - list (read-only, no rate limit)
     Route::middleware(['permission:admin.backup'])->group(function () {
         Route::get('/backup/list', [\App\Http\Controllers\Api\AdminController::class, 'listBackups']);

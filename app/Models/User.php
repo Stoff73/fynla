@@ -559,6 +559,11 @@ class User extends Authenticatable
         return $this->hasMany(Goal::class);
     }
 
+    public function aiConversations(): HasMany
+    {
+        return $this->hasMany(AiConversation::class);
+    }
+
     /**
      * Get clients managed by this advisor.
      */

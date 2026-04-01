@@ -440,11 +440,12 @@ trait HasAiChat
             $messageMetadata['validation_violations'] = $violations;
         }
 
-        // Save assistant message
+        // Save assistant message with system prompt for audit trail
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $fullResponse, array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
+            'system_prompt' => $systemPrompt,
         ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []));
 
         // Update conversation token usage
