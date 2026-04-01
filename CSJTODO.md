@@ -1,7 +1,42 @@
 # CSJTODO — Fynla
 
-*Last updated: 1 April 2026 — session 25*
-*Previous session: 1 April 2026 session 24*
+*Last updated: 1 April 2026 — session 26*
+*Previous session: 1 April 2026 session 25*
+
+---
+
+## Session 26 (1 April) — Fyn AI Field Fixes + Card Overflow Fix
+
+### Completed This Session
+- [x] **19 wrong field names fixed in Fyn AI context** — mortgages, DC pensions, business interests, chattels, life insurance all reading £0/blank
+- [x] Root cause: SystemPromptBuilder, HasAiChat, CoordinatingAgent used non-existent model attributes (e.g. `current_balance` instead of `outstanding_balance` on Mortgage)
+- [x] Field alias mapping added to `handleUpdateRecord()` so Fyn updates don't silently drop fields
+- [x] Full audit of every model field reference across all AI files — verified correct against DB columns
+- [x] **Deployed to production** (3 PHP files via SSH sed) and **production tested**:
+  - Mortgage: Fyn now shows £200,000 mortgage and £150,000 equity (was "no mortgage recorded")
+  - Rental income: Fyn shows £900/mo with 50% joint share correctly
+  - Joint vs individual: Fyn distinguishes ownership shares per property
+  - Pension contributions: Fyn identifies employment income as relevant UK earnings
+  - Acronyms: All spelled out (Annual Exempt Amount, not AEA)
+  - IDs: No record IDs leaked in any response
+- [x] **Card text overflow fix** (UI branch) — global `overflow-hidden` + `break-word` on all card variants, DecisionTreeDiagram and DecisionTraceTimeline fixed
+
+### Known Issues (from fynTest.pdf — ALL RESOLVED)
+- [x] Fyn showing record IDs — FIXED (session 25, StructuredResponseValidator)
+- [x] Fyn using acronyms (AEA) — FIXED (session 25, banned acronym list)
+- [x] Fyn leaking [Context:] blocks — FIXED (session 25, sanitiser)
+- [x] Fyn not picking up rental income — FIXED (session 26, `monthly_rental_income` was working, data didn't exist on chris account — confirmed working after adding BTL via Fyn)
+- [x] Fyn not distinguishing joint vs individual property ownership — FIXED (session 26, ownership percentage now in context)
+- [x] Fyn giving incorrect pension contribution recs — FIXED (session 26, employment income correctly identified as relevant UK earnings)
+- [x] Fyn thinks user doesn't have mortgages — FIXED (session 26, `outstanding_balance` field fix)
+
+### Deploy Status
+- **main branch**: Fyn field fixes deployed to production (3 PHP files via sed)
+- **UI branch**: Card overflow fix — built locally, needs `public/build/` uploaded to production
+- Deploy notes: `April/April1Updates/fynFieldFixes.md`
+
+### Context for Next Session
+All fynTest.pdf issues resolved. UI branch has card overflow fix ready to deploy (build done, upload `public/build/`). The UI branch should be merged to main after deploying. Version is still v0.9.4 — version bump to v0.9.5 not yet done in Footer/Version.vue.
 
 ---
 
@@ -22,22 +57,6 @@
 - [x] Production verified: routes registered, migrations run, caches cleared
 - [x] Production tested: Fyn responded with no leaked IDs, no acronyms, no [Context:] blocks
 - [x] UserMetricsServiceTest date edge case fixed
-
-### Known Issues (from fynTest.pdf — partially addressed)
-- [x] Fyn showing record IDs — FIXED by StructuredResponseValidator sanitiser
-- [x] Fyn using acronyms (AEA) — FIXED by banned acronym list in validator
-- [x] Fyn leaking [Context:] blocks — FIXED by sanitiser stripping them
-- [ ] Fyn not picking up rental income from BTL property — needs investigation (may be data issue on specific user account)
-- [ ] Fyn showing total property value without distinguishing joint vs individual ownership — prompt rules exist but AI may not always follow them
-- [ ] Fyn giving incorrect pension contribution recs (can't distinguish employment vs other income) — income classification in prompt but AI interpretation varies
-
-### Deploy Status
-- **DEPLOYED to production** — v0.9.5
-- Deploy notes: `April/April1Updates/fynUpgradeDeploy.md`
-- Patch notes: `April/April1Updates/fynUpgradePatchNotes.md`
-
-### Context for Next Session
-Deployed and production-tested. Three remaining issues from fynTest.pdf need investigation: rental income not picked up (data vs prompt issue), joint property ownership display, and pension contribution recommendations for mixed income types. The AI Audit Dashboard is live at /admin → AI dropdown → AI Audit — use it to verify Fyn's responses going forward. Version bump to v0.9.5 not yet done in Footer/Version.vue.
 
 ---
 
@@ -105,13 +124,14 @@ Deployed and production-tested. Three remaining issues from fynTest.pdf need inv
 
 ## Deploy Status
 
-### All Through PR #177 — DEPLOYED & VERIFIED (v0.9.4)
-- PR #175: Feature gating — deployed, production tested
-- PR #176: Journey links + security fix — deployed, production tested
-- PR #177: Resource pages redesign — merged 1 April, deployed, production tested (0 console errors)
-- Version bumped to v0.9.4, patch notes on /version page
-- Deploy notes: April/April1Updates/deployNotes.md
+### main branch — Fyn field fixes DEPLOYED (v0.9.4)
+- 3 PHP files deployed via SSH sed to production
+- All fynTest.pdf issues verified fixed on production
+
+### UI branch — Card overflow fix PENDING DEPLOY
+- Build done locally, `public/build/` needs uploading
+- 3 frontend files changed (app.css, DecisionTreeDiagram.vue, DecisionTraceTimeline.vue)
 
 ## Context for Next Session
 
-All work deployed and production tested at v0.9.4. Next priorities: recurring billing (Revolut auto-renewal), tech debt (god classes), contact form mail config on production, sitemap submission to Google Search Console, or whatever the user wants to work on.
+All fynTest.pdf issues resolved and production tested. UI branch card overflow fix built and ready to upload. Merge UI → main after deploying. Version bump to v0.9.5 still pending.
