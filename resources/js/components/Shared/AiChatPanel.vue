@@ -217,6 +217,9 @@
             </div>
           </template>
 
+          <!-- Spacer to allow last message to scroll to top of container -->
+          <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
+
           <!-- Error message -->
           <div v-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
             {{ error }}
@@ -384,6 +387,9 @@
             </span>
           </div>
         </div>
+
+        <!-- Spacer to allow last message to scroll to top of container -->
+        <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
       </div>
 
       <!-- Stop streaming button (docked) -->
@@ -648,8 +654,7 @@ export default {
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
-                const self = this;
-                setTimeout(() => { self.scrollToBottom(); }, 100);
+                this.$nextTick(() => this.scrollToBottom());
             } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
                 this.$nextTick(() => this.scrollToLastAssistantMessage());
             }
@@ -657,6 +662,16 @@ export default {
 
         streaming(isStreaming) {
             if (isStreaming) {
+                // Scroll user message to top now that thinking indicator is in the DOM
+                this.$nextTick(() => {
+                    const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+                    if (!container) return;
+                    const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
+                    const lastBubble = userBubbles[userBubbles.length - 1];
+                    if (lastBubble && lastBubble.parentElement) {
+                        container.scrollTop = lastBubble.parentElement.offsetTop - 8;
+                    }
+                });
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
                 this._thinkingTimer = setInterval(() => {
@@ -821,15 +836,13 @@ export default {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (!container) return;
 
-            // Find the last user message and scroll it to the top of the chat area
-            const userMessages = container.querySelectorAll('.flex.justify-end');
-            const lastUser = userMessages[userMessages.length - 1];
+            // Find the last user message bubble (raspberry bg) and scroll its parent to the top
+            const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
+            const lastBubble = userBubbles[userBubbles.length - 1];
 
-            if (lastUser) {
-                const containerRect = container.getBoundingClientRect();
-                const messageRect = lastUser.getBoundingClientRect();
-                const offset = messageRect.top - containerRect.top + container.scrollTop - 8;
-                container.scrollTop = offset;
+            if (lastBubble) {
+                const messageRow = lastBubble.parentElement;
+                container.scrollTop = messageRow.offsetTop - 8;
             } else {
                 container.scrollTop = container.scrollHeight;
             }
