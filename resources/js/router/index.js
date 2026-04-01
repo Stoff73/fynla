@@ -319,6 +319,10 @@ const routes = [
   { path: '/compare/fynla-vs-financial-planning-platform', name: 'CompareProjectionLab', component: FynlaVsProjectionLabPage, meta: { public: true } },
   { path: '/compare/fynla-vs-financial-investment-platform', name: 'CompareVoyant', component: FynlaVsVoyantPage, meta: { public: true } },
   { path: '/compare/fynla-vs-financial-centralisation-platform', name: 'CompareMoneyhub', component: FynlaVsMoneyhubPage, meta: { public: true } },
+  // Old comparison slugs → redirects
+  { path: '/compare/fynla-vs-projectionlab', redirect: '/compare/fynla-vs-financial-planning-platform' },
+  { path: '/compare/fynla-vs-voyant', redirect: '/compare/fynla-vs-financial-investment-platform' },
+  { path: '/compare/fynla-vs-moneyhub', redirect: '/compare/fynla-vs-financial-centralisation-platform' },
   { path: '/compare/fynla-vs-spreadsheets', name: 'CompareSpreadsheets', component: FynlaVsSpreadsheetsPage, meta: { public: true } },
   { path: '/compare/best-financial-planning-tools-uk', name: 'CompareBest', component: BestFinancialPlanningToolsPage, meta: { public: true } },
   { path: '/compare/fynla-vs-moneyhelper', name: 'CompareMoneyHelper', component: FynlaVsMoneyHelperPage, meta: { public: true } },

@@ -32,6 +32,9 @@ class SecurityHeaders
         // Revolut embedded checkout loads embed.js from CDN, uses iframes, and makes API calls
         $revolut = 'https://sandbox-merchant.revolut.com https://merchant.revolut.com https://sandbox-assets.revolut.com https://assets.revolut.com';
 
+        // Google Analytics (gtag.js loads from googletagmanager.com, sends data to *.google-analytics.com)
+        $ga = 'https://www.googletagmanager.com https://*.google-analytics.com';
+
         // Plausible analytics - only widen CSP surface when analytics are enabled
         $plausible = config('analytics.enabled') ? 'https://plausible.io' : '';
 
@@ -41,11 +44,11 @@ class SecurityHeaders
         // In local dev, Vite serves assets from localhost:5173 and uses WebSocket for HMR
         if (app()->environment('local')) {
             $vite = 'http://localhost:5173 ws://localhost:5173 http://127.0.0.1:5173 ws://127.0.0.1:5173 http://localhost:5174 ws://localhost:5174 http://127.0.0.1:5174 ws://127.0.0.1:5174';
-            $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut} {$plausible}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite} {$revolut}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut} {$plausible} {$capacitor}; frame-src 'self' {$revolut}";
+            $csp = "default-src 'self' {$vite}; script-src 'self' 'unsafe-inline' {$vite} {$revolut} {$plausible} {$ga}; style-src 'self' 'unsafe-inline' {$vite} https://fonts.googleapis.com; img-src 'self' data: blob: {$vite} {$revolut} {$ga}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$vite} {$revolut} {$plausible} {$capacitor} {$ga}; frame-src 'self' {$revolut}";
         } else {
             // Production CSP — 'unsafe-inline' required for Revolut checkout SDK and Plausible analytics.
             // TODO: Migrate to nonce-based CSP when Revolut SDK supports it (tracks Revolut SDK changelog).
-            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' {$revolut} {$plausible}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: {$revolut}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$revolut} {$plausible} {$capacitor}; frame-src 'self' {$revolut}";
+            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' {$revolut} {$plausible} {$ga}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: {$revolut} {$ga}; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' {$revolut} {$plausible} {$capacitor} {$ga}; frame-src 'self' {$revolut}";
         }
 
         $response->headers->set('Content-Security-Policy', $csp);
