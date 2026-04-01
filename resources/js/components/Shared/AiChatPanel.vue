@@ -806,9 +806,32 @@ export default {
             await this.sendMessage(message);
         },
 
-        sendSuggested(prompt) {
-            this.inputMessage = prompt;
-            this.send();
+        async sendSuggested(prompt) {
+            const message = prompt.trim();
+            if (!message || this.streaming || this.loading) return;
+
+            this.inputMessage = '';
+
+            const navMatch = matchNavigationIntent(message);
+            if (navMatch) {
+                this.$store.commit('aiChat/ADD_MESSAGE', {
+                    id: 'user_' + Date.now(),
+                    role: 'user',
+                    content: message,
+                    created_at: new Date().toISOString(),
+                });
+                this.$store.commit('aiChat/ADD_MESSAGE', {
+                    id: 'nav_' + Date.now(),
+                    role: 'assistant',
+                    content: navMatch.response,
+                    created_at: new Date().toISOString(),
+                });
+                this.handleNavigation(navMatch.route);
+                return;
+            }
+
+            analyticsService.trackChatMessageSent(message.length);
+            await this.sendMessage(message);
         },
 
         handleNavigation(routePath) {
