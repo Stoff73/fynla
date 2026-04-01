@@ -648,7 +648,7 @@ export default {
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
-                this.$nextTick(() => this.scrollToBottom());
+                this.$nextTick(() => this.scrollToLastUserMessage());
             } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
                 this.$nextTick(() => this.scrollToLastAssistantMessage());
             }
@@ -814,6 +814,24 @@ export default {
         scrollToBottom() {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        },
+
+        scrollToLastUserMessage() {
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+            if (!container) return;
+
+            // Find the last user message and scroll it to the top of the chat area
+            const userMessages = container.querySelectorAll('.flex.justify-end');
+            const lastUser = userMessages[userMessages.length - 1];
+
+            if (lastUser) {
+                const containerRect = container.getBoundingClientRect();
+                const messageRect = lastUser.getBoundingClientRect();
+                const offset = messageRect.top - containerRect.top + container.scrollTop - 8;
+                container.scrollTop = offset;
+            } else {
                 container.scrollTop = container.scrollHeight;
             }
         },
