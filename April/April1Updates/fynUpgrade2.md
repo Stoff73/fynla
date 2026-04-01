@@ -106,6 +106,23 @@ QueryClassifier::classify("How do I maximise my pension contributions?", "/dashb
 
 **When `holistic_health` is primary, ALL modules are related — this is the full review.**
 
+**CRITICAL — `data_entry` and `navigation` bypass EVERYTHING:**
+
+The FCA 6-step process, KYC gates, mandatory tool sequences, knowledge retrieval, and decision tree binding ONLY apply to ADVICE queries. When the user is adding data or navigating, Fyn must work exactly as it does today:
+
+- `data_entry` — user says "I have a SIPP with £50,000" or "I earn £100,000" → call the create/update tool IMMEDIATELY in the first response. No KYC check, no knowledge injection, no mandatory tools. Just create/update the record and confirm.
+- `navigation` — user says "take me to my property page" → call navigate_to_page immediately. No processing.
+- `update` — user says "update my ISA balance to £15,000" → call update_record immediately.
+
+These query types get the EXISTING prompt behaviour (Layer 10 context + tool usage rules) without any of the new FCA layers. The current `<data_creation_guidance>` and `<available_actions>` blocks move into Layer 10 unchanged.
+
+The classifier must distinguish between:
+- "I have a pension" → `data_entry` (adding data, no advice needed)
+- "How much should I put in my pension?" → `retirement_contribution` (advice needed, full FCA process)
+- "What pension do I have?" → `general` (factual query, just list records)
+
+This separation is the FIRST check in the classifier. If the message is data entry or navigation, skip all FCA processing entirely.
+
 ### C. KYC Gates — Data Check Before Advice
 
 Pre-computed in PHP, injected into prompt as `<kyc_status>`. Plain text, no icons.
