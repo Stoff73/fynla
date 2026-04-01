@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\FcaProcessInstructions;
+use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\PrerequisiteGateService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
@@ -74,12 +75,12 @@ class SystemPromptBuilder
         $profile = $this->buildUserProfile($user);
         $layers[] = "<user_profile>\n{$profile}\n</user_profile>";
 
-        // Layer 5: Financial Position (DYNAMIC/user)
-        $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis);
+        // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification
+        $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
         $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
 
-        // Layer 6: Existing Records (DYNAMIC/query)
-        $existingRecords = $this->buildExistingRecordsSummary($user);
+        // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification
+        $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
         $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
 
         // Layer 7: Data Completeness (DYNAMIC/user)
@@ -178,9 +179,9 @@ class SystemPromptBuilder
 
     // ─── Layer 5: Financial Context ──────────────────────────────────
 
-    public function buildFinancialContext(User $user, ?callable $orchestrateAnalysis = null): string
+    public function buildFinancialContext(User $user, ?callable $orchestrateAnalysis = null, ?array $classification = null): string
     {
-        return Cache::remember("ai_financial_context_{$user->id}", 120, function () use ($user, $orchestrateAnalysis) {
+        return Cache::remember("ai_financial_context_{$user->id}", 120, function () use ($user, $orchestrateAnalysis, $classification) {
             if (! $orchestrateAnalysis) {
                 return 'Financial context unavailable — analysis service not provided.';
             }
@@ -314,8 +315,18 @@ class SystemPromptBuilder
                 }
             }
 
-            // Ranked recommendations with decision traces
+            // Ranked recommendations with decision traces — filtered by classification
             $recommendations = $analysis['ranked_recommendations'] ?? [];
+            if ($classification !== null && ! empty($recommendations)) {
+                $relevantModules = QuerySchemas::getModulesForClassification($classification);
+                if (! empty($relevantModules)) {
+                    $recommendations = array_filter($recommendations, function ($rec) use ($relevantModules) {
+                        $recModule = $rec['module'] ?? '';
+                        return $recModule === '' || in_array($recModule, $relevantModules, true);
+                    });
+                    $recommendations = array_values($recommendations);
+                }
+            }
             if (! empty($recommendations)) {
                 $top = array_slice($recommendations, 0, 5);
                 $lines[] = '';
@@ -411,127 +422,159 @@ class SystemPromptBuilder
 
     // ─── Layer 6: Existing Records ───────────────────────────────────
 
-    public function buildExistingRecordsSummary(User $user): string
+    public function buildExistingRecordsSummary(User $user, ?array $classification = null): string
     {
-        return Cache::remember("ai_existing_records_{$user->id}", 60, function () use ($user) {
+        return Cache::remember("ai_existing_records_{$user->id}", 60, function () use ($user, $classification) {
             $lines = [];
             $userId = $user->id;
 
+            // Determine which record types to include based on classification
+            $relevantTypes = $this->getRelevantRecordTypes($classification);
+            $include = fn (string $type) => $relevantTypes === null || in_array($type, $relevantTypes, true);
+
             // Savings
-            $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-            if ($savings->isNotEmpty()) {
-                $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}" . ($a->is_isa ? ' ISA(tax-free)' : '') . ' £' . number_format((float) $a->current_balance, 0) . ']')->implode(' ');
-                $lines[] = "SAVINGS: {$items}";
+            if ($include('savings_account')) {
+                $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                if ($savings->isNotEmpty()) {
+                    $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}" . ($a->is_isa ? ' ISA(tax-free)' : '') . ' £' . number_format((float) $a->current_balance, 0) . ']')->implode(' ');
+                    $lines[] = "SAVINGS: {$items}";
+                }
             }
 
             // Investments
-            $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-            if ($investments->isNotEmpty()) {
-                $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" " . $this->formatInvestmentAccountType($a->account_type) . ' £' . number_format((float) $a->current_value, 0) . ']')->implode(' ');
-                $lines[] = "INVESTMENTS: {$items}";
+            if ($include('investment_account')) {
+                $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                if ($investments->isNotEmpty()) {
+                    $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" " . $this->formatInvestmentAccountType($a->account_type) . ' £' . number_format((float) $a->current_value, 0) . ']')->implode(' ');
+                    $lines[] = "INVESTMENTS: {$items}";
+                }
             }
 
             // DC Pensions
-            $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
-            if ($dcPensions->isNotEmpty()) {
-                $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £" . number_format((float) $p->current_value, 0) . ']')->implode(' ');
-                $lines[] = "DC PENSIONS: {$items}";
+            if ($include('dc_pension')) {
+                $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
+                if ($dcPensions->isNotEmpty()) {
+                    $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £" . number_format((float) $p->current_value, 0) . ']')->implode(' ');
+                    $lines[] = "DC PENSIONS: {$items}";
+                }
             }
 
             // DB Pensions
-            $dbPensions = \App\Models\DBPension::where('user_id', $userId)->get();
-            if ($dbPensions->isNotEmpty()) {
-                $items = $dbPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" £" . number_format((float) ($p->accrued_annual_pension ?? 0), 0) . '/yr]')->implode(' ');
-                $lines[] = "DB PENSIONS: {$items}";
+            if ($include('db_pension')) {
+                $dbPensions = \App\Models\DBPension::where('user_id', $userId)->get();
+                if ($dbPensions->isNotEmpty()) {
+                    $items = $dbPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" £" . number_format((float) ($p->accrued_annual_pension ?? 0), 0) . '/yr]')->implode(' ');
+                    $lines[] = "DB PENSIONS: {$items}";
+                }
             }
 
             // Properties
-            $properties = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-            if ($properties->isNotEmpty()) {
-                $items = $properties->map(function ($p) use ($userId) {
-                    $value = number_format((float) $p->current_value, 0);
-                    $ownershipPct = $p->joint_owner_id ? (int) ($p->user_id === $userId ? $p->ownership_percentage : (100 - $p->ownership_percentage)) : 100;
-                    $ownershipLabel = $ownershipPct < 100 ? " {$ownershipPct}%owned" : '';
-                    $mortgageTotal = $p->mortgages->sum('current_balance');
-                    $mortgageLabel = $mortgageTotal > 0 ? ' mortgage:£' . number_format((float) $mortgageTotal, 0) : '';
-                    $rentalLabel = $p->property_type === 'buy_to_let' && $p->monthly_rental_income > 0
-                        ? ' rent:£' . number_format((float) $p->monthly_rental_income, 0) . '/mo'
-                        : '';
+            if ($include('property') || $include('mortgage')) {
+                $properties = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                if ($properties->isNotEmpty()) {
+                    $items = $properties->map(function ($p) use ($userId) {
+                        $value = number_format((float) $p->current_value, 0);
+                        $ownershipPct = $p->joint_owner_id ? (int) ($p->user_id === $userId ? $p->ownership_percentage : (100 - $p->ownership_percentage)) : 100;
+                        $ownershipLabel = $ownershipPct < 100 ? " {$ownershipPct}%owned" : '';
+                        $mortgageTotal = $p->mortgages->sum('current_balance');
+                        $mortgageLabel = $mortgageTotal > 0 ? ' mortgage:£' . number_format((float) $mortgageTotal, 0) : '';
+                        $rentalLabel = $p->property_type === 'buy_to_let' && $p->monthly_rental_income > 0
+                            ? ' rent:£' . number_format((float) $p->monthly_rental_income, 0) . '/mo'
+                            : '';
 
-                    return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}{$ownershipLabel}{$mortgageLabel}{$rentalLabel} £{$value}]";
-                })->implode(' ');
-                $lines[] = "PROPERTIES: {$items}";
+                        return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}{$ownershipLabel}{$mortgageLabel}{$rentalLabel} £{$value}]";
+                    })->implode(' ');
+                    $lines[] = "PROPERTIES: {$items}";
+                }
             }
 
             // Life Insurance
-            $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
-            if ($lifePolicies->isNotEmpty()) {
-                $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->life_policy_type} £" . number_format((float) $p->sum_assured, 0) . ']')->implode(' ');
-                $lines[] = "LIFE INSURANCE: {$items}";
+            if ($include('life_insurance')) {
+                $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+                if ($lifePolicies->isNotEmpty()) {
+                    $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->life_policy_type} £" . number_format((float) $p->sum_assured, 0) . ']')->implode(' ');
+                    $lines[] = "LIFE INSURANCE: {$items}";
+                }
             }
 
             // Critical Illness
-            $ciPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
-            if ($ciPolicies->isNotEmpty()) {
-                $items = $ciPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £" . number_format((float) $p->sum_assured, 0) . ']')->implode(' ');
-                $lines[] = "CRITICAL ILLNESS: {$items}";
+            if ($include('critical_illness')) {
+                $ciPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+                if ($ciPolicies->isNotEmpty()) {
+                    $items = $ciPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £" . number_format((float) $p->sum_assured, 0) . ']')->implode(' ');
+                    $lines[] = "CRITICAL ILLNESS: {$items}";
+                }
             }
 
             // Income Protection
-            $ipPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
-            if ($ipPolicies->isNotEmpty()) {
-                $items = $ipPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £" . number_format((float) $p->benefit_amount, 0) . '/mo]')->implode(' ');
-                $lines[] = "INCOME PROTECTION: {$items}";
+            if ($include('income_protection')) {
+                $ipPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+                if ($ipPolicies->isNotEmpty()) {
+                    $items = $ipPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £" . number_format((float) $p->benefit_amount, 0) . '/mo]')->implode(' ');
+                    $lines[] = "INCOME PROTECTION: {$items}";
+                }
             }
 
             // Trusts
-            $trusts = \App\Models\Estate\Trust::where('user_id', $userId)->get();
-            if ($trusts->isNotEmpty()) {
-                $items = $trusts->map(fn ($t) => "[ID:{$t->id} \"{$t->trust_name}\" {$t->trust_type} £" . number_format((float) $t->current_value, 0) . ']')->implode(' ');
-                $lines[] = "TRUSTS: {$items}";
+            if ($include('trust')) {
+                $trusts = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+                if ($trusts->isNotEmpty()) {
+                    $items = $trusts->map(fn ($t) => "[ID:{$t->id} \"{$t->trust_name}\" {$t->trust_type} £" . number_format((float) $t->current_value, 0) . ']')->implode(' ');
+                    $lines[] = "TRUSTS: {$items}";
+                }
             }
 
-            // Business Interests
-            $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->get();
-            if ($businesses->isNotEmpty()) {
-                $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £" . number_format((float) $b->estimated_value, 0) . ']')->implode(' ');
-                $lines[] = "BUSINESS: {$items}";
+            // Business Interests (always included — no filter key)
+            if ($include('business')) {
+                $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->get();
+                if ($businesses->isNotEmpty()) {
+                    $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £" . number_format((float) $b->estimated_value, 0) . ']')->implode(' ');
+                    $lines[] = "BUSINESS: {$items}";
+                }
             }
 
-            // Chattels
-            $chattels = \App\Models\Chattel::where('user_id', $userId)->get();
-            if ($chattels->isNotEmpty()) {
-                $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->category} £" . number_format((float) $c->estimated_value, 0) . ']')->implode(' ');
-                $lines[] = "CHATTELS: {$items}";
+            // Chattels (always included — no filter key)
+            if ($include('chattel')) {
+                $chattels = \App\Models\Chattel::where('user_id', $userId)->get();
+                if ($chattels->isNotEmpty()) {
+                    $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->category} £" . number_format((float) $c->estimated_value, 0) . ']')->implode(' ');
+                    $lines[] = "CHATTELS: {$items}";
+                }
             }
 
             // Liabilities
-            $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->get();
-            if ($liabilities->isNotEmpty()) {
-                $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £" . number_format((float) $l->current_balance, 0) . ']')->implode(' ');
-                $lines[] = "LIABILITIES: {$items}";
+            if ($include('liability')) {
+                $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->get();
+                if ($liabilities->isNotEmpty()) {
+                    $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £" . number_format((float) $l->current_balance, 0) . ']')->implode(' ');
+                    $lines[] = "LIABILITIES: {$items}";
+                }
             }
 
             // Gifts
-            $gifts = \App\Models\Estate\Gift::where('user_id', $userId)->get();
-            if ($gifts->isNotEmpty()) {
-                $items = $gifts->map(fn ($g) => "[ID:{$g->id} \"{$g->recipient}\" {$g->gift_type} £" . number_format((float) $g->gift_value, 0) . ' ' . ($g->gift_date ? $g->gift_date->format('M Y') : '') . ']')->implode(' ');
-                $lines[] = "GIFTS: {$items}";
+            if ($include('gift')) {
+                $gifts = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+                if ($gifts->isNotEmpty()) {
+                    $items = $gifts->map(fn ($g) => "[ID:{$g->id} \"{$g->recipient}\" {$g->gift_type} £" . number_format((float) $g->gift_value, 0) . ' ' . ($g->gift_date ? $g->gift_date->format('M Y') : '') . ']')->implode(' ');
+                    $lines[] = "GIFTS: {$items}";
+                }
             }
 
             // Family Members
-            $family = \App\Models\FamilyMember::where('user_id', $userId)->get();
-            $spouse = $user->spouse;
-            $familyParts = [];
-            if ($spouse) {
-                $familyParts[] = "[Spouse: {$spouse->first_name} {$spouse->surname}]";
-            }
-            foreach ($family as $m) {
-                $age = $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : '?';
-                $familyParts[] = "[ID:{$m->id} \"{$m->first_name} {$m->last_name}\" {$m->relationship} age {$age}]";
-            }
-            if (! empty($familyParts)) {
-                $lines[] = 'FAMILY: ' . implode(' ', $familyParts);
+            if ($include('family_member')) {
+                $family = \App\Models\FamilyMember::where('user_id', $userId)->get();
+                $spouse = $user->spouse;
+                $familyParts = [];
+                if ($spouse) {
+                    $familyParts[] = "[Spouse: {$spouse->first_name} {$spouse->surname}]";
+                }
+                foreach ($family as $m) {
+                    $age = $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : '?';
+                    $familyParts[] = "[ID:{$m->id} \"{$m->first_name} {$m->last_name}\" {$m->relationship} age {$age}]";
+                }
+                if (! empty($familyParts)) {
+                    $lines[] = 'FAMILY: ' . implode(' ', $familyParts);
+                }
             }
 
             return ! empty($lines) ? implode("\n", $lines) : 'No records yet.';
@@ -577,13 +620,15 @@ If a tool call returns a "blocked" result, follow the instruction field in that 
 PROMPT;
     }
 
-    // ─── Layer 8: Query Knowledge (Phase 3 placeholder) ─────────────
+    // ─── Layer 8: Query Knowledge (per-domain retrieval) ──────────────
 
     private function buildKnowledgeBlock(?array $classification): string
     {
-        // Phase 1: include ALL knowledge (same as current behaviour)
-        // Phase 3 will replace this with per-domain retrieval
-        $knowledge = FinancialPlanningKnowledge::getSystemPromptKnowledge();
+        $knowledge = QueryKnowledge::getForClassification($classification);
+
+        if ($knowledge === '') {
+            return '';
+        }
 
         return "<financial_knowledge>\n{$knowledge}\n</financial_knowledge>";
     }
@@ -693,5 +738,31 @@ PROMPT;
             'nsi' => 'NS&I',
             default => $type,
         };
+    }
+
+    /**
+     * Get relevant record types for a classification.
+     * Returns null if ALL records should be included.
+     */
+    private function getRelevantRecordTypes(?array $classification): ?array
+    {
+        if ($classification === null) {
+            return null;
+        }
+
+        $primary = $classification['primary'];
+        $types = QuerySchemas::RECORD_TYPES[$primary] ?? [];
+
+        // Empty array means include ALL (holistic, general, data_entry)
+        if (empty($types)) {
+            return null;
+        }
+
+        // Merge record types from related classifications
+        foreach ($classification['related'] ?? [] as $related) {
+            $types = array_merge($types, QuerySchemas::RECORD_TYPES[$related] ?? []);
+        }
+
+        return array_values(array_unique($types));
     }
 }

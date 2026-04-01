@@ -71,6 +71,11 @@ final class FinancialPlanningKnowledge
         return self::AFFORDABILITY_RULES;
     }
 
+    public static function getKnowledgeCaveat(): string
+    {
+        return self::KNOWLEDGE_CAVEAT;
+    }
+
     private const AFFORDABILITY_RULES = <<<'TEXT'
 AFFORDABILITY — ALWAYS CHECK BEFORE RECOMMENDING CONTRIBUTIONS:
 Before suggesting ANY new contribution, increased contribution, or lump sum payment, you MUST check:
