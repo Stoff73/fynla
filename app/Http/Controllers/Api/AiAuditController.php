@@ -24,8 +24,7 @@ class AiAuditController extends Controller
 
         $query = User::whereHas('aiConversations')
             ->withCount('aiConversations as conversation_count')
-            ->withMax('aiConversations', 'last_message_at')
-            ->select(['id', 'first_name', 'surname', 'email', 'is_preview_user']);
+            ->withMax('aiConversations', 'last_message_at');
 
         if ($search) {
             $query->where(function ($q) use ($search) {

@@ -271,7 +271,10 @@ export default {
 
     toggleSection(messageId, section) {
       const key = messageId + '-' + section;
-      this.$set(this.expandedSections, key, !this.expandedSections[key]);
+      this.expandedSections = {
+        ...this.expandedSections,
+        [key]: !this.expandedSections[key],
+      };
     },
 
     formatDate(iso) {
