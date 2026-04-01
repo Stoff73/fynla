@@ -334,15 +334,32 @@ class SystemPromptBuilder
                 }
             }
             if (! empty($recommendations)) {
-                $top = array_slice($recommendations, 0, 5);
+                $top = array_slice($recommendations, 0, 8);
                 $lines[] = '';
-                $lines[] = 'Top ranked recommendations:';
+                $lines[] = 'Top ranked recommendations (from decision engine):';
                 foreach ($top as $i => $rec) {
                     $title = $rec['title'] ?? $rec['recommendation'] ?? 'Recommendation';
                     $urgency = isset($rec['urgency_score']) ? " (urgency: {$rec['urgency_score']}/100)" : '';
                     $module = isset($rec['module']) ? " [{$rec['module']}]" : '';
                     $num = $i + 1;
                     $lines[] = "{$num}. {$title}{$module}{$urgency}";
+
+                    // Include description for actionable context
+                    if (isset($rec['description']) && $rec['description']) {
+                        $desc = mb_substr($rec['description'], 0, 200);
+                        $lines[] = "   {$desc}";
+                    }
+
+                    // Include estimated saving if available
+                    if (isset($rec['estimated_saving']) && $rec['estimated_saving'] > 0) {
+                        $lines[] = '   Estimated saving: £' . number_format((float) $rec['estimated_saving'], 0);
+                    }
+
+                    // Include action step
+                    if (isset($rec['action']) && $rec['action']) {
+                        $action = mb_substr($rec['action'], 0, 150);
+                        $lines[] = "   Action: {$action}";
+                    }
 
                     if (isset($rec['decision_trace'])) {
                         $trace = $rec['decision_trace'];
