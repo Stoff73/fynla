@@ -426,10 +426,18 @@ trait HasAiChat
             break;
         }
 
-        // Build metadata with tool call summary
+        // Validate and sanitise AI response
+        $validator = app(\App\Services\AI\StructuredResponseValidator::class);
+        $fullResponse = $validator->sanitise($fullResponse);
+        $violations = $validator->validateAndLog($fullResponse, $classification, $user->id);
+
+        // Build metadata with tool call summary and any violations
         $messageMetadata = [];
         if (! empty($toolCallsSummary)) {
             $messageMetadata['tool_calls'] = $toolCallsSummary;
+        }
+        if (! empty($violations)) {
+            $messageMetadata['validation_violations'] = $violations;
         }
 
         // Save assistant message
