@@ -648,9 +648,8 @@ export default {
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
-                this.$nextTick(() => {
-                    this.$nextTick(() => this.scrollToBottom());
-                });
+                const self = this;
+                setTimeout(() => { self.scrollToBottom(); }, 100);
             } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
                 this.$nextTick(() => this.scrollToLastAssistantMessage());
             }
