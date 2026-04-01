@@ -138,7 +138,8 @@ Personality rules (warm, honest, plain language, celebrate progress, empathetic)
 - No market timing
 - Always use `get_tax_information` for figures
 - British English, no acronyms (17 banned), no IDs, no jargon
-- Joint ownership: always distinguish user's share
+- NEVER use emoji, icons, tick marks (✅❌⚠️), or any Unicode symbols in responses. Text only.
+- Joint ownership: always name BOTH owners with their shares. Example: "Your share is 50% (£875,000) and the other half is owned by your wife, Sarah." Never just say "50% owned" without naming the co-owner and their share.
 
 #### Layer 3: FCA Process Instructions (~400 tokens)
 ```
@@ -177,9 +178,32 @@ Instead of dumping all 7 knowledge domains, only include what's relevant:
 | Inheritance Tax | Estate planning concepts |
 | Investment fees | Investment tax wrappers (fee-related only) |
 | Property query | No knowledge needed — just data |
-| General health | Recommendation framework summary |
+| **Holistic health** | **ALL knowledge domains + full recommendation framework + liquidity + affordability (see below)** |
+| General factual | No knowledge needed — just data |
 
-This cuts knowledge tokens from ~1,800 to ~300-500 per query.
+This cuts knowledge tokens from ~1,800 to ~300-500 per query (except holistic which uses the full set).
+
+**Holistic Health Query Type — Special Handling:**
+
+When the user asks about their total financial health, overall position, or "what should I focus on", this triggers the `holistic_health` query type which:
+
+1. **Fetches ALL module analyses** — calls `get_recommendations()` which runs the full `orchestrateAnalysis()` across all 9 module agents
+2. **Includes ALL knowledge domains** — the full `FinancialPlanningKnowledge` is included since any module could be relevant
+3. **Follows the holistic plan priority order:**
+   - Priority 1: Emergency fund adequacy (liquidity)
+   - Priority 2: High-interest debt repayment
+   - Priority 3: Protection gaps (life, income, critical illness)
+   - Priority 4: Pension contributions (employer match, tax relief, PA reclaim)
+   - Priority 5: ISA allowance utilisation
+   - Priority 6: Further investment/pension contributions
+   - Priority 7: Estate planning (IHT, wills, LPAs, gifting)
+   - Priority 8: Goal funding
+4. **Checks liquidity:** liquid assets (cash + easy-access savings) vs 3-6 months' expenses
+5. **Checks affordability:** monthly surplus from `DisposableIncomeAccessor`, committed contributions, remaining capacity
+6. **Cross-module conflicts** resolved (e.g. pension vs ISA vs debt repayment competing for surplus)
+7. **Required tool calls:** `get_recommendations()`, `get_module_analysis(holistic)`, `generate_financial_plan()`
+8. **KYC requirement:** ALL module gates must pass. If any module is blocked, list the missing data and offer to help enter it before giving the holistic view.
+9. **Response format:** Numbered priority list with £ amounts, starting with the most urgent action and working down. Each item states what to do, how much, and what it achieves.
 
 Also includes the specific decision tree triggers to check:
 ```
@@ -204,18 +228,18 @@ You MUST call these tools before responding:
 
 #### Layer 9: KYC Check Result (DYNAMIC)
 
-Pre-computed before sending to AI:
+Pre-computed before sending to AI. NEVER use emoji, icons, or Unicode symbols — plain text only:
 ```
 <kyc_status>
 Query type: retirement_contribution
 Status: PASS — all required data present
-✅ Date of birth: 15 June 1980 (age 45)
-✅ Employment income: £100,000
-✅ Total income: £108,755 (6 sources)
-✅ Monthly expenditure: £2,800
-✅ Monthly surplus: £3,307.60
-✅ Existing pensions: 1 (SIPP, £0 value)
-⚠️ No risk profile completed (warning — not blocking)
+- Date of birth: 15 June 1980 (age 45) [present]
+- Employment income: £100,000 [present]
+- Total income: £108,755 (6 sources) [present]
+- Monthly expenditure: £2,800 [present]
+- Monthly surplus: £3,307.60 [present]
+- Existing pensions: 1 (SIPP, £0 value) [present]
+- Risk profile: not completed [warning — not blocking]
 </kyc_status>
 ```
 
@@ -224,10 +248,10 @@ Or if data is missing:
 <kyc_status>
 Query type: retirement_contribution
 Status: BLOCKED — missing required data
-❌ Monthly expenditure — needed to calculate surplus and affordability
-❌ Target retirement age — needed for projection calculations
-✅ Date of birth: confirmed
-✅ Employment income: £100,000
+- Monthly expenditure: MISSING — needed to calculate surplus and affordability
+- Target retirement age: MISSING — needed for projection calculations
+- Date of birth: confirmed [present]
+- Employment income: £100,000 [present]
 
 INSTRUCTION: Do NOT give pension contribution advice. Instead:
 1. Explain that you need expenditure and retirement age to give accurate advice
