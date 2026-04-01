@@ -649,7 +649,7 @@ export default {
 
             if (lastMsg.role === 'user') {
                 this.$nextTick(() => {
-                    this.$nextTick(() => this.scrollToLastUserMessage());
+                    this.$nextTick(() => this.scrollToBottom());
                 });
             } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
                 this.$nextTick(() => this.scrollToLastAssistantMessage());
