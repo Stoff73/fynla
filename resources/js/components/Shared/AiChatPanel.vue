@@ -668,8 +668,8 @@ export default {
                     if (!container) return;
                     const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
                     const lastBubble = userBubbles[userBubbles.length - 1];
-                    if (lastBubble && lastBubble.parentElement) {
-                        container.scrollTop = lastBubble.parentElement.offsetTop - 8;
+                    if (lastBubble) {
+                        lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
                     }
                 });
                 // Start rotating status messages
@@ -859,13 +859,11 @@ export default {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (!container) return;
 
-            // Find the last user message bubble (raspberry bg) and scroll its parent to the top
             const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
             const lastBubble = userBubbles[userBubbles.length - 1];
 
             if (lastBubble) {
-                const messageRow = lastBubble.parentElement;
-                container.scrollTop = messageRow.offsetTop - 8;
+                lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
             } else {
                 container.scrollTop = container.scrollHeight;
             }
