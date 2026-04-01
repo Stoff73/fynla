@@ -1,95 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 31 March 2026 — sessions 21-23*
-*Previous session: 31 March 2026 session 20 (subscription upgrade proration)*
+*Last updated: 1 April 2026 — session 24*
+*Previous session: 31 March 2026 sessions 21-23*
 
 ---
 
-## Sessions 21-23 (31 March) — Production Review + Feature Gating + Journey Links
+## Session 24 (1 April) — PR #177 Merge, Deploy, Version Bump
 
 ### Completed This Session
-- [x] Production review: all PHP files, frontend build, migrations verified matching via MD5
-- [x] **Feature gating (PR #175):** CheckFeatureAccess middleware, greyed sidebar items with tooltip, 10 Pest tests, backend route enforcement
-- [x] **Journey link (PR #176):** Stage page "Start your journey" CTAs → registration → journey map
-- [x] **Security fix:** Register/login now reset ALL Vuex stores + always clear stored auth token (prevented data leakage between users)
-- [x] Fixed tooltip clipping (Teleport to body), stage ID mapping (mid_career, peak), CTA text
-- [x] All deployed and browser tested on production
-- [x] Vault synced, git history updated, session-end skill rewritten
+- [x] **PR #177 merged** — resource pages redesign (131 files, 17 commits, 6 merge conflicts resolved)
+- [x] Old comparison URL redirects added (fynla-vs-moneyhub, fynla-vs-voyant, fynla-vs-projectionlab)
+- [x] CSP updated for Google Analytics (googletagmanager.com, *.google-analytics.com)
+- [x] Built and deployed to production (291 assets + 5 PHP files + sitemap)
+- [x] Production browser tested — 0 console errors across all pages
+- [x] Version bumped v0.9.3.2 → v0.9.4 (Footer, Version.vue, CLAUDE.md)
+- [x] Version page updated with patch notes for PRs #175-177
+- [x] Deploy notes at April/April1Updates/deployNotes.md
+- [x] Patch notes at fynlaBrain/April/April01Updates/patchNotes-PR177.md
 
-### Feature Gating — NOW DONE
-- [x] Feature access gating per tier (was listed as "not yet done" in previous CSJTODO)
+### Outstanding from Previous Sessions
+- [ ] Delete mockup HTML files from public/ (insights, learn, journey, persona, mobile)
+- [ ] Submit updated sitemap.xml to Google Search Console
+- [ ] Test contact form email delivery on production (requires mail config)
 - [ ] Recurring billing / auto-renewal (currently one-time Revolut orders only)
-
-### Context
-Content branch has journey page redesign committed and pushed (2 commits: `e5ecd2bb`, `ae92ab8c`). All changes are frontend-only. Deploy notes at `March/March28Updates/deploy.md`. The mockup file `public/mockup-starting-out.html` should be deleted before production deploy.
-
----
-
-## Session 30 March 2026 — Resource pages, journey maps, persona modal, footer
-
-### Completed This Session
-- [x] All resource page headers updated to match pricing/calculator style (48 pages)
-- [x] JourneyMap component with curvy SVG path on all 5 journey pages
-- [x] "What do I need to start my journey?" section with 6 need cards per stage
-- [x] Journey map labels fixed (Assets, Liabilities capitalised)
-- [x] Persona selection modal redesigned (category grouping, SVG icons, two-row layout)
-- [x] Footer social media icons (YouTube, Facebook, Instagram, TikTok) with HelloFynla
-- [x] Insights page redesign (article cards, category filters, light pink stay updated)
-- [x] Article pages updated (back link, badges, light blue related, pink CTA)
-- [x] Learn page headers standardised across 28 pages
-- [x] Feature detail pages header updated via FeaturePageLayout component
-- [x] Homepage header links reordered (View video | Ask Fyn | See our demo)
-- [x] Journey page CTA text changed to "Start your journey"
-- [x] Small steps section background changed to light pink
-- [x] Mobile layout fixes for homepage and calculators
-
-### New Outstanding Items
-- [x] Create PR from resources-pages branch to main — PR #177
-- [ ] Delete mockup HTML files from public/ before deploy (insights, learn, journey, persona, mobile)
-- [ ] Browser test persona selection modal on desktop and mobile
-- [ ] Browser test contact form submission (requires mail config on production)
-- [ ] Merge PR #177 and deploy (see March/March31Updates/deployResourcePages.md)
-- [ ] Submit updated sitemap.xml to Google Search Console after deploy
-- [ ] Monitor old comparison page URLs for 404s (/fynla-vs-moneyhub, /fynla-vs-projectionlab, /fynla-vs-voyant)
-
-### Context
-Resources-pages branch has 25 commits today (662a512f latest). PR #177 created. 421 files changed. Deploy notes at `March/March31Updates/deployResourcePages.md`.
-
----
-
-## Session 31 March 2026 — Public pages redesign, new pages, centralised FAQs, contact form
-
-### Completed This Session
-- [x] Features page: eggshell bg, light-pink/light-blue columns, harvey balls, comparison links
-- [x] GA tag moved to app.blade.php head for full site coverage
-- [x] SEO meta descriptions and structured data schemas on learn pages
-- [x] Comparison pages: platform names replace competitors, new slugs, redesigned sections
-- [x] Glossary page: full-width, pink letter boxes, larger fonts
-- [x] FAQ page: full-width, centralised FAQ data (constants/faqData.js), intro, pink section boxes
-- [x] Demo modal opens in-place on current page (PublicLayout global modal)
-- [x] Security page: full redesign with palette colours, tick icons, horizon notice
-- [x] Our approach page: pink content boxes, horizon-blue values grid
-- [x] One platform page: homepage-style feature/journey cards, centre-aligned
-- [x] Financial companion page: new hero, IFA vs Fynla pricing comparison
-- [x] Getting started page: new title, "Fynla is as easy as 1-2-3" steps section
-- [x] Sentence case applied across all titles and buttons site-wide
-- [x] Advisors page: new page with hero, intro, feature cards, sign-up CTA with smooth scroll
-- [x] Contact page: contact form with captcha, Ask Fyn box, horizon email cards
-- [x] ContactFormController backend with rate limiting and email routing
-- [x] Insights hub: light-pink hover on articles
-- [x] Footer: FAQs→/faq, Learning Centre→Guides and explainers at /learn, adviser scroll links
-- [x] Mega menu: "One Platform Story"→"One platform", "Not Tied to an Adviser"→"Your financial companion"
-- [x] Terms & Privacy pages: full-width content
-- [x] Deleted LearningCentre.vue (route redirects to /learn)
-- [x] Sitemap updated with all 60+ public URLs
-- [x] PR #177 created
-- [x] Production build completed (6.9M)
-
-### Outstanding
-- [ ] Merge PR #177 and deploy
-- [ ] Test contact form on production (requires mail config)
-- [ ] Submit sitemap to Google Search Console
-- [ ] Monitor old comparison URLs for 404s
 
 ---
 
@@ -136,17 +69,13 @@ Resources-pages branch has 25 commits today (662a512f latest). PR #177 created. 
 
 ## Deploy Status
 
-### All Sessions Through 23 — DEPLOYED & VERIFIED
-- Feature gating: PR #175 merged, deployed, production tested (student tier greyed items, tooltip, pro full access)
-- Journey links: PR #176 merged, deployed, production e2e tested (stage CTA → register → journey map)
-- Security fix (Vuex state + token leak): included in PR #176
-
-### PR #177 — Resource Pages Redesign (merged 1 April)
-- Deploy guide: March/March31Updates/deployResourcePages.md
-- Requires: build, 4 PHP files upload, sitemap upload, cache clear
-- No migrations needed
-- Contact form requires mail config on production
+### All Through PR #177 — DEPLOYED & VERIFIED (v0.9.4)
+- PR #175: Feature gating — deployed, production tested
+- PR #176: Journey links + security fix — deployed, production tested
+- PR #177: Resource pages redesign — merged 1 April, deployed, production tested (0 console errors)
+- Version bumped to v0.9.4, patch notes on /version page
+- Deploy notes: April/April1Updates/deployNotes.md
 
 ## Context for Next Session
 
-All work through PR #176 is deployed and production tested. PR #177 (resource pages redesign) merged to main — needs building and deploying. Contact form requires mail config on production server.
+All work deployed and production tested at v0.9.4. Next priorities: recurring billing (Revolut auto-renewal), tech debt (god classes), contact form mail config on production, sitemap submission to Google Search Console, or whatever the user wants to work on.

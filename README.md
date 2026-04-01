@@ -62,8 +62,8 @@ A comprehensive financial planning web application designed for UK individuals a
 
 ## Current Status
 
-**Version**: v0.8.3
-**Last Updated**: 5 March 2026
+**Version**: v0.9.4
+**Last Updated**: 1 April 2026
 **Test Suite**: 1,603 tests passing
 
 ### Completion Status
@@ -502,6 +502,25 @@ php artisan route:clear
 
 ## Recent Updates
 
+### 1 April 2026 - v0.9.4
+
+- **Resource Pages Redesign** — Comprehensive redesign of all public resource pages: features (harvey balls comparison), FAQ (centralised data, category filters), security, glossary, our approach, one platform, financial companion, getting started. New advisors page and contact form with backend controller
+- **Guides & Explainers** — Learning Centre replaced with categorised guide hub (Key Terms, Decision Support, Personal Journey Guides, Tax & Allowances). GuideNav and GuideArticleFooter shared components across 22 article pages
+- **Feature Gating** — Tier-based access control: greyed sidebar items with upgrade tooltips for lower tiers, backend middleware enforcement, 10 automated tests
+- **Journey Links** — Stage page CTAs pass life stage to registration, auto-select on onboarding. Security fix resets all Vuex stores and clears tokens on register/login
+- **Dashboard Improvements** — Investment bar charts, empty state CTAs, Fyn chat toggle, ModuleStatusBar three-column redesign, net worth donut tooltips, matched card heights
+- **Site-Wide** — Sentence case, in-place demo modal, Google Analytics in head, SEO structured data, sitemap with 60+ URLs, comparison page slug redirects, CSP updated for GA
+
+### 15-30 March 2026 - v0.9.0 to v0.9.3.2
+
+- **Decision Engine Upgrade (v0.9.0)** — 107 DB-driven recommendation triggers across 5 modules, data readiness gates, 9-phase investment pipeline
+- **AI Form Fill** — xAI/Grok-powered form auto-fill deployed across 14 modules, tested on production
+- **Full Code Review Remediation** — 94 issues fixed (tax compliance, security, design system, dead code)
+- **Admin Tax Configuration** — 568 TaxConfigService values editable across 10 tabs
+- **Power of Attorney** — Guided creation wizard, compliance checking, print/registration tracking
+- **Subscription & Payments** — Revolut checkout, upgrade with proration, subscription management
+- **Website Redesign** — Journey pages, calculators sidebar, mega menu, preview personas, pricing page
+
 ### 27 February - 5 March 2026 - v0.8.3
 
 - **Financial Plans System (Complete Rebuild)** — Unified plan framework with 5 plan types (Investment, Protection, Retirement, Estate, Goal) following a consistent 6-section structure: executive summary, current situation, toggleable actions, what-if scenarios, dynamic conclusion, PDF export
@@ -554,7 +573,7 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Version**: v0.8.3 | **Last Updated**: 5 March 2026 | **Status**: Production Ready
+**Version**: v0.9.4 | **Last Updated**: 1 April 2026 | **Status**: Production Ready
 
 Built with [Claude Code](https://claude.com/claude-code)
 
