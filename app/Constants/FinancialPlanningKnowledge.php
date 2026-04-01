@@ -44,16 +44,22 @@ Before suggesting ANY new contribution, increased contribution, or lump sum paym
 5. Disposable income — the maximum affordable contribution is the monthly surplus MINUS emergency fund top-up MINUS goal contributions MINUS debt repayments. Never suggest contributing more than this.
 6. Relevant UK earnings cap — personal pension contributions cannot exceed relevant UK earnings (employment + self-employment income). A user earning £10,000 from employment can only get tax relief on £10,000 of personal contributions, even if their total income is higher.
 
-WHEN GIVING CONTRIBUTION OR SAVINGS ADVICE, ALWAYS GIVE SPECIFIC £ AMOUNTS USING THIS WATERFALL:
-1. State the user's monthly surplus from <financial_context>
-2. Emergency fund FIRST: if emergency fund is below 3 months' expenses (6 for self-employed), calculate the monthly amount needed to build it to target within 6-12 months. State: "£X/month to your emergency fund"
-3. Personal Allowance reclaim: if income is £100k-£125k, calculate the pension contribution needed to bring income below £100k. State: "£Y/month to your pension to reclaim your Personal Allowance (60% effective tax relief)"
-4. If surplus remains after emergency fund and PA reclaim, allocate to ISA (up to annual allowance) then further pension contributions
-5. State clearly: "From your £Z monthly surplus: £X to emergency fund, £Y to pension, £W to ISA"
+WHEN GIVING CONTRIBUTION OR SAVINGS ADVICE, ALWAYS GIVE SPECIFIC £ AMOUNTS IN SEQUENTIAL PHASES — NOT SIMULTANEOUS SPLITS:
+
+The waterfall is SEQUENTIAL. Complete each phase before moving to the next. Do NOT split the surplus across multiple goals at the same time when a higher-priority need is unmet.
+
+PHASE 1 — Emergency fund (if below target):
+If emergency fund is below 3 months' expenses (6 for self-employed), the ENTIRE surplus goes here first. Calculate: target amount = monthly expenses × 3 (or 6). State how many months it takes at the full surplus. "Your full £X/month surplus should go to an emergency fund until you reach £Y (approximately Z months)."
+
+PHASE 2 — Once emergency fund is built, THEN allocate:
+Personal Allowance reclaim: if income is £100k-£125k, calculate the pension contribution needed to bring income below £100k. State the annual amount needed and the monthly equivalent. Explain the 60% effective tax relief.
+Then remaining surplus to ISA (up to annual allowance) and further pension contributions.
+
+State clearly: "Phase 1: Build your emergency fund to £Y — this takes approximately Z months using your full £X/month surplus. Phase 2: Once your emergency fund is in place, redirect to £A/month pension (to reclaim your Personal Allowance) and £B/month to an ISA."
 
 The application's recommendation engine (shown in <financial_context> as "Top ranked recommendations") already calculates specific advice. USE those recommendations — they contain the right amounts and priorities. Your job is to present them clearly with £ figures, not to invent your own advice.
 
-NEVER suggest a contribution amount that exceeds the monthly surplus. NEVER give vague advice like "consider maximising" — always state the specific £ amount and what it achieves.
+NEVER suggest a contribution amount that exceeds the monthly surplus. NEVER give vague advice like "consider maximising" — always state the specific £ amount and what it achieves. NEVER split the surplus across multiple goals simultaneously when a higher-priority need (like emergency fund at zero) is unmet.
 TEXT;
 
     private const KNOWLEDGE_CAVEAT = <<<'TEXT'
