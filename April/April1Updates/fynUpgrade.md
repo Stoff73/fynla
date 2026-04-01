@@ -1,112 +1,144 @@
-# Plan: Fyn AI Financial Planning Knowledge Upgrade
+# Fyn AI Financial Planning Knowledge Upgrade
 
-## Context
-
-Fyn currently tells users it's a "financial planning assistant" but lacks the financial knowledge to act as one. The system prompt passes user data (income total, account list, top 5 recommendations) but doesn't explain what that data MEANS. For example:
-- Fyn can't distinguish "relevant UK income" from rental/dividend income for pension contribution advice
-- Fyn doesn't understand ISA vs GIA tax treatment differences
-- Fyn doesn't know pension Annual Allowance taper rules
-- The 150+ recommendation triggers in the ActionDefinitionServices are invisible to the AI — it only sees the top 5 results, not the reasoning framework
-
-The goal is to make Fyn think and respond like a qualified UK financial planner by injecting structured financial knowledge into the prompt, passing detailed income breakdowns, and upgrading the system identity.
+**Branch:** `fynImprovement`
+**Date:** 1 April 2026
+**Commits:** f3fe7f3 → e5fc278 (13 commits)
 
 ---
 
-## Files to Change
+## What Was Done
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `app/Constants/FinancialPlanningKnowledge.php` | **CREATE** | Static financial knowledge constant class (~1,650 tokens) |
-| `app/Traits/HasAiChat.php` | MODIFY | Inject knowledge block, expand income breakdown, annotate account types, upgrade identity |
-| `app/Agents/CoordinatingAgent.php` | MODIFY | Add `income_definitions` topic to tax info tool |
-| `app/Services/AI/AiToolDefinitions.php` | MODIFY | Add `income_definitions` to topic enum |
-| `app/Services/AI/XaiToolDefinitions.php` | MODIFY | Add `income_definitions` to topic enum |
+### 1. Financial Knowledge Injection (f3fe7f3)
+**File created:** `app/Constants/FinancialPlanningKnowledge.php`
 
----
+Static knowledge block injected into the system prompt covering 7 domains:
+- **Income classifications** — total income, net income, adjusted net income, relevant UK earnings (employment + self-employment ONLY)
+- **Pension knowledge** — Annual Allowance, tax relief, Personal Allowance reclaim (60% effective relief at £100k-£125k), relevant UK earnings cap, pension access age, DB pensions, State Pension
+- **Investment tax wrappers** — ISA, GIA, onshore/offshore bonds, VCT/EIS/SEIS, pension wrapper, Lifetime ISA
+- **Estate planning** — BPR, BADR, PET vs CLT, taper relief, normal expenditure from income, deed of variation
+- **Protection concepts** — own vs any occupation, standalone vs accelerated CI, relevant life policies, trust placement
+- **Recommendation framework** — 6 module categories and trigger types
+- **Affordability rules** — surplus allocation with PA reclaim prioritised, specific £ amounts required
 
-## Implementation Steps
+### 2. Income Breakdown in User Profile (f3fe7f3)
+**File modified:** `app/Traits/HasAiChat.php`
 
-### Step 1: Create `app/Constants/FinancialPlanningKnowledge.php`
+System prompt now passes individual income types (employment, self-employment, rental, dividend, interest, trust) with labels indicating whether each is "relevant UK earnings" or "not relevant UK earnings". Previously only total income and tax band were passed.
 
-New final class following the `TaxDefaults.php` pattern. Contains static string constants for each knowledge domain, exposed via `getSystemPromptKnowledge(): string`.
+### 3. Account Type Tax Annotations (f3fe7f3)
+**File modified:** `app/Traits/HasAiChat.php`
 
-**Knowledge domains (bullet format for token efficiency):**
+Existing records summary now annotates investment accounts with tax context: ISA(tax-free), GIA(taxable), Onshore Bond(tax-deferred), etc. Savings accounts annotated when ISA.
 
-1. **Income Classifications** (~300 tokens) — 5 HMRC income definitions (total, net, adjusted net, threshold, adjusted), "relevant UK income" for pensions (employment + self-employment ONLY — NOT rental, dividend, interest, trust, pension income), dividend vs savings income tax treatment, Personal Savings Allowance
-2. **Pension Knowledge** (~350 tokens) — Annual Allowance taper (dual test: threshold income AND adjusted income), MPAA trigger, carry forward, tax relief mechanisms (net pay vs relief at source), salary sacrifice NI savings, relevant UK income cap, Lump Sum Allowance
-3. **Investment Tax Wrappers** (~300 tokens) — ISA (tax-free, counts for IHT), GIA (CGT/dividend/savings allowances), onshore bond (5% withdrawals, top-slicing), offshore bond (gross roll-up), VCT/EIS/SEIS (relief rates, holding periods), pension wrapper (relief in, taxed out, 25% tax-free)
-4. **Estate Planning Concepts** (~250 tokens) — BPR (100%/50%, 2yr min), BADR (10% CGT, £1m lifetime), PET vs CLT, taper relief, normal expenditure from income, deed of variation
-5. **Protection Concepts** (~150 tokens) — Own vs any occupation, standalone vs accelerated CI, relevant life policies, trust placement for IHT
-6. **Recommendation Framework** (~300 tokens) — The 6 module categories and types of triggers (emergency fund, tax efficiency, fees, coverage gaps, surplus waterfall ISA→Pension→Bond, employer match, NI gaps, IHT planning). Explains that recommendations are ranked by urgency with decision traces
+### 4. Property Records Enhanced (f3fe7f3)
+**File modified:** `app/Traits/HasAiChat.php`
 
-**Key rule in the knowledge block:** "These are conceptual explanations. Always retrieve current thresholds and rates using the get_tax_information tool — never quote figures from this knowledge section."
+Property records now include ownership percentage, mortgage balance, and rental income — previously just address, type, and value.
 
-### Step 2: Modify `buildUserProfile()` in HasAiChat.php (line 686-693)
+### 5. Identity & Personality Upgrade (f3fe7f3)
+**File modified:** `app/Traits/HasAiChat.php`
 
-Expand the income section from just total + tax band to include individual income type breakdown:
+- Identity upgraded from "professional financial planning assistant" to "knowledgeable UK financial planner" with specific domain expertise listed
+- Personality: connect concepts to user's specific data
+- Instructions: never show internal IDs, distinguish joint ownership shares, expanded acronym ban (17 terms), no planning jargon (waterfall, prioritise affordability, etc.), concept blacklist (no AA taper unless >£200k, no carry forward unless needed, etc.)
 
-- Keep total annual income and tax band (unchanged)
-- Add breakdown when user has more than just employment income:
-  - Employment, Self-employment, Rental, Dividend, Interest, Other, Trust
-  - Only show non-zero types
-  - Skip breakdown if 100% employment income (saves tokens)
-- ~100 extra tokens worst case (all 7 types)
+### 6. Income Definitions Tool Topic (f3fe7f3)
+**Files modified:** `app/Agents/CoordinatingAgent.php`, `app/Services/AI/AiToolDefinitions.php`, `app/Services/AI/XaiToolDefinitions.php`
 
-### Step 3: Inject knowledge block into `buildSystemPrompt()` (line 496-498)
+New `income_definitions` topic added to `get_tax_information` tool. Returns the user's adjusted net income, threshold income, and tapered allowances via `IncomeDefinitionsService::calculate()`.
 
-Add `<financial_knowledge>` XML block between `</regulatory_compliance>` and `<user_profile>`. This placement ensures the AI reads financial concepts BEFORE seeing user data.
+### 7. Rolling Status Messages (a1dcd1d)
+**File modified:** `resources/js/components/Shared/AiChatPanel.vue`
 
-```php
-$financialKnowledge = FinancialPlanningKnowledge::getSystemPromptKnowledge();
-```
+Replaced static "Thinking..." with rotating messages every 2.5s:
+1. Processing your request
+2. Reviewing your financial data
+3. Checking your accounts
+4. Analysing your position
+5. Running calculations
+6. Preparing your response
 
-Insert into the heredoc at the appropriate position.
+Smooth fade transition between messages. Timer cleans up on stream end and component unmount.
 
-### Step 4: Annotate existing records with tax context
+### 8. Cashflow Surplus Fix (7de845d)
+**File modified:** `app/Services/Coordination/CashFlowCoordinator.php`
 
-In `buildExistingRecordsSummary()`, add brief tax labels to account types:
-- Investment accounts: "Stocks & Shares ISA (tax-free)", "GIA (taxable)", "Onshore Bond (tax-deferred)" etc.
-- Savings accounts: annotate Cash ISA as "(tax-free)"
-- Small `formatAccountType()` helper method using match expression
+- Was calculating surplus from GROSS income — now uses `DisposableIncomeAccessor` (same net figure shown on user's income tab)
+- Was clamping to `max(0.0, ...)` hiding shortfalls — now returns actual value (positive or negative)
 
-### Step 5: Upgrade identity and personality blocks
+### 9. "Other Income" Removed (d64f518)
+**Files modified:** `resources/js/components/UserProfile/IncomeOccupation.vue`, `resources/js/components/Onboarding/steps/IncomeStep.vue`, `app/Traits/HasAiChat.php`
 
-**Identity** (line 461-462): Enhance from "professional financial planning assistant" to explicitly state Fyn thinks like a qualified financial planner with UK tax, pension, estate, and investment knowledge.
+Removed the catch-all "Other Income" field from income tab, onboarding, and AI prompt. All income must be categorised into the 6 proper types: Employment, Self-employment, Rental, Dividend, Interest, Trust. Pension income and Child Benefit are auto-calculated.
 
-**Personality**: Add directive to connect concepts to the user's specific data (never explain ISA rules in the abstract — explain what they mean for THIS user's ISA).
+### 10. Chat Scroll — User Message to Top (e5fc278)
+**File modified:** `resources/js/components/Shared/AiChatPanel.vue`
 
-### Step 6: Add `income_definitions` tool topic
-
-**CoordinatingAgent.php**: Add new case `'income_definitions'` in `handleTaxInformation()` that calls `IncomeDefinitionsService::calculate($userId)`. This returns the user's adjusted net income, threshold income, and tapered allowances — critical for pension and High Income Child Benefit Charge advice.
-
-**Both tool definition files**: Add `'income_definitions'` to the `topic` enum and update the description.
-
----
-
-## Token Budget
-
-| Component | Tokens |
-|-----------|--------|
-| Current static prompt | ~2,500 |
-| Current dynamic sections | ~1,000-3,000 |
-| **New: Financial knowledge block** | **~1,650** |
-| **New: Income breakdown (worst case)** | **~100** |
-| **New: Account type annotations** | **~50** |
-| **New: Identity/personality updates** | **~50** |
-| **Total new** | **~1,850** |
-| **Estimated total prompt** | ~5,350-7,350 |
-
-Well within context windows for both Haiku (200k) and Grok (131k).
+When user sends a message, it scrolls to the top of the chat panel with the thinking indicator below. Added 60vh spacer div at bottom of message containers so the last message can always scroll to the top. Browser tested: `msgTopInContainer = -2` (position 0).
 
 ---
 
-## Verification
+## Bug Fixes from Production Testing
 
-1. **Local test**: Start dev server, log in as `john@example.com`, open Fyn chat
-2. **Test income knowledge**: Ask "What types of income do I have and how are they taxed?" — Fyn should reference the specific income types from the user profile breakdown
-3. **Test pension knowledge**: Ask "Can I contribute more to my pension?" — Fyn should understand relevant UK income limits, Annual Allowance, and use `get_tax_information` tool for current thresholds
-4. **Test ISA knowledge**: Ask "What's the difference between my ISA and my GIA?" — Fyn should explain tax treatment differences using the user's actual account data
-5. **Test estate knowledge**: Ask "How can I reduce my inheritance tax?" — Fyn should reference estate planning concepts (BPR, PET, trusts) and the user's estate data
-6. **Test income_definitions tool**: Ask "What is my adjusted net income?" — Fyn should call `get_tax_information` with topic `income_definitions` and return calculated values
-7. **Test recommendation awareness**: Ask "Why are you recommending I increase my pension contribution?" — Fyn should be able to explain the decision logic (employer match, tax relief at marginal rate)
-8. **Token monitoring**: Check log output for total prompt token count — should be under 8,000
+| # | Issue | Fix |
+|---|-------|-----|
+| BI-1 | Fyn not picking up rental income | Income breakdown with all types |
+| BI-2 | Fyn showing internal IDs (ID 375) | Explicit "never show IDs" instruction |
+| BI-3 | Property total not split by ownership | Ownership %, mortgage, rental in records |
+| BI-4 | Fyn using acronyms (AEA) | 17 banned acronyms listed |
+| BI-5 | Can't distinguish employment vs other income | Relevant UK earnings labels |
+| BI-6 | No affordability check | Affordability rules with surplus check |
+| BI-7 | Mentions irrelevant concepts (taper, MPAA) | Concept blacklist + removed from knowledge |
+| BI-8 | Doesn't flag PA reclaim at £100k | 60% effective relief highlighted |
+| BI-9 | Surplus showing £0 (clamped) | Removed max(0.0, ...) clamp |
+| BI-10 | Surplus from gross income not net | Uses DisposableIncomeAccessor |
+| BI-11 | Missing income sources in calculation | Superseded by BI-10 |
+| BI-12 | "Other Income" catch-all exists | Removed from form, onboarding, AI |
+| BI-13 | Fyn saying "waterfall", "prioritise" | Banned jargon terms in instructions |
+| BI-14 | Simultaneous split instead of smart allocation | PA reclaim first, emergency fund in parallel |
+| BI-15 | User message doesn't scroll to top | 60vh spacer + streaming watcher scroll |
+
+---
+
+## Files Changed Summary
+
+| File | Changes |
+|------|---------|
+| `app/Constants/FinancialPlanningKnowledge.php` | **NEW** — 7 knowledge domains |
+| `app/Traits/HasAiChat.php` | Identity, instructions, income breakdown, property records, account annotations, personality |
+| `app/Agents/CoordinatingAgent.php` | income_definitions tool topic |
+| `app/Services/AI/AiToolDefinitions.php` | income_definitions enum |
+| `app/Services/AI/XaiToolDefinitions.php` | income_definitions enum |
+| `app/Services/Coordination/CashFlowCoordinator.php` | DisposableIncomeAccessor for surplus |
+| `resources/js/components/Shared/AiChatPanel.vue` | Rolling status, scroll-to-top, 60vh spacer |
+| `resources/js/components/UserProfile/IncomeOccupation.vue` | Removed Other Income |
+| `resources/js/components/Onboarding/steps/IncomeStep.vue` | Removed Other Income |
+
+---
+
+## Test User
+
+`fyntest@example.com` / `password` on local dev:
+- Employment: £100,000, Rental: £5,400, Dividend: £2,000
+- Properties: 7 The Green (main res, £1.75m, 50% joint, £350k mortgage) + 19 Worth Court (BTL, £180k, 50% joint, £900/mo rent)
+- SIPP: £0, GIA: £60,000
+- Spouse: Sarah Test (50/50 joint ownership)
+- Monthly surplus: £3,307.60
+
+---
+
+## Verification Checklist
+
+- [x] Income breakdown shows in prompt with relevant UK earnings labels
+- [x] PA reclaim flagged for £100k income (60% effective relief)
+- [x] Surplus uses net income from income tab (£3,307.60)
+- [x] Property records show ownership %, mortgage, rental
+- [x] No internal IDs in responses
+- [x] No acronyms (AEA, CGT, etc.)
+- [x] No irrelevant concepts (taper, carry forward, salary sacrifice)
+- [x] No planning jargon (waterfall, prioritise affordability)
+- [x] Specific £ amounts in contribution advice
+- [x] Smart allocation: PA reclaim + emergency fund in parallel
+- [x] Rolling status messages while thinking
+- [x] User message scrolls to top of chat on send
+- [x] "Other Income" removed from income tab and onboarding
