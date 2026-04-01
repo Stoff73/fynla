@@ -196,7 +196,9 @@
                     <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
                     <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
                   </div>
-                  <span class="text-xs text-neutral-500">Thinking...</span>
+                  <transition name="fade" mode="out-in">
+                    <span :key="thinkingStatus" class="text-xs text-neutral-500">{{ thinkingStatus }}...</span>
+                  </transition>
                 </div>
               </div>
             </div>
@@ -370,10 +372,15 @@
         <div v-if="streaming" class="flex justify-start">
           <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-savannah-100 text-horizon-500 rounded-bl-sm">
             <AiMessageContent v-if="streamingText" :message="{ role: 'assistant', content: streamingText }" />
-            <span v-else class="flex items-center gap-1 text-neutral-500">
-              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-              <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            <span v-else class="flex items-center gap-1.5 text-neutral-500">
+              <span class="flex gap-1">
+                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+              </span>
+              <transition name="fade" mode="out-in">
+                <span :key="thinkingStatus" class="text-xs">{{ thinkingStatus }}...</span>
+              </transition>
             </span>
           </div>
         </div>
@@ -487,6 +494,8 @@ export default {
             _resizing: false,
             _resizeStartY: 0,
             _resizeStartHeight: 0,
+            thinkingStatusIndex: 0,
+            _thinkingTimer: null,
         };
     },
 
@@ -507,6 +516,21 @@ export default {
 
         isMobile() {
             return this.windowWidth < 768;
+        },
+
+        thinkingStatusMessages() {
+            return [
+                'Processing your request',
+                'Reviewing your financial data',
+                'Checking your accounts',
+                'Analysing your position',
+                'Running calculations',
+                'Preparing your response',
+            ];
+        },
+
+        thinkingStatus() {
+            return this.thinkingStatusMessages[this.thinkingStatusIndex % this.thinkingStatusMessages.length];
         },
 
         canSend() {
@@ -604,6 +628,9 @@ export default {
         if (this._onResizeEnd) {
             document.removeEventListener('mouseup', this._onResizeEnd);
         }
+        if (this._thinkingTimer) {
+            clearInterval(this._thinkingTimer);
+        }
     },
 
     watch: {
@@ -631,6 +658,17 @@ export default {
             // When streaming starts, scroll to show the top of the response area
             if (isStreaming) {
                 this.$nextTick(() => this.scrollToLastAssistantMessage());
+                // Start rotating status messages
+                this.thinkingStatusIndex = 0;
+                this._thinkingTimer = setInterval(() => {
+                    this.thinkingStatusIndex++;
+                }, 2500);
+            } else {
+                // Stop rotating status messages
+                if (this._thinkingTimer) {
+                    clearInterval(this._thinkingTimer);
+                    this._thinkingTimer = null;
+                }
             }
         },
 
@@ -835,5 +873,15 @@ export default {
     .chat-mobile-container {
         height: 100dvh;
     }
+}
+
+/* Fade transition for rotating thinking status */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>
