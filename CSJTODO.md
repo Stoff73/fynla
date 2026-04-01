@@ -1,7 +1,32 @@
 # CSJTODO — Fynla
 
-*Last updated: 1 April 2026 — session 24*
-*Previous session: 31 March 2026 sessions 21-23*
+*Last updated: 1 April 2026 — session 25*
+*Previous session: 1 April 2026 session 24*
+
+---
+
+## Session 25 (1 April) — Auth & Onboarding UI Redesign
+
+### Completed This Session
+- [x] **Register page redesign** — blue-to-pink gradient bg, white-to-grey card, light-blue beta warning, horizon-blue labels/borders, mandatory asterisks, logo clickable, middle name moved to onboarding
+- [x] **Login page redesign** — matching gradient bg, card style, light-blue beta warning, increased padding, relative links
+- [x] **Onboarding stage selection** — gradient bg, homepage-style stage cards (horizon gradient, raspberry accent, "Start here" links), light-pink intro box
+- [x] **Onboarding journey map (welcome)** — horizon-blue hero, centred steps info, full-opacity nodes, collapsible "What you'll need", pink back button, "Start My Journey" chevron
+- [x] **Onboarding form pages** — 52px progress circles with horizon-blue active/complete, thick connecting line (blue for completed), sidebar inside form card with light-pink bg, dynamic "Why we ask this" aligned to active field via ? icons, "How this fits your journey" with read more/less, consistent pink Back + "Skip to dashboard" + Continue nav
+- [x] **Global onboarding styles** — onb-input, onb-label, q-icon in app.css; OnboardingStep deep overrides for all step components
+- [x] **Journey reset fix** — switching stages clears saved data and sidebar override
+- [x] **4 HTML mockups created** — auth-redesign, onboarding-redesign, onboarding-welcome-redesign, onboarding-form-redesign
+
+### NOT Done — Needs Further Work
+- [ ] "Why we ask this" box Y-alignment fine-tuning — slightly off for some fields
+- [ ] Browser testing of full onboarding flow end-to-end (all stages, all steps)
+- [ ] Other step components (StudentLoan, Income, Spending, etc.) need individual ? icon WHY_FIELD_DATA maps for field-specific text
+- [ ] Mobile testing of onboarding layout (sidebar stacks below, arrow hidden)
+- [ ] Remove old mockup HTML files from public/mockups/ before deploy
+
+### Branch
+- `onboarding-and-squirrels` — 2 commits, NOT merged to main, NOT deployed
+- 15 files changed vs main
 
 ---
 
@@ -78,4 +103,4 @@
 
 ## Context for Next Session
 
-All work deployed and production tested at v0.9.4. Next priorities: recurring billing (Revolut auto-renewal), tech debt (god classes), contact form mail config on production, sitemap submission to Google Search Console, or whatever the user wants to work on.
+Branch `onboarding-and-squirrels` has auth page and onboarding UI redesign — mockup-first workflow, 2 commits. NOT merged or deployed. Key remaining work: fine-tune "Why we ask this" Y-alignment, add field-specific WHY text to all step components beyond PersonalInfoStep, browser test full onboarding flow, mobile test. Production is at v0.9.4 with all PR #175-177 work deployed.
