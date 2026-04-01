@@ -749,7 +749,7 @@ class CoordinatingAgent extends BaseAgent
                 break;
             case 'dc_pension':
                 $items = \App\Models\DCPension::where('user_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'current_value' => (float) $p->current_value, 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0)])->toArray();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'current_value' => (float) $p->current_fund_value, 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0)])->toArray();
                 break;
             case 'db_pension':
                 $items = \App\Models\DBPension::where('user_id', $userId)->get();
@@ -761,7 +761,7 @@ class CoordinatingAgent extends BaseAgent
                 break;
             case 'life_insurance':
                 $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'type' => $p->life_policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->monthly_premium ?? 0)])->toArray();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0)])->toArray();
                 break;
             case 'critical_illness':
                 $items = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
@@ -777,11 +777,11 @@ class CoordinatingAgent extends BaseAgent
                 break;
             case 'business_interest':
                 $items = \App\Models\BusinessInterest::where('user_id', $userId)->get();
-                $records = $items->map(fn ($b) => ['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->estimated_value])->toArray();
+                $records = $items->map(fn ($b) => ['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation])->toArray();
                 break;
             case 'chattel':
                 $items = \App\Models\Chattel::where('user_id', $userId)->get();
-                $records = $items->map(fn ($c) => ['id' => $c->id, 'description' => $c->description, 'category' => $c->category, 'estimated_value' => (float) $c->estimated_value])->toArray();
+                $records = $items->map(fn ($c) => ['id' => $c->id, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value])->toArray();
                 break;
             case 'estate_liability':
                 $items = \App\Models\Estate\Liability::where('user_id', $userId)->get();
@@ -1647,7 +1647,7 @@ class CoordinatingAgent extends BaseAgent
 
         // Life insurance sub-type — map generic 'term' to 'level_term' (dropdown value)
         if ($formPolicyType === 'life') {
-            $fields['life_policy_type'] = $policyType === 'term' ? 'level_term' : $policyType;
+            $fields['policy_type'] = $policyType === 'term' ? 'level_term' : $policyType;
         }
 
         // Term years (for life and critical illness)
@@ -2391,6 +2391,22 @@ class CoordinatingAgent extends BaseAgent
         $model = $this->resolveModel($entityType, $entityId, $user->id);
         if (isset($model['error'])) {
             return $model;
+        }
+
+        // Map AI tool field names to actual model field names
+        $fieldAliases = match ($entityType) {
+            'business_interest' => ['estimated_value' => 'current_valuation'],
+            'chattel' => ['estimated_value' => 'current_value', 'category' => 'chattel_type'],
+            'dc_pension' => ['current_value' => 'current_fund_value'],
+            'mortgage' => ['current_balance' => 'outstanding_balance'],
+            'life_insurance' => ['life_policy_type' => 'policy_type', 'monthly_premium' => 'premium_amount'],
+            default => [],
+        };
+        foreach ($fieldAliases as $aiName => $dbName) {
+            if (array_key_exists($aiName, $fields) && ! array_key_exists($dbName, $fields)) {
+                $fields[$dbName] = $fields[$aiName];
+                unset($fields[$aiName]);
+            }
         }
 
         // Only allow updating fillable fields

@@ -1083,7 +1083,7 @@ DATA_CREATION_GUIDANCE;
             // Pensions (DC)
             $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
             if ($dcPensions->isNotEmpty()) {
-                $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £".number_format((float) $p->current_value, 0).']')->implode(' ');
+                $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £".number_format((float) $p->current_fund_value, 0).']')->implode(' ');
                 $lines[] = "DC PENSIONS: {$items}";
             }
 
@@ -1101,7 +1101,7 @@ DATA_CREATION_GUIDANCE;
                     $value = number_format((float) $p->current_value, 0);
                     $ownershipPct = $p->joint_owner_id ? (int) ($p->user_id === $userId ? $p->ownership_percentage : (100 - $p->ownership_percentage)) : 100;
                     $ownershipLabel = $ownershipPct < 100 ? " {$ownershipPct}%owned" : '';
-                    $mortgageTotal = $p->mortgages->sum('current_balance');
+                    $mortgageTotal = $p->mortgages->sum('outstanding_balance');
                     $mortgageLabel = $mortgageTotal > 0 ? ' mortgage:£' . number_format((float) $mortgageTotal, 0) : '';
                     $rentalLabel = $p->property_type === 'buy_to_let' && $p->monthly_rental_income > 0
                         ? ' rent:£' . number_format((float) $p->monthly_rental_income, 0) . '/mo'
@@ -1115,7 +1115,7 @@ DATA_CREATION_GUIDANCE;
             // Protection (Life Insurance)
             $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
             if ($lifePolicies->isNotEmpty()) {
-                $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->life_policy_type} £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->policy_type} £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
                 $lines[] = "LIFE INSURANCE: {$items}";
             }
 
@@ -1143,14 +1143,14 @@ DATA_CREATION_GUIDANCE;
             // Business Interests
             $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->get();
             if ($businesses->isNotEmpty()) {
-                $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £".number_format((float) $b->estimated_value, 0).']')->implode(' ');
+                $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £".number_format((float) $b->current_valuation, 0).']')->implode(' ');
                 $lines[] = "BUSINESS: {$items}";
             }
 
             // Chattels
             $chattels = \App\Models\Chattel::where('user_id', $userId)->get();
             if ($chattels->isNotEmpty()) {
-                $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->category} £".number_format((float) $c->estimated_value, 0).']')->implode(' ');
+                $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->chattel_type} £".number_format((float) $c->current_value, 0).']')->implode(' ');
                 $lines[] = "CHATTELS: {$items}";
             }
 
