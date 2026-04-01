@@ -87,7 +87,13 @@ class SystemPromptBuilder
         $prerequisiteState = $this->buildPrerequisiteStateContext($user);
         $layers[] = $this->buildDataCompletenessBlock($prerequisiteState);
 
-        // Layer 8: Query Knowledge (DYNAMIC/query) — Phase 3 placeholder
+        // Layer 7b: Review Due (DYNAMIC/user)
+        $reviewBlock = $this->buildReviewDueBlock($user);
+        if ($reviewBlock !== '') {
+            $layers[] = $reviewBlock;
+        }
+
+        // Layer 8: Query Knowledge (DYNAMIC/query)
         $knowledgeBlock = $this->buildKnowledgeBlock($classification);
         if ($knowledgeBlock !== '') {
             $layers[] = $knowledgeBlock;
@@ -643,6 +649,47 @@ If a tool call returns a "blocked" result, follow the instruction field in that 
 PROMPT;
     }
 
+    // ─── Layer 7b: Review Due ──────────────────────────────────────────
+
+    private function buildReviewDueBlock(User $user): string
+    {
+        try {
+            $reviewService = app(AdviceReviewService::class);
+            $result = $reviewService->checkForChanges($user);
+        } catch (\Exception $e) {
+            return '';
+        }
+
+        $parts = [];
+
+        // Data changes since last advice
+        if (! empty($result['changes'])) {
+            $changeLines = [];
+            foreach ($result['changes'] as $change) {
+                $field = str_replace('_', ' ', $change['field']);
+                $changeLines[] = "- {$field} changed since advice on {$change['advice_date']}";
+            }
+            $parts[] = "DATA CHANGES SINCE LAST ADVICE:\n" . implode("\n", $changeLines)
+                . "\nPrevious advice may need updating based on these changes.";
+        }
+
+        // Modules overdue for review
+        if (! empty($result['reviews_due'])) {
+            $reviewLines = [];
+            foreach ($result['reviews_due'] as $review) {
+                $reviewLines[] = "- {$review['module']}: last reviewed {$review['months_ago']} months ago ({$review['last_reviewed']})";
+            }
+            $parts[] = "MODULES DUE FOR REVIEW (over 12 months since last advice):\n" . implode("\n", $reviewLines)
+                . "\nOffer to review these areas when relevant to the conversation.";
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return "<review_due>\n" . implode("\n\n", $parts) . "\n</review_due>";
+    }
+
     // ─── Layer 8: Query Knowledge (per-domain retrieval) ──────────────
 
     private function buildKnowledgeBlock(?array $classification): string
@@ -673,8 +720,9 @@ PROMPT;
 
         $parts = [];
 
-        // Required tools
-        $tools = QuerySchemas::getRequiredToolsForClassification($classification);
+        // Required tools — only from the PRIMARY type to keep tool calls manageable
+        // Related type tools are available but not mandatory
+        $tools = QuerySchemas::REQUIRED_TOOLS[$primary] ?? [];
         if (! empty($tools)) {
             $toolList = implode("\n", array_map(fn ($t) => "- {$t}", $tools));
             $parts[] = <<<PROMPT

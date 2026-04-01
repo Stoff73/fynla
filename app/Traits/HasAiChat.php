@@ -446,6 +446,35 @@ trait HasAiChat
         // Invalidate daily usage cache
         $this->invalidateDailyUsageCache($user);
 
+        // Log advice for review system (only for advice query types)
+        if ($classification !== null
+            && \App\Constants\QuerySchemas::isAdviceType($classification['primary'])) {
+            try {
+                \App\Models\AiAdviceLog::create([
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'message_id' => $assistantMessage->id,
+                    'query_type' => $classification['primary'],
+                    'classification' => $classification,
+                    'kyc_status' => $kycResult,
+                    'recommendations' => array_map(fn ($r) => [
+                        'title' => $r['title'] ?? null,
+                        'module' => $r['module'] ?? null,
+                        'estimated_saving' => $r['estimated_saving'] ?? null,
+                    ], array_slice($toolCallsSummary, 0, 5)),
+                    'tools_called' => array_map(fn ($tc) => $tc['tool'] ?? null, $toolCallsSummary),
+                    'user_data_snapshot' => [
+                        'income' => (float) $user->annual_employment_income + (float) $user->annual_self_employment_income,
+                        'expenditure' => (float) ($user->monthly_expenditure ?? 0),
+                        'employment_status' => $user->employment_status,
+                        'marital_status' => $user->marital_status,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('[HasAiChat] Failed to log advice', ['error' => $e->getMessage()]);
+            }
+        }
+
         yield [
             'type' => 'done',
             'message_id' => $assistantMessage->id,

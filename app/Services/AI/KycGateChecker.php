@@ -55,8 +55,28 @@ class KycGateChecker
             $allMissing = array_merge($allMissing, $moduleMissing);
         }
 
-        // Deduplicate
-        $allMissing = array_values(array_unique($allMissing));
+        // Deduplicate: universal checks take priority (they have correct routes).
+        // Module gates may duplicate universal items with different wording.
+        $seen = [];
+        $deduplicated = [];
+        foreach ($allMissing as $item) {
+            $label = is_array($item) ? $item['label'] : $item;
+            // Normalise for dedup: lowercase, check if any existing label is a substring
+            $labelLower = strtolower($label);
+            $isDuplicate = false;
+            foreach ($seen as $seenLabel) {
+                if (str_contains($labelLower, strtolower($seenLabel))
+                    || str_contains(strtolower($seenLabel), $labelLower)) {
+                    $isDuplicate = true;
+                    break;
+                }
+            }
+            if (! $isDuplicate) {
+                $seen[] = $label;
+                $deduplicated[] = $item;
+            }
+        }
+        $allMissing = $deduplicated;
 
         if (empty($allMissing)) {
             return $this->passWithSummary($user, $classification);
@@ -67,21 +87,22 @@ class KycGateChecker
 
     /**
      * Check universal requirements needed for all advice types.
+     * Returns array of ['label' => string, 'route' => string] for each missing item.
      */
     private function checkUniversalRequirements(User $user): array
     {
         $missing = [];
 
         if (! $user->date_of_birth) {
-            $missing[] = 'Date of birth';
+            $missing[] = ['label' => 'Date of birth', 'route' => '/profile'];
         }
 
         if (! $user->marital_status) {
-            $missing[] = 'Marital status';
+            $missing[] = ['label' => 'Marital status', 'route' => '/profile'];
         }
 
         if (! $user->employment_status) {
-            $missing[] = 'Employment status';
+            $missing[] = ['label' => 'Employment status', 'route' => '/profile'];
         }
 
         $totalIncome = (float) $user->annual_employment_income
@@ -93,7 +114,7 @@ class KycGateChecker
             + (float) $user->annual_trust_income;
 
         if ($totalIncome <= 0) {
-            $missing[] = 'Annual income (at least one income source)';
+            $missing[] = ['label' => 'Annual income (at least one income source)', 'route' => '/valuable-info?section=income'];
         }
 
         $hasExpenditure = ($user->monthly_expenditure && $user->monthly_expenditure > 0)
@@ -101,7 +122,7 @@ class KycGateChecker
         if (! $hasExpenditure) {
             $expenditureProfile = $user->expenditureProfile ?? null;
             if (! $expenditureProfile || ! ($expenditureProfile->total_monthly_expenditure > 0)) {
-                $missing[] = 'Monthly expenditure';
+                $missing[] = ['label' => 'Monthly expenditure', 'route' => '/valuable-info?section=expenditure'];
             }
         }
 
@@ -110,10 +131,10 @@ class KycGateChecker
 
     /**
      * Check module-specific requirements using PrerequisiteGateService.
+     * Returns array of ['label' => string, 'route' => string].
      */
     private function checkModuleRequirements(User $user, string $module): array
     {
-        // Map module names to PrerequisiteGateService actions
         $actionMap = [
             'protection' => 'protection',
             'savings' => 'savings',
@@ -135,7 +156,39 @@ class KycGateChecker
             return [];
         }
 
-        return $gate['missing'] ?? [];
+        // Build structured missing items from gate results
+        $missing = [];
+        $gateActions = $gate['required_actions'] ?? [];
+        $gateMissing = $gate['missing'] ?? [];
+
+        // Pair missing labels with routes from required_actions
+        foreach ($gateMissing as $i => $label) {
+            $route = isset($gateActions[$i]) ? ($gateActions[$i]['route'] ?? null) : null;
+            $missing[] = [
+                'label' => $label,
+                'route' => $route ?? $this->getDefaultRouteForModule($module),
+            ];
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Default navigation route for a module when no specific route is available.
+     */
+    private function getDefaultRouteForModule(string $module): string
+    {
+        return match ($module) {
+            'protection' => '/protection',
+            'savings' => '/net-worth/cash',
+            'retirement' => '/net-worth/retirement',
+            'investment' => '/net-worth/investments',
+            'estate' => '/estate',
+            'goals' => '/goals',
+            'tax' => '/valuable-info?section=income',
+            'income' => '/valuable-info?section=income',
+            default => '/dashboard',
+        };
     }
 
     /**
@@ -154,11 +207,29 @@ class KycGateChecker
     }
 
     /**
-     * KYC blocked — return with missing data list and instructions.
+     * KYC blocked — return with missing data list, routes, and mandatory navigation instructions.
      */
     private function blocked(array $missing): array
     {
-        $missingList = implode("\n", array_map(fn ($item) => "- {$item}", $missing));
+        // Build the missing list with exact routes
+        $missingLines = [];
+        $navigationInstructions = [];
+        $seenRoutes = [];
+
+        foreach ($missing as $item) {
+            $label = is_array($item) ? $item['label'] : $item;
+            $route = is_array($item) ? ($item['route'] ?? null) : null;
+
+            $missingLines[] = "- {$label}" . ($route ? " → navigate to {$route}" : '');
+
+            if ($route && ! isset($seenRoutes[$route])) {
+                $seenRoutes[$route] = true;
+                $navigationInstructions[] = "- Use navigate_to_page with route_path \"{$route}\" for: {$label}";
+            }
+        }
+
+        $missingList = implode("\n", $missingLines);
+        $navList = ! empty($navigationInstructions) ? implode("\n", $navigationInstructions) : '';
 
         $promptText = <<<PROMPT
 <kyc_status>
@@ -166,17 +237,22 @@ KYC CHECK: BLOCKED. The following data is missing and must be provided before yo
 
 {$missingList}
 
-INSTRUCTIONS: Do NOT give advice, estimates, or general guidance on this topic. Instead:
-1. Explain to the user that you need more information before you can give personalised advice
-2. List each missing item clearly
-3. Offer to help the user enter the data conversationally (e.g. "I can help you add your income details right now — just tell me your annual salary")
-4. If appropriate, navigate the user to the relevant page to enter the data
+MANDATORY INSTRUCTIONS — follow these exactly, do not deviate:
+1. Do NOT give advice, estimates, or general guidance on this topic
+2. Explain clearly what data is missing and why it is needed for personalised advice
+3. Offer to help the user enter the data conversationally
+4. Navigate the user to the EXACT page listed above using navigate_to_page — do NOT navigate anywhere else
+
+MANDATORY NAVIGATION (use these exact routes):
+{$navList}
 </kyc_status>
 PROMPT;
 
+        $missingLabels = array_map(fn ($item) => is_array($item) ? $item['label'] : $item, $missing);
+
         return [
             'passed' => false,
-            'missing' => $missing,
+            'missing' => $missingLabels,
             'prompt_text' => $promptText,
         ];
     }
