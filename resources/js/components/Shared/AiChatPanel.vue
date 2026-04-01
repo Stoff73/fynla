@@ -648,16 +648,16 @@ export default {
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
-                this.$nextTick(() => this.scrollToLastUserMessage());
+                this.$nextTick(() => this.scrollToBottom());
             } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
                 this.$nextTick(() => this.scrollToLastAssistantMessage());
             }
         },
 
         streaming(isStreaming) {
-            // When streaming starts, scroll to show the top of the response area
+            // When streaming starts, scroll user message to top so thinking indicator is visible below
             if (isStreaming) {
-                this.$nextTick(() => this.scrollToLastAssistantMessage());
+                this.$nextTick(() => this.scrollToLastUserMessage());
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
                 this._thinkingTimer = setInterval(() => {
