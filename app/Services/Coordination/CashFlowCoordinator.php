@@ -43,7 +43,7 @@ class CashFlowCoordinator
 
         $surplus = $monthlyIncome - $monthlyExpenditure - $committedContributions;
 
-        return max(0.0, round($surplus, 2));
+        return round($surplus, 2);
     }
 
     /**
@@ -208,17 +208,13 @@ class CashFlowCoordinator
      */
     private function calculateMonthlyIncome(User $user): float
     {
-        $annualIncome = 0.0;
-
-        // Primary employment income
-        if ($user->annual_employment_income > 0) {
-            $annualIncome += (float) $user->annual_employment_income;
-        }
-
-        // Rental income (if tracked on user)
-        if (property_exists($user, 'annual_rental_income') && $user->annual_rental_income > 0) {
-            $annualIncome += (float) $user->annual_rental_income;
-        }
+        $annualIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
 
         return round($annualIncome / 12, 2);
     }
