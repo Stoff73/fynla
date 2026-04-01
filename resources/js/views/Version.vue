@@ -18,7 +18,7 @@
               <p class="mt-1 text-body-sm text-neutral-500">Latest release information</p>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-raspberry-500">v0.9.3.2</div>
+              <div class="text-3xl font-bold text-raspberry-500">v0.9.4</div>
               <div class="text-body-sm text-neutral-500 mt-1">Production Ready</div>
             </div>
           </div>
@@ -28,7 +28,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Release Date</h3>
-              <p class="text-body-base text-horizon-500">30 March 2026</p>
+              <p class="text-body-base text-horizon-500">1 April 2026</p>
             </div>
             <div>
               <h3 class="text-body-sm font-semibold text-neutral-500 mb-2">Status</h3>
@@ -38,7 +38,67 @@
             </div>
           </div>
 
-          <!-- v0.9.3.2 Changes -->
+          <!-- v0.9.4 — Resource Pages Redesign -->
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Resource Pages Redesign</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Comprehensive redesign of all public-facing resource pages to match the design system palette. New advisors page and contact form with backend. Features page with harvey balls comparison table. FAQ page with centralised data and category filters. Security, glossary, our approach, one platform, financial companion, and getting started pages all redesigned. Guides &amp; Explainers hub replaces Learning Centre with category tabs, article layout, and shared navigation components. All 5 comparison pages renamed from competitor names to platform categories with redirects for old URLs.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Feature Gating</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Tier-based feature access control across the application. Sidebar navigation items are greyed out for users on lower tiers with upgrade tooltips. Backend middleware enforces access restrictions per subscription plan. 10 automated tests covering all gating scenarios.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Journey Links</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Stage page call-to-action buttons now pass the selected life stage through to the registration page, which auto-selects the corresponding stage during onboarding. Journey map displayed on stage-linked registration. Security fix ensures all Vuex stores are reset and auth tokens cleared on register and login to prevent data leakage between users.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Dashboard Improvements</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Investment sparkline replaced with vertical bar chart per account. Empty state call-to-action buttons on Investment and Pension pages. Fyn chat button repositioned between Support and Account with toggle behaviour. Module status bar redesigned with three-column layout. Net worth donut hover tooltip. Sparkline hover tooltips with left marker clipping fix. Tax year label on Allowances card. Matched card heights per grid row.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Site-Wide Improvements</h3>
+            <p class="text-body-sm text-neutral-500 mb-4">Sentence case applied across all titles and buttons. Demo modal opens in-place on the current page instead of redirecting to homepage. Centralised FAQ data provides a single source of truth for 50+ FAQs across the FAQ page, pricing page, and 7 feature pages. Google Analytics tag positioned in page head for full site coverage. SEO meta descriptions and structured data schemas added to learn pages. Sitemap updated with all 60+ public URLs. Content Security Policy updated for Google Analytics. Subscription upgrade with proration support. Tooltip clipping fix using Teleport.</p>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">New Pages</h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Advisors page:</strong> Dedicated page for financial advisers explaining how Fynla complements their practice, with feature cards and sign-up call-to-action.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Contact page:</strong> Contact form with name, email, reason selector, message, and maths captcha. Backend controller with rate limiting routes messages to the appropriate email address. Three quick-link boxes for FAQ, demo, and Ask Fyn.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-5 h-5 text-raspberry-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-body-base text-neutral-500"><strong>Guides &amp; Explainers hub:</strong> Replaces the Learning Centre with category filter tabs (Key Terms, Decision Support, Personal Journey Guides, Tax &amp; Allowances), shared navigation component, and consistent article layout across all 22 guide pages.</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Version History Divider -->
+          <div class="border-t border-light-gray my-8"></div>
+
+          <!-- Previous Version: v0.9.3.2 -->
+          <div class="mb-6">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="text-xl font-bold text-horizon-400">v0.9.3.2</span>
+              <span class="text-body-sm text-neutral-500">30 March 2026</span>
+            </div>
+          </div>
+
           <div class="mb-6">
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">Website Redesign &amp; Content Refresh</h3>
             <p class="text-body-sm text-neutral-500 mb-4">Complete redesign of all 5 personal journey pages with consistent gradient hero template. New features comparison page with competitor analysis. Calculators page redesign with two-column sidebar layout. Preview banner, login/register, and pricing page improvements. Mega menu with eggshell backgrounds and renamed navigation ("Your personal journey", "Free calculators").</p>

@@ -11,7 +11,7 @@
           <span class="block sm:hidden text-xs mt-1">For demonstration purposes only.</span>
           <span class="hidden sm:inline ml-2 text-horizon-400">|</span>
           <router-link to="/version" class="sm:ml-2 font-semibold text-raspberry-500 hover:text-raspberry-700 hover:underline">
-            v0.9.3.2
+            v0.9.4
           </router-link>
           <span class="ml-2 text-horizon-400">|</span>
           <a href="https://fynla.org" target="_blank" rel="noopener noreferrer" class="ml-2 font-semibold text-raspberry-500 hover:text-raspberry-700 hover:underline">

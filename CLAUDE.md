@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Vuex Stores | 32 |
 | Agents | 9 |
 
-**Production**: https://fynla.org | **Version**: v0.9.3.2
+**Production**: https://fynla.org | **Version**: v0.9.4
 
 ## Commands
 
