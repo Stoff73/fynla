@@ -670,7 +670,7 @@ class CoordinatingAgent extends BaseAgent
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
-                'get_tax_information' => $this->handleTaxInformation($input),
+                'get_tax_information' => $this->handleTaxInformation($input, $user),
                 'generate_financial_plan' => $this->handleFinancialPlan($user),
                 'create_goal' => $this->handleCreateGoal($input, $user, $isPreviewUser),
                 'create_life_event' => $this->handleCreateLifeEvent($input, $user, $isPreviewUser),
@@ -933,9 +933,18 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
-    private function handleTaxInformation(array $input): array
+    private function handleTaxInformation(array $input, User $user): array
     {
         $topic = $input['topic'];
+
+        // income_definitions is per-user (not cacheable globally)
+        if ($topic === 'income_definitions') {
+            return Cache::remember("ai_income_defs_{$user->id}", 120, function () use ($user) {
+                $incomeService = app(\App\Services\Tax\IncomeDefinitionsService::class);
+
+                return $incomeService->calculate($user->id);
+            });
+        }
 
         // Cache tax config lookups for 5 minutes to save token cost on repeated queries
         return Cache::remember("ai_tax_info_{$topic}", 300, function () use ($topic) {
