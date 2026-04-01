@@ -707,7 +707,6 @@ DATA_CREATION_GUIDANCE;
                 'Rental (property)' => (float) ($user->annual_rental_income ?? 0),
                 'Dividend' => (float) ($user->annual_dividend_income ?? 0),
                 'Savings interest' => (float) ($user->annual_interest_income ?? 0),
-                'Other' => (float) ($user->annual_other_income ?? 0),
                 'Trust' => (float) ($user->annual_trust_income ?? 0),
             ];
             $nonZero = array_filter($incomeTypes, fn ($v) => $v > 0);
