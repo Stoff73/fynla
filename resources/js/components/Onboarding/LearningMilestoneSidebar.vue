@@ -2,12 +2,12 @@
   <aside class="h-full">
     <div v-if="milestone">
 
-      <!-- How this fits your journey — 2 lines collapsed -->
-      <div ref="journeySection" class="pb-4 mb-5 border-b border-light-gray/50">
+      <!-- How this fits your journey -->
+      <div ref="journeySection" class="pb-4 border-b border-light-gray/50" :class="{ 'mb-5': !journeyExpanded }">
         <h3 class="text-lg font-bold text-horizon-500 mb-2">How this fits your journey</h3>
         <p v-if="journeyExpanded" class="text-sm text-neutral-500 leading-relaxed">
           {{ milestone.howItFits }}
-          <button type="button" class="text-raspberry-500 hover:text-raspberry-700 font-medium ml-1" @click="journeyExpanded = false">Read less</button>
+          <button type="button" class="text-raspberry-500 hover:text-raspberry-700 font-medium ml-1" @click="collapseJourney">Read less</button>
         </p>
         <p v-else class="text-sm text-neutral-500 leading-relaxed journey-truncated">
           {{ milestone.howItFits }}
@@ -16,12 +16,13 @@
           v-if="!journeyExpanded && milestone.howItFits && milestone.howItFits.length > 60"
           type="button"
           class="text-sm text-raspberry-500 hover:text-raspberry-700 font-medium mt-1"
-          @click="journeyExpanded = true"
+          @click="expandJourney"
         >Read more</button>
       </div>
 
-      <!-- Why we ask this — positioned to align with active field -->
+      <!-- Why we ask this — hidden when journey is expanded -->
       <div
+        v-if="!journeyExpanded"
         class="why-box-wrapper flex items-start transition-all duration-300 ease-out"
         :style="whyBoxStyle"
       >
@@ -81,8 +82,11 @@ export default {
   },
 
   watch: {
-    override() {
-      this.journeyExpanded = false;
+    override(newVal) {
+      // When a field ? icon or focus triggers an update, collapse journey and show why box
+      if (newVal?.whyWeAsk) {
+        this.journeyExpanded = false;
+      }
     },
     step() {
       this.journeyExpanded = false;
@@ -219,6 +223,14 @@ export default {
 
 
   methods: {
+    expandJourney() {
+      this.journeyExpanded = true;
+    },
+
+    collapseJourney() {
+      this.journeyExpanded = false;
+    },
+
     toggleSection(section) {
       this.expandedSections[section] = !this.expandedSections[section];
     },

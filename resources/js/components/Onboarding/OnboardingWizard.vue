@@ -83,7 +83,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-light-gray overflow-hidden">
           <div class="flex flex-col lg:flex-row">
             <!-- Left: Form -->
-            <div class="flex-1 min-w-0 p-6 sm:p-8">
+            <div class="flex-1 min-w-0 p-6 sm:p-8" @focusin="handleFormFieldFocus">
               <component
                 v-if="lifeStageCurrentComponent"
                 :is="lifeStageCurrentComponent"
@@ -117,7 +117,7 @@
           <div class="flex items-center justify-between px-6 sm:px-8 py-5 border-t border-light-gray">
             <button
               type="button"
-              class="inline-flex items-center px-5 py-2.5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
+              class="inline-flex items-center h-10 px-5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
               @click="lifeStageCurrentIndex > 0 ? handleLifeStageBack() : showStageMap = true"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,7 +135,7 @@
               </router-link>
               <button
                 type="button"
-                class="inline-flex items-center px-6 py-2.5 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors gap-1.5"
+                class="inline-flex items-center h-10 px-6 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors gap-1.5"
                 @click="handleLifeStageNext"
               >
                 Continue
@@ -692,6 +692,40 @@ export default {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
+    // Catch-all: when any input/select in the form gets focus, update sidebar position
+    // Steps with their own emitWhyField (PersonalInfoStep) will override via @sidebar-update
+    let catchAllTimer = null;
+    const handleFormFieldFocus = (event) => {
+      const target = event.target;
+      if (!target || (target.tagName !== 'INPUT' && target.tagName !== 'SELECT' && target.tagName !== 'TEXTAREA')) return;
+      if (target.disabled) return;
+
+      const formCol = target.closest('.flex-1');
+      if (!formCol) return;
+
+      const colRect = formCol.getBoundingClientRect();
+      const inputRect = target.getBoundingClientRect();
+      const fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+
+      // Extract label text for a contextual message
+      const fieldDiv = target.closest('div');
+      const label = fieldDiv?.querySelector('label');
+      const labelText = label?.textContent?.replace('?', '').trim() || '';
+
+      // Small delay to let step-level emits (which have specific text) fire first
+      clearTimeout(catchAllTimer);
+      catchAllTimer = setTimeout(() => {
+        // Update position even if step already set specific text
+        const existingText = sidebarOverride.value?.whyWeAsk;
+        sidebarOverride.value = {
+          whyWeAsk: existingText || (labelText
+            ? `Your ${labelText.toLowerCase()} helps Fynla build a more accurate and personalised financial plan.`
+            : 'This information helps Fynla build a more accurate and personalised financial plan for you.'),
+          fieldOffsetY,
+        };
+      }, 15);
+    };
+
     const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
 
@@ -843,10 +877,13 @@ export default {
     // Handle start from the inline stage map (shown via ?stage= query param)
     const handleStageMapStart = async (stageId) => {
       showStageMap.value = false;
-      await store.dispatch('lifeStage/setStage', stageId);
-      lifeStageStarted.value = true;
+      // Reset state for new journey
+      savedStepData.value = {};
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = 0;
-      // Fetch fresh progress so steps render correctly for a new user
+      lifeStageStarted.value = true;
+      await store.dispatch('lifeStage/setStage', stageId);
+      // Fetch fresh progress so steps render correctly for the new stage
       await Promise.all([
         store.dispatch('userProfile/fetchProfile').catch(() => {}),
         store.dispatch('lifeStage/fetchStage').catch(() => {}),
@@ -858,10 +895,12 @@ export default {
       if (typeof gtag === 'function') {
         gtag('event', 'journey_select', { event_label: stageId });
       }
-      // Stage selected from FocusAreaSelection (after user viewed journey map inline and clicked Start My Journey)
-      await store.dispatch('lifeStage/setStage', stageId);
-      lifeStageStarted.value = true;
+      // Reset state for new journey
+      savedStepData.value = {};
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = 0;
+      lifeStageStarted.value = true;
+      await store.dispatch('lifeStage/setStage', stageId);
     };
 
     const closeJourneyMapModal = () => {
@@ -1366,6 +1405,7 @@ export default {
       sidebarOverride,
       currentStepResources,
       currentDidYouKnow,
+      handleFormFieldFocus,
       stageColour,
       stageColourClasses,
       getLifeStageStepStatus,

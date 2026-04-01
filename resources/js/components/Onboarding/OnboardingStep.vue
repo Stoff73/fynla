@@ -120,3 +120,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Override global .label and .input-field styles for all onboarding step children */
+:deep(.label) {
+  @apply flex items-center gap-1.5 text-sm font-semibold text-horizon-500 mb-1;
+}
+
+:deep(.input-field) {
+  @apply w-full px-4 py-2.5 bg-white border border-light-blue-500/40 rounded-lg text-horizon-500 placeholder-neutral-400 transition-all duration-150 focus:outline-none focus:border-horizon-500 focus:ring-2 focus:ring-horizon-500/20;
+}
+
+/* Make all two-column grids single column in onboarding */
+:deep(.grid.grid-cols-1.md\:grid-cols-2) {
+  @apply grid-cols-1;
+}
+</style>

@@ -23,6 +23,7 @@
           <span class="q-icon" @click="emitWhyField($event,'middle_name')" title="Why we ask this">?</span>
         </label>
         <input
+          id="middle_name_input"
           v-model="formData.middle_name"
           type="text"
           class="onb-input"
@@ -92,91 +93,49 @@
 
       <!-- Address Section -->
       <div v-if="isFieldVisible('address_line_1')" class="border-t pt-6">
-        <h4 class="text-body font-medium text-horizon-500 mb-4">
-          Address
-        </h4>
+        <h4 class="text-body font-medium text-horizon-500 mb-4">Address</h4>
 
-        <div class="grid grid-cols-1 gap-4">
+        <div class="space-y-4">
           <div>
             <label for="address_line_1" class="onb-label">
-              Address Line 1            </label>
-            <input
-              id="address_line_1"
-              v-model="formData.address_line_1"
-              type="text"
-              class="onb-input"
-              
-              placeholder="123 Test Street"
-            >
+              Address Line 1 <span class="q-icon" @click="emitWhyField($event,'address_line_1')" title="Why we ask this">?</span>
+            </label>
+            <input id="address_line_1" v-model="formData.address_line_1" type="text" class="onb-input" placeholder="123 Test Street" @focus="emitWhyField($event,'address_line_1')">
           </div>
 
           <div>
             <label for="address_line_2" class="onb-label">
-              Address Line 2
+              Address Line 2 <span class="q-icon" @click="emitWhyField($event,'address_line_2')" title="Why we ask this">?</span>
             </label>
-            <input
-              id="address_line_2"
-              v-model="formData.address_line_2"
-              type="text"
-              class="onb-input"
-              placeholder="Apartment, suite, etc. (optional)"
-            >
+            <input id="address_line_2" v-model="formData.address_line_2" type="text" class="onb-input" placeholder="Apartment, suite, etc. (optional)" @focus="emitWhyField($event,'address_line_2')">
           </div>
 
-          <div class="grid grid-cols-1 gap-4">
-            <div>
-              <label for="city" class="onb-label">
-                City              </label>
-              <input
-                id="city"
-                v-model="formData.city"
-                type="text"
-                class="onb-input"
-                
-                placeholder="London"
-              >
-            </div>
+          <div>
+            <label for="city" class="onb-label">
+              City <span class="q-icon" @click="emitWhyField($event,'city')" title="Why we ask this">?</span>
+            </label>
+            <input id="city" v-model="formData.city" type="text" class="onb-input" placeholder="London" @focus="emitWhyField($event,'city')">
+          </div>
 
-            <div>
-              <label for="county" class="onb-label">
-                County
-              </label>
-              <input
-                id="county"
-                v-model="formData.county"
-                type="text"
-                class="onb-input"
-                placeholder="Greater London"
-              >
-            </div>
+          <div>
+            <label for="county" class="onb-label">
+              County <span class="q-icon" @click="emitWhyField($event,'county')" title="Why we ask this">?</span>
+            </label>
+            <input id="county" v-model="formData.county" type="text" class="onb-input" placeholder="Greater London" @focus="emitWhyField($event,'county')">
+          </div>
 
-            <div>
-              <label for="postcode" class="onb-label">
-                Postcode              </label>
-              <input
-                id="postcode"
-                v-model="formData.postcode"
-                type="text"
-                class="onb-input"
-                
-                placeholder="SW1A 1AA"
-                maxlength="8"
-                @input="formatPostcode"
-              >
-            </div>
+          <div>
+            <label for="postcode" class="onb-label">
+              Postcode <span class="q-icon" @click="emitWhyField($event,'postcode')" title="Why we ask this">?</span>
+            </label>
+            <input id="postcode" v-model="formData.postcode" type="text" class="onb-input" placeholder="SW1A 1AA" maxlength="8" @input="formatPostcode" @focus="emitWhyField($event,'postcode')">
           </div>
 
           <div>
             <label for="phone" class="onb-label">
-              Phone Number
+              Phone Number <span class="q-icon" @click="emitWhyField($event,'phone')" title="Why we ask this">?</span>
             </label>
-            <input
-              id="phone"
-              v-model="formData.phone"
-              type="tel"
-              class="onb-input"
-              placeholder="07700 900000"
-            >
+            <input id="phone" v-model="formData.phone" type="tel" class="onb-input" placeholder="07700 900000" @focus="emitWhyField($event,'phone')">
           </div>
         </div>
       </div>
@@ -190,13 +149,9 @@
           <!-- Health Status -->
           <div>
             <label for="health_status" class="onb-label">
-              Are you in good health?
+              Are you in good health? <span class="q-icon" @click="emitWhyField($event,'health_status')" title="Why we ask this">?</span>
             </label>
-            <select
-              id="health_status"
-              v-model="formData.health_status"
-              class="onb-input"
-            >
+            <select id="health_status" v-model="formData.health_status" class="onb-input" @focus="emitWhyField($event,'health_status')">
               <option value="">Select...</option>
               <option value="yes">Yes</option>
               <option value="yes_previous">Yes, previous health conditions</option>
@@ -209,13 +164,9 @@
           <!-- Smoking Status -->
           <div>
             <label for="smoking_status" class="onb-label">
-              Do you smoke?
+              Do you smoke? <span class="q-icon" @click="emitWhyField($event,'smoking_status')" title="Why we ask this">?</span>
             </label>
-            <select
-              id="smoking_status"
-              v-model="formData.smoking_status"
-              class="onb-input"
-            >
+            <select id="smoking_status" v-model="formData.smoking_status" class="onb-input" @focus="emitWhyField($event,'smoking_status')">
               <option value="">Select...</option>
               <option value="never">Never smoked</option>
               <option value="quit_recent">No, gave up 12 months or sooner</option>
@@ -227,13 +178,9 @@
           <!-- Education Level -->
           <div>
             <label for="education_level" class="onb-label">
-              Highest Education Level
+              Highest Education Level <span class="q-icon" @click="emitWhyField($event,'education_level')" title="Why we ask this">?</span>
             </label>
-            <select
-              id="education_level"
-              v-model="formData.education_level"
-              class="onb-input"
-            >
+            <select id="education_level" v-model="formData.education_level" class="onb-input" @focus="emitWhyField($event,'education_level')">
               <option value="">Select...</option>
               <option value="secondary">Secondary (GCSE/O-Levels)</option>
               <option value="a_level">A-Levels/Vocational</option>
@@ -252,7 +199,7 @@
 
 <script>
 // DEPRECATED: Will be replaced by unified form with context="onboarding". See life-stage-journey-design.md §11.7
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useStore } from 'vuex';
 import OnboardingStep from '../OnboardingStep.vue';
 import UsefulResources from '../UsefulResources.vue';
@@ -332,33 +279,45 @@ export default {
       date_of_birth: { whyWeAsk: 'Your date of birth affects pension eligibility, life expectancy projections, and State Pension age calculations.' },
       gender: { whyWeAsk: 'Gender affects life expectancy projections, pension eligibility dates, and Lifetime ISA access rules.' },
       marital_status: { whyWeAsk: 'Marital status affects spouse exemption, transferable nil rate band, and joint asset planning.' },
-      address_line_1: { whyWeAsk: 'Your address is used for regional tax calculations and property-related planning.' },
+      address_line_1: { whyWeAsk: 'Your address helps us identify regional factors that may affect property values and local tax considerations.' },
+      address_line_2: { whyWeAsk: 'Your address helps us identify regional factors that may affect property values and local tax considerations.' },
+      city: { whyWeAsk: 'Your location can affect property valuations and regional cost-of-living assumptions in your financial plan.' },
+      county: { whyWeAsk: 'County information helps with regional property market data and local authority considerations.' },
+      postcode: { whyWeAsk: 'Your postcode helps us estimate property values and identify location-specific financial factors.' },
+      phone: { whyWeAsk: 'A contact number allows us to reach you for important account security notifications.' },
       health_status: { whyWeAsk: 'Health status affects protection insurance premiums and life expectancy projections.' },
       smoking_status: { whyWeAsk: 'Smoking status significantly impacts life insurance and income protection premiums.' },
       education_level: { whyWeAsk: 'Education level helps with occupation profiling for income projections.' },
     };
 
+    let lastEmittedField = null;
+
     const emitWhyField = (event, fieldName) => {
       const data = WHY_FIELD_DATA[fieldName];
       if (!data) return;
 
+      // Prevent double-fire: if ? click already focused the input, skip the focus event
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      // Find the input/select element by looking in the parent div
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      // If click was on ? icon, focus the input (which will NOT re-fire due to guard above)
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      // Always calculate offset from the input element's rect
       let fieldOffsetY = 0;
-      let inputEl = null;
-
-      if (event?.target) {
-        // Find the field's parent div (contains both label and input)
-        const fieldDiv = event.target.closest('div:not(.q-icon)');
-        // Get the input/select in this field group
-        inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select') || event.target;
-
-        // If the click was on the ? icon (not from focus), focus the input
-        if (event.type === 'click' && inputEl && !inputEl.disabled) {
-          inputEl.focus();
-        }
-
-        // Calculate input's vertical centre relative to form column
-        const formCol = (inputEl || event.target).closest('.flex-1');
-        if (formCol && inputEl) {
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
           const colRect = formCol.getBoundingClientRect();
           const inputRect = inputEl.getBoundingClientRect();
           fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
@@ -459,8 +418,13 @@ export default {
         // No existing step data, use pre-populated values from user table
       }
 
-      // Auto-emit why data for first empty field
-      emitWhyField(null, 'middle_name');
+      // Auto-focus and highlight first empty field after DOM renders
+      nextTick(() => {
+        const middleNameInput = document.getElementById('middle_name_input');
+        if (middleNameInput) {
+          middleNameInput.focus();
+        }
+      });
     });
 
     return {
