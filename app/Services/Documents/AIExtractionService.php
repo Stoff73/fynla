@@ -37,6 +37,32 @@ class AIExtractionService
     ) {}
 
     /**
+     * Extract data from a single Excel sheet's text content.
+     *
+     * @return array{category: string, category_confidence: float, account: array, holdings: array, confidence: array, warnings: array}
+     */
+    public function extractSheet(string $sheetName, string $sheetContent): array
+    {
+        $prompt = $this->getBasePrompt()."\n\n".$this->getExcelSheetPrompt();
+        $userContent = "Sheet name: \"{$sheetName}\"\n\n{$sheetContent}";
+
+        $response = $this->callClaudeAPIWithText($userContent, $prompt);
+        $parsed = $this->parseResponse($response);
+
+        return array_merge([
+            'sheet_name' => $sheetName,
+            'category' => 'ignore',
+            'category_confidence' => 0.0,
+            'account' => [],
+            'holdings' => [],
+            'properties' => [],
+            'policies' => [],
+            'confidence' => [],
+            'warnings' => [],
+        ], $parsed);
+    }
+
+    /**
      * Extract data from a document using AI Vision API (Anthropic or xAI).
      */
     public function extract(Document $document): DocumentExtraction
@@ -600,6 +626,74 @@ SAVINGS/BANK STATEMENT - Extract:
 - isa_subscription_amount: Amount subscribed this year
 
 Set document_subtype to: savings_account or cash_account
+PROMPT;
+    }
+
+    /**
+     * Excel sheet classification and extraction prompt.
+     */
+    private function getExcelSheetPrompt(): string
+    {
+        return <<<'PROMPT'
+EXCEL SHEET EXTRACTION — Classify this sheet and extract financial data.
+
+Determine what category this sheet belongs to based on the sheet name AND content:
+
+CATEGORIES:
+- investment_holdings: ISA, GIA, stocks, equities, portfolio, investments (columns: ticker, units, price, ISIN)
+- pension_holdings: SIPP, pension fund, retirement pot, DC pension (columns: fund names, units, value)
+- cash_savings: Cash, current account, savings, easy access, deposits (columns: balance, interest rate, sort code)
+- property: Property, properties, real estate, house, flat, buy-to-let (columns: address, value, rental income)
+- protection: Insurance, policies, life cover, protection, critical illness (columns: sum assured, premium, policy number)
+- ignore: Summary, notes, cover page, disclaimer, T&Cs, fees schedule (no actionable financial data)
+
+Return JSON in this exact format:
+{
+  "category": "investment_holdings|pension_holdings|cash_savings|property|protection|ignore",
+  "category_confidence": 0.95,
+  "account": {
+    "provider": "Provider/platform name",
+    "account_type": "isa|gia|sipp|savings|current|etc",
+    "account_number": "Reference number if shown",
+    "total_value": 95000.00
+  },
+  "holdings": [
+    {
+      "security_name": "Fund or stock name",
+      "ticker": "TICKER",
+      "isin": "ISIN code",
+      "asset_type": "uk_equity|us_equity|international_equity|fund|etf|bond|cash|alternative|property",
+      "quantity": 150.5,
+      "current_price": 85.20,
+      "current_value": 12822.60,
+      "purchase_price": null,
+      "cost_basis": null
+    }
+  ],
+  "confidence": {
+    "provider": 0.95,
+    "account_type": 0.90,
+    "holdings": 0.85
+  },
+  "warnings": []
+}
+
+CATEGORY-SPECIFIC RULES:
+
+For cash_savings: "holdings" should be empty. "account" should include:
+  balance, interest_rate (as decimal), access_type (immediate|notice|fixed), is_isa (true/false)
+
+For property: "holdings" should be empty. Return one object per property row in "properties" array:
+  address, current_value, property_type (main_residence|secondary_residence|buy_to_let),
+  ownership_type (individual|joint), rental_income_monthly, mortgage_outstanding
+
+For protection: "holdings" should be empty. Return one object per policy row in "policies" array:
+  provider, policy_type (term|whole_of_life|critical_illness|income_protection),
+  sum_assured, premium_amount, premium_frequency (monthly|annually), start_date, term_years
+
+For ignore: Return minimal response with just category and category_confidence.
+
+IMPORTANT: Use the sheet name as a strong signal for category, but let the actual content override if they conflict.
 PROMPT;
     }
 

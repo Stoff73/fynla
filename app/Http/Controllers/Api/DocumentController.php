@@ -45,8 +45,27 @@ class DocumentController extends Controller
     public function upload(UploadDocumentRequest $request): JsonResponse
     {
         try {
+            $file = $request->file('document');
+            $mimeType = $file->getMimeType();
+
+            // Excel files use a different processing path
+            $excelParser = app(\App\Services\Documents\ExcelParserService::class);
+            if ($excelParser->isSpreadsheet($mimeType)) {
+                $result = $this->processor->processExcel($file, $request->user());
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Workbook processed successfully',
+                    'data' => [
+                        'document_id' => $result['document']->id,
+                        'is_excel' => true,
+                        'sheets' => $result['sheets'],
+                    ],
+                ], 201);
+            }
+
             $result = $this->processor->process(
-                $request->file('document'),
+                $file,
                 $request->user(),
                 $request->input('document_type')
             );
@@ -189,6 +208,37 @@ class DocumentController extends Controller
             ]);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to save data', $e);
+        }
+    }
+
+    /**
+     * Confirm Excel import with sheet mappings.
+     * POST /api/documents/{id}/confirm-excel
+     */
+    public function confirmExcel(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'sheets' => 'required|array|min:1',
+            'sheets.*.sheet_name' => 'required|string',
+            'sheets.*.category' => 'required|string',
+        ]);
+
+        $document = Document::where('user_id', $request->user()->id)->findOrFail($id);
+
+        try {
+            $result = $this->processor->confirmExcel(
+                $document,
+                $request->input('sheets'),
+                $request->user()
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Import completed successfully',
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Import failed', $e);
         }
     }
 

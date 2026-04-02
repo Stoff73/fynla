@@ -164,6 +164,16 @@
             </div>
           </div>
 
+          <!-- Step 3b: Sheet Review (Excel files) -->
+          <div v-else-if="currentStep === 'sheet-review'">
+            <SheetReviewStep
+              :sheets="excelSheets"
+              :document-id="documentId"
+              @confirm="handleExcelConfirm"
+              @close="handleClose"
+            />
+          </div>
+
           <!-- Error State -->
           <div v-else-if="currentStep === 'error'" class="text-center py-8">
             <svg class="mx-auto h-12 w-12 text-raspberry-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,6 +249,7 @@
 import UploadDropZone from './UploadDropZone.vue';
 import ProcessingState from './ProcessingState.vue';
 import ConfidenceBadge from './ConfidenceBadge.vue';
+import SheetReviewStep from './SheetReviewStep.vue';
 import documentService from '../../services/documentService';
 
 export default {
@@ -248,6 +259,7 @@ export default {
     UploadDropZone,
     ProcessingState,
     ConfidenceBadge,
+    SheetReviewStep,
   },
 
   props: {
@@ -277,6 +289,8 @@ export default {
       detectedType: null,
       detectedSubtype: null,
       targetModel: null,
+      isExcel: false,
+      excelSheets: [],
       isSaving: false,
       errorTitle: '',
       errorMessage: '',
@@ -290,6 +304,7 @@ export default {
         upload: 0,
         processing: 1,
         review: 2,
+        'sheet-review': 2,
         error: 2,
       };
       return stepMap[this.currentStep] ?? 0;
@@ -376,6 +391,16 @@ export default {
         );
 
         if (result.success) {
+          this.documentId = result.data.document_id;
+
+          // Excel files go to sheet review step
+          if (result.data.is_excel) {
+            this.isExcel = true;
+            this.excelSheets = result.data.sheets || [];
+            this.currentStep = 'sheet-review';
+            return;
+          }
+
           this.processingStep = 'extracting';
 
           // Small delay to show extracting step
@@ -386,7 +411,6 @@ export default {
           this.processingStep = 'mapping';
 
           // Store results
-          this.documentId = result.data.document_id;
           this.extractedFields = result.data.extracted_fields || {};
           this.editedFields = { ...this.extractedFields };
           this.fieldConfidence = result.data.field_confidence || {};
@@ -470,12 +494,37 @@ export default {
       }
     },
 
+    async handleExcelConfirm(confirmedSheets) {
+      this.currentStep = 'processing';
+      this.processingStep = 'mapping';
+      try {
+        const result = await documentService.confirmExcel(this.documentId, confirmedSheets);
+        if (result.success) {
+          this.$emit('saved', {
+            documentId: this.documentId,
+            isExcel: true,
+            results: result.data.results,
+          });
+          this.handleClose();
+        } else {
+          throw new Error(result.message || 'Import failed');
+        }
+      } catch (error) {
+        this.errorTitle = 'Import Failed';
+        const responseData = error.response?.data;
+        this.errorMessage = responseData?.message || error.message || 'Failed to import spreadsheet data';
+        this.currentStep = 'error';
+      }
+    },
+
     resetToUpload() {
       this.currentStep = 'upload';
       this.selectedFile = null;
       this.uploadProgress = 0;
       this.processingStep = 'uploading';
       this.documentId = null;
+      this.isExcel = false;
+      this.excelSheets = [];
       this.extractedFields = {};
       this.editedFields = {};
       this.fieldConfidence = {};

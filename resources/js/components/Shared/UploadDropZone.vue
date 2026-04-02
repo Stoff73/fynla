@@ -49,7 +49,7 @@
 
       <!-- Supported formats -->
       <p class="text-horizon-400 text-xs">
-        Supported: PDF, PNG, JPG, WebP (max {{ maxSizeMB }}MB)
+        Supported: PDF, images, or Excel spreadsheets (max {{ maxSizeMB }}MB)
       </p>
       <p class="text-horizon-400 text-xs mt-1">
         Large images will be automatically compressed for processing
@@ -63,6 +63,10 @@
         <!-- PDF Icon -->
         <svg v-if="isPdf" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10.92,12.31C10.68,11.54 10.15,9.08 11.55,9.04C12.95,9 12.03,12.16 12.03,12.16C12.42,13.65 14.05,14.72 14.05,14.72C14.55,14.57 17.4,14.24 17,15.72C16.57,17.2 13.5,15.81 13.5,15.81C11.55,15.95 10.09,16.47 10.09,16.47C8.96,18.58 7.64,19.5 7.1,18.61C6.43,17.5 9.23,16.07 9.23,16.07C10.68,13.72 10.92,12.31 10.92,12.31Z" />
+        </svg>
+        <!-- Excel Icon -->
+        <svg v-else-if="isExcel" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12.9,14.5L15.8,19H14L12,15.6L10,19H8.2L11.1,14.5L8.2,10H10L12,13.4L14,10H15.8L12.9,14.5Z" />
         </svg>
         <!-- Image Icon -->
         <svg v-else fill="currentColor" viewBox="0 0 24 24">
@@ -104,7 +108,7 @@ export default {
   props: {
     acceptedTypes: {
       type: Array,
-      default: () => ['.pdf', '.png', '.jpg', '.jpeg', '.webp'],
+      default: () => ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.xlsx', '.xls', '.csv'],
     },
     maxSizeMB: {
       type: Number,
@@ -144,8 +148,19 @@ export default {
       return this.selectedFile?.type === 'application/pdf';
     },
 
+    isExcel() {
+      const excelTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'text/csv',
+        'application/csv',
+      ];
+      return excelTypes.includes(this.selectedFile?.type);
+    },
+
     fileIconClass() {
       if (this.isPdf) return 'text-raspberry-500';
+      if (this.isExcel) return 'text-spring-600';
       return 'text-violet-500';
     },
   },
@@ -191,9 +206,13 @@ export default {
         'image/jpeg',
         'image/png',
         'image/webp',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'text/csv',
+        'application/csv',
       ];
       if (!allowedMimes.includes(file.type)) {
-        this.error = 'Invalid file type. Please upload a PDF or image (JPEG, PNG, WebP).';
+        this.error = 'Invalid file type. Please upload a PDF, image, or spreadsheet (Excel, CSV).';
         this.$emit('error', this.error);
         return;
       }
