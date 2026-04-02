@@ -1,28 +1,37 @@
 # CSJTODO — Fynla
 
-*Last updated: 2 April 2026 — session 29*
-*Previous session: 2 April 2026 session 28*
+*Last updated: 2 April 2026 — session 30*
+*Previous session: 2 April 2026 session 29*
 
 ---
 
-## Session 29 (2 April) — Excel Import, Onboarding Merge, Bug Fixes Part 2
+## Session 30 (2 April) — Bug Report Audit + Dynamic Tax Year Overhaul
 
 ### Completed This Session
-- [x] **Fyn AI connection drop fix** — 20s PHP socket timeout causing xAI stream death. XaiClient now has 120s Guzzle timeout. Frontend detects empty responses. IHT Carbon→string fix. PR #179 merged.
-- [x] **Excel holdings import** — full feature: ExcelParserService, AIExtractionService.extractSheet(), HoldingsImportService, 4 new field mappers (Property, Protection, Savings, Mortgage), SheetReviewStep + HoldingsReviewTable Vue components. Browser tested with 3-sheet workbook. PR #181 merged.
-- [x] **Onboarding redesign merge** — PR #180 merged with conflict resolution (3 conflicts: AssetsStep, IncomeStep, CSJTODO). All features preserved including spouse step.
-- [x] **8 bugs fixed (part 2)** — modal Teleport, institution tooltip, Premium Bonds £50k validation, mortgage joint ownership on liabilities, mortgage card clickable, dashboard pie chart clickable, investment-detail redirect. All browser tested.
-- [x] **Session-end skill updated** — dynamic month paths (no more hardcoded March)
-- [x] **Vault synced** — 6 files to fynlaBrain, git history updated (36 commits)
-- [x] **CLAUDE.md metrics updated** — Vue 651, Services 229
+- [x] **Full bug audit of 3 PDF reports** — BugReportApril1.pdf (5 bugs), bugsApril2One.pdf (6 items), bugsApril2Two.pdf (8 bugs). 9 bugs investigated, 7 fixed, 2 already fixed.
+- [x] **Bug 1: Retirement responsive layout** — "Other Assets" box cut off at 1118px. Fixed with min-width:0 on grid children + 1024px breakpoint.
+- [x] **Bug 2: Estate planning internal error** — AssetLiquidityAnalyzer TypeError on production. Fixed type hint from Asset to object, added null coalescing.
+- [x] **Bug 3: Projected Net Income not clickable** — Added visible "View income breakdown" CTA link on planner card.
+- [x] **Bug 4: VCT form too complicated + save error** — Hid contributions section for VCT/EIS, show field-level validation errors.
+- [x] **Bug 5: Journey selection not persisted** — Stage now saved immediately on card selection, not just on "Start My Journey".
+- [x] **Bug 6: Pension retirement age defaults to 67** — DC pension form always re-fetches profile for latest retirement age.
+- [x] **Bug 8: Property wizard exits on Tenants in Common "Other"** — Guard in handleSubmit prevents accidental form submit on intermediate steps.
+- [x] **Dynamic tax year overhaul** — Eliminated ALL hardcoded "2025/26" and tax values across 39 frontend files + 2 backend files. Created getCurrentTaxYear() utility. Replaced hardcoded ISA/pension/CGT values with taxConfig.js imports. Also fixed stale CGT allowance (£12,300 → £3,000 in RebalancingCalculator).
+- [x] **Stop hook: tax-hardcode-check.sh** — Runs after every session, greps for hardcoded tax values in changed files.
+- [x] **Memory rule: feedback_never_hardcode_tax_values.md** — Permanent enforcement rule.
+- [x] **Design guide v1.3.0** — Dynamic Financial Values, Number Input Scroll Prevention, Clickable Card CTA, Grid Overflow Prevention, Sidebar-Aware Breakpoints.
+- [x] **Session-start skill updated** — Expert Laravel/PHP/Vue developer identity.
+- [x] **Browser tested** — All 8 previously-fixed bugs verified in Playwright + new fixes verified.
+- [x] **Production build** — `./deploy/fynla-org/build.sh` completed (6.9M).
 
 ### Deploy Status
-- **Bugs branch (NOT merged to main):** 8 bug fixes + session-end skill + CLAUDE.md metrics
-- **Files to upload when merged:** `public/build/` + `app/Http/Controllers/Api/EstateController.php`
-- **From earlier today (already deployed):** Fyn timeout fix (XaiClient, IHT), onboarding redesign, SEO
+- **Bugs branch (NOT merged to main):** 9 bug fixes + dynamic tax year overhaul (42 files) + design guide v1.3.0
+- **Deploy guide:** `April/April2Updates/bugIssueDeploy.md`
+- **Files to upload:** `public/build/` + 3 PHP files (EstateController, AssetLiquidityAnalyzer, OnboardingService)
+- **From earlier today (already deployed):** Fyn timeout fix, onboarding redesign, SEO, 8 bug fixes (part 2)
 
 ### Context for Next Session
-The `bugs` branch has 4 commits with 8 bug fixes (all browser tested). Needs PR + merge to main, then build + deploy. The Excel holdings import (PR #181) is already on main but hasn't been deployed to production — needs `public/build/` + 12 PHP files + route cleared. The onboarding redesign (PR #180) frontend is deployed but some PHP files from the onboarding branch may not be on production yet.
+The `bugs` branch has all session 29 + 30 work. Needs PR + merge to main, then deploy using `bugIssueDeploy.md`. The dynamic tax year change is critical — the UK tax year changes to 2026/27 on April 6 (4 days away). Without this deploy, all tax year references on the site will show stale "2025/26" after April 5. Also: the Excel holdings import (PR #181 on main) still hasn't been deployed to production.
 
 ---
 
@@ -33,6 +42,7 @@ The `bugs` branch has 4 commits with 8 bug fixes (all browser tested). Needs PR 
 - [ ] Recurring billing / auto-renewal (Revolut)
 - [ ] Test Excel import with real platform exports (Hargreaves Lansdown, AJ Bell, Vanguard)
 - [ ] Test Fyn timeout fix on production (10+ message conversation)
+- [ ] Deploy Excel holdings import to production (12 PHP files + build)
 
 ## Outstanding — Tech Debt Deferred
 - [ ] God class decomposition (6 files, 40-60 hours)
