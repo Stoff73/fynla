@@ -475,6 +475,30 @@
       @saved="handleDocumentSaved"
       @manual-entry="closeUploadModal"
     />
+
+    <!-- Skip Assets Modal -->
+    <div v-if="showAssetSkipModal" class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" @click="showAssetSkipModal = false"></div>
+        <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-horizon-500">Skip Assets & Wealth?</h3>
+              <p class="text-sm text-neutral-500 mt-1">You haven't completed all the information for Assets & Wealth. You can always add this information later from your dashboard.</p>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button type="button" class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors" @click="showAssetSkipModal = false">Go Back</button>
+            <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors" @click="confirmAssetSkip">Skip & Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </OnboardingStep>
 </template>
 
@@ -997,19 +1021,39 @@ export default {
       }
     }
 
+    const showAssetSkipModal = ref(false);
+
     // Navigation
     function handleNext() {
-      // Use allowed tabs (filtered by life stage) not the full hardcoded list
+      // Check if any tabs have no data entered
+      const incompleteTabs = [];
       const tabOrder = allowedTabs.value || ['retirement', 'properties', 'investments', 'cash'];
-      const currentIndex = tabOrder.indexOf(activeTab.value);
+      const tabLabels = { retirement: 'Retirement', properties: 'Properties', investments: 'Investments', cash: 'Cash' };
 
-      // If not on the last visible tab, go to next tab
-      if (currentIndex < tabOrder.length - 1) {
-        activeTab.value = tabOrder[currentIndex + 1];
+      for (const tab of tabOrder) {
+        if (tab === 'retirement' && pensions.value.dc.length === 0 && pensions.value.db.length === 0 && !pensions.value.state) {
+          incompleteTabs.push(tabLabels[tab]);
+        } else if (tab === 'properties' && properties.value.length === 0) {
+          incompleteTabs.push(tabLabels[tab]);
+        } else if (tab === 'investments' && investments.value.length === 0) {
+          incompleteTabs.push(tabLabels[tab]);
+        } else if (tab === 'cash' && savingsAccounts.value.length === 0) {
+          incompleteTabs.push(tabLabels[tab]);
+        }
+      }
+
+      if (incompleteTabs.length > 0 && incompleteTabs.length === tabOrder.length) {
+        // All tabs empty — show skip prompt
+        showAssetSkipModal.value = true;
       } else {
-        // On last visible tab, proceed to next onboarding step
+        // At least some data entered, proceed
         emit('next');
       }
+    }
+
+    function confirmAssetSkip() {
+      showAssetSkipModal.value = false;
+      emit('next');
     }
 
     function handleBack() {
@@ -1166,6 +1210,8 @@ export default {
       properties,
       showPropertyForm,
       showPensionTypeSelector,
+      showAssetSkipModal,
+      confirmAssetSkip,
       editingProperty,
       editProperty,
       deleteProperty,

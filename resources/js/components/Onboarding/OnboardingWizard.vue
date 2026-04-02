@@ -137,7 +137,7 @@
                   to="/dashboard"
                   class="text-sm text-neutral-500 hover:text-horizon-500 underline transition-colors"
                 >
-                  Skip to dashboard
+                  Skip to dashboard and get help from Fyn
                 </router-link>
               </div>
             </div>
@@ -900,9 +900,15 @@ export default {
             store.dispatch('userProfile/updateIncomeOccupation', occupationData),
           ]);
         } else if (stepId === 'student-loan' && formData) {
-          // Check for existing student loan to avoid duplicates on re-entry
-          const existingLiabilities = store.state.estate?.liabilities || [];
-          const existingLoan = existingLiabilities.find(l => l.liability_type === 'student_loan');
+          // Fetch liabilities from API to check for existing student loan (avoid duplicates)
+          let existingLoan = null;
+          try {
+            const estateResponse = await estateService.getEstateData();
+            const liabilities = estateResponse.data?.liabilities || [];
+            existingLoan = liabilities.find(l => l.liability_type === 'student_loan');
+          } catch {
+            // If fetch fails, try creating (backend may deduplicate)
+          }
           if (existingLoan?.id) {
             await estateService.updateLiability(existingLoan.id, formData);
           } else {
