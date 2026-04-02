@@ -31,22 +31,22 @@
         <!-- Mobile: brain GIF + stacked caption cards (shown below lg) -->
         <div class="flex flex-col gap-3 mt-6 pb-6 lg:hidden">
           <!-- Brain GIF in its own box above caption cards -->
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm flex justify-center">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm flex justify-center">
             <img
-              src="/images/Website/Fyn-Brain-Animated-Short.gif"
+              src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif"
               alt="Fynla Brain animation"
               class="w-28 h-auto rounded-lg"
             />
           </div>
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial view.</p>
             <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
           </div>
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial brain.</p>
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
           </div>
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice.</p>
             <p class="text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
@@ -78,7 +78,7 @@
             </div>
             <div class="flex-1 flex items-end justify-center overflow-hidden mt-1">
               <img
-                src="/images/Website/Fyn-Brain-Animated-Short.gif"
+                src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif"
                 alt="Fynla Brain"
                 class="w-auto max-w-full max-h-full object-contain object-bottom"
               />
@@ -329,22 +329,22 @@
     </div>
 
     <!-- Stats Bar - Straddles solutions section and footer -->
-    <div class="relative z-10 -mt-14 -mb-20">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="card-lg flex flex-col sm:flex-row items-center justify-around gap-6">
-          <div class="text-center">
-            <div class="text-4xl font-bold text-horizon-500">123</div>
-            <div class="text-sm font-semibold text-neutral-500 mt-1">Regulations</div>
+    <div class="relative z-10 -mt-14 -mb-24">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="card-lg flex flex-col sm:flex-row items-start justify-around gap-6 py-8">
+          <div class="text-center flex-1">
+            <div class="text-4xl font-bold text-horizon-500">91%</div>
+            <div class="text-sm font-semibold text-neutral-500 mt-1">UK adults don't get financial advice</div>
           </div>
-          <div class="hidden sm:block w-px h-12 bg-light-gray"></div>
-          <div class="text-center">
-            <div class="text-4xl font-bold text-horizon-500">16</div>
-            <div class="text-sm font-semibold text-neutral-500 mt-1">Financial Tools</div>
+          <div class="hidden sm:block w-px self-stretch bg-light-gray"></div>
+          <div class="text-center flex-1">
+            <div class="text-4xl font-bold text-horizon-500">1</div>
+            <div class="text-sm font-semibold text-neutral-500 mt-1">The only UK platform designed for students to retirees</div>
           </div>
-          <div class="hidden sm:block w-px h-12 bg-light-gray"></div>
-          <div class="text-center">
-            <div class="text-4xl font-bold text-horizon-500">12</div>
-            <div class="text-sm font-semibold text-neutral-500 mt-1">Accreditations</div>
+          <div class="hidden sm:block w-px self-stretch bg-light-gray"></div>
+          <div class="text-center flex-1">
+            <div class="text-4xl font-bold text-horizon-500">30+</div>
+            <div class="text-sm font-semibold text-neutral-500 mt-1">Fynla features for financial planning</div>
           </div>
         </div>
       </div>

@@ -453,21 +453,24 @@
           </div>
 
           <!-- Form Actions -->
-          <div class="mt-6 flex gap-3">
+          <div class="mt-6 flex gap-3" :class="context === 'onboarding' ? 'justify-end' : ''">
+            <button
+              type="button"
+              @click="handleClose"
+              :class="context === 'onboarding'
+                ? 'px-4 py-2 bg-light-pink-100 hover:bg-light-pink-200 text-horizon-500 rounded-lg transition-colors text-sm font-medium'
+                : 'px-6 py-3 bg-savannah-100 text-neutral-500 font-medium rounded-lg hover:bg-savannah-200 transition-colors'"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               :disabled="submitting"
-              class="flex-1 px-6 py-3 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 disabled:bg-savannah-300 disabled:cursor-not-allowed transition-colors"
+              :class="context === 'onboarding'
+                ? 'px-6 py-2 bg-raspberry-500 text-white rounded-lg hover:bg-raspberry-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+                : 'flex-1 px-6 py-3 bg-raspberry-500 text-white font-medium rounded-button hover:bg-raspberry-600 disabled:bg-savannah-300 disabled:cursor-not-allowed transition-colors'"
             >
-              {{ submitting ? 'Saving...' : (isEditing ? 'Update Policy' : 'Add Policy') }}
-            </button>
-            <button
-              v-if="context !== 'onboarding'"
-              type="button"
-              @click="handleClose"
-              class="px-6 py-3 bg-savannah-100 text-neutral-500 font-medium rounded-lg hover:bg-savannah-200 transition-colors"
-            >
-              Cancel
+              {{ submitting ? 'Saving...' : (context === 'onboarding' ? 'Save' : (isEditing ? 'Update Policy' : 'Add Policy')) }}
             </button>
           </div>
         </form>

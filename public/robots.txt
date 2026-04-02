@@ -1,4 +1,24 @@
 User-agent: *
+Allow: /
 Disallow: /api/
+Disallow: /dashboard
+Disallow: /net-worth/
+Disallow: /protection
+Disallow: /estate/
+Disallow: /goals
+Disallow: /plans
+Disallow: /planning/
+Disallow: /holistic-plan
+Disallow: /risk-profile
+Disallow: /trusts
+Disallow: /actions
+Disallow: /settings/
+Disallow: /onboarding
+Disallow: /valuable-info
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /preview/
+Disallow: /m/
+Disallow: /mockups/
 
 Sitemap: https://fynla.org/sitemap.xml

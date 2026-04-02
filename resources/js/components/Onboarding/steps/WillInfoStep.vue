@@ -13,7 +13,7 @@
     <div class="space-y-6">
       <div>
         <label class="label">
-          Do you currently have a valid will?
+          Do you currently have a valid will? <span class="q-icon" @click="emitWhyField($event,'has_will')" title="Why we ask this">?</span>
         </label>
         <div class="mt-2 space-y-2">
           <label class="inline-flex items-center">
@@ -39,13 +39,14 @@
 
       <div v-if="formData.has_will">
         <label for="will_last_updated" class="label">
-          When was your will last updated?
+          When was your will last updated? <span class="q-icon" @click="emitWhyField($event,'will_last_updated')" title="Why we ask this">?</span>
         </label>
         <input
           id="will_last_updated"
           v-model="formData.will_last_updated"
           type="date"
           class="input-field"
+          @focus="emitWhyField($event,'will_last_updated')"
         >
         <p class="mt-1 text-body-sm text-neutral-500">
           It's recommended to review your will every 5 years or after major life events
@@ -54,7 +55,7 @@
 
       <div v-if="formData.has_will">
         <label class="label">
-          {{ formData.executors.length > 1 ? 'Who are your executors?' : 'Who is your executor?' }}
+          {{ formData.executors.length > 1 ? 'Who are your executors?' : 'Who is your executor?' }} <span class="q-icon" @click="emitWhyField($event,'executors')" title="Why we ask this">?</span>
         </label>
         <div v-for="(executor, index) in formData.executors" :key="index" class="flex items-center gap-2 mb-2">
           <input
@@ -83,27 +84,11 @@
         </button>
       </div>
 
-      <div v-if="formData.has_will === false" class="space-y-4">
+      <div v-if="formData.has_will === false">
         <div class="bg-violet-50 p-4 rounded-lg border border-violet-200">
           <p class="text-body-sm text-violet-800">
             <strong>Important:</strong> Without a will, your estate will be distributed according to intestacy rules, which may not reflect your wishes.
           </p>
-        </div>
-        <div class="bg-white p-4 rounded-lg border border-light-gray">
-          <p class="text-body font-medium text-horizon-500 mb-2">Create your will now</p>
-          <p class="text-body-sm text-neutral-500 mb-4">
-            Use our guided Will Builder to create a will that reflects your wishes. It takes about 15 minutes and you can save your progress at any time.
-          </p>
-          <button
-            type="button"
-            @click="openWillBuilder"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors"
-          >
-            Start Will Builder
-            <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -127,11 +112,50 @@ export default {
     UsefulResources,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
     const router = useRouter();
+
+    const WHY_FIELD_DATA = {
+      has_will: { whyWeAsk: 'Knowing whether you have a will helps us assess your estate planning position and identify if intestacy rules would apply.' },
+      will_last_updated: { whyWeAsk: 'An outdated will may not reflect your current wishes or financial situation. We recommend reviewing every 5 years or after major life events.' },
+      executors: { whyWeAsk: 'Your executor is responsible for administering your estate. Recording this helps ensure your estate plan is complete.' },
+    };
+
+    let lastEmittedField = null;
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      let fieldOffsetY = 0;
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
+    };
 
     const formData = ref({
       has_will: null,
@@ -218,6 +242,7 @@ export default {
       handleBack,
       handleSkip,
       openWillBuilder,
+      emitWhyField,
       STEP_RESOURCES,
     };
   },

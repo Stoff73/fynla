@@ -372,5 +372,10 @@ export default {
   components: {
     PublicLayout,
   },
+
+  mounted() {
+    document.title = 'Terms of service | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Read Fynla\'s terms of service. Understand your rights and responsibilities when using the Fynla personal finance platform.');
+  },
 };
 </script>

@@ -1,44 +1,49 @@
 # CSJTODO — Fynla
 
-*Last updated: 2 April 2026 — session 27*
-*Previous session: 1 April 2026 session 26*
+*Last updated: 1 April 2026 — session 25*
+*Previous session: 1 April 2026 session 24*
 
 ---
 
-## Session 27 (2 April) — Chris User Seeder + Fyn Pension Prompt Improvement
+## Session 25 (1 April) — Auth & Onboarding UI Redesign
 
 ### Completed This Session
-- [x] **ChrisUserSeeder created** — seeds chris@fynla.org locally with all production-matching data
-  - User profile, 2 properties + mortgages, savings, investment account + 2 holdings, DC pension, business interest, chattel, 2 goals, life event, family member, risk profile, ISA tracking, subscription
-- [x] **Registered in DatabaseSeeder** — runs automatically with `php artisan db:seed`
-- [x] **Field-by-field verified** against production (properties city/postcode, goal is_first_time_buyer, subscription trial_ends_at all corrected)
-- [x] **Fyn pension prompt improved** — Personal Allowance reclaim now covers incomes above £125,140 (not just £100k-£125k). Includes worked example (£145k income, £45k contribution, £12,570 PA restored, £2,514 additional saving)
+- [x] **Register page redesign** — blue-to-pink gradient bg, white-to-grey card, light-blue beta warning, horizon-blue labels/borders, mandatory asterisks, logo clickable, middle name moved to onboarding
+- [x] **Login page redesign** — matching gradient bg, card style, light-blue beta warning, increased padding, relative links
+- [x] **Onboarding stage selection** — gradient bg, homepage-style stage cards (horizon gradient, raspberry accent, "Start here" links), light-pink intro box
+- [x] **Onboarding journey map (welcome)** — horizon-blue hero, centred steps info, full-opacity nodes, collapsible "What you'll need", pink back button, "Start My Journey" chevron
+- [x] **Onboarding form pages** — 52px progress circles with horizon-blue active/complete, thick connecting line (blue for completed), sidebar inside form card with light-pink bg, dynamic "Why we ask this" aligned to active field via ? icons, "How this fits your journey" with read more/less, consistent pink Back + "Skip to dashboard" + Continue nav
+- [x] **Global onboarding styles** — onb-input, onb-label, q-icon in app.css; OnboardingStep deep overrides for all step components
+- [x] **Journey reset fix** — switching stages clears saved data and sidebar override
+- [x] **4 HTML mockups created** — auth-redesign, onboarding-redesign, onboarding-welcome-redesign, onboarding-form-redesign
 
-### Files Changed
-- `database/seeders/ChrisUserSeeder.php` (NEW)
-- `database/seeders/DatabaseSeeder.php` (added ChrisUserSeeder)
-- `app/Constants/FinancialPlanningKnowledge.php` (pension PA reclaim prompt)
+### NOT Done — Needs Further Work
+- [ ] "Why we ask this" box Y-alignment fine-tuning — slightly off for some fields
+- [ ] Browser testing of full onboarding flow end-to-end (all stages, all steps)
+- [ ] Other step components (StudentLoan, Income, Spending, etc.) need individual ? icon WHY_FIELD_DATA maps for field-specific text
+- [ ] Mobile testing of onboarding layout (sidebar stacks below, arrow hidden)
+- [ ] Remove old mockup HTML files from public/mockups/ before deploy
 
-### Deploy Status
-- **UI branch**: Commit `2212ba5`. No production deploy needed (seeder is local-only, prompt change needs build + upload)
-- **Pending from session 26**: Card overflow fix `public/build/` still needs uploading to production
+### Branch
+- `onboarding-and-squirrels` — 2 commits, NOT merged to main, NOT deployed
+- 15 files changed vs main
 
 ---
 
-## Session 26 (1 April) — Fyn AI Field Fixes + Card Overflow Fix
+## Session 24 (1 April) — PR #177 Merge, Deploy, Version Bump
 
 ### Completed This Session
-- [x] **19 wrong field names fixed in Fyn AI context** — mortgages, DC pensions, business interests, chattels, life insurance all reading £0/blank
-- [x] Root cause: SystemPromptBuilder, HasAiChat, CoordinatingAgent used non-existent model attributes
-- [x] Field alias mapping added to `handleUpdateRecord()`
-- [x] **Deployed to production** (3 PHP files via SSH sed) and **production tested**
-- [x] **Card text overflow fix** (UI branch) — global `overflow-hidden` + `break-word` on all card variants
+- [x] **PR #177 merged** — resource pages redesign (131 files, 17 commits, 6 merge conflicts resolved)
+- [x] Old comparison URL redirects added (fynla-vs-moneyhub, fynla-vs-voyant, fynla-vs-projectionlab)
+- [x] CSP updated for Google Analytics (googletagmanager.com, *.google-analytics.com)
+- [x] Built and deployed to production (291 assets + 5 PHP files + sitemap)
+- [x] Production browser tested — 0 console errors across all pages
+- [x] Version bumped v0.9.3.2 → v0.9.4 (Footer, Version.vue, CLAUDE.md)
+- [x] Version page updated with patch notes for PRs #175-177
+- [x] Deploy notes at April/April1Updates/deployNotes.md
+- [x] Patch notes at fynlaBrain/April/April01Updates/patchNotes-PR177.md
 
----
-
-## Outstanding from Previous Sessions
-- [ ] Upload `public/build/` to production (card overflow fix from session 26)
-- [ ] Merge UI → main after deploying card overflow fix
+### Outstanding from Previous Sessions
 - [ ] Delete mockup HTML files from public/ (insights, learn, journey, persona, mobile)
 - [ ] Submit updated sitemap.xml to Google Search Console
 - [ ] Test contact form email delivery on production (requires mail config)
@@ -46,7 +51,7 @@
 
 ---
 
-## Outstanding — Tech Debt Deferred
+## Outstanding — Tech Debt Deferred (from techDebtDeferred.md)
 
 ### God Class Decomposition (CRITICAL — Large effort, ~40-60 hours)
 - [ ] SavingsActionDefinitionService: 3,675 lines
@@ -87,6 +92,15 @@
 - [ ] Expenditure form fill doesn't animate through form
 - [ ] property_sale life event: Grok creates property record (double navigation)
 
+## Deploy Status
+
+### All Through PR #177 — DEPLOYED & VERIFIED (v0.9.4)
+- PR #175: Feature gating — deployed, production tested
+- PR #176: Journey links + security fix — deployed, production tested
+- PR #177: Resource pages redesign — merged 1 April, deployed, production tested (0 console errors)
+- Version bumped to v0.9.4, patch notes on /version page
+- Deploy notes: April/April1Updates/deployNotes.md
+
 ## Context for Next Session
 
-ChrisUserSeeder is complete and verified field-by-field against production. Fyn's pension prompt now correctly handles PA reclaim for high earners above £125,140. Card overflow fix from session 26 still needs `public/build/` uploaded to production, then UI branch should merge to main.
+Branch `onboarding-and-squirrels` has auth page and onboarding UI redesign — mockup-first workflow, 2 commits. NOT merged or deployed. Key remaining work: fine-tune "Why we ask this" Y-alignment, add field-specific WHY text to all step components beyond PersonalInfoStep, browser test full onboarding flow, mobile test. Production is at v0.9.4 with all PR #175-177 work deployed.

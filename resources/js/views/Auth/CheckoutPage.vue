@@ -340,6 +340,28 @@ export default {
           await api.post('/payment/confirm', { order_id: this.revolutOrderId });
           this.paymentComplete = true;
           this.processing = false;
+
+          // GA4 ecommerce purchase tracking
+          if (typeof gtag === 'function' && this.planData) {
+            const pricePence = this.billingCycle === 'monthly'
+              ? (this.planData.launch_monthly_price || this.planData.monthly_price)
+              : (this.planData.launch_yearly_price || this.planData.yearly_price);
+            const priceGBP = (pricePence || 0) / 100;
+
+            gtag('event', 'purchase', {
+              transaction_id: this.revolutOrderId,
+              value: priceGBP,
+              currency: 'GBP',
+              items: [{
+                item_id: this.plan,
+                item_name: `Fynla ${this.planDisplayName} (${this.billingCycle})`,
+                price: priceGBP,
+                quantity: 1,
+                item_category: this.isUpgrade ? 'upgrade' : 'new_subscription',
+              }],
+            });
+          }
+
           return;
         } catch (err) {
           const state = err.response?.data?.state;

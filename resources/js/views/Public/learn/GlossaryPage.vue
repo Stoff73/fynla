@@ -366,7 +366,7 @@ export default {
             name: 'Student Loan',
             anchor: 'student-loan',
             definition: 'A government loan for tuition fees and maintenance. Repayments are income-contingent (you only pay above a salary threshold) and the balance is written off after 25\u201340 years depending on your plan type.',
-            link: { to: '/calculators', label: 'Student loan calculator' },
+            link: { to: '/calculators?calc=student-loan', label: 'Student loan calculator' },
           },
         ],
         T: [

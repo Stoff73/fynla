@@ -1,20 +1,19 @@
 <template>
-  <div class="min-h-screen bg-eggshell-500">
+  <div class="min-h-screen onboarding-page">
     <!-- Top Navigation Bar -->
     <div class="bg-white border-b border-light-gray">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-        <router-link to="/dashboard" class="flex-shrink-0">
+        <router-link to="/" class="flex-shrink-0">
           <img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="h-10" />
         </router-link>
-        <h1 class="text-base font-bold text-horizon-500 absolute left-1/2 -translate-x-1/2">Your Journey</h1>
         <router-link
           to="/dashboard"
           class="text-sm text-neutral-500 hover:text-horizon-500 transition-colors flex items-center gap-1"
         >
+          <span>Go to dashboard</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
-          <span class="hidden sm:inline">Exit</span>
         </router-link>
       </div>
     </div>
@@ -27,140 +26,136 @@
     <template v-if="isLifeStageMode && !showStageMap">
       <!-- Progress Bar -->
       <div v-if="lifeStageSteps.length > 0" class="max-w-6xl mx-auto mb-6">
-        <div class="bg-white rounded-lg shadow-sm border border-light-gray p-4">
+        <div class="bg-white rounded-xl shadow-sm border border-light-gray p-5">
           <div class="overflow-x-auto scrollbar-hide">
-            <div class="flex items-start justify-between min-w-max px-2">
+            <div class="progress-track flex items-start justify-between min-w-max px-2">
               <div
                 v-for="(stepId, index) in lifeStageSteps"
                 :key="stepId"
                 class="flex-1 flex flex-col items-center relative min-w-[80px] cursor-pointer"
                 @click="goToStep(index)"
               >
-                <!-- Step Circle -->
+                <!-- Step Circle — larger, horizon blue -->
                 <div
-                  class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all"
+                  class="w-[52px] h-[52px] rounded-full flex items-center justify-center border-[3px] transition-all text-lg font-bold relative z-10"
                   :class="getLifeStageStepCircleClass(stepId, index)"
                 >
-                  <!-- Tick for complete (all fields filled) -->
-                  <svg v-if="getLifeStageStepStatus(stepId, index) === 'complete'" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg v-if="getLifeStageStepStatus(stepId, index) === 'complete'" class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                   </svg>
-                  <!-- Dash for skipped (no fields filled, already passed) -->
-                  <svg v-else-if="getLifeStageStepStatus(stepId, index) === 'skipped'" class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg v-else-if="getLifeStageStepStatus(stepId, index) === 'skipped'" class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
                   </svg>
-                  <!-- Partial indicator (some fields filled) -->
                   <span v-else-if="getLifeStageStepStatus(stepId, index) === 'partial'" class="text-xs font-bold text-white">
                     {{ getStepCompletenessPercentage(stepId) }}%
                   </span>
-                  <!-- Number for current/upcoming -->
-                  <span v-else class="text-sm font-semibold">{{ index + 1 }}</span>
+                  <span v-else>{{ index + 1 }}</span>
                 </div>
                 <!-- Step Label -->
                 <span
-                  class="text-xs mt-1.5 text-center leading-tight max-w-[70px]"
+                  class="text-xs mt-2 text-center leading-tight max-w-[70px]"
                   :class="getLifeStageStepLabelClass(stepId, index)"
                 >{{ getLifeStageStepLabel(stepId) }}</span>
-                <!-- Connecting Line -->
+                <!-- Connecting Line — blue for completed, grey for upcoming -->
                 <div
                   v-if="index < lifeStageSteps.length - 1"
-                  class="absolute h-0.5 top-[18px] left-1/2 -z-10"
+                  class="absolute h-1 top-[26px] left-1/2 z-0 rounded-full"
+                  :class="index < lifeStageCurrentIndex ? 'bg-horizon-500' : 'bg-neutral-300'"
                   :style="{ width: 'calc(100% - 20px)' }"
-                  :class="getLifeStageConnectingLineClass(index)"
                 ></div>
               </div>
             </div>
           </div>
-          <!-- Skip to Dashboard -->
-          <div class="mt-3 text-center">
-            <button
-              type="button"
-              class="text-sm text-neutral-500 hover:text-raspberry-500 transition-colors underline"
-              @click="showSkipToDashboardModal = true"
-            >
-              Skip to Dashboard
-            </button>
-          </div>
         </div>
       </div>
 
-      <!-- Two-Column Layout -->
+      <!-- Full-Width Card with Sidebar Inside -->
       <div class="max-w-6xl mx-auto">
-        <div class="flex flex-col lg:flex-row gap-6">
-          <!-- Left Column: Form -->
-          <div class="flex-1 min-w-0">
-            <div class="bg-white rounded-lg shadow-sm border border-light-gray p-6">
-              <!-- No Transition wrapper: mode="out-in" causes stuck renders on async component swap -->
-              <component
-                v-if="lifeStageCurrentComponent"
-                :is="lifeStageCurrentComponent"
-                :key="lifeStageCurrentStepId"
-                :context="'onboarding'"
-                :saved-data="savedStepData[lifeStageCurrentStepId] || null"
-                @save="handleLifeStageStepSave"
-                @next="handleLifeStageNext"
-                @back="handleLifeStageBack"
-                @skip="handleLifeStageSkip"
-                @close="handleLifeStageNext"
-                @sidebar-update="sidebarOverride = $event"
-              />
-              <div v-else class="py-12 text-center">
-                <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="text-sm text-neutral-500">Loading step...</p>
+        <div class="bg-white rounded-xl shadow-sm border border-light-gray overflow-hidden">
+          <div class="flex flex-col lg:flex-row">
+            <!-- Left: Form + Navigation -->
+            <div class="flex-1 min-w-0 flex flex-col">
+              <div class="flex-1 p-6 sm:p-8" @focusin="handleFormFieldFocus">
+                <component
+                  ref="currentStepRef"
+                  v-if="lifeStageCurrentComponent"
+                  :is="lifeStageCurrentComponent"
+                  :key="lifeStageCurrentStepId"
+                  :context="'onboarding'"
+                  :saved-data="savedStepData[lifeStageCurrentStepId] || null"
+                  @save="handleLifeStageStepSave"
+                  @next="handleLifeStageNext"
+                  @back="handleLifeStageBack"
+                  @skip="handleLifeStageSkip"
+                  @close="handleLifeStageNext"
+                  @sidebar-update="sidebarOverride = $event"
+                />
+                <div v-else class="py-12 text-center">
+                  <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p class="text-sm text-neutral-500">Loading step...</p>
+                </div>
               </div>
 
-              <!-- Navigation Buttons (hidden for deprecated steps that have their own nav) -->
-              <div v-if="!stepHasOwnNav" class="flex items-center justify-between mt-6 pt-6 border-t border-light-gray">
+              <!-- Navigation Buttons (inside white section) -->
+              <div class="flex items-center justify-between px-6 sm:px-8 py-5 border-t border-light-gray">
                 <button
-                  v-if="lifeStageCurrentIndex > 0"
                   type="button"
-                  class="inline-flex items-center px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
-                  @click="handleLifeStageBack"
+                  class="inline-flex items-center h-10 px-5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
+                  @click="lifeStageCurrentIndex > 0 ? handleLifeStageBack() : showStageMap = true"
                 >
-                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                   </svg>
                   Back
                 </button>
-                <div v-else></div>
 
-                <div class="flex items-center gap-3">
-                  <button
-                    type="button"
-                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors"
-                    @click="handleLifeStageSkip"
-                  >
-                    Skip this step
-                  </button>
-                  <button
-                    type="button"
-                    class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-button text-white bg-raspberry-500 hover:bg-raspberry-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors"
-                    @click="handleLifeStageNext"
-                  >
-                    Continue
-                    <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  class="inline-flex items-center h-10 px-6 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors gap-1.5"
+                  @click="triggerStepContinue"
+                >
+                  Continue
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Sidebar (inside card, light pink, extends to bottom) -->
+            <div class="w-full lg:w-[320px] flex-shrink-0 bg-light-pink-100 border-t lg:border-t-0 lg:border-l border-light-gray flex flex-col">
+              <div class="flex-1 p-6">
+                <LearningMilestoneSidebar
+                  :step="lifeStageCurrentStepId"
+                  :stage="currentLifeStage"
+                  :override="sidebarOverride"
+                />
+              </div>
+              <!-- Skip to dashboard (bottom of pink sidebar) -->
+              <div class="px-6 pb-6 pt-2 text-center">
+                <router-link
+                  to="/dashboard"
+                  class="text-sm text-neutral-500 hover:text-horizon-500 underline transition-colors"
+                >
+                  Skip to dashboard and get help from Fyn
+                </router-link>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Right Column: Learning Sidebar + Useful Resources (desktop) -->
-          <div class="w-full lg:w-[340px] flex-shrink-0">
-            <div class="lg:sticky lg:top-8 space-y-4">
-              <LearningMilestoneSidebar
-                :step="lifeStageCurrentStepId"
-                :stage="currentLifeStage"
-                :override="sidebarOverride"
-                class="rounded-lg shadow-sm border border-light-gray"
-              />
-              <UsefulResources
-                v-if="currentStepResources && currentStepResources.length"
-                :links="currentStepResources"
-              />
-            </div>
+      <!-- Did You Know — full width below form card -->
+      <div v-if="currentDidYouKnow" class="max-w-6xl mx-auto mt-4">
+        <div class="bg-white rounded-xl shadow-sm border border-light-gray p-5 flex items-start gap-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-raspberry-500 to-raspberry-400 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-horizon-500 mb-1">Did you know?</p>
+            <p class="text-sm text-neutral-500 leading-relaxed">{{ currentDidYouKnow }}</p>
           </div>
         </div>
       </div>
@@ -339,6 +334,34 @@
       @continue="showSkipToDashboardModal = false"
       @skip-to-dashboard="handleSkipToDashboard"
     />
+
+    <!-- Journey Change Confirmation Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div v-if="showJourneyChangeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/50" @click="showJourneyChangeModal = false"></div>
+          <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 z-10">
+            <div class="flex items-start gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-horizon-500">Change journey?</h3>
+                <p class="text-sm text-neutral-500 mt-1">
+                  You will lose any data saved in your existing <strong>{{ currentLifeStageLabel }}</strong> journey. Would you like to continue?
+                </p>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors" @click="showJourneyChangeModal = false">No</button>
+              <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors" @click="confirmJourneyChange">Yes</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
     </div>
   </div>
 </template>
@@ -488,6 +511,8 @@ export default {
     const skipReason = ref('');
     const pendingSkipStep = ref(null);
     const showSkipToDashboardModal = ref(false);
+    const showJourneyChangeModal = ref(false);
+    const pendingNewStageId = ref(null);
     const showJourneyCompletion = ref(false);
     const showJourneyMapModal = ref(false);
     const selectedStageId = ref(null);
@@ -497,6 +522,10 @@ export default {
     // LIFE STAGE MODE
     // ================================================================
     const currentLifeStage = computed(() => store.getters['lifeStage/currentStage']);
+    const currentLifeStageLabel = computed(() => {
+      const stage = currentLifeStage.value;
+      return stage && LIFE_STAGES[stage] ? LIFE_STAGES[stage].label : 'current';
+    });
     // Track whether the user has actively started their journey in this session
     // If they navigate to /onboarding/welcome, show stage picker first even if they have a stage
     const lifeStageStarted = ref(false);
@@ -515,6 +544,7 @@ export default {
     // Cache form data emitted by steps so back navigation can restore it
     const savedStepData = ref({});
     const sidebarOverride = ref(null);
+    const currentStepRef = ref(null);
 
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
@@ -528,10 +558,17 @@ export default {
       return resourceKey ? (STEP_RESOURCES[resourceKey] || null) : null;
     });
 
+    const currentDidYouKnow = computed(() => {
+      const stepId = lifeStageCurrentStepId.value;
+      if (!stepId) return null;
+      const milestone = store.getters['lifeStage/learningMilestone']?.(stepId);
+      return milestone?.didYouKnow || null;
+    });
+
     // Steps that use deprecated OnboardingStep wrapper (have their own Back/Skip/Continue)
     // Deprecated steps using OnboardingStep wrapper have their own Back/Skip/Continue nav
     const stepsWithOwnNav = [
-      'personal-info', 'student-loan',
+      'student-loan',
       'income', 'income-career', 'income-tax', 'expenditure',
       'family', 'will-estate', 'estate-iht', 'estate-legacy',
       'goals', 'assets', 'liabilities', 'protection-insurance',
@@ -637,15 +674,15 @@ export default {
 
       switch (status) {
         case 'current':
-          return stageColourClasses.value.bg + ' text-white journey-node-pulse';
+          return 'bg-white border-horizon-500 text-horizon-500';
         case 'complete':
-          return 'bg-spring-500 border-spring-500 text-white';
+          return 'bg-horizon-500 border-horizon-500 text-white';
         case 'partial':
-          return 'bg-raspberry-500 border-spring-500 text-white';
+          return 'bg-horizon-500 border-horizon-500 text-white';
         case 'skipped':
-          return 'bg-raspberry-500 border-raspberry-500 text-white';
+          return 'bg-horizon-500 border-horizon-500 text-white';
         default: // upcoming
-          return 'bg-white border-light-gray text-neutral-500';
+          return 'bg-white border-neutral-300 text-neutral-500';
       }
     };
 
@@ -654,13 +691,13 @@ export default {
 
       switch (status) {
         case 'current':
-          return stageColourClasses.value.text + ' font-semibold';
+          return 'text-horizon-500 font-bold';
         case 'complete':
-          return 'text-spring-600';
+          return 'text-horizon-500';
         case 'partial':
-          return 'text-violet-600';
+          return 'text-horizon-500';
         case 'skipped':
-          return 'text-raspberry-500';
+          return 'text-neutral-500';
         default:
           return 'text-neutral-500';
       }
@@ -687,6 +724,53 @@ export default {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
+    // Catch-all: when any input/select in the form gets focus, update sidebar position
+    // Steps with their own emitWhyField (PersonalInfoStep) will override via @sidebar-update
+    let catchAllTimer = null;
+    const handleFormFieldFocus = (event) => {
+      const target = event.target;
+      if (!target || (target.tagName !== 'INPUT' && target.tagName !== 'SELECT' && target.tagName !== 'TEXTAREA')) return;
+      if (target.disabled) return;
+
+      const formCol = target.closest('.flex-1');
+      if (!formCol) return;
+
+      const colRect = formCol.getBoundingClientRect();
+      const inputRect = target.getBoundingClientRect();
+      const fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+
+      // Extract label text for a contextual message
+      const fieldDiv = target.closest('div');
+      const label = fieldDiv?.querySelector('label');
+      const labelText = label?.textContent?.replace('?', '').trim() || '';
+
+      // Small delay to let step-level emits (which have specific text) fire first
+      clearTimeout(catchAllTimer);
+      catchAllTimer = setTimeout(() => {
+        // Update position even if step already set specific text
+        const existingText = sidebarOverride.value?.whyWeAsk;
+        sidebarOverride.value = {
+          whyWeAsk: existingText || (labelText
+            ? `Your ${labelText.toLowerCase()} helps Fynla build a more accurate and personalised financial plan.`
+            : 'This information helps Fynla build a more accurate and personalised financial plan for you.'),
+          fieldOffsetY,
+        };
+      }, 15);
+    };
+
+    const triggerStepContinue = () => {
+      // Delegate to the step component's own handleNext (which saves data then emits 'next')
+      const stepComponent = currentStepRef.value;
+      if (stepComponent?.handleNext) {
+        stepComponent.handleNext();
+      } else if (stepComponent?.onNext) {
+        stepComponent.onNext();
+      } else {
+        // Fallback: step has no exposed handleNext, just advance
+        handleLifeStageNext();
+      }
+    };
+
     const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
 
@@ -711,6 +795,14 @@ export default {
 
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
+        // GA4 onboarding complete
+        if (typeof gtag === 'function') {
+          gtag('event', 'onboarding_complete', {
+            life_stage: currentLifeStage.value,
+            steps_completed: lifeStageSteps.value.length,
+          });
+        }
+
         // Onboarding complete — refresh net worth cache then go to dashboard
         await store.dispatch('auth/fetchUser', null, { root: true });
         try {
@@ -724,6 +816,17 @@ export default {
 
       sidebarOverride.value = null;
       lifeStageCurrentIndex.value = nextIndex;
+
+      // GA4 onboarding journey tracking
+      const nextStepId = lifeStageSteps.value[nextIndex];
+      if (typeof gtag === 'function' && nextStepId) {
+        gtag('event', 'onboarding_step', {
+          step_name: nextStepId,
+          step_number: nextIndex + 1,
+          total_steps: lifeStageSteps.value.length,
+          life_stage: currentLifeStage.value,
+        });
+      }
     };
 
     const handleLifeStageBack = () => {
@@ -797,9 +900,15 @@ export default {
             store.dispatch('userProfile/updateIncomeOccupation', occupationData),
           ]);
         } else if (stepId === 'student-loan' && formData) {
-          // Check for existing student loan to avoid duplicates on re-entry
-          const existingLiabilities = store.state.estate?.liabilities || [];
-          const existingLoan = existingLiabilities.find(l => l.liability_type === 'student_loan');
+          // Fetch liabilities from API to check for existing student loan (avoid duplicates)
+          let existingLoan = null;
+          try {
+            const estateResponse = await estateService.getEstateData();
+            const liabilities = estateResponse.data?.liabilities || [];
+            existingLoan = liabilities.find(l => l.liability_type === 'student_loan');
+          } catch {
+            // If fetch fails, try creating (backend may deduplicate)
+          }
           if (existingLoan?.id) {
             await estateService.updateLiability(existingLoan.id, formData);
           } else {
@@ -837,11 +946,38 @@ export default {
 
     // Handle start from the inline stage map (shown via ?stage= query param)
     const handleStageMapStart = async (stageId) => {
+      // If changing to a different journey and data has been entered, prompt user
+      const existingStage = currentLifeStage.value;
+      const hasData = existingStage && existingStage !== stageId && (
+        Object.keys(savedStepData.value).length > 0 || lifeStageCurrentIndex.value > 0
+      );
+
+      if (hasData) {
+        pendingNewStageId.value = stageId;
+        showJourneyChangeModal.value = true;
+        return;
+      }
+
+      await executeJourneyChange(stageId);
+    };
+
+    const confirmJourneyChange = async () => {
+      showJourneyChangeModal.value = false;
+      if (pendingNewStageId.value) {
+        await executeJourneyChange(pendingNewStageId.value);
+        pendingNewStageId.value = null;
+      }
+    };
+
+    const executeJourneyChange = async (stageId) => {
       showStageMap.value = false;
-      await store.dispatch('lifeStage/setStage', stageId);
-      lifeStageStarted.value = true;
+      // Reset state for new journey
+      savedStepData.value = {};
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = 0;
-      // Fetch fresh progress so steps render correctly for a new user
+      lifeStageStarted.value = true;
+      await store.dispatch('lifeStage/setStage', stageId);
+      // Fetch fresh progress so steps render correctly for the new stage
       await Promise.all([
         store.dispatch('userProfile/fetchProfile').catch(() => {}),
         store.dispatch('lifeStage/fetchStage').catch(() => {}),
@@ -853,10 +989,12 @@ export default {
       if (typeof gtag === 'function') {
         gtag('event', 'journey_select', { event_label: stageId });
       }
-      // Stage selected from FocusAreaSelection (after user viewed journey map inline and clicked Start My Journey)
-      await store.dispatch('lifeStage/setStage', stageId);
-      lifeStageStarted.value = true;
+      // Reset state for new journey
+      savedStepData.value = {};
+      sidebarOverride.value = null;
       lifeStageCurrentIndex.value = 0;
+      lifeStageStarted.value = true;
+      await store.dispatch('lifeStage/setStage', stageId);
     };
 
     const closeJourneyMapModal = () => {
@@ -1359,7 +1497,11 @@ export default {
       lifeStageCurrentComponent,
       savedStepData,
       sidebarOverride,
+      currentStepRef,
+      triggerStepContinue,
       currentStepResources,
+      currentDidYouKnow,
+      handleFormFieldFocus,
       stageColour,
       stageColourClasses,
       getLifeStageStepStatus,
@@ -1400,6 +1542,9 @@ export default {
       showSkipModal,
       skipReason,
       showSkipToDashboardModal,
+      showJourneyChangeModal,
+      currentLifeStageLabel,
+      confirmJourneyChange,
       showJourneyCompletion,
       isCompletionStep,
       isQuickMode,
@@ -1454,5 +1599,9 @@ export default {
   50% {
     box-shadow: 0 0 0 6px transparent;
   }
+}
+
+.onboarding-page {
+  @apply bg-gradient-to-br from-horizon-500 to-raspberry-500;
 }
 </style>

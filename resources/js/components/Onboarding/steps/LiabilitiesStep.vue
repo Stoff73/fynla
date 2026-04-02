@@ -55,33 +55,28 @@
         </div>
       </div>
 
-      <!-- Add Liability Button -->
-      <div>
+      <!-- Add Liability Button (hidden when form is open) -->
+      <div v-if="!showForm">
         <button
           type="button"
-          class="btn-secondary w-full md:w-auto"
+          class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium w-full md:w-auto justify-center"
           @click="showAddForm"
         >
           + Add Liability
         </button>
       </div>
 
-      <p v-if="liabilities.length === 0" class="text-body-sm text-neutral-500 italic">
-        You can skip this step if you don't have any loans or credit card debt.
-      </p>
-
     </div>
 
-    <!-- Liability Form Modal -->
-    <div v-if="showForm" class="fixed inset-0 bg-eggshell-5000 bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
-        <LiabilityForm
-          :liability="editingLiability"
-          :mode="editingLiability ? 'edit' : 'create'"
-          @save="handleLiabilitySave"
-          @cancel="closeLiabilityForm"
-        />
-      </div>
+    <!-- Liability Form (inline) -->
+    <div v-if="showForm" class="mt-4">
+      <LiabilityForm
+        :liability="editingLiability"
+        :mode="editingLiability ? 'edit' : 'create'"
+        context="onboarding"
+        @save="handleLiabilitySave"
+        @cancel="closeLiabilityForm"
+      />
     </div>
   </OnboardingStep>
 </template>
@@ -106,7 +101,7 @@ export default {
     LiabilityForm,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const liabilities = ref([]);

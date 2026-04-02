@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'IhtPlanningFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'Inheritance Tax Planning — calculate and reduce your IHT | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Plan your Inheritance Tax with Fynla. Calculate your IHT liability, track nil-rate bands, model gifting strategies, and protect your estate for your family.');
+  },
+
   data() {
     return {
       hero: {

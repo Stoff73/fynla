@@ -126,10 +126,11 @@
           <!-- Footer -->
           <div :class="context === 'onboarding' ? 'mt-6 flex justify-end gap-3' : 'bg-eggshell-500 px-6 py-4 flex justify-end gap-3'">
             <button
-              v-if="context !== 'onboarding'"
               type="button"
               @click="closeModal"
-              class="px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors"
+              :class="context === 'onboarding'
+                ? 'px-4 py-2 bg-light-pink-100 hover:bg-light-pink-200 text-horizon-500 rounded-lg transition-colors text-sm font-medium'
+                : 'px-4 py-2 border border-horizon-300 rounded-md text-sm font-medium text-neutral-500 hover:bg-savannah-100 transition-colors'"
             >
               Cancel
             </button>
@@ -138,7 +139,7 @@
               :disabled="submitting"
               class="px-4 py-2 bg-raspberry-500 text-white rounded-button text-sm font-medium hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ submitting ? 'Saving...' : (isEditMode ? 'Update Account' : 'Add Account') }}
+              {{ submitting ? 'Saving...' : (context === 'onboarding' ? 'Save' : (isEditMode ? 'Update Account' : 'Add Account')) }}
             </button>
           </div>
         </form>

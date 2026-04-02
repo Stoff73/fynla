@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'MonteCarloFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'Monte Carlo Simulations — model investment outcomes | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Run Monte Carlo simulations on your investment portfolio with Fynla. Model thousands of market scenarios to understand the probability of reaching your financial goals.');
+  },
+
   data() {
     return {
       hero: {

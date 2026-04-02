@@ -28,8 +28,8 @@
     <section class="py-14 bg-gradient-to-r from-horizon-600 to-horizon-700">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-8 text-center">Everything connected</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="mod in modules" :key="mod.name" class="bg-horizon-500 rounded-card p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div v-for="mod in modules" :key="mod.name" class="bg-horizon-500 rounded-card p-5">
             <div class="w-10 h-10 rounded-full bg-raspberry-500 flex items-center justify-center mb-4">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="mod.icon" />

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding Form Pages — Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, -apple-system, sans-serif; }
+
+  :root {
+    --eggshell-500: #F7F6F4;
+    --horizon-500: #1F2A44;
+    --horizon-600: #0F172A;
+    --light-gray: #EEEEEE;
+    --light-pink-100: #FFF0F3;
+    --raspberry-400: #FB7185;
+    --raspberry-500: #E11D48;
+    --raspberry-600: #BE123C;
+    --spring-500: #22C55E;
+    --neutral-500: #737373;
+    --neutral-300: #D4D4D4;
+  }
+
+  .mockup-wrapper { max-width: 1300px; margin: 0 auto; padding: 30px 20px; }
+  .mockup-header { text-align: center; margin-bottom: 30px; }
+  .mockup-header h1 { font-size: 28px; font-weight: 700; color: var(--horizon-500); }
+  .mockup-header p { color: var(--neutral-500); margin-top: 8px; font-size: 14px; }
+  .change-list {
+    background: #FFFBE6; border: 1px solid #E5E7EB; border-radius: 8px;
+    padding: 16px 20px; margin-bottom: 30px; font-size: 13px; color: #555; columns: 2; column-gap: 32px;
+  }
+  .change-list strong { display: block; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; column-span: all; }
+  .change-list ul { margin: 0; padding-left: 18px; }
+  .change-list li { margin-bottom: 4px; break-inside: avoid; }
+  .change-list .hl { background: #FEF08A; padding: 0 3px; border-radius: 2px; }
+
+  .page-frame { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+
+  .top-bar {
+    background: white; border-bottom: 1px solid var(--light-gray);
+    height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px;
+  }
+  .top-bar .logo-img { height: 40px; width: auto; }
+  .top-bar .dash-link { font-size: 14px; color: var(--neutral-500); text-decoration: none; display: flex; align-items: center; gap: 4px; }
+
+  .page-body {
+    background: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%);
+    padding: 24px 24px 48px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    max-width: 1000px; margin: 0 auto 24px;
+    background: white; border-radius: 12px; border: 1px solid var(--light-gray);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 20px 24px 16px;
+  }
+  .progress-steps {
+    display: flex; align-items: flex-start; justify-content: space-between; position: relative; padding: 0 8px;
+  }
+  .progress-steps::before {
+    content: ''; position: absolute; top: 26px; left: 40px; right: 40px;
+    height: 4px; background: var(--neutral-300); border-radius: 2px; z-index: 0;
+  }
+  .step-item { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; min-width: 70px; cursor: pointer; }
+  .step-circle {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; border: 3px solid var(--neutral-300);
+    background: white; color: var(--neutral-500); transition: all 0.2s;
+  }
+  .step-circle.active { background: white; border-color: var(--horizon-500); color: var(--horizon-500); }
+  .step-circle.complete { background: var(--horizon-500); border-color: var(--horizon-500); color: white; }
+  .step-label { font-size: 11px; margin-top: 6px; text-align: center; color: var(--neutral-500); max-width: 70px; line-height: 1.3; }
+  .step-label.active { color: var(--horizon-500); font-weight: 700; }
+  .skip-dashboard {
+    text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--light-gray);
+    font-size: 13px; color: var(--neutral-500);
+  }
+  .skip-dashboard a { color: var(--raspberry-500); text-decoration: underline; font-weight: 500; cursor: pointer; }
+
+  /* Content card */
+  .content-card {
+    max-width: 1000px; margin: 0 auto;
+    background: white; border-radius: 16px; border: 1px solid var(--light-gray);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .form-layout { display: flex; gap: 0; }
+  .form-main { flex: 1; padding: 32px 36px; }
+  .form-sidebar {
+    width: 320px; flex-shrink: 0; padding: 24px;
+    background: var(--light-pink-100); border-left: 1px solid var(--light-gray);
+    position: relative;
+  }
+
+  .form-title { font-size: 24px; font-weight: 700; color: var(--horizon-500); margin-bottom: 4px; }
+  .form-desc { font-size: 14px; color: var(--neutral-500); margin-bottom: 24px; }
+
+  .form-fields { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Field group */
+  .field-group { position: relative; }
+  .field-group label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--horizon-500); margin-bottom: 4px;
+  }
+  .field-group .q-mark {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--neutral-300); color: white;
+    font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+  }
+  .field-group .q-mark:hover,
+  .field-group.active-field .q-mark {
+    background: var(--horizon-500);
+  }
+  .field-group input, .field-group select {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #B8C4D8; background: white;
+    font-size: 14px; font-family: inherit; color: var(--horizon-500); outline: none;
+  }
+  .field-group input:focus, .field-group select:focus {
+    border-color: var(--horizon-500); box-shadow: 0 0 0 3px rgba(31,42,68,0.1);
+  }
+  .field-group input.prepopulated { background: #E8E8E8; color: #888; cursor: not-allowed; }
+  .field-group .prepop-wrapper { position: relative; }
+  .field-group .prepop-tooltip {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: var(--horizon-500); color: white; font-size: 11px; padding: 6px 10px;
+    border-radius: 6px; white-space: nowrap; z-index: 10;
+  }
+  .field-group .prepop-wrapper:hover .prepop-tooltip { display: block; }
+  .field-group .helper { font-size: 12px; color: var(--neutral-500); margin-top: 3px; }
+
+  /* Active field highlight */
+  .field-group.active-field input,
+  .field-group.active-field select {
+    border-color: var(--horizon-500);
+    box-shadow: 0 0 0 3px rgba(31,42,68,0.1);
+  }
+
+  /* Sidebar sections */
+  .sidebar-journey { margin-bottom: 20px; padding-bottom: 18px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+  .sidebar-journey-title { font-size: 18px; font-weight: 700; color: var(--horizon-500); margin-bottom: 8px; }
+  .sidebar-journey-text { font-size: 13px; color: var(--neutral-500); line-height: 1.5; }
+
+  /* "Why we ask this" box — absolutely positioned to align with active field */
+  .sidebar-why-anchor {
+    position: absolute;
+    left: 24px; right: 24px;
+  }
+  .sidebar-why {
+    background: white; border-radius: 10px; padding: 16px 18px;
+    border: 2px solid var(--horizon-500); position: relative;
+  }
+  .sidebar-why::before {
+    content: ''; position: absolute;
+    left: -14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 12px solid transparent; border-bottom: 12px solid transparent;
+    border-right: 14px solid var(--horizon-500);
+  }
+  .sidebar-why::after {
+    content: ''; position: absolute;
+    left: -9px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 10px solid transparent; border-bottom: 10px solid transparent;
+    border-right: 12px solid white;
+  }
+  .sidebar-title { font-size: 18px; font-weight: 700; color: var(--horizon-500); margin-bottom: 8px; }
+  .sidebar-text { font-size: 13px; color: var(--horizon-500); line-height: 1.6; }
+
+  /* Navigation */
+  .nav-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 36px; border-top: 1px solid var(--light-gray);
+  }
+  .btn-back-pink {
+    background: var(--light-pink-100); color: var(--horizon-500); border: none;
+    padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-back-pink:hover { background: #FFE0E6; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .skip-link { font-size: 13px; color: var(--neutral-500); text-decoration: underline; cursor: pointer; background: none; border: none; font-family: inherit; }
+  .skip-link:hover { color: var(--horizon-500); }
+  .btn-continue {
+    background: var(--raspberry-500); color: white; border: none;
+    padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-continue:hover { background: var(--raspberry-600); }
+
+  /* Did you know */
+  .did-you-know {
+    max-width: 1000px; margin: 16px auto 0;
+    background: white; border-radius: 12px; border: 1px solid var(--light-gray);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 20px 28px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .dyk-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--raspberry-500), var(--raspberry-400));
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .dyk-icon svg { width: 18px; height: 18px; color: white; }
+  .dyk-title { font-size: 14px; font-weight: 700; color: var(--horizon-500); margin-bottom: 4px; }
+  .dyk-text { font-size: 13px; color: var(--neutral-500); line-height: 1.5; }
+
+  @media (max-width: 900px) {
+    .form-layout { flex-direction: column; }
+    .form-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--light-gray); position: static; }
+    .sidebar-why-anchor { position: static; }
+    .sidebar-why::before, .sidebar-why::after { display: none; }
+    .change-list { columns: 1; }
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const whyData = {
+    'field-firstname': { title: 'Why we ask this', text: 'Your first name is used to personalise your dashboard and communications.' },
+    'field-middlename': { title: 'Why we ask this', text: 'Your middle name helps us match your identity accurately across financial accounts and official records.' },
+    'field-surname': { title: 'Why we ask this', text: 'Your surname is used for account identification and any official correspondence.' },
+    'field-email': { title: 'Why we ask this', text: 'Your email is your login credential and how we send important account notifications.' },
+    'field-dob': { title: 'Why we ask this', text: 'Your date of birth affects pension eligibility, life expectancy projections, and State Pension age calculations.' },
+    'field-gender': { title: 'Why we ask this', text: 'Gender affects life expectancy projections, pension eligibility dates, and Lifetime ISA access rules.' },
+  };
+
+  const fields = document.querySelectorAll('.field-group[data-field]');
+  const whyAnchor = document.getElementById('whyAnchor');
+  const whyBox = document.getElementById('whyBox');
+  const whyTitle = document.getElementById('whyTitle');
+  const whyText = document.getElementById('whyText');
+  const sidebar = document.querySelector('.form-sidebar');
+
+  function activateField(fieldEl) {
+    // Remove active from all
+    fields.forEach(f => f.classList.remove('active-field'));
+    fieldEl.classList.add('active-field');
+
+    const fieldId = fieldEl.getAttribute('data-field');
+    const data = whyData[fieldId];
+    if (data) {
+      whyTitle.textContent = data.title;
+      whyText.textContent = data.text;
+    }
+
+    // Position the why box to align with the field
+    const fieldRect = fieldEl.getBoundingClientRect();
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const journeyBox = document.querySelector('.sidebar-journey');
+    const journeyHeight = journeyBox.getBoundingClientRect().height + 18; // include bottom padding
+
+    // Calculate the input element centre relative to sidebar top
+    const inputEl = fieldEl.querySelector('input, select');
+    const inputRect = inputEl.getBoundingClientRect();
+    const inputCentreY = inputRect.top + inputRect.height / 2;
+    const sidebarTop = sidebarRect.top;
+
+    // Why box height (approximate)
+    const whyBoxHeight = whyBox.getBoundingClientRect().height || 100;
+
+    // Position so arrow aligns with input centre
+    let topOffset = (inputCentreY - sidebarTop) - (whyBoxHeight / 2);
+    // Don't go above the journey section
+    if (topOffset < journeyHeight) topOffset = journeyHeight;
+
+    whyAnchor.style.top = topOffset + 'px';
+    whyBox.style.display = 'block';
+  }
+
+  // Click on ? marks or fields
+  fields.forEach(field => {
+    const qMark = field.querySelector('.q-mark');
+    const input = field.querySelector('input, select');
+
+    if (qMark) {
+      qMark.addEventListener('click', function(e) {
+        e.preventDefault();
+        activateField(field);
+      });
+    }
+    if (input && !input.disabled) {
+      input.addEventListener('focus', function() {
+        activateField(field);
+      });
+    }
+  });
+
+  // Auto-activate first empty field on load
+  const firstEmpty = document.querySelector('.field-group[data-field="field-middlename"]');
+  if (firstEmpty) {
+    activateField(firstEmpty);
+    const input = firstEmpty.querySelector('input');
+    if (input) input.focus();
+  }
+});
+</script>
+</head>
+<body>
+
+<div class="mockup-wrapper">
+  <div class="mockup-header">
+    <h1>Onboarding Form Pages — Mockup</h1>
+    <p>Personal Information step · Interactive — click ? icons to see "Why we ask this" move · April 2026</p>
+  </div>
+
+  <div class="change-list">
+    <strong>Changes (applies to all onboarding pages)</strong>
+    <ul>
+      <li><span class="hl">Progress circles: 52px</span>, active = horizon border, complete = filled blue</li>
+      <li><span class="hl">Active text: horizon blue + bold</span></li>
+      <li><span class="hl">Thick grey connecting line</span></li>
+      <li><span class="hl">Skip to dashboard</span> in progress bar</li>
+      <li><span class="hl">Back button (light pink)</span> bottom left</li>
+      <li><span class="hl">All fields on separate lines</span></li>
+      <li><span class="hl">Pre-populated: grey bg + tooltip</span></li>
+      <li><span class="hl">? icon on each field label</span> — click to show "Why we ask this"</li>
+      <li><span class="hl">"Why we ask this" follows active field</span> with aligned arrow</li>
+      <li><span class="hl">Auto-focuses first empty field</span></li>
+      <li><span class="hl">Sidebar inside card, light pink</span></li>
+      <li><span class="hl">"How this fits your journey" at top</span></li>
+      <li><span class="hl">Middle name added</span></li>
+      <li><span class="hl">Quick stat + useful resources removed</span></li>
+      <li><span class="hl">"Did you know" separate box below</span></li>
+    </ul>
+  </div>
+
+  <div class="page-frame">
+    <div class="top-bar">
+      <a href="#"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img" onerror="this.outerHTML='<span style=&quot;font-size:20px;font-weight:900;color:#1F2A44;letter-spacing:1px&quot;>FYNLA</span>';"></a>
+      <a href="#" class="dash-link">Go to dashboard <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></a>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Progress Bar -->
+      <div class="progress-bar">
+        <div class="progress-steps">
+          <div class="step-item"><div class="step-circle active">1</div><span class="step-label active">About You</span></div>
+          <div class="step-item"><div class="step-circle">2</div><span class="step-label">Student Loan</span></div>
+          <div class="step-item"><div class="step-circle">3</div><span class="step-label">Income</span></div>
+          <div class="step-item"><div class="step-circle">4</div><span class="step-label">Spending</span></div>
+          <div class="step-item"><div class="step-circle">5</div><span class="step-label">Property</span></div>
+          <div class="step-item"><div class="step-circle">6</div><span class="step-label">Savings</span></div>
+          <div class="step-item"><div class="step-circle">7</div><span class="step-label">Goals</span></div>
+        </div>
+        <div class="skip-dashboard">Alternatively, you can skip and go straight to <a href="#">your dashboard</a>.</div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="content-card">
+        <div class="form-layout">
+
+          <!-- Left: Form -->
+          <div class="form-main">
+            <h2 class="form-title">Personal Information</h2>
+            <p class="form-desc">Tell us about yourself to help us tailor your financial plan</p>
+
+            <div class="form-fields">
+              <div class="field-group" data-field="field-firstname">
+                <label>First Name <span class="q-mark" title="Click for info">?</span></label>
+                <div class="prepop-wrapper">
+                  <input type="text" value="Adam" class="prepopulated" disabled>
+                  <div class="prepop-tooltip">Pre-populated from your registration information</div>
+                </div>
+              </div>
+
+              <div class="field-group" data-field="field-middlename">
+                <label>Middle Name <span class="q-mark" title="Click for info">?</span></label>
+                <input type="text" placeholder="Enter your middle name (optional)">
+              </div>
+
+              <div class="field-group" data-field="field-surname">
+                <label>Surname <span class="q-mark" title="Click for info">?</span></label>
+                <div class="prepop-wrapper">
+                  <input type="text" value="Raj" class="prepopulated" disabled>
+                  <div class="prepop-tooltip">Pre-populated from your registration information</div>
+                </div>
+              </div>
+
+              <div class="field-group" data-field="field-email">
+                <label>Email Address <span class="q-mark" title="Click for info">?</span></label>
+                <div class="prepop-wrapper">
+                  <input type="text" value="test7@phailure.co.uk" class="prepopulated" disabled>
+                  <div class="prepop-tooltip">Pre-populated from your registration information</div>
+                </div>
+              </div>
+
+              <div class="field-group" data-field="field-dob">
+                <label>Date of Birth <span class="q-mark" title="Click for info">?</span></label>
+                <input type="date" value="">
+                <p class="helper">Used for age-based calculations and projections</p>
+              </div>
+
+              <div class="field-group" data-field="field-gender">
+                <label>Gender <span class="q-mark" title="Click for info">?</span></label>
+                <select>
+                  <option value="">Select gender</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Sidebar -->
+          <div class="form-sidebar">
+            <div class="sidebar-journey">
+              <h3 class="sidebar-journey-title">How this fits your journey</h3>
+              <p class="sidebar-journey-text">Setting these details early means Fynla can tailor your plan to your exact situation.</p>
+            </div>
+
+            <!-- Why we ask this — dynamically positioned -->
+            <div class="sidebar-why-anchor" id="whyAnchor">
+              <div class="sidebar-why" id="whyBox">
+                <h3 class="sidebar-title" id="whyTitle">Why we ask this</h3>
+                <p class="sidebar-text" id="whyText">Your middle name helps us match your identity accurately across financial accounts and official records.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-bar">
+          <button class="btn-back-pink">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Back
+          </button>
+          <div class="nav-right">
+            <button class="skip-link">Skip this step</button>
+            <button class="btn-continue">
+              Continue
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Did You Know -->
+      <div class="did-you-know">
+        <div class="dyk-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <p class="dyk-title">Did you know?</p>
+          <p class="dyk-text">Your date of birth determines when you'll start repaying your student loan and when you'd be automatically enrolled in a workplace pension from age 22.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

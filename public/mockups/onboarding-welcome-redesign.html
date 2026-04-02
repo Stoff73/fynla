@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding Welcome (Journey Map) — Mockup v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Inter, -apple-system, sans-serif; }
+
+  :root {
+    --eggshell-500: #F7F6F4;
+    --horizon-500: #1F2A44;
+    --horizon-600: #0F172A;
+    --horizon-700: #020617;
+    --light-gray: #EEEEEE;
+    --light-pink-100: #FFF0F3;
+    --raspberry-400: #FB7185;
+    --raspberry-500: #E11D48;
+    --raspberry-600: #BE123C;
+    --spring-500: #22C55E;
+    --neutral-500: #737373;
+  }
+
+  .mockup-wrapper { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+  .mockup-header { text-align: center; margin-bottom: 30px; }
+  .mockup-header h1 { font-size: 28px; font-weight: 700; color: var(--horizon-500); }
+  .mockup-header p { color: var(--neutral-500); margin-top: 8px; font-size: 14px; }
+
+  .version-label {
+    text-align: center; margin: 50px 0 20px;
+    font-size: 20px; font-weight: 700; color: var(--horizon-500);
+    padding-top: 30px; border-top: 2px solid #ddd;
+  }
+  .version-label:first-of-type { margin-top: 0; border-top: none; padding-top: 0; }
+  .version-label span { font-size: 13px; font-weight: 400; color: var(--neutral-500); display: block; margin-top: 4px; }
+
+  .change-list {
+    background: #FFFBE6; border: 1px solid #E5E7EB; border-radius: 8px;
+    padding: 16px 20px; margin-bottom: 30px; font-size: 13px; color: #555;
+  }
+  .change-list strong { display: block; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+  .change-list ul { margin: 0; padding-left: 18px; }
+  .change-list li { margin-bottom: 4px; }
+  .change-list .hl { background: #FEF08A; padding: 0 3px; border-radius: 2px; }
+
+  .page-frame {
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+
+  .top-bar {
+    background: white; border-bottom: 1px solid var(--light-gray);
+    height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px;
+  }
+  .top-bar .logo-img { height: 40px; width: auto; }
+  .top-bar .dash-link {
+    font-size: 14px; color: var(--neutral-500); text-decoration: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .top-bar .dash-link:hover { color: var(--horizon-500); }
+
+  .onboarding-body {
+    padding: 32px 24px 48px; min-height: 750px;
+  }
+  .onboarding-body.bg-a { background: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%); }
+  .onboarding-body.bg-b { background: linear-gradient(135deg, var(--horizon-500) 0%, var(--horizon-600) 100%); }
+
+  .journey-card {
+    max-width: 900px; margin: 0 auto; background: white;
+    border: 1px solid var(--light-gray); border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .stage-hero { padding: 32px 40px 24px; color: white; }
+  .stage-hero.hero-a { background: linear-gradient(135deg, var(--horizon-500) 0%, var(--raspberry-500) 100%); }
+  .stage-hero.hero-b { background: linear-gradient(135deg, var(--horizon-500) 0%, var(--horizon-600) 100%); }
+  .stage-hero h2 {
+    font-size: clamp(20px, 3vw, 36px); font-weight: 700;
+    margin-bottom: 4px; text-align: left;
+  }
+  .stage-hero .tagline { font-size: 14px; opacity: 0.9; text-align: left; }
+
+  .info-section {
+    padding: 20px 40px; background: white;
+    border-bottom: 1px solid var(--light-gray); text-align: center;
+  }
+  .info-section .steps-count {
+    font-size: 20px; font-weight: 700; color: var(--horizon-500);
+    display: block; margin-bottom: 4px;
+  }
+  .info-section .skip-note { font-size: 13px; color: var(--neutral-500); display: block; }
+
+  .journey-map { padding: 32px 40px 16px; }
+  .journey-svg { width: 100%; height: 340px; }
+
+  /* Detail card */
+  .detail-card {
+    margin: 0 40px 16px; border-radius: 12px; background: var(--light-pink-100); padding: 20px 24px;
+  }
+  .detail-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .detail-header .node-badge {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--raspberry-500);
+    color: white; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .detail-header .detail-title { font-size: 15px; font-weight: 700; color: var(--horizon-500); }
+  .detail-header .detail-hint { font-size: 12px; color: var(--neutral-500); font-style: italic; margin-left: auto; }
+  .detail-text {
+    font-size: 14px; color: var(--horizon-500); line-height: 1.5; margin-bottom: 14px;
+  }
+
+  /* Collapsible "What you'll need" section */
+  .needs-toggle {
+    width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.6); border: none; border-radius: 8px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-family: inherit; text-align: left; transition: background 0.15s;
+  }
+  .needs-toggle:hover { background: rgba(255,255,255,0.85); }
+  .needs-toggle .needs-title { font-size: 13px; font-weight: 600; color: var(--horizon-500); }
+  .needs-toggle .chevron {
+    width: 18px; height: 18px; color: var(--neutral-500); flex-shrink: 0;
+    margin-left: auto; transition: transform 0.2s;
+  }
+  .needs-section.open .needs-toggle .chevron { transform: rotate(180deg); }
+  .needs-body {
+    max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+  }
+  .needs-section.open .needs-body { max-height: 200px; }
+  .needs-body-inner { padding: 10px 14px 4px; }
+  .needs-list { list-style: none; padding: 0; margin: 0; }
+  .needs-list li {
+    font-size: 13px; color: var(--neutral-500); padding: 3px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .needs-list li .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--raspberry-400); flex-shrink: 0;
+  }
+
+  .cta-section {
+    padding: 20px 40px 28px; border-top: 1px solid var(--light-gray); text-align: center;
+  }
+  .cta-buttons { display: flex; gap: 12px; justify-content: center; }
+  .btn-back {
+    background: var(--light-pink-100); color: var(--horizon-500); border: none;
+    padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .btn-back:hover { background: #FFE0E6; }
+  .btn-start {
+    background: var(--raspberry-500); color: white; border: none;
+    padding: 12px 32px; border-radius: 8px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-start:hover { background: var(--raspberry-600); }
+</style>
+</head>
+<body>
+
+<div class="mockup-wrapper">
+  <div class="mockup-header">
+    <h1>Onboarding Welcome (Journey Map) — Mockup v2</h1>
+    <p>Two hero colour options · Collapsible detail card · April 2026</p>
+  </div>
+
+  <div class="change-list">
+    <strong>All changes</strong>
+    <ul>
+      <li><span class="hl">Hero Option A:</span> horizon-500 → raspberry-500 gradient (matches page bg)</li>
+      <li><span class="hl">Hero Option B:</span> horizon-500 → horizon-600 gradient (blue to darker blue)</li>
+      <li><span class="hl">Detail card is collapsible</span> — click the header to expand/collapse</li>
+      <li><span class="hl">Auto-shows step 1</span> with "Explore each step on the map above"</li>
+      <li><span class="hl">"What you'll need" list</span> inside collapsible section</li>
+    </ul>
+  </div>
+
+  <!-- ===== OPTION A: Horizon → Raspberry hero ===== -->
+  <div class="version-label">
+    Option A — Horizon to Raspberry
+    <span>Hero gradient matches the page background</span>
+  </div>
+
+  <div class="page-frame" style="margin-bottom:40px;">
+    <div class="top-bar">
+      <a href="#"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img" onerror="this.outerHTML='<span style=&quot;font-size:20px;font-weight:900;color:#1F2A44;letter-spacing:1px&quot;>FYNLA</span>';"></a>
+      <a href="#" class="dash-link">Go to dashboard <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></a>
+    </div>
+    <div class="onboarding-body bg-a">
+      <div class="journey-card">
+        <div class="stage-hero hero-a">
+          <h2>Protecting and growing</h2>
+          <p class="tagline">Ensure your family and assets are fully covered.</p>
+        </div>
+        <div class="info-section">
+          <span class="steps-count">9 steps · Approx 18 minutes</span>
+          <span class="skip-note">You can skip steps and come back to them later</span>
+        </div>
+        <div class="journey-map">
+          <svg class="journey-svg" viewBox="0 0 780 340" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="pathGradA" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E11D48"/><stop offset="100%" stop-color="#20B486"/></linearGradient>
+              <filter id="glowA"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path d="M 60 60 C 160 60, 160 140, 260 140 C 360 140, 360 60, 460 60 C 560 60, 560 140, 660 140 C 710 140, 720 170, 720 200 C 720 240, 660 260, 600 260 C 500 260, 500 200, 400 200 C 300 200, 300 280, 200 280" fill="none" stroke="#E11D4812" stroke-width="8" stroke-linecap="round"/>
+            <path d="M 60 60 C 160 60, 160 140, 260 140 C 360 140, 360 60, 460 60 C 560 60, 560 140, 660 140 C 710 140, 720 170, 720 200 C 720 240, 660 260, 600 260 C 500 260, 500 200, 400 200 C 300 200, 300 280, 200 280" fill="none" stroke="url(#pathGradA)" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round"/>
+            <circle cx="60" cy="60" r="22" fill="#E11D48" filter="url(#glowA)"/><text x="60" y="65" text-anchor="middle" fill="white" font-weight="800" font-size="14">1</text><text x="60" y="100" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Your profile</text><text x="60" y="114" text-anchor="middle" fill="#717171" font-size="10">About you</text>
+            <circle cx="160" cy="100" r="22" fill="#E11D48"/><text x="160" y="105" text-anchor="middle" fill="white" font-weight="800" font-size="14">2</text><text x="160" y="50" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Income</text><text x="160" y="64" text-anchor="middle" fill="#717171" font-size="10">Your earnings</text>
+            <circle cx="260" cy="140" r="22" fill="#E11D48"/><text x="260" y="145" text-anchor="middle" fill="white" font-weight="800" font-size="14">3</text><text x="260" y="178" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Spending</text><text x="260" y="192" text-anchor="middle" fill="#717171" font-size="10">Expenditure</text>
+            <circle cx="360" cy="100" r="22" fill="#E11D48"/><text x="360" y="105" text-anchor="middle" fill="white" font-weight="800" font-size="14">4</text><text x="360" y="50" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Protection</text><text x="360" y="64" text-anchor="middle" fill="#717171" font-size="10">Life cover</text>
+            <circle cx="460" cy="60" r="22" fill="#E11D48"/><text x="460" y="65" text-anchor="middle" fill="white" font-weight="800" font-size="14">5</text><text x="460" y="100" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Savings</text><text x="460" y="114" text-anchor="middle" fill="#717171" font-size="10">Cash &amp; ISAs</text>
+            <circle cx="560" cy="100" r="22" fill="#E11D48"/><text x="560" y="105" text-anchor="middle" fill="white" font-weight="800" font-size="14">6</text><text x="560" y="50" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Property</text><text x="560" y="64" text-anchor="middle" fill="#717171" font-size="10">Your home</text>
+            <circle cx="660" cy="140" r="22" fill="#E11D48"/><text x="660" y="145" text-anchor="middle" fill="white" font-weight="800" font-size="14">7</text><text x="660" y="178" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Investments</text><text x="660" y="192" text-anchor="middle" fill="#717171" font-size="10">Portfolio</text>
+            <circle cx="600" cy="260" r="22" fill="#E11D48"/><text x="600" y="265" text-anchor="middle" fill="white" font-weight="800" font-size="14">8</text><text x="600" y="298" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Retirement</text><text x="600" y="312" text-anchor="middle" fill="#717171" font-size="10">Pensions</text>
+            <circle cx="400" cy="200" r="22" fill="#E11D48"/><text x="400" y="205" text-anchor="middle" fill="white" font-weight="800" font-size="14">9</text><text x="400" y="238" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Estate</text><text x="400" y="252" text-anchor="middle" fill="#717171" font-size="10">Wills &amp; IHT</text>
+            <circle cx="200" cy="280" r="24" fill="#20B486" filter="url(#glowA)"/><text x="200" y="285" text-anchor="middle" fill="white" font-size="16">&#127937;</text><text x="200" y="318" text-anchor="middle" fill="#20B486" font-weight="700" font-size="12">Your Dashboard</text>
+          </svg>
+        </div>
+
+        <!-- Detail card — always visible, "What you'll need" is collapsible -->
+        <div class="detail-card">
+          <div class="detail-header">
+            <div class="node-badge">1</div>
+            <div class="detail-title">Your profile</div>
+            <div class="detail-hint">Explore each step on the map above</div>
+          </div>
+          <p class="detail-text">We'll start with the basics — your age, family setup, and employment. This helps us tailor everything that follows to your situation.</p>
+          <div class="needs-section open" id="needsA">
+            <button class="needs-toggle" onclick="document.getElementById('needsA').classList.toggle('open')">
+              <span class="needs-title">What you'll need for this step</span>
+              <svg class="chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="needs-body">
+              <div class="needs-body-inner">
+                <ul class="needs-list">
+                  <li><span class="dot"></span>Your date of birth</li>
+                  <li><span class="dot"></span>Employment status and occupation</li>
+                  <li><span class="dot"></span>Whether you have a partner or dependents</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cta-section">
+          <div class="cta-buttons">
+            <button class="btn-back"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
+            <button class="btn-start">Start My Journey <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-left:4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== OPTION B: Horizon → Horizon (blue to blue) ===== -->
+  <div class="version-label">
+    Option B — Horizon Blue to Dark Blue
+    <span>Hero gradient uses horizon-500 → horizon-600 (all blue, no pink)</span>
+  </div>
+
+  <div class="page-frame">
+    <div class="top-bar">
+      <a href="#"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" class="logo-img" onerror="this.outerHTML='<span style=&quot;font-size:20px;font-weight:900;color:#1F2A44;letter-spacing:1px&quot;>FYNLA</span>';"></a>
+      <a href="#" class="dash-link">Go to dashboard <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></a>
+    </div>
+    <div class="onboarding-body bg-a">
+      <div class="journey-card">
+        <div class="stage-hero hero-b">
+          <h2>Protecting and growing</h2>
+          <p class="tagline">Ensure your family and assets are fully covered.</p>
+        </div>
+        <div class="info-section">
+          <span class="steps-count">9 steps · Approx 18 minutes</span>
+          <span class="skip-note">You can skip steps and come back to them later</span>
+        </div>
+        <div class="journey-map">
+          <svg class="journey-svg" viewBox="0 0 780 340" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="pathGradB" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E11D48"/><stop offset="100%" stop-color="#20B486"/></linearGradient>
+              <filter id="glowB"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path d="M 60 60 C 160 60, 160 140, 260 140 C 360 140, 360 60, 460 60 C 560 60, 560 140, 660 140 C 710 140, 720 170, 720 200 C 720 240, 660 260, 600 260 C 500 260, 500 200, 400 200 C 300 200, 300 280, 200 280" fill="none" stroke="#E11D4812" stroke-width="8" stroke-linecap="round"/>
+            <path d="M 60 60 C 160 60, 160 140, 260 140 C 360 140, 360 60, 460 60 C 560 60, 560 140, 660 140 C 710 140, 720 170, 720 200 C 720 240, 660 260, 600 260 C 500 260, 500 200, 400 200 C 300 200, 300 280, 200 280" fill="none" stroke="url(#pathGradB)" stroke-width="3" stroke-dasharray="8,6" stroke-linecap="round"/>
+            <circle cx="60" cy="60" r="22" fill="#E11D48" filter="url(#glowB)"/><text x="60" y="65" text-anchor="middle" fill="white" font-weight="800" font-size="14">1</text><text x="60" y="100" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Your profile</text><text x="60" y="114" text-anchor="middle" fill="#717171" font-size="10">About you</text>
+            <circle cx="160" cy="100" r="22" fill="#E11D48"/><text x="160" y="105" text-anchor="middle" fill="white" font-weight="800" font-size="14">2</text><text x="160" y="50" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Income</text><text x="160" y="64" text-anchor="middle" fill="#717171" font-size="10">Your earnings</text>
+            <circle cx="260" cy="140" r="22" fill="#E11D48"/><text x="260" y="145" text-anchor="middle" fill="white" font-weight="800" font-size="14">3</text><text x="260" y="178" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Spending</text><text x="260" y="192" text-anchor="middle" fill="#717171" font-size="10">Expenditure</text>
+            <circle cx="360" cy="100" r="22" fill="#E11D48"/><text x="360" y="105" text-anchor="middle" fill="white" font-weight="800" font-size="14">4</text><text x="360" y="50" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Protection</text><text x="360" y="64" text-anchor="middle" fill="#717171" font-size="10">Life cover</text>
+            <circle cx="460" cy="60" r="22" fill="#E11D48"/><text x="460" y="65" text-anchor="middle" fill="white" font-weight="800" font-size="14">5</text><text x="460" y="100" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Savings</text><text x="460" y="114" text-anchor="middle" fill="#717171" font-size="10">Cash &amp; ISAs</text>
+            <circle cx="560" cy="100" r="22" fill="#E11D48"/><text x="560" y="105" text-anchor="middle" fill="white" font-weight="800" font-size="14">6</text><text x="560" y="50" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Property</text><text x="560" y="64" text-anchor="middle" fill="#717171" font-size="10">Your home</text>
+            <circle cx="660" cy="140" r="22" fill="#E11D48"/><text x="660" y="145" text-anchor="middle" fill="white" font-weight="800" font-size="14">7</text><text x="660" y="178" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Investments</text><text x="660" y="192" text-anchor="middle" fill="#717171" font-size="10">Portfolio</text>
+            <circle cx="600" cy="260" r="22" fill="#E11D48"/><text x="600" y="265" text-anchor="middle" fill="white" font-weight="800" font-size="14">8</text><text x="600" y="298" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Retirement</text><text x="600" y="312" text-anchor="middle" fill="#717171" font-size="10">Pensions</text>
+            <circle cx="400" cy="200" r="22" fill="#E11D48"/><text x="400" y="205" text-anchor="middle" fill="white" font-weight="800" font-size="14">9</text><text x="400" y="238" text-anchor="middle" fill="#1F2A44" font-weight="700" font-size="12">Estate</text><text x="400" y="252" text-anchor="middle" fill="#717171" font-size="10">Wills &amp; IHT</text>
+            <circle cx="200" cy="280" r="24" fill="#20B486" filter="url(#glowB)"/><text x="200" y="285" text-anchor="middle" fill="white" font-size="16">&#127937;</text><text x="200" y="318" text-anchor="middle" fill="#20B486" font-weight="700" font-size="12">Your Dashboard</text>
+          </svg>
+        </div>
+
+        <!-- Detail card — always visible, "What you'll need" is collapsible -->
+        <div class="detail-card">
+          <div class="detail-header">
+            <div class="node-badge">1</div>
+            <div class="detail-title">Your profile</div>
+            <div class="detail-hint">Explore each step on the map above</div>
+          </div>
+          <p class="detail-text">We'll start with the basics — your age, family setup, and employment. This helps us tailor everything that follows to your situation.</p>
+          <div class="needs-section open" id="needsB">
+            <button class="needs-toggle" onclick="document.getElementById('needsB').classList.toggle('open')">
+              <span class="needs-title">What you'll need for this step</span>
+              <svg class="chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div class="needs-body">
+              <div class="needs-body-inner">
+                <ul class="needs-list">
+                  <li><span class="dot"></span>Your date of birth</li>
+                  <li><span class="dot"></span>Employment status and occupation</li>
+                  <li><span class="dot"></span>Whether you have a partner or dependents</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cta-section">
+          <div class="cta-buttons">
+            <button class="btn-back"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg> Back</button>
+            <button class="btn-start">Start My Journey <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-left:4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

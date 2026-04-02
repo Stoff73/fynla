@@ -1775,6 +1775,12 @@ export default {
     document.title = 'Free Financial Calculators — UK Tax, Mortgage, Pension | Fynla';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', 'Free UK financial calculators for income tax, mortgage repayments, pension growth, stamp duty, student loans, and more. No sign-up required.');
+
+    // Open specific calculator from query param (e.g. ?calc=student-loan)
+    const calcParam = this.$route.query.calc;
+    if (calcParam) {
+      this.activeCalculator = calcParam;
+    }
   },
 
   computed: {

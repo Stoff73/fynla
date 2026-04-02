@@ -95,7 +95,7 @@ export default {
     ExpenditureForm,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -205,8 +205,8 @@ export default {
       try {
         // Mark the step as skipped in the store
         await store.dispatch('onboarding/skipStep', 'expenditure');
-        // Move to the next step
-        await store.dispatch('onboarding/goToNextStep');
+        // Emit next to let the wizard advance
+        emit('next');
       } catch (err) {
         error.value = err.message || 'Failed to skip step. Please try again.';
       } finally {

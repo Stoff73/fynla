@@ -309,5 +309,10 @@ export default {
   components: {
     PublicLayout,
   },
+
+  mounted() {
+    document.title = 'Privacy policy | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Read Fynla\'s privacy policy. Learn how we collect, use, and protect your personal and financial data.');
+  },
 };
 </script>

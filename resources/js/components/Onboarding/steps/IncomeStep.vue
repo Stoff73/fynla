@@ -19,12 +19,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="employment_status" class="label">
-              Employment Status
+              Employment Status <span class="q-icon" @click="emitWhyField($event,'employment_status')" title="Why we ask this">?</span>
             </label>
             <select
               id="employment_status"
               v-model="formData.employment_status"
               class="input-field"
+              @focus="emitWhyField($event,'employment_status')"
             >
               <option value="">Select status</option>
               <option value="employed">Employed</option>
@@ -39,7 +40,7 @@
           <template v-if="showEmploymentFields">
             <div>
               <label for="occupation" class="label">
-                Occupation
+                Occupation <span class="q-icon" @click="emitWhyField($event,'occupation')" title="Why we ask this">?</span>
               </label>
               <OccupationAutocomplete
                 id="occupation"
@@ -51,7 +52,7 @@
 
             <div>
               <label for="employer" class="label">
-                Employer
+                Employer <span class="q-icon" @click="emitWhyField($event,'employer')" title="Why we ask this">?</span>
               </label>
               <input
                 id="employer"
@@ -59,12 +60,13 @@
                 type="text"
                 class="input-field"
                 placeholder="Tech Company Ltd"
+                @focus="emitWhyField($event,'employer')"
               >
             </div>
 
             <div>
               <label for="industry" class="label">
-                Industry
+                Industry <span class="q-icon" @click="emitWhyField($event,'industry')" title="Why we ask this">?</span>
               </label>
               <input
                 id="industry"
@@ -72,13 +74,14 @@
                 type="text"
                 class="input-field"
                 placeholder="Technology"
+                @focus="emitWhyField($event,'industry')"
               >
             </div>
 
             <!-- Retirement Age (for non-retired) -->
             <div v-if="formData.employment_status && formData.employment_status !== 'retired'">
               <label for="target_retirement_age" class="label">
-                Retirement Age
+                Retirement Age <span class="q-icon" @click="emitWhyField($event,'target_retirement_age')" title="Why we ask this">?</span>
               </label>
               <input
                 id="target_retirement_age"
@@ -88,6 +91,7 @@
                 max="75"
                 class="input-field"
                 placeholder="65"
+                @focus="emitWhyField($event,'target_retirement_age')"
               >
               <p class="mt-1 text-body-sm text-neutral-500">
                 Planned retirement age, used for all pension forecast calculations. Use the <a :href="LINKS.HMRC_TAX_CALC" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">HMRC tax calculator</a> to estimate your tax
@@ -152,7 +156,7 @@
           <!-- Employment Income (employed/part_time only) -->
           <div v-if="formData.employment_status === 'employed' || formData.employment_status === 'part_time'">
             <label for="annual_employment_income" class="label">
-              Annual Employment Income
+              Annual Employment Income <span class="q-icon" @click="emitWhyField($event,'annual_employment_income')" title="Why we ask this">?</span>
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
@@ -164,6 +168,7 @@
                 step="1000"
                 class="input-field pl-8"
                 placeholder="50000"
+                @focus="emitWhyField($event,'annual_employment_income')"
               >
             </div>
             <p class="mt-1 text-body-sm text-neutral-500">
@@ -174,7 +179,7 @@
           <!-- Self-Employment Income (self_employed only) -->
           <div v-if="formData.employment_status === 'self_employed'">
             <label for="annual_self_employment_income" class="label">
-              Annual Self-Employment Income
+              Annual Self-Employment Income <span class="q-icon" @click="emitWhyField($event,'annual_self_employment_income')" title="Why we ask this">?</span>
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
@@ -186,6 +191,7 @@
                 step="1000"
                 class="input-field pl-8"
                 placeholder="0"
+                @focus="emitWhyField($event,'annual_self_employment_income')"
               >
             </div>
             <p class="mt-1 text-body-sm text-neutral-500">
@@ -196,7 +202,7 @@
           <!-- Benefit Income (unemployed only) -->
           <div v-if="formData.employment_status === 'unemployed'">
             <label for="annual_benefit_income" class="label">
-              Annual Benefit Income
+              Annual Benefit Income <span class="q-icon" @click="emitWhyField($event,'annual_benefit_income')" title="Why we ask this">?</span>
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
@@ -208,6 +214,7 @@
                 step="100"
                 class="input-field pl-8"
                 placeholder="0"
+                @focus="emitWhyField($event,'annual_benefit_income')"
               >
             </div>
             <p class="mt-1 text-body-sm text-neutral-500">
@@ -218,7 +225,7 @@
           <!-- Dividend Income (always shown when status is selected) -->
           <div v-if="formData.employment_status">
             <label for="annual_dividend_income" class="label">
-              Annual Dividend Income
+              Annual Dividend Income <span class="q-icon" @click="emitWhyField($event,'annual_dividend_income')" title="Why we ask this">?</span>
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
@@ -230,6 +237,7 @@
                 step="100"
                 class="input-field pl-8"
                 placeholder="0"
+                @focus="emitWhyField($event,'annual_dividend_income')"
               >
             </div>
             <p class="mt-1 text-body-sm text-neutral-500">
@@ -240,7 +248,7 @@
           <!-- Interest Income (always shown when status is selected) -->
           <div v-if="formData.employment_status">
             <label for="annual_interest_income" class="label">
-              Annual Interest Income
+              Annual Interest Income <span class="q-icon" @click="emitWhyField($event,'annual_interest_income')" title="Why we ask this">?</span>
             </label>
             <div class="relative">
               <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
@@ -252,6 +260,7 @@
                 step="100"
                 class="input-field pl-8"
                 placeholder="0"
+                @focus="emitWhyField($event,'annual_interest_income')"
               >
             </div>
             <p class="mt-1 text-body-sm text-neutral-500">
@@ -259,6 +268,28 @@
             </p>
           </div>
 
+          <!-- Other Income (always shown when status is selected) -->
+          <div v-if="formData.employment_status">
+            <label for="annual_other_income" class="label">
+              Annual Other Income <span class="q-icon" @click="emitWhyField($event,'annual_other_income')" title="Why we ask this">?</span>
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">£</span>
+              <input
+                id="annual_other_income"
+                v-model.number="formData.annual_other_income"
+                type="number"
+                min="0"
+                step="1000"
+                class="input-field pl-8"
+                placeholder="0"
+                @focus="emitWhyField($event,'annual_other_income')"
+              >
+            </div>
+            <p class="mt-1 text-body-sm text-neutral-500">
+              Any other income sources
+            </p>
+          </div>
 
           <!-- Total Income (calculated) -->
           <div v-if="formData.employment_status" class="bg-eggshell-500 rounded-lg p-4">
@@ -321,7 +352,7 @@ export default {
     context: { type: String, default: null },
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -394,6 +425,53 @@ export default {
              retirementAge.value !== null &&
              retirementAge.value < 55;
     });
+
+    const WHY_FIELD_DATA = {
+      employment_status: { whyWeAsk: 'Your employment status determines which income fields are relevant and affects pension contribution limits.' },
+      occupation: { whyWeAsk: 'Your occupation helps us estimate income growth and assess protection insurance eligibility and premiums.' },
+      employer: { whyWeAsk: 'Knowing your employer helps us identify workplace pension schemes and employee benefits you may have access to.' },
+      industry: { whyWeAsk: 'Your industry can affect income stability projections and risk profiling for your financial plan.' },
+      target_retirement_age: { whyWeAsk: 'Your target retirement age drives all pension forecasts, State Pension timing, and long-term savings projections.' },
+      annual_employment_income: { whyWeAsk: 'Your employment income is the foundation for tax calculations, pension contribution limits, and savings capacity.' },
+      annual_self_employment_income: { whyWeAsk: 'Self-employment income affects your tax liability, National Insurance contributions, and pension Annual Allowance.' },
+      annual_benefit_income: { whyWeAsk: 'State benefits may affect your overall tax position and eligibility for other financial products.' },
+      annual_dividend_income: { whyWeAsk: 'Dividend income is taxed differently from employment income and affects your overall tax band calculations.' },
+      annual_interest_income: { whyWeAsk: 'Interest income affects your Personal Savings Allowance and overall tax position.' },
+      annual_other_income: { whyWeAsk: 'All income sources contribute to your total taxable income and affect tax band thresholds.' },
+    };
+
+    let lastEmittedField = null;
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      let fieldOffsetY = 0;
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
+    };
 
     const handleNext = async () => {
       loading.value = true;
@@ -498,6 +576,7 @@ export default {
       hasRentalIncome,
       handleNext,
       handleBack,
+      emitWhyField,
       formatCurrency,
       LINKS,
       STEP_RESOURCES,

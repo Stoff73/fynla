@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'WhenCanIRetireFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'When Can I Retire — retirement affordability calculator | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Find out when you can afford to retire with Fynla. Model different retirement ages, pension drawdown strategies, and see your projected retirement income.');
+  },
+
   data() {
     return {
       hero: {

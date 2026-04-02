@@ -370,8 +370,8 @@
             <h3 class="text-sm font-bold text-white mb-4">Help centre</h3>
             <ul class="space-y-2">
               <li><router-link to="/faq" class="text-sm text-white/70 hover:text-white transition-colors">FAQs</router-link></li>
-              <li><router-link to="/contact" class="text-sm text-white/70 hover:text-white transition-colors">Ask Fyn</router-link></li>
               <li><router-link to="/learn" class="text-sm text-white/70 hover:text-white transition-colors">Guides and explainers</router-link></li>
+              <li><router-link to="/contact" class="text-sm text-white/70 hover:text-white transition-colors">Contact us</router-link></li>
             </ul>
           </div>
 

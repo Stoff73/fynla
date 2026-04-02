@@ -1,12 +1,16 @@
 <template>
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
+  <div :class="context === 'onboarding' ? '' : 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'">
+    <div :class="context === 'onboarding' ? '' : 'bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin'">
       <!-- Header -->
-      <div class="sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between">
+      <div :class="context === 'onboarding' ? 'mb-4' : 'sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between'">
         <h3 class="text-xl font-semibold text-horizon-500">
           {{ isEdit ? 'Edit' : 'Add' }} Defined Benefit Pension
         </h3>
-        <button @click="$emit('close')" class="text-horizon-400 hover:text-neutral-500 transition-colors">
+        <button
+          v-if="context !== 'onboarding'"
+          @click="$emit('close')"
+          class="text-horizon-400 hover:text-neutral-500 transition-colors"
+        >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -14,7 +18,7 @@
       </div>
 
       <!-- Important Warning -->
-      <div class="mx-6 mt-6 bg-savannah-100 rounded-lg p-4 flex items-start">
+      <div v-if="context !== 'onboarding'" class="mx-6 mt-6 bg-savannah-100 rounded-lg p-4 flex items-start">
         <svg class="w-6 h-6 text-violet-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
@@ -30,7 +34,7 @@
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" class="p-6">
+      <form @submit.prevent="handleSubmit" :class="context === 'onboarding' ? '' : 'p-6'">
         <div class="space-y-6">
           <!-- Employer Name -->
           <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'employer_name' }">
@@ -198,15 +202,19 @@
           <button
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors duration-200"
+            :class="context === 'onboarding'
+              ? 'px-4 py-2 bg-light-pink-100 hover:bg-light-pink-200 text-horizon-500 rounded-lg transition-colors duration-200 text-sm font-medium'
+              : 'px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors duration-200'"
           >
             Cancel
           </button>
           <button
             type="submit"
-            class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors duration-200"
+            :class="context === 'onboarding'
+              ? 'px-6 py-2 bg-raspberry-500 text-white rounded-lg hover:bg-raspberry-600 transition-colors duration-200 text-sm font-medium'
+              : 'px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors duration-200'"
           >
-            {{ isEdit ? 'Update' : 'Add' }} Pension
+            {{ context === 'onboarding' ? 'Save' : (isEdit ? 'Update' : 'Add') + ' Pension' }}
           </button>
         </div>
       </form>
@@ -226,6 +234,10 @@ export default {
     pension: {
       type: Object,
       default: null,
+    },
+    context: {
+      type: String,
+      default: 'standalone',
     },
   },
 
