@@ -1,7 +1,7 @@
 # Fynla Design System
 
-**Version:** 1.2.0  
-**Last Updated:** 03 March 2026  
+**Version:** 1.3.0  
+**Last Updated:** 02 April 2026  
 **Framework:** Vue.js 3 + Tailwind CSS
 
 This document is the single source of truth for all design decisions in the Fynla financial planning application. Every component must adhere to these specifications to ensure visual consistency, professional quality, and user trust.
@@ -76,6 +76,9 @@ This document is the single source of truth for all design decisions in the Fynl
 64. [Expandable Table Rows](#expandable-table-rows)
 65. [Inline Edit Pattern](#inline-edit-pattern)
 66. [Avatar / User Representation](#avatar--user-representation)
+67. [Dynamic Financial Values](#dynamic-financial-values)
+68. [Number Input Scroll Prevention](#number-input-scroll-prevention)
+69. [Clickable Card CTA Pattern](#clickable-card-cta-pattern)
 
 ---
 
@@ -1008,6 +1011,35 @@ Example:
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 ```
 
+### Grid Overflow Prevention
+
+When using CSS Grid inside constrained containers (e.g., pages with a sidebar navigation), **always add `min-width: 0` to grid children** to prevent content from overflowing the grid track:
+
+```css
+.my-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.my-grid-row > * {
+  min-width: 0;
+}
+```
+
+Without `min-width: 0`, grid children with intrinsic content wider than their track (e.g., tables, long text) will push the column wider than the available space, causing horizontal overflow.
+
+### Sidebar-Aware Breakpoints
+
+The main content area inside `AppLayout` is approximately 350px narrower than the viewport (due to the sidebar navigation). When setting responsive breakpoints, account for this:
+
+| Viewport | Content Area | Recommendation |
+|----------|-------------|----------------|
+| 1440px | ~1090px | 3-column grids work |
+| 1200px | ~850px | Collapse to 2 columns |
+| 1024px | ~674px | Collapse to 1 column for side-by-side layouts |
+| 768px | ~418px | Full mobile stacking |
+
 ---
 
 ## Accessibility
@@ -1550,6 +1582,8 @@ Text input with a `£` prefix symbol.
 | Min | `0` (never negative for currency) |
 
 Use `CurrencyInputField.vue` shared component where possible.
+
+**Scroll Prevention:** All `<input type="number">` inputs are protected by a global wheel event handler in `app.js` that blurs the input on scroll. This prevents accidental value changes when users scroll past number fields. No per-component handling is needed.
 
 ---
 
@@ -2849,6 +2883,143 @@ All badge styles (account type, ownership, status, priority, risk, tax) are in `
 | `.card-hover` | Clickable card with hover lift effect |
 | `.card-highlighted` | Primary accent background |
 | `.card-success` / `.card-warning` / `.card-error` | Semantic card variants |
+
+---
+
+---
+
+## Dynamic Financial Values
+
+**CRITICAL: Never hardcode tax years, allowances, thresholds, or rates anywhere in the UI.**
+
+The UK tax year changes every 6 April. All financial values must be dynamic.
+
+### Tax Year Display
+
+Use `getCurrentTaxYear()` from `@/utils/dateFormatter` to display the current tax year string (e.g., "2025/26"). This function automatically calculates the correct year based on the UK April 6 boundary.
+
+```javascript
+// In Vue Options API components
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+
+computed: {
+  currentTaxYear() {
+    return getCurrentTaxYear();
+  }
+}
+```
+
+```html
+<!-- Template usage -->
+<h3>ISA Allowance {{ currentTaxYear }}</h3>
+<p>Annual allowance for the {{ currentTaxYear }} tax year</p>
+```
+
+```javascript
+// In static config files (called at module load time)
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+const TAX_YEAR = getCurrentTaxYear();
+
+const config = {
+  label: `Annual pension allowance (${TAX_YEAR})`
+};
+```
+
+### Tax Values
+
+Import from `@/constants/taxConfig` — never hardcode amounts:
+
+```javascript
+import { ISA_ANNUAL_ALLOWANCE, PENSION_ANNUAL_ALLOWANCE, CGT_ANNUAL_ALLOWANCE,
+         PERSONAL_ALLOWANCE, HIGHER_RATE_THRESHOLD } from '@/constants/taxConfig';
+```
+
+| Instead of | Use |
+|-----------|-----|
+| `20000` (ISA) | `ISA_ANNUAL_ALLOWANCE` |
+| `60000` (pension) | `PENSION_ANNUAL_ALLOWANCE` |
+| `3000` (CGT) | `CGT_ANNUAL_ALLOWANCE` |
+| `12570` (personal allowance) | `PERSONAL_ALLOWANCE` |
+| `50270` (higher rate) | `HIGHER_RATE_THRESHOLD` |
+| `125140` (additional rate) | `ADDITIONAL_RATE_THRESHOLD` |
+
+### Backend (PHP)
+
+Use `TaxConfigService` for all tax values:
+
+```php
+$taxYear = $this->taxConfig->getTaxYear();
+$isaAllowance = $this->taxConfig->getISAAllowances()['annual'];
+$nrb = $this->taxConfig->getInheritanceTax()['nil_rate_band'];
+```
+
+---
+
+## Number Input Scroll Prevention
+
+A global event handler in `app.js` prevents mouse wheel scroll from changing `<input type="number">` values. This is a common source of accidental data corruption — users scrolling the page inadvertently change field values when their cursor passes over a number input.
+
+**Implementation:**
+
+```javascript
+// In app.js — global, no per-component handling needed
+document.addEventListener('wheel', (e) => {
+    if (e.target?.type === 'number') {
+        e.target.blur();
+    }
+}, { passive: true });
+```
+
+**Rules:**
+- Do NOT add `@wheel.prevent` on individual number inputs — the global handler covers all of them
+- Do NOT use CSS-only solutions (`-moz-appearance: textfield`) — they don't prevent all cases
+- The `{ passive: true }` option ensures scroll performance is not affected
+
+---
+
+## Clickable Card CTA Pattern
+
+When a card navigates to a detail view or tab on click, include a visible CTA link to make the interaction discoverable. Users may not realise a card is clickable even with `cursor: pointer` and hover effects.
+
+```html
+<div class="planner-card clickable" @click="navigateToDetail">
+  <div class="planner-card-header">
+    <h3 class="planner-card-title">Card Title</h3>
+  </div>
+  <div class="planner-card-metrics">
+    <!-- Metric values -->
+  </div>
+  <div class="planner-card-cta">
+    <span class="view-detail-link">
+      View full breakdown
+      <svg class="w-4 h-4 inline" ...arrow icon... />
+    </span>
+  </div>
+</div>
+```
+
+```css
+.planner-card-cta {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.view-detail-link {
+  font-size: 13px;
+  font-weight: 500;
+  @apply text-raspberry-500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.planner-card:hover .view-detail-link {
+  @apply text-raspberry-600;
+}
+```
+
+**When to use:** Any card that navigates somewhere on click but doesn't have an obvious button or link. The CTA text should describe what the user will see (e.g., "View income breakdown including all pensions and assets").
 
 ---
 
