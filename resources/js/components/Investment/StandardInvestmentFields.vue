@@ -290,7 +290,7 @@
         <div>
           <p class="text-sm font-medium text-violet-900">ISA Subscription</p>
           <p class="text-xs text-violet-700 mt-1">
-            All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £20,000 annual allowance (2025/26)
+            All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £20,000 annual allowance ({{ currentTaxYear }})
           </p>
         </div>
       </div>
@@ -655,14 +655,12 @@ export default {
     currentTaxYear() {
       const now = new Date();
       const year = now.getFullYear();
-      const month = now.getMonth();
+      const month = now.getMonth(); // 0-indexed: 3 = April
+      const day = now.getDate();
 
-      // UK tax year runs April 6 to April 5
-      if (month < 3) { // Jan-March
-        return `${year - 1}/${year}`;
-      } else {
-        return `${year}/${year + 1}`;
-      }
+      // UK tax year runs 6 April to 5 April
+      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
+      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
     },
 
     todaysDate() {

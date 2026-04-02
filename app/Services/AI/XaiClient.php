@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use GuzzleHttp\Client as GuzzleClient;
 use OpenAI;
 use OpenAI\Client;
 
@@ -12,6 +13,10 @@ use OpenAI\Client;
  *
  * Uses the OpenAI SDK with a custom base URI pointing to xAI's API.
  * All xAI models are OpenAI-compatible, so the SDK works directly.
+ *
+ * Guzzle is configured with a 120-second timeout to accommodate
+ * reasoning models (grok-4-1-fast-reasoning) which may "think"
+ * for 30-60+ seconds before streaming any response chunks.
  */
 class XaiClient
 {
@@ -26,9 +31,15 @@ class XaiClient
             throw new \RuntimeException('XAI_API_KEY is not configured. Set it in your .env file.');
         }
 
+        $httpClient = new GuzzleClient([
+            'timeout' => 120,
+            'connect_timeout' => 10,
+        ]);
+
         $this->client = OpenAI::factory()
             ->withApiKey($apiKey)
             ->withBaseUri($baseUrl)
+            ->withHttpClient($httpClient)
             ->make();
     }
 

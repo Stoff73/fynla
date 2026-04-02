@@ -945,9 +945,10 @@ class IHTCalculationService
 
         // Project mortgages
         foreach ($user->mortgages as $mortgage) {
+            $endDate = $mortgage->end_date;
             $projectedLiabilities += $this->projectSingleLiability(
                 (float) ($mortgage->outstanding_balance ?? 0),
-                $mortgage->end_date,
+                $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
                 $currentAge,
                 $retirementAge,
                 $yearsToProject,
@@ -971,9 +972,10 @@ class IHTCalculationService
         // Include spouse liabilities if data sharing enabled
         if ($dataSharingEnabled && $spouse) {
             foreach ($spouse->mortgages as $mortgage) {
+                $endDate = $mortgage->end_date;
                 $projectedLiabilities += $this->projectSingleLiability(
                     (float) ($mortgage->outstanding_balance ?? 0),
-                    $mortgage->end_date,
+                    $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
                     $currentAge,
                     $retirementAge,
                     $yearsToProject,
@@ -982,9 +984,10 @@ class IHTCalculationService
             }
 
             foreach ($spouse->liabilities as $liability) {
+                $endDate = $liability->maturity_date ?? $this->estimatePayoffDate($liability);
                 $projectedLiabilities += $this->projectSingleLiability(
                     (float) ($liability->current_balance ?? 0),
-                    $liability->maturity_date ?? $this->estimatePayoffDate($liability),
+                    $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
                     $currentAge,
                     $retirementAge,
                     $yearsToProject,

@@ -388,9 +388,25 @@
           </button>
         </div>
 
-        <p v-if="savingsAccounts.length === 0" class="text-body-sm text-neutral-500 italic">
-          You can skip this step and add accounts later from your dashboard.
-        </p>
+        <!-- Empty state with helpful suggestions -->
+        <div v-if="savingsAccounts.length === 0" class="mt-4 p-4 bg-savannah-100 rounded-lg border border-light-gray">
+          <p class="text-sm font-semibold text-horizon-500 mb-2">Common accounts to consider adding:</p>
+          <ul class="text-sm text-neutral-500 space-y-1.5 mb-3">
+            <li class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-spring-500 flex-shrink-0"></span>
+              Emergency fund — aim for 3-6 months of expenses
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0"></span>
+              Cash ISA — tax-free savings up to £20,000 per year
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-raspberry-500 flex-shrink-0"></span>
+              Current or savings accounts
+            </li>
+          </ul>
+          <p class="text-xs text-neutral-500 italic">You can skip this step and add accounts later from your dashboard.</p>
+        </div>
 
       </div>
     </div>
@@ -623,6 +639,7 @@ export default {
       editingInvestment.value = null;
       editingSavings.value = null;
       editingPension.value = null;
+      error.value = null;
       emitSidebarContent();
       // Scroll to top on tab change (mobile stacked layout)
       window.scrollTo({ top: 0, behavior: 'smooth' });
