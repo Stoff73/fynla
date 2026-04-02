@@ -81,7 +81,7 @@
               class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
             <p class="mt-1 text-xs text-neutral-500">
-              UK: £3,000 for 2025/26
+              UK: £{{ cgtAllowance.toLocaleString('en-GB') }} for {{ currentTaxYear }}
             </p>
           </div>
 
@@ -223,6 +223,8 @@ import { mapState } from 'vuex';
 import rebalancingService from '@/services/rebalancingService';
 import AllocationComparison from './AllocationComparison.vue';
 import RebalancingActions from './RebalancingActions.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { CGT_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -240,7 +242,7 @@ export default {
       source: 'optimization',
       minTradeSize: 100,
       optimiseForCGT: true,
-      cgtAllowance: 12300,
+      cgtAllowance: CGT_ANNUAL_ALLOWANCE,
       taxRate: 0.20,
       lossCarryforward: 0,
       loading: false,
@@ -251,6 +253,10 @@ export default {
 
   computed: {
     ...mapState('investment', ['optimizationResult']),
+
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
 
     canCalculate() {
       if (this.source === 'optimization') {

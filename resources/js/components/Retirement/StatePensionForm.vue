@@ -45,7 +45,7 @@
               placeholder="e.g., 203.85"
             />
             <p class="text-xs text-neutral-500 mt-1">
-              Full new State Pension (2025/26): £221.20/week (£11,502/year)
+              Full new State Pension ({{ currentTaxYear }}): £221.20/week (£11,502/year)
             </p>
           </div>
 
@@ -125,7 +125,7 @@
                 placeholder="e.g., 2500.00"
               />
               <p class="text-xs text-neutral-500 mt-1">
-                Typical cost: ~£800-900 per year (2025/26)
+                Typical cost: ~£800-900 per year ({{ currentTaxYear }})
               </p>
             </div>
           </div>
@@ -172,6 +172,8 @@
 </template>
 
 <script>
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+
 export default {
   name: 'StatePensionForm',
 
@@ -207,6 +209,10 @@ export default {
   computed: {
     isEdit() {
       return this.statePension && this.statePension.id;
+    },
+
+    currentTaxYear() {
+      return getCurrentTaxYear();
     },
   },
 

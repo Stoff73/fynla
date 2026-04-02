@@ -196,7 +196,7 @@ class EstateController extends Controller
     public function getCashFlow(Request $request): JsonResponse
     {
         $user = $request->user();
-        $taxYear = $request->query('taxYear', '2025/26');
+        $taxYear = $request->query('taxYear', $this->taxConfig->getTaxYear());
 
         try {
             $cashFlow = $this->cashFlowProjector->createPersonalPL($user->id, $taxYear);

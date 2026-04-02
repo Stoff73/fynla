@@ -2,7 +2,7 @@
   <div class="nrb-rnrb-tracker">
     <div class="tracker-header">
       <h3>Inheritance Tax Allowance Tracker</h3>
-      <p class="subtitle">2025/26 Tax Year</p>
+      <p class="subtitle">{{ currentTaxYear }} Tax Year</p>
     </div>
 
     <!-- Nil Rate Band (NRB) -->
@@ -127,6 +127,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'NRBRNRBTracker',
@@ -170,7 +171,7 @@ export default {
 
   data() {
     return {
-      // 2025/26 UK IHT allowances
+      // UK IHT allowances
       nrbStandard: 325000,
       rnrbStandard: 175000,
       rnrbTaperingThreshold: 2000000,
@@ -178,6 +179,10 @@ export default {
   },
 
   computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+
     nrbTotal() {
       return this.nrbStandard + (this.hasSpouseTransfer ? this.spouseNrbTransfer : 0);
     },

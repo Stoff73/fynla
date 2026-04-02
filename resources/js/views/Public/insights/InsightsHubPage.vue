@@ -96,6 +96,7 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'InsightsHubPage',
@@ -116,7 +117,7 @@ export default {
         },
         {
           slug: '/insights/isa-allowance-2025-26',
-          title: 'ISA Allowance 2025/26: Make the Most of Your \u00A320,000',
+          title: `ISA Allowance ${getCurrentTaxYear()}: Make the Most of Your \u00A320,000`,
           date: 'March 2026',
           summary: 'The ISA allowance remains at \u00A320,000. Types, deadlines, and strategies for maximising your tax-free savings.',
           tags: ['Savings & ISA'],

@@ -949,7 +949,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
-import { getRelativeTime } from '@/utils/dateFormatter';
+import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
 import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
@@ -1765,12 +1765,7 @@ export default {
     },
 
     currentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const day = now.getDate();
-      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
-      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
+      return getCurrentTaxYear();
     },
 
     carryForwardTaxYear() {
@@ -2101,7 +2096,7 @@ export default {
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'investment/analyseInvestment' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
-        { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
+        { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: getCurrentTaxYear() },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
         { name: 'goals', action: 'goals/fetchGoals' },
         { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },

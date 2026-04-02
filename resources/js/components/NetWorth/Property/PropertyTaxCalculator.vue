@@ -29,7 +29,7 @@
     <!-- SDLT Calculator -->
     <div v-show="activeCalculator === 'sdlt'" class="space-y-4">
       <h3 class="text-lg font-semibold text-horizon-500">Stamp Duty Land Tax Calculator</h3>
-      <p class="text-sm text-neutral-500">Calculate Stamp Duty Land Tax based on 2025/26 rates</p>
+      <p class="text-sm text-neutral-500">Calculate Stamp Duty Land Tax based on {{ currentTaxYear }} rates</p>
 
       <form @submit.prevent="calculateSDLT" class="space-y-4">
         <div>
@@ -309,6 +309,7 @@
 <script>
 import { mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'PropertyTaxCalculator',
@@ -353,6 +354,12 @@ export default {
     // Pre-fill forms with property data
     this.sdltForm.purchase_price = this.property.purchase_price;
     this.sdltForm.property_type = this.property.property_type;
+  },
+
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
   },
 
   methods: {

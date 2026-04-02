@@ -17,6 +17,10 @@
  * Design guide: fynlaDesignGuide.md v1.2.0
  */
 
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+
+const TAX_YEAR = getCurrentTaxYear();
+
 // =============================================================================
 // LIFE STAGE DEFINITIONS
 // =============================================================================
@@ -94,7 +98,7 @@ export const LIFE_STAGES = {
           didYouKnow: 'Student loans are not like normal debt. Repayments are income-based and written off after 40 years (Plan 5). The majority of graduates on Plan 5 will never fully repay their loan — meaning the balance written off is never a real cash cost to them.',
           whyWeAsk: 'Your loan plan type determines your repayment threshold, interest rate, and write-off date. This affects whether voluntarily overpaying ever makes financial sense — in most cases, it does not.',
           howItFits: 'Understanding your loan frees you up mentally. Rather than stress about the balance, you can focus on building an emergency fund or opening a Lifetime ISA instead.',
-          quickStat: { value: '£27,295', label: 'Plan 5 annual repayment threshold (2025/26)' },
+          quickStat: { value: '£27,295', label: `Plan 5 annual repayment threshold (${TAX_YEAR})` },
         },
         'income': {
           didYouKnow: 'The average UK student faces a monthly shortfall of £400–600 between income and outgoings. Knowing exactly what comes in — whether from a part-time job, maintenance loan, or family support — is the single most important first step to closing that gap.',
@@ -112,7 +116,7 @@ export const LIFE_STAGES = {
           didYouKnow: 'Even saving £25 per month from age 21 instead of age 30 could mean tens of thousands more by retirement, thanks to compound interest. Time in the market matters more than the amount — starting small and starting now is always better than waiting.',
           whyWeAsk: 'Knowing your existing accounts lets us track your emergency fund progress, calculate the interest you\'re earning, and monitor how much of your annual ISA allowance you\'ve used.',
           howItFits: 'Your first goal is an emergency fund — three months of living costs. That\'s your safety net before thinking about investing or anything else. Once that\'s in place, a Lifetime ISA for your future home or retirement is a natural next step.',
-          quickStat: { value: '£20,000', label: 'Your annual ISA allowance (2025/26)' },
+          quickStat: { value: '£20,000', label: `Your annual ISA allowance (${TAX_YEAR})` },
         },
         'goals': {
           didYouKnow: 'People who write down specific, time-bound financial goals are 42% more likely to achieve them than those who simply intend to save. A goal without a deadline is just a wish.',
@@ -231,13 +235,13 @@ export const LIFE_STAGES = {
           didYouKnow: 'Your early career is one of the most financially formative periods of your life. The habits and accounts you open now — pensions, ISAs, emergency funds — will compound over decades. Getting the foundations right at 25 is worth more than trying to catch up at 45.',
           whyWeAsk: 'Your date of birth and marital status determine pension eligibility dates and tax allowances. Your address is needed for property searches and regional cost calculations. Employment details shape your pension auto-enrolment status and income tax band.',
           howItFits: 'Your date of birth tells us when you\'ll hit key milestones — pension auto-enrolment at 22, Lifetime ISA eligibility before 40, and State Pension age. Your address is needed for stamp duty calculations when you buy your first home, and for regional cost-of-living adjustments. Employment details determine your pension contributions and student loan repayments. These basics shape every savings target and timeline we calculate for you.',
-          quickStat: { value: '£60,000', label: 'Annual pension allowance you can contribute tax-free (2025/26)' },
+          quickStat: { value: '£60,000', label: `Annual pension allowance you can contribute tax-free (${TAX_YEAR})` },
         },
         'income-career': {
           didYouKnow: 'Every £1 of salary sacrifice into your pension saves you income tax AND National Insurance. At the basic rate, that means an immediate 32p in every £1 you contribute is money that would otherwise have gone to HMRC. Your employer contributions are free money on top.',
           whyWeAsk: 'Your gross salary determines your income tax band, pension contribution amounts, student loan repayments, and the maximum you can contribute to a Lifetime ISA each year.',
           howItFits: 'Understanding your full income picture — salary, any side income, and employer benefits — means we can identify exactly how much you can realistically save and invest each month after tax.',
-          quickStat: { value: '£12,570', label: 'Personal Allowance — income you pay no tax on (2025/26)' },
+          quickStat: { value: '£12,570', label: `Personal Allowance — income you pay no tax on (${TAX_YEAR})` },
         },
         'expenditure': {
           didYouKnow: 'The average UK household spends over £2,500 per month. Understanding where your money goes is the first step to building wealth — people who track spending save on average 15% more than those who do not.',
@@ -261,13 +265,13 @@ export const LIFE_STAGES = {
           didYouKnow: 'Auto-enrolment means your employer must contribute to your pension if you earn above £10,000 per year. The minimum total contribution is 8% of qualifying earnings (employee + employer). Opting out is almost always a mistake — you\'re walking away from free money.',
           whyWeAsk: 'Your pension details let us project your retirement income, assess whether you\'re on track, and calculate how increasing contributions now — even by 1% — compounds into significant extra income in retirement.',
           howItFits: 'You don\'t need to understand everything about pensions right now. The key point for your stage: contribute at least enough to get your full employer match, then focus on your house deposit. Revisit pension maximisation in your late thirties.',
-          quickStat: { value: '8%', label: 'Minimum total pension contribution under auto-enrolment (2025/26)' },
+          quickStat: { value: '8%', label: `Minimum total pension contribution under auto-enrolment (${TAX_YEAR})` },
         },
         'investments': {
           didYouKnow: 'A Stocks & Shares ISA lets you invest up to £20,000 per year with all growth and income completely free of tax — forever. Investing £200/month from age 28 at a 7% average annual return would be worth over £500,000 by age 65.',
           whyWeAsk: 'Knowing your existing investments lets us assess diversification, flag tax inefficiency (investments held outside an ISA), and incorporate your portfolio into your net worth and retirement projections.',
           howItFits: 'Investing is for money you won\'t need for at least five years. The typical order of priority is: emergency fund → pension match → Lifetime ISA (if buying) → Stocks & Shares ISA. Once your foundations are in place, investing for the long term is the most powerful wealth-builder available.',
-          quickStat: { value: '£20,000', label: 'Annual ISA allowance — all growth tax-free (2025/26)' },
+          quickStat: { value: '£20,000', label: `Annual ISA allowance — all growth tax-free (${TAX_YEAR})` },
         },
         'goals': {
           didYouKnow: 'The most financially successful people at this life stage share one habit: they pay themselves first. They set up automatic transfers on payday so saving happens before spending starts. The amount matters less than the habit.',
@@ -435,10 +439,10 @@ export const LIFE_STAGES = {
           quickStat: { value: '£20–30/month', label: 'Typical cost of £500,000 life cover for a healthy 35-year-old' },
         },
         'pensions': {
-          didYouKnow: 'The pension annual allowance for 2025/26 is £60,000. You can also carry forward up to three years of unused allowance, potentially contributing up to £200,000+ in a single year. For higher earners, salary sacrifice into a pension is one of the most tax-efficient strategies available.',
+          didYouKnow: `The pension annual allowance for ${TAX_YEAR} is £60,000. You can also carry forward up to three years of unused allowance, potentially contributing up to £200,000+ in a single year. For higher earners, salary sacrifice into a pension is one of the most tax-efficient strategies available.`,
           whyWeAsk: 'Your pension balances and contribution history let us project your retirement income, identify whether you\'re on track, and flag opportunities to increase contributions in a tax-efficient way — particularly if you\'ve had high-earning years with low contributions.',
           howItFits: 'The thirties and forties are the golden decade for pension building. Contributions made now have 20–30 years to compound. This is the time to review your contribution rate, fund choices, and whether consolidating old workplace pensions makes sense.',
-          quickStat: { value: '£60,000', label: 'Annual pension allowance (2025/26) — use it or lose it' },
+          quickStat: { value: '£60,000', label: `Annual pension allowance (${TAX_YEAR}) — use it or lose it` },
         },
         'will-estate': {
           didYouKnow: 'If you die without a will, the intestacy rules determine who inherits your estate — and these rules can leave your partner without the legal right to your home if you\'re not married. Over 60% of UK adults do not have a will. With dependants, this is not a risk worth taking.',
@@ -605,13 +609,13 @@ export const LIFE_STAGES = {
           didYouKnow: 'ISA gains and income are tax-free forever — there is no capital gains tax or income tax on ISA returns, even in retirement. Building up a large ISA alongside your pension gives you tax-free income flexibility in retirement, as ISA withdrawals do not count towards income for tax purposes.',
           whyWeAsk: 'Your investment portfolio needs to be reviewed for tax efficiency, risk alignment with your timeline, and diversification. Investments held outside an ISA or pension may be generating unnecessary tax liabilities that can easily be addressed.',
           howItFits: 'At this stage, the goal is not just growth — it is tax-efficient growth. Moving towards a portfolio that minimises your tax burden in retirement (pension + ISA combination) can meaningfully increase net retirement income.',
-          quickStat: { value: '£3,000', label: 'Annual Capital Gains Tax exemption (2025/26) — use it each year' },
+          quickStat: { value: '£3,000', label: `Annual Capital Gains Tax exemption (${TAX_YEAR}) — use it each year` },
         },
         'property-portfolio': {
           didYouKnow: 'Property remains the largest asset for most UK households, but it is also the least tax-efficient in many respects. Capital gains tax on a buy-to-let sale can be 24% for higher-rate taxpayers. Planning property disposals carefully — including timing, ownership structure, and use of exemptions — can save substantial sums.',
           whyWeAsk: 'Your property portfolio — including your main home and any investment properties — is central to your net worth, retirement income planning, and inheritance tax position. We need the full picture to plan effectively.',
           howItFits: 'Many people at this stage discover their net worth is heavily concentrated in property. Diversification into pensions and ISAs, careful mortgage management, and estate planning around property can significantly improve the overall efficiency of your wealth.',
-          quickStat: { value: '24%', label: 'Capital Gains Tax rate on residential property for higher-rate taxpayers (2025/26)' },
+          quickStat: { value: '24%', label: `Capital Gains Tax rate on residential property for higher-rate taxpayers (${TAX_YEAR})` },
         },
         'liabilities': {
           didYouKnow: 'Outstanding debts reduce your estate value for inheritance tax purposes — but they also reduce the wealth available to your beneficiaries. At this stage, many people carry buy-to-let mortgages, business loans, or car finance alongside their main mortgage. Understanding the full picture is essential for accurate net worth and estate planning.',
@@ -623,7 +627,7 @@ export const LIFE_STAGES = {
           didYouKnow: 'Inheritance tax is charged at 40% on estates above the nil-rate band (£325,000) and, for qualifying properties passing to direct descendants, the residence nil-rate band (£175,000). For a married couple, the combined threshold can be up to £1 million — but only with careful planning of how assets are held and transferred.',
           whyWeAsk: 'Your estate value and beneficiary intentions determine whether you have an inheritance tax liability and, if so, which strategies — lifetime gifts, trusts, pension nominations, or charitable giving — are most appropriate for your situation.',
           howItFits: 'At this stage you likely have significant wealth and, for the first time, an estate that may face inheritance tax. Getting estate planning right now — while you have time and capacity to act — can save your beneficiaries hundreds of thousands of pounds.',
-          quickStat: { value: '£500,000', label: 'Nil-rate band + residence nil-rate band for a single individual (2025/26)' },
+          quickStat: { value: '£500,000', label: `Nil-rate band + residence nil-rate band for a single individual (${TAX_YEAR})` },
         },
         'goals': {
           didYouKnow: 'The clearest predictor of a successful retirement transition is not the size of your pension pot — it is whether you have a clear picture of what retirement costs for the life you want to live. The PLSA Retirement Living Standards benchmark suggests a comfortable retirement for a couple costs around £59,000 per year.',
@@ -768,16 +772,16 @@ export const LIFE_STAGES = {
           quickStat: { value: '25%', label: 'Maximum tax-free cash lump sum you can take from a defined contribution pension' },
         },
         'state-pension': {
-          didYouKnow: 'The full new State Pension is £11,502.40 per year (2025/26). It is uprated annually by the triple lock (highest of earnings growth, CPI inflation, or 2.5%), making it one of the most valuable guaranteed income streams available. Every year of National Insurance contributions matters — you can check and fill gaps in your record via the government\'s Check Your State Pension tool.',
+          didYouKnow: `The full new State Pension is £11,502.40 per year (${TAX_YEAR}). It is uprated annually by the triple lock (highest of earnings growth, CPI inflation, or 2.5%), making it one of the most valuable guaranteed income streams available. Every year of National Insurance contributions matters — you can check and fill gaps in your record via the government's Check Your State Pension tool.`,
           whyWeAsk: 'Your State Pension amount and start date are foundational inputs in your retirement income model. Combined with your private pensions, they determine the total guaranteed income you can rely on each year.',
           howItFits: 'State Pension income is index-linked and cannot be outlived — it is the foundation of your retirement income. Once we know this figure, we can calculate exactly how much additional income your private pensions and investments need to generate.',
-          quickStat: { value: '£11,502', label: 'Full new State Pension annual amount (2025/26)' },
+          quickStat: { value: '£11,502', label: `Full new State Pension annual amount (${TAX_YEAR})` },
         },
         'income-tax': {
           didYouKnow: 'Retirement offers significant tax planning opportunities that employed workers cannot access. By carefully sequencing withdrawals from ISAs (tax-free), pensions (taxable above Personal Allowance), and other savings, couples can structure retirement income to pay minimal income tax whilst maintaining a high standard of living.',
           whyWeAsk: 'Understanding your full income picture in retirement — pensions, State Pension, rental income, dividends — lets us identify the most tax-efficient withdrawal strategy and flag any allowances you may not be using.',
           howItFits: 'Tax efficiency in retirement is not about evasion — it is about sequencing. Using ISA withdrawals to top up pension income to the Personal Allowance, for example, can save thousands in unnecessary tax each year.',
-          quickStat: { value: '£12,570', label: 'Personal Allowance — income you pay no tax on (2025/26)' },
+          quickStat: { value: '£12,570', label: `Personal Allowance — income you pay no tax on (${TAX_YEAR})` },
         },
         'expenditure': {
           didYouKnow: 'Retired households in the UK spend an average of £2,100 per month. The Pensions and Lifetime Savings Association defines three retirement living standards: minimum (£14,400/year), moderate (£31,300/year), and comfortable (£43,100/year). Knowing which you need shapes everything.',

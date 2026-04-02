@@ -671,10 +671,9 @@ export default {
     // Load risk profile when component mounts (auto-calculated if none exists)
     await this.loadRiskProfile();
 
-    // Ensure user profile is loaded for retirement age default
-    if (!this.$store.state.userProfile?.incomeOccupation) {
-      await this.$store.dispatch('userProfile/fetchProfile').catch(() => {});
-    }
+    // Always re-fetch user profile to get the latest retirement age
+    // (user may have just entered it in the Income step during onboarding)
+    await this.$store.dispatch('userProfile/fetchProfile').catch(() => {});
 
     // Default retirement age from user profile for all new pensions
     if (!this.isEdit && !this.formData.retirement_age && this.profileRetirementAge) {

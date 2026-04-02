@@ -1238,6 +1238,10 @@ export default {
   margin-bottom: 24px;
 }
 
+.sources-assets-row > * {
+  min-width: 0;
+}
+
 /* Sources Section */
 .sources-section {
   background: white;
@@ -2021,11 +2025,19 @@ export default {
 }
 
 @media (max-width: 1024px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .summary-grid-extended {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .progress-assumptions-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sources-assets-row {
     grid-template-columns: 1fr;
   }
 }

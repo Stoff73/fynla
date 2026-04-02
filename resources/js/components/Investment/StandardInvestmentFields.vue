@@ -116,8 +116,8 @@
       </div>
     </div>
 
-    <!-- Contributions Section (only for non-ISA accounts) -->
-    <div v-if="!isISAType" class="space-y-4 pt-4 border-t border-light-gray">
+    <!-- Contributions Section (only for non-ISA, non-VCT/EIS accounts) -->
+    <div v-if="!isISAType && !isTaxReliefType" class="space-y-4 pt-4 border-t border-light-gray">
       <h4 class="text-sm font-semibold text-horizon-500">Regular Contributions</h4>
 
       <!-- Monthly Contribution Amount and Frequency -->
@@ -515,6 +515,8 @@ import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'StandardInvestmentFields',
@@ -577,7 +579,7 @@ export default {
 
   data() {
     return {
-      ISA_ALLOWANCE: 20000, // 2025/26 tax year
+      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE, // Fallback from taxConfig.js; prefer API value
     };
   },
 
@@ -605,6 +607,10 @@ export default {
 
     isBondType() {
       return ['onshore_bond', 'offshore_bond'].includes(this.accountType);
+    },
+
+    isTaxReliefType() {
+      return ['vct', 'eis'].includes(this.accountType);
     },
 
     hasRiskProfile() {
@@ -653,14 +659,7 @@ export default {
 
     // ISA Allowance Tracking
     currentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth(); // 0-indexed: 3 = April
-      const day = now.getDate();
-
-      // UK tax year runs 6 April to 5 April
-      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
-      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
+      return getCurrentTaxYear();
     },
 
     todaysDate() {

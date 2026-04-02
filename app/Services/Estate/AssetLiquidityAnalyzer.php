@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
-use App\Models\Estate\Asset;
 use Illuminate\Support\Collection;
 
 /**
@@ -38,10 +37,10 @@ class AssetLiquidityAnalyzer
             $classification = $this->classifyAsset($asset);
 
             $assetData = [
-                'id' => $asset->id,
-                'asset_name' => $asset->asset_name,
-                'asset_type' => $asset->asset_type,
-                'current_value' => (float) $asset->current_value,
+                'id' => $asset->id ?? null,
+                'asset_name' => $asset->asset_name ?? 'Unknown Asset',
+                'asset_type' => $asset->asset_type ?? 'other',
+                'current_value' => (float) ($asset->current_value ?? 0),
                 'is_main_residence' => $asset->is_main_residence ?? false,
                 'is_giftable' => $classification['is_giftable'],
                 'not_giftable_reason' => $classification['not_giftable_reason'],
@@ -95,10 +94,10 @@ class AssetLiquidityAnalyzer
      *
      * @return array Classification data
      */
-    public function classifyAsset(Asset $asset): array
+    public function classifyAsset(object $asset): array
     {
         // Main residence - cannot be gifted while living in it
-        if ($asset->is_main_residence || ($asset->asset_type === 'property' && $this->isProbablyMainResidence($asset))) {
+        if (($asset->is_main_residence ?? false) || ($asset->asset_type === 'property' && $this->isProbablyMainResidence($asset))) {
             return [
                 'liquidity' => 'illiquid',
                 'is_giftable' => false,
@@ -114,7 +113,7 @@ class AssetLiquidityAnalyzer
         }
 
         // Classify by asset type
-        return match ($asset->asset_type) {
+        return match ($asset->asset_type ?? 'other') {
             'cash' => [
                 'liquidity' => 'liquid',
                 'is_giftable' => true,
@@ -212,10 +211,10 @@ class AssetLiquidityAnalyzer
     /**
      * Heuristic to determine if a property is likely the main residence
      */
-    private function isProbablyMainResidence(Asset $asset): bool
+    private function isProbablyMainResidence(object $asset): bool
     {
         // Check asset name for indicators
-        $name = strtolower($asset->asset_name);
+        $name = strtolower($asset->asset_name ?? '');
 
         $mainResidenceKeywords = [
             'main',

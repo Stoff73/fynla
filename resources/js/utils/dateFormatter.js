@@ -246,6 +246,19 @@ export function getTaxYearEnd(referenceDate = new Date()) {
   return new Date(start.getFullYear() + 1, 3, 5); // 5 April next year
 }
 
+/**
+ * Get the current UK tax year as a formatted string (e.g., "2025/26").
+ * UK tax year runs 6 April to 5 April.
+ *
+ * @param {Date} [referenceDate] - Reference date (defaults to now)
+ * @returns {string} Tax year string like "2025/26"
+ */
+export function getCurrentTaxYear(referenceDate = new Date()) {
+  const start = getTaxYearStart(referenceDate);
+  const startYear = start.getFullYear();
+  return `${startYear}/${String(startYear + 1).slice(-2)}`;
+}
+
 export default {
   formatDate,
   formatDateForInput,
@@ -255,4 +268,5 @@ export default {
   getRelativeTime,
   getTaxYearStart,
   getTaxYearEnd,
+  getCurrentTaxYear,
 };

@@ -3,7 +3,7 @@
     <!-- Hero -->
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Pension Annual Allowance 2025/26</h1>
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Pension Annual Allowance {{ currentTaxYear }}</h1>
         <p class="text-lg text-white/70">
           How much you can save into pensions each year &mdash; and what happens if you go over.
         </p>
@@ -21,7 +21,7 @@
         <div class="bg-eggshell-500 rounded-lg p-5">
           <h2 class="text-base font-bold text-horizon-500 mb-2">The Standard Allowance</h2>
           <p class="text-sm text-neutral-600 leading-relaxed">
-            The pension annual allowance for 2025/26 is <strong>&pound;60,000</strong>. This is the maximum you can
+            The pension annual allowance for {{ currentTaxYear }} is <strong>&pound;60,000</strong>. This is the maximum you can
             contribute to all your pensions in a single tax year while still receiving tax relief. It includes your
             personal contributions, employer contributions, and any tax relief added by HMRC.
           </p>
@@ -143,16 +143,23 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import GuideNav from '@/components/Shared/GuideNav.vue';
 import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'PensionAnnualAllowancePage',
   components: { PublicLayout, GuideNav, GuideArticleFooter },
 
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+  },
+
   mounted() {
-    document.title = 'Pension Annual Allowance 2025/26 \u2014 UK Guide | Fynla';
+    document.title = `Pension Annual Allowance ${this.currentTaxYear} \u2014 UK Guide | Fynla`;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', 'The pension annual allowance for 2025/26 is \u00A360,000. Learn how it works, carry forward rules, tapered allowance, and the Money Purchase Annual Allowance.');
+      meta.setAttribute('content', `The pension annual allowance for ${this.currentTaxYear} is \u00A360,000. Learn how it works, carry forward rules, tapered allowance, and the Money Purchase Annual Allowance.`);
     }
   },
 };

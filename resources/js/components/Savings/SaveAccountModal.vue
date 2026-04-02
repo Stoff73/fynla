@@ -233,7 +233,7 @@
                 <div>
                   <p class="text-sm font-medium text-violet-900">ISA Subscription</p>
                   <p class="text-xs text-violet-700 mt-1">
-                    All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £{{ isJuniorISA ? '9,000' : '20,000' }} annual allowance (2025/26)
+                    All ISA contributions (Cash ISA + Stocks &amp; Shares ISA) count towards your £{{ isJuniorISA ? '9,000' : '20,000' }} annual allowance ({{ currentTaxYear }})
                   </p>
                 </div>
               </div>
@@ -308,9 +308,7 @@
                   class="w-full px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="">Select tax year...</option>
-                  <option value="2025/26">2025/26</option>
-                  <option value="2024/25">2024/25</option>
-                  <option value="2023/24">2023/24</option>
+                  <option v-for="year in taxYearOptions" :key="year" :value="year">{{ year }}</option>
                 </select>
               </div>
 
@@ -561,6 +559,8 @@
 import { mapState } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { ISA_ANNUAL_ALLOWANCE, JUNIOR_ISA_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -598,7 +598,8 @@ export default {
     return {
       submitting: false,
       isaAllowanceError: null,
-      ISA_ALLOWANCE: 20000, // 2025/26 tax year
+      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE,
+      JUNIOR_ISA_ALLOWANCE: JUNIOR_ISA_ALLOWANCE,
       formData: {
         institution: '',
         account_type: '',
@@ -612,7 +613,7 @@ export default {
         is_isa: false,
         country: 'United Kingdom',
         isa_type: '',
-        isa_subscription_year: '2025/26',
+        isa_subscription_year: getCurrentTaxYear(),
         isa_subscription_amount: null,
         regular_contribution_amount: null,
         contribution_frequency: 'monthly',
@@ -707,16 +708,17 @@ export default {
 
     // ISA Allowance Tracking computed properties
     currentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
+      return getCurrentTaxYear();
+    },
 
-      // UK tax year runs April 6 to April 5
-      if (month < 3) { // Jan-March
-        return `${year - 1}/${year}`;
-      } else {
-        return `${year}/${year + 1}`;
-      }
+    taxYearOptions() {
+      const current = getCurrentTaxYear();
+      const startYear = parseInt(current.split('/')[0]);
+      return [
+        `${startYear}/${String(startYear + 1).slice(-2)}`,
+        `${startYear - 1}/${String(startYear).slice(-2)}`,
+        `${startYear - 2}/${String(startYear - 1).slice(-2)}`,
+      ];
     },
 
     todaysDate() {
@@ -960,7 +962,7 @@ export default {
         is_isa: this.account.is_isa || false,
         country: this.account.country || 'United Kingdom',
         isa_type: this.account.isa_type || '',
-        isa_subscription_year: this.account.isa_subscription_year || '2025/26',
+        isa_subscription_year: this.account.isa_subscription_year || getCurrentTaxYear(),
         isa_subscription_amount: this.account.isa_subscription_amount ? parseFloat(this.account.isa_subscription_amount) : null,
         regular_contribution_amount: this.account.regular_contribution_amount ? parseFloat(this.account.regular_contribution_amount) : null,
         contribution_frequency: this.account.contribution_frequency || 'monthly',

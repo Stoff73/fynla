@@ -11,9 +11,7 @@
         @change="loadCashFlow"
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-horizon-300 focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm rounded-md"
       >
-        <option value="2025/26">2025/26</option>
-        <option value="2024/25">2024/25</option>
-        <option value="2023/24">2023/24</option>
+        <option v-for="year in taxYearOptions" :key="year" :value="year">{{ year }}</option>
       </select>
     </div>
 
@@ -183,6 +181,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 import logger from '@/utils/logger';
 export default {
@@ -191,7 +190,7 @@ export default {
 
   data() {
     return {
-      selectedTaxYear: '2025/26',
+      selectedTaxYear: getCurrentTaxYear(),
       isLoading: false,
       hasLoaded: false,
     };
@@ -199,6 +198,16 @@ export default {
 
   computed: {
     ...mapState('estate', ['cashFlow']),
+
+    taxYearOptions() {
+      const current = getCurrentTaxYear();
+      const startYear = parseInt(current.split('/')[0]);
+      return [
+        `${startYear}/${String(startYear + 1).slice(-2)}`,
+        `${startYear - 1}/${String(startYear).slice(-2)}`,
+        `${startYear - 2}/${String(startYear - 1).slice(-2)}`,
+      ];
+    },
 
     cashFlowData() {
       return this.cashFlow || {};
