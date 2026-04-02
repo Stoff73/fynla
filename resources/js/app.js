@@ -49,6 +49,13 @@ app.use(VueApexCharts);
 // Register custom directives
 app.directive('preview-disabled', previewDisabled);
 
+// Prevent scroll wheel from changing number input values (silently corrupts data)
+document.addEventListener('wheel', (e) => {
+    if (e.target?.type === 'number') {
+        e.target.blur();
+    }
+}, { passive: true });
+
 // Expose router globally so Vuex store actions can navigate on native
 // without creating circular imports (store -> router -> store)
 window.__appRouter = router;

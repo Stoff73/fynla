@@ -1314,7 +1314,7 @@ export default {
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }

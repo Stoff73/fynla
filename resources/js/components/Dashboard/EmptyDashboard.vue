@@ -26,11 +26,11 @@
       <!-- CTA Buttons -->
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
         <router-link
-          to="/onboarding/welcome"
+          :to="hasJourney ? '/onboarding' : '/onboarding/welcome'"
           v-preview-disabled
           class="inline-flex items-center px-6 py-3 bg-spring-500 text-white text-sm font-medium rounded-button hover:bg-spring-600 transition-colors"
         >
-          Start a Planning Journey
+          {{ hasJourney ? 'Continue Journey' : 'Start a Planning Journey' }}
           <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
@@ -53,7 +53,15 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
+
 export default {
   name: 'EmptyDashboard',
+  computed: {
+    ...mapState('lifeStage', ['currentStage']),
+    hasJourney() {
+      return !!this.currentStage;
+    },
+  },
 };
 </script>

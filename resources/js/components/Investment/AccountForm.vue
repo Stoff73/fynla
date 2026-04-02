@@ -407,7 +407,7 @@ export default {
     },
 
     isPrivateInvestmentType() {
-      return ['private_company', 'crowdfunding', 'vct', 'eis'].includes(this.formData.account_type);
+      return ['private_company', 'crowdfunding', 'eis'].includes(this.formData.account_type);
     },
 
     isEmployeeShareScheme() {
