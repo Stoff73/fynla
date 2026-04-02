@@ -26,7 +26,7 @@ class UploadDocumentRequest extends FormRequest
             'document' => [
                 'sometimes',
                 'file',
-                'mimes:pdf,jpeg,jpg,png,webp',
+                'mimes:pdf,jpeg,jpg,png,webp,xlsx,xls,csv',
                 'max:20480', // 20MB
             ],
             'document_type' => [
@@ -68,7 +68,7 @@ class UploadDocumentRequest extends FormRequest
         return [
             'document.required' => 'Please select a document to upload.',
             'document.file' => 'The uploaded item must be a file.',
-            'document.mimes' => 'Document must be a PDF or image (JPEG, PNG, WebP).',
+            'document.mimes' => 'Document must be a PDF, image (JPEG, PNG, WebP), or spreadsheet (Excel, CSV).',
             'document.max' => 'Document must be less than 20MB. For large PDFs, try compressing the file or using a PDF with selectable text.',
             'document_type.in' => 'Invalid document type specified.',
         ];

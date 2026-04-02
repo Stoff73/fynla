@@ -101,6 +101,16 @@ const documentService = {
   },
 
   /**
+   * Confirm Excel import with sheet mappings.
+   * @param {number} id - Document ID
+   * @param {Array} sheets - Confirmed sheet data with categories and account mappings
+   */
+  async confirmExcel(id, sheets) {
+    const response = await api.post(`/documents/${id}/confirm-excel`, { sheets });
+    return response.data;
+  },
+
+  /**
    * Re-process a document
    * @param {number} id - Document ID
    */

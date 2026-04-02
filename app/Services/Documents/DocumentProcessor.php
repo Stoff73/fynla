@@ -7,13 +7,17 @@ namespace App\Services\Documents;
 use App\Models\Document;
 use App\Models\DocumentExtractionLog;
 use App\Models\User;
+use App\Models\DCPension;
+use App\Models\Investment\InvestmentAccount;
 use App\Services\Documents\FieldMappers\DBPensionMapper;
 use App\Services\Documents\FieldMappers\DCPensionMapper;
 use App\Services\Documents\FieldMappers\FieldMapperInterface;
 use App\Services\Documents\FieldMappers\InvestmentAccountMapper;
 use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
+use App\Services\Documents\FieldMappers\ProtectionMapper;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class DocumentProcessor
@@ -246,6 +250,207 @@ class DocumentProcessor
     }
 
     /**
+     * Process an Excel workbook: parse sheets, extract per-sheet, return for review.
+     */
+    public function processExcel(UploadedFile $file, User $user): array
+    {
+        return DB::transaction(function () use ($file, $user) {
+            $document = $this->uploadService->upload($file, $user, Document::TYPE_UNKNOWN);
+            $document->update(['status' => Document::STATUS_PROCESSING]);
+
+            $excelParser = app(ExcelParserService::class);
+            $filePath = storage_path('app/'.$document->path);
+            $sheets = $excelParser->parseToSheets($filePath);
+
+            if (empty($sheets)) {
+                $document->update(['status' => Document::STATUS_FAILED, 'error_message' => 'No data sheets found']);
+                throw new RuntimeException('No financial data found in this workbook.');
+            }
+
+            $sheetResults = [];
+            foreach ($sheets as $sheet) {
+                try {
+                    $extracted = $this->extractionService->extractSheet(
+                        $sheet['name'],
+                        $sheet['content'],
+                    );
+
+                    $extraction = \App\Models\DocumentExtraction::create([
+                        'document_id' => $document->id,
+                        'extraction_version' => 1,
+                        'model_used' => config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning'),
+                        'raw_response' => json_encode($extracted),
+                        'extracted_fields' => $extracted,
+                        'field_confidence' => $extracted['confidence'] ?? [],
+                        'warnings' => $extracted['warnings'] ?? [],
+                        'is_valid' => true,
+                    ]);
+
+                    $sheetResults[] = [
+                        'extraction_id' => $extraction->id,
+                        'sheet_name' => $sheet['name'],
+                        'row_count' => $sheet['row_count'],
+                        'category' => $extracted['category'] ?? 'ignore',
+                        'category_confidence' => $extracted['category_confidence'] ?? 0.0,
+                        'account' => $extracted['account'] ?? [],
+                        'holdings' => $extracted['holdings'] ?? [],
+                        'properties' => $extracted['properties'] ?? [],
+                        'policies' => $extracted['policies'] ?? [],
+                        'confidence' => $extracted['confidence'] ?? [],
+                        'warnings' => $extracted['warnings'] ?? [],
+                    ];
+                } catch (\Exception $e) {
+                    Log::warning("[DocumentProcessor] Sheet extraction failed: {$sheet['name']}", [
+                        'error' => $e->getMessage(),
+                    ]);
+                    $sheetResults[] = [
+                        'extraction_id' => null,
+                        'sheet_name' => $sheet['name'],
+                        'row_count' => $sheet['row_count'],
+                        'category' => 'error',
+                        'error' => 'Failed to process this sheet',
+                    ];
+                }
+            }
+
+            $document->update(['status' => Document::STATUS_REVIEW_PENDING]);
+
+            // Auto-match accounts for investment/pension sheets
+            $importService = app(HoldingsImportService::class);
+            foreach ($sheetResults as &$result) {
+                if (in_array($result['category'], ['investment_holdings', 'pension_holdings'])) {
+                    $match = $importService->findMatchingAccount($user, $result['category'], $result['account'] ?? []);
+                    $result['matched_account'] = $match ? [
+                        'id' => $match->id,
+                        'name' => $match->provider ?? $match->scheme_name ?? 'Unknown',
+                        'type' => class_basename($match),
+                    ] : null;
+
+                    if ($match && ! empty($result['holdings'])) {
+                        $result['holdings'] = $importService->diffHoldings($match, $result['holdings']);
+                    }
+                } else {
+                    $result['matched_account'] = null;
+                }
+            }
+            unset($result);
+
+            return [
+                'document' => $document->fresh(),
+                'sheets' => $sheetResults,
+            ];
+        });
+    }
+
+    /**
+     * Confirm Excel import — create/update accounts and holdings from confirmed sheet data.
+     */
+    public function confirmExcel(Document $document, array $confirmedSheets, User $user): array
+    {
+        return DB::transaction(function () use ($document, $confirmedSheets, $user) {
+            $importService = app(HoldingsImportService::class);
+            $results = [];
+
+            foreach ($confirmedSheets as $sheet) {
+                $category = $sheet['category'] ?? 'ignore';
+                if ($category === 'ignore' || $category === 'error') {
+                    continue;
+                }
+
+                $accountId = $sheet['matched_account_id'] ?? null;
+                $createNew = $sheet['create_new'] ?? false;
+
+                if ($category === 'investment_holdings' || $category === 'pension_holdings') {
+                    $account = null;
+
+                    if ($accountId) {
+                        $modelClass = $category === 'investment_holdings'
+                            ? InvestmentAccount::class
+                            : DCPension::class;
+                        $account = $modelClass::where('user_id', $user->id)->find($accountId);
+                    }
+
+                    if (! $account && ($createNew || ! $accountId)) {
+                        $accountData = $sheet['account'] ?? [];
+                        $accountData['user_id'] = $user->id;
+
+                        if ($category === 'investment_holdings') {
+                            $account = InvestmentAccount::create($accountData);
+                        } else {
+                            $account = DCPension::create($accountData);
+                        }
+                    }
+
+                    if ($account && ! empty($sheet['holdings'])) {
+                        $holdingResults = $importService->applyHoldings($account, $sheet['holdings']);
+                        $results[] = [
+                            'sheet_name' => $sheet['sheet_name'],
+                            'category' => $category,
+                            'account_id' => $account->id,
+                            'account_type' => class_basename($account),
+                            'holdings' => $holdingResults,
+                        ];
+                    }
+                } elseif ($category === 'cash_savings') {
+                    $mapper = new FieldMappers\SavingsAccountMapper;
+                    $mapped = $mapper->map($sheet['account'] ?? []);
+                    $mapped['user_id'] = $user->id;
+                    $model = \App\Models\SavingsAccount::create($mapped);
+                    $results[] = [
+                        'sheet_name' => $sheet['sheet_name'],
+                        'category' => $category,
+                        'model_type' => 'SavingsAccount',
+                        'model_id' => $model->id,
+                    ];
+                } elseif ($category === 'property') {
+                    $mapper = new FieldMappers\PropertyMapper;
+                    foreach ($sheet['properties'] ?? [$sheet['account'] ?? []] as $propertyData) {
+                        $mapped = $mapper->map($propertyData);
+                        $mapped['user_id'] = $user->id;
+                        $model = \App\Models\Property::create($mapped);
+                        $results[] = [
+                            'sheet_name' => $sheet['sheet_name'],
+                            'category' => $category,
+                            'model_type' => 'Property',
+                            'model_id' => $model->id,
+                        ];
+                    }
+                } elseif ($category === 'protection') {
+                    $mapper = new ProtectionMapper;
+                    foreach ($sheet['policies'] ?? [$sheet['account'] ?? []] as $policyData) {
+                        $mapped = $mapper->map($policyData);
+                        $mapped['user_id'] = $user->id;
+                        $policyType = $mapped['policy_type'] ?? 'term';
+                        $modelClass = $mapper->getModelClassForType($policyType);
+                        $model = $modelClass::create($mapped);
+                        $results[] = [
+                            'sheet_name' => $sheet['sheet_name'],
+                            'category' => $category,
+                            'model_type' => class_basename($modelClass),
+                            'model_id' => $model->id,
+                        ];
+                    }
+                }
+            }
+
+            $document->update([
+                'status' => Document::STATUS_CONFIRMED,
+                'confirmed_at' => now(),
+            ]);
+
+            DocumentExtractionLog::log($document, $user, DocumentExtractionLog::ACTION_CONFIRMED, [
+                'import_type' => 'excel',
+                'sheets_processed' => count($results),
+            ]);
+
+            return [
+                'document' => $document->fresh(),
+                'results' => $results,
+            ];
+        });
+    }
+
+    /**
      * Get the appropriate mapper for a document.
      */
     private function getMapper(Document $document): ?FieldMapperInterface
@@ -265,11 +470,9 @@ class DocumentProcessor
             \App\Models\DBPension::class => new DBPensionMapper,
             \App\Models\LifeInsurancePolicy::class => new LifeInsuranceMapper,
             \App\Models\Investment\InvestmentAccount::class => new InvestmentAccountMapper,
-            // Additional mappers can be added here:
-            // \App\Models\CriticalIllnessPolicy::class => new CriticalIllnessMapper(),
-            // \App\Models\IncomeProtectionPolicy::class => new IncomeProtectionMapper(),
-            // \App\Models\SavingsAccount::class => new SavingsAccountMapper(),
-            // \App\Models\Mortgage::class => new MortgageMapper(),
+            \App\Models\Property::class => new FieldMappers\PropertyMapper,
+            \App\Models\SavingsAccount::class => new FieldMappers\SavingsAccountMapper,
+            \App\Models\Mortgage::class => new FieldMappers\MortgageMapper,
         ];
     }
 }
