@@ -22,6 +22,10 @@ class DocumentUploadService
         'image/jpeg',
         'image/png',
         'image/webp',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'text/csv',
+        'application/csv',
     ];
 
     /**
@@ -149,7 +153,7 @@ class DocumentUploadService
         // Check MIME type
         if (! in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
             throw new InvalidArgumentException(
-                'Invalid file type. Allowed types: PDF, JPEG, PNG, WebP'
+                'Invalid file type. Allowed types: PDF, JPEG, PNG, WebP, Excel, CSV'
             );
         }
 
@@ -178,6 +182,9 @@ class DocumentUploadService
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'application/vnd.ms-excel' => 'xls',
+            'text/csv', 'application/csv' => 'csv',
             default => 'bin',
         };
     }

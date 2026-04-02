@@ -255,7 +255,7 @@ class DocumentProcessor
     public function processExcel(UploadedFile $file, User $user): array
     {
         return DB::transaction(function () use ($file, $user) {
-            $document = $this->uploadService->upload($file, $user, 'holdings_import');
+            $document = $this->uploadService->upload($file, $user, Document::TYPE_UNKNOWN);
             $document->update(['status' => Document::STATUS_PROCESSING]);
 
             $excelParser = app(ExcelParserService::class);
@@ -279,6 +279,7 @@ class DocumentProcessor
                         'document_id' => $document->id,
                         'extraction_version' => 1,
                         'model_used' => config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning'),
+                        'raw_response' => json_encode($extracted),
                         'extracted_fields' => $extracted,
                         'field_confidence' => $extracted['confidence'] ?? [],
                         'warnings' => $extracted['warnings'] ?? [],
