@@ -66,15 +66,6 @@
               </div>
             </div>
           </div>
-          <!-- Skip to Dashboard -->
-          <div class="mt-5 pt-4 border-t border-light-gray text-center text-sm text-neutral-500">
-            Alternatively, you can skip and go straight to
-            <button
-              type="button"
-              class="text-raspberry-500 hover:text-raspberry-700 underline font-medium transition-colors"
-              @click="showSkipToDashboardModal = true"
-            >your dashboard</button>.
-          </div>
         </div>
       </div>
 
@@ -82,67 +73,73 @@
       <div class="max-w-6xl mx-auto">
         <div class="bg-white rounded-xl shadow-sm border border-light-gray overflow-hidden">
           <div class="flex flex-col lg:flex-row">
-            <!-- Left: Form -->
-            <div class="flex-1 min-w-0 p-6 sm:p-8" @focusin="handleFormFieldFocus">
-              <component
-                v-if="lifeStageCurrentComponent"
-                :is="lifeStageCurrentComponent"
-                :key="lifeStageCurrentStepId"
-                :context="'onboarding'"
-                :saved-data="savedStepData[lifeStageCurrentStepId] || null"
-                @save="handleLifeStageStepSave"
-                @next="handleLifeStageNext"
-                @back="handleLifeStageBack"
-                @skip="handleLifeStageSkip"
-                @close="handleLifeStageNext"
-                @sidebar-update="sidebarOverride = $event"
-              />
-              <div v-else class="py-12 text-center">
-                <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="text-sm text-neutral-500">Loading step...</p>
+            <!-- Left: Form + Navigation -->
+            <div class="flex-1 min-w-0 flex flex-col">
+              <div class="flex-1 p-6 sm:p-8" @focusin="handleFormFieldFocus">
+                <component
+                  ref="currentStepRef"
+                  v-if="lifeStageCurrentComponent"
+                  :is="lifeStageCurrentComponent"
+                  :key="lifeStageCurrentStepId"
+                  :context="'onboarding'"
+                  :saved-data="savedStepData[lifeStageCurrentStepId] || null"
+                  @save="handleLifeStageStepSave"
+                  @next="handleLifeStageNext"
+                  @back="handleLifeStageBack"
+                  @skip="handleLifeStageSkip"
+                  @close="handleLifeStageNext"
+                  @sidebar-update="sidebarOverride = $event"
+                />
+                <div v-else class="py-12 text-center">
+                  <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto mb-4"></div>
+                  <p class="text-sm text-neutral-500">Loading step...</p>
+                </div>
+              </div>
+
+              <!-- Navigation Buttons (inside white section) -->
+              <div class="flex items-center justify-between px-6 sm:px-8 py-5 border-t border-light-gray">
+                <button
+                  type="button"
+                  class="inline-flex items-center h-10 px-5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
+                  @click="lifeStageCurrentIndex > 0 ? handleLifeStageBack() : showStageMap = true"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back
+                </button>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center h-10 px-6 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors gap-1.5"
+                  @click="triggerStepContinue"
+                >
+                  Continue
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            <!-- Right: Sidebar (inside card, light pink) -->
-            <div class="w-full lg:w-[320px] flex-shrink-0 bg-light-pink-100 border-t lg:border-t-0 lg:border-l border-light-gray p-6">
-              <LearningMilestoneSidebar
-                :step="lifeStageCurrentStepId"
-                :stage="currentLifeStage"
-                :override="sidebarOverride"
-              />
-            </div>
-          </div>
-
-          <!-- Navigation Buttons -->
-          <div class="flex items-center justify-between px-6 sm:px-8 py-5 border-t border-light-gray">
-            <button
-              type="button"
-              class="inline-flex items-center h-10 px-5 bg-light-pink-100 hover:bg-[#FFE0E6] text-horizon-500 rounded-lg font-bold text-sm transition-colors gap-1.5"
-              @click="lifeStageCurrentIndex > 0 ? handleLifeStageBack() : showStageMap = true"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
-
-            <div class="flex items-center gap-3">
-              <router-link
-                to="/dashboard"
-                class="text-sm text-neutral-500 hover:text-horizon-500 underline transition-colors"
-              >
-                Skip to dashboard
-              </router-link>
-              <button
-                type="button"
-                class="inline-flex items-center h-10 px-6 text-sm font-bold rounded-lg text-white bg-raspberry-500 hover:bg-raspberry-600 transition-colors gap-1.5"
-                @click="handleLifeStageNext"
-              >
-                Continue
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+            <!-- Right: Sidebar (inside card, light pink, extends to bottom) -->
+            <div class="w-full lg:w-[320px] flex-shrink-0 bg-light-pink-100 border-t lg:border-t-0 lg:border-l border-light-gray flex flex-col">
+              <div class="flex-1 p-6">
+                <LearningMilestoneSidebar
+                  :step="lifeStageCurrentStepId"
+                  :stage="currentLifeStage"
+                  :override="sidebarOverride"
+                />
+              </div>
+              <!-- Skip to dashboard (bottom of pink sidebar) -->
+              <div class="px-6 pb-6 pt-2 text-center">
+                <router-link
+                  to="/dashboard"
+                  class="text-sm text-neutral-500 hover:text-horizon-500 underline transition-colors"
+                >
+                  Skip to dashboard
+                </router-link>
+              </div>
             </div>
           </div>
         </div>
@@ -337,6 +334,34 @@
       @continue="showSkipToDashboardModal = false"
       @skip-to-dashboard="handleSkipToDashboard"
     />
+
+    <!-- Journey Change Confirmation Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div v-if="showJourneyChangeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/50" @click="showJourneyChangeModal = false"></div>
+          <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 z-10">
+            <div class="flex items-start gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-horizon-500">Change journey?</h3>
+                <p class="text-sm text-neutral-500 mt-1">
+                  You will lose any data saved in your existing <strong>{{ currentLifeStageLabel }}</strong> journey. Would you like to continue?
+                </p>
+              </div>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-horizon-500 transition-colors" @click="showJourneyChangeModal = false">No</button>
+              <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-raspberry-500 hover:bg-raspberry-600 rounded-button transition-colors" @click="confirmJourneyChange">Yes</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
     </div>
   </div>
 </template>
@@ -486,6 +511,8 @@ export default {
     const skipReason = ref('');
     const pendingSkipStep = ref(null);
     const showSkipToDashboardModal = ref(false);
+    const showJourneyChangeModal = ref(false);
+    const pendingNewStageId = ref(null);
     const showJourneyCompletion = ref(false);
     const showJourneyMapModal = ref(false);
     const selectedStageId = ref(null);
@@ -495,6 +522,10 @@ export default {
     // LIFE STAGE MODE
     // ================================================================
     const currentLifeStage = computed(() => store.getters['lifeStage/currentStage']);
+    const currentLifeStageLabel = computed(() => {
+      const stage = currentLifeStage.value;
+      return stage && LIFE_STAGES[stage] ? LIFE_STAGES[stage].label : 'current';
+    });
     // Track whether the user has actively started their journey in this session
     // If they navigate to /onboarding/welcome, show stage picker first even if they have a stage
     const lifeStageStarted = ref(false);
@@ -513,6 +544,7 @@ export default {
     // Cache form data emitted by steps so back navigation can restore it
     const savedStepData = ref({});
     const sidebarOverride = ref(null);
+    const currentStepRef = ref(null);
 
     const lifeStageCurrentStepId = computed(() => {
       return lifeStageSteps.value[lifeStageCurrentIndex.value] || null;
@@ -726,6 +758,19 @@ export default {
       }, 15);
     };
 
+    const triggerStepContinue = () => {
+      // Delegate to the step component's own handleNext (which saves data then emits 'next')
+      const stepComponent = currentStepRef.value;
+      if (stepComponent?.handleNext) {
+        stepComponent.handleNext();
+      } else if (stepComponent?.onNext) {
+        stepComponent.onNext();
+      } else {
+        // Fallback: step has no exposed handleNext, just advance
+        handleLifeStageNext();
+      }
+    };
+
     const handleLifeStageNext = async (formData) => {
       const currentStepId = lifeStageCurrentStepId.value;
 
@@ -750,6 +795,14 @@ export default {
 
       const nextIndex = lifeStageCurrentIndex.value + 1;
       if (nextIndex >= lifeStageSteps.value.length) {
+        // GA4 onboarding complete
+        if (typeof gtag === 'function') {
+          gtag('event', 'onboarding_complete', {
+            life_stage: currentLifeStage.value,
+            steps_completed: lifeStageSteps.value.length,
+          });
+        }
+
         // Onboarding complete — refresh net worth cache then go to dashboard
         await store.dispatch('auth/fetchUser', null, { root: true });
         try {
@@ -763,6 +816,17 @@ export default {
 
       sidebarOverride.value = null;
       lifeStageCurrentIndex.value = nextIndex;
+
+      // GA4 onboarding journey tracking
+      const nextStepId = lifeStageSteps.value[nextIndex];
+      if (typeof gtag === 'function' && nextStepId) {
+        gtag('event', 'onboarding_step', {
+          step_name: nextStepId,
+          step_number: nextIndex + 1,
+          total_steps: lifeStageSteps.value.length,
+          life_stage: currentLifeStage.value,
+        });
+      }
     };
 
     const handleLifeStageBack = () => {
@@ -876,6 +940,30 @@ export default {
 
     // Handle start from the inline stage map (shown via ?stage= query param)
     const handleStageMapStart = async (stageId) => {
+      // If changing to a different journey and data has been entered, prompt user
+      const existingStage = currentLifeStage.value;
+      const hasData = existingStage && existingStage !== stageId && (
+        Object.keys(savedStepData.value).length > 0 || lifeStageCurrentIndex.value > 0
+      );
+
+      if (hasData) {
+        pendingNewStageId.value = stageId;
+        showJourneyChangeModal.value = true;
+        return;
+      }
+
+      await executeJourneyChange(stageId);
+    };
+
+    const confirmJourneyChange = async () => {
+      showJourneyChangeModal.value = false;
+      if (pendingNewStageId.value) {
+        await executeJourneyChange(pendingNewStageId.value);
+        pendingNewStageId.value = null;
+      }
+    };
+
+    const executeJourneyChange = async (stageId) => {
       showStageMap.value = false;
       // Reset state for new journey
       savedStepData.value = {};
@@ -1403,6 +1491,8 @@ export default {
       lifeStageCurrentComponent,
       savedStepData,
       sidebarOverride,
+      currentStepRef,
+      triggerStepContinue,
       currentStepResources,
       currentDidYouKnow,
       handleFormFieldFocus,
@@ -1446,6 +1536,9 @@ export default {
       showSkipModal,
       skipReason,
       showSkipToDashboardModal,
+      showJourneyChangeModal,
+      currentLifeStageLabel,
+      confirmJourneyChange,
       showJourneyCompletion,
       isCompletionStep,
       isQuickMode,

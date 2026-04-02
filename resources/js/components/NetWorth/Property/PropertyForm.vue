@@ -29,27 +29,27 @@
               class="flex-1 flex flex-col items-center relative"
             >
               <div
-                class="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all cursor-pointer hover:opacity-80"
+                class="w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer hover:opacity-80"
                 :class="
                   currentStep === index + 1
-                    ? 'bg-raspberry-500 border-violet-600 text-white'
+                    ? 'bg-horizon-500 text-white'
                     : (isEditMode || currentStep > index + 1)
-                    ? 'bg-spring-600 border-spring-600 text-white'
-                    : 'bg-white border-horizon-300 text-horizon-400'
+                    ? 'bg-horizon-500 text-white'
+                    : 'bg-light-blue-200 text-horizon-500'
                 "
                 @click="goToStep(index + 1)"
                 :title="'Go to ' + step"
               >
                 {{ index + 1 }}
               </div>
-              <span class="text-xs mt-1 text-center px-1" :class="currentStep === index + 1 ? 'text-violet-600 font-semibold' : 'text-neutral-500'">
+              <span class="text-xs mt-1 text-center px-1 cursor-pointer hover:opacity-80" :class="currentStep === index + 1 ? 'text-horizon-500 font-semibold' : 'text-neutral-500'" @click="goToStep(index + 1)">
                 {{ step }}
               </span>
               <div
                 v-if="index < activeSteps.length - 1"
                 class="absolute h-0.5 top-5 left-1/2 -z-10"
                 :style="{ width: 'calc(100% - 2.5rem)' }"
-                :class="(isEditMode || currentStep > index + 1) ? 'bg-spring-600' : 'bg-horizon-300'"
+                :class="(isEditMode || currentStep > index + 1) ? 'bg-horizon-500' : 'bg-light-blue-300'"
               ></div>
             </div>
           </div>
@@ -222,6 +222,131 @@
               </div>
             </div>
 
+            <!-- Tenure & Ownership -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'tenure_type' }">
+                <label for="tenure_type_select" class="block text-sm font-medium text-horizon-500 mb-1">Tenure Type</label>
+                <select
+                  id="tenure_type_select"
+                  v-model="form.tenure_type"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
+                >
+                  <option value="">Select tenure type</option>
+                  <option value="freehold">Freehold</option>
+                  <option value="leasehold">Leasehold</option>
+                </select>
+              </div>
+
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_type' }">
+                <label for="ownership_type_select" class="block text-sm font-medium text-horizon-500 mb-1">Ownership Type</label>
+                <select
+                  id="ownership_type_select"
+                  v-model="form.ownership_type"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
+                >
+                  <option value="">Select ownership type</option>
+                  <option value="individual">Individual Owner</option>
+                  <option value="joint">Joint Tenancy</option>
+                  <option value="tenants_in_common">Tenants in Common</option>
+                  <option value="trust">Trust</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Leasehold Details (conditional) -->
+            <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-savannah-100 rounded-md space-y-4">
+              <p class="text-sm text-violet-800 font-medium">Leasehold Property Details</p>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'lease_expiry_date' }">
+                <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">Lease Expiry Date</label>
+                <input id="lease_expiry_date" v-model="form.lease_expiry_date" type="date" :min="today" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500" />
+              </div>
+              <div v-if="leaseRemainingYears !== null" class="space-y-1">
+                <p class="text-sm text-horizon-500">Remaining lease: <strong>{{ leaseRemainingYears }} years</strong></p>
+                <p v-if="leaseRemainingYears < 80" class="text-xs text-violet-600">Properties with less than 80 years remaining may be difficult to mortgage</p>
+                <p v-if="leaseRemainingYears < 60" class="text-xs text-raspberry-600">Properties with less than 60 years remaining may significantly lose value</p>
+              </div>
+            </div>
+
+            <!-- Joint Tenancy Details -->
+            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
+              <p class="text-sm text-violet-800 font-medium">Joint Tenancy Details</p>
+              <div class="bg-white p-3 rounded border border-violet-300">
+                <div class="flex justify-between items-center">
+                  <div><p class="text-sm font-medium text-horizon-500">Your Share</p><p class="text-2xl font-bold text-violet-600">50%</p></div>
+                  <div class="text-horizon-400"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div>
+                  <div class="text-right"><p class="text-sm font-medium text-horizon-500">Joint Owner's Share</p><p class="text-2xl font-bold text-violet-600">50%</p></div>
+                </div>
+                <p class="text-xs text-neutral-500 mt-2 text-center">Equal shares - Passes to survivor automatically</p>
+              </div>
+              <div>
+                <label for="joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">Joint Owner</label>
+                <select id="joint_owner_selection" v-model="jointOwnerSelection" @change="handleJointOwnerSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500">
+                  <option value="">Select joint owner</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
+                  <option value="other">Other (Enter Name)</option>
+                </select>
+              </div>
+              <div v-if="jointOwnerSelection === 'other'" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'joint_owner_name' }">
+                <label for="joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">Joint Owner Name</label>
+                <input id="joint_owner_name" v-model="form.joint_owner_name" type="text" placeholder="Enter joint owner's full name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500" />
+                <p class="text-xs text-neutral-500 mt-1">Note: This person doesn't have an account in the system. The property will only appear in your account.</p>
+              </div>
+            </div>
+
+            <!-- Tenants in Common Details -->
+            <div v-if="form.ownership_type === 'tenants_in_common'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
+              <p class="text-sm text-spring-800 font-medium">Tenants in Common Details</p>
+              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_percentage' }">
+                <label for="ownership_percentage" class="block text-sm font-medium text-horizon-500 mb-1">Your Ownership Share (%)</label>
+                <input id="ownership_percentage" v-model.number="form.ownership_percentage" type="number" min="1" max="99" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <p class="text-xs text-neutral-500 mt-1">Enter your percentage share. Shares can be unequal (e.g., 60/40, 70/30).</p>
+              </div>
+              <div class="bg-white p-3 rounded border border-spring-300">
+                <div class="flex justify-between items-center">
+                  <div><p class="text-sm font-medium text-horizon-500">Your Share</p><p class="text-2xl font-bold text-spring-600">{{ form.ownership_percentage || 0 }}%</p></div>
+                  <div class="text-horizon-400"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div>
+                  <div class="text-right"><p class="text-sm font-medium text-horizon-500">Co-Owner's Share</p><p class="text-2xl font-bold text-spring-600">{{ coOwnerPercentage }}%</p></div>
+                </div>
+                <p class="text-xs text-neutral-500 mt-2 text-center">Your share passes via your will or intestacy rules</p>
+              </div>
+              <div>
+                <label for="tenants_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">Co-Owner</label>
+                <select id="tenants_joint_owner_selection" v-model="jointOwnerSelection" @change="handleJointOwnerSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Select co-owner</option>
+                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
+                  <option value="other">Other (Enter Name)</option>
+                </select>
+              </div>
+              <div v-if="jointOwnerSelection === 'other'">
+                <label for="tenants_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">Co-Owner Name</label>
+                <input id="tenants_joint_owner_name" v-model="form.joint_owner_name" type="text" placeholder="Enter co-owner's full name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <p class="text-xs text-neutral-500 mt-1">Note: This person doesn't have an account in the system. The property will only appear in your account.</p>
+              </div>
+            </div>
+
+            <!-- Trust Details -->
+            <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
+              <p class="text-sm text-purple-800 font-medium">Trust Ownership Details</p>
+              <div class="p-3 bg-savannah-100 rounded-md">
+                <p class="text-sm text-violet-800">
+                  <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                  While it is technically possible to gift or transfer a % of property into Trust, this feature will be coming in the Trust's update.
+                </p>
+              </div>
+              <div>
+                <label for="trust_selection" class="block text-sm font-medium text-horizon-500 mb-1">Trust</label>
+                <select id="trust_selection" v-model="trustSelection" @change="handleTrustSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="">Select trust</option>
+                  <option value="other">Other (Enter Trust Name)</option>
+                </select>
+              </div>
+              <div v-if="trustSelection === 'other'">
+                <label for="trust_name" class="block text-sm font-medium text-horizon-500 mb-1">Trust Name</label>
+                <input id="trust_name" v-model="form.trust_name" type="text" placeholder="Enter trust name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                <p class="text-xs text-neutral-500 mt-1">Note: This trust is not formally registered in the system. You can add full trust details in the Estate Planning module.</p>
+              </div>
+            </div>
+
             <!-- Mortgage Checkbox -->
             <div :class="['mt-4 p-4 bg-spring-50 border border-spring-200 rounded-lg', { 'ai-fill-highlight': highlightedField === 'has_mortgage' }]">
               <label class="flex items-center cursor-pointer">
@@ -233,337 +358,6 @@
                 <span class="text-sm font-medium text-spring-800">This property has a mortgage</span>
               </label>
               <p class="text-xs text-spring-600 mt-1 ml-7">Check this if you want to add mortgage details</p>
-            </div>
-          </div>
-
-          <!-- Step 2: Ownership -->
-          <div v-show="currentStep === stepMapping[2]" class="space-y-4">
-            <h4 class="text-lg font-semibold text-horizon-500 mb-4">Ownership</h4>
-
-            <!-- Tenure Type -->
-            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'tenure_type' }">
-              <label class="block text-sm font-medium text-horizon-500 mb-2">Tenure Type</label>
-              <div class="space-y-2">
-                <label class="flex items-center">
-                  <input
-                    type="radio"
-                    v-model="form.tenure_type"
-                    value="freehold"
-                    class="mr-2"
-                  />
-                  <span>Freehold</span>
-                </label>
-                <label class="flex items-center">
-                  <input
-                    type="radio"
-                    v-model="form.tenure_type"
-                    value="leasehold"
-                    class="mr-2"
-                  />
-                  <span>Leasehold</span>
-                </label>
-              </div>
-              <p class="text-xs text-neutral-500 mt-1">
-                Note: UK government is phasing out leasehold for new builds. Ground rent eliminated for new leases from 2022.
-              </p>
-            </div>
-
-            <!-- Leasehold Details (conditional) -->
-            <div v-if="form.tenure_type === 'leasehold'" class="p-4 bg-savannah-100 rounded-md space-y-4">
-              <p class="text-sm text-violet-800 font-medium">Leasehold Property Details</p>
-
-              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'lease_expiry_date' }">
-                <label for="lease_expiry_date" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Lease Expiry Date
-                </label>
-                <input
-                  id="lease_expiry_date"
-                  v-model="form.lease_expiry_date"
-                  type="date"
-                  :min="today"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                />
-              </div>
-
-              <div v-if="leaseRemainingYears !== null" class="space-y-1">
-                <p class="text-sm text-horizon-500">
-                  Remaining lease: <strong>{{ leaseRemainingYears }} years</strong>
-                </p>
-                <p v-if="leaseRemainingYears < 80" class="text-xs text-violet-600">
-                  Properties with less than 80 years remaining may be difficult to mortgage
-                </p>
-                <p v-if="leaseRemainingYears < 60" class="text-xs text-raspberry-600">
-                  Properties with less than 60 years remaining may significantly lose value
-                </p>
-              </div>
-            </div>
-
-            <!-- Ownership Type -->
-            <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_type' }">
-              <label class="block text-sm font-medium text-horizon-500 mb-2">Ownership Type</label>
-              <div class="space-y-2">
-                <label class="flex items-start">
-                  <input
-                    type="radio"
-                    v-model="form.ownership_type"
-                    value="individual"
-                    class="mr-2 mt-0.5"
-                  />
-                  <div>
-                    <span class="font-medium">Individual Owner</span>
-                    <p class="text-xs text-neutral-500">You own 100% of the property</p>
-                  </div>
-                </label>
-                <label class="flex items-start">
-                  <input
-                    type="radio"
-                    v-model="form.ownership_type"
-                    value="joint"
-                    class="mr-2 mt-0.5"
-                  />
-                  <div>
-                    <span class="font-medium">Joint Tenancy</span>
-                    <p class="text-xs text-neutral-500">Equal rights to whole property. Passes automatically to survivor (bypasses will).</p>
-                  </div>
-                </label>
-                <label class="flex items-start">
-                  <input
-                    type="radio"
-                    v-model="form.ownership_type"
-                    value="tenants_in_common"
-                    class="mr-2 mt-0.5"
-                  />
-                  <div>
-                    <span class="font-medium">Tenants in Common</span>
-                    <p class="text-xs text-neutral-500">Specified shares (may be unequal). Your share passes via your will.</p>
-                  </div>
-                </label>
-                <label class="flex items-start">
-                  <input
-                    type="radio"
-                    v-model="form.ownership_type"
-                    value="trust"
-                    class="mr-2 mt-0.5"
-                  />
-                  <div>
-                    <span class="font-medium">Trust</span>
-                    <p class="text-xs text-neutral-500">Property held in trust</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <!-- Joint Tenancy Details -->
-            <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
-              <p class="text-sm text-violet-800 font-medium">Joint Tenancy Details</p>
-
-              <!-- Ownership Split Display -->
-              <div class="bg-white p-3 rounded border border-violet-300">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
-                    <p class="text-2xl font-bold text-violet-600">50%</p>
-                  </div>
-                  <div class="text-horizon-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-sm font-medium text-horizon-500">Joint Owner's Share</p>
-                    <p class="text-2xl font-bold text-violet-600">50%</p>
-                  </div>
-                </div>
-                <p class="text-xs text-neutral-500 mt-2 text-center">Equal shares - Passes to survivor automatically</p>
-              </div>
-
-              <!-- Joint Owner Selection -->
-              <div>
-                <label for="joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Joint Owner
-                </label>
-                <select
-                  id="joint_owner_selection"
-                  v-model="jointOwnerSelection"
-                  @change="handleJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                >
-                  <option value="">Select joint owner</option>
-                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
-                  <option value="other">Other (Enter Name)</option>
-                </select>
-              </div>
-
-              <!-- Free Text Joint Owner Name -->
-              <div v-if="jointOwnerSelection === 'other'" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'joint_owner_name' }">
-                <label for="joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Joint Owner Name
-                </label>
-                <input
-                  id="joint_owner_name"
-                  v-model="form.joint_owner_name"
-                  type="text"
-                  placeholder="Enter joint owner's full name"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-raspberry-500"
-                />
-                <p class="text-xs text-neutral-500 mt-1">
-                  Note: This person doesn't have an account in the system. The property will only appear in your account.
-                </p>
-              </div>
-
-              <p class="text-xs text-neutral-500">
-                Joint assets with linked accounts will appear in both owners' accounts with respective ownership percentages.
-              </p>
-            </div>
-
-            <!-- Tenants in Common Details -->
-            <div v-if="form.ownership_type === 'tenants_in_common'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
-              <p class="text-sm text-spring-800 font-medium">Tenants in Common Details</p>
-
-              <!-- Ownership Percentage Input -->
-              <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_percentage' }">
-                <label for="ownership_percentage" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Your Ownership Share (%)
-                </label>
-                <input
-                  id="ownership_percentage"
-                  v-model.number="form.ownership_percentage"
-                  type="number"
-                  min="1"
-                  max="99"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <p class="text-xs text-neutral-500 mt-1">
-                  Enter your percentage share. Shares can be unequal (e.g., 60/40, 70/30).
-                </p>
-              </div>
-
-              <!-- Ownership Split Display -->
-              <div class="bg-white p-3 rounded border border-spring-300">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
-                    <p class="text-2xl font-bold text-spring-600">{{ form.ownership_percentage || 0 }}%</p>
-                  </div>
-                  <div class="text-horizon-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-sm font-medium text-horizon-500">Co-Owner's Share</p>
-                    <p class="text-2xl font-bold text-spring-600">{{ coOwnerPercentage }}%</p>
-                  </div>
-                </div>
-                <p class="text-xs text-neutral-500 mt-2 text-center">Your share passes via your will or intestacy rules</p>
-              </div>
-
-              <!-- Joint Owner Selection -->
-              <div>
-                <label for="tenants_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Co-Owner
-                </label>
-                <select
-                  id="tenants_joint_owner_selection"
-                  v-model="jointOwnerSelection"
-                  @change="handleJointOwnerSelection"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">Select co-owner</option>
-                  <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
-                  <option value="other">Other (Enter Name)</option>
-                </select>
-              </div>
-
-              <!-- Free Text Joint Owner Name -->
-              <div v-if="jointOwnerSelection === 'other'">
-                <label for="tenants_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Co-Owner Name
-                </label>
-                <input
-                  id="tenants_joint_owner_name"
-                  v-model="form.joint_owner_name"
-                  type="text"
-                  placeholder="Enter co-owner's full name"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-                <p class="text-xs text-neutral-500 mt-1">
-                  Note: This person doesn't have an account in the system. The property will only appear in your account.
-                </p>
-              </div>
-
-              <p class="text-xs text-neutral-500">
-                Joint assets with linked accounts will appear in both owners' accounts with respective ownership percentages.
-              </p>
-            </div>
-
-            <!-- Trust Details -->
-            <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
-              <p class="text-sm text-purple-800 font-medium">Trust Ownership Details</p>
-
-              <!-- Trust Feature Notice -->
-              <div class="p-3 bg-savannah-100 rounded-md">
-                <p class="text-sm text-violet-800">
-                  <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                  </svg>
-                  While it is technically possible to gift or transfer a % of property into Trust, this feature will be coming in the Trust's update.
-                </p>
-              </div>
-
-              <!-- Ownership Split Display -->
-              <div class="bg-white p-3 rounded border border-purple-300">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <p class="text-sm font-medium text-horizon-500">Your Share</p>
-                    <p class="text-2xl font-bold text-purple-600">0%</p>
-                  </div>
-                  <div class="text-horizon-400">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-sm font-medium text-horizon-500">Trust's Share</p>
-                    <p class="text-2xl font-bold text-purple-600">100%</p>
-                  </div>
-                </div>
-                <p class="text-xs text-neutral-500 mt-2 text-center">Property held entirely in trust</p>
-              </div>
-
-              <!-- Trust Selection -->
-              <div>
-                <label for="trust_selection" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Trust
-                </label>
-                <select
-                  id="trust_selection"
-                  v-model="trustSelection"
-                  @change="handleTrustSelection"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">Select trust</option>
-                  <option value="other">Other (Enter Trust Name)</option>
-                  <!-- Registered trusts would be loaded dynamically here -->
-                </select>
-              </div>
-
-              <!-- Free Text Trust Name -->
-              <div v-if="trustSelection === 'other'">
-                <label for="trust_name" class="block text-sm font-medium text-horizon-500 mb-1">
-                  Trust Name
-                </label>
-                <input
-                  id="trust_name"
-                  v-model="form.trust_name"
-                  type="text"
-                  placeholder="Enter trust name"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <p class="text-xs text-neutral-500 mt-1">
-                  Note: This trust is not formally registered in the system. You can add full trust details in the Estate Planning module.
-                </p>
-              </div>
             </div>
           </div>
 
@@ -1441,7 +1235,7 @@ export default {
 
     // Dynamic steps based on property type and mortgage selection
     activeSteps() {
-      const steps = ['Basic Info', 'Ownership'];
+      const steps = ['Basic Info'];
 
       // Add Mortgage step if user checked the mortgage checkbox
       if (this.hasMortgage) {
@@ -1471,8 +1265,8 @@ export default {
       // Step 1: Basic Info (always present)
       mapping[1] = logicalStep++;
 
-      // Step 2: Ownership (always present)
-      mapping[2] = logicalStep++;
+      // Step 2: (removed — ownership merged into Basic Info)
+      // Keep mapping[2] undefined so old v-show references don't match
 
       // Step 3: Mortgage (conditional)
       if (this.hasMortgage) {

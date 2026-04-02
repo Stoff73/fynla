@@ -13,7 +13,7 @@
     <div class="space-y-6">
       <div>
         <label class="label">
-          Have you created or do you benefit from any trusts?
+          Have you created or do you benefit from any trusts? <span class="q-icon" @click="emitWhyField($event,'has_trusts')" title="Why we ask this">?</span>
         </label>
         <div class="mt-2 space-y-2">
           <label class="inline-flex items-center">
@@ -39,7 +39,7 @@
 
       <div v-if="formData.has_trusts">
         <label for="trust_count" class="label">
-          Number of Trusts
+          Number of Trusts <span class="q-icon" @click="emitWhyField($event,'trust_count')" title="Why we ask this">?</span>
         </label>
         <input
           id="trust_count"
@@ -48,6 +48,7 @@
           min="0"
           class="input-field"
           placeholder="0"
+          @focus="emitWhyField($event,'trust_count')"
         >
       </div>
 
@@ -80,10 +81,48 @@ export default {
     UsefulResources,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
+
+    const WHY_FIELD_DATA = {
+      has_trusts: { whyWeAsk: 'Trusts affect your Inheritance Tax calculation through Potentially Exempt Transfers and Chargeable Lifetime Transfers.' },
+      trust_count: { whyWeAsk: 'The number of trusts helps us understand the complexity of your estate planning and identify relevant tax implications.' },
+    };
+
+    let lastEmittedField = null;
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      let fieldOffsetY = 0;
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
+    };
 
     const formData = ref({
       has_trusts: null,
@@ -133,6 +172,7 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      emitWhyField,
       STEP_RESOURCES,
     };
   },

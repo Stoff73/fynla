@@ -31,22 +31,22 @@
         <!-- Mobile: brain GIF + stacked caption cards (shown below lg) -->
         <div class="flex flex-col gap-3 mt-6 pb-6 lg:hidden">
           <!-- Brain GIF in its own box above caption cards -->
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm flex justify-center">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm flex justify-center">
             <img
-              src="/images/Website/Fyn-Brain-Animated-Short.gif"
+              src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif"
               alt="Fynla Brain animation"
               class="w-28 h-auto rounded-lg"
             />
           </div>
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial view.</p>
             <p class="text-sm text-neutral-500 leading-tight">Use Fynla to securely centralise and view all your financial data.</p>
           </div>
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial brain.</p>
             <p class="text-sm text-neutral-500 leading-tight">Our proprietary brain does the calculations so you don't have to.</p>
           </div>
-          <div class="bg-white/95 rounded-lg px-4 py-4 shadow-sm">
+          <div class="bg-white rounded-lg px-4 py-4 shadow-sm">
             <p class="text-lg font-bold text-horizon-500 mb-1">One financial voice.</p>
             <p class="text-sm text-neutral-500 leading-tight">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
@@ -78,7 +78,7 @@
             </div>
             <div class="flex-1 flex items-end justify-center overflow-hidden mt-1">
               <img
-                src="/images/Website/Fyn-Brain-Animated-Short.gif"
+                src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif"
                 alt="Fynla Brain"
                 class="w-auto max-w-full max-h-full object-contain object-bottom"
               />

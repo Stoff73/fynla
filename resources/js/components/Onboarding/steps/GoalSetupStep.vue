@@ -14,12 +14,13 @@
       <!-- Goal Type -->
       <div>
         <label for="goal_type" class="label">
-          What are you saving for?
+          What are you saving for? <span class="q-icon" @click="emitWhyField($event,'goal_type')" title="Why we ask this">?</span>
         </label>
         <select
           id="goal_type"
           v-model="formData.goal_type"
           class="input-field"
+          @focus="emitWhyField($event,'goal_type')"
         >
           <option value="">Select a goal type</option>
           <option value="emergency_fund">Emergency Fund</option>
@@ -36,7 +37,7 @@
       <!-- Goal Name (for "Other" type) -->
       <div v-if="formData.goal_type === 'custom'">
         <label for="goal_name" class="label">
-          Goal Name
+          Goal Name <span class="q-icon" @click="emitWhyField($event,'name')" title="Why we ask this">?</span>
         </label>
         <input
           id="goal_name"
@@ -44,13 +45,14 @@
           type="text"
           class="input-field"
           placeholder="e.g. New Kitchen"
+          @focus="emitWhyField($event,'name')"
         >
       </div>
 
       <!-- Target Amount -->
       <div v-if="formData.goal_type">
         <label for="target_amount" class="label">
-          Target Amount
+          Target Amount <span class="q-icon" @click="emitWhyField($event,'target_amount')" title="Why we ask this">?</span>
         </label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">&pound;</span>
@@ -62,6 +64,7 @@
             step="100"
             class="input-field pl-8"
             placeholder="10000"
+            @focus="emitWhyField($event,'target_amount')"
           >
         </div>
         <p v-if="formData.goal_type === 'emergency_fund'" class="mt-1 text-body-sm text-neutral-500">
@@ -72,7 +75,7 @@
       <!-- Target Date -->
       <div v-if="formData.goal_type">
         <label for="target_date" class="label">
-          Target Date
+          Target Date <span class="q-icon" @click="emitWhyField($event,'target_date')" title="Why we ask this">?</span>
         </label>
         <input
           id="target_date"
@@ -80,6 +83,7 @@
           type="date"
           class="input-field"
           :min="today"
+          @focus="emitWhyField($event,'target_date')"
         >
         <p class="mt-1 text-body-sm text-neutral-500">
           When would you like to reach this goal?
@@ -159,10 +163,50 @@ export default {
     context: { type: String, default: null },
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
+
+    const WHY_FIELD_DATA = {
+      goal_type: { whyWeAsk: 'Knowing what you are saving for helps us tailor strategies and suggest the best savings vehicles for your goal.' },
+      name: { whyWeAsk: 'A personalised goal name helps you track multiple goals and stay motivated.' },
+      target_amount: { whyWeAsk: 'Your target amount lets us calculate the monthly contributions needed and track your progress.' },
+      target_date: { whyWeAsk: 'A target date helps us calculate the required savings rate and suggest appropriate investment timelines.' },
+    };
+
+    let lastEmittedField = null;
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      let fieldOffsetY = 0;
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
+    };
 
     const formData = ref({
       goal_type: '',
@@ -281,6 +325,7 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      emitWhyField,
       formatCurrency,
       STEP_RESOURCES,
     };

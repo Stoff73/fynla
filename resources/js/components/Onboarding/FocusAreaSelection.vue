@@ -87,8 +87,8 @@
     <div v-else class="bg-white rounded-lg border border-light-gray shadow-sm overflow-hidden mb-6">
       <!-- Stage hero — horizon blue gradient, no icon -->
       <div class="px-8 py-6 bg-gradient-to-br from-horizon-500 to-horizon-600 text-white">
-        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-1 text-left">{{ selectedStageConfig.label }}</h2>
-        <p class="text-sm opacity-90 text-left">{{ selectedStageConfig.tagline }}</p>
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-1 text-left text-white">{{ selectedStageConfig.label }}</h2>
+        <p class="text-sm opacity-90 text-left text-white">{{ selectedStageConfig.tagline }}</p>
       </div>
 
       <!-- Steps info — centred, larger -->

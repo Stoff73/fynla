@@ -11,10 +11,6 @@
     @skip="handleSkip"
   >
     <div class="space-y-6">
-      <p class="text-body-sm text-neutral-500 bg-eggshell-500 p-3 rounded-lg">
-        This information helps us understand your family structure for estate planning and protection needs analysis.
-      </p>
-
       <!-- Success Message -->
       <div v-if="successMessage" class="bg-spring-50 border border-spring-200 rounded-lg p-4">
         <div class="flex">
@@ -91,7 +87,7 @@
       <button
         v-if="!showModal"
         type="button"
-        class="btn-secondary w-full md:w-auto"
+        class="inline-flex items-center px-5 py-2.5 bg-horizon-500 hover:bg-horizon-600 text-white text-sm font-medium rounded-lg transition-colors w-full md:w-auto justify-center"
         @click="showAddModal"
       >
         + Add Family Member
@@ -142,7 +138,7 @@ export default {
     SpouseSuccessModal,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();

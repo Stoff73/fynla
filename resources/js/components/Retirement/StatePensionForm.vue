@@ -149,18 +149,21 @@
         <div class="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-light-gray">
           <p v-if="validationError" class="text-sm text-raspberry-500 mt-2 mr-auto">{{ validationError }}</p>
           <button
-            v-if="context !== 'onboarding'"
             type="button"
             @click="$emit('close')"
-            class="px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors duration-200"
+            :class="context === 'onboarding'
+              ? 'px-4 py-2 bg-light-pink-100 hover:bg-light-pink-200 text-horizon-500 rounded-lg transition-colors duration-200 text-sm font-medium'
+              : 'px-4 py-2 text-neutral-500 bg-white border border-horizon-300 rounded-lg hover:bg-savannah-100 transition-colors duration-200'"
           >
             Cancel
           </button>
           <button
             type="submit"
-            class="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors duration-200"
+            :class="context === 'onboarding'
+              ? 'px-6 py-2 bg-raspberry-500 text-white rounded-lg hover:bg-raspberry-600 transition-colors duration-200 text-sm font-medium'
+              : 'px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors duration-200'"
           >
-            {{ isEdit ? 'Update' : 'Save' }} State Pension
+            {{ context === 'onboarding' ? 'Save' : (isEdit ? 'Update' : 'Save') + ' State Pension' }}
           </button>
         </div>
       </form>

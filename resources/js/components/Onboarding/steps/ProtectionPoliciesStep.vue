@@ -96,11 +96,11 @@
         </div>
       </div>
 
-      <!-- Add Policy Buttons -->
-      <div v-if="!hasNoPolicies" class="flex flex-wrap gap-3">
+      <!-- Add Policy Buttons (hidden when form is open) -->
+      <div v-if="!hasNoPolicies && !showForm" class="flex flex-wrap gap-3">
         <button
           type="button"
-          class="btn-secondary"
+          class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
           @click="showForm = true"
         >
           + Add Protection Policy
@@ -108,7 +108,7 @@
         <button
           v-preview-disabled="'upload'"
           type="button"
-          class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
+          class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
           @click="showUploadModal = true"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,21 +118,18 @@
         </button>
       </div>
 
-      <p v-if="policies.length === 0 && !hasNoPolicies" class="text-body-sm text-neutral-500 italic">
-        You can skip this step and add protection policies later from your dashboard.
-      </p>
-
       <p v-if="hasNoPolicies" class="text-body-sm text-spring-700 bg-spring-50 p-3 rounded-lg">
         You've indicated you have no protection policies. The Protection module will help you understand your protection needs and recommend suitable coverage.
       </p>
 
     </div>
 
-    <!-- Policy Form Modal -->
+    <!-- Policy Form (inline) -->
     <PolicyFormModal
       v-if="showForm"
       :policy="editingPolicy"
       :is-editing="!!editingPolicy"
+      context="onboarding"
       @close="closeForm"
       @save="handlePolicySaved"
     />
@@ -169,7 +166,7 @@ export default {
     DocumentUploadModal,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const policies = ref([]);

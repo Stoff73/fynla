@@ -14,12 +14,13 @@
       <!-- Student Loan Plan Type -->
       <div>
         <label for="plan_type" class="label">
-          Repayment Plan
+          Repayment Plan <span class="q-icon" @click="emitWhyField($event,'plan_type')" title="Why we ask this">?</span>
         </label>
         <select
           id="plan_type"
           v-model="planType"
           class="input-field"
+          @focus="emitWhyField($event,'plan_type')"
         >
           <option value="">Select your plan...</option>
           <option value="plan_1">Plan 1 (started before September 2012)</option>
@@ -39,7 +40,7 @@
       <!-- Outstanding Balance -->
       <div>
         <label for="balance" class="label">
-          Outstanding Balance
+          Outstanding Balance <span class="q-icon" @click="emitWhyField($event,'balance')" title="Why we ask this">?</span>
         </label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">&pound;</span>
@@ -51,6 +52,7 @@
             step="100"
             class="input-field pl-8"
             placeholder="42,000"
+            @focus="emitWhyField($event,'balance')"
           >
         </div>
       </div>
@@ -58,7 +60,7 @@
       <!-- Interest Rate -->
       <div>
         <label for="interest_rate" class="label">
-          Interest Rate (% per year)
+          Interest Rate (% per year) <span class="q-icon" @click="emitWhyField($event,'interest_rate')" title="Why we ask this">?</span>
         </label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">%</span>
@@ -71,6 +73,7 @@
             step="0.1"
             class="input-field pl-8"
             :placeholder="defaultInterestRate || '7.3'"
+            @focus="emitWhyField($event,'interest_rate')"
           >
         </div>
         <p v-if="planType" class="mt-1 text-body-sm text-neutral-500">
@@ -81,7 +84,7 @@
       <!-- Monthly Payment (optional) -->
       <div>
         <label for="monthly_payment" class="label">
-          Monthly Repayment (if known)
+          Monthly Repayment (if known) <span class="q-icon" @click="emitWhyField($event,'monthly_payment')" title="Why we ask this">?</span>
         </label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-500">&pound;</span>
@@ -93,6 +96,7 @@
             step="10"
             class="input-field pl-8"
             placeholder="0"
+            @focus="emitWhyField($event,'monthly_payment')"
           >
         </div>
         <p class="mt-1 text-body-sm text-neutral-500">
@@ -141,7 +145,7 @@ export default {
     context: { type: String, default: null },
   },
 
-  emits: ['next', 'back', 'skip', 'save'],
+  emits: ['next', 'back', 'skip', 'save', 'sidebar-update'],
 
   setup(props, { emit }) {
     const planType = ref('');
@@ -150,6 +154,46 @@ export default {
     const monthlyPayment = ref(null);
     const loading = ref(false);
     const error = ref(null);
+
+    const WHY_FIELD_DATA = {
+      plan_type: { whyWeAsk: 'Your repayment plan type determines the repayment threshold and interest rate applied to your student loan.' },
+      balance: { whyWeAsk: 'Your outstanding balance helps us include student loan repayments in your overall financial picture and net worth.' },
+      interest_rate: { whyWeAsk: 'The interest rate affects how quickly your balance grows and your total repayment cost over time.' },
+      monthly_payment: { whyWeAsk: 'Your monthly repayment amount helps us calculate your disposable income and forecast when the loan will be cleared.' },
+    };
+
+    let lastEmittedField = null;
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      let fieldOffsetY = 0;
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
+    };
 
     // Restore form data from cached step data (back navigation)
     if (props.savedData) {
@@ -233,6 +277,7 @@ export default {
       handleNext,
       handleBack,
       handleSkip,
+      emitWhyField,
       formatCurrency,
       LINKS,
       STEP_RESOURCES,

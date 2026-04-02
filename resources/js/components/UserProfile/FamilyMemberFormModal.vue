@@ -228,14 +228,23 @@
             </div>
 
             <!-- Action Buttons -->
-            <div :class="context === 'onboarding' ? 'mt-5 flex justify-end' : 'mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense'">
+            <div :class="context === 'onboarding' ? 'mt-5 flex items-center justify-center gap-3' : 'mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense'">
+              <button
+                v-if="context === 'onboarding'"
+                type="button"
+                @click="handleClose"
+                :disabled="submitting"
+                class="inline-flex items-center px-5 py-2.5 bg-light-pink-100 hover:bg-light-pink-200 text-horizon-500 text-sm font-medium rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 :disabled="submitting"
-                :class="context === 'onboarding' ? 'btn-primary' : 'btn-primary w-full sm:col-start-2'"
+                :class="context === 'onboarding' ? 'inline-flex items-center px-5 py-2.5 bg-raspberry-500 hover:bg-raspberry-600 text-white text-sm font-medium rounded-lg transition-colors' : 'btn-primary w-full sm:col-start-2'"
               >
-                <span v-if="!submitting">{{ isEditing ? 'Update' : 'Add' }} Family Member</span>
-                <span v-else>{{ isEditing ? 'Updating...' : 'Adding...' }}</span>
+                <span v-if="!submitting">{{ context === 'onboarding' ? 'Save' : (isEditing ? 'Update' : 'Add') + ' Family Member' }}</span>
+                <span v-else>{{ isEditing ? 'Updating...' : 'Saving...' }}</span>
               </button>
               <button
                 v-if="context !== 'onboarding'"

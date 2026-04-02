@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
+  <div :class="context === 'onboarding' ? '' : 'bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto'">
     <div class="mb-6 pb-4 border-b-2 border-light-gray">
       <h3 class="text-xl font-semibold text-horizon-500 mb-2">{{ isEditMode ? 'Edit Liability' : 'Add New Liability' }}</h3>
       <p class="text-sm text-neutral-500">Track debts and liabilities for estate planning and net worth calculation</p>
@@ -230,13 +230,25 @@
 
       <!-- Form Actions -->
       <div class="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-light-gray">
-        <button v-if="context !== 'onboarding'" type="button" class="border border-light-gray text-horizon-500 px-4 py-2 rounded-button font-semibold hover:bg-savannah-100 transition-colors inline-flex items-center gap-2" @click="handleCancel">
+        <button
+          type="button"
+          @click="handleCancel"
+          :class="context === 'onboarding'
+            ? 'px-4 py-2 bg-light-pink-100 hover:bg-light-pink-200 text-horizon-500 rounded-lg transition-colors text-sm font-medium'
+            : 'border border-light-gray text-horizon-500 px-4 py-2 rounded-button font-semibold hover:bg-savannah-100 transition-colors inline-flex items-center gap-2'"
+        >
           Cancel
         </button>
-        <button type="submit" class="bg-raspberry-500 text-white px-4 py-2 rounded-button font-semibold hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2" :disabled="isSubmitting">
-          <i v-if="!isSubmitting" class="fas fa-save"></i>
-          <i v-else class="fas fa-spinner fa-spin"></i>
-          {{ isSubmitting ? 'Saving...' : (isEditMode ? 'Update Liability' : 'Add Liability') }}
+        <button
+          type="submit"
+          :disabled="isSubmitting"
+          :class="context === 'onboarding'
+            ? 'px-6 py-2 bg-raspberry-500 text-white rounded-lg hover:bg-raspberry-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+            : 'bg-raspberry-500 text-white px-4 py-2 rounded-button font-semibold hover:bg-raspberry-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2'"
+        >
+          <i v-if="!isSubmitting && context !== 'onboarding'" class="fas fa-save"></i>
+          <i v-if="isSubmitting && context !== 'onboarding'" class="fas fa-spinner fa-spin"></i>
+          {{ isSubmitting ? 'Saving...' : (context === 'onboarding' ? 'Save' : (isEditMode ? 'Update Liability' : 'Add Liability')) }}
         </button>
       </div>
     </form>

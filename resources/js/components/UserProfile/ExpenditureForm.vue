@@ -345,14 +345,14 @@
 
     <!-- EDIT MODE -->
     <div v-else>
-      <!-- Notes Section -->
-      <div class="bg-violet-50 border border-violet-200 rounded-lg p-4">
+      <!-- Notes Section (hidden in onboarding — info is in sidebar) -->
+      <div v-if="!isOnboarding" class="bg-violet-50 border border-violet-200 rounded-lg p-4">
         <p class="text-body-sm text-violet-800">
           <strong>Why this matters:</strong> Understanding your expenditure helps us calculate your emergency fund needs, discretionary income, and protection requirements.
         </p>
       </div>
 
-      <div class="bg-spring-50 border border-spring-200 rounded-lg p-4 mt-4">
+      <div class="bg-spring-50 border border-spring-200 rounded-lg p-4" :class="{ 'mt-4': !isOnboarding }">
         <p class="text-body-sm text-spring-800">
           <strong>Note:</strong> Household expenditure such as Council Tax, utilities, and maintenance are entered in the Properties tab. Car loans/repayments, other loans, credit cards, and hire purchase are entered in the Liabilities section.
         </p>
@@ -396,36 +396,32 @@
 
         <!-- Entry Mode Toggle -->
         <div class="bg-white border border-light-gray rounded-lg p-4 flex-1">
-          <span class="text-body font-medium text-horizon-500 block mb-3">Entry Method</span>
-          <div class="inline-flex rounded-lg border border-light-gray p-1 bg-white">
-            <button
-              type="button"
-              @click="useSimpleEntry = false"
-              :class="[
-                'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
-                !useSimpleEntry
-                  ? 'bg-raspberry-500 text-white'
-                  : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
-              ]"
-            >
-              Detailed
-            </button>
+          <div class="inline-flex rounded-full border border-neutral-300 p-0.5 bg-neutral-100">
             <button
               type="button"
               @click="useSimpleEntry = true"
               :class="[
-                'px-4 py-2 text-body-sm font-medium rounded-md transition-all duration-200',
+                'px-5 py-2 text-body-sm font-medium rounded-full transition-all duration-200',
                 useSimpleEntry
-                  ? 'bg-raspberry-500 text-white'
-                  : 'text-neutral-500 hover:text-horizon-500 hover:bg-savannah-100'
+                  ? 'bg-horizon-500 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-horizon-500'
               ]"
             >
-              Simple
+              Simple View
+            </button>
+            <button
+              type="button"
+              @click="useSimpleEntry = false"
+              :class="[
+                'px-5 py-2 text-body-sm font-medium rounded-full transition-all duration-200',
+                !useSimpleEntry
+                  ? 'bg-horizon-500 text-white shadow-sm'
+                  : 'text-neutral-600 hover:text-horizon-500'
+              ]"
+            >
+              Detailed View
             </button>
           </div>
-          <p class="text-body-sm text-neutral-500 mt-2">
-            {{ useSimpleEntry ? 'Enter a single monthly total.' : 'Break down by category.' }}
-          </p>
         </div>
       </div>
 
@@ -1370,7 +1366,7 @@ export default {
     const store = useStore();
     const activeBudgetTab = ref('current');
     const isEditing = ref(props.startInEditMode);
-    const useSimpleEntry = ref(false);
+    const useSimpleEntry = ref(props.isOnboarding ? true : false);
     const useSeparateExpenditure = ref(false);
     const activePersonTab = ref('user');
     const simpleMonthlyExpenditure = ref(0);
@@ -2206,7 +2202,9 @@ export default {
     const initializeFromProps = () => {
       if (props.initialData) {
         useSeparateExpenditure.value = props.initialData.expenditure_sharing_mode === 'separate';
-        useSimpleEntry.value = props.initialData.expenditure_entry_mode === 'simple';
+        useSimpleEntry.value = props.initialData.expenditure_entry_mode
+          ? props.initialData.expenditure_entry_mode === 'simple'
+          : (props.isOnboarding ? true : false);
         simpleMonthlyExpenditure.value = props.initialData.monthly_expenditure || 0;
 
         const allFields = [...allEssentialFields, ...communicationFields, ...lifestyleFields, ...childrenFields, ...otherFields];
@@ -2237,6 +2235,7 @@ export default {
 
       const saveData = {
         use_simple_entry: useSimpleEntry.value,
+        expenditure_entry_mode: useSimpleEntry.value ? 'simple' : 'detailed',
         use_separate_expenditure: useSeparateExpenditure.value,
         monthly_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value : totalMonthlyExpenditure.value,
         annual_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value * 12 : totalMonthlyExpenditure.value * 12,

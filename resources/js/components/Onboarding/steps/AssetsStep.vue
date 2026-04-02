@@ -151,33 +151,19 @@
           </div>
         </div>
 
-        <!-- Add Pension Buttons -->
-        <div class="flex flex-wrap gap-2">
+        <!-- Add Pension + Upload (hidden when pension form is open) -->
+        <div v-if="!showPensionForm" class="flex flex-wrap gap-2">
           <button
             type="button"
-            class="btn-secondary"
-            @click="openPensionForm('dc')"
+            class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
+            @click="showPensionTypeSelector = !showPensionTypeSelector"
           >
-            + Add Money Purchase Pension
-          </button>
-          <button
-            type="button"
-            class="btn-secondary"
-            @click="openPensionForm('db')"
-          >
-            + Add Final Salary Pension
-          </button>
-          <button
-            type="button"
-            class="btn-secondary"
-            @click="openPensionForm('state')"
-          >
-            + Add State Pension
+            + Add Pension
           </button>
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
             @click="openUploadModal('pension_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,13 +173,25 @@
           </button>
         </div>
 
-        <p class="text-body-sm text-neutral-500">
-          Request your <a :href="LINKS.GOV_BR19" target="_blank" rel="noopener noreferrer" class="underline font-medium text-violet-500 hover:text-violet-700">BR19 State Pension forecast</a>
-        </p>
+        <!-- Pension Type Selector Cards -->
+        <div v-if="showPensionTypeSelector && !showPensionForm" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button type="button" class="border border-light-gray rounded-lg p-4 bg-white hover:border-horizon-300 hover:bg-eggshell-500 transition-colors text-left cursor-pointer" @click="showPensionTypeSelector = false; openPensionForm('dc')">
+            <h5 class="text-sm font-semibold text-horizon-500 mb-1">Money Purchase Pension</h5>
+            <p class="text-xs text-neutral-500 mb-2">Defined Contribution — your pot grows based on contributions and investment returns.</p>
+            <span class="text-sm font-medium text-horizon-500">Add pension &rarr;</span>
+          </button>
+          <button type="button" class="border border-light-gray rounded-lg p-4 bg-white hover:border-horizon-300 hover:bg-eggshell-500 transition-colors text-left cursor-pointer" @click="showPensionTypeSelector = false; openPensionForm('db')">
+            <h5 class="text-sm font-semibold text-horizon-500 mb-1">Final Salary Pension</h5>
+            <p class="text-xs text-neutral-500 mb-2">Defined Benefit — pays a guaranteed income based on your salary and years of service.</p>
+            <span class="text-sm font-medium text-horizon-500">Add pension &rarr;</span>
+          </button>
+          <button type="button" class="border border-light-gray rounded-lg p-4 bg-white hover:border-horizon-300 hover:bg-eggshell-500 transition-colors text-left cursor-pointer" @click="showPensionTypeSelector = false; openPensionForm('state')">
+            <h5 class="text-sm font-semibold text-horizon-500 mb-1">State Pension</h5>
+            <p class="text-xs text-neutral-500 mb-2">UK State Pension — based on your National Insurance record and qualifying years.</p>
+            <span class="text-sm font-medium text-horizon-500">Add pension &rarr;</span>
+          </button>
+        </div>
 
-        <p v-if="pensions.dc.length === 0 && pensions.db.length === 0 && !pensions.state" class="text-body-sm text-neutral-500 italic">
-          You can skip this step and add pensions later from your dashboard.
-        </p>
 
       </div>
 
@@ -218,15 +216,12 @@
         <!-- Add Property Button -->
         <button
           type="button"
-          class="btn-secondary w-full md:w-auto"
+          class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium w-full md:w-auto justify-center mt-4"
           @click="showPropertyForm = true"
         >
           + Add Property
         </button>
 
-        <p v-if="properties.length === 0" class="text-body-sm text-neutral-500 italic">
-          You can skip this step and add properties later from your dashboard.
-        </p>
 
       </div>
 
@@ -288,10 +283,10 @@
         </div>
 
         <!-- Add Investment Button -->
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 mt-4">
           <button
             type="button"
-            class="btn-secondary"
+            class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
             @click="showInvestmentForm = true"
           >
             + Add Investment Account
@@ -299,7 +294,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
             @click="openUploadModal('investment_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,9 +304,6 @@
           </button>
         </div>
 
-        <p v-if="investments.length === 0" class="text-body-sm text-neutral-500 italic">
-          You can skip this step and add investments later from your dashboard.
-        </p>
 
       </div>
 
@@ -367,10 +359,10 @@
         </div>
 
         <!-- Add Account Button -->
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 mt-4">
           <button
             type="button"
-            class="btn-secondary"
+            class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
             @click="showSavingsForm = true"
           >
             + Add Account
@@ -378,7 +370,7 @@
           <button
             v-preview-disabled="'upload'"
             type="button"
-            class="inline-flex items-center px-4 py-2 border-2 border-violet-600 text-violet-600 bg-white rounded-button hover:bg-violet-50 transition-colors text-sm font-medium"
+            class="inline-flex items-center px-4 py-2 bg-light-blue-200 text-horizon-500 rounded-button hover:bg-light-blue-300 transition-colors text-sm font-medium"
             @click="openUploadModal('savings_statement')"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,11 +380,9 @@
           </button>
         </div>
 
-        <p v-if="savingsAccounts.length === 0" class="text-body-sm text-neutral-500 italic">
-          You can skip this step and add accounts later from your dashboard.
-        </p>
 
       </div>
+
     </div>
 
     <!-- Inline Property Form (replaces cards when open) -->
@@ -450,6 +440,32 @@
       @close="closePensionForm"
       @save="handlePensionSaved"
     />
+
+    <!-- Tab Navigation (after all forms) -->
+    <div v-if="assetTabs.length > 1" class="mt-6 flex items-center justify-center gap-6">
+      <button
+        v-if="currentTabIndex > 0 && activeTab !== 'cash'"
+        type="button"
+        class="inline-flex items-center text-sm font-medium text-horizon-500 hover:text-horizon-600 transition-colors gap-1"
+        @click="goToPreviousTab"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Previous
+      </button>
+      <button
+        v-if="currentTabIndex < assetTabs.length - 1"
+        type="button"
+        class="inline-flex items-center text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors gap-1"
+        @click="goToNextTab"
+      >
+        Next
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Document Upload Modal -->
     <DocumentUploadModal
@@ -575,6 +591,7 @@ export default {
     // Properties state
     const properties = ref([]);
     const showPropertyForm = ref(false);
+    const showPensionTypeSelector = ref(false);
     const editingProperty = ref(null);
 
     // Investments state
@@ -651,6 +668,24 @@ export default {
           : 0,
       }));
     });
+
+    const currentTabIndex = computed(() => {
+      return assetTabs.value.findIndex(t => t.id === activeTab.value);
+    });
+
+    const goToNextTab = () => {
+      const idx = currentTabIndex.value;
+      if (idx < assetTabs.value.length - 1) {
+        activeTab.value = assetTabs.value[idx + 1].id;
+      }
+    };
+
+    const goToPreviousTab = () => {
+      const idx = currentTabIndex.value;
+      if (idx > 0) {
+        activeTab.value = assetTabs.value[idx - 1].id;
+      }
+    };
 
     // Load existing data
     onMounted(async () => {
@@ -1115,6 +1150,9 @@ export default {
       stepDescription,
       activeTab,
       assetTabs,
+      currentTabIndex,
+      goToNextTab,
+      goToPreviousTab,
       // Pensions
       pensions,
       showPensionForm,
@@ -1127,6 +1165,7 @@ export default {
       // Properties
       properties,
       showPropertyForm,
+      showPensionTypeSelector,
       editingProperty,
       editProperty,
       deleteProperty,

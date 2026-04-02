@@ -14,7 +14,7 @@
         <!-- Country of Birth -->
         <div>
           <label for="country_of_birth" class="label">
-            Where were you born?
+            Where were you born? <span class="q-icon" @click="emitWhyField($event,'country_of_birth')" title="Why we ask this">?</span>
           </label>
           <CountrySelector
             v-model="formData.country_of_birth"
@@ -36,7 +36,7 @@
 
           <div>
             <label for="uk_arrival_date" class="label">
-              Date Moved to UK
+              Date Moved to UK <span class="q-icon" @click="emitWhyField($event,'uk_arrival_date')" title="Why we ask this">?</span>
             </label>
             <input
               id="uk_arrival_date"
@@ -45,6 +45,7 @@
               class="input-field"
               :max="today"
               @change="calculateYearsResident"
+              @focus="emitWhyField($event,'uk_arrival_date')"
             >
             <p class="mt-1 text-body-sm text-neutral-500">
               When did you first move to the UK?
@@ -89,10 +90,48 @@ export default {
     CountrySelector,
   },
 
-  emits: ['next', 'back', 'skip'],
+  emits: ['next', 'back', 'skip', 'sidebar-update'],
 
   setup(props, { emit }) {
     const store = useStore();
+
+    const WHY_FIELD_DATA = {
+      country_of_birth: { whyWeAsk: 'Your country of birth determines your domicile status, which affects whether UK Inheritance Tax applies to your worldwide assets or only UK assets.' },
+      uk_arrival_date: { whyWeAsk: 'The date you moved to the UK determines your years of residency and whether you are deemed domiciled (15+ years), which affects your Inheritance Tax liability.' },
+    };
+
+    let lastEmittedField = null;
+
+    const emitWhyField = (event, fieldName) => {
+      const data = WHY_FIELD_DATA[fieldName];
+      if (!data) return;
+
+      if (event?.type === 'focus' && lastEmittedField === fieldName) {
+        lastEmittedField = null;
+        return;
+      }
+
+      const el = event?.target;
+      const fieldDiv = el?.closest?.('div') || null;
+      const inputEl = fieldDiv?.querySelector('input:not(.prepop-input), select');
+
+      if (event?.type === 'click' && inputEl && !inputEl.disabled) {
+        lastEmittedField = fieldName;
+        inputEl.focus();
+      }
+
+      let fieldOffsetY = 0;
+      if (inputEl) {
+        const formCol = inputEl.closest('.flex-1');
+        if (formCol) {
+          const colRect = formCol.getBoundingClientRect();
+          const inputRect = inputEl.getBoundingClientRect();
+          fieldOffsetY = inputRect.top - colRect.top + (inputRect.height / 2);
+        }
+      }
+
+      emit('sidebar-update', { whyWeAsk: data.whyWeAsk, fieldOffsetY });
+    };
 
     const formData = ref({
       domicile_status: 'uk_domiciled', // Will be auto-determined
@@ -249,6 +288,7 @@ export default {
       handleCountryChange,
       handleNext,
       handleBack,
+      emitWhyField,
       LINKS,
       STEP_RESOURCES,
     };
