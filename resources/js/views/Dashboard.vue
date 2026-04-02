@@ -569,9 +569,9 @@
         </DashboardCard>
 
 
-        <!-- Retirement Card (hidden for users under 35) — maps to 'retirement' / 'retirement-income' -->
+        <!-- Retirement Card — maps to 'retirement' / 'retirement-income' -->
         <DashboardCard
-          v-if="(userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
+          v-if="isCardVisible('retirement') || isCardVisible('retirement-income')"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           :empty="!hasRetirementData"
