@@ -42,15 +42,10 @@
         </button>
       </div>
 
-      <!-- Full-width layout: Chart first, account cards below -->
-      <div v-else class="space-y-6">
-        <!-- Portfolio Performance (full width) -->
-        <div class="performance-section module-gradient">
-          <Performance @navigate-to-tab="activePortfolioTab = $event" />
-        </div>
-
-        <!-- Account Cards (horizontal row) -->
-        <div class="accounts-row">
+      <!-- Two-column layout: Account cards left, chart right -->
+      <div v-else class="investment-layout">
+        <!-- Account Cards (left column) -->
+        <div class="accounts-column">
           <div
             v-for="account in accounts"
             :key="account.id"
@@ -118,6 +113,13 @@
               </div>
             </div>
           </div>
+
+        <!-- Portfolio Performance (right column) -->
+        <div class="chart-column">
+          <div class="performance-section module-gradient">
+            <Performance @navigate-to-tab="activePortfolioTab = $event" />
+          </div>
+        </div>
       </div>
 
       <!-- Data integration notice -->
@@ -810,10 +812,21 @@ export default {
 }
 
 
-.accounts-row {
+.investment-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.accounts-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-column {
+  min-width: 0;
 }
 
 .compact-account-card {
@@ -1261,7 +1274,12 @@ export default {
 }
 
 @media (max-width: 1024px) {
-  .accounts-row {
+  .investment-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .accounts-column {
+    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }
@@ -1271,7 +1289,7 @@ export default {
     padding: 16px;
   }
 
-  .accounts-row {
+  .accounts-column {
     grid-template-columns: 1fr;
   }
 
