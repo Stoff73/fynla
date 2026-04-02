@@ -7,6 +7,9 @@ namespace Database\Seeders;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\DCPension;
+use App\Models\Estate\Gift;
+use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\Investment\Holding;
@@ -14,7 +17,9 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\ISAAllowanceTracking;
 use App\Models\LifeEvent;
+use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
+use App\Models\OnboardingProgress;
 use App\Models\Property;
 use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
@@ -228,6 +233,7 @@ class ChrisUserSeeder extends Seeder
                 'platform_fee_frequency' => 'annually',
                 'advisor_fee_percent' => 0.0000,
                 'isa_type' => 'stocks_and_shares',
+                'isa_subscription_current_year' => 5460.00,
                 'risk_preference' => 'upper_medium',
                 'has_custom_risk' => false,
                 'rebalance_threshold_percent' => 10.00,
@@ -392,6 +398,108 @@ class ChrisUserSeeder extends Seeder
                 'receives_child_benefit' => true,
             ]
         );
+
+        // ── Life Insurance Policy 1: Aviva Level Term ─────────
+        LifeInsurancePolicy::updateOrCreate(
+            ['user_id' => $userId, 'provider' => 'Aviva', 'policy_type' => 'level_term'],
+            [
+                'sum_assured' => 500000.00,
+                'premium_amount' => 35.00,
+                'premium_frequency' => 'monthly',
+                'policy_term_years' => 25,
+                'indexation_rate' => 0.0000,
+                'in_trust' => true,
+                'joint_life' => false,
+                'is_mortgage_protection' => false,
+            ]
+        );
+
+        // ── Life Insurance Policy 2: Royal London Whole of Life ─
+        LifeInsurancePolicy::updateOrCreate(
+            ['user_id' => $userId, 'provider' => 'Royal London', 'policy_type' => 'whole_of_life'],
+            [
+                'sum_assured' => 200000.00,
+                'premium_amount' => 85.00,
+                'premium_frequency' => 'monthly',
+                'indexation_rate' => 0.0000,
+                'in_trust' => true,
+                'joint_life' => false,
+                'is_mortgage_protection' => false,
+            ]
+        );
+
+        // ── Liability: Barclays Credit Card ───────────────────
+        Liability::updateOrCreate(
+            ['user_id' => $userId, 'liability_name' => 'Barclays credit card'],
+            [
+                'ownership_type' => 'individual',
+                'liability_type' => 'credit_card',
+                'country' => 'United Kingdom',
+                'current_balance' => 3500.00,
+                'monthly_payment' => 150.00,
+                'interest_rate' => 19.9000,
+                'is_priority_debt' => false,
+            ]
+        );
+
+        // ── Trust: Bare Trust for Nephew Tom ──────────────────
+        $trust = Trust::updateOrCreate(
+            ['user_id' => $userId, 'trust_name' => 'Bare Trust for Nephew Tom'],
+            [
+                'trust_type' => 'bare',
+                'trust_creation_date' => '2026-03-25',
+                'initial_value' => 58000.00,
+                'current_value' => 58000.00,
+                'is_relevant_property_trust' => false,
+                'loan_interest_bearing' => false,
+                'beneficiaries' => 'Tom',
+                'trustees' => 'Chris Jones',
+                'settlor' => 'Chris Jones',
+                'purpose' => 'Bare trust holding £58,000 for my nephew Tom',
+                'is_active' => true,
+            ]
+        );
+
+        // ── Gift 1: CLT into trust ────────────────────────────
+        Gift::updateOrCreate(
+            ['user_id' => $userId, 'recipient' => 'Bare Trust for Nephew Tom', 'gift_type' => 'clt'],
+            [
+                'gift_date' => '2026-03-25',
+                'gift_value' => 58000.00,
+                'status' => 'within_7_years',
+                'taper_relief_applicable' => false,
+                'notes' => 'Chargeable Lifetime Transfer — settlement into trust. Auto-recorded.',
+            ]
+        );
+
+        // ── Gift 2: PET to Emma ───────────────────────────────
+        Gift::updateOrCreate(
+            ['user_id' => $userId, 'recipient' => 'Emma Jones', 'gift_type' => 'pet'],
+            [
+                'gift_date' => '2023-06-01',
+                'gift_value' => 50000.00,
+                'status' => 'within_7_years',
+                'taper_relief_applicable' => false,
+                'notes' => 'Gift towards her house deposit',
+            ]
+        );
+
+        // ── Onboarding Progress ───────────────────────────────
+        foreach ([
+            ['step_name' => 'personal_info', 'completed_at' => '2026-03-27 09:13:53'],
+            ['step_name' => 'income', 'completed_at' => '2026-03-27 09:15:25'],
+            ['step_name' => 'expenditure', 'completed_at' => '2026-03-27 09:15:36'],
+            ['step_name' => 'goals', 'completed_at' => '2026-03-27 09:16:54'],
+        ] as $step) {
+            OnboardingProgress::updateOrCreate(
+                ['user_id' => $userId, 'focus_area' => 'early_career', 'step_name' => $step['step_name']],
+                [
+                    'completed' => true,
+                    'skipped' => false,
+                    'completed_at' => $step['completed_at'],
+                ]
+            );
+        }
 
         // ── Protection Profile ────────────────────────────────
         ProtectionProfile::updateOrCreate(

@@ -163,14 +163,15 @@
       </ul>
     </div>
 
-    <!-- MFA Setup Modal -->
+  </div>
+
+    <!-- Modals — outside module-gradient to avoid overflow:hidden clipping -->
     <MFASetupModal
       v-if="showMFASetupModal"
       @close="showMFASetupModal = false"
       @success="onMFAEnabled"
     />
 
-    <!-- Disable MFA Modal -->
     <div
       v-if="showDisableMFAModal"
       class="modal-overlay"
@@ -213,7 +214,6 @@
       </div>
     </div>
 
-    <!-- Change Password Modal -->
     <div
       v-if="showChangePasswordModal"
       class="modal-overlay"
@@ -271,7 +271,6 @@
         </div>
       </div>
     </div>
-  </div>
   </AppLayout>
 </template>
 
