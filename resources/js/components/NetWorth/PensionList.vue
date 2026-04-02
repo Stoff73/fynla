@@ -1505,7 +1505,7 @@ export default {
   @apply text-raspberry-600;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .planner-cards-row {
     grid-template-columns: 1fr;
   }
