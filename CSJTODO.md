@@ -1,37 +1,35 @@
 # CSJTODO — Fynla
 
-*Last updated: 2 April 2026 — session 30*
-*Previous session: 2 April 2026 session 29*
+*Last updated: 2 April 2026 — session 31*
+*Previous session: 2 April 2026 session 30*
 
 ---
 
-## Session 30 (2 April) — Bug Report Audit + Dynamic Tax Year Overhaul
+## Session 31 (2 April) — Production Bug Testing (Incomplete)
 
 ### Completed This Session
-- [x] **Full bug audit of 3 PDF reports** — BugReportApril1.pdf (5 bugs), bugsApril2One.pdf (6 items), bugsApril2Two.pdf (8 bugs). 9 bugs investigated, 7 fixed, 2 already fixed.
-- [x] **Bug 1: Retirement responsive layout** — "Other Assets" box cut off at 1118px. Fixed with min-width:0 on grid children + 1024px breakpoint.
-- [x] **Bug 2: Estate planning internal error** — AssetLiquidityAnalyzer TypeError on production. Fixed type hint from Asset to object, added null coalescing.
-- [x] **Bug 3: Projected Net Income not clickable** — Added visible "View income breakdown" CTA link on planner card.
-- [x] **Bug 4: VCT form too complicated + save error** — Hid contributions section for VCT/EIS, show field-level validation errors.
-- [x] **Bug 5: Journey selection not persisted** — Stage now saved immediately on card selection, not just on "Start My Journey".
-- [x] **Bug 6: Pension retirement age defaults to 67** — DC pension form always re-fetches profile for latest retirement age.
-- [x] **Bug 8: Property wizard exits on Tenants in Common "Other"** — Guard in handleSubmit prevents accidental form submit on intermediate steps.
-- [x] **Dynamic tax year overhaul** — Eliminated ALL hardcoded "2025/26" and tax values across 39 frontend files + 2 backend files. Created getCurrentTaxYear() utility. Replaced hardcoded ISA/pension/CGT values with taxConfig.js imports. Also fixed stale CGT allowance (£12,300 → £3,000 in RebalancingCalculator).
-- [x] **Stop hook: tax-hardcode-check.sh** — Runs after every session, greps for hardcoded tax values in changed files.
-- [x] **Memory rule: feedback_never_hardcode_tax_values.md** — Permanent enforcement rule.
-- [x] **Design guide v1.3.0** — Dynamic Financial Values, Number Input Scroll Prevention, Clickable Card CTA, Grid Overflow Prevention, Sidebar-Aware Breakpoints.
-- [x] **Session-start skill updated** — Expert Laravel/PHP/Vue developer identity.
-- [x] **Browser tested** — All 8 previously-fixed bugs verified in Playwright + new fixes verified.
-- [x] **Production build** — `./deploy/fynla-org/build.sh` completed (6.9M).
+- [x] **ChrisUserSeeder fix** — Added missing `annual_income` (55000) and `monthly_expenditure` (2500) to ProtectionProfile in ChrisUserSeeder. `db:seed` was failing.
+- [x] **Database seeded** — All seeders running clean.
 
-### Deploy Status
-- **Bugs branch (NOT merged to main):** 9 bug fixes + dynamic tax year overhaul (42 files) + design guide v1.3.0
-- **Deploy guide:** `April/April2Updates/bugIssueDeploy.md`
-- **Files to upload:** `public/build/` + 3 PHP files (EstateController, AssetLiquidityAnalyzer, OnboardingService)
-- **From earlier today (already deployed):** Fyn timeout fix, onboarding redesign, SEO, 8 bug fixes (part 2)
+### NOT Done — Attempted but Incomplete
+- [ ] **Production testing of bug fix report** — Started testing `bugFixReport.md` bugs on fynla.org. Tested Bug 1 (retirement layout at 1118px) — confirmed the bug is STILL PRESENT on production because the `bugs` branch has NOT been merged/deployed. The 1024px breakpoint fix is deployed but the `min-width: 0` fix is not fully effective at 1118px. Session ended before remaining bugs could be tested.
 
 ### Context for Next Session
-The `bugs` branch has all session 29 + 30 work. Needs PR + merge to main, then deploy using `bugIssueDeploy.md`. The dynamic tax year change is critical — the UK tax year changes to 2026/27 on April 6 (4 days away). Without this deploy, all tax year references on the site will show stale "2025/26" after April 5. Also: the Excel holdings import (PR #181 on main) still hasn't been deployed to production.
+**CRITICAL — DEPLOY THE BUGS BRANCH BEFORE TESTING:**
+The `bugs` branch has 10 commits ahead of main with 9 bug fixes + dynamic tax year overhaul. These fixes are NOT on production yet. Before testing on production, the branch must be:
+1. PR + merge to main
+2. Build with `./deploy/fynla-org/build.sh`
+3. Deploy using `April/April2Updates/bugIssueDeploy.md`
+4. THEN test on production
+
+**Bug 1 (retirement layout at 1118px)** — The "Other Assets" cards still overflow at 1118px viewport even with the current fix. The `min-width: 0` helps but the "Joint General Investment Account" card text is cut off at the right edge. May need additional CSS work (e.g., `overflow: hidden` or `text-overflow: ellipsis` on card text, or widening the 1024px breakpoint to 1200px).
+
+**Tax year deadline: April 6 (4 days away).** The dynamic tax year overhaul on the bugs branch must be deployed before then or all tax year references will show stale "2025/26".
+
+### Deploy Status
+- **Bugs branch (NOT merged to main):** 10 commits ahead — 9 bug fixes + dynamic tax year overhaul + ChrisUserSeeder fix
+- **Deploy guide:** `April/April2Updates/bugIssueDeploy.md`
+- **Files to upload:** `public/build/` + 3 PHP files + `database/seeders/ChrisUserSeeder.php`
 
 ---
 
@@ -53,6 +51,7 @@ The `bugs` branch has all session 29 + 30 work. Needs PR + merge to main, then d
 - [ ] Vuex state bloat
 
 ## Known Issues
+- [ ] Bug 1: Retirement "Other Assets" cards overflow at 1118px (needs CSS refinement beyond min-width:0)
 - [ ] Estate IHT Age 80 projections show unrealistic numbers (£195M)
 - [ ] DB pension field mapping mismatch
 - [ ] Expenditure form fill doesn't animate
