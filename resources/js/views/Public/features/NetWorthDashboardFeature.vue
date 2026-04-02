@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'NetWorthDashboardFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'Net Worth Dashboard — track your complete financial picture | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Track your complete net worth with Fynla. See all your assets, liabilities, property, pensions, and investments in one real-time dashboard.');
+  },
+
   data() {
     return {
       hero: {

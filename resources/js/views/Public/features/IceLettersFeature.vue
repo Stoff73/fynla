@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'IceLettersFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'In Case of Emergency Letters — secure financial instructions | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Create an In Case of Emergency letter with Fynla. Store essential financial details, account information, and instructions for your loved ones in one secure place.');
+  },
+
   data() {
     return {
       hero: {

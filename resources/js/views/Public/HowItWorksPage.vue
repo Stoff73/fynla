@@ -250,6 +250,11 @@ export default {
   name: 'HowItWorksPage',
   components: { PublicLayout },
 
+  mounted() {
+    document.title = 'How Fynla works — simple financial planning in 3 steps | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'See how Fynla helps you centralise your finances, get personalised insights, and take action on your savings, investments, pensions, and estate planning.');
+  },
+
   data() {
     return {
       step1Items: [

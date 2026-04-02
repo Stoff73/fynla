@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'PensionTrackerFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'Pension Tracker — every pension in one dashboard | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Track every pension in one dashboard with Fynla. Workplace, personal, SIPP, and State Pension tracking with retirement income projections and contribution analysis.');
+  },
+
   data() {
     return {
       hero: {

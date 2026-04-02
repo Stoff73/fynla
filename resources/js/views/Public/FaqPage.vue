@@ -129,6 +129,11 @@ export default {
     },
   },
 
+  mounted() {
+    document.title = 'Frequently asked questions | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Find answers to common questions about Fynla, UK financial planning, pensions, investments, savings, and how to get the most from the platform.');
+  },
+
   methods: {
     toggle(catId, idx) {
       const key = `${catId}-${idx}`;

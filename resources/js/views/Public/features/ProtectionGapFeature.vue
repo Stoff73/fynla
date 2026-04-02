@@ -17,6 +17,11 @@ import { getFeatureFaqs } from '@/constants/faqData';
 export default {
   name: 'ProtectionGapFeature',
   components: { FeaturePageLayout },
+  mounted() {
+    document.title = 'Protection Gap Analysis — understand your insurance needs | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Analyse your protection gap with Fynla. Understand your life insurance, critical illness, and income protection needs based on your actual financial position.');
+  },
+
   data() {
     return {
       hero: {

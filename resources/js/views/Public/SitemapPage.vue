@@ -212,5 +212,10 @@ export default {
   components: {
     PublicLayout,
   },
+
+  mounted() {
+    document.title = 'Sitemap | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Browse all pages on Fynla — features, calculators, learning guides, financial insights, and more.');
+  },
 };
 </script>

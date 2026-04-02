@@ -124,5 +124,10 @@ export default {
       brettImageUrl: '/images/portraits/brett.png',
     };
   },
+
+  mounted() {
+    document.title = 'About Fynla — UK personal finance platform for everyone | Fynla';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Learn about Fynla, the UK personal finance platform designed to help everyone from students to retirees plan savings, investments, pensions, and estate with confidence.');
+  },
 };
 </script>
