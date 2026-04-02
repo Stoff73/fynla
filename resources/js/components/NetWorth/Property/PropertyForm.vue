@@ -2010,7 +2010,13 @@ export default {
     async handleSubmit() {
       if (!this.validateForm()) {
         // Scroll to top to show error message
-        this.$el?.querySelector?.('.px-6.py-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const header = this.$el?.querySelector?.('.px-6.py-4');
+        if (header) {
+          header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          // Onboarding context — no modal wrapper, scroll form to top
+          this.$el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        }
         return;
       }
 
