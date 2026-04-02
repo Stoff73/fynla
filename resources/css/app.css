@@ -56,7 +56,9 @@
   }
 
   .card {
-    @apply bg-white rounded-card border border-light-gray shadow-sm p-6 transition-all duration-200;
+    @apply bg-white rounded-card border border-light-gray shadow-sm p-6 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Clickable cards get premium hover effects automatically */
@@ -65,7 +67,9 @@
   }
 
   .card-hover {
-    @apply bg-white rounded-card border border-light-gray shadow-sm hover:shadow-md transform hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 cursor-pointer p-6;
+    @apply bg-white rounded-card border border-light-gray shadow-sm hover:shadow-md transform hover:-translate-y-0.5 hover:bg-[#EEEEEE] transition-all duration-200 cursor-pointer p-6 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .input-field {
@@ -163,29 +167,41 @@
 
   /* Large Card Container - for page sections */
   .card-lg {
-    @apply bg-white rounded-xl border border-light-gray shadow-sm p-8 transition-all duration-200;
+    @apply bg-white rounded-xl border border-light-gray shadow-sm p-8 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Small Card - for badges, compact elements */
   .card-sm {
-    @apply bg-white rounded-lg border border-light-gray shadow-sm p-4 transition-all duration-200;
+    @apply bg-white rounded-lg border border-light-gray shadow-sm p-4 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Highlighted Card Variants */
   .card-highlighted {
-    @apply bg-raspberry-50 rounded-card border border-raspberry-200 shadow-sm p-6 transition-all duration-200;
+    @apply bg-raspberry-50 rounded-card border border-raspberry-200 shadow-sm p-6 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .card-success {
-    @apply bg-spring-50 rounded-card border border-spring-200 shadow-sm p-6 transition-all duration-200;
+    @apply bg-spring-50 rounded-card border border-spring-200 shadow-sm p-6 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .card-warning {
-    @apply bg-violet-50 rounded-card border border-violet-200 shadow-sm p-6 transition-all duration-200;
+    @apply bg-violet-50 rounded-card border border-violet-200 shadow-sm p-6 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .card-error {
-    @apply bg-raspberry-50 rounded-card border border-raspberry-200 shadow-sm p-6 transition-all duration-200;
+    @apply bg-raspberry-50 rounded-card border border-raspberry-200 shadow-sm p-6 transition-all duration-200 overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* ==========================================================================

@@ -27,6 +27,7 @@ const createPolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
             const policy = response.data || response;
             commit('addPolicy', { type: policyType, policy });
             await dispatch('analyseProtection', {});
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
             return response;
         } catch (error) {
             commit('setError', error.message || errorMessage);
@@ -48,6 +49,7 @@ const updatePolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
             const policy = response.data || response;
             commit('updatePolicy', { type: policyType, policy });
             await dispatch('analyseProtection', {});
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
             return response;
         } catch (error) {
             commit('setError', error.message || errorMessage);
@@ -68,6 +70,7 @@ const deletePolicyActionFactory = (policyType, serviceMethod, errorMessage) => {
             const response = await protectionService[serviceMethod](id);
             commit('removePolicy', { type: policyType, id });
             await dispatch('analyseProtection', {});
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
             return response;
         } catch (error) {
             commit('setError', error.message || errorMessage);

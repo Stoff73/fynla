@@ -531,13 +531,13 @@
 
           </div>
 
-          <!-- Empty state when no estate data -->
+          <!-- Empty state when estate calculation not yet available -->
           <div v-else class="text-center py-6">
             <p class="text-sm text-neutral-500 mb-4">
-              No estate details added yet.
+              Add your assets and liabilities to see your estate summary and Inheritance Tax position.
             </p>
             <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              Add Estate Details
+              View Estate Planning
             </router-link>
           </div>
 
@@ -569,9 +569,9 @@
         </DashboardCard>
 
 
-        <!-- Retirement Card (hidden for users under 35) — maps to 'retirement' / 'retirement-income' -->
+        <!-- Retirement Card — maps to 'retirement' / 'retirement-income' -->
         <DashboardCard
-          v-if="(userAge === null || userAge >= 35) && (isCardVisible('retirement') || isCardVisible('retirement-income'))"
+          v-if="isCardVisible('retirement') || isCardVisible('retirement-income')"
           :title="retirementCardTitle"
           :loading="loading.retirement"
           :empty="!hasRetirementData"
@@ -779,7 +779,8 @@
                   <span v-if="pensionStandardPercent < 15" class="text-sm font-bold text-horizon-500">Pension Annual Allowance</span>
                   <span
                     v-if="pensionAllowanceData.isTapered"
-                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 cursor-help"
+                    :title="taperedTooltip"
                   >Tapered</span>
                   <span
                     v-if="pensionAllowanceData.mpaaTriggered"
@@ -1568,7 +1569,6 @@ export default {
     },
 
     hasEstateData() {
-      if (this.userAge !== null && this.userAge <= 35) return false;
       return this.taxableEstate > 0 || this.ihtLiability > 0;
     },
 
@@ -1717,6 +1717,15 @@ export default {
     pensionStandardRemaining() {
       if (!this.pensionAllowanceData) return 0;
       return Math.max(0, this.pensionAllowanceData.availableAllowance - this.pensionStandardUsed);
+    },
+
+    taperedTooltip() {
+      if (!this.pensionAllowanceData?.isTapered) return '';
+      const details = this.annualAllowance?.tapering_details;
+      if (details) {
+        return `Your adjusted income of ${this.formatCurrency(details.adjusted_income)} exceeds the threshold, reducing your Annual Allowance by ${this.formatCurrency(details.reduction)} from £60,000 to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
+      }
+      return `Your income exceeds the adjusted income threshold, so your Annual Allowance is reduced to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
     },
 
     // Carry forward data (only shown when contributions exceed standard allowance)

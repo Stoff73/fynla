@@ -89,6 +89,12 @@
               >
                 Continue Journey
               </button>
+              <button
+                class="mt-1.5 text-xs text-neutral-500 hover:text-horizon-500 transition-colors relative z-10"
+                @click="$router.push('/onboarding/welcome')"
+              >
+                Change journey
+              </button>
             </div>
           </div>
         </div>

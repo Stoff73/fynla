@@ -1,60 +1,44 @@
 # CSJTODO — Fynla
 
-*Last updated: 1 April 2026 — session 25*
-*Previous session: 1 April 2026 session 24*
+*Last updated: 2 April 2026 — session 27*
+*Previous session: 1 April 2026 session 26*
 
 ---
 
-## Session 25 (1 April) — Fyn AI Phase 2 + AI Audit Dashboard + Deploy
+## Session 27 (2 April) — Chris User Seeder + Fyn Pension Prompt Improvement
 
 ### Completed This Session
-- [x] **Fyn AI Phase 2 implemented** — 6 phases, 16 new files, 71 tests (145 assertions)
-- [x] Phase 1: System prompt refactored into 10-layer `SystemPromptBuilder`
-- [x] Phase 2: `QueryClassifier` (22 query types) + `KycGateChecker` (mandatory navigation routes)
-- [x] Phase 3: Knowledge RAG — ~3,109 tokens saved on data entry queries
-- [x] Phase 4: Mandatory tool sequences per query type
-- [x] Phase 5: Decision tree binding — recommendations with £ amounts + triggers
-- [x] Phase 6: Review system — advice logging, data change detection, annual reviews
-- [x] **StructuredResponseValidator** — strips IDs, context blocks, HTML; flags acronyms, jargon, missing £ amounts
-- [x] **AI Audit Dashboard** — admin 3-panel view (users → conversations → messages with expandable system prompt)
-- [x] Admin tab grouping — Users and AI dropdown menus
-- [x] **Merged to main**, pushed, built, deployed to production
-- [x] Production verified: routes registered, migrations run, caches cleared
-- [x] Production tested: Fyn responded with no leaked IDs, no acronyms, no [Context:] blocks
-- [x] UserMetricsServiceTest date edge case fixed
+- [x] **ChrisUserSeeder created** — seeds chris@fynla.org locally with all production-matching data
+  - User profile, 2 properties + mortgages, savings, investment account + 2 holdings, DC pension, business interest, chattel, 2 goals, life event, family member, risk profile, ISA tracking, subscription
+- [x] **Registered in DatabaseSeeder** — runs automatically with `php artisan db:seed`
+- [x] **Field-by-field verified** against production (properties city/postcode, goal is_first_time_buyer, subscription trial_ends_at all corrected)
+- [x] **Fyn pension prompt improved** — Personal Allowance reclaim now covers incomes above £125,140 (not just £100k-£125k). Includes worked example (£145k income, £45k contribution, £12,570 PA restored, £2,514 additional saving)
 
-### Known Issues (from fynTest.pdf — partially addressed)
-- [x] Fyn showing record IDs — FIXED by StructuredResponseValidator sanitiser
-- [x] Fyn using acronyms (AEA) — FIXED by banned acronym list in validator
-- [x] Fyn leaking [Context:] blocks — FIXED by sanitiser stripping them
-- [ ] Fyn not picking up rental income from BTL property — needs investigation (may be data issue on specific user account)
-- [ ] Fyn showing total property value without distinguishing joint vs individual ownership — prompt rules exist but AI may not always follow them
-- [ ] Fyn giving incorrect pension contribution recs (can't distinguish employment vs other income) — income classification in prompt but AI interpretation varies
+### Files Changed
+- `database/seeders/ChrisUserSeeder.php` (NEW)
+- `database/seeders/DatabaseSeeder.php` (added ChrisUserSeeder)
+- `app/Constants/FinancialPlanningKnowledge.php` (pension PA reclaim prompt)
 
 ### Deploy Status
-- **DEPLOYED to production** — v0.9.5
-- Deploy notes: `April/April1Updates/fynUpgradeDeploy.md`
-- Patch notes: `April/April1Updates/fynUpgradePatchNotes.md`
-
-### Context for Next Session
-Deployed and production-tested. Three remaining issues from fynTest.pdf need investigation: rental income not picked up (data vs prompt issue), joint property ownership display, and pension contribution recommendations for mixed income types. The AI Audit Dashboard is live at /admin → AI dropdown → AI Audit — use it to verify Fyn's responses going forward. Version bump to v0.9.5 not yet done in Footer/Version.vue.
+- **UI branch**: Commit `2212ba5`. No production deploy needed (seeder is local-only, prompt change needs build + upload)
+- **Pending from session 26**: Card overflow fix `public/build/` still needs uploading to production
 
 ---
 
-## Session 24 (1 April) — PR #177 Merge, Deploy, Version Bump
+## Session 26 (1 April) — Fyn AI Field Fixes + Card Overflow Fix
 
 ### Completed This Session
-- [x] **PR #177 merged** — resource pages redesign (131 files, 17 commits, 6 merge conflicts resolved)
-- [x] Old comparison URL redirects added (fynla-vs-moneyhub, fynla-vs-voyant, fynla-vs-projectionlab)
-- [x] CSP updated for Google Analytics (googletagmanager.com, *.google-analytics.com)
-- [x] Built and deployed to production (291 assets + 5 PHP files + sitemap)
-- [x] Production browser tested — 0 console errors across all pages
-- [x] Version bumped v0.9.3.2 → v0.9.4 (Footer, Version.vue, CLAUDE.md)
-- [x] Version page updated with patch notes for PRs #175-177
-- [x] Deploy notes at April/April1Updates/deployNotes.md
-- [x] Patch notes at fynlaBrain/April/April01Updates/patchNotes-PR177.md
+- [x] **19 wrong field names fixed in Fyn AI context** — mortgages, DC pensions, business interests, chattels, life insurance all reading £0/blank
+- [x] Root cause: SystemPromptBuilder, HasAiChat, CoordinatingAgent used non-existent model attributes
+- [x] Field alias mapping added to `handleUpdateRecord()`
+- [x] **Deployed to production** (3 PHP files via SSH sed) and **production tested**
+- [x] **Card text overflow fix** (UI branch) — global `overflow-hidden` + `break-word` on all card variants
 
-### Outstanding from Previous Sessions
+---
+
+## Outstanding from Previous Sessions
+- [ ] Upload `public/build/` to production (card overflow fix from session 26)
+- [ ] Merge UI → main after deploying card overflow fix
 - [ ] Delete mockup HTML files from public/ (insights, learn, journey, persona, mobile)
 - [ ] Submit updated sitemap.xml to Google Search Console
 - [ ] Test contact form email delivery on production (requires mail config)
@@ -62,7 +46,7 @@ Deployed and production-tested. Three remaining issues from fynTest.pdf need inv
 
 ---
 
-## Outstanding — Tech Debt Deferred (from techDebtDeferred.md)
+## Outstanding — Tech Debt Deferred
 
 ### God Class Decomposition (CRITICAL — Large effort, ~40-60 hours)
 - [ ] SavingsActionDefinitionService: 3,675 lines
@@ -103,15 +87,6 @@ Deployed and production-tested. Three remaining issues from fynTest.pdf need inv
 - [ ] Expenditure form fill doesn't animate through form
 - [ ] property_sale life event: Grok creates property record (double navigation)
 
-## Deploy Status
-
-### All Through PR #177 — DEPLOYED & VERIFIED (v0.9.4)
-- PR #175: Feature gating — deployed, production tested
-- PR #176: Journey links + security fix — deployed, production tested
-- PR #177: Resource pages redesign — merged 1 April, deployed, production tested (0 console errors)
-- Version bumped to v0.9.4, patch notes on /version page
-- Deploy notes: April/April1Updates/deployNotes.md
-
 ## Context for Next Session
 
-All work deployed and production tested at v0.9.4. Next priorities: recurring billing (Revolut auto-renewal), tech debt (god classes), contact form mail config on production, sitemap submission to Google Search Console, or whatever the user wants to work on.
+ChrisUserSeeder is complete and verified field-by-field against production. Fyn's pension prompt now correctly handles PA reclaim for high earners above £125,140. Card overflow fix from session 26 still needs `public/build/` uploaded to production, then UI branch should merge to main.

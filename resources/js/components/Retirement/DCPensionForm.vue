@@ -673,7 +673,7 @@ export default {
       await this.$store.dispatch('userProfile/fetchProfile').catch(() => {});
     }
 
-    // Default retirement age from profile for new personal pensions
+    // Default retirement age from user profile for all new pensions
     if (!this.isEdit && !this.formData.retirement_age && this.profileRetirementAge) {
       this.formData.retirement_age = this.profileRetirementAge;
     }
@@ -709,8 +709,8 @@ export default {
         this.formData.employer_contribution_percent = null;
       }
 
-      // Default retirement age from profile for personal pensions
-      if (this.isPersonalPension && !this.formData.retirement_age && this.profileRetirementAge) {
+      // Default retirement age from user profile for all pension types
+      if (!this.formData.retirement_age && this.profileRetirementAge) {
         this.formData.retirement_age = this.profileRetirementAge;
       }
 

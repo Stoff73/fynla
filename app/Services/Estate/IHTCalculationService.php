@@ -957,9 +957,10 @@ class IHTCalculationService
 
         // Project other liabilities
         foreach ($user->liabilities as $liability) {
+            $endDate = $liability->maturity_date ?? $this->estimatePayoffDate($liability);
             $projectedLiabilities += $this->projectSingleLiability(
                 (float) ($liability->current_balance ?? 0),
-                $liability->maturity_date ?? $this->estimatePayoffDate($liability),
+                $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
                 $currentAge,
                 $retirementAge,
                 $yearsToProject,

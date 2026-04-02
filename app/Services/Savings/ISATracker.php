@@ -47,23 +47,68 @@ class ISATracker
         );
 
         // Calculate ISA usage from savings_accounts for current tax year
+        // Match on isa_type='cash' OR account_type='cash_isa' (some accounts lack isa_type)
         $cashIsaUsed = (float) SavingsAccount::where('user_id', $userId)
             ->where('is_isa', true)
             ->where('isa_subscription_year', $taxYear)
-            ->where('isa_type', 'cash')
+            ->where(function ($q) {
+                $q->where('isa_type', 'cash')
+                  ->orWhere('account_type', 'cash_isa');
+            })
+            ->whereNotNull('isa_subscription_amount')
             ->sum('isa_subscription_amount');
+
+        // If no explicit subscription tracked, estimate from regular contributions
+        if ($cashIsaUsed <= 0) {
+            $cashIsaAccounts = SavingsAccount::where('user_id', $userId)
+                ->where('is_isa', true)
+                ->where(function ($q) {
+                    $q->where('isa_type', 'cash')
+                      ->orWhere('account_type', 'cash_isa');
+                })
+                ->get();
+
+            foreach ($cashIsaAccounts as $account) {
+                $projected = $this->calculateProjectedSubscription($account);
+                if ($projected > 0) {
+                    $cashIsaUsed += $projected;
+                }
+            }
+        }
 
         $lisaUsed = (float) SavingsAccount::where('user_id', $userId)
             ->where('is_isa', true)
-            ->where('isa_subscription_year', $taxYear)
-            ->where('isa_type', 'LISA')
+            ->where(function ($q) use ($taxYear) {
+                $q->where('isa_subscription_year', $taxYear)
+                  ->orWhere('account_type', 'lisa');
+            })
+            ->where(function ($q) {
+                $q->where('isa_type', 'LISA')
+                  ->orWhere('isa_type', 'lisa')
+                  ->orWhere('account_type', 'lisa');
+            })
             ->sum('isa_subscription_amount');
 
         // Calculate stocks & shares ISA usage from investment_accounts (cross-module)
+        // First try with explicit tax year, then without (some accounts lack tax_year)
         $stocksSharesIsaUsed = (float) InvestmentAccount::where('user_id', $userId)
             ->where('account_type', 'isa')
             ->where('tax_year', $taxYear)
             ->sum('isa_subscription_current_year');
+
+        if ($stocksSharesIsaUsed <= 0) {
+            $stocksSharesIsaUsed = (float) InvestmentAccount::where('user_id', $userId)
+                ->where('account_type', 'isa')
+                ->whereNotNull('isa_subscription_current_year')
+                ->where('isa_subscription_current_year', '>', 0)
+                ->sum('isa_subscription_current_year');
+        }
+
+        if ($stocksSharesIsaUsed <= 0) {
+            $stocksSharesIsaUsed = (float) InvestmentAccount::where('user_id', $userId)
+                ->where('account_type', 'isa')
+                ->sum('contributions_ytd');
+        }
 
         // When no explicit subscription tracked, estimate from monthly contributions
         if ($stocksSharesIsaUsed <= 0) {
@@ -221,7 +266,14 @@ class ISATracker
     {
         $accounts = SavingsAccount::where('user_id', $userId)
             ->where('is_isa', true)
-            ->where('isa_type', $isaType)
+            ->where(function ($q) use ($isaType) {
+                $q->where('isa_type', $isaType);
+                if ($isaType === 'cash') {
+                    $q->orWhere('account_type', 'cash_isa');
+                } elseif ($isaType === 'LISA' || $isaType === 'lisa') {
+                    $q->orWhere('account_type', 'lisa');
+                }
+            })
             ->get();
 
         $total = 0.0;

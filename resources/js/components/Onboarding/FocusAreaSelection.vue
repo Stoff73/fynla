@@ -445,7 +445,11 @@ export default {
       }
     },
 
-    skipOnboarding() {
+    async skipOnboarding() {
+      // Save selected stage before navigating away so dashboard shows the right journey
+      if (this.selectedStage) {
+        await this.$store.dispatch('lifeStage/setStage', this.selectedStage).catch(() => {});
+      }
       this.$router.push({ name: 'Dashboard' });
     },
 

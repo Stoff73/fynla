@@ -233,8 +233,9 @@ const actions = {
             const response = await savingsService.createAccount(accountData);
             const account = response.data || response;
             commit('addAccount', account);
-            // Refresh net worth to update wealth summary
+            // Refresh net worth and recommendations
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to create account';
@@ -264,8 +265,9 @@ const actions = {
             const response = await savingsService.updateAccount(id, accountData);
             const account = response.data || response;
             commit('updateAccount', account);
-            // Refresh net worth to update wealth summary
+            // Refresh net worth and recommendations
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to update account';
@@ -283,8 +285,9 @@ const actions = {
         try {
             const response = await savingsService.deleteAccount(id);
             commit('removeAccount', id);
-            // Refresh net worth to update wealth summary
+            // Refresh net worth and recommendations
             await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to delete account';

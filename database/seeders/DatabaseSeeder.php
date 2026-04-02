@@ -90,6 +90,9 @@ class DatabaseSeeder extends Seeder
                 // Additional test user accounts
                 TestUsersSeeder::class,
 
+                // Chris Jones (chris@fynla.org) - matches production data
+                ChrisUserSeeder::class,
+
                 // Advisor-client relationships for preview personas
                 AdvisorClientSeeder::class,
             ]);

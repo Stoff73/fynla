@@ -190,12 +190,7 @@
                   />
                   <span class="inline-block w-1.5 h-4 bg-raspberry-600 ml-0.5 animate-pulse"></span>
                 </div>
-                <div v-else class="flex items-center gap-2">
-                  <div class="flex gap-1">
-                    <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-2 h-2 bg-horizon-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-                  </div>
+                <div v-else class="flex items-center">
                   <transition name="fade" mode="out-in">
                     <span :key="thinkingStatus" class="text-xs text-neutral-500">{{ thinkingStatus }}...</span>
                   </transition>
@@ -375,12 +370,7 @@
         <div v-if="streaming" class="flex justify-start">
           <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-savannah-100 text-horizon-500 rounded-bl-sm">
             <AiMessageContent v-if="streamingText" :message="{ role: 'assistant', content: streamingText }" />
-            <span v-else class="flex items-center gap-1.5 text-neutral-500">
-              <span class="flex gap-1">
-                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                <span class="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-              </span>
+            <span v-else class="flex items-center text-neutral-500">
               <transition name="fade" mode="out-in">
                 <span :key="thinkingStatus" class="text-xs">{{ thinkingStatus }}...</span>
               </transition>
