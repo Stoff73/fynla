@@ -83,7 +83,7 @@
                 @click="selectAccount(account)"
               >
                 <div class="account-info">
-                  <span class="account-name">
+                  <span class="account-name" :title="account.institution || 'Current Account'">
                     {{ account.institution || 'Current Account' }}
                     <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
@@ -130,7 +130,7 @@
                 @click="selectAccount(account)"
               >
                 <div class="account-info">
-                  <span class="account-name">
+                  <span class="account-name" :title="account.institution || 'Savings Account'">
                     {{ account.institution || 'Savings Account' }}
                     <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
@@ -177,7 +177,7 @@
                 @click="selectAccount(account)"
               >
                 <div class="account-info">
-                  <span class="account-name">
+                  <span class="account-name" :title="account.institution || 'Cash ISA'">
                     {{ account.institution || 'Cash ISA' }}
                     <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">
@@ -224,7 +224,7 @@
                 @click="selectAccount(account)"
               >
                 <div class="account-info">
-                  <span class="account-name">
+                  <span class="account-name" :title="account.institution || 'NS&I'">
                     {{ account.institution || 'NS&I' }}
                     <span v-if="isJointAccount(account)" class="joint-badge">(Joint)</span>
                     <span v-else-if="account.ownership_type === 'tenants_in_common'" class="joint-badge">

@@ -587,6 +587,14 @@ export default {
     },
   },
 
+  mounted() {
+    if (this.context !== 'onboarding') {
+      this.$nextTick(() => {
+        this.$el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  },
+
   data() {
     return {
       submitting: false,
@@ -989,6 +997,16 @@ export default {
         if (this.totalWithPlanned > this.ISA_ALLOWANCE) {
           const excess = this.totalWithPlanned - this.ISA_ALLOWANCE;
           this.isaAllowanceError = `Your planned ISA contributions would exceed the £20,000 allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
+          this.submitting = false;
+          return;
+        }
+      }
+
+      // Validate Premium Bonds maximum £50,000 per person
+      if (this.formData.account_type === 'premium_bonds') {
+        const balance = parseFloat(this.formData.current_balance) || 0;
+        if (balance > 50000) {
+          this.isaAllowanceError = `Premium Bonds have a maximum holding of £50,000 per person. You have entered ${this.formatCurrency(balance)}.`;
           this.submitting = false;
           return;
         }

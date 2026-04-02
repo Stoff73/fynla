@@ -255,6 +255,7 @@
                       @mouseenter="nwHoveredIndex = idx; nwMouseX = $event.clientX; nwMouseY = $event.clientY"
                       @mousemove="nwMouseX = $event.clientX; nwMouseY = $event.clientY"
                       @mouseleave="nwHoveredIndex = null"
+                      @click="seg.route && $router.push(seg.route)"
                     />
                   </svg>
                   <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1196,6 +1197,22 @@ export default {
 
       const categories = [];
 
+      const ASSET_ROUTES = {
+        property: '/net-worth/property',
+        investments: '/net-worth/investments',
+        pensions: '/net-worth/retirement',
+        savings: '/net-worth/cash',
+        business: '/net-worth/business',
+        chattels: '/net-worth/chattels',
+      };
+
+      const LIABILITY_ROUTES = {
+        mortgages: '/net-worth/liabilities',
+        loans: '/net-worth/liabilities',
+        credit_cards: '/net-worth/liabilities',
+        other: '/net-worth/liabilities',
+      };
+
       // Asset categories
       Object.entries(this.netWorthBreakdown.assets).forEach(([key, value]) => {
         if (value > 0) {
@@ -1203,6 +1220,7 @@ export default {
             label: this.formatAssetCategory(key),
             value,
             color: ASSET_COLORS[key] || '#717171',
+            route: ASSET_ROUTES[key] || '/net-worth/wealth-summary',
           });
         }
       });
@@ -1214,6 +1232,7 @@ export default {
             label: this.formatLiabilityCategory(key),
             value,
             color: LIABILITY_COLORS[key] || '#E83E6D',
+            route: LIABILITY_ROUTES[key] || '/net-worth/liabilities',
           });
         }
       });
@@ -1259,6 +1278,7 @@ export default {
           percent: (proportion * 100).toFixed(1),
           color: cat.color,
           colorLight: this.lightenColor(cat.color, 0.35),
+          route: cat.route,
           arcLength,
           offset,
         };
