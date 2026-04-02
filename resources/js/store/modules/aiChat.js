@@ -384,6 +384,10 @@ const actions = {
             logger.error('Chat streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
+            // Detect empty response — stream completed but Fyn never replied
+            if (state.streaming && !state.streamingText && !state.error) {
+                commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
+            }
             commit('SET_STREAMING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
