@@ -1125,6 +1125,7 @@ Route::middleware(['auth:sanctum', 'throttle:30,1'])->prefix('documents')->group
     Route::get('/{id}', [DocumentController::class, 'show']);
     Route::get('/{id}/extraction', [DocumentController::class, 'getExtraction']);
     Route::post('/{id}/confirm', [DocumentController::class, 'confirm']);
+    Route::post('/{id}/confirm-excel', [DocumentController::class, 'confirmExcel']);
     Route::post('/{id}/reprocess', [DocumentController::class, 'reprocess'])->middleware('throttle:5,1');
     Route::delete('/{id}', [DocumentController::class, 'destroy']);
 });
