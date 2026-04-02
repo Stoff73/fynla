@@ -265,11 +265,9 @@ class DocumentProcessor
             \App\Models\DBPension::class => new DBPensionMapper,
             \App\Models\LifeInsurancePolicy::class => new LifeInsuranceMapper,
             \App\Models\Investment\InvestmentAccount::class => new InvestmentAccountMapper,
-            // Additional mappers can be added here:
-            // \App\Models\CriticalIllnessPolicy::class => new CriticalIllnessMapper(),
-            // \App\Models\IncomeProtectionPolicy::class => new IncomeProtectionMapper(),
-            // \App\Models\SavingsAccount::class => new SavingsAccountMapper(),
-            // \App\Models\Mortgage::class => new MortgageMapper(),
+            \App\Models\Property::class => new FieldMappers\PropertyMapper,
+            \App\Models\SavingsAccount::class => new FieldMappers\SavingsAccountMapper,
+            \App\Models\Mortgage::class => new FieldMappers\MortgageMapper,
         ];
     }
 }
