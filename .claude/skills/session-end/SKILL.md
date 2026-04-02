@@ -146,21 +146,27 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 The vault is at `/Users/CSJ/Desktop/fynlaBrain/` (NOT a git repo — write files directly).
 
-### 5a: Determine the target folder
+### 5a: Determine the current month and target folder
 
 ```bash
 HOUR=$(date +%H)
 TODAY=$(date +%d)
+MONTH_NAME=$(date +%B)        # e.g. "April"
+MONTH_SHORT=$(date +%b)       # e.g. "Apr"
+YEAR=$(date +%Y)              # e.g. "2026"
 
 if [ "$HOUR" -ge 19 ]; then
-  # After 7pm — save to NEXT day's folder
+  # After 7pm — CSJTODO goes in NEXT day's folder (next session is tomorrow)
   TARGET_DAY=$(date -v+1d +%d 2>/dev/null || date -d "+1 day" +%d)
+  TARGET_MONTH=$(date -v+1d +%B 2>/dev/null || date -d "+1 day" +%B)
 else
-  # Before 7pm — save to today's folder
+  # Before 7pm — CSJTODO goes in today's folder
   TARGET_DAY=$TODAY
+  TARGET_MONTH=$MONTH_NAME
 fi
 
-TARGET_FOLDER="March${TARGET_DAY}Updates"
+TARGET_FOLDER="${TARGET_MONTH}${TARGET_DAY}Updates"
+TODAY_FOLDER="${MONTH_NAME}${TODAY}Updates"
 ```
 
 This determines where the CSJTODO handover goes. Session notes and vault updates always go in today's folder.
@@ -168,13 +174,12 @@ This determines where the CSJTODO handover goes. Session notes and vault updates
 ### 5b: Copy update notes to vault
 
 ```bash
-TODAY_FOLDER="March$(date +%d)Updates"
-mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/$TODAY_FOLDER"
+mkdir -p "/Users/CSJ/Desktop/fynlaBrain/$MONTH_NAME/$TODAY_FOLDER"
 
-for file in /Users/CSJ/Desktop/fynla/March/$TODAY_FOLDER/*.md; do
+for file in /Users/CSJ/Desktop/fynla/$MONTH_NAME/$TODAY_FOLDER/*.md; do
   [ -f "$file" ] || continue
   filename=$(basename "$file")
-  vault_path="/Users/CSJ/Desktop/fynlaBrain/March/$TODAY_FOLDER/$filename"
+  vault_path="/Users/CSJ/Desktop/fynlaBrain/$MONTH_NAME/$TODAY_FOLDER/$filename"
   if [ ! -f "$vault_path" ] || ! diff -q "$file" "$vault_path" > /dev/null 2>&1; then
     cp "$file" "$vault_path"
     echo "SYNCED: $TODAY_FOLDER/$filename"
@@ -185,7 +190,7 @@ done
 Also sync subdirectories:
 
 ```bash
-find "/Users/CSJ/Desktop/fynla/March/$TODAY_FOLDER" -type d -mindepth 1 | while read subdir; do
+find "/Users/CSJ/Desktop/fynla/$MONTH_NAME/$TODAY_FOLDER" -type d -mindepth 1 | while read subdir; do
   rel_path="${subdir#/Users/CSJ/Desktop/fynla/}"
   vault_path="/Users/CSJ/Desktop/fynlaBrain/$rel_path"
   mkdir -p "$vault_path"
@@ -202,21 +207,21 @@ done
 
 ### 5c: Update git history
 
-Create or update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar$(date +%d).md` with today's commits.
+Create or update `/Users/CSJ/Desktop/fynlaBrain/Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}$(date +%d).md` with today's commits.
 
 **Format:**
 ```markdown
 ---
 tags:
   - git-history
-  - mar-2026
+  - [month-short-lowercase]-[year] (e.g. apr-2026)
 date: YYYY-MM-DD
 commits: N
 ---
 
-# Commits — DD March 2026
+# Commits — DD [Month] [Year]
 
-Back to [[Git History/Mar2026/Mar2026 Commits|March 2026 Commits]]
+Back to [[Git History/[MonthShort][Year]/[MonthShort][Year] Commits|[Month] [Year] Commits]]
 
 **N commits** — breakdown by type
 
@@ -229,24 +234,26 @@ Back to [[Git History/Mar2026/Mar2026 Commits|March 2026 Commits]]
 
 Type codes: `+` feat, `~` fix, `D` docs, `^` update/refactor, `T` test, `C` chore, `-` merge/other.
 
-Also update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar2026 Commits.md`:
+Also update `/Users/CSJ/Desktop/fynlaBrain/Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}${YEAR} Commits.md`:
 - Update total commit count
 - Update type breakdown counts
 - Add/update today's row in the Daily Logs table
 
-### 5d: Update March Index
+### 5d: Update Month Index
 
-Read `/Users/CSJ/Desktop/fynlaBrain/March/March Index.md` and:
+Read `/Users/CSJ/Desktop/fynlaBrain/${MONTH_NAME}/${MONTH_NAME} Index.md` and:
 
 1. **Sessions section** — Add or update today's date entry with session summaries
 2. **Update Notes section** — Add wikilinks to any new files in today's update folder
 3. **Git history link** — Update the commit count in the header
 
+If the month index doesn't exist yet (new month), create it following the pattern from previous months.
+
 ### 5e: Update Home.md
 
 Update `/Users/CSJ/Desktop/fynlaBrain/Home.md`:
 - Git history total commit count
-- March 2026 row in the Git History table
+- Current month row in the Git History table
 - Any new reports
 
 ---
@@ -329,12 +336,12 @@ Structure:
 # Already at CSJTODO.md
 
 # 2. Target update folder in project
-mkdir -p "March/$TARGET_FOLDER"
-cp CSJTODO.md "March/$TARGET_FOLDER/CSJTODO.md"
+mkdir -p "$TARGET_MONTH/$TARGET_FOLDER"
+cp CSJTODO.md "$TARGET_MONTH/$TARGET_FOLDER/CSJTODO.md"
 
 # 3. Vault
-mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/$TARGET_FOLDER"
-cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/March/$TARGET_FOLDER/CSJTODO.md"
+mkdir -p "/Users/CSJ/Desktop/fynlaBrain/$TARGET_MONTH/$TARGET_FOLDER"
+cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/$TARGET_MONTH/$TARGET_FOLDER/CSJTODO.md"
 ```
 
 ### 6f: Final commit for CSJTODO + vault sync docs
@@ -342,7 +349,7 @@ cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/March/$TARGET_FOLDER/CSJTODO.md"
 If the CSJTODO or any deploy notes were created/updated, commit and push them:
 
 ```bash
-git add CSJTODO.md March/March*Updates/*.md
+git add CSJTODO.md ${MONTH_NAME}/${MONTH_NAME}*Updates/*.md
 git commit -m "$(cat <<'EOF'
 docs: session end — CSJTODO handover + update notes
 
@@ -373,20 +380,20 @@ Present a clean wrap-up:
 - [N] issues found ([Y] critical, [Z] warnings) — [fixed/deferred]
 
 ### Deploy Status
-- [deployed / deploy notes at March/MarchXXUpdates/deploy.md / nothing to deploy]
+- [deployed / deploy notes at [Month]/[Month][DD]Updates/deploy.md / nothing to deploy]
 
 ### Vault Sync
 - [N] files synced to fynlaBrain
 - Git history updated ([N] commits today)
-- March Index updated
+- [Month] Index updated
 
 ### Outstanding for Next Session
 - [top items from CSJTODO.md, or "Clean slate"]
 
 ### CSJTODO saved to
 - `CSJTODO.md` (project root)
-- `March/[TARGET_FOLDER]/CSJTODO.md`
-- `/Users/CSJ/Desktop/fynlaBrain/March/[TARGET_FOLDER]/CSJTODO.md`
+- `[Month]/[TARGET_FOLDER]/CSJTODO.md`
+- `/Users/CSJ/Desktop/fynlaBrain/[Month]/[TARGET_FOLDER]/CSJTODO.md`
 ```
 
 ---
