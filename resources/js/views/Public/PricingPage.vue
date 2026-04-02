@@ -47,7 +47,7 @@
         <div class="flex justify-center mb-10">
           <div class="bg-gradient-to-r from-raspberry-500 to-violet-500 rounded-xl px-8 py-4 text-center shadow-lg">
             <p class="text-xl sm:text-2xl font-bold text-white mb-1">Limited Time Offer</p>
-            <p class="text-sm text-white/80">Lock in discounted pricing today &mdash; prices will increase when this offer expires</p>
+            <p class="text-sm text-white/80">Lock in discounted pricing today for your first 12 months &mdash; prices will increase when this offer expires</p>
           </div>
         </div>
 
