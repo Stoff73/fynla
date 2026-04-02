@@ -57,7 +57,18 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 7. **Card text overflow** — global break-word + overflow-hidden fix from session 26.
 8. **Fyn pension prompt** — Personal Allowance reclaim now covers incomes above £125,140 with worked example.
 
-## Browser Verified (localhost)
+## Session 28 — Fyn AI Connection Drop Fix (Deployed, NOT tested)
+
+| File | Change |
+|------|--------|
+| `app/Services/AI/XaiClient.php` | 120s Guzzle timeout (fixes 20s socket timeout killing reasoning models) |
+| `app/Services/Estate/IHTCalculationService.php` | Carbon→string fix on 4 call sites |
+| `resources/js/store/modules/aiChat.js` | Empty response detection |
+| `public/build/` | Frontend rebuild including above |
+
+**Status:** Deployed to production. NOT yet tested. Needs 10+ message Fyn conversation to verify.
+
+## Browser Verified (localhost — session 27)
 
 - [x] Logged in as chris@fynla.org
 - [x] Dashboard recommendations show "Improve Portfolio Diversification", "Add critical illness cover", "Add income protection" (no longer stale "no protection policies")
@@ -66,10 +77,11 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 - [x] ISA Allowance card shows £5,460 of £20,000 (27%) — Stocks & Shares ISA tracked
 - [x] Pension Annual Allowance shows £4,400 of £60,000 (7%)
 
-## Commits (UI branch)
+## Commits
 
+- `4288e29` — fix: Fyn connection drops due to 20s PHP socket timeout (session 28)
+- `09f64a4` — fix: 4 bugs from April 2 bug report (session 27)
 - `2212ba5` — ChrisUserSeeder + pension PA reclaim prompt
 - `2addfdf` — ISA tracking fix, pension tapered tooltip, chat dots removed
 - `6647b46` — Security modals fix + complete chris seeder
 - `4a9e896` — Recommendation cache invalidation observer + frontend re-fetch
-- (uncommitted) — Estate card age gate removed + empty state text
