@@ -31,7 +31,6 @@ Extend the existing `DocumentUploadModal` to accept Excel workbooks (.xlsx, .xls
 - Batch multi-file upload (one file at a time)
 - Automatic recurring imports / sync with platforms
 - DB pension or state pension holdings (they don't have holdings)
-- Property or protection document extraction from Excel
 
 ---
 
@@ -48,8 +47,8 @@ Backend: ExcelParserService converts each sheet to text
     v
 Backend: AIExtractionService.extractFromExcel()
     - Processes each sheet independently (1 AI call per sheet)
-    - AI classifies: investment_holdings | pension_holdings | cash_savings | ignore
-    - AI extracts: account metadata + holdings array (or account fields for cash)
+    - AI classifies: investment_holdings | pension_holdings | cash_savings | property | protection | ignore
+    - AI extracts: account metadata + holdings array (or entity fields for cash/property/protection)
     |
     v
 Backend: Returns per-sheet extraction results to frontend
@@ -143,6 +142,10 @@ Processes each sheet independently. One AI call per sheet.
 
 For `cash_savings` category, `holdings` is empty and `account` contains savings-specific fields (balance, interest_rate, access_type).
 
+For `property` category, `holdings` is empty and `account` contains property fields (address, current_value, property_type, ownership_type, rental_income, mortgage_balance).
+
+For `protection` category, `holdings` is empty and `account` contains policy fields (provider, policy_type, sum_assured, monthly_premium, start_date, term_years, cover_type).
+
 For `ignore` category (Summary, Notes, T&Cs sheets), minimal response — just the classification.
 
 **Sheet classification signals:**
@@ -152,6 +155,8 @@ For `ignore` category (Summary, Notes, T&Cs sheets), minimal response — just t
 | investment_holdings | ISA, GIA, Stocks, Investments, Portfolio, Equities | Ticker, Units, Price, ISIN columns |
 | pension_holdings | SIPP, Pension, Retirement, DC Pension | Same as above + pension context |
 | cash_savings | Cash, Current Account, Savings, Easy Access, Deposit | Balance, Interest Rate, Sort Code |
+| property | Property, Properties, Real Estate, House, Flat | Address, Value, Mortgage, Rental Income |
+| protection | Insurance, Policies, Life Cover, Protection, Critical Illness | Sum Assured, Premium, Policy Number, Cover Type |
 | ignore | Summary, Notes, Cover, Disclaimer, T&Cs, Fees | No financial data rows |
 
 The AI uses both sheet name and content to classify. Content wins over name when they conflict.
@@ -183,6 +188,8 @@ When the AI extracts an account type and provider for a sheet:
 4. If no match → default to "Create new", pre-filled with extracted metadata
 
 For pension sheets: same logic against DCPension records.
+For property sheets: match against Property records by address similarity.
+For protection sheets: match against protection policy records by policy type + provider.
 
 ### 6. DocumentProcessor — new processExcelWorkbook() method
 
@@ -221,7 +228,7 @@ Appears after processing, before confirm. One screen showing all sheets.
 
 **Per sheet row:**
 - Sheet name (from Excel)
-- Detected category badge: "Investment Holdings" / "Pension Holdings" / "Cash & Savings" / "Skip"
+- Detected category badge: "Investment Holdings" / "Pension Holdings" / "Cash & Savings" / "Property" / "Protection" / "Skip"
 - Category override dropdown
 - Account match dropdown: lists existing accounts of that type + "Create new account"
 - Expand to show holdings table
@@ -258,6 +265,8 @@ No new models needed. Uses existing:
 - `InvestmentAccount` — created if "Create new" for investment sheets
 - `DCPension` — created if "Create new" for pension sheets
 - `SavingsAccount` — created if "Create new" for cash sheets
+- `Property` — created if "Create new" for property sheets
+- `LifeInsurancePolicy` / `CriticalIllnessPolicy` / `IncomeProtectionPolicy` — created if "Create new" for protection sheets
 
 No schema changes required. The `DocumentExtraction.extracted_fields` JSON column stores the per-sheet data including holdings arrays.
 
@@ -284,3 +293,5 @@ No schema changes required. The `DocumentExtraction.extracted_fields` JSON colum
 - User overrides auto-matched account → holdings diff recalculates
 - User selects "Create new" → account created with correct type and provider
 - "Not in import" holdings shown but not removed unless user opts in
+- Upload workbook with "Properties" sheet → property records created/matched
+- Upload workbook with "Insurance" sheet → protection policies created/matched by type
