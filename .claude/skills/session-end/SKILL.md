@@ -142,119 +142,23 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 ---
 
-## Step 5: Sync fynlaBrain Obsidian Vault
+## Step 5: Full Vault Sync (MANDATORY)
 
-The vault is at `/Users/CSJ/Desktop/fynlaBrain/` (NOT a git repo — write files directly).
+**Invoke the `/vault-sync` skill.** This is not optional — it handles ALL vault synchronisation:
 
-### 5a: Determine the current month and target folder
+- Codebase metrics update (CLAUDE.md counts)
+- Copy all update notes from `[Month]/[Month][DD]Updates/` to vault
+- Git history (daily commit log + monthly index)
+- Month Index update (session entries + update note wikilinks)
+- Home.md update (commit counts, version)
+- Design guide sync (`fynlaDesignGuide.md` → `fynlaBrain/Design/`)
+- Formatting audit (frontmatter, wikilinks, orphaned files)
+- Cross-link integrity check
+- Memory file audit
 
-```bash
-HOUR=$(date +%H)
-TODAY=$(date +%d)
-MONTH_NAME=$(date +%B)        # e.g. "April"
-MONTH_SHORT=$(date +%b)       # e.g. "Apr"
-YEAR=$(date +%Y)              # e.g. "2026"
+**Do NOT manually sync individual files.** The vault-sync skill is comprehensive and idempotent. Run it once and it handles everything.
 
-if [ "$HOUR" -ge 19 ]; then
-  # After 7pm — CSJTODO goes in NEXT day's folder (next session is tomorrow)
-  TARGET_DAY=$(date -v+1d +%d 2>/dev/null || date -d "+1 day" +%d)
-  TARGET_MONTH=$(date -v+1d +%B 2>/dev/null || date -d "+1 day" +%B)
-else
-  # Before 7pm — CSJTODO goes in today's folder
-  TARGET_DAY=$TODAY
-  TARGET_MONTH=$MONTH_NAME
-fi
-
-TARGET_FOLDER="${TARGET_MONTH}${TARGET_DAY}Updates"
-TODAY_FOLDER="${MONTH_NAME}${TODAY}Updates"
-```
-
-This determines where the CSJTODO handover goes. Session notes and vault updates always go in today's folder.
-
-### 5b: Copy update notes to vault
-
-```bash
-mkdir -p "/Users/CSJ/Desktop/fynlaBrain/$MONTH_NAME/$TODAY_FOLDER"
-
-for file in /Users/CSJ/Desktop/fynla/$MONTH_NAME/$TODAY_FOLDER/*.md; do
-  [ -f "$file" ] || continue
-  filename=$(basename "$file")
-  vault_path="/Users/CSJ/Desktop/fynlaBrain/$MONTH_NAME/$TODAY_FOLDER/$filename"
-  if [ ! -f "$vault_path" ] || ! diff -q "$file" "$vault_path" > /dev/null 2>&1; then
-    cp "$file" "$vault_path"
-    echo "SYNCED: $TODAY_FOLDER/$filename"
-  fi
-done
-```
-
-Also sync subdirectories:
-
-```bash
-find "/Users/CSJ/Desktop/fynla/$MONTH_NAME/$TODAY_FOLDER" -type d -mindepth 1 | while read subdir; do
-  rel_path="${subdir#/Users/CSJ/Desktop/fynla/}"
-  vault_path="/Users/CSJ/Desktop/fynlaBrain/$rel_path"
-  mkdir -p "$vault_path"
-  for file in "$subdir"/*.md; do
-    [ -f "$file" ] || continue
-    filename=$(basename "$file")
-    if [ ! -f "$vault_path/$filename" ] || ! diff -q "$file" "$vault_path/$filename" > /dev/null 2>&1; then
-      cp "$file" "$vault_path/$filename"
-      echo "  SYNCED: $filename"
-    fi
-  done
-done
-```
-
-### 5c: Update git history
-
-Create or update `/Users/CSJ/Desktop/fynlaBrain/Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}$(date +%d).md` with today's commits.
-
-**Format:**
-```markdown
----
-tags:
-  - git-history
-  - [month-short-lowercase]-[year] (e.g. apr-2026)
-date: YYYY-MM-DD
-commits: N
----
-
-# Commits — DD [Month] [Year]
-
-Back to [[Git History/[MonthShort][Year]/[MonthShort][Year] Commits|[Month] [Year] Commits]]
-
-**N commits** — breakdown by type
-
----
-
-| Time | Hash | Type | Message |
-|------|------|------|---------|
-| HH:MM | `abcdef12` | + | feat: description |
-```
-
-Type codes: `+` feat, `~` fix, `D` docs, `^` update/refactor, `T` test, `C` chore, `-` merge/other.
-
-Also update `/Users/CSJ/Desktop/fynlaBrain/Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}${YEAR} Commits.md`:
-- Update total commit count
-- Update type breakdown counts
-- Add/update today's row in the Daily Logs table
-
-### 5d: Update Month Index
-
-Read `/Users/CSJ/Desktop/fynlaBrain/${MONTH_NAME}/${MONTH_NAME} Index.md` and:
-
-1. **Sessions section** — Add or update today's date entry with session summaries
-2. **Update Notes section** — Add wikilinks to any new files in today's update folder
-3. **Git history link** — Update the commit count in the header
-
-If the month index doesn't exist yet (new month), create it following the pattern from previous months.
-
-### 5e: Update Home.md
-
-Update `/Users/CSJ/Desktop/fynlaBrain/Home.md`:
-- Git history total commit count
-- Current month row in the Git History table
-- Any new reports
+If the user has specified a target folder override (e.g., "use today's folder not tomorrow's"), pass that context when invoking the skill.
 
 ---
 
