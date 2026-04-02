@@ -779,7 +779,8 @@
                   <span v-if="pensionStandardPercent < 15" class="text-sm font-bold text-horizon-500">Pension Annual Allowance</span>
                   <span
                     v-if="pensionAllowanceData.isTapered"
-                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 cursor-help"
+                    :title="taperedTooltip"
                   >Tapered</span>
                   <span
                     v-if="pensionAllowanceData.mpaaTriggered"
@@ -1717,6 +1718,15 @@ export default {
     pensionStandardRemaining() {
       if (!this.pensionAllowanceData) return 0;
       return Math.max(0, this.pensionAllowanceData.availableAllowance - this.pensionStandardUsed);
+    },
+
+    taperedTooltip() {
+      if (!this.pensionAllowanceData?.isTapered) return '';
+      const details = this.annualAllowance?.tapering_details;
+      if (details) {
+        return `Your adjusted income of ${this.formatCurrency(details.adjusted_income)} exceeds the threshold, reducing your Annual Allowance by ${this.formatCurrency(details.reduction)} from £60,000 to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
+      }
+      return `Your income exceeds the adjusted income threshold, so your Annual Allowance is reduced to ${this.formatCurrency(this.pensionAllowanceData.availableAllowance)}`;
     },
 
     // Carry forward data (only shown when contributions exceed standard allowance)
