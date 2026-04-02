@@ -525,6 +525,13 @@
             </div>
           </div>
 
+          <!-- Validation Error (shown for all account types) -->
+          <div v-if="isaAllowanceError && !formData.is_isa && !isISAProductType" class="mt-4 p-3 bg-raspberry-50 border border-raspberry-200 rounded-md">
+            <p class="text-sm text-raspberry-800">
+              <strong>Warning:</strong> {{ isaAllowanceError }}
+            </p>
+          </div>
+
           <!-- Form Actions -->
           <div class="mt-6 flex justify-end gap-3">
             <button
@@ -585,14 +592,6 @@ export default {
       type: Object,
       default: null,
     },
-  },
-
-  mounted() {
-    if (this.context !== 'onboarding') {
-      this.$nextTick(() => {
-        this.$el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      });
-    }
   },
 
   data() {

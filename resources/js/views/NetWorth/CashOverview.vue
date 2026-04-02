@@ -299,13 +299,15 @@
     </template>
 
     <!-- Save Account Modal -->
-    <SaveAccountModal
-      v-if="showAccountModal"
-      :account="editingAccount"
-      :default-account-type="defaultAccountType"
-      @save="handleSaveAccount"
-      @close="closeAccountModal"
-    />
+    <Teleport to="body">
+      <SaveAccountModal
+        v-if="showAccountModal"
+        :account="editingAccount"
+        :default-account-type="defaultAccountType"
+        @save="handleSaveAccount"
+        @close="closeAccountModal"
+      />
+    </Teleport>
   </div>
 </template>
 
