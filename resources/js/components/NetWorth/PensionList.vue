@@ -176,7 +176,7 @@
                       <span class="planner-metric-value">{{ formatCurrency(targetIncome) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Projected Net Income</span>
+                      <span class="planner-metric-label">Projected Gross Income</span>
                       <span class="planner-metric-value" :class="projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red'">{{ formatCurrency(projectedNetIncome) }}</span>
                     </div>
                   </div>
@@ -556,8 +556,12 @@ export default {
     },
 
     projectedNetIncome() {
-      // Get net income from retirement income planner (after tax)
-      return this.retirementIncome?.tax_breakdown?.net_income || this.targetIncome;
+      // Use gross income from income drawdown projection (first year: DC + DB + State Pension)
+      const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
+      if (firstYear) {
+        return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      }
+      return this.targetIncome;
     },
 
     projectedCapitalValue() {
