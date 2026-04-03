@@ -180,9 +180,6 @@
                       <span class="planner-metric-value" :class="projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red'">{{ formatCurrency(projectedNetIncome) }}</span>
                     </div>
                   </div>
-                  <div class="planner-card-cta">
-                    <span class="view-detail-link">View income breakdown including all pensions and assets <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 inline"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></span>
-                  </div>
                 </div>
 
                 <!-- Capital Adequacy Planner Card -->
