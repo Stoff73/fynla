@@ -1,35 +1,32 @@
 # CSJTODO — Fynla
 
-*Last updated: 2 April 2026 — session 31*
-*Previous session: 2 April 2026 session 30*
+*Last updated: 3 April 2026 — session 32*
+*Previous session: 2 April 2026 session 31*
 
 ---
 
-## Session 31 (2 April) — Production Bug Testing (Incomplete)
+## Session 32 (3 April) — Cache Fix + Onboarding Bug Fix + UX Improvements
 
 ### Completed This Session
-- [x] **ChrisUserSeeder fix** — Added missing `annual_income` (55000) and `monthly_expenditure` (2500) to ProtectionProfile in ChrisUserSeeder. `db:seed` was failing.
-- [x] **Database seeded** — All seeders running clean.
-
-### NOT Done — Attempted but Incomplete
-- [ ] **Production testing of bug fix report** — Started testing `bugFixReport.md` bugs on fynla.org. Tested Bug 1 (retirement layout at 1118px) — confirmed the bug is STILL PRESENT on production because the `bugs` branch has NOT been merged/deployed. The 1024px breakpoint fix is deployed but the `min-width: 0` fix is not fully effective at 1118px. Session ended before remaining bugs could be tested.
-
-### Context for Next Session
-**CRITICAL — DEPLOY THE BUGS BRANCH BEFORE TESTING:**
-The `bugs` branch has 10 commits ahead of main with 9 bug fixes + dynamic tax year overhaul. These fixes are NOT on production yet. Before testing on production, the branch must be:
-1. PR + merge to main
-2. Build with `./deploy/fynla-org/build.sh`
-3. Deploy using `April/April2Updates/bugIssueDeploy.md`
-4. THEN test on production
-
-**Bug 1 (retirement layout at 1118px)** — The "Other Assets" cards still overflow at 1118px viewport even with the current fix. The `min-width: 0` helps but the "Joint General Investment Account" card text is cut off at the right edge. May need additional CSS work (e.g., `overflow: hidden` or `text-overflow: ellipsis` on card text, or widening the 1024px breakpoint to 1200px).
-
-**Tax year deadline: April 6 (4 days away).** The dynamic tax year overhaul on the bugs branch must be deployed before then or all tax year references will show stale "2025/26".
+- [x] **FynChat branch merged** — PR #183, Fyn chat panel floats above dashboard
+- [x] **Cache fix (PR #184)** — Created centralised `CacheInvalidationService`, removed all `Cache::tags()` calls (silently failing on production file driver), extended all TTLs to 24 hours with immediate invalidation on data change. 34 PHP files changed. Deploy guide: `April/April3Updates/deployCacheFix.md`
+- [x] **Onboarding expenditure 500 fix (PR #185)** — `ExpenditureForm.vue` was sending `expenditure_entry_mode: 'detailed'` but DB enum is `('simple','category')`. Fixed to `'category'`.
+- [x] **Onboarding UX improvements (PR #185)** — Step reorder (assets/debts before income/spending), Continue cycles through asset tabs, Family "Did you know" updated with IHT spouse transfer info, DC pension: hidden Expected Return during onboarding + renamed Planned Access Age to Retirement Age, info icons on prefilled fields, scroll-to-top on all form opens and tab transitions
+- [x] **Browser tested** — Full onboarding flow, all asset forms (pension, property, investment, savings), scroll-to-top verified with Playwright scrollY measurements, 0 console errors
+- [x] **Production build** — `public/build/` ready for both cache fix and onboarding changes
 
 ### Deploy Status
-- **Bugs branch (NOT merged to main):** 10 commits ahead — 9 bug fixes + dynamic tax year overhaul + ChrisUserSeeder fix
-- **Deploy guide:** `April/April2Updates/bugIssueDeploy.md`
-- **Files to upload:** `public/build/` + 3 PHP files + `database/seeders/ChrisUserSeeder.php`
+- **Cache fix (PR #184):** 34 PHP files + no frontend build. Deploy guide: `April/April3Updates/deployCacheFix.md`. Needs `mkdir -p app/Services/Cache` on server.
+- **Onboarding fix + UX (PR #185):** 9 frontend files, build required (done). Deploy guide: `April/April3Updates/deployOnboarding.md`. No PHP changes.
+- **Both builds done** — `public/build/` contains both sets of changes. Single upload covers everything.
+
+### Context for Next Session
+Both PRs are merged to main but NOT deployed to production yet. To deploy:
+1. Upload the 34 PHP files from cache fix (see `deployCacheFix.md`)
+2. Upload `public/build/` (covers both cache fix and onboarding changes)
+3. SSH: `mkdir -p app/Services/Cache` then clear caches
+
+**Tax year deadline: April 6 (3 days away).** The bugs branch (PR #182) was already merged — check if it has been deployed. If not, deploy guide at `April/April2Updates/bugIssueDeploy.md`.
 
 ---
 
