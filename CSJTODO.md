@@ -1,32 +1,29 @@
 # CSJTODO — Fynla
 
-*Last updated: 3 April 2026 — session 32*
-*Previous session: 2 April 2026 session 31*
+*Last updated: 3 April 2026 — session 33*
+*Previous session: 3 April 2026 session 32*
 
 ---
 
-## Session 32 (3 April) — Cache Fix + Onboarding Bug Fix + UX Improvements
+## Session 33 (3 April) — Logic Guard PR Check + Estate/Retirement Bug Fixes
 
 ### Completed This Session
-- [x] **FynChat branch merged** — PR #183, Fyn chat panel floats above dashboard
-- [x] **Cache fix (PR #184)** — Created centralised `CacheInvalidationService`, removed all `Cache::tags()` calls (silently failing on production file driver), extended all TTLs to 24 hours with immediate invalidation on data change. 34 PHP files changed. Deploy guide: `April/April3Updates/deployCacheFix.md`
-- [x] **Onboarding expenditure 500 fix (PR #185)** — `ExpenditureForm.vue` was sending `expenditure_entry_mode: 'detailed'` but DB enum is `('simple','category')`. Fixed to `'category'`.
-- [x] **Onboarding UX improvements (PR #185)** — Step reorder (assets/debts before income/spending), Continue cycles through asset tabs, Family "Did you know" updated with IHT spouse transfer info, DC pension: hidden Expected Return during onboarding + renamed Planned Access Age to Retirement Age, info icons on prefilled fields, scroll-to-top on all form opens and tab transitions
-- [x] **Browser tested** — Full onboarding flow, all asset forms (pension, property, investment, savings), scroll-to-top verified with Playwright scrollY measurements, 0 console errors
-- [x] **Production build** — `public/build/` ready for both cache fix and onboarding changes
+- [x] **Logic Guard PR check (PR #186)** — GitHub Actions workflow that blocks PRs from Phailanx when they modify logic in protected dashboard/onboarding files. Posts detailed violation report. Override with `logic-change-approved` label. Deployed to main.
+- [x] **Estate IHT projection fix (PR #187)** — Fixed unrealistic future value numbers (entrepreneur £250M → £7.2M, chris £36M → £4.3M). Root cause: `getMonteCarloAnnualRate()` reverse-engineered a contribution-inflated growth rate. Now uses Monte Carlo p20 directly + inflation-adjusted income/expenses for cash. Life events injected at specific ages. Cash can go negative.
+- [x] **Retirement income consistency (PR #187)** — All three retirement views now show consistent gross income (£40,415) and target (£31,688) from single source (`RequiredCapitalCalculator`). Removed duplicate `getTargetRetirementIncome()` from `RetirementProjectionService`. Dashboard uses backend data instead of hardcoded 4% SWR.
+- [x] **Retirement UI overhaul (PR #187)** — Income Planner and Capital Planner tabs: header card pattern matching pension detail view with summary metrics inside. Removed blue "Agentic AI" dev banner. Income sources moved behind chart toggle. Fund depletion changed to stacked bar chart. Cleaned up labels and removed redundant elements.
+- [x] **Browser tested** — All views verified in Playwright (dashboard, retirement page, income tab, capital tab). 0 console errors from our changes.
+- [x] **Production build** — `public/build/` ready. Both PRs merged and deployed.
 
 ### Deploy Status
-- **Cache fix (PR #184):** 34 PHP files + no frontend build. Deploy guide: `April/April3Updates/deployCacheFix.md`. Needs `mkdir -p app/Services/Cache` on server.
-- **Onboarding fix + UX (PR #185):** 9 frontend files, build required (done). Deploy guide: `April/April3Updates/deployOnboarding.md`. No PHP changes.
-- **Both builds done** — `public/build/` contains both sets of changes. Single upload covers everything.
+- **Logic Guard (PR #186):** Deployed — `.github/workflows/logic-guard.yml` (no server upload needed, GitHub Actions only)
+- **Estate + Retirement fixes (PR #187):** Deployed — 2 PHP files + 5 Vue files + build. Deploy guide: `April/April3Updates/deployPensionFix.md`
+- **Previous session deploys (PRs #183-185):** Check if cache fix and onboarding changes were uploaded to production. Deploy guides at `deployCacheFix.md` and `deployOnboarding.md`.
 
 ### Context for Next Session
-Both PRs are merged to main but NOT deployed to production yet. To deploy:
-1. Upload the 34 PHP files from cache fix (see `deployCacheFix.md`)
-2. Upload `public/build/` (covers both cache fix and onboarding changes)
-3. SSH: `mkdir -p app/Services/Cache` then clear caches
+All PRs merged to main. Branch protection ruleset on main requires `logic-guard` status check. The user needs to ensure the ruleset targets `main` branch (Settings > Rules > Rulesets > target branches > include `main`).
 
-**Tax year deadline: April 6 (3 days away).** The bugs branch (PR #182) was already merged — check if it has been deployed. If not, deploy guide at `April/April2Updates/bugIssueDeploy.md`.
+**Tax year deadline: April 6 (3 days away).** 2025/26 is the active tax year in the database. The 2026/27 tax year begins April 6.
 
 ---
 
@@ -46,10 +43,12 @@ Both PRs are merged to main but NOT deployed to production yet. To deploy:
 - [ ] NPM vulnerabilities (9 high CVEs)
 - [ ] Off-palette Tailwind in Risk module
 - [ ] Vuex state bloat
+- [ ] Clean up dead methods in IHTCalculationService (projectCashAndInvestmentsIntegrated, getMonteCarloAnnualRate, getInvestmentAccountsArray — no longer called)
 
 ## Known Issues
 - [ ] Bug 1: Retirement "Other Assets" cards overflow at 1118px (needs CSS refinement beyond min-width:0)
-- [ ] Estate IHT Age 80 projections show unrealistic numbers (£195M)
+- [x] ~~Estate IHT Age 80 projections show unrealistic numbers (£195M)~~ — Fixed session 33
 - [ ] DB pension field mapping mismatch
 - [ ] Expenditure form fill doesn't animate
 - [ ] property_sale life event creates property record (double navigation)
+- [ ] Untracked files in repo root: `HasAiChatArchive.php`, `April/April3Updates/*.md` docs, `docs/superpowers/` specs/plans
