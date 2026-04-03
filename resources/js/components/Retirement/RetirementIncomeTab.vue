@@ -139,13 +139,13 @@
           </p>
         </div>
 
-        <!-- Net Income Card (clickable for breakdown) -->
+        <!-- Gross Income Card (clickable for breakdown) -->
         <div :class="['summary-card', netIncomeClass, 'cursor-pointer']" @click="showIncomeBreakdown = !showIncomeBreakdown">
-          <p class="summary-label">Projected Net Income
+          <p class="summary-label">Projected Gross Income
             <svg class="inline w-3.5 h-3.5 ml-1 text-neutral-400 transition-transform" :class="{ 'rotate-180': showIncomeBreakdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
           </p>
-          <p class="summary-value">{{ formatCurrency(firstYearNetIncome) }}</p>
-          <p class="summary-subtitle">After tax ({{ formatPercent(firstYearEffectiveRate) }} effective rate)</p>
+          <p class="summary-value">{{ formatCurrency(firstYearGrossIncome) }}</p>
+          <p class="summary-subtitle">Before tax ({{ formatPercent(firstYearEffectiveRate) }} effective rate)</p>
           <div v-if="showIncomeBreakdown && firstYearBreakdown" class="mt-3 pt-3 border-t border-gray-200 text-left space-y-1.5">
             <div v-if="firstYearBreakdown.dcWithdrawal > 0" class="flex justify-between text-xs">
               <span class="text-neutral-500">Defined Contribution withdrawals</span>
@@ -619,7 +619,7 @@ export default {
 
     netIncomeClass() {
       if (this.fundProjections.length === 0) return '';
-      const netIncome = this.firstYearNetIncome;
+      const netIncome = this.firstYearGrossIncome;
       const target = this.displayTargetIncome;
       if (netIncome >= target) return 'green';
       if (netIncome >= target * 0.9) return 'yellow';
