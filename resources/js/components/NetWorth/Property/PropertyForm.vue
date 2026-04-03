@@ -1672,7 +1672,10 @@ export default {
     scrollToTop() {
       // Scroll the form content to the top when changing steps
       this.$nextTick(() => {
-        if (this.$refs.formContent) {
+        if (this.context === 'onboarding') {
+          // In onboarding, the form is inline — window is the scroll container
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (this.$refs.formContent) {
           this.$refs.formContent.scrollTop = 0;
         }
       });
