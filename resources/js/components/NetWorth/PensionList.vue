@@ -176,12 +176,9 @@
                       <span class="planner-metric-value">{{ formatCurrency(targetIncome) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Projected Net Income</span>
+                      <span class="planner-metric-label">Projected Gross Income</span>
                       <span class="planner-metric-value" :class="projectedNetIncome >= targetIncome * 0.9 ? 'green' : 'red'">{{ formatCurrency(projectedNetIncome) }}</span>
                     </div>
-                  </div>
-                  <div class="planner-card-cta">
-                    <span class="view-detail-link">View income breakdown including all pensions and assets <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 inline"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></span>
                   </div>
                 </div>
 
@@ -195,18 +192,14 @@
                     </div>
                     <h3 class="planner-card-title">Am I saving enough for retirement?</h3>
                   </div>
-                  <div class="planner-card-metrics three-col">
+                  <div class="planner-card-metrics">
                     <div class="planner-metric">
-                      <span class="planner-metric-label">You will need about:</span>
+                      <span class="planner-metric-label">Required Capital</span>
                       <span class="planner-metric-value">{{ formatCurrency(requiredCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Current potential growth:</span>
+                      <span class="planner-metric-label">Projected Capital</span>
                       <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
-                    </div>
-                    <div class="planner-metric">
-                      <span class="planner-metric-label">Annual Pension Allowance</span>
-                      <span class="planner-metric-value">{{ formatCurrency(allowanceUsedThisYear) }}</span>
                     </div>
                   </div>
                 </div>
@@ -556,8 +549,12 @@ export default {
     },
 
     projectedNetIncome() {
-      // Get net income from retirement income planner (after tax)
-      return this.retirementIncome?.tax_breakdown?.net_income || this.targetIncome;
+      // Use gross income from income drawdown projection (first year: DC + DB + State Pension)
+      const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
+      if (firstYear) {
+        return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
+      }
+      return this.targetIncome;
     },
 
     projectedCapitalValue() {

@@ -282,21 +282,27 @@ class IHTCalculationService
 
         // Get estate planning assumptions
         $assumptions = $this->assumptionsService->getEstateAssumptions($user);
+        $inflationRate = ($assumptions['inflation_rate'] ?? 2.0) / 100;
 
-        // Project cash and investments together using integrated drawdown model
-        // When cash goes negative, deficit is drawn from investments BEFORE growth
-        $integratedProjection = $this->projectCashAndInvestmentsIntegrated(
+        // Project investments using Monte Carlo p20 directly at death age
+        // No rate extraction or recompounding — use the simulation result as-is
+        $projectedInvestments = $this->projectInvestmentsMonteCarlo(
+            $user,
+            $spouse,
+            $yearsUntilDeath,
+            $dataSharingEnabled
+        );
+
+        // Project cash: year-by-year income - expenses, both inflation-adjusted, with life events
+        $projectedCash = $this->projectCashWithInflation(
             $user,
             $spouse,
             $currentAge,
             $retirementAge,
             $estimatedAgeAtDeath,
-            $assumptions,
+            $inflationRate,
             $dataSharingEnabled
         );
-
-        $projectedCash = $integratedProjection['projected_cash'];
-        $projectedInvestments = $integratedProjection['projected_investments'];
 
         $projectedProperties = $this->projectProperties(
             $user,
@@ -430,6 +436,63 @@ class IHTCalculationService
         // Cash can go negative (implies drawing from investments) but we return 0 minimum
         // The negative is implicitly handled by reduced investment value
         return max(0, $projectedCash);
+    }
+
+    /**
+     * Project cash balance year-by-year with inflation-adjusted income/expenses and life events.
+     *
+     * For each year from current age to death:
+     * - Pre-retirement: employment income - current expenses (both inflation-adjusted)
+     * - Post-retirement: retirement income - retirement expenses (both inflation-adjusted)
+     * - Life events injected at their specific ages
+     * - Cash can go negative to give an honest estate picture
+     */
+    private function projectCashWithInflation(
+        User $user,
+        ?User $spouse,
+        int $currentAge,
+        int $retirementAge,
+        int $deathAge,
+        float $inflationRate,
+        bool $dataSharingEnabled
+    ): float {
+        // Starting cash balance from savings accounts
+        $cashBalance = $this->getCurrentCashValue($user);
+        if ($dataSharingEnabled && $spouse) {
+            $cashBalance += $this->getCurrentCashValue($spouse);
+        }
+
+        // Base income and expenses (year 0 values, before inflation)
+        $basePreRetirementIncome = $this->getTotalAnnualIncome($user, $spouse, $dataSharingEnabled);
+        $basePreRetirementExpenses = $this->getCurrentAnnualExpenses($user, $spouse, $dataSharingEnabled);
+        $baseRetirementExpenses = $this->getRetirementExpenses($user, $spouse, $dataSharingEnabled);
+
+        // Life event impacts keyed by age
+        $lifeEventImpacts = $this->getLifeEventImpactsByAge($user, $spouse, $dataSharingEnabled);
+
+        // Year-by-year projection
+        for ($age = $currentAge; $age < $deathAge; $age++) {
+            $yearsFromNow = $age - $currentAge;
+            $inflationMultiplier = pow(1 + $inflationRate, $yearsFromNow);
+
+            if ($age < $retirementAge) {
+                $income = $basePreRetirementIncome * $inflationMultiplier;
+                $expenses = $basePreRetirementExpenses * $inflationMultiplier;
+            } else {
+                $income = $this->getRetirementIncome($user, $spouse, $age, $dataSharingEnabled) * $inflationMultiplier;
+                $expenses = $baseRetirementExpenses * $inflationMultiplier;
+            }
+
+            $surplus = $income - $expenses;
+
+            // Inject life events at their specific ages
+            $surplus += $lifeEventImpacts[$age] ?? 0;
+
+            $cashBalance += $surplus;
+        }
+
+        // Cash can go negative — gives honest estate picture so line items sum to total
+        return $cashBalance;
     }
 
     /**
