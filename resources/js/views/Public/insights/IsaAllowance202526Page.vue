@@ -4,7 +4,7 @@
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
-          ISA Allowance 2025/26: Make the Most of Your &pound;20,000
+          ISA Allowance {{ currentTaxYear }}: Make the Most of Your &pound;20,000
         </h1>
       </div>
     </div>
@@ -17,7 +17,7 @@
           <router-link to="/insights" class="text-sm text-raspberry-500 hover:underline font-medium">&larr; Back to Insights</router-link>
           <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-50 text-spring-700">Savings & ISA</span>
         </div>
-        <p class="text-xs text-neutral-400 mb-8">Published April 2025 &middot; Updated for 2025/26 tax year</p>
+        <p class="text-xs text-neutral-400 mb-8">Published April 2025 &middot; Updated for {{ currentTaxYear }} tax year</p>
 
         <article class="space-y-10">
 
@@ -25,7 +25,7 @@
           <div>
             <h2 class="text-lg font-bold text-horizon-500 mb-3">The Basics</h2>
             <p class="text-sm text-neutral-500 leading-relaxed">
-              The ISA allowance for the 2025/26 tax year (6 April 2025 to 5 April 2026) is &pound;20,000. This is unchanged from 2024/25. You can split it across different ISA types, but the total must not exceed &pound;20,000.
+              The ISA allowance for the {{ currentTaxYear }} tax year (6 April 2025 to 5 April 2026) is &pound;20,000. This is unchanged from 2024/25. You can split it across different ISA types, but the total must not exceed &pound;20,000.
             </p>
           </div>
 
@@ -152,13 +152,20 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'IsaAllowance202526Page',
   components: { PublicLayout },
 
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+  },
+
   mounted() {
-    document.title = 'ISA Allowance 2025/26 \u2014 What You Need to Know | Fynla';
+    document.title = `ISA Allowance ${this.currentTaxYear} \u2014 What You Need to Know | Fynla`;
   },
 };
 </script>

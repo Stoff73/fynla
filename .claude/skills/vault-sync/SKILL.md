@@ -1,6 +1,6 @@
 ---
 name: vault-sync
-description: Sync project documentation to the fynlaBrain Obsidian vault, update version numbers, git history, March Index, Home.md, and audit all vault formatting/connections. Use when the user says "sync vault", "update vault", "update fynlaBrain", "sync docs", or at session end after significant work.
+description: Sync project documentation to the fynlaBrain Obsidian vault, update version numbers, git history, ${MONTH_NAME} Index, Home.md, and audit all vault formatting/connections. Use when the user says "sync vault", "update vault", "update fynlaBrain", "sync docs", or at session end after significant work.
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,7 @@ Sync all project documentation to the fynlaBrain Obsidian vault, then verify eve
 
 **Vault location:** `/Users/CSJ/Desktop/fynlaBrain/` (NOT a git repo — write files directly)
 **Obsidian config:** `/Users/CSJ/Desktop/fynlaBrain/.obsidian/` (stock config, no custom plugins)
-**Source docs:** `/Users/CSJ/Desktop/fynla/March/March[DD]Updates/`
+**Source docs:** `/Users/CSJ/Desktop/fynla/${MONTH_NAME}/${MONTH_NAME}[DD]Updates/`
 
 ---
 
@@ -37,15 +37,28 @@ If any counts changed vs CLAUDE.md metrics table, update them. Also check README
 
 ## Phase 2: Sync Update Notes to Vault
 
+### Dynamic Variables
+
+First, determine the current month dynamically:
+
+```bash
+MONTH_NAME=$(date +%B)        # e.g. "April"
+MONTH_SHORT=$(date +%b)       # e.g. "Apr"
+YEAR=$(date +%Y)              # e.g. "2026"
+TODAY=$(date +%d)             # e.g. "02"
+```
+
+Use these variables throughout. **NEVER hardcode month names.**
+
 ### 2a: Identify all unsynced files
 
-Compare the local `March/March[DD]Updates/` folders against the vault:
+Compare the local `${MONTH_NAME}/${MONTH_NAME}[DD]Updates/` folders against the vault:
 
 ```bash
 # For each date folder in local repo
-for dir in /Users/CSJ/Desktop/fynla/March/March*Updates; do
+for dir in /Users/CSJ/Desktop/fynla/${MONTH_NAME}/${MONTH_NAME}*Updates; do
   folder=$(basename "$dir")
-  vault_dir="/Users/CSJ/Desktop/fynlaBrain/March/$folder"
+  vault_dir="/Users/CSJ/Desktop/fynlaBrain/${MONTH_NAME}/$folder"
 
   if [ -d "$dir" ]; then
     for file in "$dir"/*.md; do
@@ -74,7 +87,7 @@ For each file identified above:
 Some update folders have subdirectories (e.g. `testFix/`, `plan/`). Sync those too:
 
 ```bash
-for dir in /Users/CSJ/Desktop/fynla/March/March*Updates; do
+for dir in /Users/CSJ/Desktop/fynla/${MONTH_NAME}/${MONTH_NAME}*Updates; do
   find "$dir" -type d -mindepth 1 | while read subdir; do
     rel_path="${subdir#/Users/CSJ/Desktop/fynla/}"
     vault_path="/Users/CSJ/Desktop/fynlaBrain/$rel_path"
@@ -109,7 +122,7 @@ COMMITS=$(git log --oneline --since="$(date +%Y-%m-%d) 00:00:00" --until="$(date
 COMMIT_COUNT=$(echo "$COMMITS" | grep -c '^' 2>/dev/null || echo 0)
 ```
 
-Create/update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar${TODAY}.md` following this exact format:
+Create/update `/Users/CSJ/Desktop/fynlaBrain/Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}${TODAY}.md` following this exact format:
 
 ```markdown
 ---
@@ -120,9 +133,9 @@ date: [TODAY_FULL]
 commits: [COMMIT_COUNT]
 ---
 
-# Commits — [DAY] March 2026
+# Commits — [DAY] ${MONTH_NAME} ${YEAR}
 
-Back to [[Git History/Mar2026/Mar2026 Commits|March 2026 Commits]]
+Back to [[Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}${YEAR} Commits|${MONTH_NAME} ${YEAR} Commits]]
 
 **[N] commits** — [breakdown by type: N feat, N fix, N docs, etc.]
 
@@ -154,16 +167,16 @@ git log --format="%H %ai %s" --since="$(date +%Y-%m-%d) 00:00:00" --until="$(dat
 
 ### 3b: Update monthly commits index
 
-Read and update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar2026 Commits.md`:
+Read and update `/Users/CSJ/Desktop/fynlaBrain/Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}${YEAR} Commits.md`:
 - Update total commit count
 - Update the commit type breakdown
-- Add/update today's row in the Daily Logs table: `| [[Mar${TODAY}]] | [N] | [highlight] |`
+- Add/update today's row in the Daily Logs table: `| [[${MONTH_SHORT}${TODAY}]] | [N] | [highlight] |`
 
 ### 3c: Update Home.md git history count
 
-Update the March 2026 row in the Git History table:
+Update the ${MONTH_NAME} ${YEAR} row in the Git History table:
 ```
-| [[Git History/Mar2026/Mar2026 Commits|March 2026]] | [NEW_TOTAL] | [DAYS] |
+| [[Git History/${MONTH_SHORT}${YEAR}/${MONTH_SHORT}${YEAR} Commits|${MONTH_NAME} ${YEAR}]] | [NEW_TOTAL] | [DAYS] |
 ```
 
 ---
@@ -208,21 +221,21 @@ Scan synced files for broken patterns:
 
 ```bash
 # Find all wikilinks in recently synced files
-grep -oP '\[\[([^\]|]+)' /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/*.md 2>/dev/null | sort -u
+grep -oP '\[\[([^\]|]+)' /Users/CSJ/Desktop/fynlaBrain/${MONTH_NAME}/${MONTH_NAME}*Updates/*.md 2>/dev/null | sort -u
 ```
 
 ### 4c: No orphaned files
 
-Every file in an update folder should be linked from the March Index. Check:
+Every file in an update folder should be linked from the ${MONTH_NAME} Index. Check:
 
 ```bash
 # Files in vault update folders
-for folder in /Users/CSJ/Desktop/fynlaBrain/March/March*Updates; do
+for folder in /Users/CSJ/Desktop/fynlaBrain/${MONTH_NAME}/${MONTH_NAME}*Updates; do
   foldername=$(basename "$folder")
   for file in "$folder"/*.md; do
     [ -f "$file" ] || continue
     filename=$(basename "$file" .md)
-    if ! grep -q "\[\[$filename\]\]" "/Users/CSJ/Desktop/fynlaBrain/March/March Index.md" 2>/dev/null; then
+    if ! grep -q "\[\[$filename\]\]" "/Users/CSJ/Desktop/fynlaBrain/${MONTH_NAME}/${MONTH_NAME} Index.md" 2>/dev/null; then
       echo "UNLINKED: $foldername/$filename"
     fi
   done
@@ -231,26 +244,26 @@ done
 
 ---
 
-## Phase 5: Update March Index
+## Phase 5: Update ${MONTH_NAME} Index
 
 ### 5a: Add session entry
 
 If there isn't already a session entry for today under `## Sessions`, add one:
 
 ```markdown
-### March[DD] ([N] sessions — [N] commits)
+### ${MONTH_NAME}[DD] ([N] sessions — [N] commits)
 
 Session [N]: [Brief summary of what was done — features, fixes, deploys]
 ```
 
-Follow the style of existing entries (see March30, March27, etc.).
+Follow the style of existing entries (see recent entries in the month index, etc.).
 
 ### 5b: Add update note links
 
 Under `## Update Notes`, add/update the section for today's update folder:
 
 ```markdown
-### March[DD]Updates
+### ${MONTH_NAME}[DD]Updates
 
 - [[filename1]] — Brief one-line description
 - [[filename2]] — Brief one-line description
@@ -267,7 +280,7 @@ Under `## Update Notes`, add/update the section for today's update folder:
 For the section just added, verify every `[[wikilink]]` target exists as a file:
 
 ```bash
-# Extract wikilinks from the March[DD]Updates section
+# Extract wikilinks from the ${MONTH_NAME}[DD]Updates section
 # Check each one exists in the vault
 ```
 
@@ -278,7 +291,7 @@ For the section just added, verify every `[[wikilink]]` target exists as a file:
 Read `/Users/CSJ/Desktop/fynlaBrain/Home.md` and check:
 
 1. **Version number** — matches the current deployed version in CLAUDE.md
-2. **Git History table** — March 2026 commit count and day count are current
+2. **Git History table** — ${MONTH_NAME} ${YEAR} commit count and day count are current
 3. **Reports section** — any new reports from this session are linked
 4. **Current State docs** — if a module's state changed significantly, note it
 
@@ -291,8 +304,8 @@ Only update what actually changed.
 ### 7a: Check bidirectional links
 
 For key documents (deploy guides, code reviews, session summaries), verify:
-- The March Index links TO the file
-- The file links BACK to `[[March Index]]` or `[[Home]]` where appropriate
+- The ${MONTH_NAME} Index links TO the file
+- The file links BACK to `[[${MONTH_NAME} Index]]` or `[[Home]]` where appropriate
 
 ### 7b: Architecture cross-references
 
@@ -359,9 +372,9 @@ Based on this session's work, should any new memories be saved? Only suggest if 
 
 ### Git History
 - Mar[DD].md: [created/updated] ([N] commits)
-- Monthly index: updated ([TOTAL] total March commits)
+- Monthly index: updated ([TOTAL] total ${MONTH_NAME} commits)
 
-### March Index
+### ${MONTH_NAME} Index
 - Session entry: [added/updated]
 - Update notes: [N] wikilinks [added/verified]
 
@@ -392,4 +405,4 @@ Based on this session's work, should any new memories be saved? Only suggest if 
 - This skill is idempotent — safe to run multiple times
 - If nothing changed, say so — don't create fake updates
 - Run the formatting checks on ALL synced files, not just new ones
-- The March Index format has evolved — use the style from March25+ entries (session summaries + update note sections)
+- The ${MONTH_NAME} Index format has evolved — use the style from recent entries (session summaries + update note sections)

@@ -542,6 +542,7 @@ import savingsService from '@/services/savingsService';
 import retirementService from '@/services/retirementService';
 import userProfileService from '@/services/userProfileService';
 import { formatCurrency } from '@/utils/currency';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 import logger from '@/utils/logger';
 export default {
@@ -564,6 +565,7 @@ export default {
 
   setup(props, { emit }) {
     const store = useStore();
+    const currentTaxYear = getCurrentTaxYear();
 
     // Read which tabs to show from life stage config
     const assetsConfig = computed(() => store.getters['lifeStage/formFields']?.('assets'));
@@ -577,7 +579,7 @@ export default {
       'cash-list': {
         didYouKnow: 'A six-month emergency fund is the single most important financial protection you can have. It means a redundancy, car breakdown, or boiler failure does not derail your longer-term plans.',
         whyWeAsk: 'Knowing your savings lets us calculate exactly how many months of expenses you currently have covered, track progress towards your emergency fund target, and flag whether you are earning the best available interest rate.',
-        quickStat: { value: '£20,000', label: 'Your annual ISA allowance (2025/26)' },
+        quickStat: { value: '£20,000', label: `Your annual ISA allowance (${currentTaxYear})` },
       },
       'cash-form': {
         didYouKnow: 'The best easy access savings accounts currently pay over 4.5% AER. If your money is sitting in a current account earning 0%, moving it could earn you hundreds per year.',
@@ -587,7 +589,7 @@ export default {
       'retirement-list': {
         didYouKnow: 'Auto-enrolment means your employer must contribute to your pension if you earn above £10,000 per year. The minimum total contribution is 8% of qualifying earnings. Opting out is almost always a mistake — you are walking away from free money.',
         whyWeAsk: 'Your pension details let us project your retirement income, assess whether you are on track, and calculate how increasing contributions now compounds into significant extra income in retirement.',
-        quickStat: { value: '£60,000', label: 'Annual pension allowance (2025/26)' },
+        quickStat: { value: '£60,000', label: `Annual pension allowance (${currentTaxYear})` },
       },
       'retirement-form': {
         didYouKnow: 'Every £1 of salary sacrifice into your pension saves income tax AND National Insurance. At the basic rate, that is 32p saved per £1 contributed. Your employer contributions are free money on top.',
@@ -597,7 +599,7 @@ export default {
       'investments-list': {
         didYouKnow: 'A Stocks and Shares ISA lets you invest up to £20,000 per year with all growth and income completely free of tax — forever. Investing £200/month from age 28 at a 7% average annual return would be worth over £500,000 by age 65.',
         whyWeAsk: 'Knowing your existing investments lets us assess diversification, flag tax inefficiency, and incorporate your portfolio into net worth and retirement projections.',
-        quickStat: { value: '£20,000', label: 'Annual ISA allowance — all growth tax-free (2025/26)' },
+        quickStat: { value: '£20,000', label: `Annual ISA allowance — all growth tax-free (${currentTaxYear})` },
       },
       'investments-form': {
         didYouKnow: 'Platform fees compound over time just like returns. A 0.5% difference in annual fees on a £100,000 portfolio costs over £50,000 over 30 years.',
@@ -946,7 +948,12 @@ export default {
         closeInvestmentForm();
         await loadInvestments();
       } catch (err) {
-        error.value = 'Failed to save investment account. Please try again.';
+        if (err.response?.data?.errors) {
+          const fieldErrors = Object.values(err.response.data.errors).flat();
+          error.value = 'Failed to save investment account: ' + fieldErrors.join('. ');
+        } else {
+          error.value = 'Failed to save investment account. Please try again.';
+        }
       }
     }
 

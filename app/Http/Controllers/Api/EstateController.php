@@ -58,15 +58,19 @@ class EstateController extends Controller
         })->with('property')->limit(100)->get();
 
         $mortgageLiabilities = $mortgages->map(function ($mortgage) {
+            $property = $mortgage->property;
+
             return [
                 'id' => 'mortgage_'.$mortgage->id,
                 'source' => 'property_module',
                 'liability_type' => 'mortgage',
-                'liability_name' => 'Mortgage - '.($mortgage->property->address_line_1 ?? 'Property'),
+                'liability_name' => 'Mortgage - '.($property->address_line_1 ?? 'Property'),
                 'current_balance' => (float) ($mortgage->outstanding_balance ?? 0),
                 'monthly_payment' => (float) ($mortgage->monthly_payment ?? 0),
                 'interest_rate' => (float) ($mortgage->interest_rate ?? 0),
                 'notes' => ucfirst(str_replace('_', ' ', $mortgage->mortgage_type ?? 'repayment')).' mortgage',
+                'ownership_type' => $property->ownership_type ?? 'individual',
+                'ownership_percentage' => $property->ownership_percentage ?? 100,
             ];
         });
 
@@ -192,7 +196,7 @@ class EstateController extends Controller
     public function getCashFlow(Request $request): JsonResponse
     {
         $user = $request->user();
-        $taxYear = $request->query('taxYear', '2025/26');
+        $taxYear = $request->query('taxYear', $this->taxConfig->getTaxYear());
 
         try {
             $cashFlow = $this->cashFlowProjector->createPersonalPL($user->id, $taxYear);

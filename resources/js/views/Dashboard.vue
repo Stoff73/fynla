@@ -255,6 +255,7 @@
                       @mouseenter="nwHoveredIndex = idx; nwMouseX = $event.clientX; nwMouseY = $event.clientY"
                       @mousemove="nwMouseX = $event.clientX; nwMouseY = $event.clientY"
                       @mouseleave="nwHoveredIndex = null"
+                      @click="seg.route && $router.push(seg.route)"
                     />
                   </svg>
                   <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -948,7 +949,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
-import { getRelativeTime } from '@/utils/dateFormatter';
+import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
 import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
@@ -1196,6 +1197,22 @@ export default {
 
       const categories = [];
 
+      const ASSET_ROUTES = {
+        property: '/net-worth/property',
+        investments: '/net-worth/investments',
+        pensions: '/net-worth/retirement',
+        savings: '/net-worth/cash',
+        business: '/net-worth/business',
+        chattels: '/net-worth/chattels',
+      };
+
+      const LIABILITY_ROUTES = {
+        mortgages: '/net-worth/liabilities',
+        loans: '/net-worth/liabilities',
+        credit_cards: '/net-worth/liabilities',
+        other: '/net-worth/liabilities',
+      };
+
       // Asset categories
       Object.entries(this.netWorthBreakdown.assets).forEach(([key, value]) => {
         if (value > 0) {
@@ -1203,6 +1220,7 @@ export default {
             label: this.formatAssetCategory(key),
             value,
             color: ASSET_COLORS[key] || '#717171',
+            route: ASSET_ROUTES[key] || '/net-worth/wealth-summary',
           });
         }
       });
@@ -1214,6 +1232,7 @@ export default {
             label: this.formatLiabilityCategory(key),
             value,
             color: LIABILITY_COLORS[key] || '#E83E6D',
+            route: LIABILITY_ROUTES[key] || '/net-worth/liabilities',
           });
         }
       });
@@ -1259,6 +1278,7 @@ export default {
           percent: (proportion * 100).toFixed(1),
           color: cat.color,
           colorLight: this.lightenColor(cat.color, 0.35),
+          route: cat.route,
           arcLength,
           offset,
         };
@@ -1745,12 +1765,7 @@ export default {
     },
 
     currentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const day = now.getDate();
-      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
-      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
+      return getCurrentTaxYear();
     },
 
     carryForwardTaxYear() {
@@ -2081,7 +2096,7 @@ export default {
         { name: 'investment', action: 'investment/fetchInvestmentData' },
         { name: 'investment', action: 'investment/analyseInvestment' },
         { name: 'taxAllowances', action: 'savings/fetchSavingsData' },
-        { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: '2025/26' },
+        { name: 'taxAllowances', action: 'retirement/fetchAnnualAllowance', payload: getCurrentTaxYear() },
         { name: 'goals', action: 'goals/fetchDashboardOverview' },
         { name: 'goals', action: 'goals/fetchGoals' },
         { name: 'goals', action: 'goals/fetchLifeEvents', payload: {} },

@@ -98,7 +98,7 @@
       <div v-if="activeCalculator === 'income-tax'" class="animate-fade-in-slide" :key="'income-tax'">
         <div class="bg-horizon-500 rounded-2xl px-7 py-5 mb-4">
           <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white">Income Tax Calculator</h2>
-          <p class="text-white/60 mt-1">Calculate your UK income tax and National Insurance contributions for 2025/26</p>
+          <p class="text-white/60 mt-1">Calculate your UK income tax and National Insurance contributions for {{ currentTaxYear }}</p>
         </div>
 
         <div class="bg-white rounded-2xl border border-light-gray p-6">
@@ -1613,6 +1613,8 @@
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { PERSONAL_ALLOWANCE, HIGHER_RATE_THRESHOLD, ADDITIONAL_RATE_THRESHOLD } from '@/constants/taxConfig';
 
 export default {
   name: 'CalculatorsPage',
@@ -1656,7 +1658,7 @@ export default {
         {
           name: 'Planning Your Future', colour: '#7F77DD', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
           items: [
-            { id: 'income-tax', name: 'Income Tax', description: 'Calculate your UK income tax and National Insurance for 2025/26', icon: '🧮', type: 'free' },
+            { id: 'income-tax', name: 'Income Tax', description: `Calculate your UK income tax and National Insurance for ${getCurrentTaxYear()}`, icon: '🧮', type: 'free' },
             { id: 'pension', name: 'Pension Growth', description: 'Project your pension pot value at retirement', icon: '📊', type: 'free' },
             { id: 'pension-relief', name: 'Pension Tax Relief', description: 'See how much tax relief you get on pension contributions', icon: '🧾', type: 'free' },
             { id: 'salary-sacrifice', name: 'Salary Sacrifice', description: 'Take-home pay vs pension boost — what\'s the real trade-off?', icon: '⚖️', type: 'gated-free' },
@@ -1784,6 +1786,9 @@ export default {
   },
 
   computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
     activeStageItems() {
       const stage = this.calculatorStages.find(s => s.name === this.activeStage);
       return stage ? stage.items : [];
@@ -1894,10 +1899,10 @@ export default {
       const pension = this.incomeTax.pension || 0;
       const taxable = income - pension;
 
-      // UK Tax Bands 2025/26
-      const personalAllowance = 12570;
-      const basicRateLimit = 50270;
-      const higherRateLimit = 125140;
+      // UK Tax Bands (from centralised tax config)
+      const personalAllowance = PERSONAL_ALLOWANCE;
+      const basicRateLimit = HIGHER_RATE_THRESHOLD;
+      const higherRateLimit = ADDITIONAL_RATE_THRESHOLD;
 
       let tax = 0;
       let remaining = taxable;
@@ -1929,8 +1934,8 @@ export default {
       }
 
       // National Insurance (simplified)
-      const niThreshold = 12570;
-      const niUpperLimit = 50270;
+      const niThreshold = PERSONAL_ALLOWANCE;
+      const niUpperLimit = HIGHER_RATE_THRESHOLD;
       let ni = 0;
       if (income > niThreshold) {
         const niableIncome = Math.min(income - niThreshold, niUpperLimit - niThreshold);
@@ -2403,9 +2408,10 @@ export default {
       };
     },
 
-    // Helper: calculate 2025/26 income tax on a given amount
+    // Helper: calculate income tax on a given amount (uses centralised tax config)
     _calculateIncomeTax2526(income) {
-      const pa = 12570;
+      const pa = PERSONAL_ALLOWANCE;
+      const basicRateLimit = HIGHER_RATE_THRESHOLD - PERSONAL_ALLOWANCE;
       // Personal allowance taper above £100k
       let adjustedPA = pa;
       if (income > 100000) {
@@ -2413,14 +2419,14 @@ export default {
       }
       const taxableIncome = Math.max(0, income - adjustedPA);
       let tax = 0;
-      // Basic rate: 20% on first £37,700
-      const basicBand = Math.min(taxableIncome, 37700);
+      // Basic rate: 20%
+      const basicBand = Math.min(taxableIncome, basicRateLimit);
       tax += basicBand * 0.20;
-      // Higher rate: 40% on £37,701 to £125,140
-      const higherBand = Math.min(Math.max(0, taxableIncome - 37700), 125140 - 37700);
+      // Higher rate: 40%
+      const higherBand = Math.min(Math.max(0, taxableIncome - basicRateLimit), ADDITIONAL_RATE_THRESHOLD - HIGHER_RATE_THRESHOLD);
       tax += higherBand * 0.40;
-      // Additional rate: 45% above £125,140
-      const additionalBand = Math.max(0, taxableIncome - 125140);
+      // Additional rate: 45%
+      const additionalBand = Math.max(0, taxableIncome - (ADDITIONAL_RATE_THRESHOLD - PERSONAL_ALLOWANCE));
       tax += additionalBand * 0.45;
       return tax;
     },

@@ -1,7 +1,7 @@
 <template>
   <div class="isa-allowance-summary bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-start mb-4">
-      <h3 class="text-xl font-semibold text-horizon-500">ISA Allowance 2025/26</h3>
+      <h3 class="text-xl font-semibold text-horizon-500">ISA Allowance {{ currentTaxYear }}</h3>
       <div class="text-sm text-neutral-500">
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -115,6 +115,8 @@
 <script>
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'ISAAllowanceSummary',
@@ -122,11 +124,15 @@ export default {
 
   data() {
     return {
-      ISA_ALLOWANCE: 20000, // 2025/26 tax year
+      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE, // Fallback from taxConfig.js; prefer API value
     };
   },
 
   computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+
     ...mapGetters('savings', {
       savingsCashISASubscription: 'currentYearISASubscription',
     }),

@@ -3,7 +3,7 @@
     <!-- Hero -->
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Capital Gains Tax Rates 2025/26</h1>
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Capital Gains Tax Rates {{ currentTaxYear }}</h1>
         <p class="text-lg text-white/70">
           Current rates, annual exempt amount, and how to reduce your Capital Gains Tax bill.
         </p>
@@ -31,7 +31,7 @@
         <div>
           <h2 class="text-base font-bold text-horizon-500 mb-2">Annual Exempt Amount</h2>
           <p class="text-sm text-neutral-600 leading-relaxed mb-3">
-            The annual exempt amount for 2025/26 is <strong>&pound;3,000</strong>. This was reduced from
+            The annual exempt amount for {{ currentTaxYear }} is <strong>&pound;3,000</strong>. This was reduced from
             &pound;6,000 in 2023/24 and &pound;12,300 in 2022/23. Gains below this threshold are tax-free.
           </p>
           <p class="text-xs text-neutral-400">
@@ -134,16 +134,23 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import GuideNav from '@/components/Shared/GuideNav.vue';
 import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'CapitalGainsTaxPage',
   components: { PublicLayout, GuideNav, GuideArticleFooter },
 
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+  },
+
   mounted() {
-    document.title = 'Capital Gains Tax Rates 2025/26 \u2014 UK Guide | Fynla';
+    document.title = `Capital Gains Tax Rates ${this.currentTaxYear} \u2014 UK Guide | Fynla`;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', 'Capital Gains Tax rates for 2025/26: 18% basic rate, 24% higher rate (residential property: 18%/24%). Annual exempt amount: \u00A33,000. Learn how to reduce your CGT bill.');
+      meta.setAttribute('content', `Capital Gains Tax rates for ${this.currentTaxYear}: 18% basic rate, 24% higher rate (residential property: 18%/24%). Annual exempt amount: \u00A33,000. Learn how to reduce your CGT bill.`);
     }
   },
 };

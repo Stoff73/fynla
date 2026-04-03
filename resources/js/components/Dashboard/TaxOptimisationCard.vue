@@ -103,7 +103,8 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import { ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE, CGT_ANNUAL_ALLOWANCE, DIVIDEND_ALLOWANCE } from '@/constants/taxConfig';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'TaxOptimisationCard',
@@ -111,11 +112,11 @@ export default {
 
   data() {
     return {
-      // UK Tax Year 2025/26 allowances
-      isaLimit: 20000,
+      // UK Tax Year allowances (from taxConfig.js fallback constants)
+      isaLimit: ISA_ANNUAL_ALLOWANCE,
       pensionLimit: ANNUAL_ALLOWANCE,
-      cgtLimit: 3000,
-      dividendLimit: 500,
+      cgtLimit: CGT_ANNUAL_ALLOWANCE,
+      dividendLimit: DIVIDEND_ALLOWANCE,
     };
   },
 
@@ -217,13 +218,7 @@ export default {
     },
 
     currentTaxYear() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth(); // 0-indexed
-      const day = now.getDate();
-      // Tax year starts April 6
-      const taxYearStart = (month > 3 || (month === 3 && day >= 6)) ? year : year - 1;
-      return `${taxYearStart}/${String(taxYearStart + 1).slice(-2)}`;
+      return getCurrentTaxYear();
     },
 
     carryForwardTaxYear() {

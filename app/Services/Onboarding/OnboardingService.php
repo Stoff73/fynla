@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 class OnboardingService
 {
     public function __construct(
-        private EstateOnboardingFlow $estateFlow
+        private EstateOnboardingFlow $estateFlow,
+        private \App\Services\TaxConfigService $taxConfig
     ) {}
 
     /**
@@ -691,7 +692,7 @@ class OnboardingService
                     'ownership_percentage' => $ownershipPercentage,
                     'joint_owner_id' => $jointOwnerId,
                     'isa_subscription_current_year' => $isaAllowanceUsed,
-                    'tax_year' => '2025/26',
+                    'tax_year' => $this->taxConfig->getTaxYear(),
                     'isa_type' => $accountType === 'isa' ? 'stocks_and_shares' : null,
                 ]);
             }
@@ -726,7 +727,7 @@ class OnboardingService
                     'joint_owner_id' => $jointOwnerId,
                     'is_isa' => $isCashISA,
                     'isa_type' => $isCashISA ? 'cash' : null,
-                    'isa_subscription_year' => $isCashISA ? '2025/26' : null,
+                    'isa_subscription_year' => $isCashISA ? $this->taxConfig->getTaxYear() : null,
                     'isa_subscription_amount' => $isCashISA ? $isaAllowanceUsed : null,
                     'access_type' => $this->mapAccessType($cashData['account_type']),
                 ]);

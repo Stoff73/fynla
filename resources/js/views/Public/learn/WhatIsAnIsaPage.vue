@@ -39,7 +39,7 @@
 
         <!-- ISA Allowance -->
         <div>
-          <h2 class="text-lg font-bold text-horizon-500 mb-2">ISA Allowance 2025/26</h2>
+          <h2 class="text-lg font-bold text-horizon-500 mb-2">ISA Allowance {{ currentTaxYear }}</h2>
           <ul class="space-y-1.5 text-sm text-neutral-600">
             <li class="flex items-start gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-spring-500 mt-1.5 flex-shrink-0"></span>
@@ -97,10 +97,17 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import GuideNav from '@/components/Shared/GuideNav.vue';
 import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'WhatIsAnIsaPage',
   components: { PublicLayout, GuideNav, GuideArticleFooter },
+
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+  },
 
   data() {
     return {

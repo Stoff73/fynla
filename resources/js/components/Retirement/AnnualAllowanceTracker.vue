@@ -6,15 +6,12 @@
         v-model="selectedTaxYear"
         class="px-3 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
       >
-        <option value="2025/26">2025/26</option>
-        <option value="2024/25">2024/25</option>
-        <option value="2023/24">2023/24</option>
-        <option value="2022/23">2022/23</option>
+        <option v-for="year in taxYearOptions" :key="year" :value="year">{{ year }}</option>
       </select>
     </div>
 
     <!-- Current Year Progress -->
-    <div v-if="selectedTaxYear === '2025/26'" class="mb-8">
+    <div v-if="selectedTaxYear === currentTaxYear" class="mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
         <span class="text-sm font-medium text-neutral-500">Contributions Used</span>
         <div class="text-left sm:text-right">
@@ -156,7 +153,7 @@
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
-
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 import logger from '@/utils/logger';
 export default {
   name: 'AnnualAllowanceTracker',
@@ -164,12 +161,28 @@ export default {
 
   data() {
     return {
-      selectedTaxYear: '2025/26',
+      selectedTaxYear: getCurrentTaxYear(),
     };
   },
 
   computed: {
     ...mapState('retirement', ['annualAllowance', 'dcPensions', 'profile']),
+
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+
+    taxYearOptions() {
+      // Build options: current year plus 3 previous years
+      const current = this.currentTaxYear;
+      const match = current.match(/^(\d{4})/);
+      if (!match) return [current];
+      const startYear = parseInt(match[1], 10);
+      return Array.from({ length: 4 }, (_, i) => {
+        const y = startYear - i;
+        return `${y}/${String(y + 1).slice(-2)}`;
+      });
+    },
 
     currentAllowance() {
       // Check if MPAA triggered
@@ -294,7 +307,7 @@ export default {
   async mounted() {
     // Fetch annual allowance data
     try {
-      await this.$store.dispatch('retirement/fetchAnnualAllowance', '2025/26');
+      await this.$store.dispatch('retirement/fetchAnnualAllowance', this.currentTaxYear);
     } catch (error) {
       logger.error('Failed to fetch annual allowance:', error);
     }

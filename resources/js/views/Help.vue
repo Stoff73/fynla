@@ -319,7 +319,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">Annual Allowance</h3>
                 <p class="text-body-base text-horizon-500 mb-4">
-                  Track contributions against the £60,000 annual allowance (2025/26). Includes carry forward from previous 3 years if you didn't use your full allowance.
+                  Track contributions against the £60,000 annual allowance ({{ currentTaxYear }}). Includes carry forward from previous 3 years if you didn't use your full allowance.
                 </p>
               </div>
 
@@ -518,7 +518,7 @@
               <div>
                 <h3 class="text-h5 font-semibold text-horizon-500 mb-2">How is inheritance tax calculated?</h3>
                 <p class="text-body-base text-horizon-500">
-                  Inheritance tax is charged at 40% on your estate above the tax-free allowances. For 2025/26: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.
+                  Inheritance tax is charged at 40% on your estate above the tax-free allowances. For {{ currentTaxYear }}: £325k basic allowance (transferable to spouse), £175k home allowance (for main residence left to children, transferable to spouse). Married couples can have combined allowances of £650k basic plus £350k home allowance on second death.
                 </p>
               </div>
 
@@ -709,6 +709,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'Help',
@@ -721,6 +722,7 @@ export default {
   setup() {
     const searchQuery = ref('');
     const activeSection = ref('');
+    const currentTaxYear = computed(() => getCurrentTaxYear());
 
     const sections = [
       { id: 'getting-started', title: 'Getting Started', keywords: ['welcome', 'first time', 'setup', 'introduction', 'start', 'begin', 'new user'] },
@@ -815,6 +817,7 @@ export default {
     return {
       searchQuery,
       activeSection,
+      currentTaxYear,
       sections,
       filteredSections,
       visibleSections,

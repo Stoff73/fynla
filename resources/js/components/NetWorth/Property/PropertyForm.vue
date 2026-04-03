@@ -1802,6 +1802,12 @@ export default {
     },
 
     async handleSubmit() {
+      // Prevent accidental form submission (e.g. pressing Enter) when not on the final step
+      if (!this.isEditMode && this.currentStep < this.totalSteps) {
+        this.nextStep();
+        return;
+      }
+
       if (!this.validateForm()) {
         // Scroll to top to show error message
         const header = this.$el?.querySelector?.('.px-6.py-4');

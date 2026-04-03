@@ -22,9 +22,19 @@
       <p v-if="liability.notes && isExternalSource" class="text-xs text-neutral-500 mt-0.5">{{ liability.notes }}</p>
 
       <div class="liability-details">
+        <div v-if="isJoint" class="detail-row">
+          <span class="detail-label">Ownership</span>
+          <span class="detail-value">
+            Joint{{ liability.ownership_percentage ? ' (' + liability.ownership_percentage + '% yours)' : '' }}
+          </span>
+        </div>
         <div class="detail-row">
-          <span class="detail-label">Balance Owed</span>
+          <span class="detail-label">{{ isJoint ? 'Total Balance' : 'Balance Owed' }}</span>
           <span class="detail-value text-raspberry-600">{{ formatCurrency(liability.current_balance) }}</span>
+        </div>
+        <div v-if="isJoint && userShare !== null" class="detail-row">
+          <span class="detail-label">Your Share</span>
+          <span class="detail-value text-raspberry-600">{{ formatCurrency(userShare) }}</span>
         </div>
         <div v-if="liability.monthly_payment" class="detail-row">
           <span class="detail-label">Monthly Payment</span>
@@ -102,6 +112,17 @@ export default {
       return labels[this.liability.liability_type] || this.liability.liability_type;
     },
 
+    isJoint() {
+      return this.liability.ownership_type === 'joint' || this.liability.ownership_type === 'tenants_in_common';
+    },
+
+    userShare() {
+      if (!this.isJoint) return null;
+      const balance = parseFloat(this.liability.current_balance) || 0;
+      const pct = parseFloat(this.liability.ownership_percentage) || 50;
+      return balance * (pct / 100);
+    },
+
     typeClass() {
       return `type-${this.liability.liability_type}`;
     },
@@ -109,7 +130,9 @@ export default {
 
   methods: {
     handleClick() {
-      if (!this.isExternalSource) {
+      if (this.isExternalSource) {
+        this.$router.push(this.sourceRoute);
+      } else {
         this.$emit('click');
       }
     },
@@ -135,8 +158,12 @@ export default {
 }
 
 .liability-card.is-external {
-  cursor: default;
+  cursor: pointer;
   @apply bg-savannah-50;
+}
+
+.liability-card.is-external:hover {
+  @apply border-horizon-300;
 }
 
 .external-badge {

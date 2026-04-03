@@ -142,112 +142,23 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 ---
 
-## Step 5: Sync fynlaBrain Obsidian Vault
+## Step 5: Full Vault Sync (MANDATORY)
 
-The vault is at `/Users/CSJ/Desktop/fynlaBrain/` (NOT a git repo — write files directly).
+**Invoke the `/vault-sync` skill.** This is not optional — it handles ALL vault synchronisation:
 
-### 5a: Determine the target folder
+- Codebase metrics update (CLAUDE.md counts)
+- Copy all update notes from `[Month]/[Month][DD]Updates/` to vault
+- Git history (daily commit log + monthly index)
+- Month Index update (session entries + update note wikilinks)
+- Home.md update (commit counts, version)
+- Design guide sync (`fynlaDesignGuide.md` → `fynlaBrain/Design/`)
+- Formatting audit (frontmatter, wikilinks, orphaned files)
+- Cross-link integrity check
+- Memory file audit
 
-```bash
-HOUR=$(date +%H)
-TODAY=$(date +%d)
+**Do NOT manually sync individual files.** The vault-sync skill is comprehensive and idempotent. Run it once and it handles everything.
 
-if [ "$HOUR" -ge 19 ]; then
-  # After 7pm — save to NEXT day's folder
-  TARGET_DAY=$(date -v+1d +%d 2>/dev/null || date -d "+1 day" +%d)
-else
-  # Before 7pm — save to today's folder
-  TARGET_DAY=$TODAY
-fi
-
-TARGET_FOLDER="March${TARGET_DAY}Updates"
-```
-
-This determines where the CSJTODO handover goes. Session notes and vault updates always go in today's folder.
-
-### 5b: Copy update notes to vault
-
-```bash
-TODAY_FOLDER="March$(date +%d)Updates"
-mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/$TODAY_FOLDER"
-
-for file in /Users/CSJ/Desktop/fynla/March/$TODAY_FOLDER/*.md; do
-  [ -f "$file" ] || continue
-  filename=$(basename "$file")
-  vault_path="/Users/CSJ/Desktop/fynlaBrain/March/$TODAY_FOLDER/$filename"
-  if [ ! -f "$vault_path" ] || ! diff -q "$file" "$vault_path" > /dev/null 2>&1; then
-    cp "$file" "$vault_path"
-    echo "SYNCED: $TODAY_FOLDER/$filename"
-  fi
-done
-```
-
-Also sync subdirectories:
-
-```bash
-find "/Users/CSJ/Desktop/fynla/March/$TODAY_FOLDER" -type d -mindepth 1 | while read subdir; do
-  rel_path="${subdir#/Users/CSJ/Desktop/fynla/}"
-  vault_path="/Users/CSJ/Desktop/fynlaBrain/$rel_path"
-  mkdir -p "$vault_path"
-  for file in "$subdir"/*.md; do
-    [ -f "$file" ] || continue
-    filename=$(basename "$file")
-    if [ ! -f "$vault_path/$filename" ] || ! diff -q "$file" "$vault_path/$filename" > /dev/null 2>&1; then
-      cp "$file" "$vault_path/$filename"
-      echo "  SYNCED: $filename"
-    fi
-  done
-done
-```
-
-### 5c: Update git history
-
-Create or update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar$(date +%d).md` with today's commits.
-
-**Format:**
-```markdown
----
-tags:
-  - git-history
-  - mar-2026
-date: YYYY-MM-DD
-commits: N
----
-
-# Commits — DD March 2026
-
-Back to [[Git History/Mar2026/Mar2026 Commits|March 2026 Commits]]
-
-**N commits** — breakdown by type
-
----
-
-| Time | Hash | Type | Message |
-|------|------|------|---------|
-| HH:MM | `abcdef12` | + | feat: description |
-```
-
-Type codes: `+` feat, `~` fix, `D` docs, `^` update/refactor, `T` test, `C` chore, `-` merge/other.
-
-Also update `/Users/CSJ/Desktop/fynlaBrain/Git History/Mar2026/Mar2026 Commits.md`:
-- Update total commit count
-- Update type breakdown counts
-- Add/update today's row in the Daily Logs table
-
-### 5d: Update March Index
-
-Read `/Users/CSJ/Desktop/fynlaBrain/March/March Index.md` and:
-
-1. **Sessions section** — Add or update today's date entry with session summaries
-2. **Update Notes section** — Add wikilinks to any new files in today's update folder
-3. **Git history link** — Update the commit count in the header
-
-### 5e: Update Home.md
-
-Update `/Users/CSJ/Desktop/fynlaBrain/Home.md`:
-- Git history total commit count
-- March 2026 row in the Git History table
-- Any new reports
+If the user has specified a target folder override (e.g., "use today's folder not tomorrow's"), pass that context when invoking the skill.
 
 ---
 
@@ -329,12 +240,12 @@ Structure:
 # Already at CSJTODO.md
 
 # 2. Target update folder in project
-mkdir -p "March/$TARGET_FOLDER"
-cp CSJTODO.md "March/$TARGET_FOLDER/CSJTODO.md"
+mkdir -p "$TARGET_MONTH/$TARGET_FOLDER"
+cp CSJTODO.md "$TARGET_MONTH/$TARGET_FOLDER/CSJTODO.md"
 
 # 3. Vault
-mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/$TARGET_FOLDER"
-cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/March/$TARGET_FOLDER/CSJTODO.md"
+mkdir -p "/Users/CSJ/Desktop/fynlaBrain/$TARGET_MONTH/$TARGET_FOLDER"
+cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/$TARGET_MONTH/$TARGET_FOLDER/CSJTODO.md"
 ```
 
 ### 6f: Final commit for CSJTODO + vault sync docs
@@ -342,7 +253,7 @@ cp CSJTODO.md "/Users/CSJ/Desktop/fynlaBrain/March/$TARGET_FOLDER/CSJTODO.md"
 If the CSJTODO or any deploy notes were created/updated, commit and push them:
 
 ```bash
-git add CSJTODO.md March/March*Updates/*.md
+git add CSJTODO.md ${MONTH_NAME}/${MONTH_NAME}*Updates/*.md
 git commit -m "$(cat <<'EOF'
 docs: session end — CSJTODO handover + update notes
 
@@ -373,20 +284,20 @@ Present a clean wrap-up:
 - [N] issues found ([Y] critical, [Z] warnings) — [fixed/deferred]
 
 ### Deploy Status
-- [deployed / deploy notes at March/MarchXXUpdates/deploy.md / nothing to deploy]
+- [deployed / deploy notes at [Month]/[Month][DD]Updates/deploy.md / nothing to deploy]
 
 ### Vault Sync
 - [N] files synced to fynlaBrain
 - Git history updated ([N] commits today)
-- March Index updated
+- [Month] Index updated
 
 ### Outstanding for Next Session
 - [top items from CSJTODO.md, or "Clean slate"]
 
 ### CSJTODO saved to
 - `CSJTODO.md` (project root)
-- `March/[TARGET_FOLDER]/CSJTODO.md`
-- `/Users/CSJ/Desktop/fynlaBrain/March/[TARGET_FOLDER]/CSJTODO.md`
+- `[Month]/[TARGET_FOLDER]/CSJTODO.md`
+- `/Users/CSJ/Desktop/fynlaBrain/[Month]/[TARGET_FOLDER]/CSJTODO.md`
 ```
 
 ---

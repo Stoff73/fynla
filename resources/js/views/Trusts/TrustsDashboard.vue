@@ -54,7 +54,7 @@
           <div v-if="showTrustTypesGuide" class="guide-content">
             <!-- Tax Rates Summary -->
             <div class="tax-rates-summary">
-              <h3 class="section-title">2025/26 Trust Tax Rates</h3>
+              <h3 class="section-title">{{ currentTaxYear }} Trust Tax Rates</h3>
               <div class="tax-rates-grid">
                 <div class="tax-rate-item">
                   <p class="rate-label">Income Tax (Discretionary)</p>
@@ -195,6 +195,7 @@ import TrustCard from '@/components/Trusts/TrustCard.vue';
 import TrustFormModal from '@/components/Trusts/TrustFormModal.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
 import logger from '@/utils/logger';
@@ -293,6 +294,10 @@ export default {
   computed: {
     ...mapState('trusts', ['trusts']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
+
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];

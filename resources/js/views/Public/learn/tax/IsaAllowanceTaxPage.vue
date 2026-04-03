@@ -138,7 +138,7 @@
             <router-link to="/learn/what-is-an-isa" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">What is an ISA?</router-link>
             <router-link to="/learn/should-i-use-a-lisa-or-isa" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Should I use a Lifetime ISA or ISA?</router-link>
             <router-link to="/calculators" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">Calculators</router-link>
-            <router-link to="/insights/isa-allowance-2025-26" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">ISA Allowance 2025/26 (Insights)</router-link>
+            <router-link to="/insights/isa-allowance-2025-26" class="text-xs text-raspberry-500 hover:text-raspberry-600 underline">ISA Allowance {{ currentTaxYear }} (Insights)</router-link>
           </div>
         </div>
         </div>
@@ -153,10 +153,17 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import GuideNav from '@/components/Shared/GuideNav.vue';
 import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'IsaAllowanceTaxPage',
   components: { PublicLayout, GuideNav, GuideArticleFooter },
+
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+  },
 
   mounted() {
     document.title = 'ISA Allowance & Rules \u2014 Complete UK Guide | Fynla';

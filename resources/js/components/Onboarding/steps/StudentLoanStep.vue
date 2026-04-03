@@ -206,7 +206,7 @@ export default {
       monthlyPayment.value = props.savedData.monthly_payment || null;
     }
 
-    // UK student loan plan details (2025/26 tax year)
+    // UK student loan plan details (current tax year)
     const planDetails = {
       plan_1: { threshold: 24990, rate: '6.25' },
       plan_2: { threshold: 27295, rate: '7.3' },

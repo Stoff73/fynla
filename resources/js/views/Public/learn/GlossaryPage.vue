@@ -75,6 +75,7 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'GlossaryPage',
@@ -111,7 +112,7 @@ export default {
           {
             name: 'Basic Rate',
             anchor: 'basic-rate',
-            definition: 'The 20% income tax band that applies to taxable income between \u00A312,571 and \u00A350,270 (2025/26). Most UK taxpayers fall within this band.',
+            definition: `The 20% income tax band that applies to taxable income between \u00A312,571 and \u00A350,270 (${getCurrentTaxYear()}). Most UK taxpayers fall within this band.`,
             link: null,
           },
           {
@@ -213,7 +214,7 @@ export default {
           {
             name: 'Higher Rate',
             anchor: 'higher-rate',
-            definition: 'The 40% income tax band that applies to taxable income between \u00A350,271 and \u00A3125,140 (2025/26). If you earn in this band, you get less Personal Savings Allowance and more benefit from pension tax relief.',
+            definition: `The 40% income tax band that applies to taxable income between \u00A350,271 and \u00A3125,140 (${getCurrentTaxYear()}). If you earn in this band, you get less Personal Savings Allowance and more benefit from pension tax relief.`,
             link: null,
           },
         ],
@@ -281,7 +282,7 @@ export default {
           {
             name: 'National Insurance',
             anchor: 'national-insurance',
-            definition: 'A tax on earnings that funds the State Pension and other benefits. Employees pay 8% on earnings between \u00A312,570 and \u00A350,270, and 2% above that (2025/26 rates).',
+            definition: `A tax on earnings that funds the State Pension and other benefits. Employees pay 8% on earnings between \u00A312,570 and \u00A350,270, and 2% above that (${getCurrentTaxYear()} rates).`,
             link: null,
           },
           {
@@ -353,7 +354,7 @@ export default {
           {
             name: 'State Pension',
             anchor: 'state-pension',
-            definition: 'A regular payment from the government in retirement, based on your National Insurance record. The full new State Pension is \u00A3221.20 per week (2025/26). You need 35 qualifying years for the full amount.',
+            definition: `A regular payment from the government in retirement, based on your National Insurance record. The full new State Pension is \u00A3221.20 per week (${getCurrentTaxYear()}). You need 35 qualifying years for the full amount.`,
             link: null,
           },
           {

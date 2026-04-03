@@ -65,11 +65,11 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <!-- ISA Allowance Tracker -->
       <div class="bg-white border border-light-gray rounded-lg p-6">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">ISA Allowance (2025/26)</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">ISA Allowance ({{ currentTaxYear }})</h3>
         <div class="mb-4">
           <div class="flex justify-between items-center mb-2">
             <span class="text-sm text-neutral-500">Used</span>
-            <span class="text-sm font-medium text-horizon-500">{{ formatCurrency(isaUsed) }} / £20,000</span>
+            <span class="text-sm font-medium text-horizon-500">{{ formatCurrency(isaUsed) }} / {{ formatCurrency(isaAllowanceAmount) }}</span>
           </div>
           <div class="w-full bg-savannah-200 rounded-full h-3">
             <div
@@ -81,17 +81,17 @@
           <p class="text-xs text-neutral-500 mt-1">{{ isaPercentage.toFixed(1) }}% utilized</p>
         </div>
         <div class="text-sm text-neutral-500">
-          <p>Remaining allowance: <span class="font-medium text-horizon-500">{{ formatCurrency(Math.max(0, 20000 - isaUsed)) }}</span></p>
+          <p>Remaining allowance: <span class="font-medium text-horizon-500">{{ formatCurrency(Math.max(0, isaAllowanceAmount - isaUsed)) }}</span></p>
         </div>
       </div>
 
       <!-- CGT Allowance -->
       <div class="bg-white border border-light-gray rounded-lg p-6">
-        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Capital Gains Tax (2025/26)</h3>
+        <h3 class="text-lg font-semibold text-horizon-500 mb-4">Capital Gains Tax ({{ currentTaxYear }})</h3>
         <div class="space-y-3 text-sm">
           <div class="flex justify-between">
             <span class="text-neutral-500">Annual Allowance:</span>
-            <span class="font-medium text-horizon-500">£3,000</span>
+            <span class="font-medium text-horizon-500">{{ formatCurrency(cgtAllowanceAmount) }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-neutral-500">Unrealised Gains:</span>
@@ -137,12 +137,18 @@
 <script>
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { CGT_ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'TaxFees',
   mixins: [currencyMixin],
 
   computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+
     ...mapGetters('investment', [
       'totalFees',
       'feeDragPercent',
@@ -175,12 +181,19 @@ export default {
     isaPercentage() {
       return this.isaAllowancePercentage || 0;
     },
+
+    isaAllowanceAmount() {
+      return ISA_ANNUAL_ALLOWANCE;
+    },
+
+    cgtAllowanceAmount() {
+      return CGT_ANNUAL_ALLOWANCE;
+    },
   },
 
   methods: {
     calculateCGT(unrealisedGain) {
-      const cgtAllowance = 3000; // 2025/26 allowance
-      const taxableGain = Math.max(0, unrealisedGain - cgtAllowance);
+      const taxableGain = Math.max(0, unrealisedGain - CGT_ANNUAL_ALLOWANCE);
       const cgtRate = 0.20; // Higher rate taxpayer
       return taxableGain * cgtRate;
     },

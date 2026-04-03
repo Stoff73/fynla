@@ -27,7 +27,7 @@
 
       <!-- ISA Allowance Status -->
       <div class="bg-white border border-light-gray rounded-lg p-5">
-        <h5 class="text-sm font-semibold text-neutral-500 mb-4">ISA Allowance (2025/26)</h5>
+        <h5 class="text-sm font-semibold text-neutral-500 mb-4">ISA Allowance ({{ currentTaxYear }})</h5>
         <div class="mb-4">
           <div class="flex justify-between text-sm mb-2">
             <span class="text-neutral-500">Allowance Usage</span>
@@ -148,6 +148,8 @@
 </template>
 
 <script>
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+
 export default {
   name: 'TaxStrategySection',
 
@@ -155,6 +157,12 @@ export default {
     data: {
       type: Object,
       default: null,
+    },
+  },
+
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
     },
   },
 

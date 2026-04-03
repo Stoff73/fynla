@@ -1,5 +1,5 @@
 <template>
-  <div class="investment-detail w-full max-w-full overflow-hidden">
+  <div v-if="account" class="investment-detail w-full max-w-full overflow-hidden">
     <!-- Back Button -->
     <button @click="handleBackClick" class="detail-inline-back mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -512,11 +512,17 @@ export default {
   props: {
     account: {
       type: Object,
-      required: true,
+      default: null,
     },
   },
 
   emits: ['back', 'deleted', 'updated', 'account-updated'],
+
+  created() {
+    if (!this.account) {
+      this.$router.replace('/net-worth/investments');
+    }
+  },
 
   data() {
     return {

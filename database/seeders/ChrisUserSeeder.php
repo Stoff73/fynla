@@ -505,6 +505,8 @@ class ChrisUserSeeder extends Seeder
         ProtectionProfile::updateOrCreate(
             ['user_id' => $userId],
             [
+                'annual_income' => 55000,
+                'monthly_expenditure' => 2500,
                 'retirement_age' => 67,
                 'health_status' => 'good',
                 'smoker_status' => false,

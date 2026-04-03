@@ -168,6 +168,7 @@ import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
 import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import logger from '@/utils/logger';
 
 const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
@@ -364,7 +365,7 @@ export default {
       feePercentageWarning: false,
       showHoldingDetailModal: false,
       editingHoldingDetail: null,
-      ISA_ALLOWANCE: 20000, // 2025/26 tax year
+      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE,
       // Risk profile state
       mainRiskLevel: null,
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],

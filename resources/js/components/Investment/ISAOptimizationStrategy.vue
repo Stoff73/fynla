@@ -206,6 +206,8 @@
 </template>
 
 <script>
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
+
 export default {
   name: 'ISAOptimizationStrategy',
 
@@ -220,7 +222,7 @@ export default {
 
   computed: {
     taxYear() {
-      return this.strategy?.allowance?.tax_year || '2025/26';
+      return this.strategy?.allowance?.tax_year || getCurrentTaxYear();
     },
 
     totalTransferSaving() {

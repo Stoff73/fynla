@@ -469,6 +469,8 @@ export default {
     selectStage(stageId) {
       this.selectedStage = stageId;
       this.selectedNodeIndex = null;
+      // Persist stage selection immediately so it's saved even if user skips or times out
+      this.$store.dispatch('lifeStage/setStage', stageId).catch(() => {});
     },
 
     selectNode(index) {

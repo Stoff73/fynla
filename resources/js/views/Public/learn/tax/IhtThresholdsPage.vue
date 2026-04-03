@@ -3,7 +3,7 @@
     <!-- Hero -->
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
-        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Inheritance Tax Thresholds 2025/26</h1>
+        <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Inheritance Tax Thresholds {{ currentTaxYear }}</h1>
         <p class="text-lg text-white/70">
           The nil rate band, residence nil rate band, and how they work together.
         </p>
@@ -141,13 +141,20 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import GuideNav from '@/components/Shared/GuideNav.vue';
 import GuideArticleFooter from '@/components/Shared/GuideArticleFooter.vue';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'IhtThresholdsPage',
   components: { PublicLayout, GuideNav, GuideArticleFooter },
 
+  computed: {
+    currentTaxYear() {
+      return getCurrentTaxYear();
+    },
+  },
+
   mounted() {
-    document.title = 'Inheritance Tax Thresholds & Residence Nil Rate Band 2025/26 | Fynla';
+    document.title = `Inheritance Tax Thresholds & Residence Nil Rate Band ${this.currentTaxYear} | Fynla`;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
       meta.setAttribute('content', 'Current UK Inheritance Tax thresholds: nil rate band \u00A3325,000, residence nil rate band \u00A3175,000. Learn how they work, who qualifies, and the taper rules.');
