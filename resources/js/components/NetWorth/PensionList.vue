@@ -192,13 +192,13 @@
                     </div>
                     <h3 class="planner-card-title">Am I saving enough for retirement?</h3>
                   </div>
-                  <div class="planner-card-metrics three-col">
+                  <div class="planner-card-metrics">
                     <div class="planner-metric">
-                      <span class="planner-metric-label">You will need about:</span>
+                      <span class="planner-metric-label">Required Capital</span>
                       <span class="planner-metric-value">{{ formatCurrency(requiredCapitalValue) }}</span>
                     </div>
                     <div class="planner-metric">
-                      <span class="planner-metric-label">Current potential growth:</span>
+                      <span class="planner-metric-label">Projected Capital</span>
                       <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
                     </div>
                   </div>
