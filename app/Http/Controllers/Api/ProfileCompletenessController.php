@@ -28,10 +28,9 @@ class ProfileCompletenessController extends Controller
     {
         $user = $request->user();
 
-        // Cache for 10 minutes
         $completenessData = Cache::remember(
             "profile_completeness_{$user->id}",
-            600, // 10 minutes
+            86400,
             fn () => $this->completenessChecker->checkCompleteness($user)
         );
 

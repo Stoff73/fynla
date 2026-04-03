@@ -66,7 +66,7 @@ describe('Protection Cache Invalidation', function () {
         expect($secondHumanCapital)->toBeGreaterThanOrEqual($minimumIncrease);
     });
 
-    it('uses tagged caching for protection analysis', function () {
+    it('caches protection analysis results', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 50000,
             'date_of_birth' => now()->subYears(35),
@@ -82,14 +82,13 @@ describe('Protection Cache Invalidation', function () {
         $agent = app(ProtectionAgent::class);
         $agent->analyze($user->id);
 
-        // Verify cache exists with tags
-        $cachedValue = Cache::tags(['protection', 'user_'.$user->id])
-            ->get("protection_analysis_{$user->id}");
+        // Verify cache exists using key-based caching
+        $cachedValue = Cache::get('protection_analysis_'.$user->id);
 
         expect($cachedValue)->not->toBeNull();
     });
 
-    it('invalidates cache using tagged flush', function () {
+    it('invalidates cache using CacheInvalidationService', function () {
         $user = User::factory()->create([
             'annual_employment_income' => 50000,
             'date_of_birth' => now()->subYears(35),
@@ -106,16 +105,15 @@ describe('Protection Cache Invalidation', function () {
         $agent->analyze($user->id);
 
         // Verify cache exists
-        $cachedBefore = Cache::tags(['protection', 'user_'.$user->id])
-            ->get("protection_analysis_{$user->id}");
+        $cachedBefore = Cache::get('protection_analysis_'.$user->id);
         expect($cachedBefore)->not->toBeNull();
 
-        // Flush using tags (same as UserProfileController does)
-        Cache::tags(['protection', 'user_'.$user->id])->flush();
+        // Invalidate using the centralised service
+        $service = app(\App\Services\Cache\CacheInvalidationService::class);
+        $service->invalidateForUser($user->id);
 
         // Verify cache was cleared
-        $cachedAfter = Cache::tags(['protection', 'user_'.$user->id])
-            ->get("protection_analysis_{$user->id}");
+        $cachedAfter = Cache::get('protection_analysis_'.$user->id);
         expect($cachedAfter)->toBeNull();
     });
 
@@ -171,10 +169,8 @@ describe('Protection Cache Invalidation', function () {
         $response->assertStatus(200);
 
         // Verify both user AND spouse caches were cleared
-        $userCache = Cache::tags(['protection', 'user_'.$user->id])
-            ->get("protection_analysis_{$user->id}");
-        $spouseCache = Cache::tags(['protection', 'user_'.$spouse->id])
-            ->get("protection_analysis_{$spouse->id}");
+        $userCache = Cache::get('protection_analysis_'.$user->id);
+        $spouseCache = Cache::get('protection_analysis_'.$spouse->id);
 
         expect($userCache)->toBeNull();
         expect($spouseCache)->toBeNull();

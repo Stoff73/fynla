@@ -13,7 +13,8 @@ class OnboardingService
 {
     public function __construct(
         private EstateOnboardingFlow $estateFlow,
-        private \App\Services\TaxConfigService $taxConfig
+        private \App\Services\TaxConfigService $taxConfig,
+        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -328,9 +329,7 @@ class OnboardingService
                     'marital_status' => 'married',
                 ]);
 
-                // Clear cached protection analysis for both users since spouse linkage affects completeness
-                \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$user->id}");
-                \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$spouseAccount->id}");
+                $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseAccount->id);
 
                 // Create bidirectional spouse data sharing permissions
                 \App\Models\SpousePermission::updateOrCreate(

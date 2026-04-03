@@ -57,7 +57,7 @@ class TaxOptimizationController extends Controller
             $cacheKey = "tax_optimization_analysis_{$user->id}_".
                 ($validated['tax_year'] ?? 'current');
 
-            $result = Cache::remember($cacheKey, 1800, function () use ($user, $validated) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user, $validated) {
                 return $this->taxOptimizer->analyzeCompleteTaxPosition(
                     $user->id,
                     $validated
@@ -207,7 +207,7 @@ class TaxOptimizationController extends Controller
         try {
             $cacheKey = "tax_efficiency_score_{$user->id}";
 
-            $result = Cache::remember($cacheKey, 3600, function () use ($user) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user) {
                 $analysis = $this->taxOptimizer->analyzeCompleteTaxPosition($user->id);
 
                 if (! $analysis['success']) {
@@ -264,7 +264,7 @@ class TaxOptimizationController extends Controller
                 ($validated['priority'] ?? 'all').'_'.
                 ($validated['type'] ?? 'all');
 
-            $result = Cache::remember($cacheKey, 1800, function () use ($user, $validated) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user, $validated) {
                 $analysis = $this->taxOptimizer->analyzeCompleteTaxPosition($user->id);
 
                 if (! $analysis['success']) {

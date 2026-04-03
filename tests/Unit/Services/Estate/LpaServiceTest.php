@@ -14,7 +14,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $this->service = new LpaService();
+    $this->service = new LpaService(app(\App\Services\Cache\CacheInvalidationService::class));
     $this->user = User::factory()->create();
 });
 

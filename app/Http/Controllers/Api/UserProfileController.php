@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateIncomeOccupationRequest;
 use App\Http\Requests\UpdatePersonalInfoRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ class UserProfileController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private UserProfileService $userProfileService
+        private UserProfileService $userProfileService,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -53,6 +55,8 @@ class UserProfileController extends Controller
             $request->validated()
         );
 
+        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $user->spouse_id);
+
         return response()->json([
             'success' => true,
             'message' => 'Personal information updated successfully',
@@ -76,23 +80,7 @@ class UserProfileController extends Controller
             $request->validated()
         );
 
-        // Clear protection analysis cache when income changes
-        // This ensures protection needs recalculate with new income
-        try {
-            \Cache::tags(['protection', 'user_'.$user->id])->flush();
-        } catch (\BadMethodCallException $e) {
-            // Array driver doesn't support tags, skip
-        }
-
-        // If user has spouse, also clear their protection cache
-        // (spouse's protection calculation depends on this user's income)
-        if ($user->spouse_id) {
-            try {
-                \Cache::tags(['protection', 'user_'.$user->spouse_id])->flush();
-            } catch (\BadMethodCallException $e) {
-                // Array driver doesn't support tags, skip
-            }
-        }
+        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $user->spouse_id);
 
         return response()->json([
             'success' => true,
@@ -178,6 +166,8 @@ class UserProfileController extends Controller
             );
         }
 
+        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $user->spouse_id);
+
         return response()->json([
             'success' => true,
             'message' => 'Expenditure information updated successfully',
@@ -201,26 +191,7 @@ class UserProfileController extends Controller
             $request->validated()
         );
 
-        // Clear estate analysis cache when domicile status changes
-        // This affects IHT calculations and estate planning strategies
-        try {
-            \Cache::tags(['estate', 'user_'.$user->id])->flush();
-        } catch (\BadMethodCallException $e) {
-            // Array driver doesn't support tags, skip
-        }
-        \Cache::forget("estate_analysis_{$user->id}");
-        \Cache::forget("profile_completeness_{$user->id}");
-
-        // If user has spouse, also clear their estate cache
-        if ($user->spouse_id) {
-            try {
-                \Cache::tags(['estate', 'user_'.$user->spouse_id])->flush();
-            } catch (\BadMethodCallException $e) {
-                // Array driver doesn't support tags, skip
-            }
-            \Cache::forget("estate_analysis_{$user->spouse_id}");
-            \Cache::forget("profile_completeness_{$user->spouse_id}");
-        }
+        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $user->spouse_id);
 
         return response()->json([
             'success' => true,
@@ -425,6 +396,8 @@ class UserProfileController extends Controller
                 ]
             );
         }
+
+        $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouse->id);
 
         return response()->json([
             'success' => true,

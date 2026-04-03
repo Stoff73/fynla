@@ -84,7 +84,8 @@ beforeEach(function () {
         $this->mockRiskService,
         $this->mockTaxConfig,
         $this->mockUserProfileService,
-        $this->mockLifeEventCashFlowService
+        $this->mockLifeEventCashFlowService,
+        app(\App\Services\Cache\CacheInvalidationService::class)
     );
 });
 

@@ -9,6 +9,7 @@ use App\Constants\TaxDefaults;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,8 @@ class HolisticPlanningController extends Controller
 
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
-        private readonly CashFlowCoordinator $cashFlowCoordinator
+        private readonly CashFlowCoordinator $cashFlowCoordinator,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -162,8 +164,7 @@ class HolisticPlanningController extends Controller
         $recommendation->markAsCompleted();
 
         // Invalidate holistic plan cache
-        Cache::forget("holistic_plan_{$userId}");
-        Cache::forget("holistic_analysis_{$userId}");
+        $this->cacheInvalidation->invalidateForUser($userId);
 
         return response()->json([
             'success' => true,
@@ -210,8 +211,7 @@ class HolisticPlanningController extends Controller
         $recommendation->dismiss();
 
         // Invalidate caches
-        Cache::forget("holistic_plan_{$userId}");
-        Cache::forget("holistic_analysis_{$userId}");
+        $this->cacheInvalidation->invalidateForUser($userId);
 
         return response()->json([
             'success' => true,

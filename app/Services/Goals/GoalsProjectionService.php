@@ -33,7 +33,7 @@ class GoalsProjectionService
 
     private const DEFAULT_PROJECTION_END_AGE = 90;
 
-    private const CACHE_TTL = 1800; // 30 minutes
+    private const CACHE_TTL = 86400; // 24 hours — invalidated on data change
 
     public function __construct(
         private readonly NetWorthService $netWorthService,

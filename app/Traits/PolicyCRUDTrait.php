@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 
@@ -13,6 +14,9 @@ use Illuminate\Http\JsonResponse;
  * Reduces duplication in ProtectionController by providing standardized
  * store, update, and destroy operations that handle authorization, cache
  * invalidation, and error responses consistently.
+ *
+ * Expects the using class to have a $cacheInvalidation property
+ * (injected via constructor).
  */
 trait PolicyCRUDTrait
 {
@@ -36,8 +40,8 @@ trait PolicyCRUDTrait
         try {
             $policy = $modelClass::create($validated);
 
-            // Invalidate cache
             $this->protectionAgent->invalidateCache($userId);
+            $this->cacheInvalidation->invalidateForUser($userId);
 
             $responseData = $resourceClass ? new $resourceClass($policy) : $policy;
 
@@ -75,8 +79,8 @@ trait PolicyCRUDTrait
 
             $policy->update($validated);
 
-            // Invalidate cache
             $this->protectionAgent->invalidateCache($userId);
+            $this->cacheInvalidation->invalidateForUser($userId);
 
             $responseData = $resourceClass ? new $resourceClass($policy) : $policy;
 
@@ -116,8 +120,8 @@ trait PolicyCRUDTrait
 
             $policy->delete();
 
-            // Invalidate cache
             $this->protectionAgent->invalidateCache($userId);
+            $this->cacheInvalidation->invalidateForUser($userId);
 
             return response()->json([
                 'success' => true,

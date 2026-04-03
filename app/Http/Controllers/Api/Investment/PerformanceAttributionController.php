@@ -54,7 +54,7 @@ class PerformanceAttributionController extends Controller
         try {
             $cacheKey = "performance_attribution_{$user->id}_{$period}";
 
-            $result = Cache::remember($cacheKey, 1800, function () use ($user, $period) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user, $period) {
                 return $this->attributionAnalyzer->analyzePerformance($user->id, $period);
             });
 
@@ -155,7 +155,7 @@ class PerformanceAttributionController extends Controller
         try {
             $cacheKey = "risk_metrics_{$user->id}";
 
-            $result = Cache::remember($cacheKey, 3600, function () {
+            $result = Cache::remember($cacheKey, 86400, function () {
                 // Get portfolio returns (would be real data in production)
                 $portfolioReturns = $this->generateSampleReturns(0.007, 0.03, 36);
                 $benchmarkReturns = $this->generateSampleReturns(0.0065, 0.035, 36);

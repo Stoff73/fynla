@@ -554,7 +554,7 @@ class NetWorthService
     {
         $cacheKey = "net_worth:user_{$user->id}:date_".Carbon::now()->toDateString();
 
-        return Cache::remember($cacheKey, 1800, function () use ($user) {
+        return Cache::remember($cacheKey, 86400, function () use ($user) {
             return $this->calculateNetWorth($user);
         });
     }

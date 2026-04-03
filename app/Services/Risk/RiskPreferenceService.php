@@ -189,7 +189,7 @@ class RiskPreferenceService
     {
         $cacheKey = "user_risk_level_{$userId}";
 
-        return Cache::remember($cacheKey, 3600, function () use ($userId) {
+        return Cache::remember($cacheKey, 86400, function () use ($userId) {
             $profile = RiskProfile::where('user_id', $userId)->first();
 
             return $profile?->risk_level;

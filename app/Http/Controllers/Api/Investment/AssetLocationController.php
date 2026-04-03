@@ -61,7 +61,7 @@ class AssetLocationController extends Controller
         try {
             $cacheKey = "asset_location_analysis_{$user->id}";
 
-            $result = Cache::remember($cacheKey, 1800, function () use ($user, $validated) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user, $validated) {
                 return $this->optimizer->analyzeAssetLocation($user->id, $validated);
             });
 
@@ -167,7 +167,7 @@ class AssetLocationController extends Controller
         try {
             $cacheKey = "asset_location_score_{$user->id}";
 
-            $result = Cache::remember($cacheKey, 3600, function () use ($user) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user) {
                 $analysis = $this->optimizer->analyzeAssetLocation($user->id);
 
                 if (! $analysis['success']) {

@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Models\LifeEvent;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalsProjectionService;
-use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\MonteCarloSimulator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -19,7 +18,8 @@ class LifeEventMonteCarloObserver
 {
     public function __construct(
         private readonly MonteCarloSimulator $simulator,
-        private readonly GoalsProjectionService $projectionService
+        private readonly GoalsProjectionService $projectionService,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     public function created(LifeEvent $event): void
@@ -42,22 +42,7 @@ class LifeEventMonteCarloObserver
         if ($event->user_id) {
             $this->simulator->clearUserCache($event->user_id);
             $this->projectionService->clearCache($event->user_id);
-
-            // Clear recommendation caches for affected modules
-            try {
-                $integrationService = app(LifeEventIntegrationService::class);
-                $affectedModules = $integrationService->getEventModules($event);
-
-                foreach ($affectedModules as $module) {
-                    Cache::tags([$module, 'user_' . $event->user_id])->flush();
-                }
-            } catch (\Exception $e) {
-                // Log but don't fail — cache clearing is best-effort
-                Log::warning('Failed to clear module caches for life event', [
-                    'event_id' => $event->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $this->cacheInvalidation->invalidateForUser($event->user_id);
         }
     }
 }
