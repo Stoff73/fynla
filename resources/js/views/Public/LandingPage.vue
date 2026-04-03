@@ -158,7 +158,7 @@
               to="/register?from=fyn"
               class="inline-block px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap"
             >
-              Get started with Fyn
+              Quick start with Fyn
             </router-link>
           </div>
 
@@ -472,7 +472,8 @@ export default {
     smoothScrollTo(elementId, duration = 1500) {
       const el = document.getElementById(elementId);
       if (!el) return;
-      const target = el.getBoundingClientRect().top + window.scrollY;
+      const navbarHeight = document.querySelector('nav')?.offsetHeight || 0;
+      const target = el.getBoundingClientRect().top + window.scrollY - navbarHeight;
       const start = window.scrollY;
       const distance = target - start;
       const dur = duration;
