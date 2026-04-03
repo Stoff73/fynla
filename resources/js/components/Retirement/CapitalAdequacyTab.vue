@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="detail-inline-back"
+      class="detail-inline-back mb-4"
     >
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -37,53 +37,45 @@
 
     <!-- Main Content -->
     <template v-else>
-      <!-- Header Card (matches pension detail pattern) -->
+      <!-- Header Card with summary metrics inside (matches pension detail pattern) -->
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <div>
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-spring-100 text-spring-700 mb-2">Capital Planner</span>
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Am I saving enough for retirement?</h1>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Capital Planner</h1>
           <p class="text-base sm:text-lg text-neutral-500 mt-1">Track your pension contributions and capital progress towards retirement at age {{ retirementAge }}</p>
         </div>
-      </div>
 
-      <!-- Summary Cards -->
-      <div class="summary-grid">
-        <!-- Required Capital Card -->
-        <div class="summary-card teal">
-          <p class="summary-label">Required Capital at Retirement</p>
-          <p class="summary-value">{{ formatCurrency(requiredCapitalAtRetirement) }}</p>
-          <p class="summary-subtitle">Based on {{ formatCurrency(targetIncome) }}/year target</p>
-        </div>
+        <!-- Summary Metrics Grid (inside card) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-light-gray">
+          <!-- Required Capital -->
+          <div>
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">Required Capital</p>
+            <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(requiredCapitalAtRetirement) }}</p>
+            <p class="text-xs text-neutral-400">Based on {{ formatCurrency(targetIncome) }}/year target</p>
+          </div>
 
-        <!-- Projected Capital Card -->
-        <div :class="['summary-card', projectedCapitalClass]">
-          <p class="summary-label">Projected Capital at Retirement</p>
-          <p class="summary-value">{{ formatCurrency(projectedCapitalAtRetirement) }}</p>
-          <p class="summary-subtitle">80% confidence (Monte Carlo)</p>
-        </div>
+          <!-- Projected Capital -->
+          <div>
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">Projected Capital</p>
+            <p class="text-lg font-bold mt-1" :class="projectedCapitalAtRetirement >= requiredCapitalAtRetirement ? 'text-spring-600' : 'text-raspberry-500'">{{ formatCurrency(projectedCapitalAtRetirement) }}</p>
+            <p class="text-xs text-neutral-400">80% confidence (Monte Carlo)</p>
+          </div>
 
-        <!-- Annual Allowance Used Card -->
-        <div class="summary-card blue">
-          <p class="summary-label">Annual Allowance Used</p>
-          <p class="summary-value">{{ formatCurrency(allowanceUsedThisYear) }}</p>
-          <p class="summary-subtitle">of {{ formatCurrency(standardAllowance) }} ({{ currentTaxYear }})</p>
-        </div>
+          <!-- Annual Allowance Used -->
+          <div>
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">Allowance Used</p>
+            <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(allowanceUsedThisYear) }}</p>
+            <p class="text-xs text-neutral-400">of {{ formatCurrency(standardAllowance) }} ({{ currentTaxYear }})</p>
+          </div>
 
-        <!-- Carry Forward Card (expanded with year breakdown) -->
-        <div class="summary-card indigo carry-forward-card">
-          <p class="summary-label">Carry Forward Available</p>
-          <div class="carry-forward-breakdown">
-            <div
-              v-for="year in carryForwardByYear"
-              :key="year.taxYear"
-              class="cf-year-row"
-            >
-              <span class="cf-year-label">{{ year.taxYear }}</span>
-              <span class="cf-year-value">{{ formatCurrency(year.amount) }}</span>
-            </div>
-            <div class="cf-year-row cf-total">
-              <span class="cf-year-label">Total</span>
-              <span class="cf-year-value">{{ formatCurrency(carryForwardAvailable) }}</span>
+          <!-- Carry Forward -->
+          <div>
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">Carry Forward</p>
+            <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(carryForwardAvailable) }}</p>
+            <div class="mt-1 space-y-0.5">
+              <div v-for="year in carryForwardByYear" :key="year.taxYear" class="flex justify-between text-xs">
+                <span class="text-neutral-400">{{ year.taxYear }}</span>
+                <span class="text-neutral-500">{{ formatCurrency(year.amount) }}</span>
+              </div>
             </div>
           </div>
         </div>
