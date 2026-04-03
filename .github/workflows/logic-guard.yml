@@ -1,0 +1,309 @@
+name: Logic Guard — Dashboard & Onboarding
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  logic-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check author and label
+        id: gate
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          echo "PR author: $PR_AUTHOR"
+
+          if [ "$PR_AUTHOR" != "Phailanx" ]; then
+            echo "Not a Phailanx PR — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if echo "$PR_LABELS" | grep -q "logic-change-approved"; then
+            echo "Override label found — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyse diff for logic changes
+        if: steps.gate.outputs.skip != 'true'
+        id: analyse
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+
+          # Protected file patterns
+          PROTECTED_PATTERNS=(
+            "resources/js/views/Dashboard.vue"
+            "resources/js/components/Dashboard/"
+            "resources/js/store/modules/dashboard"
+            "resources/js/components/Onboarding/"
+            "resources/js/constants/lifeStageConfig.js"
+            "resources/js/store/modules/onboarding"
+            "resources/js/components/Retirement/DCPensionForm.vue"
+            "resources/js/components/Retirement/DBPensionForm.vue"
+            "resources/js/components/Retirement/StatePensionForm.vue"
+            "resources/js/components/NetWorth/Property/PropertyForm.vue"
+            "resources/js/components/Investment/AccountForm.vue"
+            "resources/js/components/Savings/SaveAccountModal.vue"
+            "resources/js/components/Protection/PolicyFormModal.vue"
+            "resources/js/components/UserProfile/ExpenditureForm.vue"
+            "resources/js/components/UserProfile/FamilyMemberFormModal.vue"
+            "resources/js/components/Estate/LiabilityForm.vue"
+            "resources/js/layouts/AppLayout.vue"
+            "resources/js/router/index.js"
+          )
+
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          # Filter to protected files only
+          PROTECTED_FILES=()
+          for file in $CHANGED_FILES; do
+            for pattern in "${PROTECTED_PATTERNS[@]}"; do
+              if [[ "$file" == "$pattern" ]] || [[ "$file" == "$pattern"* ]]; then
+                PROTECTED_FILES+=("$file")
+                break
+              fi
+            done
+          done
+
+          if [ ${#PROTECTED_FILES[@]} -eq 0 ]; then
+            echo "No protected files changed."
+            echo "has_violations=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Protected files changed: ${PROTECTED_FILES[*]}"
+
+          # Template logic patterns
+          LOGIC_PATTERN='v-if=|v-else-if=|v-else[" >]|v-for=|v-show=|v-model|v-html=|v-text=|v-slot|@click|@submit|@save|@close|@change|@input|@keydown|@keyup|@focus|@blur|@scroll|@[a-z]|:key=|:is=|:ref=|:disabled=|:class=|:style=|ref=|#default|#[a-z]|scrollTo|scrollIntoView|\$router|\$route|\$emit|<[A-Z][A-Za-z]+'
+
+          # Analyse each protected file
+          VIOLATIONS_FILE=$(mktemp)
+          TOTAL_VIOLATIONS=0
+          FILES_WITH_VIOLATIONS=0
+
+          for file in "${PROTECTED_FILES[@]}"; do
+
+            # Check for deleted files
+            if ! git show "$HEAD_SHA:$file" > /dev/null 2>&1; then
+              echo "DELETED|$file|—|File deleted|Protected file was deleted" >> "$VIOLATIONS_FILE"
+              TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + 1))
+              FILES_WITH_VIOLATIONS=$((FILES_WITH_VIOLATIONS + 1))
+              continue
+            fi
+
+            # Check for new files in protected zones
+            if ! git show "$BASE_SHA:$file" > /dev/null 2>&1; then
+              echo "NEW|$file|—|New file|New file added to protected zone" >> "$VIOLATIONS_FILE"
+              TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + 1))
+              FILES_WITH_VIOLATIONS=$((FILES_WITH_VIOLATIONS + 1))
+              continue
+            fi
+
+            # For non-.vue files (JS), any change is a logic change
+            if [[ "$file" != *.vue ]]; then
+              CHANGE_COUNT=$(git diff "$BASE_SHA" "$HEAD_SHA" -- "$file" | grep -c '^[+-][^+-]' || true)
+              if [ "$CHANGE_COUNT" -gt 0 ]; then
+                echo "JS|$file|script|Any change|Pure logic file modified" >> "$VIOLATIONS_FILE"
+                TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + 1))
+                FILES_WITH_VIOLATIONS=$((FILES_WITH_VIOLATIONS + 1))
+              fi
+              continue
+            fi
+
+            # Vue SFC analysis
+            FILE_VIOLATIONS=0
+            CURRENT_SECTION="unknown"
+
+            while IFS= read -r line; do
+              # Track which SFC section we are in
+              if echo "$line" | grep -qE '^[+ -]?<template[ >]'; then
+                CURRENT_SECTION="template"
+                continue
+              elif echo "$line" | grep -qE '^[+ -]?<script'; then
+                CURRENT_SECTION="script"
+                continue
+              elif echo "$line" | grep -qE '^[+ -]?<style'; then
+                CURRENT_SECTION="style"
+                continue
+              elif echo "$line" | grep -qE '^[+ -]?</template>'; then
+                CURRENT_SECTION="between"
+                continue
+              elif echo "$line" | grep -qE '^[+ -]?</script>'; then
+                CURRENT_SECTION="between"
+                continue
+              elif echo "$line" | grep -qE '^[+ -]?</style>'; then
+                CURRENT_SECTION="between"
+                continue
+              fi
+
+              # Only look at added (+) or removed (-) lines
+              if ! echo "$line" | grep -qE '^\+|^-'; then
+                continue
+              fi
+
+              # Skip diff headers and hunk headers
+              if echo "$line" | grep -qE '^\+\+\+|^---|^@@'; then
+                continue
+              fi
+
+              # Style section: always safe
+              if [ "$CURRENT_SECTION" = "style" ]; then
+                continue
+              fi
+
+              # Script section: always flagged
+              if [ "$CURRENT_SECTION" = "script" ]; then
+                CLEAN_LINE=$(echo "$line" | sed 's/^[+-]//' | sed 's/|/∣/g' | head -c 80)
+                echo "SCRIPT|$file|script|\`$CLEAN_LINE\`|Script logic modified" >> "$VIOLATIONS_FILE"
+                FILE_VIOLATIONS=$((FILE_VIOLATIONS + 1))
+                TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + 1))
+                continue
+              fi
+
+              # Template section: check for logic patterns
+              if [ "$CURRENT_SECTION" = "template" ]; then
+                if echo "$line" | grep -qE "$LOGIC_PATTERN"; then
+                  CLEAN_LINE=$(echo "$line" | sed 's/^[+-]//' | sed 's/|/∣/g' | head -c 80)
+
+                  REASON="Template logic modified"
+                  if echo "$line" | grep -qE 'v-if=|v-else-if=|v-else[" >]'; then
+                    REASON="Conditional directive modified"
+                  elif echo "$line" | grep -qE 'v-for='; then
+                    REASON="Loop directive modified"
+                  elif echo "$line" | grep -qE '@[a-z]'; then
+                    REASON="Event handler modified"
+                  elif echo "$line" | grep -qE 'v-model'; then
+                    REASON="Form binding modified"
+                  elif echo "$line" | grep -qE 'v-show='; then
+                    REASON="Visibility directive modified"
+                  elif echo "$line" | grep -qE ':key=|:ref=|ref='; then
+                    REASON="Element ref/key modified"
+                  elif echo "$line" | grep -qE 'scrollTo|scrollIntoView'; then
+                    REASON="Scroll behaviour modified"
+                  elif echo "$line" | grep -qE '\$router|\$route'; then
+                    REASON="Navigation logic modified"
+                  elif echo "$line" | grep -qE '\$emit'; then
+                    REASON="Event emission modified"
+                  elif echo "$line" | grep -qE 'v-slot|#default|#[a-z]'; then
+                    REASON="Slot binding modified"
+                  elif echo "$line" | grep -qE ':class=|:style='; then
+                    REASON="Dynamic class/style binding modified"
+                  elif echo "$line" | grep -qE '<[A-Z][A-Za-z]+'; then
+                    REASON="Component tag added/removed"
+                  fi
+
+                  echo "TEMPLATE|$file|template|\`$CLEAN_LINE\`|$REASON" >> "$VIOLATIONS_FILE"
+                  FILE_VIOLATIONS=$((FILE_VIOLATIONS + 1))
+                  TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + 1))
+                fi
+              fi
+
+            done < <(git diff "$BASE_SHA" "$HEAD_SHA" -- "$file")
+
+            if [ "$FILE_VIOLATIONS" -gt 0 ]; then
+              FILES_WITH_VIOLATIONS=$((FILES_WITH_VIOLATIONS + 1))
+            fi
+
+          done
+
+          # No violations — clean exit
+          if [ "$TOTAL_VIOLATIONS" -eq 0 ]; then
+            echo "No logic violations found."
+            echo "has_violations=false" >> "$GITHUB_OUTPUT"
+            rm -f "$VIOLATIONS_FILE"
+            exit 0
+          fi
+
+          echo "has_violations=true" >> "$GITHUB_OUTPUT"
+          echo "total_violations=$TOTAL_VIOLATIONS" >> "$GITHUB_OUTPUT"
+
+          # Build PR comment
+          COMMENT_FILE=$(mktemp)
+
+          echo "## :shield: Logic Guard — Dashboard & Onboarding" >> "$COMMENT_FILE"
+          echo "" >> "$COMMENT_FILE"
+          echo "This PR modifies protected logic in dashboard/onboarding files." >> "$COMMENT_FILE"
+          echo "**Design-only PRs should not change logic, sequencing, or event handling.**" >> "$COMMENT_FILE"
+          echo "" >> "$COMMENT_FILE"
+          echo "### Violations Found: $TOTAL_VIOLATIONS" >> "$COMMENT_FILE"
+          echo "" >> "$COMMENT_FILE"
+
+          # Group violations by file
+          CURRENT_FILE=""
+          while IFS='|' read -r type file section change reason; do
+            if [ "$file" != "$CURRENT_FILE" ]; then
+              if [ -n "$CURRENT_FILE" ]; then
+                echo "" >> "$COMMENT_FILE"
+              fi
+              echo "#### \`$file\`" >> "$COMMENT_FILE"
+              echo "" >> "$COMMENT_FILE"
+              echo "| Section | Change | Reason |" >> "$COMMENT_FILE"
+              echo "|---------|--------|--------|" >> "$COMMENT_FILE"
+              CURRENT_FILE="$file"
+            fi
+            echo "| $section | $change | $reason |" >> "$COMMENT_FILE"
+          done < <(sort -t'|' -k2 "$VIOLATIONS_FILE")
+
+          echo "" >> "$COMMENT_FILE"
+          echo "---" >> "$COMMENT_FILE"
+          echo "" >> "$COMMENT_FILE"
+          echo "**Total:** $FILES_WITH_VIOLATIONS file(s), $TOTAL_VIOLATIONS violation(s)" >> "$COMMENT_FILE"
+          echo "" >> "$COMMENT_FILE"
+          echo "To approve these logic changes, @Stoff73 can add the label \`logic-change-approved\`." >> "$COMMENT_FILE"
+
+          # Post or update PR comment
+          MARKER="<!-- logic-guard-comment -->"
+          COMMENT_BODY="${MARKER}
+          $(cat "$COMMENT_FILE")"
+
+          EXISTING_COMMENT_ID=$(gh api \
+            "repos/${GITHUB_REPO}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" \
+            2>/dev/null | head -1 || echo "")
+
+          if [ -n "$EXISTING_COMMENT_ID" ]; then
+            gh api \
+              "repos/${GITHUB_REPO}/issues/comments/${EXISTING_COMMENT_ID}" \
+              --method PATCH \
+              --field body="$COMMENT_BODY"
+            echo "Updated existing comment $EXISTING_COMMENT_ID"
+          else
+            gh api \
+              "repos/${GITHUB_REPO}/issues/${PR_NUMBER}/comments" \
+              --method POST \
+              --field body="$COMMENT_BODY"
+            echo "Posted new comment"
+          fi
+
+          rm -f "$VIOLATIONS_FILE" "$COMMENT_FILE"
+
+      - name: Fail if violations found
+        if: steps.gate.outputs.skip != 'true' && steps.analyse.outputs.has_violations == 'true'
+        env:
+          TOTAL: ${{ steps.analyse.outputs.total_violations }}
+        run: |
+          echo "::error::Logic Guard found $TOTAL violation(s) in protected files. See PR comment for details."
+          exit 1
