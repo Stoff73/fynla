@@ -19,7 +19,7 @@
       <apexchart
         v-if="projections.length > 0"
         :key="chartKey"
-        type="area"
+        type="bar"
         height="350"
         :options="chartOptions"
         :series="chartSeries"
@@ -250,23 +250,22 @@ export default {
       return {
         chart: {
           ...CHART_DEFAULTS.chart,
-          type: 'area',
+          type: 'bar',
           stacked: true,
           animations: { enabled: true, speed: 500 },
         },
         colors: CHART_COLORS.slice(0, 5),
         fill: {
-          type: 'gradient',
-          gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.7,
-            opacityTo: 0.3,
-            stops: [0, 90, 100],
+          opacity: 0.9,
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: '70%',
+            borderRadius: 2,
           },
         },
         stroke: {
-          curve: 'smooth',
-          width: 2,
+          width: 0,
         },
         xaxis: {
           categories: ages,
@@ -308,6 +307,7 @@ export default {
         },
         tooltip: {
           shared: true,
+          intersect: false,
           y: {
             formatter: (val) => '£' + val.toLocaleString(),
           },
