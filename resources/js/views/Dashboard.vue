@@ -1447,9 +1447,15 @@ export default {
       const potProjection = this.projections?.pension_pot_projection;
       const incomeDrawdown = this.projections?.income_drawdown;
 
+      // Gross income = DC withdrawals + DB pension + State Pension (first year)
+      const firstYear = incomeDrawdown?.yearly_income?.[0];
+      const grossIncome = firstYear
+        ? (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0)
+        : 0;
+
       return {
-        projectedIncome: incomeDrawdown?.yearly_income?.[0]?.total_income || this.projectedIncome || 0,
-        targetIncome: incomeDrawdown?.target_income || requiredCapital.required_income || 0,
+        projectedIncome: grossIncome || this.projectedIncome || 0,
+        targetIncome: requiredCapital.required_income || incomeDrawdown?.target_income || 0,
         projectedCapital: potProjection?.percentile_20_at_retirement || this.totalPensionWealth || 0,
         capitalRequired: requiredCapital.required_capital_at_retirement || 0,
         retirementAge: this.profile?.target_retirement_age || null,
@@ -1473,21 +1479,14 @@ export default {
       return Math.round((this.retirementData.projectedCapital / this.retirementData.capitalRequired) * 100);
     },
 
-    // Retired user income breakdown - calculates actual income from pension sources
+    // Retired user income breakdown - uses backend projection data for consistency
     retiredIncomeData() {
-      // Pension Drawdown: DC pension wealth × 4% safe withdrawal rate
-      const dcWealth = this.totalPensionWealth || 0;
-      const pensionDrawdown = dcWealth * 0.04;
+      const incomeDrawdown = this.projections?.income_drawdown;
+      const firstYear = incomeDrawdown?.yearly_income?.[0];
 
-      // DB Pension: Sum of accrued annual pension from all DB schemes
-      const dbPensionIncome = (this.dbPensions || []).reduce((sum, pension) => {
-        return sum + parseFloat(pension.accrued_annual_pension || 0);
-      }, 0);
-
-      // State Pension: Use configured amount or UK default (£11,502 for 2024/25)
-      const statePensionIncome = parseFloat(this.statePension?.annual_amount || 0) || 11502;
-
-      // Total retirement income
+      const pensionDrawdown = firstYear?.total_income || 0;
+      const dbPensionIncome = firstYear?.db_pension || 0;
+      const statePensionIncome = firstYear?.state_pension || 0;
       const totalIncome = pensionDrawdown + dbPensionIncome + statePensionIncome;
 
       return {

@@ -3,7 +3,7 @@
     <!-- Back Button -->
     <button
       @click="$emit('back')"
-      class="detail-inline-back"
+      class="detail-inline-back mb-4"
     >
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -43,155 +43,102 @@
 
     <!-- Main Content -->
     <template v-else>
-      <!-- Header Section -->
-      <div class="header-section">
-        <div class="header-left">
-          <h3 class="section-title">Will I have enough income for retirement?</h3>
-          <p class="section-subtitle">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
-        </div>
-        <!-- Spouse toggle hidden - functionality exists in backend but not exposed to users at this time -->
-        <div v-if="false" class="header-right">
-          <label class="spouse-toggle">
-            <span class="toggle-label">Include spouse's assets</span>
-            <button
-              type="button"
-              :class="['toggle-switch', { 'active': includeSpouse }]"
-              @click="toggleSpouse"
-            >
-              <span class="toggle-slider"></span>
-            </button>
-          </label>
-        </div>
-      </div>
-
-      <!-- Agentic AI Development Note -->
-      <div class="info-banner development-note">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-        </svg>
-        <div class="info-content">
-          <p class="info-message">
-            The retirement planner you see here is the base scaffolding that will be used by our Agentic AI (not implemented yet) running on a domain-specific, deep knowledge LLM, to provide actionable, deterministic and traceable optimisation strategies for drawdown. So if what you see is not perfect, or does not make sense, this is expected behaviour due to the nature of symbolic AI (which is implemented). Once we connect the agent, the AI will adjust the parameters accordingly.
-          </p>
-        </div>
-      </div>
-
-      <!-- State Pension Message -->
-      <div v-if="statePensionStatus && !statePensionStatus.has_data" class="info-banner">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-        </svg>
-        <div class="info-content">
-          <p class="info-message">{{ statePensionStatus.message }}</p>
-          <div class="info-links">
-            <button
-              type="button"
-              @click="$emit('add-state-pension')"
-              class="info-link-button"
-            >
-              Add State Pension
-            </button>
-            <span class="info-separator">or</span>
-            <a
-              :href="statePensionStatus.link"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="info-link"
-            >
-              {{ statePensionStatus.link_text }}
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="external-link-icon">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Income Adjusted Notice -->
-      <div v-if="incomeWasAdjusted" class="info-banner adjusted">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-        </svg>
-        <div class="info-content">
-          <p class="info-message">
-            Income adjusted from {{ formatCurrency(displayTargetIncome) }} to {{ formatCurrency(optimisedIncome) }}/year
-            to ensure funds last to age 100.
-          </p>
-        </div>
-      </div>
-
-      <!-- Summary Cards -->
-      <div class="summary-grid-extended">
-        <!-- Target Income Card -->
-        <div class="summary-card target">
-          <div class="card-header-row">
-            <p class="summary-label">{{ incomeWasAdjusted ? 'Optimised Income' : 'Target Annual Income' }}</p>
-            <button class="edit-btn" @click="showTargetModal = true">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-              </svg>
-            </button>
-          </div>
-          <p class="summary-value">{{ formatCurrency(incomeWasAdjusted ? optimisedIncome : displayTargetIncome) }}</p>
-          <p class="summary-subtitle">
-            <template v-if="incomeWasAdjusted">Adjusted to last until age 100</template>
-            <template v-else>{{ customTargetIncome ? 'Custom target' : 'From retirement profile' }}</template>
-          </p>
+      <!-- Header Card with summary metrics inside (matches pension detail pattern) -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Income Planner</h1>
+          <p class="text-base sm:text-lg text-neutral-500 mt-1">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
         </div>
 
-        <!-- Net Income Card (clickable for breakdown) -->
-        <div :class="['summary-card', netIncomeClass, 'cursor-pointer']" @click="showIncomeBreakdown = !showIncomeBreakdown">
-          <p class="summary-label">Projected Net Income
-            <svg class="inline w-3.5 h-3.5 ml-1 text-neutral-400 transition-transform" :class="{ 'rotate-180': showIncomeBreakdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-          </p>
-          <p class="summary-value">{{ formatCurrency(firstYearNetIncome) }}</p>
-          <p class="summary-subtitle">After tax ({{ formatPercent(firstYearEffectiveRate) }} effective rate)</p>
-          <div v-if="showIncomeBreakdown && firstYearBreakdown" class="mt-3 pt-3 border-t border-gray-200 text-left space-y-1.5">
-            <div v-if="firstYearBreakdown.dcWithdrawal > 0" class="flex justify-between text-xs">
-              <span class="text-neutral-500">Defined Contribution withdrawals</span>
-              <span class="font-medium">{{ formatCurrency(firstYearBreakdown.dcWithdrawal) }}</span>
-            </div>
-            <div v-if="firstYearBreakdown.dbPension > 0" class="flex justify-between text-xs">
-              <span class="text-neutral-500">Defined Benefit pension</span>
-              <span class="font-medium">{{ formatCurrency(firstYearBreakdown.dbPension) }}</span>
-            </div>
-            <div v-if="firstYearBreakdown.statePension > 0" class="flex justify-between text-xs">
-              <span class="text-neutral-500">State Pension</span>
-              <span class="font-medium">{{ formatCurrency(firstYearBreakdown.statePension) }}</span>
-            </div>
-            <div class="flex justify-between text-xs font-semibold border-t border-gray-200 pt-1.5 mt-1.5">
-              <span class="text-neutral-500">Gross total</span>
-              <span>{{ formatCurrency(firstYearBreakdown.grossTotal) }}</span>
-            </div>
-            <div class="flex justify-between text-xs text-raspberry-500">
-              <span>Tax</span>
-              <span>-{{ formatCurrency(firstYearBreakdown.tax) }}</span>
-            </div>
-            <div class="flex justify-between text-xs font-bold">
-              <span>Net income</span>
-              <span>{{ formatCurrency(firstYearNetIncome) }}</span>
+        <!-- State Pension Warning (inside card) -->
+        <div v-if="statePensionStatus && !statePensionStatus.has_data" class="mt-4 p-3 bg-violet-50 rounded-lg flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+          </svg>
+          <div class="text-sm">
+            <p class="text-neutral-600">{{ statePensionStatus.message }}</p>
+            <div class="mt-1 flex items-center gap-2">
+              <button type="button" @click="$emit('add-state-pension')" class="text-raspberry-500 font-medium hover:text-raspberry-600">Add State Pension</button>
+              <span class="text-neutral-400">or</span>
+              <a :href="statePensionStatus.link" target="_blank" rel="noopener noreferrer" class="text-raspberry-500 font-medium hover:text-raspberry-600">{{ statePensionStatus.link_text }}</a>
             </div>
           </div>
         </div>
 
-        <!-- Pension Capital Card -->
-        <div class="summary-card teal">
-          <p class="summary-label">Pension Capital at Retirement</p>
-          <p class="summary-value">{{ formatCurrency(projectedPotAtRetirement) }}</p>
-          <p class="summary-subtitle">At age {{ retirementAge }} (80% confidence)</p>
+        <!-- Income Adjusted Notice (inside card) -->
+        <div v-if="incomeWasAdjusted" class="mt-4 p-3 bg-violet-50 rounded-lg text-sm text-neutral-600">
+          Income adjusted from {{ formatCurrency(displayTargetIncome) }} to {{ formatCurrency(optimisedIncome) }}/year to ensure funds last to age 100.
         </div>
 
-        <!-- Other Assets Card -->
-        <div class="summary-card indigo">
-          <p class="summary-label">Other Assets at Retirement</p>
-          <p class="summary-value">{{ formatCurrency(totalProjectedOtherAssets) }}</p>
-          <p class="summary-subtitle">Investments + Cash projected</p>
+        <!-- Summary Metrics Grid (inside card) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-light-gray">
+          <!-- Target Income -->
+          <div>
+            <div class="flex items-center gap-1">
+              <p class="text-xs text-neutral-500 uppercase tracking-wider">{{ incomeWasAdjusted ? 'Optimised Income' : 'Target Annual Income' }}</p>
+              <button class="text-neutral-400 hover:text-raspberry-500 transition-colors" @click="showTargetModal = true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+              </button>
+            </div>
+            <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(incomeWasAdjusted ? optimisedIncome : displayTargetIncome) }}</p>
+            <p class="text-xs text-neutral-400">
+              <template v-if="incomeWasAdjusted">Adjusted to last until age 100</template>
+              <template v-else>{{ customTargetIncome ? 'Custom target' : 'From retirement profile' }}</template>
+            </p>
+          </div>
+
+          <!-- Projected Gross Income (clickable for breakdown) -->
+          <div class="cursor-pointer" @click="showIncomeBreakdown = !showIncomeBreakdown">
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">
+              Projected Gross Income
+              <svg class="inline w-3 h-3 ml-0.5 text-neutral-400 transition-transform" :class="{ 'rotate-180': showIncomeBreakdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </p>
+            <p class="text-lg font-bold mt-1" :class="firstYearGrossIncome >= displayTargetIncome ? 'text-spring-600' : 'text-raspberry-500'">{{ formatCurrency(firstYearGrossIncome) }}</p>
+            <p class="text-xs text-neutral-400">Before tax ({{ formatPercent(firstYearEffectiveRate) }} rate)</p>
+            <div v-if="showIncomeBreakdown && firstYearBreakdown" class="mt-2 pt-2 border-t border-light-gray space-y-1">
+              <div v-if="firstYearBreakdown.dcWithdrawal > 0" class="flex justify-between text-xs">
+                <span class="text-neutral-500">Defined Contribution</span>
+                <span class="font-medium">{{ formatCurrency(firstYearBreakdown.dcWithdrawal) }}</span>
+              </div>
+              <div v-if="firstYearBreakdown.dbPension > 0" class="flex justify-between text-xs">
+                <span class="text-neutral-500">Defined Benefit</span>
+                <span class="font-medium">{{ formatCurrency(firstYearBreakdown.dbPension) }}</span>
+              </div>
+              <div v-if="firstYearBreakdown.statePension > 0" class="flex justify-between text-xs">
+                <span class="text-neutral-500">State Pension</span>
+                <span class="font-medium">{{ formatCurrency(firstYearBreakdown.statePension) }}</span>
+              </div>
+              <div class="flex justify-between text-xs text-raspberry-500 pt-1 border-t border-light-gray">
+                <span>Tax</span>
+                <span>-{{ formatCurrency(firstYearBreakdown.tax) }}</span>
+              </div>
+              <div class="flex justify-between text-xs font-bold">
+                <span>Net income</span>
+                <span>{{ formatCurrency(firstYearNetIncome) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pension Capital -->
+          <div>
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">Pension Capital</p>
+            <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(projectedPotAtRetirement) }}</p>
+            <p class="text-xs text-neutral-400">At age {{ retirementAge }} (80% confidence)</p>
+          </div>
+
+          <!-- Other Assets -->
+          <div>
+            <p class="text-xs text-neutral-500 uppercase tracking-wider">Other Assets</p>
+            <p class="text-lg font-bold text-horizon-500 mt-1">{{ formatCurrency(totalProjectedOtherAssets) }}</p>
+            <p class="text-xs text-neutral-400">Investments + Cash projected</p>
+          </div>
         </div>
       </div>
 
-      <!-- Income Sources and Other Assets Row -->
-      <div class="sources-assets-row">
-        <!-- Income Sources Section -->
+      <!-- Old sources position (removed — now below chart) -->
+      <div v-if="false" class="sources-assets-row">
         <div class="sources-section">
           <div class="sources-header">
             <h4 class="sources-title">Income Sources</h4>
@@ -308,13 +255,103 @@
         </div>
       </div>
 
-      <!-- Fund Depletion Chart -->
-      <FundDepletionChart
-        v-if="fundProjections.length > 0"
-        :projections="fundProjections"
-        :depletion-ages="depletionAges"
-        :retirement-age="retirementAge"
-      />
+      <!-- Fund Depletion Chart — click to reveal income sources below -->
+      <div v-if="fundProjections.length > 0" class="cursor-pointer" @click="showSourcesDetail = !showSourcesDetail">
+        <FundDepletionChart
+          :projections="fundProjections"
+          :depletion-ages="depletionAges"
+          :retirement-age="retirementAge"
+        />
+        <p class="text-center text-sm text-neutral-500 mt-2 mb-4">
+          <span class="text-raspberry-500 font-medium">{{ showSourcesDetail ? 'Hide' : 'View' }} income sources and assets</span>
+          <svg class="inline w-4 h-4 ml-1 text-raspberry-500 transition-transform" :class="{ 'rotate-180': showSourcesDetail }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+        </p>
+      </div>
+
+      <!-- Income Sources and Other Assets — revealed by clicking chart -->
+      <div v-if="showSourcesDetail" class="sources-assets-row">
+        <div class="sources-section">
+          <div class="sources-header">
+            <h4 class="sources-title">Income Sources</h4>
+          </div>
+
+          <div class="sources-list">
+            <IncomeSourceSlider
+              v-for="allocation in displayAllocations"
+              :key="`${allocation.source_type}-${allocation.source_id}`"
+              :allocation="allocation"
+              :account="getAccountForAllocation(allocation)"
+            />
+
+            <div
+              v-for="allocation in includedOtherAllocations"
+              :key="'other-' + allocation.source_id"
+              class="account-card"
+            >
+              <span :class="['account-type-badge', getAccountTypeBadgeClass(allocation.source_type)]">
+                {{ formatSourceType(allocation.source_type) }}
+              </span>
+              <h4 class="account-name">{{ allocation.name }}</h4>
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(allocation.starting_balance) }}</p>
+                  <p class="account-detail">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</p>
+                </div>
+                <button type="button" class="account-toggle active" @click.stop="toggleAllocation(allocation)" title="Click to exclude from retirement income">
+                  <span>Included</span>
+                  <span class="toggle-switch on"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="displayAllocations.length === 0 && includedOtherAllocations.length === 0" class="no-allocations">
+            <p>No income allocations configured</p>
+          </div>
+        </div>
+
+        <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
+          <div class="assets-header">
+            <h4 class="assets-title">Other Assets</h4>
+            <p class="assets-subtitle">Toggle to include in retirement income planning</p>
+          </div>
+
+          <div class="asset-cards">
+            <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="account-card">
+              <span :class="['account-type-badge', getAccountTypeBadgeClass(account.account_type)]">
+                {{ formatAccountType(account.account_type) }}
+              </span>
+              <h4 class="account-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</h4>
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(getProjectedValue(account)) }}</p>
+                  <p class="account-detail">Projected at retirement (80%)</p>
+                </div>
+                <button type="button" class="account-toggle" @click.stop="toggleAsset('investment', account.id)" title="Click to include in retirement income">
+                  <span>Excluded</span>
+                  <span class="toggle-switch"></span>
+                </button>
+              </div>
+            </div>
+            <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="account-card">
+              <span :class="['account-type-badge', account.is_isa ? 'badge-emerald' : 'badge-gray']">
+                {{ account.is_isa ? 'Cash ISA' : 'Savings' }}
+              </span>
+              <h4 class="account-name">{{ account.institution || 'Cash Account' }}</h4>
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(getProjectedCashValue(account)) }}</p>
+                  <p class="account-detail">Projected at retirement</p>
+                </div>
+                <button type="button" class="account-toggle" @click.stop="toggleAsset('cash', account.id)" title="Click to include in retirement income">
+                  <span>Excluded</span>
+                  <span class="toggle-switch"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Year-by-Year Projection Table (Hidden from view - logic retained) -->
       <div v-if="false && requiredCapital?.year_by_year?.length > 0" class="table-section">
@@ -397,6 +434,7 @@ export default {
     return {
       showTargetModal: false,
       showIncomeBreakdown: false,
+      showSourcesDetail: false,
       tempTargetIncome: null,
       calculateTimeout: null,
     };
@@ -490,10 +528,10 @@ export default {
       return (firstYear.tax_paid || 0) / grossIncome;
     },
 
-    // First year gross income (for reference)
+    // First year gross income — single source: income_drawdown from projections store
     firstYearGrossIncome() {
-      if (this.fundProjections.length === 0) return 0;
-      const firstYear = this.fundProjections[0];
+      const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
+      if (!firstYear) return 0;
       return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
     },
 
@@ -619,7 +657,7 @@ export default {
 
     netIncomeClass() {
       if (this.fundProjections.length === 0) return '';
-      const netIncome = this.firstYearNetIncome;
+      const netIncome = this.firstYearGrossIncome;
       const target = this.displayTargetIncome;
       if (netIncome >= target) return 'green';
       if (netIncome >= target * 0.9) return 'yellow';

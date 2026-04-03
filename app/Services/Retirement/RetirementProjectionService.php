@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\RetirementProfile;
 use App\Models\User;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
-use App\Services\UserProfile\UserProfileService;
 
 /**
  * Retirement Projection Service
@@ -26,9 +24,9 @@ class RetirementProjectionService
         private readonly MonteCarloSimulator $simulator,
         private readonly RiskPreferenceService $riskService,
         private readonly TaxConfigService $taxConfig,
-        private readonly UserProfileService $userProfileService,
         private readonly LifeEventCashFlowService $lifeEventCashFlowService,
-        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
+        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation,
+        private readonly RequiredCapitalCalculator $requiredCapitalCalculator
     ) {}
 
     /**
@@ -243,9 +241,10 @@ class RetirementProjectionService
         $dbAnnualIncome = $this->getTotalDBIncome($user);
         $statePensionIncome = $this->getStatePensionIncome($user, $retirementAge);
 
-        // Get target income from profile, or 75% of current after-tax income as fallback
-        $currentNetIncome = $this->getCurrentNetIncome($user);
-        $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
+        // Get target income from centralised RequiredCapitalCalculator (single source of truth)
+        $requiredCapitalData = $this->requiredCapitalCalculator->calculate($user->id);
+        $targetIncome = (float) $requiredCapitalData['required_income'];
+        $currentNetIncome = $targetIncome; // For display purposes
 
         $endAge = (int) $this->taxConfig->get('retirement.projection_end_age', 100);
         $sustainableWithdrawalRate = (float) $this->taxConfig->get('retirement.withdrawal_rates.sustainable', 0.047);
@@ -367,9 +366,9 @@ class RetirementProjectionService
         $dbAnnualIncome = $this->getTotalDBIncome($user);
         $statePensionIncome = $this->getStatePensionIncome($user, $retirementAge);
 
-        // Get target income from profile, or 75% of current after-tax income as fallback
-        $currentNetIncome = $this->getCurrentNetIncome($user);
-        $targetIncome = $this->getTargetRetirementIncome($user, $currentNetIncome);
+        // Get target income from centralised RequiredCapitalCalculator (single source of truth)
+        $requiredCapitalData = $this->requiredCapitalCalculator->calculate($user->id);
+        $targetIncome = (float) $requiredCapitalData['required_income'];
 
         $endAge = (int) $this->taxConfig->get('retirement.projection_end_age', 100);
         $inflationRate = (float) $this->taxConfig->get('assumptions.inflation', 0.025);
@@ -557,18 +556,6 @@ class RetirementProjectionService
         return self::DEFAULT_RETIREMENT_AGE;
     }
 
-    private function getTargetRetirementIncome(User $user, float $currentNetIncome): float
-    {
-        $profile = RetirementProfile::where('user_id', $user->id)->first();
-        if ($profile && $profile->target_retirement_income) {
-            return (float) $profile->target_retirement_income;
-        }
-
-        $targetIncomePercent = (float) $this->taxConfig->get('retirement.target_income_percent', 0.75);
-
-        return $currentNetIncome * $targetIncomePercent;
-    }
-
     private function getUserRiskLevel(User $user): string
     {
         return $this->getUserRiskLevelWithSource($user)['level'];
@@ -632,12 +619,6 @@ class RetirementProjectionService
         return (float) ($user->statePension->state_pension_forecast_annual ?? 0);
     }
 
-    private function getCurrentNetIncome(User $user): float
-    {
-        $profile = $this->userProfileService->getCompleteProfile($user);
-
-        return (float) ($profile['income_occupation']['net_income'] ?? 0);
-    }
 
     private function calculateRetirementProbability(
         float $projectedIncome,
