@@ -204,8 +204,8 @@
             </p>
           </div>
 
-          <!-- Expected Return -->
-          <div>
+          <!-- Expected Return (hidden during onboarding — advanced detail) -->
+          <div v-if="!isOnboarding">
             <label for="expected_return_percent" class="block text-sm font-medium text-neutral-500 mb-2">
               Expected Return (% p.a.)
             </label>
@@ -279,10 +279,18 @@
             <p class="text-xs text-neutral-500 mt-1">Annual advisor fee as a percentage of fund value</p>
           </div>
 
-          <!-- Pension Access Age (SIPP and personal pensions only) -->
+          <!-- Retirement Age (SIPP and personal pensions only) -->
           <div v-if="isPersonalPension">
             <label for="retirement_age" class="block text-sm font-medium text-neutral-500 mb-2">
-              Planned Access Age
+              Retirement Age
+              <span class="relative inline-block ml-1 group cursor-help">
+                <svg class="w-4 h-4 inline text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-horizon-500 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                  {{ profileRetirementAge ? `Based on your profile retirement age of ${profileRetirementAge}` : 'Default UK State Pension age. Update in your personal information.' }}
+                </span>
+              </span>
             </label>
             <input
               id="retirement_age"
@@ -291,11 +299,10 @@
               min="55"
               max="75"
               class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              :placeholder="profileRetirementAge ? `Default: ${profileRetirementAge}` : 'e.g., 60'"
+              :placeholder="profileRetirementAge ? `Default: ${profileRetirementAge}` : 'e.g., 67'"
             />
             <p class="text-xs text-neutral-500 mt-1">
               When you plan to access this pension (minimum 55).
-              <span v-if="profileRetirementAge"> Your profile retirement age is {{ profileRetirementAge }}.</span>
             </p>
             <p v-if="formData.retirement_age && formData.retirement_age < 55" class="text-xs text-raspberry-500 mt-1">
               Minimum pension access age is 55

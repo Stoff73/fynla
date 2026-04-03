@@ -2235,7 +2235,7 @@ export default {
 
       const saveData = {
         use_simple_entry: useSimpleEntry.value,
-        expenditure_entry_mode: useSimpleEntry.value ? 'simple' : 'detailed',
+        expenditure_entry_mode: useSimpleEntry.value ? 'simple' : 'category',
         use_separate_expenditure: useSeparateExpenditure.value,
         monthly_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value : totalMonthlyExpenditure.value,
         annual_expenditure: useSimpleEntry.value ? simpleMonthlyExpenditure.value * 12 : totalMonthlyExpenditure.value * 12,
@@ -2488,6 +2488,14 @@ export default {
       getRetiredSectionTotal,
       getRetiredUserSectionTotal,
       getRetiredSpouseSectionTotal,
+      // Tab advancement for onboarding (called by ExpenditureStep)
+      advanceToNextTab: () => {
+        if (props.isMarried && useSeparateExpenditure.value && activePersonTab.value === 'user') {
+          activePersonTab.value = 'spouse';
+          return true; // more tabs to view
+        }
+        return false; // no more tabs
+      },
     };
   },
 

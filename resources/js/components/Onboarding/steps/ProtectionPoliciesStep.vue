@@ -101,7 +101,7 @@
         <button
           type="button"
           class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-          @click="showForm = true"
+          @click="showForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
         >
           + Add Protection Policy
         </button>
@@ -280,6 +280,7 @@ export default {
     function editPolicy(policy) {
       editingPolicy.value = policy;
       showForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deletePolicy(policy) {

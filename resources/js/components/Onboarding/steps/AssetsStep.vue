@@ -217,7 +217,7 @@
         <button
           type="button"
           class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium w-full md:w-auto justify-center mt-4"
-          @click="showPropertyForm = true"
+          @click="showPropertyForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
         >
           + Add Property
         </button>
@@ -287,7 +287,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showInvestmentForm = true"
+            @click="showInvestmentForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
           >
             + Add Investment Account
           </button>
@@ -363,7 +363,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showSavingsForm = true"
+            @click="showSavingsForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
           >
             + Add Account
           </button>
@@ -460,31 +460,7 @@
       @save="handlePensionSaved"
     />
 
-    <!-- Tab Navigation (after all forms) -->
-    <div v-if="assetTabs.length > 1" class="mt-6 flex items-center justify-center gap-6">
-      <button
-        v-if="currentTabIndex > 0 && activeTab !== 'cash'"
-        type="button"
-        class="inline-flex items-center text-sm font-medium text-horizon-500 hover:text-horizon-600 transition-colors gap-1"
-        @click="goToPreviousTab"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Previous
-      </button>
-      <button
-        v-if="currentTabIndex < assetTabs.length - 1"
-        type="button"
-        class="inline-flex items-center text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors gap-1"
-        @click="goToNextTab"
-      >
-        Next
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
+    <!-- Tab navigation removed — Continue button cycles through tabs -->
 
     <!-- Document Upload Modal -->
     <DocumentUploadModal
@@ -776,6 +752,7 @@ export default {
       pensionFormType.value = type;
       editingPension.value = pension;
       showPensionForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deletePension(type, id) {
@@ -847,6 +824,7 @@ export default {
         editingProperty.value = property;
         showPropertyForm.value = true;
       }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteProperty(id) {
@@ -918,6 +896,7 @@ export default {
     function editInvestment(investment) {
       editingInvestment.value = investment;
       showInvestmentForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteInvestment(id) {
@@ -988,6 +967,7 @@ export default {
     function editSavings(savings) {
       editingSavings.value = savings;
       showSavingsForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteSavings(id) {
@@ -1050,9 +1030,16 @@ export default {
 
     const showAssetSkipModal = ref(false);
 
-    // Navigation
+    // Navigation — Continue cycles through tabs before advancing to next step
     function handleNext() {
-      // Check if any tabs have no data entered
+      // If more tabs to view, advance to next tab
+      if (currentTabIndex.value < assetTabs.value.length - 1) {
+        activeTab.value = assetTabs.value[currentTabIndex.value + 1].id;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // All tabs viewed — check if any tabs have no data entered
       const incompleteTabs = [];
       const tabOrder = allowedTabs.value || ['retirement', 'properties', 'investments', 'cash'];
       const tabLabels = { retirement: 'Retirement', properties: 'Properties', investments: 'Investments', cash: 'Cash' };
