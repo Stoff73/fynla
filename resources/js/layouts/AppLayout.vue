@@ -37,7 +37,7 @@
       </div>
 
       <!-- Content area -->
-      <main class="flex-grow bg-eggshell-500" :class="showDockedChat && chatCollapsed ? 'lg:mr-10' : ''">
+      <main class="flex-grow bg-eggshell-500">
         <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
@@ -50,7 +50,8 @@
     <!-- Expanded chat panel -->
     <aside
       v-if="showDockedChat && !chatCollapsed"
-      class="hidden lg:flex lg:flex-col fixed right-0 w-[285px] border-l border-light-gray bg-white z-30 shadow-xl transition-all duration-300"
+      class="hidden lg:flex lg:flex-col fixed right-0 w-[356px] border-l border-light-gray bg-white z-40 transition-all duration-300"
+      style="box-shadow: -6px 0 18px rgba(0, 0, 0, 0.12), 0 -4px 14px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.06);"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
       <AiChatPanel :docked="true" @collapse="toggleChat" />
