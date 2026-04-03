@@ -217,7 +217,7 @@
         <button
           type="button"
           class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium w-full md:w-auto justify-center mt-4"
-          @click="showPropertyForm = true"
+          @click="showPropertyForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
         >
           + Add Property
         </button>
@@ -287,7 +287,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showInvestmentForm = true"
+            @click="showInvestmentForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
           >
             + Add Investment Account
           </button>
@@ -363,7 +363,7 @@
           <button
             type="button"
             class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white rounded-button hover:bg-horizon-600 transition-colors text-sm font-medium"
-            @click="showSavingsForm = true"
+            @click="showSavingsForm = true; $nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))"
           >
             + Add Account
           </button>
@@ -752,6 +752,7 @@ export default {
       pensionFormType.value = type;
       editingPension.value = pension;
       showPensionForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deletePension(type, id) {
@@ -823,6 +824,7 @@ export default {
         editingProperty.value = property;
         showPropertyForm.value = true;
       }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteProperty(id) {
@@ -894,6 +896,7 @@ export default {
     function editInvestment(investment) {
       editingInvestment.value = investment;
       showInvestmentForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteInvestment(id) {
@@ -964,6 +967,7 @@ export default {
     function editSavings(savings) {
       editingSavings.value = savings;
       showSavingsForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function deleteSavings(id) {

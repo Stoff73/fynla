@@ -126,6 +126,7 @@ export default {
     const showAddForm = () => {
       showForm.value = true;
       editingLiability.value = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleLiabilitySave = async (formData) => {
@@ -149,6 +150,7 @@ export default {
     const editLiability = (liability) => {
       editingLiability.value = liability;
       showForm.value = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const deleteLiability = async (id) => {
