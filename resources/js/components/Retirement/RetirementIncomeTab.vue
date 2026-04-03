@@ -43,14 +43,18 @@
 
     <!-- Main Content -->
     <template v-else>
-      <!-- Header Section -->
-      <div class="header-section">
-        <div class="header-left">
-          <h3 class="section-title">Will I have enough income for retirement?</h3>
-          <p class="section-subtitle">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
+      <!-- Header Card (matches pension detail pattern) -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div>
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 mb-2">Income Planner</span>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-horizon-500">Will I have enough income for retirement?</h1>
+          <p class="text-base sm:text-lg text-neutral-500 mt-1">Model your tax-optimised drawdown strategy from age {{ retirementAge }}</p>
         </div>
-        <!-- Spouse toggle hidden - functionality exists in backend but not exposed to users at this time -->
-        <div v-if="false" class="header-right">
+      </div>
+
+      <!-- Spouse toggle hidden - functionality exists in backend but not exposed to users at this time -->
+      <div v-if="false">
+        <div>
           <label class="spouse-toggle">
             <span class="toggle-label">Include spouse's assets</span>
             <button
