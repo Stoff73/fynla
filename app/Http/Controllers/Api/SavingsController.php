@@ -23,10 +23,10 @@ use App\Services\Plans\SavingsPlanService;
 use App\Services\Savings\FSCSAssessor;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\PSACalculator;
+use App\Services\Cache\CacheInvalidationService;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Savings Controller
@@ -50,7 +50,8 @@ class SavingsController extends Controller
         private readonly GoalStrategyService $goalStrategy,
         private readonly SavingsPlanService $savingsPlanService,
         private readonly PSACalculator $psaCalculator,
-        private readonly FSCSAssessor $fscsAssessor
+        private readonly FSCSAssessor $fscsAssessor,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -285,15 +286,7 @@ class SavingsController extends Controller
 
             $account = SavingsAccount::create($data);
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
-            $this->netWorthService->invalidateCache($user->id);
-
-            // Also invalidate cache for joint owner if applicable
-            if ($account->joint_owner_id) {
-                Cache::forget("net_worth_overview_{$account->joint_owner_id}");
-                Cache::forget("net_worth_breakdown_{$account->joint_owner_id}");
-            }
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
 
             // Add calculated fields to response using resource
             $accountData = (new SavingsAccountResource($account))->toArray(request());
@@ -397,15 +390,7 @@ class SavingsController extends Controller
             // Single-record pattern: Update directly (no reciprocal)
             $account->update($data);
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
-            $this->netWorthService->invalidateCache($user->id);
-
-            // Also invalidate cache for joint owner if applicable
-            if ($account->joint_owner_id) {
-                Cache::forget("savings_analysis_{$account->joint_owner_id}");
-                $this->netWorthService->invalidateCache($account->joint_owner_id);
-            }
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
 
             $freshAccount = $account->fresh();
             $accountData = (new SavingsAccountResource($freshAccount))->toArray(request());
@@ -450,15 +435,7 @@ class SavingsController extends Controller
             // Single-record pattern: Just delete the one record
             $account->delete();
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
-            $this->netWorthService->invalidateCache($user->id);
-
-            // Also invalidate cache for joint owner if applicable
-            if ($jointOwnerId) {
-                Cache::forget("savings_analysis_{$jointOwnerId}");
-                $this->netWorthService->invalidateCache($jointOwnerId);
-            }
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $jointOwnerId);
 
             return response()->json([
                 'success' => true,
@@ -496,14 +473,7 @@ class SavingsController extends Controller
             $account->include_in_retirement = ! $account->include_in_retirement;
             $account->save();
 
-            // Invalidate caches
-            Cache::forget("savings_analysis_{$user->id}");
-            $this->netWorthService->invalidateCache($user->id);
-
-            if ($account->joint_owner_id) {
-                Cache::forget("savings_analysis_{$account->joint_owner_id}");
-                $this->netWorthService->invalidateCache($account->joint_owner_id);
-            }
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
 
             return response()->json([
                 'success' => true,
@@ -557,8 +527,7 @@ class SavingsController extends Controller
 
             $goal = SavingsGoal::create($data);
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -586,8 +555,7 @@ class SavingsController extends Controller
 
             $goal->update($request->validated());
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -620,8 +588,7 @@ class SavingsController extends Controller
 
             $goal->delete();
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -658,8 +625,7 @@ class SavingsController extends Controller
             $goal->current_saved = $request->input('amount');
             $goal->save();
 
-            // Invalidate cache
-            Cache::forget("savings_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,

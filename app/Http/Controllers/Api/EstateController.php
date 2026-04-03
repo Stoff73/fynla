@@ -24,11 +24,11 @@ use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\NetWorthAnalyzer;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\TaxConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class EstateController extends Controller
 {
@@ -39,7 +39,8 @@ class EstateController extends Controller
         private readonly CashFlowProjector $cashFlowProjector,
         private readonly \App\Services\Estate\ComprehensiveEstatePlanService $comprehensiveEstatePlan,
         private readonly TaxConfigService $taxConfig,
-        private readonly LifeEventIntegrationService $lifeEventIntegration
+        private readonly LifeEventIntegrationService $lifeEventIntegration,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -229,7 +230,7 @@ class EstateController extends Controller
             $asset = Asset::create($validated);
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -261,7 +262,7 @@ class EstateController extends Controller
             $asset->update($validated);
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -293,7 +294,7 @@ class EstateController extends Controller
             $asset->delete();
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -324,7 +325,7 @@ class EstateController extends Controller
             $liability = Liability::create($validated);
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -356,7 +357,7 @@ class EstateController extends Controller
             $liability->update($validated);
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -388,7 +389,7 @@ class EstateController extends Controller
             $liability->delete();
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -419,7 +420,7 @@ class EstateController extends Controller
             $gift = Gift::create($validated);
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -451,7 +452,7 @@ class EstateController extends Controller
             $gift->update($validated);
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
@@ -483,7 +484,7 @@ class EstateController extends Controller
             $gift->delete();
 
             // Invalidate cache
-            Cache::forget("estate_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,

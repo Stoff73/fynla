@@ -400,16 +400,15 @@ describe('invalidateCache', function () {
     it('clears cache for user', function () {
         $userId = 123;
         $cacheKey = "protection_analysis_{$userId}";
-        $cacheTags = ['protection', 'user_'.$userId];
 
         // Clear any existing cache
         Cache::flush();
 
-        // Set a value in cache WITH tags (matching how analyze() stores it)
-        Cache::tags($cacheTags)->put($cacheKey, ['test' => 'data'], 3600);
+        // Set a value in cache using key-based caching
+        Cache::put($cacheKey, ['test' => 'data'], 86400);
 
         // Verify it exists
-        expect(Cache::tags($cacheTags)->has($cacheKey))->toBeTrue();
+        expect(Cache::has($cacheKey))->toBeTrue();
 
         // Create a fresh agent instance for this test (without mocks interfering)
         $personaliserMock = Mockery::mock(RecommendationPersonaliser::class);
@@ -435,6 +434,6 @@ describe('invalidateCache', function () {
         $realAgent->invalidateCache($userId);
 
         // Verify it's cleared
-        expect(Cache::tags($cacheTags)->has($cacheKey))->toBeFalse();
+        expect(Cache::has($cacheKey))->toBeFalse();
     });
 });

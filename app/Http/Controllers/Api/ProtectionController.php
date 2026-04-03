@@ -47,7 +47,8 @@ class ProtectionController extends Controller
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,
         private readonly \App\Services\Protection\ComprehensiveProtectionPlanService $comprehensiveProtectionPlan,
-        private readonly LifeEventIntegrationService $lifeEventIntegration
+        private readonly LifeEventIntegrationService $lifeEventIntegration,
+        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**

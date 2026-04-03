@@ -27,7 +27,8 @@ class RetirementProjectionService
         private readonly RiskPreferenceService $riskService,
         private readonly TaxConfigService $taxConfig,
         private readonly UserProfileService $userProfileService,
-        private readonly LifeEventCashFlowService $lifeEventCashFlowService
+        private readonly LifeEventCashFlowService $lifeEventCashFlowService,
+        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -696,8 +697,6 @@ class RetirementProjectionService
      */
     public function invalidateCache(int $userId): void
     {
-        \Illuminate\Support\Facades\Cache::forget("retirement_projection_{$userId}");
-        \Illuminate\Support\Facades\Cache::forget("retirement_income_{$userId}");
-        \Illuminate\Support\Facades\Cache::forget("retirement_analysis_{$userId}");
+        $this->cacheInvalidation->invalidateForUser($userId);
     }
 }

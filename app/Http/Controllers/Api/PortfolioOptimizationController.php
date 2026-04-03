@@ -53,8 +53,7 @@ class PortfolioOptimizationController extends Controller
         $cacheKey = "efficient_frontier_{$userId}_{$riskFreeRate}_{$numPoints}";
 
         try {
-            // Cache for 1 hour (calculation is expensive)
-            $result = Cache::remember($cacheKey, 3600, function () use ($userId, $riskFreeRate, $numPoints) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($userId, $riskFreeRate, $numPoints) {
                 return $this->frontierCalculator->calculate(
                     $userId,
                     $riskFreeRate,
@@ -384,8 +383,7 @@ class PortfolioOptimizationController extends Controller
         $cacheKey = "correlation_matrix_{$user->id}_{$accountIdsStr}";
 
         try {
-            // Cache for 1 hour
-            $result = Cache::remember($cacheKey, 3600, function () use ($user, $validated) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user, $validated) {
                 // Get user's investment accounts
                 $query = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
                     ->with('holdings');

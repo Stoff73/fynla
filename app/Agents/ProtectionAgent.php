@@ -13,7 +13,6 @@ use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
 use App\Services\UserProfile\ProfileCompletenessChecker;
-use Illuminate\Support\Facades\Cache;
 
 class ProtectionAgent extends BaseAgent
 {
@@ -328,11 +327,6 @@ class ProtectionAgent extends BaseAgent
      */
     public function invalidateCache(int $userId): void
     {
-        // Use tagged cache flush if supported, otherwise forget the specific key
-        if ($this->cacheStoreSupportsTagging()) {
-            Cache::tags(['protection', 'user_'.$userId])->flush();
-        } else {
-            Cache::forget("protection_analysis_{$userId}");
-        }
+        $this->invalidateUserCache($userId, ["protection_analysis_{$userId}"]);
     }
 }

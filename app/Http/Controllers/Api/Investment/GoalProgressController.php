@@ -46,7 +46,7 @@ class GoalProgressController extends Controller
 
             $cacheKey = "goal_progress_{$goalId}";
 
-            $result = Cache::remember($cacheKey, 1800, function () use ($goal) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($goal) {
                 return $this->progressAnalyzer->analyzeGoalProgress($goal);
             });
 
@@ -75,7 +75,7 @@ class GoalProgressController extends Controller
         try {
             $cacheKey = "all_goals_progress_{$user->id}";
 
-            $result = Cache::remember($cacheKey, 1800, function () use ($user) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user) {
                 return $this->progressAnalyzer->analyzeAllGoals($user->id);
             });
 

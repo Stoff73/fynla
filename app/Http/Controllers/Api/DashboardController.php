@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Dashboard\DashboardAggregator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,8 @@ class DashboardController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly DashboardAggregator $aggregator
+        private readonly DashboardAggregator $aggregator,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -28,8 +30,7 @@ class DashboardController extends Controller
             $userId = $request->user()->id;
             $cacheKey = "dashboard_{$userId}";
 
-            // Try to get from cache (5 minute TTL)
-            $data = Cache::remember($cacheKey, 300, function () use ($userId) {
+            $data = Cache::remember($cacheKey, 86400, function () use ($userId) {
                 return $this->aggregator->aggregateOverviewData($userId);
             });
 
@@ -51,8 +52,7 @@ class DashboardController extends Controller
             $userId = $request->user()->id;
             $cacheKey = "alerts_{$userId}";
 
-            // Try to get from cache (15 minute TTL)
-            $data = Cache::remember($cacheKey, 900, function () use ($userId) {
+            $data = Cache::remember($cacheKey, 86400, function () use ($userId) {
                 return $this->aggregator->aggregateAlerts($userId);
             });
 
@@ -73,8 +73,6 @@ class DashboardController extends Controller
         try {
             $userId = $request->user()->id;
 
-            // In a real implementation, this would update a database record
-            // For now, we'll just invalidate the cache
             Cache::forget("alerts_{$userId}");
 
             return response()->json([
@@ -94,8 +92,7 @@ class DashboardController extends Controller
         try {
             $userId = $request->user()->id;
 
-            Cache::forget("dashboard_{$userId}");
-            Cache::forget("alerts_{$userId}");
+            $this->cacheInvalidation->invalidateForUser($userId);
 
             return response()->json([
                 'success' => true,

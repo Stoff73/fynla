@@ -12,9 +12,9 @@ use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
+use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -22,6 +22,10 @@ use Illuminate\Support\Facades\Mail;
 class FamilyMembersController extends Controller
 {
     use SanitizedErrorResponse;
+
+    public function __construct(
+        private readonly CacheInvalidationService $cacheInvalidation
+    ) {}
 
     /**
      * Display a listing of the authenticated user's family members.
@@ -292,8 +296,7 @@ class FamilyMembersController extends Controller
                 $spouseUser->save();
 
                 // Clear cached protection analysis for both users since spouse linkage affects completeness
-                Cache::forget("protection_analysis_{$currentUser->id}");
-                Cache::forget("protection_analysis_{$spouseUser->id}");
+                $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
 
                 // Create bidirectional spouse data sharing permissions
                 SpousePermission::updateOrCreate(
@@ -422,9 +425,7 @@ class FamilyMembersController extends Controller
             $currentUser->marital_status = 'married';
             $currentUser->save();
 
-            // Clear cached protection analysis for both users since spouse linkage affects completeness
-            Cache::forget("protection_analysis_{$currentUser->id}");
-            Cache::forget("protection_analysis_{$spouseUser->id}");
+            $this->cacheInvalidation->invalidateForUserAndSpouse($currentUser->id, $spouseUser->id);
 
             // Create bidirectional spouse data sharing permissions
             SpousePermission::updateOrCreate(
@@ -601,9 +602,7 @@ class FamilyMembersController extends Controller
                 if (! empty($spouseUpdates)) {
                     $spouseUser->update($spouseUpdates);
 
-                    // Clear protection analysis cache for both users
-                    \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$user->id}");
-                    \Illuminate\Support\Facades\Cache::forget("protection_analysis_{$spouseUser->id}");
+                    $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseUser->id);
                 }
             }
         }
@@ -646,9 +645,7 @@ class FamilyMembersController extends Controller
                     $query->where('user_id', $spouseUser->id)->where('spouse_id', $user->id);
                 })->delete();
 
-                // Clear cached protection analysis for both users
-                Cache::forget("protection_analysis_{$user->id}");
-                Cache::forget("protection_analysis_{$spouseUser->id}");
+                $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseUser->id);
 
                 // Clear spouse linkage for both users
                 $spouseUser->spouse_id = null;

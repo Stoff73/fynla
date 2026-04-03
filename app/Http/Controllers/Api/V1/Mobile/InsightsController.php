@@ -31,7 +31,7 @@ class InsightsController extends Controller
             $userId = $request->user()->id;
             $cacheKey = "mobile_insight_daily_{$userId}";
 
-            $insight = Cache::remember($cacheKey, 3600, function () use ($userId) {
+            $insight = Cache::remember($cacheKey, 86400, function () use ($userId) {
                 return $this->generateDailyInsight($userId);
             });
 

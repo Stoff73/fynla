@@ -8,11 +8,14 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\LpaAttorney;
 use App\Models\Estate\LpaNotificationPerson;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
+use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Support\Facades\DB;
 
 class LpaService
 {
+    public function __construct(
+        private readonly CacheInvalidationService $cacheInvalidation
+    ) {}
     /**
      * Get all LPAs for a user with related data.
      */
@@ -174,6 +177,6 @@ class LpaService
      */
     private function invalidateCache(int $userId): void
     {
-        Cache::forget("estate_analysis_{$userId}");
+        $this->cacheInvalidation->invalidateForUser($userId);
     }
 }

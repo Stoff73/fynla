@@ -14,10 +14,10 @@ use App\Models\Estate\Bequest;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Services\Estate\IntestacyCalculator;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class WillController extends Controller
 {
@@ -25,7 +25,8 @@ class WillController extends Controller
 
     public function __construct(
         private IHTPeriodicChargeCalculator $periodicChargeCalculator,
-        private IntestacyCalculator $intestacyCalculator
+        private IntestacyCalculator $intestacyCalculator,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     public function getUpcomingTaxReturns(Request $request): JsonResponse
@@ -106,7 +107,7 @@ class WillController extends Controller
         );
 
         // Invalidate IHT cache
-        Cache::forget("estate_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->json([
             'success' => true,
@@ -168,7 +169,7 @@ class WillController extends Controller
         $bequest = Bequest::create($validated);
 
         // Invalidate cache
-        Cache::forget("estate_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->json([
             'success' => true,
@@ -192,7 +193,7 @@ class WillController extends Controller
         $bequest->update($validated);
 
         // Invalidate cache
-        Cache::forget("estate_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->json([
             'success' => true,
@@ -215,7 +216,7 @@ class WillController extends Controller
         $bequest->delete();
 
         // Invalidate cache
-        Cache::forget("estate_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->noContent();
     }

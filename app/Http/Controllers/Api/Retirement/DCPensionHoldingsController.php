@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DCPension;
 use App\Models\Investment\Holding;
+use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +23,10 @@ use Illuminate\Support\Facades\Validator;
 class DCPensionHoldingsController extends Controller
 {
     use SanitizedErrorResponse;
+
+    public function __construct(
+        private readonly CacheInvalidationService $cacheInvalidation
+    ) {}
 
     /**
      * Get all holdings for a DC pension
@@ -93,7 +98,7 @@ class DCPensionHoldingsController extends Controller
         $holding = Holding::create($validated);
 
         // Clear caches
-        Cache::forget("retirement_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
         Cache::forget("dc_pension_{$pension->id}_portfolio");
 
         return response()->json([
@@ -157,7 +162,7 @@ class DCPensionHoldingsController extends Controller
         $holding->update($validated);
 
         // Clear caches
-        Cache::forget("retirement_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
         Cache::forget("dc_pension_{$pension->id}_portfolio");
 
         return response()->json([
@@ -188,7 +193,7 @@ class DCPensionHoldingsController extends Controller
         $holding->delete();
 
         // Clear caches
-        Cache::forget("retirement_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
         Cache::forget("dc_pension_{$pension->id}_portfolio");
 
         return response()->json([
@@ -242,8 +247,7 @@ class DCPensionHoldingsController extends Controller
 
             DB::commit();
 
-            // Clear caches
-            Cache::forget("retirement_analysis_{$user->id}");
+            $this->cacheInvalidation->invalidateForUser($user->id);
             Cache::forget("dc_pension_{$pension->id}_portfolio");
 
             return response()->json([

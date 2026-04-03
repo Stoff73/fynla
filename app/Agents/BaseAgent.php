@@ -41,30 +41,12 @@ abstract class BaseAgent
      * @param  string  $key  Cache key
      * @param  callable  $callback  Callback to execute if cache miss
      * @param  int|null  $ttl  Time to live in seconds (null uses default)
-     * @param  array  $tags  Cache tags for tagged caching (empty array = no tags)
      */
-    protected function remember(string $key, callable $callback, ?int $ttl = null, array $tags = []): mixed
+    protected function remember(string $key, callable $callback, ?int $ttl = null): mixed
     {
         $ttl = $ttl ?? $this->cacheTtl;
 
-        // Use tagged caching if tags provided AND cache store supports tagging
-        if (! empty($tags) && $this->cacheStoreSupportsTagging()) {
-            return Cache::tags($tags)->remember($key, $ttl, $callback);
-        }
-
         return Cache::remember($key, $ttl, $callback);
-    }
-
-    /**
-     * Check if the current cache store supports tagging.
-     * File and database cache stores do not support tagging.
-     */
-    protected function cacheStoreSupportsTagging(): bool
-    {
-        $store = Cache::getStore();
-
-        // Redis and Memcached support tagging, file and database do not
-        return $store instanceof \Illuminate\Cache\TaggableStore;
     }
 
     /**
@@ -97,7 +79,6 @@ abstract class BaseAgent
      * Invalidate all cache entries for a user.
      *
      * This is the standardised method for cache invalidation across all agents.
-     * It handles both tagged and non-tagged cache stores.
      *
      * @param  int  $userId  User ID
      * @param  array  $additionalKeys  Additional specific cache keys to clear
@@ -106,12 +87,7 @@ abstract class BaseAgent
     {
         $agentName = strtolower(class_basename(static::class));
 
-        // Clear via tags if supported (Redis/Memcached)
-        if ($this->cacheStoreSupportsTagging()) {
-            Cache::tags([$agentName, 'user_'.$userId])->flush();
-        }
-
-        // Always clear specific known keys for consistency
+        // Clear specific known keys
         $defaultSuffixes = ['analysis', 'recommendations', 'scenarios', 'summary', 'projection'];
         foreach ($defaultSuffixes as $suffix) {
             Cache::forget($this->getUserCacheKey($userId, $suffix));

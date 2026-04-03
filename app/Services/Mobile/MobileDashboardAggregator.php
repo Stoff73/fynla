@@ -33,7 +33,7 @@ class MobileDashboardAggregator
     use CalculatesOwnershipShare;
     use StructuredLogging;
 
-    private const CACHE_TTL = 300; // 5 minutes
+    private const CACHE_TTL = 86400; // 24 hours — invalidated on data change
 
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,

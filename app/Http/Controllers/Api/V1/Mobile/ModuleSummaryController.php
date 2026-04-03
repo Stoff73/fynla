@@ -62,7 +62,7 @@ class ModuleSummaryController extends Controller
             $userId = $request->user()->id;
             $cacheKey = "mobile_module_{$module}_{$userId}";
 
-            $data = Cache::remember($cacheKey, 300, function () use ($module, $userId) {
+            $data = Cache::remember($cacheKey, 86400, function () use ($module, $userId) {
                 return [
                     'summary' => $this->getModuleSummary($module, $userId),
                     'cached_at' => now()->toIso8601String(),

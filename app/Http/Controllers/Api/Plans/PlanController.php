@@ -16,6 +16,7 @@ use App\Services\Plans\PlanConfigService;
 use App\Services\Plans\ProtectionPlanService;
 use App\Services\Plans\RetirementPlanService;
 use App\Services\Plans\SavingsPlanService;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Plans\WhatIfCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,8 @@ class PlanController extends Controller
         private readonly GoalPlanService $goalPlanService,
         private readonly EstatePlanService $estatePlanService,
         private readonly WhatIfCalculator $whatIfCalculator,
-        private readonly PlanConfigService $planConfig
+        private readonly PlanConfigService $planConfig,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -134,7 +136,7 @@ class PlanController extends Controller
         $userId = $request->user()->id;
         $cacheKey = "plan_{$type}_{$userId}";
 
-        Cache::forget($cacheKey);
+        $this->cacheInvalidation->invalidateForUser($userId);
 
         return response()->json([
             'success' => true,
@@ -204,8 +206,7 @@ class PlanController extends Controller
             $sourceId
         );
 
-        // Clear plan cache so next load reflects the selection
-        Cache::forget("plan_{$type}_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->json([
             'success' => true,

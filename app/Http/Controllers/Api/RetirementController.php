@@ -24,6 +24,7 @@ use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Retirement\RetirementStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,7 +50,8 @@ class RetirementController extends Controller
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
         private readonly RequiredCapitalCalculator $requiredCapitalCalculator,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly GoalStrategyService $goalStrategy
+        private readonly GoalStrategyService $goalStrategy,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -776,10 +778,9 @@ class RetirementController extends Controller
      */
     private function invalidateRetirementCache(int $userId): void
     {
-        Cache::forget("retirement_analysis_{$userId}");
-        Cache::forget("dc_pensions_portfolio_{$userId}");
+        $this->cacheInvalidation->invalidateForUser($userId);
 
-        // Also clear individual pension portfolio caches
+        // Clear individual pension portfolio caches (resource-specific keys)
         $dcPensions = DCPension::where('user_id', $userId)->get();
         foreach ($dcPensions as $pension) {
             Cache::forget("dc_pension_{$pension->id}_portfolio");

@@ -13,12 +13,12 @@ use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\TrustService;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\TaxConfigService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use App\Services\Trust\TrustAssetAggregatorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 
 class TrustController extends Controller
 {
@@ -27,7 +27,8 @@ class TrustController extends Controller
         private TrustAssetAggregatorService $trustAssetAggregator,
         private IHTPeriodicChargeCalculator $periodicChargeCalculator,
         private IHTCalculationService $ihtCalculationService,
-        private TaxConfigService $taxConfig
+        private TaxConfigService $taxConfig,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     public function getTrusts(Request $request): JsonResponse
@@ -77,7 +78,7 @@ class TrustController extends Controller
         $trust = Trust::create($validated);
 
         // Invalidate cache
-        Cache::forget("estate_analysis_{$request->user()->id}");
+        $this->cacheInvalidation->invalidateForUser($request->user()->id);
 
         return response()->json([
             'success' => true,
@@ -118,7 +119,7 @@ class TrustController extends Controller
         $trust->update($validated);
 
         // Invalidate cache
-        Cache::forget("estate_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->json([
             'success' => true,
@@ -138,7 +139,7 @@ class TrustController extends Controller
         $trust->delete();
 
         // Invalidate cache
-        Cache::forget("estate_analysis_{$user->id}");
+        $this->cacheInvalidation->invalidateForUser($user->id);
 
         return response()->json([
             'success' => true,

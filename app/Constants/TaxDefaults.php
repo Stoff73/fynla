@@ -182,9 +182,10 @@ final class TaxDefaults
     // ==================== Cache TTL Values ====================
 
     /**
-     * Standard cache TTL for analysis data (1 hour).
+     * Standard cache TTL for analysis data (24 hours).
+     * Caches are invalidated immediately on data change via CacheInvalidationService.
      */
-    public const CACHE_TTL_STANDARD = 3600;
+    public const CACHE_TTL_STANDARD = 86400;
 
     /**
      * Extended cache TTL for Monte Carlo simulations (24 hours).

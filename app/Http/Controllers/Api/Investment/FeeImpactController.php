@@ -41,7 +41,7 @@ class FeeImpactController extends Controller
         try {
             $cacheKey = "fee_analysis_{$user->id}";
 
-            $result = Cache::remember($cacheKey, 3600, function () use ($user) {
+            $result = Cache::remember($cacheKey, 86400, function () use ($user) {
                 return $this->feeAnalyzer->analyzePortfolioFees($user->id);
             });
 
