@@ -1,39 +1,36 @@
 # CSJTODO — Fynla
 
-*Last updated: 3 April 2026 — session 33*
-*Previous session: 3 April 2026 session 32*
+*Last updated: 3 April 2026 — session 34*
+*Previous session: 3 April 2026 session 33*
 
 ---
 
-## Session 33 (3 April) — Logic Guard PR Check + Estate/Retirement Bug Fixes
+## Session 34 (3 April) — Fyn Chat, Plan Selection, Sign-Out Fixes
 
-### Completed This Session
-- [x] **Logic Guard PR check (PR #186)** — GitHub Actions workflow that blocks PRs from Phailanx when they modify logic in protected dashboard/onboarding files. Posts detailed violation report. Override with `logic-change-approved` label. Deployed to main.
-- [x] **Estate IHT projection fix (PR #187)** — Fixed unrealistic future value numbers (entrepreneur £250M → £7.2M, chris £36M → £4.3M). Root cause: `getMonteCarloAnnualRate()` reverse-engineered a contribution-inflated growth rate. Now uses Monte Carlo p20 directly + inflation-adjusted income/expenses for cash. Life events injected at specific ages. Cash can go negative.
-- [x] **Retirement income consistency (PR #187)** — All three retirement views now show consistent gross income (£40,415) and target (£31,688) from single source (`RequiredCapitalCalculator`). Removed duplicate `getTargetRetirementIncome()` from `RetirementProjectionService`. Dashboard uses backend data instead of hardcoded 4% SWR.
-- [x] **Retirement UI overhaul (PR #187)** — Income Planner and Capital Planner tabs: header card pattern matching pension detail view with summary metrics inside. Removed blue "Agentic AI" dev banner. Income sources moved behind chart toggle. Fund depletion changed to stacked bar chart. Cleaned up labels and removed redundant elements.
-- [x] **Browser tested** — All views verified in Playwright (dashboard, retirement page, income tab, capital tab). 0 console errors from our changes.
-- [x] **Production build** — `public/build/` ready. Both PRs merged and deployed.
-
-### Completed This Session (adhoc-changes-1 branch)
-- [x] **Meet Fyn section redesign** — Updated copy, added expandable "What can Fyn help you with?" section with bullet points, replaced Ask Fyn input with "Quick start with Fyn" CTA
-- [x] **Fyn registration flow** — "Quick start with Fyn" links to /register?from=fyn, after registration redirects to dashboard with Fyn chat open asking journey stage question
-- [x] **Homepage scroll fix** — Smooth scroll to Meet Fyn and dashboard sections now offsets by navbar height
-- [x] **Tax hook path fix** — Updated .claude/settings.json hook path for Windows
+### Completed This Session (adhoc-changes-1 branch — PR #188)
+- [x] **Fyn chat panel wider** — Docked 285→356px, floating 420→525px (25% increase)
+- [x] **Fyn chat content no longer shifts** — Removed dynamic right margin, chat overlays content
+- [x] **Fyn chat shadow refined** — Left/top/bottom shadows balanced for consistent appearance across resolutions
+- [x] **Fyn chat docked duplicate onOpen fix** — Removed duplicate `onOpen()` call in mounted (watcher already handles it)
+- [x] **Journey stage options in chat** — `?openFyn=journey` now shows clickable journey stage buttons in chat (light-pink bg), fixed race condition where `startNewConversation` wiped the message
+- [x] **Settings — Account Status** — Shows current plan with trial days remaining, "Choose a Plan" button (hidden for Pro users)
+- [x] **Plan Selection Modal redesign** — Backdrop blur, "Limited Time Offer" banner, billing toggle matching /pricing page, per-card "Choose Plan" buttons (raspberry), current plan highlighted with blue badge and grey disabled button, aligned card buttons, discounted prices and save % on separate lines
+- [x] **Sign-out behaviour** — Public pages stay on current page, authenticated pages redirect to /login (Navbar + SideMenu)
+- [x] **Production build** — `public/build/` ready
 
 ### NOT Done — Outstanding
 - [ ] **Browser test full Fyn registration flow** — Quick start with Fyn → register → dashboard with Fyn chat open
 - [ ] **Browser test onboarding flow** — All stages, data persistence, journey switching
+- [ ] **Browser test plan selection modal** — Open from Settings, verify current plan highlighted, choose plan flow
 
 ### Deploy Status
-- **Logic Guard (PR #186):** Deployed — `.github/workflows/logic-guard.yml` (no server upload needed, GitHub Actions only)
-- **Estate + Retirement fixes (PR #187):** Deployed — 2 PHP files + 5 Vue files + build. Deploy guide: `April/April3Updates/deployPensionFix.md`
-- **Previous session deploys (PRs #183-185):** Check if cache fix and onboarding changes were uploaded to production. Deploy guides at `deployCacheFix.md` and `deployOnboarding.md`.
-- **adhoc-changes-1:** NOT merged, NOT deployed. Needs PR + merge to main.
+- **adhoc-changes-1 (PR #188):** Frontend only (10 Vue/JS files). Build done. Upload `public/build/` to production. No PHP changes.
+- **Previous session deploys:** Check if cache fix (PR #184) and onboarding (PR #185) were uploaded to production.
 
 ### Context for Next Session
-All PRs merged to main. adhoc-changes-1 branch needs PR + merge.
-**Tax year deadline: April 6 (3 days away).** 2025/26 is the active tax year in the database. The 2026/27 tax year begins April 6.
+PR #188 open on `adhoc-changes-1` — needs merge to main then deploy `public/build/`. All changes are frontend only. 2 pending migrations on main (`create_ai_advice_log_table`, `add_system_prompt_to_ai_messages_table`) — not from this branch.
+
+**Tax year deadline: April 6 (3 days away).** 2025/26 is the active tax year in the database.
 
 ---
 
@@ -45,7 +42,6 @@ All PRs merged to main. adhoc-changes-1 branch needs PR + merge.
 - [ ] Test Excel import with real platform exports (Hargreaves Lansdown, AJ Bell, Vanguard)
 - [ ] Test Fyn timeout fix on production (10+ message conversation)
 - [ ] Deploy Excel holdings import to production (12 PHP files + build)
-- [ ] Bug 1: retirement layout at 1118px still needs work
 
 ## Outstanding — Tech Debt Deferred
 - [ ] God class decomposition (6 files, 40-60 hours)
