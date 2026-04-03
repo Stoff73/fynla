@@ -454,10 +454,14 @@ export default {
       try {
         stopInactivityTimer();
         await store.dispatch('auth/logout');
-        router.push('/login');
+        if (!router.currentRoute.value.meta?.public) {
+          router.push('/login');
+        }
       } catch (error) {
         logger.error('Logout error:', error);
-        router.push('/login');
+        if (!router.currentRoute.value.meta?.public) {
+          router.push('/login');
+        }
       }
     };
 
