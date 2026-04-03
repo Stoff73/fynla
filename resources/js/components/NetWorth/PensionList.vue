@@ -201,10 +201,6 @@
                       <span class="planner-metric-label">Current potential growth:</span>
                       <span class="planner-metric-value" :class="projectedCapitalClass">{{ formatCurrency(projectedCapitalValue) }}</span>
                     </div>
-                    <div class="planner-metric">
-                      <span class="planner-metric-label">Annual Pension Allowance</span>
-                      <span class="planner-metric-value">{{ formatCurrency(allowanceUsedThisYear) }}</span>
-                    </div>
                   </div>
                 </div>
 
