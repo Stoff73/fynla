@@ -179,11 +179,12 @@ export default {
     const handleNext = async () => {
       error.value = null;
 
-      // Check if we need to cycle through tabs
+      // Check if we need to cycle through tabs (user → spouse in separate mode)
       if (formRef.value && formRef.value.advanceToNextTab) {
         const hasMoreTabs = formRef.value.advanceToNextTab();
         if (hasMoreTabs) {
-          // More tabs to view, don't proceed yet
+          // Scroll to top so spouse form is visible
+          window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
       }
