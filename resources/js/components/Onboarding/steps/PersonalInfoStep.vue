@@ -11,8 +11,14 @@
   >
     <div class="space-y-4">
       <!-- First Name (pre-populated) -->
-      <div class="prepop-field" title="Pre-populated from your registration information">
-        <label class="onb-label">First Name</label>
+      <div class="prepop-field">
+        <label class="onb-label">
+          First Name
+          <span class="relative inline-block ml-1 group cursor-help">
+            <svg class="w-4 h-4 inline text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-horizon-500 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">From your registration</span>
+          </span>
+        </label>
         <input :value="formData.first_name" type="text" class="onb-input prepop-input" disabled>
       </div>
 
@@ -33,14 +39,26 @@
       </div>
 
       <!-- Surname (pre-populated) -->
-      <div class="prepop-field" title="Pre-populated from your registration information">
-        <label class="onb-label">Surname</label>
+      <div class="prepop-field">
+        <label class="onb-label">
+          Surname
+          <span class="relative inline-block ml-1 group cursor-help">
+            <svg class="w-4 h-4 inline text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-horizon-500 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">From your registration</span>
+          </span>
+        </label>
         <input :value="formData.surname" type="text" class="onb-input prepop-input" disabled>
       </div>
 
       <!-- Email (pre-populated) -->
-      <div class="prepop-field" title="Pre-populated from your registration information">
-        <label class="onb-label">Email Address</label>
+      <div class="prepop-field">
+        <label class="onb-label">
+          Email Address
+          <span class="relative inline-block ml-1 group cursor-help">
+            <svg class="w-4 h-4 inline text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-horizon-500 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">From your registration</span>
+          </span>
+        </label>
         <input :value="formData.email" type="text" class="onb-input prepop-input" disabled>
       </div>
 

@@ -82,9 +82,9 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'student-loan',
+        'assets',
         'income',
         'expenditure',
-        'assets',
         'goals',
       ],
       learningMilestones: {
@@ -102,13 +102,13 @@ export const LIFE_STAGES = {
         },
         'income': {
           didYouKnow: 'The average UK student faces a monthly shortfall of £400–600 between income and outgoings. Knowing exactly what comes in — whether from a part-time job, maintenance loan, or family support — is the single most important first step to closing that gap.',
-          whyWeAsk: 'Whether it\'s a part-time job, placement salary, maintenance loan, or parental support — knowing what comes in lets us build a realistic spending plan and calculate how long your money will last each term.',
+          whyWeAsk: 'Whether it\'s a part-time job, placement salary, maintenance loan, or parental support — knowing what comes in lets us build a realistic spending plan, assess the affordability of any recommendations, and calculate how long your money will last each term. Your income also feeds into your risk profile.',
           howItFits: 'Income tracking is the foundation of your budget. Once you know what comes in each month, you can make conscious choices about what goes out — rather than wondering where it all went.',
           quickStat: { value: '£400–600', label: 'Average monthly student income shortfall' },
         },
         'expenditure': {
           didYouKnow: 'Most students overspend by £400–600 per month without realising it. The culprits are usually small daily purchases — coffees, subscriptions, and takeaways — that feel harmless individually but add up fast. Tracking is not about restriction: it is about making conscious choices.',
-          whyWeAsk: 'We use your spending to calculate your emergency fund target (three months of expenses) and to identify areas where small reductions could meaningfully accelerate your savings goals.',
+          whyWeAsk: 'We use your spending to calculate your emergency fund target (three months of expenses), assess the affordability of any plans and recommendations, and feed into your risk profile. It also helps identify areas where small reductions could meaningfully accelerate your savings goals.',
           howItFits: 'A clear picture of your spending is the foundation that everything else builds on — savings goals, budgets, and financial confidence. You cannot manage what you cannot see.',
           quickStat: null,
         },
@@ -225,9 +225,9 @@ export const LIFE_STAGES = {
     onboarding: {
       steps: [
         'personal-info',
+        'assets',
         'income-career',
         'expenditure',
-        'assets',
         'goals',
       ],
       learningMilestones: {
@@ -239,13 +239,13 @@ export const LIFE_STAGES = {
         },
         'income-career': {
           didYouKnow: 'Every £1 of salary sacrifice into your pension saves you income tax AND National Insurance. At the basic rate, that means an immediate 32p in every £1 you contribute is money that would otherwise have gone to HMRC. Your employer contributions are free money on top.',
-          whyWeAsk: 'Your gross salary determines your income tax band, pension contribution amounts, student loan repayments, and the maximum you can contribute to a Lifetime ISA each year.',
+          whyWeAsk: 'Your gross salary determines your income tax band, pension contribution amounts, student loan repayments, and the maximum you can contribute to a Lifetime ISA each year. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'Understanding your full income picture — salary, any side income, and employer benefits — means we can identify exactly how much you can realistically save and invest each month after tax.',
           quickStat: { value: '£12,570', label: `Personal Allowance — income you pay no tax on (${TAX_YEAR})` },
         },
         'expenditure': {
           didYouKnow: 'The average UK household spends over £2,500 per month. Understanding where your money goes is the first step to building wealth — people who track spending save on average 15% more than those who do not.',
-          whyWeAsk: 'Your spending determines your emergency fund target, how much you can realistically save each month, and whether your income covers your lifestyle with room for growth.',
+          whyWeAsk: 'Your spending determines your emergency fund target, how much you can realistically save each month, and whether your income covers your lifestyle with room for growth. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'Knowing your outgoings lets us calculate your savings capacity, set realistic goals, and identify areas where small changes could accelerate your financial plan.',
           quickStat: { value: '£2,500', label: 'Average UK household monthly spending' },
         },
@@ -387,10 +387,10 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'family',
-        'income',
-        'expenditure',
         'assets',
         'liabilities',
+        'income',
+        'expenditure',
         'protection-insurance',
         'will-estate',
         'goals',
@@ -403,20 +403,20 @@ export const LIFE_STAGES = {
           quickStat: { value: '1 in 2', label: 'UK adults will develop cancer during their lifetime — critical illness cover matters' },
         },
         'family': {
-          didYouKnow: 'Having dependants is the single biggest trigger for needing life insurance and income protection. A rule of thumb: your life cover should be at least 10 times your annual income, plus any outstanding mortgage balance. Most people are significantly underinsured.',
+          didYouKnow: 'Having dependants is the single biggest trigger for needing life insurance and income protection. A rule of thumb: your life cover should be at least 10 times your annual income, plus any outstanding mortgage balance. Transfers between spouses are completely inheritance tax free, and a married couple can pass up to £1 million to their beneficiaries tax-free using combined nil-rate bands. Most people are significantly underinsured.',
           whyWeAsk: 'The number, ages, and needs of your dependants determine how much protection you need, your likely childcare and education costs, and whether you should consider a family income benefit policy alongside a lump sum policy.',
           howItFits: 'Your family profile shapes every aspect of your financial plan — from protection gaps and pension planning to inheritance tax and will writing. Getting this right means your plan truly fits your life.',
           quickStat: { value: '10×', label: 'Recommended minimum life cover multiple of annual salary' },
         },
         'income': {
           didYouKnow: 'Income protection insurance pays a monthly benefit if you cannot work due to illness or injury — typically 50–70% of your income. Yet fewer than 10% of UK workers have it. The state safety net (Statutory Sick Pay at £116.75/week for up to 28 weeks) is unlikely to cover your mortgage or rent.',
-          whyWeAsk: 'Your income level determines your protection needs, pension contribution capacity, and the size of any income protection policy that would maintain your family\'s standard of living if you were unable to work.',
+          whyWeAsk: 'Your income level determines your protection needs, pension contribution capacity, and the size of any income protection policy that would maintain your family\'s standard of living if you were unable to work. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'At this stage your income is probably at or near its highest rate of growth. Protecting it — through income protection insurance and a solid emergency fund — is as important as investing it.',
           quickStat: { value: '£116.75', label: 'Weekly Statutory Sick Pay — rarely enough to cover a mortgage' },
         },
         'expenditure': {
           didYouKnow: 'With a mortgage, childcare, and growing family costs, this life stage typically has the highest outgoings. Families who budget actively save on average 20% more than those who do not — the difference often funds a child\'s university or an earlier retirement.',
-          whyWeAsk: 'Your spending profile determines how much protection cover you need, what size emergency fund is appropriate, and how much surplus income is available for pension contributions and investments.',
+          whyWeAsk: 'Your spending profile determines how much protection cover you need, what size emergency fund is appropriate, and how much surplus income is available for pension contributions and investments. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'At this stage, balancing mortgage payments, childcare, insurance premiums, and savings contributions requires a clear picture of where every pound goes. We use this to prioritise your financial plan.',
           quickStat: { value: '20%', label: 'More savings for families who actively track their spending' },
         },
@@ -567,10 +567,10 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'family',
-        'income-tax',
-        'expenditure',
         'assets',
         'liabilities',
+        'income-tax',
+        'expenditure',
         'estate-iht',
         'goals',
       ],
@@ -582,20 +582,20 @@ export const LIFE_STAGES = {
           quickStat: { value: '57', label: 'Minimum pension access age rising to in 2028 — check your plans' },
         },
         'family': {
-          didYouKnow: 'At this stage, your family structure directly shapes your estate plan. A married couple can pass up to £1 million inheritance tax-free using combined nil-rate bands — but only if the right ownership structures and wills are in place. Children becoming financially independent also changes your protection needs significantly.',
+          didYouKnow: 'At this stage, your family structure directly shapes your estate plan. Transfers between spouses are completely inheritance tax free, and a married couple can pass up to £1 million to their beneficiaries tax-free using combined nil-rate bands — but only if the right ownership structures and wills are in place. Children becoming financially independent also changes your protection needs significantly.',
           whyWeAsk: 'Your dependants, their ages, and their financial independence determine your protection requirements, pension beneficiary nominations, will and trust planning, and whether your estate plan needs updating as circumstances change.',
           howItFits: 'Your family profile is central to estate planning at this stage. Dependent children may need trust arrangements; independent adult children change your life cover needs; and your spouse\'s financial position affects inheritance tax strategy.',
           quickStat: { value: '£1M', label: 'Combined inheritance tax threshold for a married couple with qualifying property' },
         },
         'income-tax': {
           didYouKnow: 'Higher-rate taxpayers can claim 40% tax relief on pension contributions — meaning a £1,000 net contribution costs just £600. Salary sacrifice is even more efficient as it also saves National Insurance. If you\'re not maximising pension contributions at higher-rate income levels, you\'re leaving significant money with HMRC.',
-          whyWeAsk: 'Your income level determines your tax band, available allowances, the value of pension tax relief, and whether strategies like carry-forward, pension salary sacrifice, or dividend extraction are worth exploring.',
+          whyWeAsk: 'Your income level determines your tax band, available allowances, the value of pension tax relief, and whether strategies like carry-forward, pension salary sacrifice, or dividend extraction are worth exploring. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'Tax efficiency at this stage can add tens of thousands to your retirement pot. Understanding your income and tax position is the foundation for a highly effective final-decade saving strategy.',
           quickStat: { value: '40%', label: 'Tax relief on pension contributions for higher-rate taxpayers' },
         },
         'expenditure': {
           didYouKnow: 'As children become independent and the mortgage shrinks, many people experience a significant jump in disposable income. This is the window to maximise pension contributions and investments before retirement — every extra pound saved now has fewer years to grow but higher tax relief.',
-          whyWeAsk: 'Understanding your current spending helps us calculate how much surplus income can be directed to pensions (with 40% tax relief), ISAs, and other investments during this critical final saving window.',
+          whyWeAsk: 'Understanding your current spending helps us calculate how much surplus income can be directed to pensions (with 40% tax relief), ISAs, and other investments during this critical final saving window. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'Your spending determines how much of your peak earnings can be channelled into retirement savings. Reducing expenditure by even £500 per month at this stage could add significantly to your retirement pot.',
           quickStat: { value: '£500/mo', label: 'Extra monthly saving at 50 could add £100,000+ to your retirement pot' },
         },
@@ -746,9 +746,9 @@ export const LIFE_STAGES = {
       steps: [
         'personal-info',
         'family',
+        'assets',
         'income-tax',
         'expenditure',
-        'assets',
         'estate-legacy',
         'goals',
       ],
@@ -760,7 +760,7 @@ export const LIFE_STAGES = {
           quickStat: { value: '87+', label: 'Average life expectancy for a 65-year-old woman in the UK today' },
         },
         'family': {
-          didYouKnow: 'In retirement, your family structure determines everything from pension beneficiary nominations to inheritance tax planning. A surviving spouse can inherit your pension tax-free, but from 2027 unused pension funds will be included in your estate for inheritance tax. Getting nominations and ownership structures right now protects your family later.',
+          didYouKnow: 'In retirement, your family structure determines everything from pension beneficiary nominations to inheritance tax planning. Transfers between spouses are completely inheritance tax free, and a married couple can pass up to £1 million to their beneficiaries using combined nil-rate bands. A surviving spouse can also inherit your pension tax-free, but from 2027 unused pension funds will be included in your estate for inheritance tax. Getting nominations and ownership structures right now protects your family later.',
           whyWeAsk: 'Your spouse, children, and grandchildren are the people your estate plan is designed to protect. Their ages, financial situations, and needs shape your will, trust arrangements, gifting strategy, and power of attorney decisions.',
           howItFits: 'Legacy planning starts with knowing who you are planning for. Your family details feed directly into inheritance tax calculations, pension nomination decisions, and whether lifetime gifting or trust structures make sense for your situation.',
           quickStat: { value: '£3,000', label: 'Annual inheritance tax-free gift exemption per person' },
@@ -779,13 +779,13 @@ export const LIFE_STAGES = {
         },
         'income-tax': {
           didYouKnow: 'Retirement offers significant tax planning opportunities that employed workers cannot access. By carefully sequencing withdrawals from ISAs (tax-free), pensions (taxable above Personal Allowance), and other savings, couples can structure retirement income to pay minimal income tax whilst maintaining a high standard of living.',
-          whyWeAsk: 'Understanding your full income picture in retirement — pensions, State Pension, rental income, dividends — lets us identify the most tax-efficient withdrawal strategy and flag any allowances you may not be using.',
+          whyWeAsk: 'Understanding your full income picture in retirement — pensions, State Pension, rental income, dividends — lets us identify the most tax-efficient withdrawal strategy and flag any allowances you may not be using. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'Tax efficiency in retirement is not about evasion — it is about sequencing. Using ISA withdrawals to top up pension income to the Personal Allowance, for example, can save thousands in unnecessary tax each year.',
           quickStat: { value: '£12,570', label: `Personal Allowance — income you pay no tax on (${TAX_YEAR})` },
         },
         'expenditure': {
           didYouKnow: 'Retired households in the UK spend an average of £2,100 per month. The Pensions and Lifetime Savings Association defines three retirement living standards: minimum (£14,400/year), moderate (£31,300/year), and comfortable (£43,100/year). Knowing which you need shapes everything.',
-          whyWeAsk: 'Your retirement spending determines how much income your pensions and investments need to generate, how long your savings will last, and whether your current provision is adequate.',
+          whyWeAsk: 'Your retirement spending determines how much income your pensions and investments need to generate, how long your savings will last, and whether your current provision is adequate. We also use this to assess the affordability of any plans and recommendations, and it feeds into your risk profile.',
           howItFits: 'Retirement planning is fundamentally about matching income to expenditure for 20–30 years. A clear picture of your spending lets us calculate whether your pension pot and other income sources will sustain your lifestyle.',
           quickStat: { value: '£31,300', label: 'PLSA moderate retirement living standard (annual, single person)' },
         },

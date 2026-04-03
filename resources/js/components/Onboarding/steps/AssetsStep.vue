@@ -460,31 +460,7 @@
       @save="handlePensionSaved"
     />
 
-    <!-- Tab Navigation (after all forms) -->
-    <div v-if="assetTabs.length > 1" class="mt-6 flex items-center justify-center gap-6">
-      <button
-        v-if="currentTabIndex > 0 && activeTab !== 'cash'"
-        type="button"
-        class="inline-flex items-center text-sm font-medium text-horizon-500 hover:text-horizon-600 transition-colors gap-1"
-        @click="goToPreviousTab"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Previous
-      </button>
-      <button
-        v-if="currentTabIndex < assetTabs.length - 1"
-        type="button"
-        class="inline-flex items-center text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors gap-1"
-        @click="goToNextTab"
-      >
-        Next
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
+    <!-- Tab navigation removed — Continue button cycles through tabs -->
 
     <!-- Document Upload Modal -->
     <DocumentUploadModal
@@ -1050,9 +1026,16 @@ export default {
 
     const showAssetSkipModal = ref(false);
 
-    // Navigation
+    // Navigation — Continue cycles through tabs before advancing to next step
     function handleNext() {
-      // Check if any tabs have no data entered
+      // If more tabs to view, advance to next tab
+      if (currentTabIndex.value < assetTabs.value.length - 1) {
+        activeTab.value = assetTabs.value[currentTabIndex.value + 1].id;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // All tabs viewed — check if any tabs have no data entered
       const incompleteTabs = [];
       const tabOrder = allowedTabs.value || ['retirement', 'properties', 'investments', 'cash'];
       const tabLabels = { retirement: 'Retirement', properties: 'Properties', investments: 'Investments', cash: 'Cash' };
