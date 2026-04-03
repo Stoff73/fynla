@@ -213,6 +213,10 @@ export default {
     this._onFynToggle = () => this.toggleChat();
     window.addEventListener('fyn-toggle-chat', this._onFynToggle);
 
+    // Listen for explicit open-chat requests (e.g. from registration via Fyn)
+    this._onFynOpen = () => this.openChat();
+    window.addEventListener('fyn-open-chat', this._onFynOpen);
+
     // Note: do NOT auto-collapse side menu here — AppLayout remounts on every
     // route change, which would override the user's explicit expand/collapse choice.
     // The watcher on showDockedChat handles the initial collapse when chat first opens.

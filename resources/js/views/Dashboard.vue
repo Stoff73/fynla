@@ -2173,6 +2173,23 @@ export default {
     // Always refresh journey progress when returning to dashboard
     // (e.g. after onboarding, adding data via Fyn, etc.)
     this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
+
+    // Handle openFyn=journey from "Get started with Fyn" registration
+    if (this.$route.query.openFyn === 'journey') {
+      this.$nextTick(() => {
+        // Open Fyn chat panel
+        window.dispatchEvent(new Event('fyn-open-chat'));
+
+        // Send journey stage question as initial assistant message
+        this.$store.commit('aiChat/ADD_MESSAGE', {
+          role: 'assistant',
+          content: "Welcome to Fynla! I'm Fyn, your financial companion. What stage of your journey are you on?\n\n- **Starting out** — student or early career\n- **Building foundations** — first home, growing savings\n- **Protecting and growing** — family, career progression\n- **Planning your future** — peak earnings, retirement planning\n- **Enjoying your wealth** — retired or approaching retirement\n\nJust tell me which stage fits you best and I'll help you get started!",
+        });
+      });
+
+      // Clean the query param so it doesn't trigger again on refresh
+      this.$router.replace({ query: {} });
+    }
   },
 
   beforeUnmount() {
