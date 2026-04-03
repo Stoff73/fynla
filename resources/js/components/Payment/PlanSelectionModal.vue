@@ -7,7 +7,7 @@
   >
     <div class="flex items-center justify-center min-h-screen px-4 py-8">
       <div
-        class="fixed inset-0 bg-savannah-1000/75 transition-opacity"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         @click="dismissable ? $emit('close') : null"
       ></div>
 
@@ -32,23 +32,23 @@
           </button>
         </div>
 
-        <!-- Launch Discount Banner -->
+        <!-- Limited Time Offer Banner -->
         <div class="flex justify-center mb-4">
-          <span class="inline-block bg-raspberry-50 text-raspberry-500 text-sm font-bold px-4 py-1.5 rounded-full">
-            Launch Discount — First 500 Users
+          <span class="inline-block bg-raspberry-50 text-raspberry-500 text-base font-bold px-5 py-2 rounded-full">
+            Limited Time Offer
           </span>
         </div>
 
-        <!-- Billing Cycle Toggle -->
+        <!-- Billing Cycle Toggle (matches /pricing style) -->
         <div class="flex justify-center mb-6">
-          <div class="inline-flex items-center bg-savannah-100 rounded-lg p-1">
+          <div class="inline-flex items-center gap-3 bg-white rounded-full p-1.5 border border-light-gray shadow-sm">
             <button
               @click="billingCycle = 'monthly'"
               :class="[
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                'px-5 py-2 rounded-full text-sm font-medium transition-all',
                 billingCycle === 'monthly'
-                  ? 'bg-white text-horizon-500 shadow-sm'
-                  : 'text-neutral-500 hover:text-horizon-500'
+                  ? 'bg-horizon-500 text-white shadow-md'
+                  : 'text-horizon-400 hover:text-horizon-500'
               ]"
             >
               Monthly
@@ -56,14 +56,14 @@
             <button
               @click="billingCycle = 'yearly'"
               :class="[
-                'px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                'px-5 py-2 rounded-full text-sm font-medium transition-all',
                 billingCycle === 'yearly'
-                  ? 'bg-white text-horizon-500 shadow-sm'
-                  : 'text-neutral-500 hover:text-horizon-500'
+                  ? 'bg-horizon-500 text-white shadow-md'
+                  : 'text-horizon-400 hover:text-horizon-500'
               ]"
             >
               Yearly
-              <span v-if="billingCycle === 'yearly'" class="ml-1 text-xs text-spring-600 font-semibold">Save up to {{ maxSavings }}%</span>
+              <span v-if="billingCycle === 'yearly'" class="ml-1 text-xs text-spring-500 font-semibold">Save up to {{ maxSavings }}%</span>
             </button>
           </div>
         </div>
@@ -85,19 +85,27 @@
             v-for="plan in filteredPlans"
             :key="plan.slug"
             :class="[
-              'relative border rounded-lg p-5 transition-all cursor-pointer',
-              selectedPlan === plan.slug
+              'relative border rounded-lg p-5 transition-all flex flex-col',
+              isCurrentPlan(plan)
                 ? 'border-raspberry-500 ring-2 ring-raspberry-500 bg-raspberry-50'
                 : 'border-light-gray hover:border-horizon-300 bg-white'
             ]"
-            @click="selectedPlan = plan.slug"
           >
-            <!-- Most Popular Badge -->
+            <!-- Current Plan Badge (blue) -->
             <div
-              v-if="plan.slug === 'family'"
+              v-if="isCurrentPlan(plan)"
               class="absolute -top-3 left-1/2 -translate-x-1/2"
             >
-              <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-raspberry-600 text-white">
+              <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-horizon-500 text-white whitespace-nowrap">
+                Current Plan
+              </span>
+            </div>
+            <!-- Most Popular Badge -->
+            <div
+              v-else-if="plan.slug === 'family'"
+              class="absolute -top-3 left-1/2 -translate-x-1/2"
+            >
+              <span class="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-spring-500 text-white whitespace-nowrap">
                 Most Popular
               </span>
             </div>
@@ -106,20 +114,19 @@
 
             <!-- Price -->
             <div class="mt-3 mb-4">
-              <div class="flex items-baseline flex-wrap gap-1">
-                <span v-if="getLaunchPrice(plan)" class="text-neutral-400 line-through text-sm">{{ formatPrice(getOriginalPrice(plan)) }}</span>
+              <div v-if="getLaunchPrice(plan)">
+                <span class="text-neutral-400 line-through text-sm">{{ formatPrice(getOriginalPrice(plan)) }}</span>
+              </div>
+              <div class="flex items-baseline gap-1">
                 <span class="text-2xl font-bold text-raspberry-500">{{ formatPrice(getDisplayPrice(plan)) }}</span>
                 <span class="text-body-sm text-neutral-500">/{{ billingCycle === 'yearly' ? 'year' : 'month' }}</span>
               </div>
               <div v-if="billingCycle === 'yearly' && getLaunchPrice(plan)" class="mt-1">
-                <span class="text-xs text-spring-600 font-medium">
-                  {{ formatPrice(Math.round(getLaunchPrice(plan) / 12)) }}/mo — save {{ savingsPercentage(plan) }}%
-                </span>
+                <p class="text-xs text-spring-600 font-medium">{{ formatPrice(Math.round(getLaunchPrice(plan) / 12)) }}/mo</p>
+                <p class="text-xs text-spring-600 font-medium">Save {{ savingsPercentage(plan) }}%</p>
               </div>
               <div v-else-if="billingCycle === 'yearly'" class="mt-1">
-                <span class="text-xs text-spring-600 font-medium">
-                  Save {{ savingsPercentage(plan) }}% vs monthly
-                </span>
+                <p class="text-xs text-spring-600 font-medium">Save {{ savingsPercentage(plan) }}% vs monthly</p>
               </div>
             </div>
 
@@ -136,25 +143,26 @@
                 {{ feature }}
               </li>
             </ul>
-          </div>
-        </div>
 
-        <!-- Footer -->
-        <div class="mt-6 flex justify-end gap-3">
-          <button
-            v-if="dismissable"
-            @click="$emit('close')"
-            class="btn-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleSelect"
-            class="btn-primary"
-            :disabled="!selectedPlan"
-          >
-            Continue
-          </button>
+            <!-- Spacer to push button to bottom -->
+            <div class="flex-1"></div>
+
+            <!-- Per-card action button -->
+            <button
+              v-if="isCurrentPlan(plan)"
+              class="mt-4 w-full py-2 px-4 rounded-lg text-sm font-medium bg-neutral-400 text-white cursor-not-allowed"
+              disabled
+            >
+              Current Plan
+            </button>
+            <button
+              v-else
+              @click="selectAndContinue(plan.slug)"
+              class="mt-4 w-full py-2 px-4 rounded-lg text-sm font-medium bg-raspberry-500 hover:bg-raspberry-600 text-white transition-colors"
+            >
+              Choose Plan
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -183,6 +191,10 @@ export default {
       type: Boolean,
       default: true,
     },
+    showAllPlans: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   data() {
@@ -198,6 +210,7 @@ export default {
   computed: {
     filteredPlans() {
       if (!this.currentPlan) return this.plans;
+      if (this.showAllPlans) return this.plans;
       const currentIndex = PLAN_ORDER.indexOf(this.currentPlan);
       if (currentIndex === -1) return this.plans;
       return this.plans.filter(p => PLAN_ORDER.indexOf(p.slug) > currentIndex);
@@ -218,12 +231,14 @@ export default {
 
     headerTitle() {
       if (!this.dismissable) return 'Your Trial Has Ended';
+      if (this.showAllPlans) return 'Choose Your Plan';
       if (this.currentPlan) return 'Upgrade Your Plan';
       return 'Choose Your Plan';
     },
 
     headerSubtitle() {
       if (!this.dismissable) return 'Choose a plan to continue using Fynla';
+      if (this.showAllPlans && this.currentPlan) return 'Your current plan is highlighted below';
       if (this.currentPlan) return 'Select a plan to upgrade to';
       return 'Select a plan that works for you';
     },
@@ -240,10 +255,13 @@ export default {
       try {
         const response = await api.get('/payment/plans');
         this.plans = response.data.plans || [];
-        // Pre-select first available filtered plan
+        // Pre-select first available plan (skip current plan when showing all)
         this.$nextTick(() => {
           if (this.filteredPlans.length && !this.selectedPlan) {
-            this.selectedPlan = this.filteredPlans[0].slug;
+            const selectable = this.showAllPlans
+              ? this.filteredPlans.find(p => p.slug !== this.currentPlan)
+              : this.filteredPlans[0];
+            if (selectable) this.selectedPlan = selectable.slug;
           }
         });
       } catch {
@@ -276,6 +294,18 @@ export default {
       const yearlyPrice = plan.launch_yearly_price || plan.yearly_price;
       if (!monthlyPrice || !yearlyPrice) return 0;
       return Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
+    },
+
+    isCurrentPlan(plan) {
+      return this.showAllPlans && plan.slug === this.currentPlan;
+    },
+
+    selectAndContinue(slug) {
+      this.$emit('select', {
+        plan: slug,
+        billingCycle: this.billingCycle,
+        isUpgrade: !!this.currentPlan,
+      });
     },
 
     handleSelect() {
