@@ -5,9 +5,9 @@
 
 ---
 
-## Session 32 (3 April) — Cache Fix + Onboarding Bug Fix + UX Improvements
+## Session 32 (3 April) — Cache Fix + Onboarding Bug Fix + UX Improvements + Adhoc Homepage Changes
 
-### Completed This Session
+### Completed This Session (main branch — PRs merged)
 - [x] **FynChat branch merged** — PR #183, Fyn chat panel floats above dashboard
 - [x] **Cache fix (PR #184)** — Created centralised `CacheInvalidationService`, removed all `Cache::tags()` calls (silently failing on production file driver), extended all TTLs to 24 hours with immediate invalidation on data change. 34 PHP files changed. Deploy guide: `April/April3Updates/deployCacheFix.md`
 - [x] **Onboarding expenditure 500 fix (PR #185)** — `ExpenditureForm.vue` was sending `expenditure_entry_mode: 'detailed'` but DB enum is `('simple','category')`. Fixed to `'category'`.
@@ -15,18 +15,24 @@
 - [x] **Browser tested** — Full onboarding flow, all asset forms (pension, property, investment, savings), scroll-to-top verified with Playwright scrollY measurements, 0 console errors
 - [x] **Production build** — `public/build/` ready for both cache fix and onboarding changes
 
+### Completed This Session (adhoc-changes-1 branch)
+- [x] **Meet Fyn section redesign** — Updated copy, added expandable "What can Fyn help you with?" section with bullet points, replaced Ask Fyn input with "Quick start with Fyn" CTA
+- [x] **Fyn registration flow** — "Quick start with Fyn" links to /register?from=fyn, after registration redirects to dashboard with Fyn chat open asking journey stage question
+- [x] **Homepage scroll fix** — Smooth scroll to Meet Fyn and dashboard sections now offsets by navbar height
+- [x] **Tax hook path fix** — Updated .claude/settings.json hook path for Windows
+
+### NOT Done — Outstanding
+- [ ] **Browser test full Fyn registration flow** — Quick start with Fyn → register → dashboard with Fyn chat open
+- [ ] **Browser test onboarding flow** — All stages, data persistence, journey switching
+
 ### Deploy Status
 - **Cache fix (PR #184):** 34 PHP files + no frontend build. Deploy guide: `April/April3Updates/deployCacheFix.md`. Needs `mkdir -p app/Services/Cache` on server.
 - **Onboarding fix + UX (PR #185):** 9 frontend files, build required (done). Deploy guide: `April/April3Updates/deployOnboarding.md`. No PHP changes.
-- **Both builds done** — `public/build/` contains both sets of changes. Single upload covers everything.
+- **adhoc-changes-1:** 3 commits — NOT merged, NOT deployed. Needs PR + merge to main.
 
 ### Context for Next Session
-Both PRs are merged to main but NOT deployed to production yet. To deploy:
-1. Upload the 34 PHP files from cache fix (see `deployCacheFix.md`)
-2. Upload `public/build/` (covers both cache fix and onboarding changes)
-3. SSH: `mkdir -p app/Services/Cache` then clear caches
-
-**Tax year deadline: April 6 (3 days away).** The bugs branch (PR #182) was already merged — check if it has been deployed. If not, deploy guide at `April/April2Updates/bugIssueDeploy.md`.
+Cache fix + onboarding PRs merged to main but NOT deployed to production yet. adhoc-changes-1 branch needs PR + merge.
+**Tax year deadline: April 6 (3 days away).**
 
 ---
 
@@ -38,6 +44,7 @@ Both PRs are merged to main but NOT deployed to production yet. To deploy:
 - [ ] Test Excel import with real platform exports (Hargreaves Lansdown, AJ Bell, Vanguard)
 - [ ] Test Fyn timeout fix on production (10+ message conversation)
 - [ ] Deploy Excel holdings import to production (12 PHP files + build)
+- [ ] Bug 1: retirement layout at 1118px still needs work
 
 ## Outstanding — Tech Debt Deferred
 - [ ] God class decomposition (6 files, 40-60 hours)
@@ -45,11 +52,7 @@ Both PRs are merged to main but NOT deployed to production yet. To deploy:
 - [ ] Test coverage 19% → 40%
 - [ ] NPM vulnerabilities (9 high CVEs)
 - [ ] Off-palette Tailwind in Risk module
-- [ ] Vuex state bloat
 
 ## Known Issues
-- [ ] Bug 1: Retirement "Other Assets" cards overflow at 1118px (needs CSS refinement beyond min-width:0)
-- [ ] Estate IHT Age 80 projections show unrealistic numbers (£195M)
-- [ ] DB pension field mapping mismatch
-- [ ] Expenditure form fill doesn't animate
-- [ ] property_sale life event creates property record (double navigation)
+- [ ] Tax year deadline April 6 — dynamic tax year overhaul deployed via bugs branch merge
+- [ ] DB pension field mapping mismatch (employer_name vs scheme_name)
