@@ -64,18 +64,6 @@
         </div>
       </div>
 
-      <!-- Agentic AI Development Note -->
-      <div class="info-banner development-note">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-        </svg>
-        <div class="info-content">
-          <p class="info-message">
-            The retirement planner you see here is the base scaffolding that will be used by our Agentic AI (not implemented yet) running on a domain-specific, deep knowledge LLM, to provide actionable, deterministic and traceable optimisation strategies for drawdown. So if what you see is not perfect, or does not make sense, this is expected behaviour due to the nature of symbolic AI (which is implemented). Once we connect the agent, the AI will adjust the parameters accordingly.
-          </p>
-        </div>
-      </div>
-
       <!-- State Pension Message -->
       <div v-if="statePensionStatus && !statePensionStatus.has_data" class="info-banner">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="info-icon">
@@ -189,9 +177,8 @@
         </div>
       </div>
 
-      <!-- Income Sources and Other Assets Row -->
-      <div class="sources-assets-row">
-        <!-- Income Sources Section -->
+      <!-- Old sources position (removed — now below chart) -->
+      <div v-if="false" class="sources-assets-row">
         <div class="sources-section">
           <div class="sources-header">
             <h4 class="sources-title">Income Sources</h4>
@@ -308,13 +295,103 @@
         </div>
       </div>
 
-      <!-- Fund Depletion Chart -->
-      <FundDepletionChart
-        v-if="fundProjections.length > 0"
-        :projections="fundProjections"
-        :depletion-ages="depletionAges"
-        :retirement-age="retirementAge"
-      />
+      <!-- Fund Depletion Chart — click to reveal income sources below -->
+      <div v-if="fundProjections.length > 0" class="cursor-pointer" @click="showSourcesDetail = !showSourcesDetail">
+        <FundDepletionChart
+          :projections="fundProjections"
+          :depletion-ages="depletionAges"
+          :retirement-age="retirementAge"
+        />
+        <p class="text-center text-sm text-neutral-500 mt-2 mb-4">
+          <span class="text-raspberry-500 font-medium">{{ showSourcesDetail ? 'Hide' : 'View' }} income sources and assets</span>
+          <svg class="inline w-4 h-4 ml-1 text-raspberry-500 transition-transform" :class="{ 'rotate-180': showSourcesDetail }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+        </p>
+      </div>
+
+      <!-- Income Sources and Other Assets — revealed by clicking chart -->
+      <div v-if="showSourcesDetail" class="sources-assets-row">
+        <div class="sources-section">
+          <div class="sources-header">
+            <h4 class="sources-title">Income Sources</h4>
+          </div>
+
+          <div class="sources-list">
+            <IncomeSourceSlider
+              v-for="allocation in displayAllocations"
+              :key="`${allocation.source_type}-${allocation.source_id}`"
+              :allocation="allocation"
+              :account="getAccountForAllocation(allocation)"
+            />
+
+            <div
+              v-for="allocation in includedOtherAllocations"
+              :key="'other-' + allocation.source_id"
+              class="account-card"
+            >
+              <span :class="['account-type-badge', getAccountTypeBadgeClass(allocation.source_type)]">
+                {{ formatSourceType(allocation.source_type) }}
+              </span>
+              <h4 class="account-name">{{ allocation.name }}</h4>
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(allocation.starting_balance) }}</p>
+                  <p class="account-detail">Annual draw: {{ formatCurrency(allocation.annual_amount) }}</p>
+                </div>
+                <button type="button" class="account-toggle active" @click.stop="toggleAllocation(allocation)" title="Click to exclude from retirement income">
+                  <span>Included</span>
+                  <span class="toggle-switch on"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="displayAllocations.length === 0 && includedOtherAllocations.length === 0" class="no-allocations">
+            <p>No income allocations configured</p>
+          </div>
+        </div>
+
+        <div v-if="excludedInvestments.length > 0 || excludedCash.length > 0" class="assets-section">
+          <div class="assets-header">
+            <h4 class="assets-title">Other Assets</h4>
+            <p class="assets-subtitle">Toggle to include in retirement income planning</p>
+          </div>
+
+          <div class="asset-cards">
+            <div v-for="account in excludedInvestments" :key="'inv-ex-' + account.id" class="account-card">
+              <span :class="['account-type-badge', getAccountTypeBadgeClass(account.account_type)]">
+                {{ formatAccountType(account.account_type) }}
+              </span>
+              <h4 class="account-name">{{ account.account_name || account.provider || formatAccountType(account.account_type) }}</h4>
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(getProjectedValue(account)) }}</p>
+                  <p class="account-detail">Projected at retirement (80%)</p>
+                </div>
+                <button type="button" class="account-toggle" @click.stop="toggleAsset('investment', account.id)" title="Click to include in retirement income">
+                  <span>Excluded</span>
+                  <span class="toggle-switch"></span>
+                </button>
+              </div>
+            </div>
+            <div v-for="account in excludedCash" :key="'cash-ex-' + account.id" class="account-card">
+              <span :class="['account-type-badge', account.is_isa ? 'badge-emerald' : 'badge-gray']">
+                {{ account.is_isa ? 'Cash ISA' : 'Savings' }}
+              </span>
+              <h4 class="account-name">{{ account.institution || 'Cash Account' }}</h4>
+              <div class="account-value-row">
+                <div class="account-values">
+                  <p class="account-value">{{ formatCurrency(getProjectedCashValue(account)) }}</p>
+                  <p class="account-detail">Projected at retirement</p>
+                </div>
+                <button type="button" class="account-toggle" @click.stop="toggleAsset('cash', account.id)" title="Click to include in retirement income">
+                  <span>Excluded</span>
+                  <span class="toggle-switch"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Year-by-Year Projection Table (Hidden from view - logic retained) -->
       <div v-if="false && requiredCapital?.year_by_year?.length > 0" class="table-section">
@@ -397,6 +474,7 @@ export default {
     return {
       showTargetModal: false,
       showIncomeBreakdown: false,
+      showSourcesDetail: false,
       tempTargetIncome: null,
       calculateTimeout: null,
     };
@@ -490,10 +568,10 @@ export default {
       return (firstYear.tax_paid || 0) / grossIncome;
     },
 
-    // First year gross income (for reference)
+    // First year gross income — single source: income_drawdown from projections store
     firstYearGrossIncome() {
-      if (this.fundProjections.length === 0) return 0;
-      const firstYear = this.fundProjections[0];
+      const firstYear = this.projections?.income_drawdown?.yearly_income?.[0];
+      if (!firstYear) return 0;
       return (firstYear.total_income || 0) + (firstYear.state_pension || 0) + (firstYear.db_pension || 0);
     },
 
