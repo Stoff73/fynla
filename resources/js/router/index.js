@@ -41,6 +41,8 @@ const GlossaryPage = () => import('@/views/Public/learn/GlossaryPage.vue');
 const InsightsHubPage = () => import('@/views/Public/insights/InsightsHubPage.vue');
 const PensionIhtChanges2027Page = () => import('@/views/Public/insights/PensionIhtChanges2027Page.vue');
 const IsaAllowance202526Page = () => import('@/views/Public/insights/IsaAllowance202526Page.vue');
+const InheritanceTaxExplainedPage = () => import('@/views/Public/insights/InheritanceTaxExplainedPage.vue');
+const PensionContributionLimitsPage = () => import('@/views/Public/insights/PensionContributionLimitsPage.vue');
 const WhatIsSalarySacrificePage = () => import('@/views/Public/learn/WhatIsSalarySacrificePage.vue');
 const WhatIsAnLpaPage = () => import('@/views/Public/learn/WhatIsAnLpaPage.vue');
 const WhatIsASippPage = () => import('@/views/Public/learn/WhatIsASippPage.vue');
@@ -302,6 +304,8 @@ const routes = [
   { path: '/insights', name: 'InsightsHub', component: InsightsHubPage, meta: { public: true } },
   { path: '/insights/pension-iht-changes-2027', name: 'InsightPensionIHT', component: PensionIhtChanges2027Page, meta: { public: true } },
   { path: '/insights/isa-allowance-2025-26', name: 'InsightISAAllowance', component: IsaAllowance202526Page, meta: { public: true } },
+  { path: '/insights/inheritance-tax-uk', name: 'InsightIHT', component: InheritanceTaxExplainedPage, meta: { public: true } },
+  { path: '/insights/pension-contribution-limits-uk', name: 'InsightPensionLimits', component: PensionContributionLimitsPage, meta: { public: true } },
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },

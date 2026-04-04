@@ -45,8 +45,9 @@
             class="flex flex-col sm:flex-row bg-white rounded-2xl overflow-hidden hover:bg-light-pink-100 hover:shadow-md transition-all group"
           >
             <!-- Image -->
-            <div class="sm:w-[280px] flex-shrink-0 bg-gradient-to-br from-horizon-500 to-raspberry-500 flex items-center justify-center p-8 sm:p-6">
-              <div class="w-full aspect-video sm:aspect-auto sm:h-full rounded-lg bg-white/10 flex items-center justify-center">
+            <div class="sm:w-[280px] flex-shrink-0 bg-gradient-to-br from-horizon-500 to-raspberry-500 flex items-center justify-center overflow-hidden" :class="article.image ? '' : 'p-8 sm:p-6'">
+              <img v-if="article.image" :src="article.image" :alt="article.title" class="w-full h-full object-cover" />
+              <div v-else class="w-full aspect-video sm:aspect-auto sm:h-full rounded-lg bg-white/10 flex items-center justify-center">
                 <svg class="w-12 h-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" :d="article.icon" />
                 </svg>
@@ -108,12 +109,28 @@ export default {
       categories: ['All', 'Tax changes', 'Pensions', 'Savings & ISA', 'Estate planning', 'Platform updates'],
       articles: [
         {
+          slug: '/insights/inheritance-tax-uk',
+          title: 'Inheritance Tax Explained: Thresholds, Rules & How to Calculate IHT',
+          date: 'April 2026',
+          summary: 'Understand UK inheritance tax with our 2026 guide. Learn IHT thresholds, nil rate bands, calculation methods and strategies to reduce your estate\'s tax bill.',
+          tags: ['Estate planning'],
+          image: '/images/insights/inheritance-tax-uk.jpg',
+        },
+        {
+          slug: '/insights/pension-contribution-limits-uk',
+          title: 'Pension Contribution Limits UK 2026/27: How Much Can You Pay In?',
+          date: 'April 2026',
+          summary: 'Find out the 2026/27 pension contribution limits, annual allowance, tax relief rates and carry forward rules. Updated guide for UK savers.',
+          tags: ['Pensions'],
+          image: '/images/insights/pension-contribution-limits.jpg',
+        },
+        {
           slug: '/insights/pension-iht-changes-2027',
           title: 'Pension Inheritance Tax Changes: April 2027',
           date: 'March 2026',
           summary: 'From April 2027, unused pension pots will be included in your estate for Inheritance Tax. Here\'s what\'s changing and what you can do.',
           tags: ['Pensions', 'Estate planning'],
-          icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+          image: '/images/insights/pension-iht-changes.jpg',
         },
         {
           slug: '/insights/isa-allowance-2025-26',
@@ -121,7 +138,7 @@ export default {
           date: 'March 2026',
           summary: 'The ISA allowance remains at \u00A320,000. Types, deadlines, and strategies for maximising your tax-free savings.',
           tags: ['Savings & ISA'],
-          icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+          image: '/images/insights/isa-allowance.jpg',
         },
       ],
     };
@@ -137,10 +154,10 @@ export default {
   methods: {
     tagClass(tag) {
       const classes = {
-        'Tax changes': 'bg-amber-50 text-amber-700',
+        'Tax changes': 'bg-raspberry-50 text-raspberry-700',
         'Pensions': 'bg-violet-50 text-violet-700',
         'Savings & ISA': 'bg-spring-50 text-spring-700',
-        'Estate planning': 'bg-amber-50 text-amber-700',
+        'Estate planning': 'bg-violet-50 text-violet-700',
         'Platform updates': 'bg-light-blue-100 text-light-blue-700',
       };
       return classes[tag] || 'bg-neutral-100 text-neutral-600';

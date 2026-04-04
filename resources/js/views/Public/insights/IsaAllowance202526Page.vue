@@ -23,7 +23,7 @@
 
           <!-- The Basics -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">The Basics</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">The basics</h2>
             <p class="text-sm text-neutral-500 leading-relaxed">
               The ISA allowance for the {{ currentTaxYear }} tax year (6 April 2025 to 5 April 2026) is &pound;20,000. This is unchanged from 2024/25. You can split it across different ISA types, but the total must not exceed &pound;20,000.
             </p>
@@ -31,13 +31,13 @@
 
           <!-- ISA Types and Limits -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">ISA Types and Limits</h2>
-            <div class="bg-white rounded-lg border border-light-gray overflow-hidden">
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">ISA types and limits</h2>
+            <div class="bg-light-blue-100 rounded-lg border border-light-gray overflow-hidden">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="bg-savannah-50">
-                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-horizon-500">ISA Type</th>
-                    <th class="text-right px-4 py-2.5 text-xs font-semibold text-horizon-500">Annual Limit</th>
+                  <tr class="bg-horizon-500">
+                    <th class="text-left px-4 py-2.5 text-sm font-semibold text-white">ISA Type</th>
+                    <th class="text-right px-4 py-2.5 text-sm font-semibold text-white">Annual Limit</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-light-gray">
@@ -63,9 +63,16 @@
             <p class="text-xs text-neutral-400 mt-2">You can hold one of each type per tax year.</p>
           </div>
 
+          <!-- Quote callout -->
+          <blockquote class="border-l-4 border-raspberry-500 bg-light-pink-100 rounded-r-xl px-6 py-5 my-2">
+            <p class="text-lg font-semibold text-horizon-500 italic leading-relaxed">
+              "You can split your &pound;20,000 ISA allowance across different ISA types in the same tax year &mdash; but once the tax year ends, any unused allowance is lost forever."
+            </p>
+          </blockquote>
+
           <!-- Key Dates -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">Key Dates</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Key dates</h2>
             <ul class="text-sm text-neutral-500 leading-relaxed list-disc pl-5 space-y-2">
               <li><strong class="text-horizon-500">Tax year:</strong> 6 April 2025 to 5 April 2026.</li>
               <li><strong class="text-horizon-500">Use it or lose it</strong> &mdash; unused allowance does not carry forward.</li>
@@ -75,7 +82,7 @@
 
           <!-- Strategies -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">Strategies</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Strategies</h2>
             <ol class="text-sm text-neutral-500 leading-relaxed list-decimal pl-5 space-y-3">
               <li>
                 <strong class="text-horizon-500">Use your allowance early in the tax year.</strong>
@@ -98,7 +105,7 @@
 
           <!-- Common Mistakes -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">Common Mistakes</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Common mistakes</h2>
             <ul class="text-sm text-neutral-500 leading-relaxed list-disc pl-5 space-y-2">
               <li>Opening two of the same ISA type in one tax year (not allowed).</li>
               <li>Forgetting the Lifetime ISA counts towards your &pound;20,000 total.</li>
@@ -109,7 +116,7 @@
 
           <!-- Related Links -->
           <div class="bg-light-blue-100 rounded-2xl p-6">
-            <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Related</h2>
             <ul class="space-y-2">
               <li>
                 <router-link to="/learn/what-is-an-isa" class="text-sm text-raspberry-500 hover:underline">What is an ISA?</router-link>
@@ -135,7 +142,7 @@
     <!-- CTA -->
     <section class="py-12 bg-light-pink-100">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-lg font-bold text-horizon-500 mb-2">Track your ISA allowance in Fynla</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Track your ISA allowance in Fynla</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
           See how much of your &pound;20,000 you've used, across all your ISA accounts, in one place.
         </p>
