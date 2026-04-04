@@ -72,15 +72,15 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
         </svg>
       </button>
-      <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+      <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
     </aside>
 
     <!-- Information Guide panel (button moved to Navbar) -->
     <InfoGuidePanel />
 
-    <!-- AI Chat floating button + panel (real users only, hidden when docked chat is active) -->
+    <!-- AI Chat floating button + panel (real users only, hidden when docked chat is active on desktop) -->
     <AiChatButton v-if="!showDockedChat && !isPreviewMode" />
-    <AiChatPanel v-if="!showDockedChat && !isPreviewMode" />
+    <AiChatPanel v-if="(!showDockedChat || isMobileView) && !isPreviewMode" />
 
     <!-- Trial Expired — non-dismissable plan selection -->
     <PlanSelectionModal
@@ -150,6 +150,7 @@ export default {
       showTrialExpiredModal: false,
       showPlanModal: false,
       subscriptionData: null,
+      isMobileView: window.innerWidth < 1024,
     };
   },
 
@@ -222,6 +223,10 @@ export default {
     // route change, which would override the user's explicit expand/collapse choice.
     // The watcher on showDockedChat handles the initial collapse when chat first opens.
 
+    // Track mobile view state for floating chat on small screens
+    this._updateMobileView = () => { this.isMobileView = window.innerWidth < 1024; };
+    window.addEventListener('resize', this._updateMobileView);
+
     // Track header height + footer visibility for docked chat positioning
     this._updateChatOffsets = () => {
       // Header: use visible portion of header (shrinks to 0 as header scrolls out)
@@ -254,6 +259,9 @@ export default {
   },
 
   beforeUnmount() {
+    if (this._updateMobileView) {
+      window.removeEventListener('resize', this._updateMobileView);
+    }
     if (this._updateChatOffsets) {
       window.removeEventListener('scroll', this._updateChatOffsets);
       window.removeEventListener('resize', this._updateChatOffsets);
@@ -275,6 +283,11 @@ export default {
     },
 
     toggleChat() {
+      // On mobile (below lg breakpoint), open the floating chat panel instead of docked
+      if (window.innerWidth < 1024) {
+        this.$store.dispatch('aiChat/toggle');
+        return;
+      }
       this.chatCollapsed = !this.chatCollapsed;
       storage.set('fynChatCollapsed', this.chatCollapsed);
     },

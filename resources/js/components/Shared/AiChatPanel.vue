@@ -28,12 +28,13 @@
             <button
               v-if="isMobile"
               @click="closePanel"
-              class="p-2 -ml-2 text-neutral-500 hover:text-horizon-500 rounded-full transition-colors"
+              class="p-2 -ml-2 text-neutral-500 hover:text-horizon-500 rounded-full transition-colors inline-flex items-center gap-1"
               title="Close"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
+              <span class="text-sm font-medium">Close</span>
             </button>
 
             <h3 :class="[
@@ -188,7 +189,7 @@
                   v-for="option in msg.options"
                   :key="option"
                   @click="sendSuggested(option)"
-                  class="w-full text-left px-3 py-2 text-sm bg-savannah-100 hover:bg-savannah-200 border border-light-gray rounded-lg transition-colors text-neutral-500"
+                  class="w-full text-left px-3 py-2 text-sm bg-light-pink-100 hover:bg-light-pink-200 border border-light-gray rounded-lg transition-colors text-horizon-500"
                   :disabled="streaming || loading"
                 >
                   {{ option }}
@@ -280,7 +281,7 @@
       <!-- Docked Header -->
       <div class="flex items-center justify-between px-4 py-2.5 flex-shrink-0 border-b border-light-gray bg-light-gray">
         <div class="flex items-center gap-2">
-          <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+          <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
           <h3 class="text-sm font-bold text-horizon-500">Fyn</h3>
         </div>
         <div class="flex items-center gap-1">
@@ -626,7 +627,8 @@ export default {
 
         // In docked mode, auto-open and load conversations immediately
         // dispatch('open') sets isOpen=true which triggers the watcher to call onOpen()
-        if (this.docked) {
+        // Skip on mobile — docked panel is CSS-hidden, floating panel handles chat instead
+        if (this.docked && window.innerWidth >= 1024) {
             this.$store.dispatch('aiChat/open');
 
             // Measure natural input height after render to use as default & minimum

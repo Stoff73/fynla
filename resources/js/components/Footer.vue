@@ -6,7 +6,7 @@
           <router-link to="/"><img :src="logoUrl" alt="Fynla" class="h-8 w-auto" /></router-link>
         </div>
         <div class="text-body-sm text-neutral-500 text-center lg:text-left">
-          <span class="block sm:inline">&copy; {{ currentYear }} Fynla - Financial Freedom Mapping.</span>
+          <span class="block sm:inline">&copy; {{ currentYear }} Fynla - Your personal finance platform.</span>
           <span class="hidden sm:inline"> For demonstration purposes only.</span>
           <span class="block sm:hidden text-xs mt-1">For demonstration purposes only.</span>
           <span class="hidden sm:inline ml-2 text-horizon-400">|</span>

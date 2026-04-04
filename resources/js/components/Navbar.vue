@@ -16,7 +16,18 @@
         <!-- Spacer (fills remaining space) -->
         <div class="flex-1 min-w-0"></div>
 
-        <div class="flex items-center flex-shrink-0">
+        <div class="flex items-center flex-shrink-0 gap-2">
+          <!-- Fyn Chat Button (mobile) -->
+          <button
+            v-if="!isPreviewMode"
+            @click="$emit('toggle-chat')"
+            class="sm:hidden inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-button text-raspberry-600 bg-light-pink-100 hover:bg-light-pink-200 transition-all"
+            title="Chat"
+          >
+            <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full mr-1" />
+            Chat
+          </button>
+
         <div class="hidden sm:flex sm:items-center space-x-4">
           <!-- Trial info (inline — only during free trial, not for active subscribers) -->
           <div v-if="trialData && trialData.status === 'trialing'" class="flex items-center gap-3">
@@ -142,14 +153,14 @@
             </transition>
           </div>
 
-          <!-- Fyn Chat Button -->
+          <!-- Fyn Chat Button (desktop) -->
           <button
             v-if="!isPreviewMode"
             @click="$emit('toggle-chat')"
             class="hidden sm:inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-raspberry-600 bg-light-pink-100 hover:bg-light-pink-200 transition-all"
             title="Chat with Fyn"
           >
-            <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-5 h-5 rounded-full mr-2" />
+            <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-5 h-5 rounded-full mr-2" />
             Chat with Fyn
           </button>
 
