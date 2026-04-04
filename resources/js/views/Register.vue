@@ -319,9 +319,14 @@ export default {
       storage.remove('preview_persona_id');
       storage.remove('preview_mode');
 
-      // Go to onboarding — preserve stage from query if user came from a stage page
+      // Route based on registration source
+      const fromParam = route.query.from;
       const stageParam = route.query.stage;
-      if (stageParam) {
+
+      if (fromParam === 'fyn') {
+        // Came from "Get started with Fyn" — go to dashboard with Fyn chat open
+        router.push({ name: 'Dashboard', query: { openFyn: 'journey' } });
+      } else if (stageParam) {
         router.push({ name: 'Onboarding', query: { stage: stageParam } });
       } else {
         router.push({ name: 'Onboarding' });

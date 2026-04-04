@@ -96,12 +96,12 @@
     </div>
 
     <!-- Meet Fyn Section -->
-    <div id="meet-fyn" class="bg-light-pink-100 pt-6 pb-8 lg:-mt-2 lg:pt-[10px] lg:pb-0">
+    <div id="meet-fyn" class="bg-light-pink-100 pt-6 pb-8 lg:-mt-2 lg:pt-[10px]" :class="fynDetailsOpen ? 'lg:pb-14' : 'lg:pb-0'">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:items-center lg:gap-10">
 
-          <!-- Left: Meet Fyn text + Ask Fyn input -->
-          <div class="flex-1 self-center">
+          <!-- Left: Meet Fyn text -->
+          <div class="flex-1 lg:self-start lg:pt-10">
             <!-- Mobile: Meet Fyn heading + small Fyn character side by side -->
             <div class="flex items-end justify-between lg:hidden mb-1">
               <h2 class="text-6xl font-bold text-horizon-500 leading-none">Meet Fyn</h2>
@@ -120,27 +120,51 @@
               Your financial companion for life
             </p>
             <p class="text-sm text-neutral-500 mb-4 max-w-2xl leading-relaxed">
-              Need help? Fyn is the face of our Fynla brain and will help you set and meet your financial goals by giving you clarity of your finances. Fyn will help with everything from planning to saving and investments, through to your net worth and real estate. Tell Fyn what you want and he'll help you get on your way.
+              Need help? Fyn is the face of our Fynla brain and will help you with your finance goals by giving you financial clarity. Fyn will help with everything from planning to saving and investments, through to your net worth and real estate. Tell Fyn what you'd like to do and he'll walk you through your dashboard step-by-step.
             </p>
 
-            <!-- Ask Fyn input -->
-            <div class="flex flex-col sm:flex-row gap-3 max-w-2xl">
-              <input
-                v-model="chatInput"
-                type="text"
-                placeholder="Enter your text here"
-                class="input-field flex-1 !py-3"
-                @keyup.enter="handleAskFyn"
-              />
-              <button type="button" @click="handleAskFyn" class="px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap">
-                Ask Fyn
+            <!-- Expandable: What can Fyn help you with? -->
+            <div class="max-w-2xl mb-5">
+              <button
+                type="button"
+                class="flex items-center gap-2 text-sm font-semibold text-horizon-500 hover:text-raspberry-500 transition-colors"
+                @click="fynDetailsOpen = !fynDetailsOpen"
+              >
+                <span>What can Fyn help you with?</span>
+                <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': fynDetailsOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
+              <transition name="expand">
+                <ul v-if="fynDetailsOpen" class="mt-3 space-y-2 text-sm text-neutral-500">
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-spring-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    Your financial companion to answer any questions you have
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-spring-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    Help understand and complete your dashboard
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-spring-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                    Support you to achieve your financial goals
+                  </li>
+                </ul>
+              </transition>
             </div>
+
+            <!-- Get started with Fyn -->
+            <router-link
+              to="/register?from=fyn"
+              class="inline-block px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap"
+            >
+              Quick start with Fyn
+            </router-link>
           </div>
 
           <!-- Right: Fyn character -->
-          <div class="hidden lg:flex lg:w-auto lg:flex-shrink-0 items-center justify-end">
-            <img src="/images/Fyn/Design Character 001a.webp" alt="Fyn — your AI financial companion" loading="lazy" width="324" height="427" class="h-[427px] w-auto lg:-mb-[3em]" />
+          <div class="hidden lg:flex lg:w-auto lg:flex-shrink-0 items-center justify-end" :class="fynDetailsOpen ? 'lg:self-end' : ''">
+            <img src="/images/Fyn/Design Character 001a.webp" alt="Fyn — your AI financial companion" loading="lazy" width="324" height="427" :class="fynDetailsOpen ? 'h-[427px] w-auto lg:-mb-[6em]' : 'h-[427px] w-auto lg:-mb-[3em]'" />
           </div>
 
         </div>
@@ -382,6 +406,7 @@ export default {
       showSelectionModal: false,
       previewError: '',
       chatInput: '',
+      fynDetailsOpen: false,
       dashboardGifUrl: '/images/fynla-dashboard-walkthrough.gif',
     };
   },
@@ -447,7 +472,8 @@ export default {
     smoothScrollTo(elementId, duration = 1500) {
       const el = document.getElementById(elementId);
       if (!el) return;
-      const target = el.getBoundingClientRect().top + window.scrollY;
+      const navbarHeight = document.querySelector('nav')?.offsetHeight || 0;
+      const target = el.getBoundingClientRect().top + window.scrollY - navbarHeight;
       const start = window.scrollY;
       const distance = target - start;
       const dur = duration;

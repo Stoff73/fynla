@@ -2172,6 +2172,16 @@ export default {
     // Always refresh journey progress when returning to dashboard
     // (e.g. after onboarding, adding data via Fyn, etc.)
     this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
+
+    // Handle openFyn=journey from "Get started with Fyn" registration
+    if (this.$route.query.openFyn === 'journey') {
+      // Set flag so AiChatPanel adds the journey message after conversation is created
+      this.$store.commit('aiChat/SET_PENDING_JOURNEY_PROMPT', true);
+      window.dispatchEvent(new Event('fyn-open-chat'));
+
+      // Clean the query param so it doesn't trigger again on refresh
+      this.$router.replace({ query: {} });
+    }
   },
 
   beforeUnmount() {

@@ -401,13 +401,18 @@ export default {
       } catch (error) {
         logger.error('Logout error:', error);
         // Even on error, redirect to login
-        router.push('/login');
+        if (!router.currentRoute.value.meta?.public) {
+          router.push('/login');
+        }
       }
     };
 
     const handleLogoutModalClose = () => {
       showLogoutModal.value = false;
-      router.push('/login');
+      // Stay on current page if it's public, otherwise go to login
+      if (!router.currentRoute.value.meta?.public) {
+        router.push('/login');
+      }
     };
 
     const openBugReport = () => {

@@ -14,7 +14,7 @@
         :class="[
           isMobile
             ? 'fixed inset-0 z-[70] flex flex-col bg-white chat-mobile-container'
-            : 'fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-2rem)] z-[70] bg-white rounded-lg border border-light-gray shadow-md flex flex-col transition-all duration-200'
+            : 'fixed bottom-24 right-6 w-[525px] max-w-[calc(100vw-2rem)] z-[70] bg-white rounded-lg border border-light-gray shadow-md flex flex-col transition-all duration-200'
         ]"
         :style="isMobile ? {} : { maxHeight: 'calc(100vh - 8rem)' }"
       >
@@ -167,17 +167,32 @@
             <div
               v-for="msg in messages"
               :key="msg.id"
-              class="flex"
-              :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
             >
               <div
-                class="max-w-[85%] rounded-lg px-3 py-2"
-                :class="messageClass(msg)"
+                class="flex"
+                :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
               >
-                <AiMessageContent
-                  :message="msg"
-                  @navigate="handleNavigation"
-                />
+                <div
+                  class="max-w-[85%] rounded-lg px-3 py-2"
+                  :class="messageClass(msg)"
+                >
+                  <AiMessageContent
+                    :message="msg"
+                    @navigate="handleNavigation"
+                  />
+                </div>
+              </div>
+              <!-- Clickable options attached to message -->
+              <div v-if="msg.options && msg.options.length" class="mt-2 space-y-1.5 pl-1">
+                <button
+                  v-for="option in msg.options"
+                  :key="option"
+                  @click="sendSuggested(option)"
+                  class="w-full text-left px-3 py-2 text-sm bg-savannah-100 hover:bg-savannah-200 border border-light-gray rounded-lg transition-colors text-neutral-500"
+                  :disabled="streaming || loading"
+                >
+                  {{ option }}
+                </button>
               </div>
             </div>
 
@@ -363,6 +378,18 @@
               <AiMessageContent v-if="msg.role === 'assistant'" :message="msg" @navigate="handleNavigation" />
               <span v-else>{{ msg.content }}</span>
             </div>
+          </div>
+          <!-- Clickable options attached to message -->
+          <div v-if="msg.options && msg.options.length" class="space-y-1.5 pl-1">
+            <button
+              v-for="option in msg.options"
+              :key="option"
+              @click="sendSuggested(option)"
+              class="w-full text-left px-3 py-2 text-sm bg-light-pink-100 hover:bg-light-pink-200 border border-light-gray rounded-lg transition-colors text-horizon-500"
+              :disabled="streaming || loading"
+            >
+              {{ option }}
+            </button>
           </div>
         </template>
 
@@ -598,9 +625,9 @@ export default {
         window.addEventListener('resize', this.handleResize);
 
         // In docked mode, auto-open and load conversations immediately
+        // dispatch('open') sets isOpen=true which triggers the watcher to call onOpen()
         if (this.docked) {
             this.$store.dispatch('aiChat/open');
-            this.onOpen();
 
             // Measure natural input height after render to use as default & minimum
             this.$nextTick(() => {
@@ -723,6 +750,10 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
+            // Check for journey prompt flag — either from store or directly from URL query param
+            const isJourneyPrompt = this.$store.state.aiChat.pendingJourneyPrompt
+                || new URLSearchParams(window.location.search).get('openFyn') === 'journey';
+
             // If there's already an active conversation with messages or streaming,
             // don't replace it — just fetch the conversation list for history
             const hasActiveConversation = this.$store.state.aiChat.currentConversation
@@ -732,6 +763,23 @@ export default {
 
             if (!hasActiveConversation) {
                 await this.startNewConversation();
+
+                // Add journey stage message if user arrived from "Get started with Fyn"
+                if (isJourneyPrompt) {
+                    this.$store.commit('aiChat/ADD_MESSAGE', {
+                        id: 'journey_' + Date.now(),
+                        role: 'assistant',
+                        content: "Welcome to Fynla! I'm Fyn, your financial companion. What stage of your journey are you on?",
+                        options: [
+                            'Starting out — student or early career',
+                            'Building foundations — first home, growing savings',
+                            'Protecting and growing — family, career progression',
+                            'Planning your future — peak earnings, retirement planning',
+                            'Enjoying your wealth — retired or approaching retirement',
+                        ],
+                    });
+                    this.$store.commit('aiChat/SET_PENDING_JOURNEY_PROMPT', false);
+                }
             }
 
             this.$nextTick(() => {
