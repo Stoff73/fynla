@@ -808,6 +808,7 @@ export default {
             this.$store.commit('aiChat/SET_SHOW_HISTORY', false);
             this.$store.commit('aiChat/SET_STREAMING_TEXT', '');
             this.close();
+            window.dispatchEvent(new Event('fyn-chat-interaction'));
         },
 
         cancelStreaming() {
@@ -816,6 +817,7 @@ export default {
 
         async send() {
             if (!this.canSend) return;
+            window.dispatchEvent(new Event('fyn-chat-interaction'));
 
             const message = this.inputMessage.trim();
             this.inputMessage = '';
@@ -849,6 +851,7 @@ export default {
         async sendSuggested(prompt) {
             const message = prompt.trim();
             if (!message || this.streaming || this.loading) return;
+            window.dispatchEvent(new Event('fyn-chat-interaction'));
 
             this.inputMessage = '';
 

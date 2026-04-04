@@ -1,5 +1,11 @@
 <template>
   <AppLayout>
+    <!-- Journey blur overlay (desktop only, from Quick Start with Fyn registration) -->
+    <div
+      v-if="journeyBlurActive"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 hidden lg:block"
+    ></div>
+
     <div class="py-2 sm:py-3">
       <!-- 2FA Security Reminder Notification -->
       <div
@@ -1002,6 +1008,7 @@ export default {
       nwHoveredIndex: null,
       nwMouseX: 0,
       nwMouseY: 0,
+      journeyBlurActive: false,
     };
   },
 
@@ -2179,6 +2186,13 @@ export default {
       this.$store.commit('aiChat/SET_PENDING_JOURNEY_PROMPT', true);
       window.dispatchEvent(new Event('fyn-open-chat'));
 
+      // Blur dashboard background on desktop until user interacts with chat
+      if (window.innerWidth >= 1024) {
+        this.journeyBlurActive = true;
+        this._clearBlur = () => { this.journeyBlurActive = false; };
+        window.addEventListener('fyn-chat-interaction', this._clearBlur, { once: true });
+      }
+
       // Clean the query param so it doesn't trigger again on refresh
       this.$router.replace({ query: {} });
     }
@@ -2187,6 +2201,9 @@ export default {
   beforeUnmount() {
     if (this._handleResize) {
       window.removeEventListener('resize', this._handleResize);
+    }
+    if (this._clearBlur) {
+      window.removeEventListener('fyn-chat-interaction', this._clearBlur);
     }
   },
 

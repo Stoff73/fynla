@@ -37,7 +37,7 @@
       </div>
 
       <!-- Content area -->
-      <main class="flex-grow bg-eggshell-500" :class="showDockedChat && chatCollapsed ? 'lg:mr-10' : ''">
+      <main class="flex-grow bg-eggshell-500">
         <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
@@ -290,6 +290,9 @@ export default {
       }
       this.chatCollapsed = !this.chatCollapsed;
       storage.set('fynChatCollapsed', this.chatCollapsed);
+      if (this.chatCollapsed) {
+        window.dispatchEvent(new Event('fyn-chat-interaction'));
+      }
     },
 
     openChat() {
