@@ -14,6 +14,7 @@ const PricingPage = () => import('@/views/Public/PricingPage.vue');
 const SitemapPage = () => import('@/views/Public/SitemapPage.vue');
 const PrivacyPolicyPage = () => import('@/views/Public/PrivacyPolicyPage.vue');
 const TermsOfServicePage = () => import('@/views/Public/TermsOfServicePage.vue');
+const EditorialPolicyPage = () => import('@/views/Public/EditorialPolicyPage.vue');
 const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
 const AdvisorsPage = () => import('@/views/Public/AdvisorsPage.vue');
 const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
@@ -186,6 +187,12 @@ const routes = [
     path: '/terms',
     name: 'TermsOfService',
     component: TermsOfServicePage,
+    meta: { public: true },
+  },
+  {
+    path: '/editorial-policy',
+    name: 'EditorialPolicy',
+    component: EditorialPolicyPage,
     meta: { public: true },
   },
   {

@@ -94,7 +94,7 @@
     </div>
 
     <!-- The Founders -->
-    <div class="relative bg-slate-800 py-20 overflow-hidden">
+    <div id="founders" class="relative bg-slate-800 py-20 overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900"></div>
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -215,8 +215,8 @@ export default {
   },
 
   mounted() {
-    document.title = 'About Fynla — UK personal finance platform for everyone | Fynla';
-    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Learn about Fynla, the UK personal finance platform designed to help everyone from students to retirees plan savings, investments, pensions, and estate with confidence.');
+    document.title = 'About Fynla | UK Personal Finance Platform Built by Experts';
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Fynla was built by financial professionals with 40+ years\' combined experience. Learn how we\'re making professional-grade financial planning accessible to everyone in the UK.');
   },
 };
 </script>

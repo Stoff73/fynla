@@ -381,6 +381,7 @@
             <ul class="space-y-2">
               <li><router-link to="/terms" class="text-sm text-white/70 hover:text-white transition-colors">Terms &amp; conditions</router-link></li>
               <li><router-link to="/privacy" class="text-sm text-white/70 hover:text-white transition-colors">Privacy policy</router-link></li>
+              <li><router-link to="/editorial-policy" class="text-sm text-white/70 hover:text-white transition-colors">Editorial policy</router-link></li>
             </ul>
           </div>
 
