@@ -37,7 +37,7 @@
       </div>
 
       <!-- Content area -->
-      <main class="flex-grow bg-eggshell-500">
+      <main class="flex-grow bg-eggshell-500" :class="showDockedChat && chatCollapsed ? 'lg:mr-10' : ''">
         <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
@@ -144,7 +144,7 @@ export default {
     return {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
-      chatCollapsed: storage.get('fynChatCollapsed') === null ? false : storage.get('fynChatCollapsed') === 'true',
+      chatCollapsed: storage.get('fynChatCollapsed') === null ? true : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
       showTrialExpiredModal: false,
