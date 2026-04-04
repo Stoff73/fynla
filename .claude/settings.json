@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/tax-hardcode-check.sh",
+            "command": "bash C:/Users/phail/Documents/fynla/.claude/hooks/tax-hardcode-check.sh",
             "timeout": 15,
             "statusMessage": "Checking for hardcoded tax values..."
           }

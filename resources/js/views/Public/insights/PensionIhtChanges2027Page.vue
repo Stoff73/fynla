@@ -24,7 +24,7 @@
 
           <!-- What's Changing -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">What's Changing</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">What's changing</h2>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
               Currently, unused pension pots pass to your beneficiaries outside your estate. If you die before 75, recipients typically pay no tax at all. If you die after 75, they pay income tax at their marginal rate when they draw down.
             </p>
@@ -33,9 +33,16 @@
             </p>
           </div>
 
+          <!-- Quote callout -->
+          <blockquote class="border-l-4 border-raspberry-500 bg-light-pink-100 rounded-r-xl px-6 py-5 my-2">
+            <p class="text-lg font-semibold text-horizon-500 italic leading-relaxed">
+              "From April 2027, unused pension pots will be included in your estate for inheritance tax purposes &mdash; the biggest change to pension death benefits in a generation."
+            </p>
+          </blockquote>
+
           <!-- Who's Affected -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">Who's Affected</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Who's affected</h2>
             <p class="text-sm text-neutral-500 leading-relaxed">
               Anyone with a Defined Contribution pension pot and an estate that, with the pension included, exceeds the nil rate band (&pound;325,000) plus the residence nil rate band (&pound;175,000). If you have a property, savings, investments, <em>and</em> a pension pot, your combined estate could now face an Inheritance Tax bill that wouldn't exist under current rules.
             </p>
@@ -43,7 +50,7 @@
 
           <!-- The Numbers -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">The Numbers</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">The numbers</h2>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
               Here's a simple example. Suppose you have:
             </p>
@@ -62,7 +69,7 @@
 
           <!-- What Can You Do -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">What Can You Do?</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">What can you do?</h2>
             <ol class="text-sm text-neutral-500 leading-relaxed list-decimal pl-5 space-y-3">
               <li>
                 <strong class="text-horizon-500">Draw down your pension faster in retirement.</strong>
@@ -85,7 +92,7 @@
 
           <!-- Double Taxation Risk -->
           <div>
-            <h2 class="text-lg font-bold text-horizon-500 mb-3">Double Taxation Risk</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Double taxation risk</h2>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
               There is a risk of double taxation: your pension pot could be subject to both Inheritance Tax <em>and</em> income tax when beneficiaries draw it down. The government has said they will address this, but details are not yet confirmed.
             </p>
@@ -96,7 +103,7 @@
 
           <!-- Related Links -->
           <div class="bg-light-blue-100 rounded-2xl p-6">
-            <h2 class="text-sm font-bold text-horizon-500 mb-3">Related</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Related</h2>
             <ul class="space-y-2">
               <li>
                 <router-link to="/features/iht-planning" class="text-sm text-raspberry-500 hover:underline">Inheritance Tax Planning in Fynla</router-link>
@@ -119,7 +126,7 @@
     <!-- CTA -->
     <section class="py-12 bg-light-pink-100">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="text-lg font-bold text-horizon-500 mb-2">Model the 2027 pension changes on your estate</h2>
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Model the 2027 pension changes on your estate</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
           See how the new rules affect your Inheritance Tax position &mdash; before they take effect.
         </p>
