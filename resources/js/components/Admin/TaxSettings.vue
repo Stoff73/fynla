@@ -2933,6 +2933,9 @@ export default {
         if (response.data.success) {
           this.successMessage = `Active tax year switched to ${selectedConfig?.tax_year}`;
           await this.loadData();
+          // Refresh the global tax year cache so every bound component
+          // (dashboard, allowance cards, etc.) re-renders with the new year.
+          this.$store.dispatch('taxConfig/fetchActive').catch(() => {});
         } else {
           this.error = response.data.message || 'Failed to switch active tax year';
           event.target.value = this.activeConfigId;

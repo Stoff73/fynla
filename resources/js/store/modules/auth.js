@@ -110,6 +110,7 @@ const actions = {
       // Reset all module states on logout to prevent data leakage
       commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
+      dispatch('taxConfig/clear', null, { root: true }).catch(() => {});
     } catch (error) {
       logger.error('Logout error:', error);
       commit('clearAuth');
@@ -154,6 +155,10 @@ const actions = {
       // while preserving the correct stage for returning users.
       commit('lifeStage/setCurrentStage', data.user?.life_stage || null, { root: true });
       commit('lifeStage/setDataCompletedSteps', data.data_completed_steps || [], { root: true });
+
+      // Load the active tax year so every allowance/tax-year label across
+      // the app reflects the admin-selected year (not the calendar year).
+      dispatch('taxConfig/fetchActive', null, { root: true }).catch(() => {});
 
       return data.user;
     } catch (error) {

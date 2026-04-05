@@ -21,6 +21,9 @@ export default {
           await store.dispatch('auth/fetchUser');
           // Fetch life stage after user is loaded (drives sidebar, dashboard, onboarding)
           store.dispatch('lifeStage/fetchStage').catch(() => {});
+          // Fetch active tax year so all allowance displays align with the
+          // admin-selected year (not the calendar year).
+          store.dispatch('taxConfig/fetchActive').catch(() => {});
         } catch (error) {
           // Token is invalid, clear it
           store.commit('auth/clearAuth');

@@ -247,14 +247,59 @@ export function getTaxYearEnd(referenceDate = new Date()) {
 }
 
 /**
- * Get the current UK tax year as a formatted string (e.g., "2025/26").
- * UK tax year runs 6 April to 5 April.
+ * Cached active tax year from the backend. Populated once on app load by
+ * dispatching taxConfig/fetchActive (see store/modules/taxConfig.js).
  *
- * @param {Date} [referenceDate] - Reference date (defaults to now)
- * @returns {string} Tax year string like "2025/26"
+ * When set, getCurrentTaxYear() returns this value instead of the calendar
+ * value — so if an admin has switched the active year in TaxSettings, every
+ * component that displays "current tax year" updates together.
+ *
+ * When null, getCurrentTaxYear() falls back to pure calendar logic (used by
+ * onboarding, public pages, and tests that have no logged-in session).
  */
-export function getCurrentTaxYear(referenceDate = new Date()) {
+let _activeTaxYearFromBackend = null;
+
+/**
+ * Set the active tax year fetched from the backend. Called from the
+ * taxConfig Vuex store after GET /api/tax-year/current.
+ *
+ * Pass null to clear (e.g. on logout).
+ */
+export function setActiveTaxYear(taxYear) {
+  _activeTaxYearFromBackend = taxYear || null;
+}
+
+/**
+ * Compute the calendar-based UK tax year for a given date, ignoring any
+ * backend override. Use this when you specifically need the calendar year
+ * (e.g. to compare it to the admin-selected year).
+ */
+export function getCalendarTaxYear(referenceDate = new Date()) {
   const start = getTaxYearStart(referenceDate);
+  const startYear = start.getFullYear();
+  return `${startYear}/${String(startYear + 1).slice(-2)}`;
+}
+
+/**
+ * Get the current UK tax year as a formatted string (e.g., "2026/27").
+ *
+ * When the backend has told us which tax year is active (via
+ * setActiveTaxYear), that value is returned — this keeps the UI aligned
+ * with whatever the admin has selected in TaxSettings, even on April 5
+ * when the calendar and DB years disagree.
+ *
+ * If a referenceDate is passed explicitly, the calendar logic is used
+ * instead (so historical/future date pickers still work).
+ *
+ * @param {Date} [referenceDate] - Reference date (defaults to now). Pass
+ *   a date explicitly to bypass the backend override.
+ * @returns {string} Tax year string like "2026/27"
+ */
+export function getCurrentTaxYear(referenceDate) {
+  if (_activeTaxYearFromBackend && !referenceDate) {
+    return _activeTaxYearFromBackend;
+  }
+  const start = getTaxYearStart(referenceDate || new Date());
   const startYear = start.getFullYear();
   return `${startYear}/${String(startYear + 1).slice(-2)}`;
 }
@@ -269,4 +314,6 @@ export default {
   getTaxYearStart,
   getTaxYearEnd,
   getCurrentTaxYear,
+  getCalendarTaxYear,
+  setActiveTaxYear,
 };

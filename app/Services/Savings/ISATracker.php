@@ -17,11 +17,27 @@ class ISATracker
     ) {}
 
     /**
-     * Get current UK tax year (April 6 - April 5)
+     * Get the tax year the app is configured to treat as active.
+     * This reads from the TaxConfiguration DB record marked is_active
+     * and may differ from the calendar tax year if an admin has switched
+     * the year via the admin panel.
      */
     public function getCurrentTaxYear(): string
     {
         return $this->taxConfig->getTaxYear();
+    }
+
+    /**
+     * Get the tax year based on today's calendar date (April 6 - April 5).
+     * Used to decide whether "ongoing contribution" estimates apply to the
+     * requested tax year, or whether they'd be misattributed across years.
+     */
+    public function getCalendarTaxYear(): string
+    {
+        $start = $this->getTaxYearStartDate();
+        $startYear = $start->year;
+
+        return $startYear . '/' . substr((string) ($startYear + 1), -2);
     }
 
     /**
@@ -31,6 +47,12 @@ class ISATracker
      */
     public function getISAAllowanceStatus(int $userId, string $taxYear): array
     {
+        // Estimates based on ongoing monthly contributions only make sense for
+        // the tax year we're physically living through (the calendar year).
+        // If a user switches to a past or future year via admin, we must not
+        // attribute this year's monthly contributions to that other year.
+        $isCalendarYear = $taxYear === $this->getCalendarTaxYear();
+
         // Get or create tracking record
         $tracking = ISAAllowanceTracking::firstOrCreate(
             [
@@ -58,8 +80,9 @@ class ISATracker
             ->whereNotNull('isa_subscription_amount')
             ->sum('isa_subscription_amount');
 
-        // If no explicit subscription tracked, estimate from regular contributions
-        if ($cashIsaUsed <= 0) {
+        // If no explicit subscription tracked AND we're showing the live year,
+        // estimate from regular monthly contributions. Skip for past/future years.
+        if ($cashIsaUsed <= 0 && $isCalendarYear) {
             $cashIsaAccounts = SavingsAccount::where('user_id', $userId)
                 ->where('is_isa', true)
                 ->where(function ($q) {
@@ -90,13 +113,17 @@ class ISATracker
             ->sum('isa_subscription_amount');
 
         // Calculate stocks & shares ISA usage from investment_accounts (cross-module)
-        // First try with explicit tax year, then without (some accounts lack tax_year)
+        // First try with explicit tax year match — always respects the requested year
         $stocksSharesIsaUsed = (float) InvestmentAccount::where('user_id', $userId)
             ->where('account_type', 'isa')
             ->where('tax_year', $taxYear)
             ->sum('isa_subscription_current_year');
 
-        if ($stocksSharesIsaUsed <= 0) {
+        // Fallbacks below rely on "current year" fields that do not carry a tax year.
+        // They must only apply when we're showing the live calendar year —
+        // otherwise switching to a past/future year would show live contributions
+        // attributed to the wrong year.
+        if ($stocksSharesIsaUsed <= 0 && $isCalendarYear) {
             $stocksSharesIsaUsed = (float) InvestmentAccount::where('user_id', $userId)
                 ->where('account_type', 'isa')
                 ->whereNotNull('isa_subscription_current_year')
@@ -104,14 +131,14 @@ class ISATracker
                 ->sum('isa_subscription_current_year');
         }
 
-        if ($stocksSharesIsaUsed <= 0) {
+        if ($stocksSharesIsaUsed <= 0 && $isCalendarYear) {
             $stocksSharesIsaUsed = (float) InvestmentAccount::where('user_id', $userId)
                 ->where('account_type', 'isa')
                 ->sum('contributions_ytd');
         }
 
         // When no explicit subscription tracked, estimate from monthly contributions
-        if ($stocksSharesIsaUsed <= 0) {
+        if ($stocksSharesIsaUsed <= 0 && $isCalendarYear) {
             $stocksSharesIsaUsed = $this->estimateStocksSharesIsaUsage($userId);
         }
 
@@ -134,9 +161,16 @@ class ISATracker
             $tracking->save();
         }
 
-        // Calculate projected ISA usage from regular contributions
-        $projectedCashIsa = $this->calculateProjectedSubscriptions($userId, $taxYear, 'cash');
-        $projectedStocksSharesIsa = $this->estimateStocksSharesIsaUsage($userId, true);
+        // Calculate projected ISA usage from regular contributions.
+        // Projections forecast a full-year subscription based on current monthly
+        // contributions — only meaningful for the live calendar year.
+        if ($isCalendarYear) {
+            $projectedCashIsa = $this->calculateProjectedSubscriptions($userId, $taxYear, 'cash');
+            $projectedStocksSharesIsa = $this->estimateStocksSharesIsaUsage($userId, true);
+        } else {
+            $projectedCashIsa = 0.0;
+            $projectedStocksSharesIsa = 0.0;
+        }
         $projectedTotal = $projectedCashIsa + round(max($stocksSharesIsaUsed, $projectedStocksSharesIsa), 2) + round($lisaUsed, 2);
 
         return [

@@ -8,6 +8,7 @@ use App\Models\DCPension;
 use App\Models\RetirementProfile;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use Carbon\Carbon;
 
 /**
  * Annual Allowance Checker Service
@@ -73,16 +74,39 @@ class AnnualAllowanceChecker
     }
 
     /**
+     * Get the calendar-based tax year (April 6 - April 5).
+     * Used to decide whether ongoing monthly contributions should be
+     * attributed to the requested tax year.
+     */
+    private function getCalendarTaxYear(): string
+    {
+        $now = Carbon::now();
+        $taxYearStart = Carbon::create($now->year, 4, 6);
+        $startYear = $now->lt($taxYearStart) ? $now->year - 1 : $now->year;
+
+        return $startYear . '/' . substr((string) ($startYear + 1), -2);
+    }
+
+    /**
      * Check annual allowance for a user in a given tax year.
      *
      * @param  string  $taxYear  Tax year (e.g., '2024/25')
      */
     public function checkAnnualAllowance(int $userId, string $taxYear): array
     {
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        // DC pension contributions are stored as monthly recurring amounts
+        // with no per-year history. The projected annual figure only applies
+        // to the calendar year we're physically in — switching to a past or
+        // future year should show zero used (tax year hasn't started yet, or
+        // we have no record of what was contributed then).
+        $isCalendarYear = $taxYear === $this->getCalendarTaxYear();
 
-        // Calculate total annual contributions
-        $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
+        if ($isCalendarYear) {
+            $dcPensions = DCPension::where('user_id', $userId)->get();
+            $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
+        } else {
+            $totalContributions = 0.0;
+        }
 
         // Get user's income definitions (threshold and adjusted income)
         $definitions = $this->incomeDefinitions->calculate($userId);
