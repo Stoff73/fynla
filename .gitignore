@@ -41,6 +41,9 @@ yarn-error.log
 # Claude skills (local only)
 .claude/skills/session-end/
 
+# Claude worktrees (temporary, created by Agent isolation or manual git worktree add)
+.claude/worktrees/
+
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf
