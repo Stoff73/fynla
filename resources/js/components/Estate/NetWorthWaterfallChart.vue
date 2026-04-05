@@ -17,10 +17,11 @@
 
 <script>
 import { SUCCESS_COLORS, ERROR_COLORS, PRIMARY_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
-import { formatCurrency } from '@/utils/currency';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'NetWorthWaterfallChart',
+  mixins: [currencyMixin],
 
   props: {
     assets: {
@@ -127,7 +128,7 @@ export default {
         dataLabels: {
           enabled: true,
           formatter: (val) => {
-            return formatCurrency(Math.abs(val));
+            return this.formatCurrency(Math.abs(val));
           },
           offsetY: -20,
           style: {
@@ -146,14 +147,14 @@ export default {
         yaxis: {
           labels: {
             formatter: (val) => {
-              return formatCurrency(val);
+              return this.formatCurrency(val);
             },
           },
         },
         tooltip: {
           y: {
             formatter: (val) => {
-              return formatCurrency(Math.abs(val));
+              return this.formatCurrency(Math.abs(val));
             },
           },
         },

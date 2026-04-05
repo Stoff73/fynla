@@ -4,7 +4,6 @@ import logger from '@/utils/logger';
 const state = {
     goals: [],
     goalTypes: [],
-    riskLevels: [],
     dashboardOverview: null,
     selectedGoal: null,
     loading: false,
@@ -144,10 +143,6 @@ const mutations = {
 
     SET_GOAL_TYPES(state, types) {
         state.goalTypes = types;
-    },
-
-    SET_RISK_LEVELS(state, levels) {
-        state.riskLevels = levels;
     },
 
     SET_DASHBOARD_OVERVIEW(state, overview) {
@@ -319,27 +314,6 @@ const actions = {
             return response;
         } catch (error) {
             logger.error('Failed to fetch goal types:', error);
-            throw error;
-        }
-    },
-
-    /**
-     * Fetch risk levels.
-     */
-    async fetchRiskLevels({ commit, state }) {
-        // Only fetch if not already loaded
-        if (state.riskLevels.length > 0) {
-            return { success: true, data: state.riskLevels };
-        }
-
-        try {
-            const response = await goalsService.getRiskLevels();
-            if (response.success) {
-                commit('SET_RISK_LEVELS', response.data);
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to fetch risk levels:', error);
             throw error;
         }
     },

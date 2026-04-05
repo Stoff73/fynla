@@ -306,7 +306,7 @@ class IHTStrategyGeneratorService
                 'implementation_complexity' => 'Low',
                 'description' => 'Pensions are outside your estate if beneficiaries are nominated',
                 'specific_actions' => [
-                    'Maximize pension contributions (£60,000 annual allowance)',
+                    'Maximize pension contributions (£'.number_format((float) $this->taxConfig->getPensionAllowances()['annual_allowance'], 0).' annual allowance)',
                     'Use carry forward from previous 3 years if available',
                     'Nominate beneficiaries on all pension schemes',
                     'Consider drawdown instead of annuity (drawdown can pass to beneficiaries)',

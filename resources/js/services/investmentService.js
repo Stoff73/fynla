@@ -1022,16 +1022,6 @@ const investmentService = {
     // ===================================================================
 
     /**
-     * Analyse asset location optimization
-     * GET /api/investment/asset-location/analyse
-     * @returns {Promise} Asset location analysis with tax drag and recommendations
-     */
-    async analyzeAssetLocation() {
-        const response = await api.get('/investment/asset-location/analyze');
-        return response.data;
-    },
-
-    /**
      * Compare wrapper types (ISA, GIA, Pension)
      * GET /api/investment/wrappers/compare
      * @param {Object} params Comparison parameters

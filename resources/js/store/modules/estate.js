@@ -290,24 +290,6 @@ const actions = {
         }
     },
 
-    // Fetch recommendations
-    async fetchRecommendations({ commit }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await estateService.getRecommendations();
-            commit('setRecommendations', response.data.recommendations || []);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to fetch recommendations';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     // Calculate IHT
     async calculateIHT({ commit }, data) {
         commit('setLoading', true);

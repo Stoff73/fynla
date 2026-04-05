@@ -34,7 +34,6 @@ const state = {
     properties: [],
     selectedProperty: null,
     mortgages: [],
-    selectedMortgage: null,
     loading: false,
     error: null,
     isDetailView: false,
@@ -116,7 +115,6 @@ const mutations = {
         state.properties = [];
         state.selectedProperty = null;
         state.mortgages = [];
-        state.selectedMortgage = null;
         state.loading = false;
         state.error = null;
     },
@@ -156,10 +154,6 @@ const mutations = {
         state.mortgages = mortgages;
     },
 
-    SET_SELECTED_MORTGAGE(state, mortgage) {
-        state.selectedMortgage = mortgage;
-    },
-
     ADD_MORTGAGE(state, mortgage) {
         state.mortgages.push(mortgage);
     },
@@ -169,16 +163,10 @@ const mutations = {
         if (index !== -1) {
             state.mortgages.splice(index, 1, updatedMortgage);
         }
-        if (state.selectedMortgage && state.selectedMortgage.id === updatedMortgage.id) {
-            state.selectedMortgage = updatedMortgage;
-        }
     },
 
     REMOVE_MORTGAGE(state, mortgageId) {
         state.mortgages = state.mortgages.filter(m => m.id !== mortgageId);
-        if (state.selectedMortgage && state.selectedMortgage.id === mortgageId) {
-            state.selectedMortgage = null;
-        }
     },
 };
 
@@ -480,27 +468,6 @@ const actions = {
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch mortgages';
-            commit('SET_ERROR', errorMessage);
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
-
-    async fetchMortgage({ commit }, mortgageId) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await mortgageService.getMortgage(mortgageId);
-
-            if (response.success) {
-                commit('SET_SELECTED_MORTGAGE', response.data);
-            } else {
-                throw new Error(response.message || 'Failed to fetch mortgage');
-            }
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch mortgage';
             commit('SET_ERROR', errorMessage);
             throw error;
         } finally {

@@ -1592,6 +1592,8 @@ export default {
   animation: nodePulse 2s ease-in-out infinite;
 }
 
+/* TODO: similar glow animation exists in JourneyMap.vue (nodeGlow).
+   That one uses filter:drop-shadow; this uses box-shadow — kept separate intentionally. */
 @keyframes nodePulse {
   0%, 100% {
     box-shadow: 0 0 0 0 currentColor;

@@ -144,7 +144,7 @@ export default {
     document.title = 'Fynla vs Spreadsheets \u2014 Why Upgrade Your Financial Plan? | Fynla';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
-      meta.setAttribute('content', 'Spreadsheets are free and flexible, but they can\'t run Monte Carlo simulations, calculate IHT, or track pension allowances. Here\'s what you gain by switching to Fynla.');
+      meta.setAttribute('content', 'Spreadsheets are free and flexible, but they can\'t run Monte Carlo simulations, calculate Inheritance Tax, or track pension allowances. Here\'s what you gain by switching to Fynla.');
     }
   },
 };

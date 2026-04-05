@@ -270,7 +270,7 @@ export default {
             },
             labels: {
               formatter: (val) => {
-                return this.formatCurrencyShort(val);
+                return this.formatCurrencyCompact(val);
               },
             },
           },
@@ -285,7 +285,7 @@ export default {
             },
             labels: {
               formatter: (val) => {
-                return this.formatCurrencyShort(val);
+                return this.formatCurrencyCompact(val);
               },
             },
           },
@@ -326,21 +326,6 @@ export default {
       // Chart will automatically update due to computed properties
     },
 
-    formatCurrencyShort(value) {
-      if (value === null || value === undefined) return '£0';
-      const absValue = Math.abs(value);
-
-      let formatted;
-      if (absValue >= 1000000) {
-        formatted = '£' + (absValue / 1000000).toFixed(1) + 'M';
-      } else if (absValue >= 1000) {
-        formatted = '£' + (absValue / 1000).toFixed(0) + 'k';
-      } else {
-        formatted = '£' + absValue.toFixed(0);
-      }
-
-      return value < 0 ? '-' + formatted : formatted;
-    },
   },
 };
 </script>

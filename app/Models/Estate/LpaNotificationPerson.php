@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models\Estate;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LpaNotificationPerson extends Model
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $table = 'lpa_notification_persons';
 

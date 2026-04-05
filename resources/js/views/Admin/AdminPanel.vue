@@ -158,7 +158,7 @@ export default {
         },
         { id: 'decision-matrix', label: 'Decision Matrix', shortLabel: 'Matrix' },
         { id: 'tax-settings', label: 'Tax Settings', shortLabel: 'Tax' },
-        { id: 'backups', label: 'Database', shortLabel: 'DB' },
+        { id: 'backups', label: 'Database', shortLabel: 'Data' },
       ],
     };
   },

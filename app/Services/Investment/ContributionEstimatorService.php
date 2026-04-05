@@ -7,6 +7,7 @@ namespace App\Services\Investment;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class ContributionEstimatorService
 {
@@ -31,6 +32,11 @@ class ContributionEstimatorService
 
             return (float) ($isaConfig['annual_allowance'] ?? self::ISA_ALLOWANCE_FALLBACK);
         } catch (\Exception $e) {
+            Log::error('TaxConfigService failed to provide ISA allowance, using fallback', [
+                'fallback_value' => self::ISA_ALLOWANCE_FALLBACK,
+                'exception' => $e->getMessage(),
+            ]);
+
             return self::ISA_ALLOWANCE_FALLBACK;
         }
     }

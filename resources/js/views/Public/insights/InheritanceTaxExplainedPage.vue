@@ -26,13 +26,13 @@
           <div>
             <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">What is inheritance tax?</h2>
             <p class="text-sm text-neutral-500 leading-relaxed">
-              Inheritance Tax (IHT) is a tax on the estate of someone who has died. It is charged at <strong class="text-horizon-500">40%</strong> on the value of the estate above the Nil-Rate Band. With rising property prices and frozen thresholds, more estates than ever are now being caught by IHT. Understanding how the tax works is the first step towards effective estate planning.
+              Inheritance Tax is a tax on the estate of someone who has died. It is charged at <strong class="text-horizon-500">40%</strong> on the value of the estate above the Nil-Rate Band. With rising property prices and frozen thresholds, more estates than ever are now being caught by Inheritance Tax. Understanding how the tax works is the first step towards effective estate planning.
             </p>
           </div>
 
-          <!-- Current IHT Thresholds for 2026/27 -->
+          <!-- Current Inheritance Tax Thresholds for 2026/27 -->
           <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Current IHT thresholds for 2026/27</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Current Inheritance Tax thresholds for 2026/27</h2>
             <div class="bg-light-blue-100 rounded-lg border border-light-gray overflow-hidden">
               <table class="w-full text-sm">
                 <thead>
@@ -63,7 +63,7 @@
                     <td class="px-4 py-2.5 text-neutral-500 text-right">Estates over &pound;2,000,000</td>
                   </tr>
                   <tr>
-                    <td class="px-4 py-2.5 text-neutral-500">IHT Rate</td>
+                    <td class="px-4 py-2.5 text-neutral-500">Inheritance Tax Rate</td>
                     <td class="px-4 py-2.5 text-neutral-500 text-right">40%</td>
                   </tr>
                 </tbody>
@@ -71,13 +71,13 @@
             </div>
             <div class="mt-4 space-y-3">
               <p class="text-sm text-neutral-500 leading-relaxed">
-                The <strong class="text-horizon-500">Nil-Rate Band (NRB)</strong> is the threshold below which no IHT is payable. It has been frozen at &pound;325,000 since 2009 and is expected to remain so until at least April 2030.
+                The <strong class="text-horizon-500">Nil-Rate Band (NRB)</strong> is the threshold below which no Inheritance Tax is payable. It has been frozen at &pound;325,000 since 2009 and is expected to remain so until at least April 2030.
               </p>
               <p class="text-sm text-neutral-500 leading-relaxed">
                 The <strong class="text-horizon-500">Residence Nil-Rate Band (RNRB)</strong> provides an additional &pound;175,000 allowance when you leave your home to direct descendants (children or grandchildren). However, it tapers away by &pound;1 for every &pound;2 your estate exceeds &pound;2,000,000, disappearing entirely at &pound;2,350,000.
               </p>
               <p class="text-sm text-neutral-500 leading-relaxed">
-                <strong class="text-horizon-500">Spouse and civil partner transfers:</strong> Any unused NRB and RNRB can be transferred to the surviving spouse or civil partner, effectively doubling the available allowances. Assets passed between spouses are exempt from IHT entirely.
+                <strong class="text-horizon-500">Spouse and civil partner transfers:</strong> Any unused NRB and RNRB can be transferred to the surviving spouse or civil partner, effectively doubling the available allowances. Assets passed between spouses are exempt from Inheritance Tax entirely.
               </p>
             </div>
           </div>
@@ -89,11 +89,11 @@
             </p>
           </blockquote>
 
-          <!-- How IHT Is Calculated — A Worked Example -->
+          <!-- How Inheritance Tax Is Calculated — A Worked Example -->
           <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">How IHT is calculated &mdash; a worked example</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">How Inheritance Tax is calculated &mdash; a worked example</h2>
             <p class="text-sm text-neutral-500 leading-relaxed mb-4">
-              Consider an estate valued at <strong class="text-horizon-500">&pound;750,000</strong>. Here is how the IHT liability varies depending on circumstances:
+              Consider an estate valued at <strong class="text-horizon-500">&pound;750,000</strong>. Here is how the Inheritance Tax liability varies depending on circumstances:
             </p>
             <div class="bg-light-blue-100 rounded-lg border border-light-gray overflow-hidden">
               <table class="w-full text-sm">
@@ -101,7 +101,7 @@
                   <tr class="bg-horizon-500">
                     <th class="text-left px-4 py-2.5 text-sm font-semibold text-white">Scenario</th>
                     <th class="text-right px-4 py-2.5 text-sm font-semibold text-white">Allowances Used</th>
-                    <th class="text-right px-4 py-2.5 text-sm font-semibold text-white">IHT Payable</th>
+                    <th class="text-right px-4 py-2.5 text-sm font-semibold text-white">Inheritance Tax Payable</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-light-gray">
@@ -130,13 +130,13 @@
           <div>
             <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Gifts and the 7-year rule</h2>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
-              Most gifts made during your lifetime are treated as <strong class="text-horizon-500">Potentially Exempt Transfers (PETs)</strong>. If you survive for seven years after making the gift, it falls outside your estate entirely and is free from IHT.
+              Most gifts made during your lifetime are treated as <strong class="text-horizon-500">Potentially Exempt Transfers (PETs)</strong>. If you survive for seven years after making the gift, it falls outside your estate entirely and is free from Inheritance Tax.
             </p>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
-              If you die within seven years of making a gift, <strong class="text-horizon-500">taper relief</strong> may reduce the IHT due on that gift. The relief increases the longer you survive: gifts made 3&ndash;4 years before death are taxed at 32%, reducing to 8% for gifts made 6&ndash;7 years before death.
+              If you die within seven years of making a gift, <strong class="text-horizon-500">taper relief</strong> may reduce the Inheritance Tax due on that gift. The relief increases the longer you survive: gifts made 3&ndash;4 years before death are taxed at 32%, reducing to 8% for gifts made 6&ndash;7 years before death.
             </p>
             <p class="text-sm text-neutral-500 leading-relaxed mb-3">
-              There are also a number of <strong class="text-horizon-500">annual exemptions</strong> that allow you to give away money IHT-free each year:
+              There are also a number of <strong class="text-horizon-500">annual exemptions</strong> that allow you to give away money Inheritance Tax-free each year:
             </p>
             <ul class="text-sm text-neutral-500 leading-relaxed list-disc pl-5 space-y-2">
               <li><strong class="text-horizon-500">&pound;3,000 annual exemption</strong> &mdash; you can give away up to &pound;3,000 each tax year. Any unused allowance can be carried forward one year.</li>
@@ -152,15 +152,15 @@
             </p>
           </blockquote>
 
-          <!-- Common Ways to Reduce Your IHT Bill -->
+          <!-- Common Ways to Reduce Your Inheritance Tax Bill -->
           <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Common ways to reduce your IHT bill</h2>
+            <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Common ways to reduce your Inheritance Tax bill</h2>
             <ul class="text-sm text-neutral-500 leading-relaxed list-disc pl-5 space-y-2">
               <li><strong class="text-horizon-500">Make gifts during your lifetime</strong> &mdash; use your annual exemptions and make larger gifts where possible, taking advantage of the 7-year rule.</li>
               <li><strong class="text-horizon-500">Write a will</strong> &mdash; ensure your estate is distributed according to your wishes and that available allowances (particularly the RNRB) are claimed.</li>
-              <li><strong class="text-horizon-500">Leave a charitable legacy</strong> &mdash; if you leave at least 10% of your net estate to charity, the IHT rate on the remainder reduces from 40% to 36%.</li>
-              <li><strong class="text-horizon-500">Pensions</strong> &mdash; pension funds generally fall outside your estate for IHT purposes, making them a tax-efficient way to pass on wealth.</li>
-              <li><strong class="text-horizon-500">Business Property Relief</strong> &mdash; qualifying business assets can receive 50% or 100% relief from IHT, significantly reducing the taxable estate.</li>
+              <li><strong class="text-horizon-500">Leave a charitable legacy</strong> &mdash; if you leave at least 10% of your net estate to charity, the Inheritance Tax rate on the remainder reduces from 40% to 36%.</li>
+              <li><strong class="text-horizon-500">Pensions</strong> &mdash; pension funds generally fall outside your estate for Inheritance Tax purposes, making them a tax-efficient way to pass on wealth.</li>
+              <li><strong class="text-horizon-500">Business Property Relief</strong> &mdash; qualifying business assets can receive 50% or 100% relief from Inheritance Tax, significantly reducing the taxable estate.</li>
             </ul>
           </div>
 
@@ -168,7 +168,7 @@
           <div>
             <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">How Fynla can help</h2>
             <p class="text-sm text-neutral-500 leading-relaxed">
-              Fynla's estate planning tools let you model different scenarios and see how gifts, allowances, and reliefs affect your potential IHT liability. You can adjust property values, add gifts, and explore strategies to reduce your estate's tax bill &mdash; all in one place.
+              Fynla's estate planning tools let you model different scenarios and see how gifts, allowances, and reliefs affect your potential Inheritance Tax liability. You can adjust property values, add gifts, and explore strategies to reduce your estate's tax bill &mdash; all in one place.
               <router-link to="/register" class="text-raspberry-500 hover:underline font-medium">Create a free account</router-link> to get started, or
               <router-link to="/features/iht-planning" class="text-raspberry-500 hover:underline font-medium">learn more about our IHT planning features</router-link>.
             </p>
@@ -178,11 +178,11 @@
           <div>
             <h2 class="text-xl sm:text-2xl font-bold text-horizon-500 mb-3">Key takeaways</h2>
             <ul class="text-sm text-neutral-500 leading-relaxed list-disc pl-5 space-y-2">
-              <li>IHT is charged at 40% on the value of your estate above the Nil-Rate Band (&pound;325,000).</li>
+              <li>Inheritance Tax is charged at 40% on the value of your estate above the Nil-Rate Band (&pound;325,000).</li>
               <li>The Residence Nil-Rate Band adds up to &pound;175,000 when you leave your home to direct descendants.</li>
-              <li>Married couples and civil partners can combine allowances for up to &pound;1,000,000 of IHT-free transfers.</li>
-              <li>Gifts made more than seven years before death are generally exempt from IHT.</li>
-              <li>Leaving 10% of your net estate to charity reduces the IHT rate to 36%.</li>
+              <li>Married couples and civil partners can combine allowances for up to &pound;1,000,000 of Inheritance Tax-free transfers.</li>
+              <li>Gifts made more than seven years before death are generally exempt from Inheritance Tax.</li>
+              <li>Leaving 10% of your net estate to charity reduces the Inheritance Tax rate to 36%.</li>
               <li>Pensions usually fall outside your estate, making them a powerful planning tool.</li>
               <li>Planning ahead &mdash; including writing a will &mdash; can make a significant difference to your estate's tax position.</li>
             </ul>
@@ -236,7 +236,7 @@
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Plan your estate with Fynla</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
-          Model your IHT liability, explore gift strategies, and see how your allowances work together &mdash; all in one place.
+          Model your Inheritance Tax liability, explore gift strategies, and see how your allowances work together &mdash; all in one place.
         </p>
         <router-link
           to="/register"

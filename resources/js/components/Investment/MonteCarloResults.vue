@@ -173,10 +173,10 @@
 <script>
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS, WARNING_COLORS } from '@/constants/designSystem';
 
-// Target annotation color (violet-500)
-const TARGET_COLOR = '#8b5cf6';
+// Target annotation color (violet-500 from Fynla design system)
+const TARGET_COLOR = WARNING_COLORS[500];
 
 // Monte Carlo probability band colors (dark blue to light teal)
 const PROBABILITY_COLORS = {

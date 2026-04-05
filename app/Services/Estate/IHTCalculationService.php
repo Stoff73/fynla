@@ -247,7 +247,7 @@ class IHTCalculationService
         float $nrbAvailable,
         array $rnrbData,
         bool $isMarried,
-        float $ihtRate = 0.40,
+        float $ihtRate,
         bool $dataSharingEnabled = false
     ): array {
         // Get current age and key milestone ages
@@ -1597,7 +1597,7 @@ class IHTCalculationService
         $currentNetEstate = $baseCalc['total_net_estate'] ?? 0;
         $postAmendmentNetEstate = $currentNetEstate + $totalPensionValue;
         $totalAllowances = $baseCalc['total_allowances'] ?? 0;
-        $ihtRate = $baseCalc['iht_rate'] ?? 0.40;
+        $ihtRate = $baseCalc['iht_rate'] ?? (float) $this->taxConfig->getInheritanceTax()['standard_rate'];
 
         $postAmendmentTaxableEstate = max(0, $postAmendmentNetEstate - $totalAllowances);
         $postAmendmentIHTLiability = $postAmendmentTaxableEstate * $ihtRate;

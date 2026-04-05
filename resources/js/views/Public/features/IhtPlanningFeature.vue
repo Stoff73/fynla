@@ -19,7 +19,7 @@ export default {
   components: { FeaturePageLayout },
   mounted() {
     document.title = 'Inheritance Tax Planning — calculate and reduce your IHT | Fynla';
-    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Plan your Inheritance Tax with Fynla. Calculate your IHT liability, track nil-rate bands, model gifting strategies, and protect your estate for your family.');
+    document.querySelector('meta[name="description"]')?.setAttribute('content', 'Plan your Inheritance Tax with Fynla. Calculate your Inheritance Tax liability, track nil-rate bands, model gifting strategies, and protect your estate for your family.');
   },
 
   data() {

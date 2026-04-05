@@ -16,7 +16,7 @@
         <div class="flex items-center gap-3 mb-2">
           <router-link to="/insights" class="text-sm text-raspberry-500 hover:underline font-medium">&larr; Back to Insights</router-link>
           <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700">Pensions</span>
-          <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-amber-50 text-amber-700">Estate planning</span>
+          <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700">Estate planning</span>
         </div>
         <p class="text-xs text-neutral-400 mb-8">Published March 2026</p>
 

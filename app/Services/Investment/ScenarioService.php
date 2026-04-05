@@ -10,6 +10,11 @@ use Illuminate\Support\Str;
 
 class ScenarioService
 {
+    // Illustrative amounts for pre-built scenario templates (not regulatory values)
+    private const EXAMPLE_LUMP_SUM = 50000;
+
+    private const EXAMPLE_EMERGENCY_WITHDRAWAL = 20000;
+
     /**
      * Get pre-built scenario templates
      */
@@ -88,7 +93,7 @@ class ScenarioService
                 'description' => 'Add £50,000 lump sum and project long-term impact',
                 'category' => 'contributions',
                 'parameters' => [
-                    'lump_sum_amount' => 50000,
+                    'lump_sum_amount' => self::EXAMPLE_LUMP_SUM,
                     'timing_year' => 0,
                 ],
             ],
@@ -98,7 +103,7 @@ class ScenarioService
                 'description' => 'Model impact of withdrawing £20,000 in year 5',
                 'category' => 'withdrawals',
                 'parameters' => [
-                    'withdrawal_amount' => 20000,
+                    'withdrawal_amount' => self::EXAMPLE_EMERGENCY_WITHDRAWAL,
                     'withdrawal_year' => 5,
                 ],
             ],
