@@ -101,56 +101,8 @@
                     </div>
                 </div>
 
-                <!-- Footer with edit indicator -->
-                <div v-if="hasEdits" class="px-4 py-3 bg-violet-50 border-t border-violet-200">
-                    <div class="flex items-center gap-2 text-sm text-violet-700">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>You have {{ editCount }} unsaved change{{ editCount === 1 ? '' : 's' }}. Switching personas will discard them.</span>
-                    </div>
-                </div>
             </div>
         </Transition>
-
-        <!-- Confirm switch modal (when user has edits) -->
-        <Teleport to="body">
-            <Transition
-                enter-active-class="transition ease-out duration-200"
-                enter-from-class="opacity-0"
-                enter-to-class="opacity-100"
-                leave-active-class="transition ease-in duration-150"
-                leave-from-class="opacity-100"
-                leave-to-class="opacity-0"
-            >
-                <div v-if="showConfirmModal" class="fixed inset-0 z-50 overflow-y-auto">
-                    <div class="fixed inset-0 bg-black/50" @click="cancelSwitch" />
-                    <div class="flex min-h-full items-center justify-center p-4">
-                        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6" @click.stop>
-                            <h3 class="text-lg font-semibold text-horizon-500 mb-2">Switch Personas?</h3>
-                            <p class="text-neutral-500 mb-4">
-                                You have {{ editCount }} unsaved change{{ editCount === 1 ? '' : 's' }}.
-                                Switching to <strong>{{ pendingPersona?.name }}</strong> will discard them.
-                            </p>
-                            <div class="flex gap-3">
-                                <button
-                                    @click="confirmSwitch"
-                                    class="flex-1 bg-raspberry-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-raspberry-700"
-                                >
-                                    Switch Anyway
-                                </button>
-                                <button
-                                    @click="cancelSwitch"
-                                    class="flex-1 bg-savannah-100 text-neutral-500 px-4 py-2 rounded-lg font-medium hover:bg-savannah-200"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </Transition>
-        </Teleport>
     </div>
 </template>
 
@@ -176,8 +128,6 @@ export default {
     data() {
         return {
             isOpen: false,
-            showConfirmModal: false,
-            pendingPersona: null,
         };
     },
 
@@ -187,8 +137,6 @@ export default {
             'currentPersonaId',
             'basePersonaId',
             'availablePersonas',
-            'hasEdits',
-            'editCount',
         ]),
 
         /**
@@ -278,7 +226,7 @@ export default {
     },
 
     methods: {
-        ...mapActions('preview', ['switchPersona', 'clearEdits']),
+        ...mapActions('preview', ['switchPersona']),
 
         toggleDropdown() {
             this.isOpen = !this.isOpen;
@@ -291,27 +239,7 @@ export default {
                 return;
             }
 
-            if (this.hasEdits) {
-                this.pendingPersona = persona;
-                this.showConfirmModal = true;
-                this.isOpen = false;
-                return;
-            }
-
             await this.doSwitch(persona);
-        },
-
-        async confirmSwitch() {
-            if (this.pendingPersona) {
-                await this.doSwitch(this.pendingPersona);
-            }
-            this.showConfirmModal = false;
-            this.pendingPersona = null;
-        },
-
-        cancelSwitch() {
-            this.showConfirmModal = false;
-            this.pendingPersona = null;
         },
 
         doSwitch(persona) {

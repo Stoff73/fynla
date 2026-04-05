@@ -153,7 +153,7 @@ class CrossModuleStrategyService
 
         // Check pension Annual Allowance usage
         $pensionAllowances = $this->taxConfig->getPensionAllowances();
-        $annualAllowance = $pensionAllowances['annual_allowance'] ?? 60000;
+        $annualAllowance = (float) $pensionAllowances['annual_allowance'];
         $pensionContributions = $this->getPensionContributions($retirement);
         $unusedAA = $annualAllowance - $pensionContributions;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Estate;
 
 use App\Models\User;
+use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Liability extends Model
 {
-    use HasFactory, HasJointOwnership, SoftDeletes;
+    use HasFactory, HasJointOwnership, SoftDeletes, Auditable;
 
     protected $fillable = [
         'user_id',

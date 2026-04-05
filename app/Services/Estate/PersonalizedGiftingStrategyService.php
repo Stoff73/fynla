@@ -332,7 +332,7 @@ class PersonalizedGiftingStrategyService
             ],
             'alternative_strategies' => [
                 'Move out and pay market rent to continue living there (complex, requires professional advice)',
-                'Leave via will to take advantage of Residence Nil Rate Band (£175,000)',
+                'Leave via will to take advantage of Residence Nil Rate Band (£'.number_format((float) $this->taxConfig->getInheritanceTax()['residence_nil_rate_band'], 0).')',
                 'Consider equity release schemes (but reduces estate value for beneficiaries)',
             ],
             'not_giftable_reason' => $mainResidence['not_giftable_reason'],

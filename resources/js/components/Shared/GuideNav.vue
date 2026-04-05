@@ -45,6 +45,8 @@
 </template>
 
 <script>
+import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS, CHART_COLORS } from '@/constants/designSystem';
+
 export default {
   name: 'GuideNav',
 
@@ -54,35 +56,35 @@ export default {
 
       categories: [
         { key: 'all', label: 'All', color: null },
-        { key: 'explainers', label: 'Key Terms', color: '#E8326E' },
-        { key: 'decisions', label: 'Decision Support', color: '#20B486' },
-        { key: 'stages', label: 'Personal Journey Guides', color: '#5854E6' },
-        { key: 'tax', label: 'Tax & Allowances', color: '#E6C9A8' },
+        { key: 'explainers', label: 'Key Terms', color: PRIMARY_COLORS[500] },
+        { key: 'decisions', label: 'Decision Support', color: SUCCESS_COLORS[500] },
+        { key: 'stages', label: 'Personal Journey Guides', color: WARNING_COLORS[500] },
+        { key: 'tax', label: 'Tax & Allowances', color: CHART_COLORS[4] },
       ],
 
       allGuides: [
-        { title: 'What is an ISA?', to: '/learn/what-is-an-isa', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'What is Drawdown?', to: '/learn/what-is-drawdown', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'What is Salary Sacrifice?', to: '/learn/what-is-salary-sacrifice', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'What is a Lasting Power of Attorney?', to: '/learn/what-is-an-lpa', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'What is a Self-Invested Personal Pension?', to: '/learn/what-is-a-sipp', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'What is Inheritance Tax?', to: '/learn/what-is-inheritance-tax', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'What is Financial Planning?', to: '/learn', category: 'explainers', dotColor: '#E8326E' },
-        { title: 'Should I overpay my mortgage?', to: '/learn/should-i-overpay-my-mortgage', category: 'decisions', dotColor: '#20B486' },
-        { title: 'Should I consolidate my pensions?', to: '/learn/should-i-consolidate-pensions', category: 'decisions', dotColor: '#20B486' },
-        { title: 'When should I make a will?', to: '/learn/when-should-i-make-a-will', category: 'decisions', dotColor: '#20B486' },
-        { title: 'Lifetime ISA or ISA?', to: '/learn/should-i-use-a-lisa-or-isa', category: 'decisions', dotColor: '#20B486' },
-        { title: 'When can I afford to retire?', to: '/learn/when-can-i-afford-to-retire', category: 'decisions', dotColor: '#20B486' },
-        { title: 'Starting Out: money basics', to: '/learn/guide/starting-out', category: 'stages', dotColor: '#5854E6' },
-        { title: 'Building Foundations: first home', to: '/learn/guide/building-foundations', category: 'stages', dotColor: '#5854E6' },
-        { title: 'Protecting and Growing: family finances', to: '/learn/guide/protecting-and-growing', category: 'stages', dotColor: '#5854E6' },
-        { title: 'Planning Your Future: retirement', to: '/learn/guide/planning-your-future', category: 'stages', dotColor: '#5854E6' },
-        { title: 'Enjoying Your Wealth: estate planning', to: '/learn/guide/enjoying-your-wealth', category: 'stages', dotColor: '#5854E6' },
-        { title: 'ISA allowance guide', to: '/learn/tax/isa-allowance', category: 'tax', dotColor: '#E6C9A8' },
-        { title: 'Pension annual allowance', to: '/learn/tax/pension-annual-allowance', category: 'tax', dotColor: '#E6C9A8' },
-        { title: 'Inheritance Tax thresholds', to: '/learn/tax/iht-thresholds', category: 'tax', dotColor: '#E6C9A8' },
-        { title: 'Capital gains tax rates', to: '/learn/tax/capital-gains-tax', category: 'tax', dotColor: '#E6C9A8' },
-        { title: 'Tax year checklist', to: '/learn/tax/tax-year-checklist', category: 'tax', dotColor: '#E6C9A8' },
+        { title: 'What is an ISA?', to: '/learn/what-is-an-isa', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'What is Drawdown?', to: '/learn/what-is-drawdown', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'What is Salary Sacrifice?', to: '/learn/what-is-salary-sacrifice', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'What is a Lasting Power of Attorney?', to: '/learn/what-is-an-lpa', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'What is a Self-Invested Personal Pension?', to: '/learn/what-is-a-sipp', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'What is Inheritance Tax?', to: '/learn/what-is-inheritance-tax', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'What is Financial Planning?', to: '/learn', category: 'explainers', dotColor: PRIMARY_COLORS[500] },
+        { title: 'Should I overpay my mortgage?', to: '/learn/should-i-overpay-my-mortgage', category: 'decisions', dotColor: SUCCESS_COLORS[500] },
+        { title: 'Should I consolidate my pensions?', to: '/learn/should-i-consolidate-pensions', category: 'decisions', dotColor: SUCCESS_COLORS[500] },
+        { title: 'When should I make a will?', to: '/learn/when-should-i-make-a-will', category: 'decisions', dotColor: SUCCESS_COLORS[500] },
+        { title: 'Lifetime ISA or ISA?', to: '/learn/should-i-use-a-lisa-or-isa', category: 'decisions', dotColor: SUCCESS_COLORS[500] },
+        { title: 'When can I afford to retire?', to: '/learn/when-can-i-afford-to-retire', category: 'decisions', dotColor: SUCCESS_COLORS[500] },
+        { title: 'Starting Out: money basics', to: '/learn/guide/starting-out', category: 'stages', dotColor: WARNING_COLORS[500] },
+        { title: 'Building Foundations: first home', to: '/learn/guide/building-foundations', category: 'stages', dotColor: WARNING_COLORS[500] },
+        { title: 'Protecting and Growing: family finances', to: '/learn/guide/protecting-and-growing', category: 'stages', dotColor: WARNING_COLORS[500] },
+        { title: 'Planning Your Future: retirement', to: '/learn/guide/planning-your-future', category: 'stages', dotColor: WARNING_COLORS[500] },
+        { title: 'Enjoying Your Wealth: estate planning', to: '/learn/guide/enjoying-your-wealth', category: 'stages', dotColor: WARNING_COLORS[500] },
+        { title: 'ISA allowance guide', to: '/learn/tax/isa-allowance', category: 'tax', dotColor: CHART_COLORS[4] },
+        { title: 'Pension annual allowance', to: '/learn/tax/pension-annual-allowance', category: 'tax', dotColor: CHART_COLORS[4] },
+        { title: 'Inheritance Tax thresholds', to: '/learn/tax/iht-thresholds', category: 'tax', dotColor: CHART_COLORS[4] },
+        { title: 'Capital gains tax rates', to: '/learn/tax/capital-gains-tax', category: 'tax', dotColor: CHART_COLORS[4] },
+        { title: 'Tax year checklist', to: '/learn/tax/tax-year-checklist', category: 'tax', dotColor: CHART_COLORS[4] },
       ],
     };
   },
@@ -167,7 +169,7 @@ export default {
 
 .category-tab.active {
   @apply text-raspberry-500;
-  border-bottom-color: #E8326E;
+  @apply border-raspberry-500;
 }
 
 .guide-nav-link {

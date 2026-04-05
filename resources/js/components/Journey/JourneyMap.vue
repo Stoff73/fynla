@@ -503,6 +503,8 @@ export default {
   animation: nodeGlow 2s ease-in-out infinite;
 }
 
+/* TODO: similar glow animation exists in OnboardingWizard.vue (nodePulse).
+   That one uses box-shadow; this uses filter:drop-shadow — kept separate intentionally. */
 @keyframes nodeGlow {
   0%, 100% {
     filter: drop-shadow(0 0 4px currentColor);

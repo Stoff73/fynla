@@ -322,23 +322,6 @@ const actions = {
         }
     },
 
-    // Fetch recommendations
-    async fetchRecommendations({ commit }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await protectionService.getRecommendations();
-            commit('setRecommendations', response.data.recommendations);
-            return response;
-        } catch (error) {
-            commit('setError', error.message || 'Failed to fetch recommendations');
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     // Generic create/update/delete dispatchers
     async createPolicy({ dispatch }, { policyType, policyData }) {
         const actionMap = {

@@ -31,7 +31,7 @@
             <div class="mt-3">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-xs font-semibold">Profile Completeness</span>
-                <span class="text-xs font-semibold">{{ completenessData.completeness_score }}%</span>
+                <span class="text-xs font-semibold">{{ completenessLabel }}</span>
               </div>
               <div class="w-full bg-savannah-200 rounded-full h-2">
                 <div
@@ -217,6 +217,13 @@ export default {
         default:
           return 'bg-spring-600';
       }
+    },
+
+    completenessLabel() {
+      const score = this.completenessData.completeness_score;
+      if (score < 30) return 'Needs attention';
+      if (score < 80) return 'Getting there';
+      return 'Almost complete';
     },
 
     priorityBadgeClass() {

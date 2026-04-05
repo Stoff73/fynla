@@ -473,10 +473,10 @@ export default {
 </script>
 
 <style scoped>
-.persona-card-starting { background: #D1FAE5; color: #065F46; }
-.persona-card-protecting { background: #DBEAFE; color: #1E3A5F; }
-.persona-card-planning { background: #EDE9FE; color: #4C1D95; }
-.persona-card-building { background: #F0FDF4; color: #14532D; }
-.persona-card-enjoying { background: #FCE4EC; color: #881337; }
+.persona-card-starting { @apply bg-spring-100 text-spring-900; }
+.persona-card-protecting { @apply bg-horizon-100 text-horizon-900; }
+.persona-card-planning { @apply bg-violet-100 text-violet-900; }
+.persona-card-building { @apply bg-spring-100 text-spring-900; }
+.persona-card-enjoying { @apply bg-raspberry-100 text-raspberry-900; }
 </style>
 

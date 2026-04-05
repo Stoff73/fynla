@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Crypt;
  */
 class CashAccount extends Model
 {
-    use HasFactory, HasJointOwnership, SoftDeletes;
+    use HasFactory, HasJointOwnership, SoftDeletes, Auditable;
 
     protected $fillable = [
         'user_id',

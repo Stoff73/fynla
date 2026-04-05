@@ -108,17 +108,6 @@ const getters = {
         return baseId ? PERSONA_DATA[baseId] : null;
     },
 
-    /**
-     * Check if there are unsaved edits (always false in new architecture)
-     * Edits are session-only and not tracked in store
-     */
-    hasEdits: () => false,
-
-    /**
-     * Get count of unsaved edits (always 0 in new architecture)
-     */
-    editCount: () => 0,
-
     loading: (state) => state.loading,
     error: (state) => state.error,
 

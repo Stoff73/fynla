@@ -200,18 +200,18 @@ export default {
   transition: all 0.2s;
   border: none;
   background: transparent;
-  color: #6B7280;
+  @apply text-neutral-500;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
 }
 
 .category-tab:hover {
-  color: #1F2A44;
+  @apply text-horizon-500;
 }
 
 .category-tab.active {
   @apply text-raspberry-500;
-  border-bottom-color: #E8326E;
+  @apply border-raspberry-500;
 }
 
 .guide-link {

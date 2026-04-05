@@ -206,24 +206,6 @@ const actions = {
         }
     },
 
-    // Fetch recommendations
-    async fetchRecommendations({ commit }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await savingsService.getRecommendations();
-            commit('setRecommendations', response.data.recommendations);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to fetch recommendations';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     // Account actions
     async createAccount({ commit, dispatch }, accountData) {
         commit('setLoading', true);

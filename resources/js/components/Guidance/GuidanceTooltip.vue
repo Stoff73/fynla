@@ -378,6 +378,9 @@ export default {
     animation: guidance-pulse 2s ease-in-out infinite;
 }
 
+/* Violet-500 RGBA (rgb 88,84,230 = #5854E6) — cannot use Tailwind utility inside @keyframes.
+   CSS custom properties with opacity would require browser support for color-mix() which is
+   not yet reliably available. Raw RGBA is intentional here for cross-browser compatibility. */
 @keyframes guidance-pulse {
     0%, 100% {
         box-shadow: 0 0 0 4px rgba(88, 84, 230, 0.3), 0 0 0 8px rgba(88, 84, 230, 0.1);

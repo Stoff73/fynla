@@ -240,6 +240,9 @@ export default {
   @apply bg-eggshell-500;
 }
 
+/* Print document — exact hex values required for print/document fidelity.
+   #1F2A44 = horizon-500 (brand border), #ddd = rule divider, #000 = signature line.
+   These are inside :deep() document renderers and must not use Tailwind utilities. */
 .will-preview :deep(h1) {
   text-align: center;
   font-size: 16px;
