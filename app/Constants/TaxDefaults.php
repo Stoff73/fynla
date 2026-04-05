@@ -14,7 +14,7 @@ namespace App\Constants;
  * IMPORTANT: Always prefer TaxConfigService for live values.
  * These constants exist only for resilience when the service fails.
  *
- * Last verified: 4 February 2026 (2025/26 tax year)
+ * Last verified: 5 April 2026 (2026/27 tax year)
  *
  * @see https://www.gov.uk/government/publications/rates-and-allowances-inheritance-tax-thresholds-and-interest-rates
  * @see https://www.gov.uk/individual-savings-accounts
@@ -22,17 +22,17 @@ namespace App\Constants;
  */
 final class TaxDefaults
 {
-    // ==================== Inheritance Tax (2025/26) ====================
+    // ==================== Inheritance Tax (2026/27) ====================
 
     /**
      * Nil Rate Band - amount that can be passed on free of IHT.
-     * Frozen until April 2028.
+     * Frozen until April 2031.
      */
     public const NRB = 325000;
 
     /**
      * Residence Nil Rate Band - additional allowance for main residence passed to descendants.
-     * Frozen until April 2028.
+     * Frozen until April 2031.
      */
     public const RNRB = 175000;
 
@@ -61,7 +61,7 @@ final class TaxDefaults
      */
     public const CLT_RATE = 0.20;
 
-    // ==================== ISA Allowances (2025/26) ====================
+    // ==================== ISA Allowances (2026/27) ====================
 
     /**
      * Total annual ISA allowance across all ISA types.
@@ -78,7 +78,7 @@ final class TaxDefaults
      */
     public const LISA_ALLOWANCE = 4000;
 
-    // ==================== Pension Allowances (2025/26) ====================
+    // ==================== Pension Allowances (2026/27) ====================
 
     /**
      * Annual allowance for pension contributions with tax relief.
@@ -100,7 +100,7 @@ final class TaxDefaults
      */
     public const MPAA = 10000;
 
-    // ==================== Income Tax (2025/26) ====================
+    // ==================== Income Tax (2026/27) ====================
 
     /**
      * Personal allowance - income below this is tax-free.
@@ -127,7 +127,7 @@ final class TaxDefaults
      */
     public const PERSONAL_ALLOWANCE_TAPER = 100000;
 
-    // ==================== Capital Gains Tax (2025/26) ====================
+    // ==================== Capital Gains Tax (2026/27) ====================
 
     /**
      * CGT annual exempt amount.
@@ -146,15 +146,47 @@ final class TaxDefaults
 
     /**
      * CGT basic rate (other assets).
+     * Aligned with residential rates from 30 October 2024.
      */
-    public const CGT_BASIC_RATE = 0.10;
+    public const CGT_BASIC_RATE = 0.18;
 
     /**
      * CGT higher rate (other assets).
+     * Aligned with residential rates from 30 October 2024.
      */
-    public const CGT_HIGHER_RATE = 0.20;
+    public const CGT_HIGHER_RATE = 0.24;
 
-    // ==================== Child Benefit (2025/26) ====================
+    /**
+     * Business Asset Disposal Relief rate.
+     * Increased from 14% to 18% for disposals on or after 6 April 2026.
+     */
+    public const BADR_RATE = 0.18;
+
+    // ==================== Dividend Tax (2026/27) ====================
+
+    /**
+     * Dividend allowance - tax-free dividend income.
+     */
+    public const DIVIDEND_ALLOWANCE = 500;
+
+    /**
+     * Dividend ordinary rate (basic rate taxpayers).
+     * Increased from 8.75% to 10.75% for 2026/27.
+     */
+    public const DIVIDEND_BASIC_RATE = 0.1075;
+
+    /**
+     * Dividend upper rate (higher rate taxpayers).
+     * Increased from 33.75% to 35.75% for 2026/27.
+     */
+    public const DIVIDEND_HIGHER_RATE = 0.3575;
+
+    /**
+     * Dividend additional rate.
+     */
+    public const DIVIDEND_ADDITIONAL_RATE = 0.3935;
+
+    // ==================== Child Benefit (2026/27) ====================
 
     /**
      * High Income Child Benefit Charge threshold.

@@ -99,8 +99,8 @@ describe('Adjusted Net Income', function () {
         ]);
 
         $result = $this->service->calculate($user->id);
-        expect($result['deductions']['blind_persons_allowance'])->toBe(2870.00);
-        expect($result['adjusted_net_income'])->toBe(57130.00);
+        expect($result['deductions']['blind_persons_allowance'])->toBe(3250.00);
+        expect($result['adjusted_net_income'])->toBe(56750.00);
     });
 
     it('does not deduct BPA when not registered blind', function () {

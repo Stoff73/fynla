@@ -193,7 +193,7 @@ describe('Profile Completeness API', function () {
 
         Cache::shouldReceive('remember')
             ->once()
-            ->with("profile_completeness_{$user->id}", 600, \Closure::class)
+            ->with("profile_completeness_{$user->id}", 86400, \Closure::class)
             ->andReturn([
                 'completeness_score' => 50,
                 'is_complete' => false,

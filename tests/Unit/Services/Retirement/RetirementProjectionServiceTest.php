@@ -8,10 +8,10 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
+use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
-use App\Services\UserProfile\UserProfileService;
 use Carbon\Carbon;
 
 beforeEach(function () {
@@ -60,10 +60,15 @@ beforeEach(function () {
             ],
         ]);
 
-    $this->mockUserProfileService = Mockery::mock(UserProfileService::class);
-    $this->mockUserProfileService->shouldReceive('getCompleteProfile')
+    $this->mockRequiredCapitalCalculator = Mockery::mock(RequiredCapitalCalculator::class);
+    $this->mockRequiredCapitalCalculator->shouldReceive('calculate')
         ->andReturn([
-            'income_occupation' => ['net_income' => 40000],
+            'required_income' => 30000.0,
+            'required_capital_at_retirement' => 600000.0,
+            'required_capital_today' => 400000.0,
+            'assumptions' => [],
+            'retirement_info' => [],
+            'year_by_year' => [],
         ]);
 
     $this->mockLifeEventCashFlowService = Mockery::mock(LifeEventCashFlowService::class);
@@ -83,9 +88,9 @@ beforeEach(function () {
         $this->mockSimulator,
         $this->mockRiskService,
         $this->mockTaxConfig,
-        $this->mockUserProfileService,
         $this->mockLifeEventCashFlowService,
-        app(\App\Services\Cache\CacheInvalidationService::class)
+        app(\App\Services\Cache\CacheInvalidationService::class),
+        $this->mockRequiredCapitalCalculator
     );
 });
 

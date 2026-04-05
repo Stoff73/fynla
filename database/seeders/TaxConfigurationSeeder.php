@@ -10,15 +10,23 @@ use Illuminate\Database\Seeder;
 class TaxConfigurationSeeder extends Seeder
 {
     /**
+     * The tax year that should be marked active after seeding.
+     *
+     * Change this single value to switch which year the app uses by default.
+     * The seeder is idempotent — re-running it will restore this year as active.
+     */
+    private const ACTIVE_TAX_YEAR = '2026/27';
+
+    /**
      * Run the database seeds.
      *
-     * Seeds 5 UK tax years (2021/22 through 2025/26) with comprehensive tax configuration.
-     * 2025/26 is set as the active tax year.
+     * Seeds 6 UK tax years (2021/22 through 2026/27) with comprehensive tax configuration.
+     * The year defined by self::ACTIVE_TAX_YEAR is set as the active tax year.
      */
     public function run(): void
     {
         $this->command->info('');
-        $this->command->info('Seeding UK tax configurations for 5 tax years...');
+        $this->command->info('Seeding UK tax configurations for 6 tax years...');
 
         $taxYears = [
             '2021/22' => $this->getTaxConfig202122(),
@@ -26,10 +34,11 @@ class TaxConfigurationSeeder extends Seeder
             '2023/24' => $this->getTaxConfig202324(),
             '2024/25' => $this->getTaxConfig202425(),
             '2025/26' => $this->getTaxConfig202526(),
+            '2026/27' => $this->getTaxConfig202627(),
         ];
 
         foreach ($taxYears as $taxYear => $config) {
-            $isActive = ($taxYear === '2025/26');
+            $isActive = ($taxYear === self::ACTIVE_TAX_YEAR);
 
             TaxConfiguration::updateOrCreate(
                 ['tax_year' => $taxYear],
@@ -45,12 +54,14 @@ class TaxConfigurationSeeder extends Seeder
             $this->command->info("✓ Tax configuration for {$taxYear} seeded successfully.");
         }
 
-        // Ensure only 2025/26 is active
-        TaxConfiguration::where('tax_year', '!=', '2025/26')
+        // Ensure only the designated active year is marked active.
+        // Admins can change the active year at runtime via the Tax Settings admin UI
+        // without re-running this seeder; re-seeding will reset to self::ACTIVE_TAX_YEAR.
+        TaxConfiguration::where('tax_year', '!=', self::ACTIVE_TAX_YEAR)
             ->update(['is_active' => false]);
 
         $this->command->info('');
-        $this->command->info('✓ All 5 tax years seeded successfully. 2025/26 is the active tax year.');
+        $this->command->info('✓ All 6 tax years seeded successfully. ' . self::ACTIVE_TAX_YEAR . ' is the active tax year.');
     }
 
     /**
@@ -115,7 +126,7 @@ class TaxConfigurationSeeder extends Seeder
                 ],
 
                 // Blind Person's Allowance
-                'blind_persons_allowance' => 2870,
+                'blind_persons_allowance' => 3130,
             ],
 
             'national_insurance' => [
@@ -236,7 +247,7 @@ class TaxConfigurationSeeder extends Seeder
                     'qualifying_years' => 35,
                     'minimum_qualifying_years' => 10,
                     'current_spa' => 66,                         // Current State Pension Age
-                    'future_spa' => 67,                          // Rising to 67 (2028-2046)
+                    'future_spa' => 67,                          // Rising to 67 between April 2026 and April 2028; further rise to 68 planned 2044-2046
                 ],
 
                 // Salary sacrifice configuration
@@ -268,7 +279,7 @@ class TaxConfigurationSeeder extends Seeder
                 // =================================================================
                 // Core Thresholds and Rates
                 // =================================================================
-                'nil_rate_band' => 325000,                       // £325,000 - frozen until April 2030
+                'nil_rate_band' => 325000,                       // £325,000 - frozen until April 2031
                 'residence_nil_rate_band' => 175000,             // £175,000 - for main residence left to direct descendants
                 'rnrb_taper_threshold' => 2000000,               // RNRB tapers away if estate exceeds £2m
                 'rnrb_taper_rate' => 0.5,                        // £1 lost per £2 over threshold
@@ -413,9 +424,9 @@ class TaxConfigurationSeeder extends Seeder
                         'let_tenancy' => 1.0,                    // 100% relief (post-Sept 1995 tenancies)
                         'pre_1995_tenancy' => 0.5,               // 50% relief (pre-Sept 1995 tenancies)
                     ],
-                    'allowance_cap' => 1000000,                  // £1m cap from April 2026 (Budget 2024)
+                    'allowance_cap' => 2500000,                  // £2.5m cap from April 2026 (Dec 2025 announcement raised from £1m)
                     'allowance_cap_effective_date' => '2026-04-06',
-                    'notes' => 'APR is being reformed. From April 2026, combined APR/BPR capped at £1m at 100%, then 50%.',
+                    'notes' => 'APR is being reformed. From April 2026, combined APR/BPR capped at £2.5m at 100%, then 50%. Cap transferable between spouses.',
                 ],
 
                 // Business Relief (formerly Business Property Relief) for IHT
@@ -444,9 +455,9 @@ class TaxConfigurationSeeder extends Seeder
                         'dealing_in_land_or_buildings',
                         'making_or_holding_investments',
                     ],
-                    'allowance_cap' => 1000000,                  // £1m cap from April 2026 (Budget 2024)
+                    'allowance_cap' => 2500000,                  // £2.5m cap from April 2026 (Dec 2025 announcement raised from £1m)
                     'allowance_cap_effective_date' => '2026-04-06',
-                    'notes' => 'BPR is being reformed. From April 2026, combined APR/BPR capped at £1m at 100%, then 50%.',
+                    'notes' => 'BPR is being reformed. From April 2026, combined APR/BPR capped at £2.5m at 100%, then 50%. AIM shares drop to 50% relief (outside the cap).',
                 ],
 
                 // Quick Death Rules (death shortly after gift)
@@ -700,10 +711,10 @@ class TaxConfigurationSeeder extends Seeder
 
                 // Statutory Sick Pay
                 'ssp' => [
-                    'weekly_rate' => 116.75,                     // £116.75 per week (2025/26)
+                    'weekly_rate' => 118.75,                     // £118.75 per week (2025/26)
                     'max_weeks' => 28,                           // Maximum 28 weeks
-                    'qualifying_days' => 4,                      // Payable from 4th qualifying day
-                    'lower_earnings_limit' => 125,               // Must earn at least £125/week
+                    'qualifying_days' => 4,                      // Payable from 4th qualifying day (abolished from April 2026)
+                    'lower_earnings_limit' => 125,               // Must earn at least £125/week (abolished from April 2026)
                     'not_available_for' => ['self_employed'],     // Self-employed get no SSP
                 ],
 
@@ -736,10 +747,10 @@ class TaxConfigurationSeeder extends Seeder
 
                 // Personal Independence Payment (weekly)
                 'pip' => [
-                    'daily_living_standard' => 72.65,
-                    'daily_living_enhanced' => 108.55,
-                    'mobility_standard' => 28.70,
-                    'mobility_enhanced' => 75.75,
+                    'daily_living_standard' => 73.90,
+                    'daily_living_enhanced' => 110.40,
+                    'mobility_standard' => 29.20,
+                    'mobility_enhanced' => 77.05,
                 ],
 
                 // Bereavement Support Payment
@@ -1191,6 +1202,165 @@ class TaxConfigurationSeeder extends Seeder
     }
 
     /**
+     * Get tax configuration for 2026/27
+     *
+     * Derives from 2025/26 and applies all documented changes for the UK tax year
+     * running 6 April 2026 - 5 April 2027.
+     *
+     * Key changes from 2025/26:
+     * - Dividend ordinary rate: 8.75% → 10.75% (+2pp)
+     * - Dividend upper rate: 33.75% → 35.75% (+2pp)
+     * - Business Asset Disposal Relief: 14% → 18% (+4pp)
+     * - APR/BPR: £2.5m combined cap at 100%, 50% above (now in effect)
+     * - AIM shares: 100% → 50% Business Relief (outside the cap)
+     * - State pension: £11,973 → £12,547.60/year (+4.8%)
+     * - National Living Wage (21+): £12.21 → £12.71/hour
+     * - Child Benefit eldest: £26.05 → £27.05/week
+     * - Statutory Sick Pay: £118.75 → £123.25/week; LEL abolished, day-one payment
+     * - Premium Bonds prize fund rate: 3.6% → 3.3%
+     * - Universal Credit LCWRA (new claims only): halved to £217.26
+     * - Two-child limit on UC child element: removed
+     */
+    private function getTaxConfig202627(): array
+    {
+        $config = $this->getTaxConfig202526();
+        $config['tax_year'] = '2026/27';
+        $config['effective_from'] = '2026-04-06';
+        $config['effective_to'] = '2027-04-05';
+        $config['notes'] = 'UK Tax Year 2026/27 - Active configuration';
+
+        // ==============================================================
+        // Income Tax - frozen until April 2031 (no changes)
+        // Blind Person's Allowance estimated from CPI uprating
+        // ==============================================================
+        $config['income_tax']['blind_persons_allowance'] = 3250;
+
+        // ==============================================================
+        // Capital Gains Tax - Business Asset Disposal Relief rises to 18%
+        // ==============================================================
+        $config['capital_gains_tax']['business_asset_disposal_relief_rate'] = 0.18;
+
+        // ==============================================================
+        // Dividend Tax - +2pp on basic and higher rates
+        // ==============================================================
+        $config['dividend_tax']['basic_rate'] = 0.1075;                              // 10.75% (was 8.75%)
+        $config['dividend_tax']['higher_rate'] = 0.3575;                             // 35.75% (was 33.75%)
+        // Additional rate unchanged at 39.35%
+        // Trust dividend rate unchanged (already at additional rate 39.35%)
+        $config['dividend_tax']['trust_management_expenses_dividend_rate'] = 0.1075; // Aligned with new ordinary rate
+
+        // ==============================================================
+        // Savings - Premium Bonds prize fund rate reduced to 3.3%
+        // ==============================================================
+        $config['savings']['premium_bonds_prize_fund_rate'] = 0.033;
+
+        // ==============================================================
+        // Pension - State Pension uprated 4.8%, NLW/NMW uprated
+        // ==============================================================
+        $config['pension']['state_pension']['full_new_state_pension'] = 12547.60;    // £241.30/week × 52
+        $config['pension']['salary_sacrifice']['nlw_hourly'] = 12.71;
+        $config['pension']['salary_sacrifice']['nmw_hourly']['21_plus'] = 12.71;
+        $config['pension']['salary_sacrifice']['nmw_hourly']['18_to_20'] = 10.85;
+        $config['pension']['salary_sacrifice']['nmw_hourly']['under_18'] = 8.00;
+        $config['pension']['salary_sacrifice']['nmw_hourly']['apprentice'] = 8.00;
+
+        // ==============================================================
+        // Inheritance Tax - APR/BPR reform now IN EFFECT (£2.5m cap, 50% above)
+        // AIM shares drop to 50% relief (outside the cap)
+        // ==============================================================
+        // Agricultural Property Relief
+        $config['inheritance_tax']['agricultural_relief']['allowance_cap'] = 2500000;
+        $config['inheritance_tax']['agricultural_relief']['relief_above_cap'] = 0.5;
+        $config['inheritance_tax']['agricultural_relief']['cap_shared_with_bpr'] = true;
+        $config['inheritance_tax']['agricultural_relief']['cap_transferable_to_spouse'] = true;
+        $config['inheritance_tax']['agricultural_relief']['cap_in_effect'] = true;
+        $config['inheritance_tax']['agricultural_relief']['notes'] =
+            'APR reform in effect. 100% relief on first £2.5m of combined APR/BPR, then 50%. Cap transferable between spouses (£5m combined).';
+
+        // Business Relief
+        $config['inheritance_tax']['business_relief']['rates']['aim_shares'] = 0.5;   // Was 1.0 — now 50%
+        $config['inheritance_tax']['business_relief']['allowance_cap'] = 2500000;
+        $config['inheritance_tax']['business_relief']['relief_above_cap'] = 0.5;
+        $config['inheritance_tax']['business_relief']['aim_shares_outside_cap'] = true;
+        $config['inheritance_tax']['business_relief']['cap_transferable_to_spouse'] = true;
+        $config['inheritance_tax']['business_relief']['cap_in_effect'] = true;
+        $config['inheritance_tax']['business_relief']['notes'] =
+            'BPR reform in effect. 100% relief on first £2.5m of combined APR/BPR, then 50%. AIM shares: always 50% (outside the cap). Cap transferable between spouses (£5m combined).';
+
+        // ==============================================================
+        // Benefits - uprated per DWP/HMRC announcements
+        // ==============================================================
+        // Child Benefit
+        $config['benefits']['child_benefit']['eldest_child_weekly'] = 27.05;
+        $config['benefits']['child_benefit']['additional_child_weekly'] = 17.90;
+        $config['benefits']['child_benefit']['eldest_child_annual'] = 1406.60;
+        $config['benefits']['child_benefit']['additional_child_annual'] = 930.80;
+        $config['benefits']['child_benefit']['guardian_allowance_weekly'] = 22.60;    // Estimated from CPI uprating
+        $config['benefits']['child_benefit']['two_child_limit_lifted'] = true;
+        $config['benefits']['child_benefit']['warnings']['two_child_limit'] =
+            'The two-child limit on the child element of Universal Credit and tax credits has been removed from April 2026. All children now qualify for the child element.';
+
+        // Tax-Free Childcare - min earnings updated for new NLW (£12.71 × 16 = £203.36)
+        $config['benefits']['tax_free_childcare']['min_weekly_earnings'] = 203.36;
+        $config['benefits']['tax_free_childcare']['min_quarterly_earnings'] = 2660.96;
+
+        // Early Years Funding - min earnings updated; under-2 expanded to 30hrs (Sept 2025)
+        $config['benefits']['early_years_funding']['working_parents_30hrs']['min_weekly_earnings'] = 203.36;
+        $config['benefits']['early_years_funding']['working_parents_2yr']['min_weekly_earnings'] = 203.36;
+        $config['benefits']['early_years_funding']['working_parents_under_2']['hours_per_week'] = 30;
+        $config['benefits']['early_years_funding']['working_parents_under_2']['total_hours_per_year'] = 1140;
+        $config['benefits']['early_years_funding']['working_parents_under_2']['min_weekly_earnings'] = 203.36;
+
+        // Statutory Sick Pay - rate up, LEL abolished, waiting days abolished
+        $config['benefits']['ssp']['weekly_rate'] = 123.25;
+        $config['benefits']['ssp']['qualifying_days'] = 0;                            // Waiting days abolished
+        $config['benefits']['ssp']['lower_earnings_limit'] = null;                    // LEL abolished
+        $config['benefits']['ssp']['lower_earner_rate'] = 0.80;                       // 80% of weekly earnings for lower earners
+        $config['benefits']['ssp']['notes'] =
+            'From April 2026: LEL abolished (all employees qualify), waiting days abolished (payable from day 1), lower earners receive the lesser of flat rate or 80% of normal weekly earnings.';
+
+        // ESA (estimates where not yet published)
+        $config['benefits']['esa']['assessment_rate_under_25'] = 75.65;
+        $config['benefits']['esa']['assessment_rate_25_plus'] = 95.55;
+        $config['benefits']['esa']['support_group_supplement'] = 47.40;              // Estimated from CPI uprating
+        $config['benefits']['esa']['wrag_supplement'] = 35.40;                       // Estimated from CPI uprating
+
+        // Universal Credit - LCWRA halved for new claims, two-child limit lifted
+        $config['benefits']['universal_credit']['standard_allowance_single_under_25'] = 338.58;
+        $config['benefits']['universal_credit']['standard_allowance_single_25_plus'] = 424.90;
+        $config['benefits']['universal_credit']['standard_allowance_couple_both_under_25'] = 528.34;
+        $config['benefits']['universal_credit']['standard_allowance_couple_one_25_plus'] = 666.97;
+        $config['benefits']['universal_credit']['child_element_first'] = 346.06;     // Estimated from CPI uprating
+        $config['benefits']['universal_credit']['child_element_subsequent'] = 298.87;
+        $config['benefits']['universal_credit']['disabled_child_lower'] = 162.04;
+        $config['benefits']['universal_credit']['disabled_child_higher'] = 506.14;
+        $config['benefits']['universal_credit']['lcwra_element'] = 423.27;           // Existing claimants keep higher rate
+        $config['benefits']['universal_credit']['lcwra_element_new_claims'] = 217.26; // New claims from April 2026
+        $config['benefits']['universal_credit']['carer_element'] = 201.68;
+        $config['benefits']['universal_credit']['childcare_max_one_child'] = 1053.19;
+        $config['benefits']['universal_credit']['childcare_max_two_plus'] = 1805.49;
+        $config['benefits']['universal_credit']['work_allowance_housing'] = 419.39;
+        $config['benefits']['universal_credit']['work_allowance_no_housing'] = 698.66;
+        $config['benefits']['universal_credit']['two_child_limit_abolished'] = true;
+
+        // PIP - uprated
+        $config['benefits']['pip']['daily_living_standard'] = 76.70;
+        $config['benefits']['pip']['daily_living_enhanced'] = 114.60;
+        $config['benefits']['pip']['mobility_standard'] = 30.30;
+        $config['benefits']['pip']['mobility_enhanced'] = 80.00;
+
+        // ==============================================================
+        // Trusts - IIP dividend rate and mgmt expenses aligned with new 10.75%
+        // ==============================================================
+        $config['trusts']['income_tax']['interest_in_possession']['dividend_rate'] = 0.1075;
+        $config['trusts']['management_expenses']['dividend_relief_rate'] = 0.1075;
+        $config['trusts']['notes'] =
+            'UK trust taxation is complex. The rates above apply to 2026/27. Note: from 2027/28, trust income tax rates change significantly (discretionary 47%, IIP 22%). Professional advice recommended.';
+
+        return $config;
+    }
+
+    /**
      * Get tax configuration for 2024/25
      */
     private function getTaxConfig202425(): array
@@ -1201,8 +1371,15 @@ class TaxConfigurationSeeder extends Seeder
         $config['effective_to'] = '2025-04-05';
         $config['notes'] = 'UK Tax Year 2024/25 - Historical configuration';
 
-        // 2024/25 Blind Person's Allowance was £2,760
-        $config['income_tax']['blind_persons_allowance'] = 2760;
+        // 2024/25 Blind Person's Allowance was £3,070
+        $config['income_tax']['blind_persons_allowance'] = 3070;
+
+        // 2024/25 benefit rates (gov.uk verified)
+        $config['benefits']['ssp']['weekly_rate'] = 116.75;
+        $config['benefits']['pip']['daily_living_standard'] = 72.65;
+        $config['benefits']['pip']['daily_living_enhanced'] = 108.55;
+        $config['benefits']['pip']['mobility_standard'] = 28.70;
+        $config['benefits']['pip']['mobility_enhanced'] = 75.75;
 
         return $config;
     }

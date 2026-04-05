@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Models\UserConsent;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
+    // Fake mail to prevent view compilation during erasure verification flow
+    Mail::fake();
+
     $this->user = User::factory()->create([
         'email' => 'gdpr-test@example.com',
         'password' => bcrypt('password123'),

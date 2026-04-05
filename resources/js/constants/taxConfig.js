@@ -12,11 +12,18 @@
  * These fallback values ensure the UI doesn't break if the API call fails,
  * but they should NOT be treated as the source of truth.
  *
- * Tax Year: 2025/26 (April 6, 2025 - April 5, 2026)
+ * Tax Year: 2026/27 (April 6, 2026 - April 5, 2027)
  *
  * @see app/Services/TaxConfigService.php - Backend authoritative source
  * @see database/seeders/TaxConfigurationSeeder.php - Database values
  */
+
+/**
+ * Active tax year (fallback reference).
+ * The backend remains the source of truth — call /api/tax-settings/current
+ * when a component needs to display or compute against the live tax year.
+ */
+export const TAX_YEAR = '2026/27';
 
 /**
  * ISA (Individual Savings Account) Allowances
@@ -37,6 +44,12 @@ export const MONEY_PURCHASE_ANNUAL_ALLOWANCE = 10000; // After accessing benefit
 export const PENSION_LIFETIME_ALLOWANCE = null; // Abolished from 2024/25
 
 /**
+ * State Pension (full new State Pension)
+ */
+export const STATE_PENSION_WEEKLY = 241.30;
+export const STATE_PENSION_ANNUAL = 12547.60;
+
+/**
  * Income Tax Allowances
  */
 export const PERSONAL_ALLOWANCE = 12570;
@@ -48,6 +61,10 @@ export const ADDITIONAL_RATE_THRESHOLD = 125140;
  * Capital Gains Tax
  */
 export const CGT_ANNUAL_ALLOWANCE = 3000;
+export const CGT_BASIC_RATE = 0.18;
+export const CGT_HIGHER_RATE = 0.24;
+export const BADR_RATE = 0.18;              // Business Asset Disposal Relief (was 14% in 2025/26)
+export const BADR_LIFETIME_LIMIT = 1000000;
 
 /**
  * Inheritance Tax
@@ -59,9 +76,16 @@ export const IHT_STANDARD_RATE = 0.40;
 export const IHT_REDUCED_RATE = 0.36; // When 10%+ left to charity
 
 /**
- * Other Allowances
+ * Dividend Tax (2026/27: basic and higher rates each +2pp)
  */
 export const DIVIDEND_ALLOWANCE = 500;
+export const DIVIDEND_BASIC_RATE = 0.1075;      // Was 8.75% in 2025/26
+export const DIVIDEND_HIGHER_RATE = 0.3575;     // Was 33.75% in 2025/26
+export const DIVIDEND_ADDITIONAL_RATE = 0.3935;
+
+/**
+ * Other Allowances
+ */
 export const SAVINGS_ALLOWANCE_BASIC = 1000;
 export const SAVINGS_ALLOWANCE_HIGHER = 500;
 export const MARRIAGE_ALLOWANCE = 1260;
@@ -77,6 +101,9 @@ export const SMALL_GIFT_EXEMPTION = 250;
  * @deprecated Use individual named exports instead
  */
 export const TAX_CONFIG = {
+  // Tax year
+  TAX_YEAR,
+
   // ISA
   ISA_ANNUAL_ALLOWANCE,
   LIFETIME_ISA_ALLOWANCE,
@@ -95,6 +122,10 @@ export const TAX_CONFIG = {
   // CGT
   CGT_ALLOWANCE: CGT_ANNUAL_ALLOWANCE,
   CGT_ANNUAL_ALLOWANCE,
+  CGT_BASIC_RATE,
+  CGT_HIGHER_RATE,
+  BADR_RATE,
+  BADR_LIFETIME_LIMIT,
 
   // IHT
   IHT_NIL_RATE_BAND,
@@ -103,13 +134,22 @@ export const TAX_CONFIG = {
   IHT_STANDARD_RATE,
   IHT_REDUCED_RATE,
 
-  // Other
+  // Dividends
   DIVIDEND_ALLOWANCE,
+  DIVIDEND_BASIC_RATE,
+  DIVIDEND_HIGHER_RATE,
+  DIVIDEND_ADDITIONAL_RATE,
+
+  // Other
   SAVINGS_ALLOWANCE_BASIC,
   SAVINGS_ALLOWANCE_HIGHER,
   MARRIAGE_ALLOWANCE,
   ANNUAL_GIFT_EXEMPTION,
   SMALL_GIFT_EXEMPTION,
+
+  // State Pension
+  STATE_PENSION_WEEKLY,
+  STATE_PENSION_ANNUAL,
 };
 
 export default TAX_CONFIG;

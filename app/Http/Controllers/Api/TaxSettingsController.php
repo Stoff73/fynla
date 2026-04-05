@@ -11,7 +11,9 @@ use App\Models\TaxConfiguration;
 use App\Models\TaxConfigurationAudit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class TaxSettingsController extends Controller
@@ -220,7 +222,7 @@ class TaxSettingsController extends Controller
         }
 
         try {
-            return DB::transaction(function () use ($config, $request) {
+            $result = DB::transaction(function () use ($config, $request) {
                 // Log deactivation of current active config
                 $currentActive = TaxConfiguration::where('is_active', true)->first();
                 if ($currentActive && $currentActive->id !== $config->id) {
@@ -246,12 +248,26 @@ class TaxSettingsController extends Controller
                     $request->input('rationale')
                 );
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Tax configuration activated successfully',
-                    'data' => $config,
-                ]);
+                return $config;
             });
+
+            // Flush cached analyses so every user sees the new tax year immediately.
+            // Agents cache per-user analysis results keyed as v1_{agent}_{userId}_{suffix};
+            // those results embed tax rates (dividend, BADR, APR/BPR, etc.) that change
+            // when the active year changes. This is an admin-only, rare operation.
+            Cache::flush();
+
+            Log::info('Tax configuration activated — caches flushed', [
+                'tax_year' => $result->tax_year,
+                'config_id' => $result->id,
+                'admin_user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tax configuration activated successfully',
+                'data' => $result,
+            ]);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to activate tax configuration', $e);
         }

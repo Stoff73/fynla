@@ -1,19 +1,46 @@
 <template>
   <div class="space-y-6">
     <!-- Header Section -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-xl font-semibold text-horizon-500">Tax Configuration Admin</h2>
         <p class="text-sm text-neutral-500 mt-1">
           Manage UK tax rates and allowances for different tax years
         </p>
       </div>
-      <button
-        @click="duplicateCurrentConfig"
-        class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors"
-      >
-        Create New Tax Year
-      </button>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <!-- Active Tax Year Quick-Switch Dropdown -->
+        <div v-if="allConfigs.length > 0" class="flex items-center gap-2">
+          <label for="active-tax-year-select" class="text-sm font-medium text-horizon-500 whitespace-nowrap">
+            Active Year:
+          </label>
+          <select
+            id="active-tax-year-select"
+            :value="activeConfigId"
+            @change="handleActiveYearChange($event)"
+            :disabled="activating"
+            class="px-3 py-2 border border-horizon-300 rounded-button bg-white text-sm text-horizon-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <option
+              v-for="config in sortedConfigs"
+              :key="config.id"
+              :value="config.id"
+            >
+              {{ config.tax_year }}{{ config.is_active ? ' (active)' : '' }}
+            </option>
+          </select>
+          <svg v-if="activating" class="w-4 h-4 animate-spin text-violet-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <button
+          @click="duplicateCurrentConfig"
+          class="px-4 py-2 bg-raspberry-600 text-white rounded-button hover:bg-raspberry-700 transition-colors whitespace-nowrap"
+        >
+          Create New Tax Year
+        </button>
+      </div>
     </div>
 
     <!-- Error Message -->
@@ -2578,6 +2605,7 @@ export default {
       editableConfig: null,
       saving: false,
       creating: false,
+      activating: false,
       activeTab: 'income-ni',
       showDuplicateModal: false,
       configToDuplicate: null,
@@ -2603,6 +2631,26 @@ export default {
   },
 
   computed: {
+    /**
+     * ID of the currently active tax configuration, if any.
+     * Used to bind the quick-switch dropdown to the correct option.
+     */
+    activeConfigId() {
+      const active = this.allConfigs.find((config) => config.is_active);
+      return active ? active.id : null;
+    },
+
+    /**
+     * All tax configurations sorted with the most recent year first.
+     * Sorting by effective_from descending keeps the dropdown in a
+     * predictable order regardless of database row order.
+     */
+    sortedConfigs() {
+      return [...this.allConfigs].sort((a, b) => {
+        return new Date(b.effective_from) - new Date(a.effective_from);
+      });
+    },
+
     isFormValid() {
       if (!this.isEditing || !this.editableConfig) return true;
 
@@ -2850,6 +2898,51 @@ export default {
         this.error = error.response?.data?.message || error.message || 'Failed to save changes';
       } finally {
         this.saving = false;
+      }
+    },
+
+    /**
+     * Handle the quick-switch dropdown in the header.
+     * Confirms with the user, then activates the selected tax year.
+     * If the user cancels, the dropdown is reverted to the current active year.
+     */
+    async handleActiveYearChange(event) {
+      const newConfigId = parseInt(event.target.value, 10);
+      if (!newConfigId || newConfigId === this.activeConfigId) {
+        return;
+      }
+
+      const selectedConfig = this.allConfigs.find((c) => c.id === newConfigId);
+      const confirmed = confirm(
+        `Switch the active tax year to ${selectedConfig?.tax_year}?\n\n` +
+        'All tax calculations across the application will use the new year from the next request onwards.'
+      );
+
+      if (!confirmed) {
+        // Revert the dropdown to the current active year.
+        event.target.value = this.activeConfigId;
+        return;
+      }
+
+      this.activating = true;
+      this.error = null;
+      this.successMessage = null;
+
+      try {
+        const response = await taxSettingsService.setActive(newConfigId);
+        if (response.data.success) {
+          this.successMessage = `Active tax year switched to ${selectedConfig?.tax_year}`;
+          await this.loadData();
+        } else {
+          this.error = response.data.message || 'Failed to switch active tax year';
+          event.target.value = this.activeConfigId;
+        }
+      } catch (error) {
+        logger.error('Failed to switch active tax year:', error);
+        this.error = error.response?.data?.message || error.message || 'Failed to switch active tax year';
+        event.target.value = this.activeConfigId;
+      } finally {
+        this.activating = false;
       }
     },
 

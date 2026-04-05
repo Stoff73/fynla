@@ -330,7 +330,7 @@ describe('Savings Integration Tests', function () {
                 'access_type' => 'immediate',
                 'is_isa' => true,
                 'isa_type' => 'cash',
-                'isa_subscription_year' => '2025/26',
+                'isa_subscription_year' => '2026/27',
                 'isa_subscription_amount' => 5000,
             ]);
             $account2->assertCreated();
