@@ -72,7 +72,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
         </svg>
       </button>
-      <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+      <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
     </aside>
 
     <!-- Information Guide panel (button moved to Navbar) -->
