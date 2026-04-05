@@ -19,7 +19,7 @@
 - [x] **Deleted duplicate analyzeAssetLocation** in investmentService.js (latent defect)
 - [x] **Removed dead store code** — fetchRecommendations in 3 modules, selectedMortgage, riskLevels, hasEdits/editCount
 - [x] **CSS hex→@apply sweep** in GuideNav, LearnHubPage, PersonaSelectionModal, NetWorthOverviewCard skeleton
-- [x] **Generated deploy guide** at `April/April5Updates/deployQuickwins.md`
+- [x] **Generated deploy guide** at `April/April5Updates/deployReview.md`
 
 ### NOT Done — Outstanding
 - [ ] **Deploy PR #190 to production** — 25 PHP files + `public/build/` (deploy guide written, not yet run)
@@ -31,7 +31,7 @@
 - [ ] **Add `.claude/settings.json` to .gitignore** — tax-hook path keeps reverting between Mac/Windows dev machines
 
 ### Context for Next Session
-PR #190 (38 tech debt quick wins) is merged on main but NOT deployed. Deploy guide ready at `April/April5Updates/deployQuickwins.md` — rebuild frontend + upload 25 PHP files + clear caches. Post-deploy verification checklist included.
+PR #190 (38 tech debt quick wins) is merged on main but NOT deployed. Deploy guide ready at `April/April5Updates/deployReview.md` — rebuild frontend + upload 25 PHP files + clear caches. Post-deploy verification checklist included.
 
 Full code review report (`April/April5Updates/codeReview.md`) catalogues 52 deferred findings including god class refactors (RetirementIncomeService 2292L, IHTCalculationService 1641L), god component splits (TaxSettings 2972L, ExpenditureForm 2574L), float-to-decimal cast sweep across 12 models, FormRequest migration across 53 controllers, and 5 service test coverage gaps. Each is a dedicated session.
 
@@ -92,5 +92,5 @@ Full code review report (`April/April5Updates/codeReview.md`) catalogues 52 defe
 
 ## Deploy Status
 - **PR #189:** Deployed to fynla.org (session 35 Mac)
-- **PR #190:** Merged to main, NOT deployed — deploy guide at `April/April5Updates/deployQuickwins.md`
+- **PR #190:** Merged to main, NOT deployed — deploy guide at `April/April5Updates/deployReview.md`
 - **fynNew branch:** 25 Fyn Response Architecture commits still unmerged (parallel track)
