@@ -193,6 +193,17 @@
       @cancel="showDeleteConfirm = false"
     />
 
+    <!-- Marital Status Update Confirmation (after deleting spouse) -->
+    <ConfirmDialog
+      :show="showMaritalStatusPrompt"
+      title="Update Marital Status"
+      message="You have removed your spouse. Would you like to update your marital status to divorced?"
+      confirm-text="Yes, update to divorced"
+      cancel-text="No, keep current status"
+      @confirm="updateMaritalStatusDivorced"
+      @cancel="showMaritalStatusPrompt = false"
+    />
+
     <!-- Spouse Success Modal -->
     <SpouseSuccessModal
       :show="showSpouseSuccess"
@@ -237,6 +248,7 @@ export default {
     const showDeleteConfirm = ref(false);
     const memberToDelete = ref(null);
     const showSpouseSuccess = ref(false);
+    const showMaritalStatusPrompt = ref(false);
     const spouseCreated = ref(false);
     const spouseEmail = ref(null);
     const temporaryPassword = ref(null);
@@ -377,6 +389,17 @@ export default {
           }
         }
 
+        // Auto-update marital status to 'married' when adding a spouse
+        const isSpouseAdd = !selectedMember.value && formData.relationship === 'spouse';
+        const currentMaritalStatus = store.getters['auth/user']?.marital_status;
+        if (isSpouseAdd && currentMaritalStatus !== 'married') {
+          try {
+            await store.dispatch('userProfile/updatePersonalInfo', { marital_status: 'married' });
+          } catch (err) {
+            logger.warn('Failed to auto-update marital status:', err);
+          }
+        }
+
         if (store.state.aiFormFill?.pendingFill) {
           store.dispatch('aiFormFill/cancelFill');
         }
@@ -422,6 +445,7 @@ export default {
     const handleDelete = async () => {
       try {
         const isPreviewMode = store.getters['preview/isPreviewMode'];
+        const wasSpouse = memberToDelete.value?.relationship === 'spouse';
 
         await familyMembersService.deleteFamilyMember(memberToDelete.value.id);
         successMessage.value = isPreviewMode
@@ -432,6 +456,11 @@ export default {
         // Refresh family members list by refreshing the profile store
         await store.dispatch('userProfile/fetchProfile');
 
+        // If a spouse was deleted, prompt to update marital status
+        if (wasSpouse && !isPreviewMode) {
+          showMaritalStatusPrompt.value = true;
+        }
+
         // Clear success message after 3 seconds
         if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
         deleteSuccessTimeout = setTimeout(() => {
@@ -440,6 +469,21 @@ export default {
       } catch (error) {
         logger.error('Failed to delete family member:', error);
         showDeleteConfirm.value = false;
+      }
+    };
+
+    const updateMaritalStatusDivorced = async () => {
+      try {
+        await store.dispatch('userProfile/updatePersonalInfo', { marital_status: 'divorced' });
+        showMaritalStatusPrompt.value = false;
+        successMessage.value = 'Marital status updated to divorced.';
+        if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
+        deleteSuccessTimeout = setTimeout(() => {
+          successMessage.value = '';
+        }, 5000);
+      } catch (err) {
+        logger.error('Failed to update marital status:', err);
+        showMaritalStatusPrompt.value = false;
       }
     };
 
@@ -493,6 +537,8 @@ export default {
       closeSpouseSuccess,
       confirmDelete,
       handleDelete,
+      updateMaritalStatusDivorced,
+      showMaritalStatusPrompt,
       loadFamilyMembers,
     };
   },
