@@ -499,15 +499,14 @@
           </div>
         </DashboardCard>
 
-        <!-- Estate Planning Card — maps to 'estate' -->
+        <!-- Estate Planning Card — only shown when estate data exists -->
         <DashboardCard
-          v-if="isCardVisible('estate')"
+          v-if="isCardVisible('estate') && hasEstateData"
           title="Estate Planning"
           :loading="loading.estate"
-          :empty="!hasEstateData"
           @click="navigateTo('/estate')"
         >
-          <div v-if="hasEstateData" class="space-y-4">
+          <div class="space-y-4">
             <!-- Taxable Estate Now -->
             <div class="border-b border-light-gray pb-4">
               <div class="flex items-center gap-4">
@@ -536,16 +535,6 @@
               </div>
             </div>
 
-          </div>
-
-          <!-- Empty state when estate calculation not yet available -->
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">
-              Add your assets and liabilities to see your estate summary and Inheritance Tax position.
-            </p>
-            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              View Estate Planning
-            </router-link>
           </div>
 
           <!-- Will question when not yet answered -->
