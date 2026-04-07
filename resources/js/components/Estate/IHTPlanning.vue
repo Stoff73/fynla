@@ -170,24 +170,19 @@
             </svg>
           </div>
           <div class="space-y-2">
-            <div class="flex items-center text-xs">
-              <span class="text-neutral-500">Status:</span>
-              <span v-if="lpaRegisteredCount > 0" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white text-spring-800">
-                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
-                {{ lpaRegisteredCount }} Registered
-              </span>
-              <span v-else-if="lpaDraftCount > 0" class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-horizon-500">
-                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
-                {{ lpaDraftCount }} Draft
-              </span>
-              <span v-else class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-violet-50 text-horizon-500">
-                <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
-                None
-              </span>
+            <div v-if="lpasByType.length > 0" class="space-y-1">
+              <div v-for="lpa in lpasByType" :key="lpa.type" class="flex items-center justify-between text-xs">
+                <span class="text-neutral-500">{{ lpa.label }}</span>
+                <span :class="[
+                  'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
+                  lpa.status === 'registered' ? 'bg-spring-50 text-spring-800' : 'bg-violet-50 text-horizon-500'
+                ]">
+                  {{ lpa.statusLabel }}
+                </span>
+              </div>
             </div>
-            <div class="text-xs text-neutral-500">
-              <p v-if="lpaRegisteredCount > 0">{{ lpaRegisteredCount }} registered, {{ lpaDraftCount }} draft</p>
-              <p v-else>Appoint someone to act on your behalf</p>
+            <div v-else class="text-xs text-neutral-500">
+              <p>Appoint someone to act on your behalf</p>
             </div>
           </div>
         </div>
@@ -241,15 +236,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </div>
-          <div class="space-y-2">
-            <div class="text-xs">
-              <p class="text-neutral-500">Cover Needed:</p>
-              <p class="text-lg font-bold text-horizon-500">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</p>
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-neutral-500">Cover Needed:</span>
+              <span class="font-bold text-horizon-500">{{ formatCurrency(standardTableProps?.ihtLiability?.now || 0) }}</span>
             </div>
-            <div class="text-xs">
-              <p class="text-neutral-500">Recommended:</p>
-              <p class="text-sm font-semibold text-horizon-500">Whole of Life</p>
-              <p class="text-xs text-neutral-500 mt-1">Written in trust</p>
+            <div class="flex items-center justify-between">
+              <span class="text-neutral-500">Recommended:</span>
+              <span class="font-semibold text-horizon-500">Whole of Life (in trust)</span>
             </div>
           </div>
         </div>
@@ -267,14 +261,18 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </div>
-          <div class="space-y-2">
-            <div class="text-xs">
-              <p class="text-neutral-500">Annual Exemption:</p>
-              <p class="text-lg font-bold text-spring-700">£3,000</p>
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-neutral-500">Annual Exemption:</span>
+              <span class="font-bold text-spring-700">£3,000</span>
             </div>
-            <div class="text-xs">
-              <p class="text-neutral-500">Inheritance Tax Liability:</p>
-              <p class="text-sm font-semibold text-horizon-500">{{ formatCurrency(projection?.now?.iht_liability || 0) }}</p>
+            <div class="flex items-center justify-between">
+              <span class="text-neutral-500">Small Gift Allowance:</span>
+              <span class="font-semibold text-horizon-500">£250 per person</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-neutral-500">7-Year Potentially Exempt Transfer:</span>
+              <span class="font-semibold text-spring-700">Available</span>
             </div>
           </div>
         </div>
@@ -713,6 +711,17 @@ export default {
 
     lpaDraftCount() {
       return (this.lpas || []).filter(l => l.status === 'draft' || l.status === 'completed').length;
+    },
+
+    lpasByType() {
+      const types = { property_financial: 'Property & Financial', health_welfare: 'Health & Welfare' };
+      const statuses = { registered: 'Registered', draft: 'Draft', completed: 'Completed' };
+      return (this.lpas || []).map(lpa => ({
+        type: lpa.lpa_type,
+        label: types[lpa.lpa_type] || lpa.lpa_type,
+        status: lpa.status,
+        statusLabel: statuses[lpa.status] || lpa.status,
+      }));
     },
 
     formattedIHTLiability() {
