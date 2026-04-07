@@ -258,15 +258,16 @@ export default {
     },
 
     carryForwardYears() {
-      // Calculate carry forward from previous 3 years
+      // Calculate carry forward from previous 3 years (dynamically)
       const years = [];
 
       if (!this.mpaaTriggered) {
-        years.push(
-          { taxYear: '2024/25', available: this.getHistoricalUnused('2024/25') },
-          { taxYear: '2023/24', available: this.getHistoricalUnused('2023/24') },
-          { taxYear: '2022/23', available: this.getHistoricalUnused('2022/23') }
-        );
+        const currentYear = parseInt(getCurrentTaxYear().split('/')[0]);
+        for (let i = 1; i <= 3; i++) {
+          const y = currentYear - i;
+          const taxYear = `${y}/${String(y + 1).slice(-2)}`;
+          years.push({ taxYear, available: this.getHistoricalUnused(taxYear) });
+        }
       }
 
       return years;

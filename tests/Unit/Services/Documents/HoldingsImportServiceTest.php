@@ -22,7 +22,7 @@ it('matches sheet to existing account by type and provider', function () {
         'provider' => 'Hargreaves Lansdown',
     ]);
 
-    $service = new HoldingsImportService();
+    $service = new HoldingsImportService;
     $match = $service->findMatchingAccount($user, 'investment_holdings', [
         'account_type' => 'isa',
         'provider' => 'Hargreaves Lansdown',
@@ -35,7 +35,7 @@ it('matches sheet to existing account by type and provider', function () {
 it('returns null when no matching account found', function () {
     $user = User::factory()->create();
 
-    $service = new HoldingsImportService();
+    $service = new HoldingsImportService;
     $match = $service->findMatchingAccount($user, 'investment_holdings', [
         'account_type' => 'isa',
         'provider' => 'Vanguard',
@@ -58,7 +58,7 @@ it('diffs imported holdings against existing', function () {
         'current_value' => 5000,
     ]);
 
-    $service = new HoldingsImportService();
+    $service = new HoldingsImportService;
     $diff = $service->diffHoldings($account, [
         ['security_name' => 'Vanguard FTSE 100', 'isin' => 'IE00B810Q511', 'quantity' => 150, 'current_value' => 7500],
         ['security_name' => 'iShares Core MSCI World', 'ticker' => 'IWDA', 'quantity' => 200, 'current_value' => 12000],
@@ -87,7 +87,7 @@ it('marks unchanged holdings correctly', function () {
         'current_value' => 5000,
     ]);
 
-    $service = new HoldingsImportService();
+    $service = new HoldingsImportService;
     $diff = $service->diffHoldings($account, [
         ['security_name' => 'Vanguard FTSE 100', 'isin' => 'IE00B810Q511', 'quantity' => 100, 'current_value' => 5000],
     ]);
@@ -99,7 +99,7 @@ it('applies holdings import correctly', function () {
     $user = User::factory()->create();
     $account = InvestmentAccount::factory()->create(['user_id' => $user->id]);
 
-    $service = new HoldingsImportService();
+    $service = new HoldingsImportService;
     $result = $service->applyHoldings($account, [
         ['status' => 'add', 'security_name' => 'Test Fund', 'ticker' => 'TF', 'quantity' => 50, 'current_value' => 1000, 'asset_type' => 'fund'],
     ]);

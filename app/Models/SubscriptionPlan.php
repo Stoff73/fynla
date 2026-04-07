@@ -6,6 +6,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Subscription plan pricing tiers.
+ *
+ * Note: All price fields (monthly_price, yearly_price, launch_monthly_price,
+ * launch_yearly_price) are stored in PENCE (integer). Convert to pounds
+ * by dividing by 100 when displaying. This differs from Payment.amount
+ * and Subscription.amount which use decimal pounds (decimal:2).
+ */
 class SubscriptionPlan extends Model
 {
     protected $fillable = [

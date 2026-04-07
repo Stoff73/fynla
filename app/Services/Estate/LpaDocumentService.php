@@ -48,7 +48,7 @@ class LpaDocumentService
      */
     private function storeDocument(User $user, UploadedFile $file): Document
     {
-        $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
+        $filename = Str::uuid().'.'.($file->guessExtension() ?? $file->getClientOriginalExtension());
         $path = "documents/{$user->id}/lpa/{$filename}";
 
         Storage::disk('local')->put($path, $file->getContent());

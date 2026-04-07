@@ -694,15 +694,6 @@ textarea.form-control {
   @apply bg-raspberry-500;
 }
 
-.btn-secondary {
-  @apply bg-savannah-200;
-  @apply text-neutral-500;
-}
-
-.btn-secondary:hover {
-  @apply bg-savannah-300;
-}
-
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;

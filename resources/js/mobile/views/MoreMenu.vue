@@ -16,7 +16,7 @@
 
     <!-- Version -->
     <p class="text-center text-xs text-neutral-400">
-      Fynla v0.9.2
+      Fynla v0.9.4
     </p>
   </div>
 </template>

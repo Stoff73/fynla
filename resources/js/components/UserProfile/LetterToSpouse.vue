@@ -1378,8 +1378,8 @@ export default {
       font-weight: 600;
     }
 
-    .badge-blue { background: #dbeafe; color: #1e40af; }
-    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-blue { background: #DDE2EF; color: #1F2A44; }
+    .badge-green { background: #D1FAE5; color: #065F46; }
     .badge-purple { background: #f3e8ff; color: #7c3aed; }
     .badge-indigo { background: #e0e7ff; color: #4338ca; }
 

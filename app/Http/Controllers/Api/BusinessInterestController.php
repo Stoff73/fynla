@@ -30,8 +30,8 @@ class BusinessInterestController extends Controller
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private BusinessInterestService $businessService,
-        private NetWorthService $netWorthService
+        private readonly BusinessInterestService $businessService,
+        private readonly NetWorthService $netWorthService
     ) {}
 
     /**

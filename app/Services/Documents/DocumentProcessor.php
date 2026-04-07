@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Documents;
 
+use App\Models\DCPension;
 use App\Models\Document;
 use App\Models\DocumentExtractionLog;
-use App\Models\User;
-use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
 use App\Services\Documents\FieldMappers\DBPensionMapper;
 use App\Services\Documents\FieldMappers\DCPensionMapper;
 use App\Services\Documents\FieldMappers\FieldMapperInterface;

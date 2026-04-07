@@ -70,7 +70,7 @@
                           >
                             <svg class="w-5 h-5 text-horizon-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="stage.icon" /></svg>
                             <div>
-                              <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors" v-html="stage.menuName || stage.name"></p>
+                              <p class="text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ stage.menuName || stage.name }}</p>
                               <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">{{ stage.sub }}</p>
                             </div>
                           </router-link>

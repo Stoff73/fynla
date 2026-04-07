@@ -27,7 +27,7 @@ const apiBaseURL = isCapacitor
   : isLocal ? 'http://127.0.0.1:8000' : (import.meta.env.VITE_API_BASE_URL || window.location.origin);
 window.axios.defaults.baseURL = apiBaseURL;
 
-if (isCapacitor) {
+if (isCapacitor && import.meta.env.DEV) {
   console.log('[Capacitor] API base URL:', apiBaseURL);
 }
 

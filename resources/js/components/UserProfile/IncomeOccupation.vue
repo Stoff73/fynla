@@ -1,10 +1,10 @@
 <template>
   <div class="space-y-6">
     <!-- Success Message -->
-    <div v-if="successMessage" class="rounded-md bg-success-50 p-4">
+    <div v-if="successMessage" class="rounded-md bg-spring-50 p-4">
       <div class="flex">
         <div class="ml-3">
-          <p class="text-body-sm font-medium text-success-800">
+          <p class="text-body-sm font-medium text-spring-800">
             {{ successMessage }}
           </p>
         </div>
@@ -24,16 +24,16 @@
     </div>
 
     <!-- Income Needs Update Banner -->
-    <div v-if="incomeNeedsUpdate" class="rounded-md bg-blue-50 border border-blue-200 p-4">
+    <div v-if="incomeNeedsUpdate" class="rounded-md bg-light-blue-100 border border-horizon-200 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-horizon-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-body-sm font-medium text-blue-800">Employment Status Changed</h3>
-          <div class="mt-1 text-body-sm text-blue-700">
+          <h3 class="text-body-sm font-medium text-horizon-600">Employment Status Changed</h3>
+          <div class="mt-1 text-body-sm text-horizon-500">
             <p>
               You recently changed your employment status{{ previousStatusLabel ? ` from ${previousStatusLabel}` : '' }}.
               Please update your income below to reflect your current earnings.
@@ -43,7 +43,7 @@
             <button
               type="button"
               @click="isEditing = true"
-              class="text-body-sm font-medium text-blue-800 underline hover:text-blue-900"
+              class="text-body-sm font-medium text-horizon-600 underline hover:text-horizon-700"
             >
               Update income now
             </button>
@@ -155,18 +155,18 @@
                 </div>
 
                 <!-- HICBC Warning -->
-                <div v-if="hicbcApplies" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div v-if="hicbcApplies" class="mt-4 p-3 bg-light-blue-100 border border-horizon-200 rounded-lg">
                   <div class="flex items-start">
-                    <svg class="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <svg class="h-5 w-5 text-horizon-400 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
                     </svg>
                     <div class="ml-2">
-                      <p class="text-body-sm font-medium text-blue-800">High Income Child Benefit Charge</p>
-                      <p class="text-body-xs text-blue-700 mt-1">
-                        Your income exceeds {{ formatCurrency(60000) }}. You may need to pay back
+                      <p class="text-body-sm font-medium text-horizon-600">High Income Child Benefit Charge</p>
+                      <p class="text-body-xs text-horizon-500 mt-1">
+                        Your income exceeds {{ formatCurrency(HICBC_THRESHOLD) }}. You may need to pay back
                         <strong>{{ hicbcClawbackPercentage }}%</strong> of your Child Benefit ({{ formatCurrency(hicbcCharge) }}/year) through Self Assessment.
                       </p>
-                      <p class="text-body-xs text-blue-700 mt-1">
+                      <p class="text-body-xs text-horizon-500 mt-1">
                         Net Child Benefit after HICBC: <strong>{{ formatCurrency(hicbcNetBenefit) }}/year</strong>
                       </p>
                     </div>
@@ -399,8 +399,8 @@
           </div>
 
           <!-- Info Note -->
-          <div class="mt-4 p-3 bg-blue-100 rounded-lg">
-            <p class="text-body-xs text-blue-800">
+          <div class="mt-4 p-3 bg-light-blue-100 rounded-lg">
+            <p class="text-body-xs text-horizon-600">
               <strong>Note:</strong> Tax calculations use {{ detailedTaxBreakdown.tax_year }} UK tax rates.
               Income is taxed in priority order: employment income uses the Personal Allowance first,
               with other income types taxed at remaining band positions.
@@ -422,6 +422,7 @@ import TaxIncomeCard from './TaxIncomeCard.vue';
 import IncomeDefinitionsPanel from './IncomeDefinitionsPanel.vue';
 import { formatCurrency } from '@/utils/currency';
 import { CHART_COLORS } from '@/constants/designSystem';
+import { HICBC_THRESHOLD } from '@/constants/taxConfig';
 import api from '@/services/api';
 
 import logger from '@/utils/logger';
@@ -575,7 +576,7 @@ export default {
     });
 
     const disposableIncomeClass = computed(() => {
-      return disposableIncome.value >= 0 ? 'bg-green-50' : 'bg-red-50';
+      return disposableIncome.value >= 0 ? 'bg-spring-50' : 'bg-raspberry-50';
     });
 
     // Initialize form from incomeOccupation
@@ -721,6 +722,7 @@ export default {
       handleSubmit,
       handleCancel,
       formatCurrency,
+      HICBC_THRESHOLD,
     };
   },
 };

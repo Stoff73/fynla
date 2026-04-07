@@ -40,7 +40,7 @@ class AiAuditController extends Controller
         $users->getCollection()->transform(function ($user) {
             return [
                 'id' => $user->id,
-                'name' => trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')),
+                'name' => trim(($user->first_name ?? '').' '.($user->surname ?? '')),
                 'email' => $user->email,
                 'is_preview_user' => (bool) $user->is_preview_user,
                 'conversation_count' => (int) $user->conversation_count,
@@ -83,7 +83,7 @@ class AiAuditController extends Controller
             'data' => [
                 'user' => [
                     'id' => $user->id,
-                    'name' => trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')),
+                    'name' => trim(($user->first_name ?? '').' '.($user->surname ?? '')),
                     'email' => $user->email,
                 ],
                 'conversations' => $conversations,
@@ -127,7 +127,7 @@ class AiAuditController extends Controller
                     'title' => $conversation->title,
                     'user' => [
                         'id' => $user->id,
-                        'name' => trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')),
+                        'name' => trim(($user->first_name ?? '').' '.($user->surname ?? '')),
                         'email' => $user->email,
                     ],
                     'model_used' => $conversation->model_used,

@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Crypt;
  */
 class CashAccount extends Model
 {
-    use HasFactory, HasJointOwnership, SoftDeletes, Auditable;
+    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
 
     protected $fillable = [
         'user_id',

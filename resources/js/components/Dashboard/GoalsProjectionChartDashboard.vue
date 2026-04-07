@@ -476,6 +476,6 @@ export default {
 
 /* Light blue hover on bar chart bars */
 :deep(.apexcharts-bar-area:hover) {
-  fill: #DDE2EF !important;
+  fill: theme('colors.light-blue.100') !important;
 }
 </style>

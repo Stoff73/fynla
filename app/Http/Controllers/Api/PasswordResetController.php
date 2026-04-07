@@ -16,7 +16,7 @@ class PasswordResetController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private PasswordResetService $passwordResetService
+        private readonly PasswordResetService $passwordResetService
     ) {}
 
     /**

@@ -221,7 +221,7 @@ import authService from '@/services/authService';
 import { hasConsent, acceptCookies } from '@/utils/cookieConsent';
 
 export default {
-  name: 'Register',
+  name: 'RegisterView',
 
   components: {
     VerificationCodeModal,

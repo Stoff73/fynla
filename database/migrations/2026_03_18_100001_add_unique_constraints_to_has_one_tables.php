@@ -19,7 +19,7 @@ return new class extends Migration
 
         foreach ($tables as $tableName) {
             if (Schema::hasTable($tableName)) {
-                $indexName = $tableName . '_user_id_unique';
+                $indexName = $tableName.'_user_id_unique';
                 // Check if unique index already exists by trying to add it
                 try {
                     Schema::table($tableName, function (Blueprint $table) use ($indexName) {
@@ -45,7 +45,7 @@ return new class extends Migration
 
         foreach ($tables as $tableName) {
             if (Schema::hasTable($tableName)) {
-                $indexName = $tableName . '_user_id_unique';
+                $indexName = $tableName.'_user_id_unique';
                 try {
                     Schema::table($tableName, function (Blueprint $table) use ($indexName) {
                         $table->dropUnique($indexName);

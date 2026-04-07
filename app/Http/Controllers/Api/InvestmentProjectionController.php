@@ -15,7 +15,7 @@ class InvestmentProjectionController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private InvestmentAgent $investmentAgent
+        private readonly InvestmentAgent $investmentAgent
     ) {}
 
     /**

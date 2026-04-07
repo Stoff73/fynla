@@ -12,7 +12,6 @@ use App\Services\Investment\ModelPortfolio\FundSelector;
 use App\Services\Investment\ModelPortfolio\ModelPortfolioBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Model Portfolio Controller
@@ -100,19 +99,9 @@ class ModelPortfolioController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'risk_level' => 'required|integer|min:1|max:5',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             // Get user's current holdings
@@ -153,20 +142,10 @@ class ModelPortfolioController extends Controller
      */
     public function optimizeByAge(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'age' => 'required|integer|min:18|max:100',
             'rule' => 'nullable|in:100_minus_age,110_minus_age,120_minus_age',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->optimizer->optimizeByAge(
@@ -190,21 +169,11 @@ class ModelPortfolioController extends Controller
      */
     public function optimizeByTimeHorizon(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'years' => 'required|integer|min:1|max:50',
             'target_value' => 'required|numeric|min:0',
             'current_value' => 'required|numeric|min:0',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->optimizer->optimizeByTimeHorizon(
@@ -229,19 +198,9 @@ class ModelPortfolioController extends Controller
      */
     public function getGlidePath(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'years_to_retirement' => 'required|integer|min:0|max:50',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->optimizer->getGlidePathAllocation($validated['years_to_retirement']);
@@ -262,22 +221,12 @@ class ModelPortfolioController extends Controller
      */
     public function getFundRecommendations(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'equities' => 'required|numeric|min:0|max:100',
             'bonds' => 'required|numeric|min:0|max:100',
             'cash' => 'required|numeric|min:0|max:100',
             'alternatives' => 'required|numeric|min:0|max:100',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         $total = $validated['equities'] + $validated['bonds'] + $validated['cash'] + $validated['alternatives'];
 

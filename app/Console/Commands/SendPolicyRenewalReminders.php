@@ -56,11 +56,9 @@ class SendPolicyRenewalReminders extends Command
                     DB::raw('DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR)'),
                     [$today, $thirtyDaysFromNow]
                 )
-                ->select(
-                    'user_id',
-                    DB::raw("COALESCE(provider, '{$defaultName}') as policy_name"),
-                    DB::raw('DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR) as renewal_date')
-                )
+                ->select('user_id')
+                ->selectRaw('COALESCE(provider, ?) as policy_name', [$defaultName])
+                ->selectRaw('DATE_ADD(policy_start_date, INTERVAL policy_term_years YEAR) as renewal_date')
                 ->get();
 
             $count += $this->sendReminders($renewals, $pushService);

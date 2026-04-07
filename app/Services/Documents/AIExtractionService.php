@@ -244,7 +244,7 @@ class AIExtractionService
         if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('xAI API error: ' . $errorMessage);
+            throw new RuntimeException('xAI API error: '.$errorMessage);
         }
 
         $json = $response->json();
@@ -295,7 +295,7 @@ class AIExtractionService
         if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('Claude API error: ' . $errorMessage);
+            throw new RuntimeException('Claude API error: '.$errorMessage);
         }
 
         return $response->json();
@@ -331,7 +331,7 @@ class AIExtractionService
             if (! $response->successful()) {
                 $errorBody = $response->json();
                 $errorMessage = $errorBody['error']['message'] ?? $response->body();
-                throw new RuntimeException('xAI API error: ' . $errorMessage);
+                throw new RuntimeException('xAI API error: '.$errorMessage);
             }
 
             $json = $response->json();
@@ -367,7 +367,7 @@ class AIExtractionService
         if (! $response->successful()) {
             $errorBody = $response->json();
             $errorMessage = $errorBody['error']['message'] ?? $response->body();
-            throw new RuntimeException('Claude API error: ' . $errorMessage);
+            throw new RuntimeException('Claude API error: '.$errorMessage);
         }
 
         return $response->json();

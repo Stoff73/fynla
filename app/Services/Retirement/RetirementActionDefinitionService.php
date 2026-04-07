@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
-use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 
@@ -521,7 +521,7 @@ class RetirementActionDefinitionService
 
         // Step 4: Tax position and relief rate
         $taxBands = $this->taxConfig->get('income_tax.bands') ?? [];
-        $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? 12570);
+        $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? TaxDefaults::PERSONAL_ALLOWANCE);
         $incomeTaxBands = $this->taxConfig->getIncomeTax();
         $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
         $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
@@ -547,7 +547,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 5: Annual Allowance position
-        $annualAllowance = (float) ($analysisData['annual_allowance']['standard_allowance'] ?? $this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
+        $annualAllowance = (float) ($analysisData['annual_allowance']['standard_allowance'] ?? $this->taxConfig->getPensionAllowances()['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE);
         $usedAllowance = (float) ($analysisData['annual_allowance']['allowance_used'] ?? $analysisData['annual_allowance']['total_contributions'] ?? 0);
         $remainingAllowance = (float) ($analysisData['annual_allowance']['remaining_allowance'] ?? 0);
         $carryForward = (float) ($analysisData['annual_allowance']['carry_forward_available'] ?? 0);
@@ -660,7 +660,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 2: Tax band determination
-        $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? 12570);
+        $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? TaxDefaults::PERSONAL_ALLOWANCE);
         $incomeTaxBands = $this->taxConfig->getIncomeTax();
         $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
         $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
@@ -717,7 +717,7 @@ class RetirementActionDefinitionService
 
         // Step 5: Annual Allowance headroom
         $pensionConfig = $this->taxConfig->getPensionAllowances();
-        $annualAllowance = (float) ($pensionConfig['annual_allowance'] ?? 60000);
+        $annualAllowance = (float) ($pensionConfig['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE);
         $remainingAllowance = max(0, $annualAllowance - $totalCurrentContributions);
 
         $trace[] = [
@@ -830,7 +830,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 3: Annual Allowance position
-        $annualAllowance = (float) ($analysisData['annual_allowance']['standard_allowance'] ?? $this->taxConfig->getPensionAllowances()['annual_allowance'] ?? 60000);
+        $annualAllowance = (float) ($analysisData['annual_allowance']['standard_allowance'] ?? $this->taxConfig->getPensionAllowances()['annual_allowance'] ?? TaxDefaults::PENSION_ANNUAL_ALLOWANCE);
         $usedAllowance = (float) ($analysisData['annual_allowance']['allowance_used'] ?? $analysisData['annual_allowance']['total_contributions'] ?? 0);
         $isTapered = $analysisData['annual_allowance']['is_tapered'] ?? false;
         $carryForward = (float) ($analysisData['annual_allowance']['carry_forward_available'] ?? 0);

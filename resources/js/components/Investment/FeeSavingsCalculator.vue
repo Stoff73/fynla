@@ -309,9 +309,12 @@
 
 <script>
 import { ERROR_COLORS, SUCCESS_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'FeeSavingsCalculator',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -467,11 +470,6 @@ export default {
         this.calculator.alternativeFee = 0.2;
       }
       this.calculateSavings();
-    },
-
-    formatNumber(value) {
-      if (!value && value !== 0) return '0';
-      return Math.round(value).toLocaleString('en-GB');
     },
 
     formatPercent(value) {

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMortgageRequest;
 use App\Http\Requests\UpdateMortgageRequest;
+use App\Http\Resources\MortgageResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Mortgage;
 use App\Models\Property;
@@ -58,12 +59,11 @@ class MortgageController extends Controller
 
         // Add calculated fields for each mortgage
         $mortgages = $mortgages->map(function ($mortgage) use ($user) {
-            $mortgageData = $mortgage->toArray();
-            $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-            $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
-            $mortgageData['is_primary_owner'] = $this->isPrimaryOwner($mortgage, $user->id);
-
-            return $mortgageData;
+            return (new MortgageResource($mortgage))->additional([
+                'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
+                'full_balance' => (float) $mortgage->outstanding_balance,
+                'is_primary_owner' => $this->isPrimaryOwner($mortgage, $user->id),
+            ]);
         });
 
         return response()->json([
@@ -149,17 +149,17 @@ class MortgageController extends Controller
         ]);
 
         // Add calculated fields to response
-        $mortgageData = $mortgage->toArray();
-        $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-        $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
-        $mortgageData['is_primary_owner'] = true;
-
+        $mortgageResource = (new MortgageResource($mortgage))->additional([
+            'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
+            'full_balance' => (float) $mortgage->outstanding_balance,
+            'is_primary_owner' => true,
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Mortgage added successfully',
             'data' => [
-                'mortgage' => $mortgageData,
+                'mortgage' => $mortgageResource,
             ],
         ], 201);
     }
@@ -184,15 +184,16 @@ class MortgageController extends Controller
             ->with('property')
             ->firstOrFail();
 
-        $mortgageData = $mortgage->toArray();
-        $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-        $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
-        $mortgageData['is_primary_owner'] = $this->isPrimaryOwner($mortgage, $user->id);
+        $mortgageResource = (new MortgageResource($mortgage))->additional([
+            'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
+            'full_balance' => (float) $mortgage->outstanding_balance,
+            'is_primary_owner' => $this->isPrimaryOwner($mortgage, $user->id),
+        ]);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'mortgage' => $mortgageData,
+                'mortgage' => $mortgageResource,
             ],
         ]);
     }
@@ -259,17 +260,17 @@ class MortgageController extends Controller
         $mortgage->update($validated);
 
         // Add calculated fields to response
-        $mortgageData = $mortgage->toArray();
-        $mortgageData['user_share'] = $this->calculateUserMortgageShare($mortgage, $user->id);
-        $mortgageData['full_balance'] = (float) $mortgage->outstanding_balance;
-        $mortgageData['is_primary_owner'] = true;
-
+        $mortgageResource = (new MortgageResource($mortgage))->additional([
+            'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
+            'full_balance' => (float) $mortgage->outstanding_balance,
+            'is_primary_owner' => true,
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Mortgage updated successfully',
             'data' => [
-                'mortgage' => $mortgageData,
+                'mortgage' => $mortgageResource,
             ],
         ]);
     }
@@ -297,7 +298,6 @@ class MortgageController extends Controller
 
         // Single-record pattern: Just delete the one record
         $mortgage->delete();
-
 
         return response()->json([
             'success' => true,

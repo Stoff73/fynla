@@ -20,7 +20,7 @@ class ContactFormController extends Controller
 
     public function submit(Request $request): JsonResponse
     {
-        $key = 'contact-form:' . $request->ip();
+        $key = 'contact-form:'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($key, 3)) {
             return response()->json([
@@ -44,10 +44,10 @@ class ContactFormController extends Controller
         ];
 
         Mail::raw(
-            "New contact form submission\n\n" .
-            "Name: {$validated['name']}\n" .
-            "Email: {$validated['email']}\n" .
-            "Reason: {$reasonLabels[$validated['reason']]}\n\n" .
+            "New contact form submission\n\n".
+            "Name: {$validated['name']}\n".
+            "Email: {$validated['email']}\n".
+            "Reason: {$reasonLabels[$validated['reason']]}\n\n".
             "Message:\n{$validated['message']}",
             function ($mail) use ($toEmail, $validated, $reasonLabels) {
                 $mail->to($toEmail)

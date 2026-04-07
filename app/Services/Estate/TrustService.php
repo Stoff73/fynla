@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\ActuarialLifeTable;
 use App\Models\Estate\Trust;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -340,8 +341,7 @@ class TrustService
     {
         // Use actuarial tables when gender is available
         if ($gender) {
-            $actuarialExpectancy = \DB::table('actuarial_life_tables')
-                ->where('gender', $gender)
+            $actuarialExpectancy = ActuarialLifeTable::where('gender', $gender)
                 ->where('age', '<=', $age)
                 ->where('table_year', '2020-2022')
                 ->orderBy('age', 'desc')

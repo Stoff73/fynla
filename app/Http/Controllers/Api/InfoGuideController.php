@@ -21,7 +21,7 @@ class InfoGuideController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private ModuleDataRequirementsService $requirementsService
+        private readonly ModuleDataRequirementsService $requirementsService
     ) {}
 
     /**

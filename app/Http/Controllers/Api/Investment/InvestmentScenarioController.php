@@ -10,7 +10,6 @@ use App\Models\Investment\InvestmentScenario;
 use App\Services\Investment\ScenarioService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class InvestmentScenarioController extends Controller
 {
@@ -88,23 +87,13 @@ class InvestmentScenarioController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $data = $request->validate([
             'scenario_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'scenario_type' => 'required|string|in:custom,template,comparison',
             'template_name' => 'nullable|string',
             'parameters' => 'required|array',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $data = $validator->validated();
 
         try {
             $scenario = $this->scenarioService->createScenario(
@@ -144,21 +133,13 @@ class InvestmentScenarioController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'scenario_name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'parameters' => 'sometimes|array',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $scenario->update($validator->validated());
+        $scenario->update($validated);
 
         return response()->json([
             'success' => true,
@@ -257,23 +238,15 @@ class InvestmentScenarioController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'scenario_ids' => 'required|array|min:2',
             'scenario_ids.*' => 'integer|exists:investment_scenarios,id',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
             $comparison = $this->scenarioService->compareScenarios(
                 $user->id,
-                $request->input('scenario_ids')
+                $validated['scenario_ids']
             );
 
             return response()->json([

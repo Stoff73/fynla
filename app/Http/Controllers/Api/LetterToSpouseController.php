@@ -16,7 +16,7 @@ class LetterToSpouseController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private LetterToSpouseService $letterService
+        private readonly LetterToSpouseService $letterService
     ) {}
 
     /**

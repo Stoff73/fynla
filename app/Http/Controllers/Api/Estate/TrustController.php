@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Estate\TrustResource;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\IHTCalculationService;
 use App\Services\Estate\TrustService;
-use App\Services\Cache\CacheInvalidationService;
 use App\Services\TaxConfigService;
 use App\Services\Trust\IHTPeriodicChargeCalculator;
 use App\Services\Trust\TrustAssetAggregatorService;
@@ -23,11 +24,11 @@ use Illuminate\Http\Request;
 class TrustController extends Controller
 {
     public function __construct(
-        private TrustService $trustService,
-        private TrustAssetAggregatorService $trustAssetAggregator,
-        private IHTPeriodicChargeCalculator $periodicChargeCalculator,
-        private IHTCalculationService $ihtCalculationService,
-        private TaxConfigService $taxConfig,
+        private readonly TrustService $trustService,
+        private readonly TrustAssetAggregatorService $trustAssetAggregator,
+        private readonly IHTPeriodicChargeCalculator $periodicChargeCalculator,
+        private readonly IHTCalculationService $ihtCalculationService,
+        private readonly TaxConfigService $taxConfig,
         private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
@@ -83,7 +84,7 @@ class TrustController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Trust created successfully',
-            'data' => $trust,
+            'data' => new TrustResource($trust),
         ], 201);
     }
 
@@ -124,7 +125,7 @@ class TrustController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Trust updated successfully',
-            'data' => $trust->fresh(),
+            'data' => new TrustResource($trust->fresh()),
         ]);
     }
 

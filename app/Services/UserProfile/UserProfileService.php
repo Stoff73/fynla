@@ -55,7 +55,7 @@ class UserProfileService
                 'age' => $user->date_of_birth?->age,
                 'gender' => $user->gender,
                 'marital_status' => $user->marital_status,
-                'national_insurance_number' => $user->national_insurance_number ? '***' . substr($user->national_insurance_number, -4) : null,
+                'national_insurance_number' => $user->national_insurance_number ? '***'.substr($user->national_insurance_number, -4) : null,
                 'address' => [
                     'line_1' => $user->address_line_1,
                     'line_2' => $user->address_line_2,
@@ -604,7 +604,7 @@ class UserProfileService
                     'name' => $spouseUser->name,
                     'date_of_birth' => $spouseUser->date_of_birth?->format('Y-m-d'),
                     'gender' => $spouseUser->gender,
-                    'national_insurance_number' => $spouseUser->national_insurance_number ? '***' . substr($spouseUser->national_insurance_number, -4) : null,
+                    'national_insurance_number' => $spouseUser->national_insurance_number ? '***'.substr($spouseUser->national_insurance_number, -4) : null,
                     'annual_income' => $spouseUser->annual_employment_income,
                     'is_dependent' => false,
                     'notes' => null,

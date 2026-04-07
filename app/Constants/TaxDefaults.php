@@ -127,6 +127,13 @@ final class TaxDefaults
      */
     public const PERSONAL_ALLOWANCE_TAPER = 100000;
 
+    // ==================== National Insurance (2026/27) ====================
+
+    /**
+     * National Insurance Class 1 employee primary threshold.
+     */
+    public const NI_PRIMARY_THRESHOLD = 12570;
+
     // ==================== Capital Gains Tax (2026/27) ====================
 
     /**

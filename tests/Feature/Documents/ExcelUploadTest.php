@@ -43,7 +43,7 @@ it('accepts xlsx file type in validation', function () {
     $this->actingAs($user, 'sanctum');
 
     // Create a minimal xlsx using PhpSpreadsheet
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('ISA');
     $sheet->setCellValue('A1', 'Security Name');

@@ -169,8 +169,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'CGTHarvestingOpportunities',
+
+  mixins: [currencyMixin],
 
   emits: ['refresh'],
 
@@ -182,11 +186,6 @@ export default {
   },
 
   methods: {
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     getPriorityClass(priority) {
       const classes = {
         high: 'bg-raspberry-500 text-white',

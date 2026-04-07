@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ContactFormController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
 use App\Http\Controllers\Api\ChattelController;
+use App\Http\Controllers\Api\ContactFormController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\Estate\GiftingController;
@@ -1110,6 +1110,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])
 // config is exposed here (that stays behind permission:admin.tax_config below).
 Route::middleware('auth:sanctum')->get('tax-year/current', function () {
     $taxConfig = app(\App\Services\TaxConfigService::class);
+
     return response()->json([
         'success' => true,
         'data' => [

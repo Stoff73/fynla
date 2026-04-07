@@ -4,21 +4,6 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
-use App\Models\AiConversation;
-use App\Models\AiMessage;
-use App\Models\Property;
-use App\Models\User;
-use App\Constants\TaxDefaults;
-use App\Services\AI\KycGateChecker;
-use App\Services\AI\QueryClassifier;
-use App\Services\AI\SystemPromptBuilder;
-use App\Services\AI\XaiClient;
-use App\Services\AI\XaiToolDefinitions;
-use App\Services\PrerequisiteGateService;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-
-// Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use Anthropic\Client as AnthropicClient;
 use Anthropic\Messages\InputJSONDelta;
 use Anthropic\Messages\RawContentBlockDeltaEvent;
@@ -29,6 +14,18 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
+use App\Models\AiConversation;
+// Anthropic SDK imports — only used when AI_PROVIDER=anthropic
+use App\Models\AiMessage;
+use App\Models\User;
+use App\Services\AI\KycGateChecker;
+use App\Services\AI\QueryClassifier;
+use App\Services\AI\SystemPromptBuilder;
+use App\Services\AI\XaiClient;
+use App\Services\AI\XaiToolDefinitions;
+use App\Services\PrerequisiteGateService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Provides AI chat capabilities: streaming completion, prompt building,
@@ -686,5 +683,4 @@ trait HasAiChat
 
         return implode(', ', $parts) ?: 'processed';
     }
-
 }

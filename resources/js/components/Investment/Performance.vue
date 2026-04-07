@@ -133,7 +133,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Performance',
+  name: 'InvestmentPerformance',
 
   emits: ['navigate-to-tab'],
 

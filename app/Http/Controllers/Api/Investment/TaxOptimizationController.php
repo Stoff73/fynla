@@ -13,7 +13,6 @@ use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Tax Optimization Controller
@@ -39,19 +38,9 @@ class TaxOptimizationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'tax_year' => 'nullable|string|regex:/^\d{4}\/\d{2}$/',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $cacheKey = "tax_optimization_analysis_{$user->id}_".
@@ -86,23 +75,13 @@ class TaxOptimizationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'available_funds' => 'nullable|numeric|min:0',
             'monthly_contribution' => 'nullable|numeric|min:0',
             'expected_return' => 'nullable|numeric|min:0|max:1',
             'dividend_yield' => 'nullable|numeric|min:0|max:1',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->isaOptimizer->calculateOptimalStrategy($user->id, $validated);
@@ -129,22 +108,12 @@ class TaxOptimizationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'cgt_allowance' => 'nullable|numeric|min:0',
             'expected_gains' => 'nullable|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
             'loss_carryforward' => 'nullable|numeric|min:0',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->cgtHarvester->calculateHarvestingOpportunities($user->id, $validated);
@@ -167,21 +136,11 @@ class TaxOptimizationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'cgt_allowance' => 'nullable|numeric|min:0',
             'isa_allowance_remaining' => 'nullable|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->bedAndISACalculator->calculateOpportunities($user->id, $validated);
@@ -244,20 +203,10 @@ class TaxOptimizationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'priority' => 'nullable|in:high,medium,low',
             'type' => 'nullable|in:isa,cgt,bed_and_isa,dividend',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $cacheKey = "tax_recommendations_{$user->id}_".
@@ -319,23 +268,13 @@ class TaxOptimizationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'isa_contribution' => 'nullable|numeric|min:0',
             'harvest_losses' => 'nullable|numeric|min:0',
             'bed_and_isa_transfer' => 'nullable|numeric|min:0',
             'expected_return' => 'nullable|numeric|min:0|max:1',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $expectedReturn = $validated['expected_return'] ?? 0.06;

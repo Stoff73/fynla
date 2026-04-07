@@ -17,9 +17,12 @@ class RiskProfileFactory extends Factory
 
     public function definition(): array
     {
+        $riskTolerance = fake()->randomElement(['cautious', 'balanced', 'adventurous']);
+
         return [
             'user_id' => User::factory(),
-            'risk_tolerance' => fake()->randomElement(['cautious', 'balanced', 'adventurous']),
+            'risk_tolerance' => $riskTolerance,
+            'risk_level' => fake()->randomElement(['low', 'medium_low', 'medium', 'medium_high', 'high']),
             'capacity_for_loss_percent' => fake()->randomFloat(2, 10, 50),
             'time_horizon_years' => fake()->numberBetween(5, 40),
             'knowledge_level' => fake()->randomElement(['novice', 'intermediate', 'experienced']),
@@ -29,7 +32,10 @@ class RiskProfileFactory extends Factory
                 'Comfortable with moderate fluctuations',
                 'Comfortable with significant fluctuations',
             ]),
-            'esg_preference' => fake()->boolean(40), // 40% chance of true
+            'esg_preference' => fake()->boolean(40),
+            'risk_assessed_at' => fake()->dateTimeBetween('-1 year', 'now'),
+            'is_self_assessed' => fake()->boolean(80),
+            'factor_breakdown' => null,
         ];
     }
 

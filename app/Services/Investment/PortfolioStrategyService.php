@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Investment;
 
 use App\Constants\InvestmentDefaults;
+use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
@@ -545,8 +546,8 @@ class PortfolioStrategyService
 
         // Get tax bands from config
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
-        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
 
         if ($totalIncome >= $additionalRateThreshold) {
             return 'additional';

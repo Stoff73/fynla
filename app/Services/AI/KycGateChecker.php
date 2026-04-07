@@ -220,7 +220,7 @@ class KycGateChecker
             $label = is_array($item) ? $item['label'] : $item;
             $route = is_array($item) ? ($item['route'] ?? null) : null;
 
-            $missingLines[] = "- {$label}" . ($route ? " → navigate to {$route}" : '');
+            $missingLines[] = "- {$label}".($route ? " → navigate to {$route}" : '');
 
             if ($route && ! isset($seenRoutes[$route])) {
                 $seenRoutes[$route] = true;

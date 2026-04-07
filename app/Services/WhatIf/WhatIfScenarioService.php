@@ -54,7 +54,7 @@ class WhatIfScenarioService
      * Determine which modules are affected by the given parameters.
      *
      * @param  array<string, mixed>  $parameters  Scenario parameter key-value pairs
-     * @return array<int, string>  List of affected module names
+     * @return array<int, string> List of affected module names
      */
     public function detectAffectedModules(array $parameters): array
     {
@@ -90,7 +90,7 @@ class WhatIfScenarioService
 
         foreach ($affectedModules as $module) {
             $agent = $this->getAgentForModule($module);
-            if (!$agent) {
+            if (! $agent) {
                 continue;
             }
 
@@ -143,7 +143,7 @@ class WhatIfScenarioService
      *
      * @param  User  $user  The user creating the scenario
      * @param  array{name: string, scenario_type?: string, parameters: array, affected_modules?: array, created_via?: string, ai_narrative?: string}  $data
-     * @return array  Comparison result with scenario_id
+     * @return array Comparison result with scenario_id
      */
     public function createScenario(User $user, array $data): array
     {
@@ -187,7 +187,7 @@ class WhatIfScenarioService
      *
      * @param  array  $analysis  Raw agent analysis result
      * @param  string  $module  Module name
-     * @return array<string, mixed>  Extracted metric key-value pairs
+     * @return array<string, mixed> Extracted metric key-value pairs
      */
     private function extractMetrics(array $analysis, string $module): array
     {
@@ -233,7 +233,7 @@ class WhatIfScenarioService
      *
      * @param  User  $user  The user model to modify
      * @param  array<string, mixed>  $parameters  Override parameters
-     * @return array<string, mixed>  Original values keyed by field name
+     * @return array<string, mixed> Original values keyed by field name
      */
     private function applyOverrides(User $user, array $parameters): array
     {

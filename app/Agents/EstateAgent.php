@@ -70,7 +70,7 @@ class EstateAgent extends BaseAgent
             'gifts',
         ])->find($userId);
 
-        if (!$user) {
+        if (! $user) {
             return $this->response(false, 'User not found', []);
         }
 
@@ -103,7 +103,7 @@ class EstateAgent extends BaseAgent
             // Load all life insurance policies in a single query and filter in-memory
             $allLifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
             $lifePoliciesInTrust = $allLifePolicies->where('in_trust', true);
-            $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => !$p->in_trust);
+            $lifePoliciesNotInTrust = $allLifePolicies->filter(fn ($p) => ! $p->in_trust);
 
             $spouseLifeCoverInTrust = 0;
             if ($user->spouse) {

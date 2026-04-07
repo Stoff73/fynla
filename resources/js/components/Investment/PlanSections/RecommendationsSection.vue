@@ -196,8 +196,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'RecommendationsSection',
+
+  mixins: [currencyMixin],
 
   props: {
     data: {
@@ -244,11 +248,6 @@ export default {
   },
 
   methods: {
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     resetFilters() {
       this.categoryFilter = '';
       this.priorityFilter = '';

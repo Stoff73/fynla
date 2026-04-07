@@ -7,7 +7,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\PersonalAccount;
 use App\Models\Property;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 beforeEach(function () {
     // Ensure TaxConfiguration exists for the PersonalAccountsService tax calculations

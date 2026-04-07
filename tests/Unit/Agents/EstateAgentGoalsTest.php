@@ -45,7 +45,7 @@ beforeEach(function () {
     ])->byDefault();
 
     // Asset aggregator returns empty collection & zero liabilities
-    $this->assetAggregator->shouldReceive('gatherUserAssets')->andReturn(new Collection())->byDefault();
+    $this->assetAggregator->shouldReceive('gatherUserAssets')->andReturn(new Collection)->byDefault();
     $this->assetAggregator->shouldReceive('calculateUserLiabilities')->andReturn(0)->byDefault();
 
     // IHT calculator returns minimal result

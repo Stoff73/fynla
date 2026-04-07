@@ -6,9 +6,9 @@ namespace App\Services\Retirement;
 
 use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
-use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\PortfolioAnalyzer;
+use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use Illuminate\Support\Collection;
 
 /**

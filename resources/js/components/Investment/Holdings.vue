@@ -115,7 +115,7 @@ import HoldingForm from './HoldingForm.vue';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Holdings',
+  name: 'InvestmentHoldings',
 
   emits: ['clear-filter'],
 

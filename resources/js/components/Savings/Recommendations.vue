@@ -55,7 +55,7 @@
 import { mapState } from 'vuex';
 
 export default {
-  name: 'Recommendations',
+  name: 'SavingsRecommendations',
 
   computed: {
     ...mapState('savings', ['recommendations']),

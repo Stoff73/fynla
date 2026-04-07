@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use App\Services\AI\XaiClient;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
+use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
@@ -19,10 +22,6 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
-use App\Models\BusinessInterest;
-use App\Models\Chattel;
-use App\Models\Estate\Trust;
-use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -638,8 +637,13 @@ class CoordinatingAgent extends BaseAgent
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
-            if ($v === 'null') return null;
-            if (is_string($v)) return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($v === 'null') {
+                return null;
+            }
+            if (is_string($v)) {
+                return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+
             return $v;
         }, $input);
 
@@ -775,6 +779,7 @@ class CoordinatingAgent extends BaseAgent
                         $fields['total_balance'] = $total;
                         $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
                     }
+
                     return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => $total, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate], $fields);
                 })->toArray();
                 break;
@@ -787,6 +792,7 @@ class CoordinatingAgent extends BaseAgent
                         $fields['total_value'] = $total;
                         $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
                     }
+
                     return array_merge(['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => $total, 'holdings_count' => $a->holdings()->count()], $fields);
                 })->toArray();
                 break;
@@ -813,6 +819,7 @@ class CoordinatingAgent extends BaseAgent
                             $fields['your_mortgage_share'] = round($mortgageTotal * $pct, 2);
                         }
                     }
+
                     return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal], $fields);
                 })->toArray();
                 break;
@@ -979,7 +986,7 @@ class CoordinatingAgent extends BaseAgent
             'scenario_id' => $result['scenario_id'],
             'comparison' => $result,
             'action' => 'navigate',
-            'route_path' => '/planning/what-if/' . $result['scenario_id'],
+            'route_path' => '/planning/what-if/'.$result['scenario_id'],
         ];
     }
 
@@ -1183,7 +1190,7 @@ class CoordinatingAgent extends BaseAgent
         };
 
         // If ISA, set account_type to cash_isa so the form shows ISA fields
-        if ($isIsa && !in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
+        if ($isIsa && ! in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
             $formAccountType = 'cash_isa';
         }
 
@@ -1192,7 +1199,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'savings_account',
             'route' => '/net-worth/cash',
             'fields' => [
-                'institution' => !empty($input['institution']) ? $input['institution'] : (!empty($input['provider']) ? $input['provider'] : $input['account_name']),
+                'institution' => ! empty($input['institution']) ? $input['institution'] : (! empty($input['provider']) ? $input['provider'] : $input['account_name']),
                 'account_type' => $formAccountType,
                 'current_balance' => (float) $input['current_balance'],
                 'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
@@ -1366,8 +1373,8 @@ class CoordinatingAgent extends BaseAgent
         // Look up the investment account by name/provider for this user
         $account = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
             ->where(function ($query) use ($input) {
-                $query->where('provider', 'LIKE', '%' . $input['account_name'] . '%')
-                    ->orWhere('account_name', 'LIKE', '%' . $input['account_name'] . '%');
+                $query->where('provider', 'LIKE', '%'.$input['account_name'].'%')
+                    ->orWhere('account_name', 'LIKE', '%'.$input['account_name'].'%');
             })
             ->orderByDesc('id')
             ->first();
@@ -1441,7 +1448,7 @@ class CoordinatingAgent extends BaseAgent
         $category = $input['pension_category'] ?? 'dc';
         $entityType = $category === 'db' ? 'db_pension' : 'dc_pension';
 
-        $schemeName = !empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
+        $schemeName = ! empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
 
         $fields = [
             'scheme_name' => $schemeName,
@@ -1969,7 +1976,7 @@ class CoordinatingAgent extends BaseAgent
     private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
     {
         $allowedColumns = ['first_name', 'surname', 'name', 'email', 'asset_name', 'liability_name', 'trust_name', 'scheme_name', 'provider', 'account_name', 'policy_name', 'gift_type'];
-        if (!in_array($nameField, $allowedColumns, true)) {
+        if (! in_array($nameField, $allowedColumns, true)) {
             throw new \InvalidArgumentException("Invalid column name: {$nameField}");
         }
 
@@ -2265,7 +2272,7 @@ class CoordinatingAgent extends BaseAgent
                     'gift_value' => $initialValue,
                     'notes' => 'Chargeable Lifetime Transfer — settlement into trust. Auto-recorded.',
                 ]);
-                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue)." for Inheritance Tax tracking.";
+                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.';
             } catch (\Exception $e) {
                 Log::warning('[CoordinatingAgent] Failed to auto-create CLT gift for trust', [
                     'trust_name' => $input['trust_name'],
@@ -2417,7 +2424,7 @@ class CoordinatingAgent extends BaseAgent
 
         $formatted = collect($updateData)
             ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])
-            ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)) . ': £' . number_format($v, 2))
+            ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)).': £'.number_format($v, 2))
             ->values()
             ->implode(', ');
 
@@ -2429,7 +2436,7 @@ class CoordinatingAgent extends BaseAgent
             'fields_updated' => array_keys($updateData),
             'total_monthly' => $total,
             'total_annual' => $total * 12,
-            'message' => "Expenditure updated: {$formatted}. Total: £" . number_format($total, 2) . '/month.',
+            'message' => "Expenditure updated: {$formatted}. Total: £".number_format($total, 2).'/month.',
         ];
     }
 
@@ -2489,7 +2496,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $entityId,
             'route' => $route,
             'fields' => $safeFields,
-            'message' => "I'll update the " . str_replace('_', ' ', $entityType) . ' for you now.',
+            'message' => "I'll update the ".str_replace('_', ' ', $entityType).' for you now.',
         ];
     }
 
@@ -2534,7 +2541,7 @@ class CoordinatingAgent extends BaseAgent
 
         $model->delete();
 
-        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType)) . " \"{$name}\" deleted."];
+        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted."];
     }
 
     /**
@@ -2571,7 +2578,7 @@ class CoordinatingAgent extends BaseAgent
         $model = $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
 
         if (! $model) {
-            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)) . " not found or does not belong to you."];
+            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];
         }
 
         return $model;
@@ -2617,6 +2624,6 @@ class CoordinatingAgent extends BaseAgent
 
         $user->update($safeFields);
 
-        return ['updated' => true, 'section' => $section, 'fields_updated' => array_keys($safeFields), 'message' => 'Profile (' . str_replace('_', ' ', $section) . ') updated successfully.'];
+        return ['updated' => true, 'section' => $section, 'fields_updated' => array_keys($safeFields), 'message' => 'Profile ('.str_replace('_', ' ', $section).') updated successfully.'];
     }
 }

@@ -176,4 +176,3 @@ it('handles partial failures gracefully during parallel data loading', function 
     // Should return array even if some modules have no data
     expect($data)->toBeArray();
 });
-

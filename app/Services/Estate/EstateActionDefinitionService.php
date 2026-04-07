@@ -161,7 +161,7 @@ class EstateActionDefinitionService
         }
 
         $excess = $estateValue - $availableBand;
-        $ihtLiability = $excess * 0.4;
+        $ihtLiability = $excess * (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
 
         $vars = [
             'estate_value' => '£'.number_format($estateValue, 0),

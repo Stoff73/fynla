@@ -393,10 +393,13 @@
 
 <script>
 import api from '@/services/api';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'ContributionPlanner',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -450,11 +453,6 @@ export default {
       } finally {
         this.optimising = false;
       }
-    },
-
-    formatNumber(value) {
-      if (!value && value !== 0) return '0';
-      return Math.round(value).toLocaleString('en-GB');
     },
 
     getPriorityClass(priority) {

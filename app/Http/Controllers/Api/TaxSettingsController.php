@@ -14,7 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class TaxSettingsController extends Controller
 {
@@ -108,21 +107,13 @@ class TaxSettingsController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'tax_year' => 'sometimes|string',
             'effective_from' => 'sometimes|date',
             'effective_to' => 'sometimes|date',
             'config_data' => 'sometimes|array',
             'is_active' => 'sometimes|boolean',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             return DB::transaction(function () use ($config, $request) {
@@ -376,19 +367,11 @@ class TaxSettingsController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'new_tax_year' => 'required|string|regex:/^\d{4}\/\d{2}$/|unique:tax_configurations,tax_year',
             'effective_from' => 'required|date',
             'effective_to' => 'required|date|after:effective_from',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             return DB::transaction(function () use ($source, $request) {

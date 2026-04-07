@@ -8,7 +8,6 @@ use App\Models\LifeEvent;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalsProjectionService;
 use App\Services\Investment\MonteCarloSimulator;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Clears Monte Carlo simulation cache and goals projection cache

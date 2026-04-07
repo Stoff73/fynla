@@ -13,7 +13,6 @@ use App\Services\Investment\Goals\ShortfallAnalyzer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Goal Progress Controller
@@ -134,22 +133,12 @@ class GoalProgressController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'scenarios' => 'nullable|array',
             'scenarios.*.name' => 'required_with:scenarios|string',
             'scenarios.*.contribution' => 'required_with:scenarios|numeric|min:0',
             'scenarios.*.return' => 'required_with:scenarios|numeric|min:0|max:0.5',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             // SECURITY: Fetch with ownership check to prevent information disclosure
@@ -184,7 +173,7 @@ class GoalProgressController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'current_value' => 'required|numeric|min:0',
             'target_value' => 'required|numeric|min:0',
             'monthly_contribution' => 'required|numeric|min:0',
@@ -193,16 +182,6 @@ class GoalProgressController extends Controller
             'years_to_goal' => 'required|integer|min:1|max:50',
             'iterations' => 'nullable|integer|min:100|max:5000',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->probabilityCalculator->calculateGoalProbability(
@@ -237,7 +216,7 @@ class GoalProgressController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'current_value' => 'required|numeric|min:0',
             'target_value' => 'required|numeric|min:0',
             'current_contribution' => 'required|numeric|min:0',
@@ -246,16 +225,6 @@ class GoalProgressController extends Controller
             'years_to_goal' => 'required|integer|min:1|max:50',
             'target_probability' => 'nullable|numeric|min:0.5|max:0.99',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->probabilityCalculator->calculateRequiredContribution(
@@ -286,20 +255,10 @@ class GoalProgressController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'years_to_goal' => 'required|integer|min:0|max:50',
             'current_equity_percent' => 'required|numeric|min:0|max:100',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->probabilityCalculator->calculateGlidePath(

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Constants\EstateDefaults;
+use App\Constants\TaxDefaults;
 use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Chattel;
@@ -17,8 +19,6 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
-use App\Constants\EstateDefaults;
-use App\Constants\TaxDefaults;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 
@@ -171,14 +171,14 @@ class HouseholdPlanningService
         $spouseIncome = $this->calculateTotalIncome($spouse);
 
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
-        $personalAllowance = (float) ($incomeTaxConfig['personal_allowance'] ?? 12570);
+        $personalAllowance = (float) ($incomeTaxConfig['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
 
         $userTaxBand = $this->determineTaxBand($userIncome, $personalAllowance);
         $spouseTaxBand = $this->determineTaxBand($spouseIncome, $personalAllowance);
 
         // ISA allowance optimisation
         $isaConfig = $this->taxConfig->getISAAllowances();
-        $isaAllowance = (float) ($isaConfig['annual_allowance'] ?? 20000);
+        $isaAllowance = (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
         $isaRecommendation = $this->generateISARecommendation($user, $spouse, $isaAllowance);
         if ($isaRecommendation) {
             $recommendations[] = $isaRecommendation;

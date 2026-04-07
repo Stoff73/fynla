@@ -10,8 +10,8 @@ return new class extends Migration
     public function up(): void
     {
         // Change from enum to varchar so it accepts life stage values (mid_career, etc.)
-        DB::statement("ALTER TABLE onboarding_progress MODIFY focus_area VARCHAR(50) NOT NULL");
-        DB::statement("ALTER TABLE users MODIFY onboarding_focus_area VARCHAR(50) NULL DEFAULT NULL");
+        DB::statement('ALTER TABLE onboarding_progress MODIFY focus_area VARCHAR(50) NOT NULL');
+        DB::statement('ALTER TABLE users MODIFY onboarding_focus_area VARCHAR(50) NULL DEFAULT NULL');
     }
 
     public function down(): void

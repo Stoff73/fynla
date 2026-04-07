@@ -80,12 +80,8 @@ class SendProtectionAlerts extends Command
                 ->whereNotNull('policy_start_date')
                 ->whereNotNull('policy_term_years')
                 ->where('policy_term_years', '>', 0)
-                ->select(
-                    'user_id',
-                    DB::raw("COALESCE(provider, '{$defaultName}') as policy_name"),
-                    'policy_start_date',
-                    'policy_term_years'
-                )
+                ->select('user_id', 'policy_start_date', 'policy_term_years')
+                ->selectRaw('COALESCE(provider, ?) as policy_name', [$defaultName])
                 ->get()
                 ->filter(function ($policy) use ($today, $thirtyDaysAgo) {
                     $endDate = Carbon::parse($policy->policy_start_date)->addYears((int) $policy->policy_term_years);
@@ -172,12 +168,8 @@ class SendProtectionAlerts extends Command
                     ->whereNotNull('policy_start_date')
                     ->whereNotNull('policy_term_years')
                     ->where('policy_term_years', '>', 0)
-                    ->select(
-                        'user_id',
-                        DB::raw("COALESCE(provider, '{$defaultName}') as policy_name"),
-                        'policy_start_date',
-                        'policy_term_years'
-                    )
+                    ->select('user_id', 'policy_start_date', 'policy_term_years')
+                    ->selectRaw('COALESCE(provider, ?) as policy_name', [$defaultName])
                     ->get()
                     ->filter(function ($policy) use ($windowStart, $windowEnd) {
                         $endDate = Carbon::parse($policy->policy_start_date)->addYears((int) $policy->policy_term_years);

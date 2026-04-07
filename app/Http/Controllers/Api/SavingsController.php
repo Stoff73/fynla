@@ -16,6 +16,7 @@ use App\Http\Resources\SavingsAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
@@ -23,7 +24,6 @@ use App\Services\Plans\SavingsPlanService;
 use App\Services\Savings\FSCSAssessor;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\PSACalculator;
-use App\Services\Cache\CacheInvalidationService;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -601,44 +601,6 @@ class SavingsController extends Controller
             ], 404);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Deleting savings goal');
-        }
-    }
-
-    /**
-     * Update progress for a savings goal
-     *
-     * @deprecated Since v0.7.0. Use Goals module (GoalsController) instead. Remove by v1.0.0
-     */
-    public function updateGoalProgress(Request $request, int $id): JsonResponse
-    {
-        $user = $request->user();
-
-        $request->validate([
-            'amount' => 'required|numeric|min:0',
-        ]);
-
-        try {
-            $goal = SavingsGoal::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            $goal->current_saved = $request->input('amount');
-            $goal->save();
-
-            $this->cacheInvalidation->invalidateForUser($user->id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Goal progress updated successfully',
-                'data' => $goal->fresh()->load('linkedAccount'),
-            ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Goal not found or unauthorized',
-            ], 404);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e, 'Updating goal progress');
         }
     }
 

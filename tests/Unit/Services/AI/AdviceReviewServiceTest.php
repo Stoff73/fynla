@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Models\AiAdviceLog;
-use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\AdviceReviewService;
 use Illuminate\Foundation\Testing\RefreshDatabase;

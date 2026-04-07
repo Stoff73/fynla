@@ -13,7 +13,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * DC Pension Holdings Controller
@@ -62,7 +61,7 @@ class DCPensionHoldingsController extends Controller
             ->where('id', $dcPensionId)
             ->firstOrFail();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'security_name' => 'required|string|max:255',
             'ticker' => 'nullable|string|max:255',
             'isin' => 'nullable|string|max:255',
@@ -75,16 +74,6 @@ class DCPensionHoldingsController extends Controller
             'current_value' => 'required|numeric|min:0',
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         // Add polymorphic relationship data
         $validated['holdable_id'] = $pension->id;
@@ -126,7 +115,7 @@ class DCPensionHoldingsController extends Controller
             ->where('holdable_type', DCPension::class)
             ->firstOrFail();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'security_name' => 'sometimes|required|string|max:255',
             'ticker' => 'nullable|string|max:255',
             'isin' => 'nullable|string|max:255',
@@ -139,16 +128,6 @@ class DCPensionHoldingsController extends Controller
             'current_value' => 'sometimes|required|numeric|min:0',
             'ocf_percent' => 'nullable|numeric|min:0|max:100',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         // Recalculate cost basis if quantity or purchase price changed
         if (isset($validated['quantity']) || isset($validated['purchase_price'])) {
@@ -214,21 +193,13 @@ class DCPensionHoldingsController extends Controller
             ->where('id', $dcPensionId)
             ->firstOrFail();
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'holdings' => 'required|array',
             'holdings.*.id' => 'required|exists:holdings,id',
             'holdings.*.current_value' => 'required|numeric|min:0',
             'holdings.*.current_price' => 'nullable|numeric|min:0',
             'holdings.*.allocation_percent' => 'nullable|numeric|min:0|max:100',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         DB::beginTransaction();
         try {

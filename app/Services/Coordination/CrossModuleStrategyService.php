@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
-use App\Models\User;
 use App\Constants\TaxDefaults;
+use App\Models\User;
 use App\Services\TaxConfigService;
 
 /**
@@ -145,7 +145,7 @@ class CrossModuleStrategyService
         $taxOptimisation = $moduleAnalysis['tax_optimisation'] ?? [];
 
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
 
         // Determine if higher-rate taxpayer
         $annualIncome = $this->getUserAnnualIncome($moduleAnalysis);

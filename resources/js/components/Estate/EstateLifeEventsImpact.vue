@@ -8,117 +8,48 @@
       </span>
     </div>
 
-    <!-- Impact Summary -->
-    <div v-if="summary" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="bg-spring-50 rounded-lg p-4 border border-spring-200">
-        <p class="text-xs text-spring-600 font-medium mb-1">Incoming to Estate</p>
-        <p class="text-lg font-bold text-spring-700">{{ formatCurrency(summary.total_incoming) }}</p>
-      </div>
-      <div class="bg-raspberry-50 rounded-lg p-4 border border-raspberry-200">
-        <p class="text-xs text-raspberry-600 font-medium mb-1">Outgoing from Estate</p>
-        <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(summary.total_outgoing) }}</p>
-      </div>
-      <div :class="[
-        'rounded-lg p-4 border',
-        summary.net_estate_impact >= 0
-          ? 'bg-spring-50 border-spring-200'
-          : 'bg-raspberry-50 border-raspberry-200'
-      ]">
-        <p class="text-xs text-neutral-500 font-medium mb-1">Net Estate Impact</p>
-        <p :class="[
-          'text-lg font-bold',
-          summary.net_estate_impact >= 0 ? 'text-spring-700' : 'text-raspberry-700'
-        ]">
-          {{ summary.net_estate_impact >= 0 ? '+' : '' }}{{ formatCurrency(summary.net_estate_impact) }}
-        </p>
-      </div>
-    </div>
-
-    <!-- Review Triggers (high priority warnings) -->
-    <div v-if="reviewTriggers.length > 0" class="mb-6 space-y-3">
-      <div
-        v-for="(trigger, index) in reviewTriggers"
-        :key="'trigger-' + index"
-        :class="[
-          'rounded-lg p-4 border',
-          trigger.priority === 'high' ? 'bg-raspberry-50 border-raspberry-200' : 'bg-violet-50 border-violet-200'
-        ]"
-      >
-        <div class="flex items-start">
-          <svg class="h-5 w-5 text-neutral-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-          </svg>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-horizon-500">{{ trigger.event_name }}</p>
-            <p class="text-sm text-neutral-500 mt-1">{{ trigger.reason }}</p>
-            <p class="text-sm text-raspberry-700 mt-1 font-medium">{{ trigger.recommendation }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Timeline of Events -->
-    <div class="space-y-0">
+    <!-- Event Impact Cards -->
+    <div class="space-y-3">
       <div
         v-for="(event, index) in sortedEvents"
         :key="event.event_name + '-' + index"
-        class="relative flex items-start pb-6 last:pb-0"
+        :class="[
+          'rounded-lg p-4 border',
+          event.impact_type === 'income' ? 'bg-spring-50 border-spring-200' : 'bg-raspberry-50 border-raspberry-200'
+        ]"
       >
-        <!-- Timeline line -->
-        <div v-if="index < sortedEvents.length - 1" class="absolute top-6 left-4 w-0.5 h-full bg-savannah-200"></div>
-
-        <!-- Timeline dot -->
-        <div :class="[
-          'relative z-10 flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0',
-          event.impact_type === 'income' ? 'bg-spring-100' : 'bg-raspberry-100'
-        ]">
-          <div :class="[
-            'w-3 h-3 rounded-full',
-            event.impact_type === 'income' ? 'bg-spring-500' : 'bg-raspberry-500'
-          ]"></div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-medium text-horizon-500">{{ event.event_name }}</p>
+            <span :class="[
+              'inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium',
+              certaintyClass(event.certainty)
+            ]">
+              {{ event.certainty }}
+            </span>
+          </div>
+          <p class="text-sm text-neutral-500">{{ formatDate(event.expected_date) }}</p>
         </div>
 
-        <!-- Event content -->
-        <div class="ml-4 flex-1 min-w-0">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <div class="flex items-center gap-2">
-              <p class="text-sm font-medium text-horizon-500">{{ event.event_name }}</p>
-              <span :class="[
-                'inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium',
-                certaintyClass(event.certainty)
-              ]">
-                {{ event.certainty }}
-              </span>
-            </div>
-            <p class="text-sm text-neutral-500">{{ formatDate(event.expected_date) }}</p>
-          </div>
+        <p v-if="event.module_context" class="text-xs text-neutral-500 mt-0.5">{{ event.module_context }}</p>
 
-          <!-- Module context -->
-          <p v-if="event.module_context" class="text-xs text-neutral-500 mt-0.5">{{ event.module_context }}</p>
+        <div class="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <span :class="[
+            'text-sm font-semibold',
+            event.impact_type === 'income' ? 'text-spring-700' : 'text-raspberry-700'
+          ]">
+            {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
+          </span>
 
-          <!-- Financial impact row -->
-          <div class="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <span :class="[
-              'text-sm font-semibold',
-              event.impact_type === 'income' ? 'text-spring-700' : 'text-raspberry-700'
-            ]">
-              {{ event.impact_type === 'income' ? '+' : '-' }}{{ formatCurrency(event.amount) }}
-            </span>
+          <span v-if="event.projected_iht_change !== undefined && event.projected_iht_change !== 0" :class="[
+            'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded',
+            event.projected_iht_change > 0
+              ? 'bg-raspberry-50 text-raspberry-700'
+              : 'bg-spring-50 text-spring-700'
+          ]">
+            Inheritance Tax {{ event.projected_iht_change > 0 ? '+' : '' }}{{ formatCurrency(event.projected_iht_change) }}
+          </span>
 
-            <!-- IHT change indicator -->
-            <span v-if="event.projected_iht_change !== undefined && event.projected_iht_change !== 0" :class="[
-              'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded',
-              event.projected_iht_change > 0
-                ? 'bg-raspberry-50 text-raspberry-700'
-                : 'bg-spring-50 text-spring-700'
-            ]">
-              Inheritance Tax {{ event.projected_iht_change > 0 ? '+' : '' }}{{ formatCurrency(event.projected_iht_change) }}
-            </span>
-
-            <span v-if="event.projected_iht_after_event !== undefined" class="text-xs text-neutral-500">
-              (Projected liability: {{ formatCurrency(event.projected_iht_after_event) }})
-            </span>
-          </div>
         </div>
       </div>
     </div>

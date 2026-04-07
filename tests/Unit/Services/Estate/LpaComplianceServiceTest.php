@@ -14,7 +14,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $this->service = new LpaComplianceService();
+    $this->service = new LpaComplianceService;
     $this->user = User::factory()->create();
 });
 

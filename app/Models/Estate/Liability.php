@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Liability extends Model
 {
-    use HasFactory, HasJointOwnership, SoftDeletes, Auditable;
+    use Auditable, HasFactory, HasJointOwnership, SoftDeletes;
 
     protected $fillable = [
         'user_id',
