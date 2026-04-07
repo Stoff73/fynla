@@ -217,9 +217,6 @@
               <p class="text-lg font-bold text-raspberry-700">{{ formatCurrency(charitableBequestSavings) }}</p>
               <p class="text-xs text-neutral-500 mt-1">Rate reduces from 40% to 36%</p>
             </div>
-            <div v-else class="text-xs text-neutral-500">
-              <p>Leaving 10%+ to charity reduces the Inheritance Tax rate from 40% to 36%</p>
-            </div>
           </div>
         </div>
 
