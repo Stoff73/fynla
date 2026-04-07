@@ -200,7 +200,7 @@
           </div>
           <div class="space-y-3">
             <div class="text-xs">
-              <p class="text-neutral-500 mb-2">Leave {{ formatCurrency(charitableDonationAmount) }}+ to charity to reduce the Inheritance Tax rate?</p>
+              <p class="text-neutral-500 mb-2">Leave {{ formatCurrency(charitableDonationAmount) }}+ to charity to reduce your Inheritance Tax rate?</p>
               <div class="flex items-center space-x-4">
                 <label class="inline-flex items-center cursor-pointer">
                   <input type="radio" :checked="charitableBequest === true" :disabled="savingCharitableBequest" class="form-radio text-raspberry-500 h-4 w-4" @change="toggleCharitableBequest(true)">
