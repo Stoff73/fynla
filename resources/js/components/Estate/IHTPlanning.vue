@@ -627,8 +627,8 @@
       </div>
     </div>
 
-    <!-- Life Events Impact on Estate -->
-    <div v-if="estateLifeEvents.length > 0 && ihtData" class="bg-white rounded-lg p-4 sm:p-6 border border-light-gray">
+    <!-- Life Events Impact on Estate (dashboard only, not in IHT detail view) -->
+    <div v-if="!tableOnly && estateLifeEvents.length > 0 && ihtData" class="bg-white rounded-lg p-4 sm:p-6 border border-light-gray">
       <EstateLifeEventsImpact
         :events="estateLifeEventsWithIHT"
         :summary="estateLifeEventsSummary"
