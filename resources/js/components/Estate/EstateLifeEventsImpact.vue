@@ -50,9 +50,6 @@
             Inheritance Tax {{ event.projected_iht_change > 0 ? '+' : '' }}{{ formatCurrency(event.projected_iht_change) }}
           </span>
 
-          <span v-if="event.projected_iht_after_event !== undefined" class="text-xs text-neutral-500">
-            (Projected liability: {{ formatCurrency(event.projected_iht_after_event) }})
-          </span>
         </div>
       </div>
     </div>
