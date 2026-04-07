@@ -11,7 +11,6 @@ use App\Services\Investment\Analytics\EfficientFrontierCalculator;
 use App\Services\Investment\Analytics\PortfolioStatisticsCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Efficient Frontier Controller
@@ -33,7 +32,7 @@ class EfficientFrontierController extends Controller
      */
     public function calculateEfficientFrontier(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'asset_classes' => 'required|array|min:2',
             'asset_classes.*.expected_return' => 'required|numeric|min:-1|max:2',
             'asset_classes.*.volatility' => 'required|numeric|min:0|max:1',
@@ -41,16 +40,6 @@ class EfficientFrontierController extends Controller
             'num_portfolios' => 'nullable|integer|min:50|max:1000',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->frontierCalculator->calculateEfficientFrontier(
@@ -75,20 +64,10 @@ class EfficientFrontierController extends Controller
      */
     public function calculateWithDefaults(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'num_portfolios' => 'nullable|integer|min:50|max:1000',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $assetClasses = $this->statsCalculator->getDefaultAssetClassAssumptions();
@@ -116,21 +95,11 @@ class EfficientFrontierController extends Controller
      */
     public function findOptimalByReturn(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_return' => 'required|numeric|min:0|max:0.5',
             'asset_classes' => 'nullable|array|min:2',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $assetClasses = $validated['asset_classes'] ?? $this->statsCalculator->getDefaultAssetClassAssumptions();
@@ -157,21 +126,11 @@ class EfficientFrontierController extends Controller
      */
     public function findOptimalByRisk(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_volatility' => 'required|numeric|min:0|max:1',
             'asset_classes' => 'nullable|array|min:2',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $assetClasses = $validated['asset_classes'] ?? $this->statsCalculator->getDefaultAssetClassAssumptions();
@@ -198,7 +157,7 @@ class EfficientFrontierController extends Controller
      */
     public function compareWithFrontier(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'allocation' => 'required|array|min:2',
             'allocation.equities' => 'required|numeric|min:0|max:1',
             'allocation.bonds' => 'required|numeric|min:0|max:1',
@@ -207,16 +166,6 @@ class EfficientFrontierController extends Controller
             'asset_classes' => 'nullable|array|min:2',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         // Validate allocation sums to 1.0
         $allocationSum = array_sum($validated['allocation']);
@@ -252,7 +201,7 @@ class EfficientFrontierController extends Controller
      */
     public function calculateStatistics(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'allocation' => 'required|array|min:2',
             'allocation.equities' => 'required|numeric|min:0|max:1',
             'allocation.bonds' => 'required|numeric|min:0|max:1',
@@ -261,16 +210,6 @@ class EfficientFrontierController extends Controller
             'asset_classes' => 'nullable|array|min:2',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         // Validate allocation sums to 1.0
         $allocationSum = array_sum($validated['allocation']);
@@ -334,21 +273,11 @@ class EfficientFrontierController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:investment_accounts,id',
             'risk_free_rate' => 'nullable|numeric|min:0|max:0.2',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             // Get user's holdings

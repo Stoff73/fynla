@@ -28,9 +28,10 @@ class EnsureMFAVerified
         // For API token requests, check MFA claim on token
         if ($request->bearerToken()) {
             $user = $request->user();
-            if ($user && $user->mfa_enabled && !$user->currentAccessToken()?->can('mfa_verified')) {
+            if ($user && $user->mfa_enabled && ! $user->currentAccessToken()?->can('mfa_verified')) {
                 return response()->json(['message' => 'MFA verification required.'], 403);
             }
+
             return $next($request);
         }
 

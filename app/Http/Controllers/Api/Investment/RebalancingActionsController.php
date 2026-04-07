@@ -9,7 +9,6 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Investment\RebalancingAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Rebalancing Actions Controller
@@ -26,7 +25,7 @@ class RebalancingActionsController extends Controller
      */
     public function saveRebalancingActions(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'actions' => 'required|array|min:1',
             'actions.*.holding_id' => 'required|integer|exists:holdings,id',
             'actions.*.investment_account_id' => 'nullable|integer|exists:investment_accounts,id',
@@ -46,16 +45,6 @@ class RebalancingActionsController extends Controller
             'actions.*.cgt_gain_or_loss' => 'nullable|numeric',
             'actions.*.cgt_liability' => 'nullable|numeric',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
@@ -88,20 +77,10 @@ class RebalancingActionsController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'status' => 'nullable|in:pending,executed,cancelled,expired',
             'action_type' => 'nullable|in:buy,sell',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         $query = RebalancingAction::where('user_id', $user->id)
             ->with(['holding', 'investmentAccount'])
@@ -145,23 +124,13 @@ class RebalancingActionsController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'status' => 'required|in:pending,executed,cancelled,expired',
             'executed_at' => 'nullable|date',
             'executed_price' => 'nullable|numeric|min:0',
             'executed_shares' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $action->update($validated);

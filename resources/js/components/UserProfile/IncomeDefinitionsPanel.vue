@@ -59,8 +59,8 @@
         <span class="text-body font-bold text-horizon-500">{{ formatCurrency(definitions.threshold_income) }}</span>
       </div>
     </div>
-    <p class="text-xs mb-4" :class="definitions.threshold_income > 200000 ? 'text-raspberry-500' : 'text-spring-500'">
-      {{ definitions.threshold_income > 200000 ? 'Above \u00A3200,000 \u2014 pension taper may apply' : 'Below \u00A3200,000 \u2014 no pension taper triggered' }}
+    <p class="text-xs mb-4" :class="definitions.threshold_income > PENSION_TAPER_THRESHOLD_INCOME ? 'text-raspberry-500' : 'text-spring-500'">
+      {{ definitions.threshold_income > PENSION_TAPER_THRESHOLD_INCOME ? `Above ${formatCurrency(PENSION_TAPER_THRESHOLD_INCOME)} \u2014 pension taper may apply` : `Below ${formatCurrency(PENSION_TAPER_THRESHOLD_INCOME)} \u2014 no pension taper triggered` }}
     </p>
 
     <!-- Addition to Adjusted Income -->
@@ -76,8 +76,8 @@
         <span class="text-body font-bold text-horizon-500">{{ formatCurrency(definitions.adjusted_income) }}</span>
       </div>
     </div>
-    <p class="text-xs mb-6" :class="definitions.adjusted_income > 260000 ? 'text-raspberry-500' : 'text-spring-500'">
-      {{ definitions.adjusted_income > 260000 ? 'Above \u00A3260,000 \u2014 Annual Allowance reduced' : 'Below \u00A3260,000 \u2014 full Annual Allowance available' }}
+    <p class="text-xs mb-6" :class="definitions.adjusted_income > PENSION_TAPER_ADJUSTED_INCOME ? 'text-raspberry-500' : 'text-spring-500'">
+      {{ definitions.adjusted_income > PENSION_TAPER_ADJUSTED_INCOME ? `Above ${formatCurrency(PENSION_TAPER_ADJUSTED_INCOME)} \u2014 Annual Allowance reduced` : `Below ${formatCurrency(PENSION_TAPER_ADJUSTED_INCOME)} \u2014 full Annual Allowance available` }}
     </p>
 
     <!-- Adjusted Allowances -->
@@ -111,6 +111,7 @@
 
 <script>
 import { formatCurrency } from '@/utils/currency';
+import { PENSION_TAPER_THRESHOLD_INCOME, PENSION_TAPER_ADJUSTED_INCOME } from '@/constants/taxConfig';
 
 export default {
   name: 'IncomeDefinitionsPanel',
@@ -121,7 +122,7 @@ export default {
     },
   },
   setup() {
-    return { formatCurrency };
+    return { formatCurrency, PENSION_TAPER_THRESHOLD_INCOME, PENSION_TAPER_ADJUSTED_INCOME };
   },
   computed: {
     activeComponents() {

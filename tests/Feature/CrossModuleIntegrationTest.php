@@ -262,5 +262,4 @@ class CrossModuleIntegrationTest extends TestCase
         // The exact structure varies, so just verify it's a valid response
         expect($plan)->toBeArray();
     }
-
 }

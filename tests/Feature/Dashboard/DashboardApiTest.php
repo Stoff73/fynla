@@ -215,4 +215,3 @@ it('handles errors gracefully in dashboard', function () {
     $response->assertStatus(200);
     expect($response->json('success'))->toBeTrue();
 });
-

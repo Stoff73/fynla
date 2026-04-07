@@ -21,7 +21,7 @@ class AssumptionsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private AssumptionsService $assumptionsService
+        private readonly AssumptionsService $assumptionsService
     ) {}
 
     /**

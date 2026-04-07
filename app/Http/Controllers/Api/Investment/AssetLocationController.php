@@ -14,7 +14,6 @@ use App\Services\TaxConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Asset Location Controller
@@ -40,23 +39,13 @@ class AssetLocationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
-            'isa_allowance_used' => 'nullable|numeric|min:0|max:' . (string) TaxDefaults::ISA_ALLOWANCE,
+        $validated = $request->validate([
+            'isa_allowance_used' => 'nullable|numeric|min:0|max:'.(string) TaxDefaults::ISA_ALLOWANCE,
             'cgt_allowance_used' => 'nullable|numeric|min:0',
             'dividend_allowance_used' => 'nullable|numeric|min:0',
             'expected_return' => 'nullable|numeric|min:0|max:0.5',
             'prefer_pension' => 'nullable|boolean',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $cacheKey = "asset_location_analysis_{$user->id}";
@@ -87,20 +76,10 @@ class AssetLocationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'priority' => 'nullable|in:high,medium,low',
             'min_saving' => 'nullable|numeric|min:0',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $userTaxProfile = $this->buildDefaultTaxProfile($user);
@@ -204,19 +183,9 @@ class AssetLocationController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'holding_id' => 'required|integer|exists:holdings,id',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             // SECURITY: Fetch with ownership check to prevent information disclosure

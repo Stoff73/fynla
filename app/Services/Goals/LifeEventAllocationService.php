@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Goals;
 
+use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
@@ -603,14 +604,14 @@ class LifeEventAllocationService
         $bands = $incomeTax['bands'] ?? [];
 
         // Basic rate upper limit
-        $basicRateMax = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $basicRateMax = (float) ($incomeTax['bands'][0]['upper_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
 
         if ($income <= $basicRateMax) {
             return 'basic';
         }
 
         // Check for additional rate
-        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
+        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
         $additionalThreshold = $additionalRateThreshold;
         if ($additionalThreshold === 0.0) {
             foreach ($bands as $band) {

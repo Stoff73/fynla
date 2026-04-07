@@ -37,7 +37,7 @@ class ISATracker
         $start = $this->getTaxYearStartDate();
         $startYear = $start->year;
 
-        return $startYear . '/' . substr((string) ($startYear + 1), -2);
+        return $startYear.'/'.substr((string) ($startYear + 1), -2);
     }
 
     /**
@@ -75,7 +75,7 @@ class ISATracker
             ->where('isa_subscription_year', $taxYear)
             ->where(function ($q) {
                 $q->where('isa_type', 'cash')
-                  ->orWhere('account_type', 'cash_isa');
+                    ->orWhere('account_type', 'cash_isa');
             })
             ->whereNotNull('isa_subscription_amount')
             ->sum('isa_subscription_amount');
@@ -87,7 +87,7 @@ class ISATracker
                 ->where('is_isa', true)
                 ->where(function ($q) {
                     $q->where('isa_type', 'cash')
-                      ->orWhere('account_type', 'cash_isa');
+                        ->orWhere('account_type', 'cash_isa');
                 })
                 ->get();
 
@@ -103,12 +103,12 @@ class ISATracker
             ->where('is_isa', true)
             ->where(function ($q) use ($taxYear) {
                 $q->where('isa_subscription_year', $taxYear)
-                  ->orWhere('account_type', 'lisa');
+                    ->orWhere('account_type', 'lisa');
             })
             ->where(function ($q) {
                 $q->where('isa_type', 'LISA')
-                  ->orWhere('isa_type', 'lisa')
-                  ->orWhere('account_type', 'lisa');
+                    ->orWhere('isa_type', 'lisa')
+                    ->orWhere('account_type', 'lisa');
             })
             ->sum('isa_subscription_amount');
 

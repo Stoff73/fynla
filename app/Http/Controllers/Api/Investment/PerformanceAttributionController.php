@@ -12,7 +12,6 @@ use App\Services\Investment\Performance\PerformanceAttributionAnalyzer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Performance Attribution Controller
@@ -37,17 +36,9 @@ class PerformanceAttributionController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'period' => 'nullable|in:1y,3y,5y,10y,max',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $period = $request->input('period', '1y');
 
@@ -80,18 +71,10 @@ class PerformanceAttributionController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'benchmark' => 'nullable|in:ftse_all_share,ftse_100,sp500,msci_world,uk_gilts,60_40_portfolio',
             'period' => 'nullable|in:1y,3y,5y,10y',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $benchmark = $request->input('benchmark', 'ftse_all_share');
         $period = $request->input('period', '1y');
@@ -117,17 +100,9 @@ class PerformanceAttributionController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'period' => 'nullable|in:1y,3y,5y,10y',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $period = $request->input('period', '1y');
 

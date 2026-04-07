@@ -4,6 +4,7 @@
  * Each topic includes Fyn intro text, key info items,
  * and links to authoritative external guides (MoneyHelper, HMRC, Pension Wise).
  */
+import { STATE_PENSION_WEEKLY, TAX_YEAR, PENSION_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 const learnTopics = [
     {
@@ -43,7 +44,7 @@ const learnTopics = [
         keyInfo: [
             {
                 title: 'Annual Allowance',
-                summary: 'You can contribute up to \u00A360,000 per year with tax relief.',
+                summary: `You can contribute up to \u00A3${PENSION_ANNUAL_ALLOWANCE.toLocaleString()} per year with tax relief.`,
                 detail: 'The Annual Allowance is the most you can save into pensions each tax year while still getting tax relief. Unused allowance can be carried forward from the previous 3 years. High earners may have a reduced allowance (tapered).',
             },
             {
@@ -53,7 +54,7 @@ const learnTopics = [
             },
             {
                 title: 'State Pension',
-                summary: 'The full new State Pension is \u00A3221.20 per week (2024/25).',
+                summary: `The full new State Pension is \u00A3${STATE_PENSION_WEEKLY.toFixed(2)} per week (${TAX_YEAR}).`,
                 detail: 'You need 35 qualifying years of National Insurance contributions for the full amount. You can check your State Pension forecast on the GOV.UK website. State Pension age is currently 66, rising to 67 by 2028.',
             },
         ],

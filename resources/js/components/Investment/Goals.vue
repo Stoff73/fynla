@@ -183,7 +183,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Goals',
+  name: 'InvestmentGoals',
   mixins: [currencyMixin],
 
   emits: ['view-projection'],

@@ -20,7 +20,7 @@ class UserProfileController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private UserProfileService $userProfileService,
+        private readonly UserProfileService $userProfileService,
         private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 

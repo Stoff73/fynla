@@ -298,7 +298,7 @@
               <p class="text-sm text-spring-800 font-medium">Tenants in Common Details</p>
               <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'ownership_percentage' }">
                 <label for="ownership_percentage" class="block text-sm font-medium text-horizon-500 mb-1">Your Ownership Share (%)</label>
-                <input id="ownership_percentage" v-model.number="form.ownership_percentage" type="number" min="1" max="99" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <input id="ownership_percentage" v-model.number="form.ownership_percentage" type="number" min="1" max="99" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 <p class="text-xs text-neutral-500 mt-1">Enter your percentage share. Shares can be unequal (e.g., 60/40, 70/30).</p>
               </div>
               <div class="bg-white p-3 rounded border border-spring-300">
@@ -311,7 +311,7 @@
               </div>
               <div>
                 <label for="tenants_joint_owner_selection" class="block text-sm font-medium text-horizon-500 mb-1">Co-Owner</label>
-                <select id="tenants_joint_owner_selection" v-model="jointOwnerSelection" @change="handleJointOwnerSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <select id="tenants_joint_owner_selection" v-model="jointOwnerSelection" @change="handleJointOwnerSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
                   <option value="">Select co-owner</option>
                   <option v-if="spouse" :value="spouse.id ? 'linked_' + spouse.id : 'spouse_name'">{{ spouse.name }} (Spouse{{ spouse.id ? ' - Linked Account' : '' }})</option>
                   <option value="other">Other (Enter Name)</option>
@@ -319,7 +319,7 @@
               </div>
               <div v-if="jointOwnerSelection === 'other'">
                 <label for="tenants_joint_owner_name" class="block text-sm font-medium text-horizon-500 mb-1">Co-Owner Name</label>
-                <input id="tenants_joint_owner_name" v-model="form.joint_owner_name" type="text" placeholder="Enter co-owner's full name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <input id="tenants_joint_owner_name" v-model="form.joint_owner_name" type="text" placeholder="Enter co-owner's full name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 <p class="text-xs text-neutral-500 mt-1">Note: This person doesn't have an account in the system. The property will only appear in your account.</p>
               </div>
             </div>
@@ -353,7 +353,7 @@
                 <input
                   type="checkbox"
                   v-model="hasMortgage"
-                  class="mr-3 h-4 w-4 text-spring-600 focus:ring-green-500 border-spring-300 rounded"
+                  class="mr-3 h-4 w-4 text-spring-600 focus:ring-violet-500 border-spring-300 rounded"
                 />
                 <span class="text-sm font-medium text-spring-800">This property has a mortgage</span>
               </label>
@@ -557,7 +557,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                     placeholder="e.g., 20"
                   />
                   <p class="text-xs text-spring-700 mt-1">Percentage at fixed rate</p>
@@ -574,7 +574,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                     placeholder="e.g., 80"
                   />
                   <p class="text-xs text-spring-700 mt-1">Percentage at variable rate</p>
@@ -593,7 +593,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                     placeholder="e.g., 3.5"
                   />
                   <p class="text-xs text-spring-700 mt-1">Annual rate for fixed portion</p>
@@ -610,7 +610,7 @@
                     step="0.01"
                     min="0"
                     max="100"
-                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                    class="w-full px-3 py-2 border border-spring-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                     placeholder="e.g., 4.2"
                   />
                   <p class="text-xs text-spring-700 mt-1">Annual rate for variable portion</p>

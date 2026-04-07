@@ -15,8 +15,8 @@ class LifePolicyController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private IHTController $ihtController,
-        private LifePolicyStrategyService $lifePolicyStrategy
+        private readonly IHTController $ihtController,
+        private readonly LifePolicyStrategyService $lifePolicyStrategy
     ) {}
 
     /**

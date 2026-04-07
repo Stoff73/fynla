@@ -1099,7 +1099,7 @@
                   <p v-else class="font-medium">£{{ formatNumber(currentConfig.pension.annual_allowance) }}</p>
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-neutral-500 mb-1">Money Purchase Annual Allowance / MPAA (£)</label>
+                  <label class="block text-sm font-medium text-neutral-500 mb-1">Money Purchase Annual Allowance (£)</label>
                   <input
                     v-if="isEditing"
                     v-model.number="editableConfig.pension.mpaa"

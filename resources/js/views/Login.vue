@@ -192,7 +192,7 @@ import authService from '../services/authService';
 import api from '../services/api';
 
 export default {
-  name: 'Login',
+  name: 'LoginView',
 
   components: {
     ChangePasswordModal,

@@ -15,12 +15,12 @@ final class FcaProcessInstructions
     public static function get(bool $isPreview): string
     {
         $prompt = self::getFcaProcess();
-        $prompt .= "\n\n" . self::getAvailableActions();
+        $prompt .= "\n\n".self::getAvailableActions();
 
         if ($isPreview) {
-            $prompt .= "\n\n" . self::getPreviewMode();
+            $prompt .= "\n\n".self::getPreviewMode();
         } else {
-            $prompt .= "\n\n" . self::getDataCreationGuidance();
+            $prompt .= "\n\n".self::getDataCreationGuidance();
         }
 
         return $prompt;

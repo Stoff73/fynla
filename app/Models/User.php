@@ -19,26 +19,18 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
-     * The attributes that are guarded against mass assignment.
-     * Using guarded instead of fillable for maintainability - protects sensitive
-     * fields while allowing all others to be mass assignable by default.
+     * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $guarded = [
         'id',
         'is_admin',
-        'is_advisor',
         'is_preview_user',
-        'preview_persona_id',
-        'email_verified_at',
         'remember_token',
         'created_at',
         'updated_at',
-        'role_id',
-        'spouse_id',
-        'household_id',
-        'plan',
+        'deleted_at',
     ];
 
     /**

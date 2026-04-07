@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models\Investment;
 
+use App\Models\Estate\Trust;
 use App\Models\Household;
-use App\Models\Trust;
 use App\Models\User;
 use App\Services\Investment\EmployeeSchemeCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -346,25 +347,17 @@ class InvestmentAccount extends Model
     /**
      * Scope to ISA accounts only.
      */
-    public function scopeIsa($query)
+    public function scopeIsa(Builder $query): Builder
     {
-        return $query->where('is_isa', true);
+        return $query->whereNotNull('isa_type');
     }
 
     /**
      * Scope to a specific account type.
      */
-    public function scopeOfType($query, string $type)
+    public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('account_type', $type);
-    }
-
-    /**
-     * Scope to active accounts only.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
     }
 
     /**

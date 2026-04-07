@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
-use App\Constants\FinancialPlanningKnowledge;
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Models\User;
@@ -163,7 +162,7 @@ class SystemPromptBuilder
                     $label = in_array($type, ['Employment (PAYE)', 'Self-employment'])
                         ? "{$type} [relevant UK earnings]"
                         : "{$type} [not relevant UK earnings]";
-                    $lines[] = "  - {$label}: £" . number_format($amount, 2);
+                    $lines[] = "  - {$label}: £".number_format($amount, 2);
                 }
             }
         }
@@ -239,9 +238,9 @@ class SystemPromptBuilder
             try {
                 $netWorthService = app(\App\Services\NetWorth\NetWorthService::class);
                 $netWorthData = $netWorthService->calculateNetWorth($user);
-                $lines[] = '- Total net worth: £' . number_format($netWorthData['net_worth'], 0);
-                $lines[] = '- Total assets: £' . number_format($netWorthData['total_assets'], 0);
-                $lines[] = '- Total liabilities: £' . number_format($netWorthData['total_liabilities'], 0);
+                $lines[] = '- Total net worth: £'.number_format($netWorthData['net_worth'], 0);
+                $lines[] = '- Total assets: £'.number_format($netWorthData['total_assets'], 0);
+                $lines[] = '- Total liabilities: £'.number_format($netWorthData['total_liabilities'], 0);
             } catch (\Exception $e) {
                 // Fall through — individual modules below will provide partial data
             }
@@ -258,7 +257,7 @@ class SystemPromptBuilder
             if (isset($modules['savings'])) {
                 $s = $modules['savings'];
                 if (($s['total_savings'] ?? 0) > 0) {
-                    $lines[] = '- Total savings: £' . number_format($s['total_savings'], 2);
+                    $lines[] = '- Total savings: £'.number_format($s['total_savings'], 2);
                 }
                 if (isset($s['emergency_fund_months'])) {
                     $lines[] = "- Emergency fund: {$s['emergency_fund_months']} months of cover";
@@ -269,7 +268,7 @@ class SystemPromptBuilder
             if (isset($modules['investment'])) {
                 $inv = $modules['investment'];
                 if (($inv['total_portfolio_value'] ?? 0) > 0) {
-                    $lines[] = '- Investment portfolio: £' . number_format($inv['total_portfolio_value'], 0);
+                    $lines[] = '- Investment portfolio: £'.number_format($inv['total_portfolio_value'], 0);
                 }
             }
 
@@ -277,13 +276,13 @@ class SystemPromptBuilder
             if (isset($modules['retirement'])) {
                 $ret = $modules['retirement'];
                 if (($ret['total_pension_value'] ?? 0) > 0) {
-                    $lines[] = '- Total pension value: £' . number_format($ret['total_pension_value'], 0);
+                    $lines[] = '- Total pension value: £'.number_format($ret['total_pension_value'], 0);
                 }
                 if (($ret['projected_annual_income'] ?? 0) > 0) {
-                    $lines[] = '- Projected retirement income: £' . number_format($ret['projected_annual_income'], 0) . ' per year';
+                    $lines[] = '- Projected retirement income: £'.number_format($ret['projected_annual_income'], 0).' per year';
                 }
                 if (($ret['income_gap'] ?? 0) > 0) {
-                    $lines[] = '- Retirement income gap: £' . number_format($ret['income_gap'], 0) . ' per year';
+                    $lines[] = '- Retirement income gap: £'.number_format($ret['income_gap'], 0).' per year';
                 }
             }
 
@@ -291,22 +290,22 @@ class SystemPromptBuilder
             if (isset($modules['protection'])) {
                 $prot = $modules['protection'];
                 if (($prot['full_analysis']['total_cover'] ?? 0) > 0) {
-                    $lines[] = '- Total life cover: £' . number_format($prot['full_analysis']['total_cover'], 0);
+                    $lines[] = '- Total life cover: £'.number_format($prot['full_analysis']['total_cover'], 0);
                 }
                 if (($prot['coverage_gap'] ?? 0) > 0) {
-                    $lines[] = '- Coverage gap: £' . number_format($prot['coverage_gap'], 0);
+                    $lines[] = '- Coverage gap: £'.number_format($prot['coverage_gap'], 0);
                 }
             }
 
             // Property
             $ownsProperty = \App\Models\Property::forUserOrJoint($user->id)->exists();
-            $lines[] = '- Property owner: ' . ($ownsProperty ? 'Yes' : 'No');
+            $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
 
             // Estate (IHT-specific)
             if (isset($modules['estate'])) {
                 $est = $modules['estate'];
                 if (($est['iht_liability'] ?? 0) > 0) {
-                    $lines[] = '- Estimated Inheritance Tax liability: £' . number_format($est['iht_liability'], 0);
+                    $lines[] = '- Estimated Inheritance Tax liability: £'.number_format($est['iht_liability'], 0);
                 }
             }
 
@@ -323,11 +322,11 @@ class SystemPromptBuilder
                 foreach ($activeGoals as $goal) {
                     $remaining = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
                     $status = $goal->is_on_track ? 'on track' : 'behind';
-                    $contribution = $goal->monthly_contribution ? ' — £' . number_format((float) $goal->monthly_contribution, 0) . '/month' : '';
-                    $lines[] = "  [ID:{$goal->id}] {$goal->goal_name}: £" . number_format((float) $goal->current_amount, 0)
-                        . ' of £' . number_format((float) $goal->target_amount, 0)
-                        . " ({$status}){$contribution}"
-                        . ($goal->target_date ? ' — target: ' . $goal->target_date->format('M Y') : '');
+                    $contribution = $goal->monthly_contribution ? ' — £'.number_format((float) $goal->monthly_contribution, 0).'/month' : '';
+                    $lines[] = "  [ID:{$goal->id}] {$goal->goal_name}: £".number_format((float) $goal->current_amount, 0)
+                        .' of £'.number_format((float) $goal->target_amount, 0)
+                        ." ({$status}){$contribution}"
+                        .($goal->target_date ? ' — target: '.$goal->target_date->format('M Y') : '');
                 }
             } else {
                 $lines[] = '- Goals: None set';
@@ -345,8 +344,8 @@ class SystemPromptBuilder
                 foreach ($activeEvents->take(10) as $event) {
                     $monthsUntil = max(0, (int) now()->diffInMonths($event->expected_date));
                     $sign = $event->impact_type === 'income' ? '+' : '-';
-                    $lines[] = "  [ID:{$event->id}] {$event->event_name}: {$sign}£" . number_format((float) $event->amount, 0)
-                        . " — in {$monthsUntil} months ({$event->certainty})";
+                    $lines[] = "  [ID:{$event->id}] {$event->event_name}: {$sign}£".number_format((float) $event->amount, 0)
+                        ." — in {$monthsUntil} months ({$event->certainty})";
                 }
             }
 
@@ -357,6 +356,7 @@ class SystemPromptBuilder
                 if (! empty($relevantModules)) {
                     $recommendations = array_filter($recommendations, function ($rec) use ($relevantModules) {
                         $recModule = $rec['module'] ?? '';
+
                         return $recModule === '' || in_array($recModule, $relevantModules, true);
                     });
                     $recommendations = array_values($recommendations);
@@ -381,7 +381,7 @@ class SystemPromptBuilder
 
                     // Include estimated saving if available
                     if (isset($rec['estimated_saving']) && $rec['estimated_saving'] > 0) {
-                        $lines[] = '   Estimated saving: £' . number_format((float) $rec['estimated_saving'], 0);
+                        $lines[] = '   Estimated saving: £'.number_format((float) $rec['estimated_saving'], 0);
                     }
 
                     // Include action step
@@ -405,7 +405,7 @@ class SystemPromptBuilder
             if (! empty($cashflow) && isset($cashflow['total_demand'])) {
                 $lines[] = '';
                 $totalDemand = number_format($cashflow['total_demand'], 2);
-                $lines[] = "Cashflow: Total monthly demand £{$totalDemand} vs surplus £" . number_format(abs($surplus), 2);
+                $lines[] = "Cashflow: Total monthly demand £{$totalDemand} vs surplus £".number_format(abs($surplus), 2);
             }
 
             // Shortfall analysis
@@ -510,21 +510,21 @@ class SystemPromptBuilder
             $valueWithShare = function ($record, float $totalValue) use ($userId) {
                 $type = $record->ownership_type ?? 'individual';
                 if ($type === 'individual') {
-                    return '£' . number_format($totalValue, 0);
+                    return '£'.number_format($totalValue, 0);
                 }
                 $userPct = (int) ($record->user_id === $userId
                     ? ($record->ownership_percentage ?? 100)
                     : (100 - ($record->ownership_percentage ?? 100)));
                 $userValue = $totalValue * ($userPct / 100);
 
-                return 'total:£' . number_format($totalValue, 0) . ' your-share:£' . number_format($userValue, 0);
+                return 'total:£'.number_format($totalValue, 0).' your-share:£'.number_format($userValue, 0);
             };
 
             // Savings
             if ($include('savings_account')) {
                 $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($savings->isNotEmpty()) {
-                    $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}" . ($a->is_isa ? ' ISA(tax-free)' : '') . $ownershipLabel($a) . ' ' . $valueWithShare($a, (float) $a->current_balance) . ']')->implode(' ');
+                    $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}".($a->is_isa ? ' ISA(tax-free)' : '').$ownershipLabel($a).' '.$valueWithShare($a, (float) $a->current_balance).']')->implode(' ');
                     $lines[] = "SAVINGS: {$items}";
                 }
             }
@@ -533,7 +533,7 @@ class SystemPromptBuilder
             if ($include('investment_account')) {
                 $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($investments->isNotEmpty()) {
-                    $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" " . $this->formatInvestmentAccountType($a->account_type) . $ownershipLabel($a) . ' ' . $valueWithShare($a, (float) $a->current_value) . ']')->implode(' ');
+                    $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" ".$this->formatInvestmentAccountType($a->account_type).$ownershipLabel($a).' '.$valueWithShare($a, (float) $a->current_value).']')->implode(' ');
                     $lines[] = "INVESTMENTS: {$items}";
                 }
             }
@@ -542,7 +542,7 @@ class SystemPromptBuilder
             if ($include('dc_pension')) {
                 $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
                 if ($dcPensions->isNotEmpty()) {
-                    $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £" . number_format((float) $p->current_fund_value, 0) . ']')->implode(' ');
+                    $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £".number_format((float) $p->current_fund_value, 0).']')->implode(' ');
                     $lines[] = "DC PENSIONS: {$items}";
                 }
             }
@@ -551,7 +551,7 @@ class SystemPromptBuilder
             if ($include('db_pension')) {
                 $dbPensions = \App\Models\DBPension::where('user_id', $userId)->get();
                 if ($dbPensions->isNotEmpty()) {
-                    $items = $dbPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" £" . number_format((float) ($p->accrued_annual_pension ?? 0), 0) . '/yr]')->implode(' ');
+                    $items = $dbPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" £".number_format((float) ($p->accrued_annual_pension ?? 0), 0).'/yr]')->implode(' ');
                     $lines[] = "DB PENSIONS: {$items}";
                 }
             }
@@ -571,21 +571,21 @@ class SystemPromptBuilder
                         $userMortgage = $mortgageTotal * ($userPct / 100);
 
                         $valueLabel = $userPct < 100
-                            ? ' total:£' . number_format($totalValue, 0) . ' your-share:£' . number_format($userValue, 0)
-                            : ' £' . number_format($totalValue, 0);
+                            ? ' total:£'.number_format($totalValue, 0).' your-share:£'.number_format($userValue, 0)
+                            : ' £'.number_format($totalValue, 0);
                         $mortgageLabel = $mortgageTotal > 0
                             ? ($userPct < 100
-                                ? ' mortgage-total:£' . number_format($mortgageTotal, 0) . ' your-mortgage:£' . number_format($userMortgage, 0)
-                                : ' mortgage:£' . number_format($mortgageTotal, 0))
+                                ? ' mortgage-total:£'.number_format($mortgageTotal, 0).' your-mortgage:£'.number_format($userMortgage, 0)
+                                : ' mortgage:£'.number_format($mortgageTotal, 0))
                             : '';
                         $rentalTotal = (float) ($p->monthly_rental_income ?? 0);
                         $rentalLabel = $p->property_type === 'buy_to_let' && $rentalTotal > 0
                             ? ($userPct < 100
-                                ? ' rent-total:£' . number_format($rentalTotal, 0) . '/mo your-rent:£' . number_format($rentalTotal * ($userPct / 100), 0) . '/mo'
-                                : ' rent:£' . number_format($rentalTotal, 0) . '/mo')
+                                ? ' rent-total:£'.number_format($rentalTotal, 0).'/mo your-rent:£'.number_format($rentalTotal * ($userPct / 100), 0).'/mo'
+                                : ' rent:£'.number_format($rentalTotal, 0).'/mo')
                             : '';
 
-                        return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}" . $ownershipLabel($p) . "{$mortgageLabel}{$rentalLabel}{$valueLabel}]";
+                        return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}".$ownershipLabel($p)."{$mortgageLabel}{$rentalLabel}{$valueLabel}]";
                     })->implode(' ');
                     $lines[] = "PROPERTIES: {$items}";
                 }
@@ -595,7 +595,7 @@ class SystemPromptBuilder
             if ($include('life_insurance')) {
                 $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
                 if ($lifePolicies->isNotEmpty()) {
-                    $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->policy_type} £" . number_format((float) $p->sum_assured, 0) . ']')->implode(' ');
+                    $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->policy_type} £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
                     $lines[] = "LIFE INSURANCE: {$items}";
                 }
             }
@@ -604,7 +604,7 @@ class SystemPromptBuilder
             if ($include('critical_illness')) {
                 $ciPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
                 if ($ciPolicies->isNotEmpty()) {
-                    $items = $ciPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £" . number_format((float) $p->sum_assured, 0) . ']')->implode(' ');
+                    $items = $ciPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
                     $lines[] = "CRITICAL ILLNESS: {$items}";
                 }
             }
@@ -613,7 +613,7 @@ class SystemPromptBuilder
             if ($include('income_protection')) {
                 $ipPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
                 if ($ipPolicies->isNotEmpty()) {
-                    $items = $ipPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £" . number_format((float) $p->benefit_amount, 0) . '/mo]')->implode(' ');
+                    $items = $ipPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £".number_format((float) $p->benefit_amount, 0).'/mo]')->implode(' ');
                     $lines[] = "INCOME PROTECTION: {$items}";
                 }
             }
@@ -622,7 +622,7 @@ class SystemPromptBuilder
             if ($include('trust')) {
                 $trusts = \App\Models\Estate\Trust::where('user_id', $userId)->get();
                 if ($trusts->isNotEmpty()) {
-                    $items = $trusts->map(fn ($t) => "[ID:{$t->id} \"{$t->trust_name}\" {$t->trust_type} £" . number_format((float) $t->current_value, 0) . ']')->implode(' ');
+                    $items = $trusts->map(fn ($t) => "[ID:{$t->id} \"{$t->trust_name}\" {$t->trust_type} £".number_format((float) $t->current_value, 0).']')->implode(' ');
                     $lines[] = "TRUSTS: {$items}";
                 }
             }
@@ -631,7 +631,7 @@ class SystemPromptBuilder
             if ($include('business')) {
                 $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($businesses->isNotEmpty()) {
-                    $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £" . number_format((float) $b->current_valuation, 0) . ']')->implode(' ');
+                    $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £".number_format((float) $b->current_valuation, 0).']')->implode(' ');
                     $lines[] = "BUSINESS: {$items}";
                 }
             }
@@ -640,7 +640,7 @@ class SystemPromptBuilder
             if ($include('chattel')) {
                 $chattels = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($chattels->isNotEmpty()) {
-                    $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->chattel_type} £" . number_format((float) $c->current_value, 0) . ']')->implode(' ');
+                    $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->chattel_type} £".number_format((float) $c->current_value, 0).']')->implode(' ');
                     $lines[] = "CHATTELS: {$items}";
                 }
             }
@@ -649,7 +649,7 @@ class SystemPromptBuilder
             if ($include('liability')) {
                 $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($liabilities->isNotEmpty()) {
-                    $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £" . number_format((float) $l->current_balance, 0) . ']')->implode(' ');
+                    $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £".number_format((float) $l->current_balance, 0).']')->implode(' ');
                     $lines[] = "LIABILITIES: {$items}";
                 }
             }
@@ -658,7 +658,7 @@ class SystemPromptBuilder
             if ($include('gift')) {
                 $gifts = \App\Models\Estate\Gift::where('user_id', $userId)->get();
                 if ($gifts->isNotEmpty()) {
-                    $items = $gifts->map(fn ($g) => "[ID:{$g->id} \"{$g->recipient}\" {$g->gift_type} £" . number_format((float) $g->gift_value, 0) . ' ' . ($g->gift_date ? $g->gift_date->format('M Y') : '') . ']')->implode(' ');
+                    $items = $gifts->map(fn ($g) => "[ID:{$g->id} \"{$g->recipient}\" {$g->gift_type} £".number_format((float) $g->gift_value, 0).' '.($g->gift_date ? $g->gift_date->format('M Y') : '').']')->implode(' ');
                     $lines[] = "GIFTS: {$items}";
                 }
             }
@@ -676,7 +676,7 @@ class SystemPromptBuilder
                     $familyParts[] = "[ID:{$m->id} \"{$m->first_name} {$m->last_name}\" {$m->relationship} age {$age}]";
                 }
                 if (! empty($familyParts)) {
-                    $lines[] = 'FAMILY: ' . implode(' ', $familyParts);
+                    $lines[] = 'FAMILY: '.implode(' ', $familyParts);
                 }
             }
 
@@ -743,8 +743,8 @@ PROMPT;
                 $field = str_replace('_', ' ', $change['field']);
                 $changeLines[] = "- {$field} changed since advice on {$change['advice_date']}";
             }
-            $parts[] = "DATA CHANGES SINCE LAST ADVICE:\n" . implode("\n", $changeLines)
-                . "\nPrevious advice may need updating based on these changes.";
+            $parts[] = "DATA CHANGES SINCE LAST ADVICE:\n".implode("\n", $changeLines)
+                ."\nPrevious advice may need updating based on these changes.";
         }
 
         // Modules overdue for review
@@ -753,15 +753,15 @@ PROMPT;
             foreach ($result['reviews_due'] as $review) {
                 $reviewLines[] = "- {$review['module']}: last reviewed {$review['months_ago']} months ago ({$review['last_reviewed']})";
             }
-            $parts[] = "MODULES DUE FOR REVIEW (over 12 months since last advice):\n" . implode("\n", $reviewLines)
-                . "\nOffer to review these areas when relevant to the conversation.";
+            $parts[] = "MODULES DUE FOR REVIEW (over 12 months since last advice):\n".implode("\n", $reviewLines)
+                ."\nOffer to review these areas when relevant to the conversation.";
         }
 
         if (empty($parts)) {
             return '';
         }
 
-        return "<review_due>\n" . implode("\n\n", $parts) . "\n</review_due>";
+        return "<review_due>\n".implode("\n\n", $parts)."\n</review_due>";
     }
 
     // ─── Layer 8: Query Knowledge (per-domain retrieval) ──────────────

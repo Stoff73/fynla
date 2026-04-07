@@ -102,6 +102,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'ISAAllowanceTracker',
@@ -132,14 +133,15 @@ export default {
       return !(overviewData.breakdown?.property > 0);
     },
 
-    // The full £20k ISA allowance
+    // The full ISA allowance from store (API-backed) or fallback
     overallAllowance() {
-      return 20000;
+      return this.isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE;
     },
 
-    // The ISA allowance excluding LISA (£16k when LISA-eligible, £20k otherwise)
+    // The ISA allowance excluding LISA when LISA-eligible
     totalAllowance() {
-      return this.lisaEligible ? 16000 : 20000;
+      const full = this.overallAllowance;
+      return this.lisaEligible ? full - 4000 : full;
     },
 
     currentTaxYear() {

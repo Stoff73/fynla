@@ -737,7 +737,7 @@
                 <span v-else></span>
                 <div>
                   <span class="text-sm font-bold text-spring-600">{{ formatCurrency(isaAllowanceData.totalUsed) }}</span>
-                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(20000) }}</span>
+                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE) }}</span>
                 </div>
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
@@ -945,7 +945,7 @@ import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/cons
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
-import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import { ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
@@ -953,7 +953,7 @@ import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Dashboard',
+  name: 'DashboardView',
 
   components: {
     AppLayout,
@@ -998,6 +998,7 @@ export default {
       nwMouseX: 0,
       nwMouseY: 0,
       journeyBlurActive: false,
+      ISA_ANNUAL_ALLOWANCE,
     };
   },
 
@@ -1892,7 +1893,7 @@ export default {
         grid: { show: false, padding: { left: 2, right: 2, top: -15, bottom: 0 } },
         dataLabels: { enabled: false },
         tooltip: {
-          y: { formatter: (val) => '£' + val.toLocaleString('en-GB') },
+          y: { formatter: (val) => this.formatCurrency(val) },
         },
       };
     },

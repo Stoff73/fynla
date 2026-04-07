@@ -84,6 +84,22 @@ export const DIVIDEND_HIGHER_RATE = 0.3575;     // Was 33.75% in 2025/26
 export const DIVIDEND_ADDITIONAL_RATE = 0.3935;
 
 /**
+ * Statutory Sick Pay
+ */
+export const SSP_WEEKLY_RATE = 123.25; // 2026/27
+
+/**
+ * High Income Child Benefit Charge
+ */
+export const HICBC_THRESHOLD = 60000;
+
+/**
+ * Pension Annual Allowance Taper
+ */
+export const PENSION_TAPER_THRESHOLD_INCOME = 200000;
+export const PENSION_TAPER_ADJUSTED_INCOME = 260000;
+
+/**
  * Other Allowances
  */
 export const SAVINGS_ALLOWANCE_BASIC = 1000;
@@ -150,6 +166,16 @@ export const TAX_CONFIG = {
   // State Pension
   STATE_PENSION_WEEKLY,
   STATE_PENSION_ANNUAL,
+
+  // Statutory Sick Pay
+  SSP_WEEKLY_RATE,
+
+  // HICBC
+  HICBC_THRESHOLD,
+
+  // Pension Taper
+  PENSION_TAPER_THRESHOLD_INCOME,
+  PENSION_TAPER_ADJUSTED_INCOME,
 };
 
 export default TAX_CONFIG;

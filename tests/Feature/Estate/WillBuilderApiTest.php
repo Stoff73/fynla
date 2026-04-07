@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Estate\Will;
 use App\Models\Estate\WillDocument;
-use App\Models\FamilyMember;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 

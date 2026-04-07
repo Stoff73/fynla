@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
+use App\Constants\TaxDefaults;
 use App\Models\TaxProductReference;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
@@ -142,7 +143,7 @@ class TaxProductInfoService
 
         // Fallback values are 2025/26 UK tax year defaults if TaxConfigService unavailable
         return [
-            'isa_allowance' => $isaAllowances['annual_allowance'] ?? 20000,
+            'isa_allowance' => $isaAllowances['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE,
             'junior_isa_allowance' => $isaAllowances['junior_isa']['annual_allowance'] ?? 9000,
             'lifetime_isa_limit' => $isaAllowances['lifetime_isa']['annual_allowance'] ?? 4000,
             'cgt_allowance' => $cgtConfig['annual_exempt_amount'] ?? 3000,

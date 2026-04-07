@@ -468,6 +468,7 @@ import PolicyCard from './PolicyCard.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import userProfileService from '@/services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SSP_WEEKLY_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'CurrentSituation',
@@ -689,7 +690,7 @@ export default {
     },
 
     sspWeeklyRate() {
-      return 118.75;
+      return SSP_WEEKLY_RATE;
     },
 
     sspAnnualEquivalent() {

@@ -493,7 +493,7 @@
                   <input
                     type="checkbox"
                     v-model="form.bpr_eligible"
-                    class="mr-3 h-4 w-4 text-spring-600 focus:ring-green-500 border-horizon-300 rounded"
+                    class="mr-3 h-4 w-4 text-spring-600 focus:ring-violet-500 border-horizon-300 rounded"
                   />
                   <div>
                     <span class="text-sm font-medium text-horizon-500">Business Property Relief (BPR) Eligible</span>
@@ -502,7 +502,7 @@
                 </label>
 
                 <div v-if="form.bpr_eligible" class="text-sm text-spring-800">
-                  <p class="font-medium">BPR can reduce the Inheritance Tax value of this business interest to zero if:</p>
+                  <p class="font-medium">Business Property Relief can reduce the Inheritance Tax value of this business interest to zero if:</p>
                   <ul class="list-disc ml-5 mt-1 space-y-1">
                     <li>The business is a trading business (not mainly investment)</li>
                     <li>You've owned it for at least 2 years</li>

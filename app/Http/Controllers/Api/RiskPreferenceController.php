@@ -9,7 +9,6 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Risk\RiskPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Risk Preference Controller
@@ -21,7 +20,7 @@ class RiskPreferenceController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService
     ) {}
 
     /**
@@ -88,19 +87,9 @@ class RiskPreferenceController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'risk_level' => 'required|string|in:low,lower_medium,medium,upper_medium,high',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $riskProfile = $this->riskPreferenceService->setMainRiskLevel(
@@ -176,19 +165,9 @@ class RiskPreferenceController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'risk_level' => 'required|string|in:low,lower_medium,medium,upper_medium,high',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $isValid = $this->riskPreferenceService->validateProductRiskLevel(

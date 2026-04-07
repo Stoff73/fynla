@@ -23,14 +23,14 @@ class GiftingController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private IHTController $ihtController,
-        private CashFlowProjector $cashFlowProjector,
-        private GiftingStrategyOptimizer $giftingOptimizer,
-        private PersonalizedGiftingStrategyService $personalizedGiftingStrategy,
-        private PersonalizedTrustStrategyService $personalizedTrustStrategy,
-        private EstateAssetAggregatorService $assetAggregator,
-        private TrustService $trustService,
-        private TaxConfigService $taxConfig
+        private readonly IHTController $ihtController,
+        private readonly CashFlowProjector $cashFlowProjector,
+        private readonly GiftingStrategyOptimizer $giftingOptimizer,
+        private readonly PersonalizedGiftingStrategyService $personalizedGiftingStrategy,
+        private readonly PersonalizedTrustStrategyService $personalizedTrustStrategy,
+        private readonly EstateAssetAggregatorService $assetAggregator,
+        private readonly TrustService $trustService,
+        private readonly TaxConfigService $taxConfig
     ) {}
 
     /**

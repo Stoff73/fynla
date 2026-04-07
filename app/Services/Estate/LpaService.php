@@ -16,6 +16,7 @@ class LpaService
     public function __construct(
         private readonly CacheInvalidationService $cacheInvalidation
     ) {}
+
     /**
      * Get all LPAs for a user with related data.
      */

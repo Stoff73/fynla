@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AdminUserResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Payment;
 use App\Models\Role;
@@ -16,8 +17,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
-use App\Http\Resources\AdminUserResource;
-use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
@@ -91,18 +90,10 @@ class AdminController extends Controller
     public function getUsers(Request $request): JsonResponse
     {
         try {
-            $validator = Validator::make($request->all(), [
+            $request->validate([
                 'per_page' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|nullable|string|max:100',
             ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
 
             $perPage = min((int) $request->query('per_page', 15), 100);
             $search = $request->query('search');
@@ -137,7 +128,7 @@ class AdminController extends Controller
      */
     public function createUser(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'surname' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -152,24 +143,16 @@ class AdminController extends Controller
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
-            $role = $request->role_id
-                ? Role::find($request->role_id)
+            $role = isset($validated['role_id'])
+                ? Role::find($validated['role_id'])
                 : Role::findByName(Role::ROLE_USER);
 
             $user = new User;
-            $user->first_name = $request->first_name;
-            $user->surname = $request->surname;
-            $user->email = $request->email;
-            $user->password = Hash::make($request->password);
+            $user->first_name = $validated['first_name'];
+            $user->surname = $validated['surname'];
+            $user->email = $validated['email'];
+            $user->password = Hash::make($validated['password']);
             $user->role_id = $role?->id;
             $user->is_admin = $role?->name === Role::ROLE_ADMIN;
             $user->save();
@@ -200,7 +183,7 @@ class AdminController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'first_name' => 'sometimes|string|max:255',
             'surname' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,'.$id,
@@ -215,29 +198,21 @@ class AdminController extends Controller
             'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
-            if ($request->has('first_name')) {
-                $user->first_name = $request->first_name;
+            if (isset($validated['first_name'])) {
+                $user->first_name = $validated['first_name'];
             }
-            if ($request->has('surname')) {
-                $user->surname = $request->surname;
+            if (isset($validated['surname'])) {
+                $user->surname = $validated['surname'];
             }
-            if ($request->has('email')) {
-                $user->email = $request->email;
+            if (isset($validated['email'])) {
+                $user->email = $validated['email'];
             }
-            if ($request->has('password')) {
-                $user->password = Hash::make($request->password);
+            if (isset($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
             }
-            if ($request->has('role_id')) {
-                $role = Role::find($request->role_id);
+            if (isset($validated['role_id'])) {
+                $role = Role::find($validated['role_id']);
                 $user->role_id = $role?->id;
                 $user->is_admin = $role?->name === Role::ROLE_ADMIN;
             }
@@ -437,20 +412,12 @@ class AdminController extends Controller
      */
     public function restoreBackup(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'filename' => ['required', 'string', 'regex:/^backup_[\d\-_]+\.sql$/'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
-            $filename = basename($request->filename); // Prevent path traversal
+            $filename = basename($validated['filename']); // Prevent path traversal
             $backupsDir = storage_path('app/backups');
             $path = $backupsDir.'/'.$filename;
 
@@ -523,20 +490,12 @@ class AdminController extends Controller
      */
     public function deleteBackup(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'filename' => ['required', 'string', 'regex:/^backup_[\d\-_]+\.sql$/'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
-            $filename = basename($request->filename); // Prevent path traversal
+            $filename = basename($validated['filename']); // Prevent path traversal
             $backupsDir = storage_path('app/backups');
             $path = $backupsDir.'/'.$filename;
 

@@ -24,7 +24,6 @@ import infoGuide from './modules/infoGuide';
 import aiChat from './modules/aiChat';
 import plans from './modules/plans';
 import taxConfig from './modules/taxConfig';
-import taxOptimisation from './modules/taxOptimisation';
 import household from './modules/household';
 import journeys from './modules/journeys';
 import mobileDashboard from './modules/mobileDashboard';
@@ -82,7 +81,6 @@ const store = createStore({
     aiChat,
     plans,
     taxConfig,
-    taxOptimisation,
     household,
     journeys,
     mobileDashboard,

@@ -201,7 +201,7 @@ export default {
       // PCLS and Drawdown are separate series
       if (this.activeFundTypes.includes('pcls')) {
         series.push({
-          name: 'PCLS (Tax-Free)',
+          name: 'Pension Commencement Lump Sum (Tax-Free)',
           data: this.projections.map(p => Math.round(p.pcls || 0)),
         });
       }

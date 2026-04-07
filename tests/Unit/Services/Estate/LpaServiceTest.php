@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\LpaAttorney;
-use App\Models\Estate\LpaNotificationPerson;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Estate\LpaService;

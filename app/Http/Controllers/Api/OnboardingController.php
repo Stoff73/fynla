@@ -9,14 +9,13 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Services\Onboarding\OnboardingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class OnboardingController extends Controller
 {
     use SanitizedErrorResponse;
 
     public function __construct(
-        private OnboardingService $onboardingService
+        private readonly OnboardingService $onboardingService
     ) {}
 
     /**
@@ -41,17 +40,9 @@ class OnboardingController extends Controller
      */
     public function setFocusArea(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'focus_area' => 'required|in:estate',  // Only estate has a fully implemented legacy flow
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $user = $this->onboardingService->setFocusArea(
@@ -78,18 +69,10 @@ class OnboardingController extends Controller
      */
     public function saveStepProgress(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'step_name' => 'required|string',
             'data' => 'required|array',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             \Log::info('Saving step progress', [
@@ -128,17 +111,9 @@ class OnboardingController extends Controller
      */
     public function skipStep(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'step_name' => 'required|string',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $progress = $this->onboardingService->skipStep(

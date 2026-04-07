@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
@@ -14,9 +15,6 @@ class ContributionEstimatorService
     private const GIA_ANNUAL_PERCENT = 0.05;
 
     private const MONTHS_IN_YEAR = 12;
-
-    // Fallback ISA allowance if TaxConfigService unavailable
-    private const ISA_ALLOWANCE_FALLBACK = 20000;
 
     public function __construct(
         private readonly TaxConfigService $taxConfig
@@ -30,14 +28,14 @@ class ContributionEstimatorService
         try {
             $isaConfig = $this->taxConfig->getISAAllowances();
 
-            return (float) ($isaConfig['annual_allowance'] ?? self::ISA_ALLOWANCE_FALLBACK);
+            return (float) ($isaConfig['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
         } catch (\Exception $e) {
             Log::error('TaxConfigService failed to provide ISA allowance, using fallback', [
-                'fallback_value' => self::ISA_ALLOWANCE_FALLBACK,
+                'fallback_value' => TaxDefaults::ISA_ALLOWANCE,
                 'exception' => $e->getMessage(),
             ]);
 
-            return self::ISA_ALLOWANCE_FALLBACK;
+            return TaxDefaults::ISA_ALLOWANCE;
         }
     }
 

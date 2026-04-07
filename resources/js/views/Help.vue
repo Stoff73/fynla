@@ -712,7 +712,7 @@ import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
-  name: 'Help',
+  name: 'HelpView',
 
   components: {
     AppLayout,

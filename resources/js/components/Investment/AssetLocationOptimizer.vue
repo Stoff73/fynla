@@ -310,11 +310,14 @@
 
 <script>
 import api from '@/services/api';
-import { SUCCESS_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import { SUCCESS_COLORS, BORDER_COLORS, CHART_DEFAULTS, CHART_COLORS } from '@/constants/designSystem';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'AssetLocationOptimiser',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -416,11 +419,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    formatNumber(value) {
-      if (!value && value !== 0) return '0';
-      return Math.round(value).toLocaleString('en-GB');
     },
 
     getScoreColour(score) {

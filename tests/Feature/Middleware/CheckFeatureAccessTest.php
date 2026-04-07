@@ -5,18 +5,19 @@ declare(strict_types=1);
 use App\Http\Middleware\CheckFeatureAccess;
 use App\Models\Subscription;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 beforeEach(function () {
     config(['app.payment_enabled' => true]);
-    $this->middleware = new CheckFeatureAccess();
+    $this->middleware = new CheckFeatureAccess;
 });
 
 function makeRequest(User $user): Request
 {
     $request = Request::create('/api/test', 'GET');
     $request->setUserResolver(fn () => $user);
+
     return $request;
 }
 

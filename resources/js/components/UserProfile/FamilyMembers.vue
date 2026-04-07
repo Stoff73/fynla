@@ -12,15 +12,15 @@
     </div>
 
     <!-- Error Message -->
-    <div v-if="errorMessage" class="rounded-md bg-red-50 border border-red-200 p-4 mb-6">
+    <div v-if="errorMessage" class="rounded-md bg-raspberry-50 border border-raspberry-200 p-4 mb-6">
       <div class="flex">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+          <svg class="h-5 w-5 text-raspberry-400" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
-          <p class="text-body-sm font-medium text-red-800">
+          <p class="text-body-sm font-medium text-raspberry-800">
             {{ errorMessage }}
           </p>
         </div>
@@ -71,19 +71,19 @@
               </span>
               <span
                 v-if="member.is_shared && member.owner === 'spouse'"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-light-blue-100 text-horizon-600"
               >
                 Shared from Spouse
               </span>
               <span
                 v-if="member.receives_child_benefit"
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-spring-100 text-spring-800"
               >
                 Child Benefit
               </span>
               <span
                 v-if="member.relationship === 'spouse' && member.email"
-                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-spring-100 text-spring-800"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -97,7 +97,7 @@
             <button
               v-preview-disabled="'edit'"
               @click="openEditModal(member)"
-              class="btn-secondary-sm"
+              class="btn-secondary text-sm"
             >
               Edit
             </button>
@@ -168,7 +168,7 @@
             Leaving 10% or more to charity can reduce your Inheritance Tax rate from 40% to 36%
           </p>
         </div>
-        <div class="text-body font-medium" :class="charitableBequest ? 'text-green-600' : 'text-neutral-500'">
+        <div class="text-body font-medium" :class="charitableBequest ? 'text-spring-600' : 'text-neutral-500'">
           {{ charitableBequest ? 'Yes' : charitableBequest === false ? 'No' : 'Not set' }}
         </div>
       </div>
@@ -333,10 +333,10 @@ export default {
     const getRelationshipBadgeClass = (relationship) => {
       const classes = {
         spouse: 'bg-purple-100 text-purple-800',
-        child: 'bg-blue-100 text-blue-800',
-        step_child: 'bg-blue-100 text-blue-800',
-        parent: 'bg-green-100 text-green-800',
-        other_dependent: 'bg-blue-100 text-blue-800',
+        child: 'bg-light-blue-100 text-horizon-600',
+        step_child: 'bg-light-blue-100 text-horizon-600',
+        parent: 'bg-spring-100 text-spring-800',
+        other_dependent: 'bg-light-blue-100 text-horizon-600',
       };
       return classes[relationship] || 'bg-savannah-100 text-horizon-500';
     };

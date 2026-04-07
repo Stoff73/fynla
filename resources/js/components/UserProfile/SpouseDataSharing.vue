@@ -11,19 +11,19 @@
     <div v-else-if="requiresAccountLink" class="space-y-4">
       <div class="mb-6">
         <p class="text-body-sm text-neutral-500 mb-2">Spouse: <span class="font-medium text-horizon-500">{{ spouse?.name || 'N/A' }}</span></p>
-        <p class="text-body-sm text-neutral-500">Status: <span class="font-medium text-blue-600">Not linked</span></p>
+        <p class="text-body-sm text-neutral-500">Status: <span class="font-medium text-horizon-500">Not linked</span></p>
       </div>
 
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="bg-light-blue-100 border border-horizon-200 rounded-lg p-4">
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-horizon-500" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
             </svg>
           </div>
           <div class="ml-3 flex-1">
-            <h4 class="text-body-sm font-medium text-blue-800">Account Link Required</h4>
-            <p class="mt-1 text-body-sm text-blue-700">
+            <h4 class="text-body-sm font-medium text-horizon-600">Account Link Required</h4>
+            <p class="mt-1 text-body-sm text-horizon-500">
               {{ permissionMessage || 'Your spouse needs an account to enable data sharing. Edit your spouse in the Family Members section and add their email address to create or link their account.' }}
             </p>
           </div>
@@ -41,16 +41,16 @@
 
       <!-- No Permission Request -->
       <div v-if="!permission" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-light-blue-100 border border-horizon-200 rounded-lg p-4">
           <div class="flex">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-5 w-5 text-horizon-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
               </svg>
             </div>
             <div class="ml-3 flex-1">
-              <h4 class="text-body-sm font-medium text-blue-800">Enable Joint Account View</h4>
-              <p class="mt-1 text-body-sm text-blue-700">
+              <h4 class="text-body-sm font-medium text-horizon-600">Enable Joint Account View</h4>
+              <p class="mt-1 text-body-sm text-horizon-500">
                 Request permission to view your spouse's financial data. This allows you to see joint accounts and combined financial statements.
               </p>
             </div>
@@ -100,20 +100,20 @@
 
       <!-- Permission Pending (received by current user) -->
       <div v-else-if="isPending && permission.spouse_id === currentUserId" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="bg-light-blue-100 border border-horizon-200 rounded-lg p-4">
           <div class="flex">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-5 w-5 text-horizon-500" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                 <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
               </svg>
             </div>
             <div class="ml-3 flex-1">
-              <h4 class="text-body-sm font-medium text-blue-800">Permission Request Received</h4>
-              <p class="mt-1 text-body-sm text-blue-700">
+              <h4 class="text-body-sm font-medium text-horizon-600">Permission Request Received</h4>
+              <p class="mt-1 text-body-sm text-horizon-500">
                 Your spouse has requested permission to view your financial data. This will allow them to see your assets, liabilities, and income in their account view.
               </p>
-              <p class="mt-1 text-body-xs text-blue-600">
+              <p class="mt-1 text-body-xs text-horizon-500">
                 Requested: {{ formatDate(permission.requested_at) }}
               </p>
             </div>
@@ -143,19 +143,19 @@
 
       <!-- Permission Accepted -->
       <div v-else-if="isAccepted" class="space-y-4">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div class="bg-spring-50 border border-spring-200 rounded-lg p-4">
           <div class="flex">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-5 w-5 text-spring-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
               </svg>
             </div>
             <div class="ml-3 flex-1">
-              <h4 class="text-body-sm font-medium text-green-800">Data Sharing Enabled</h4>
-              <p class="mt-1 text-body-sm text-green-700">
+              <h4 class="text-body-sm font-medium text-spring-800">Data Sharing Enabled</h4>
+              <p class="mt-1 text-body-sm text-spring-700">
                 You can now view joint accounts and combined financial statements with your spouse.
               </p>
-              <p class="mt-1 text-body-xs text-green-600">
+              <p class="mt-1 text-body-xs text-spring-600">
                 Accepted: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
@@ -174,19 +174,19 @@
 
       <!-- Permission Rejected -->
       <div v-else-if="isRejected" class="space-y-4">
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="bg-raspberry-50 border border-raspberry-200 rounded-lg p-4">
           <div class="flex">
             <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="h-5 w-5 text-raspberry-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
               </svg>
             </div>
             <div class="ml-3 flex-1">
-              <h4 class="text-body-sm font-medium text-red-800">Permission Request Rejected</h4>
-              <p class="mt-1 text-body-sm text-red-700">
+              <h4 class="text-body-sm font-medium text-raspberry-800">Permission Request Rejected</h4>
+              <p class="mt-1 text-body-sm text-raspberry-700">
                 Your spouse declined the data sharing request.
               </p>
-              <p class="mt-1 text-body-xs text-red-600">
+              <p class="mt-1 text-body-xs text-raspberry-600">
                 Rejected: {{ formatDate(permission.responded_at) }}
               </p>
             </div>
@@ -195,8 +195,8 @@
       </div>
 
       <!-- Error Message -->
-      <div v-if="error" class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-        <p class="text-body-sm text-red-800">{{ error }}</p>
+      <div v-if="error" class="mt-4 bg-raspberry-50 border border-raspberry-200 rounded-lg p-4">
+        <p class="text-body-sm text-raspberry-800">{{ error }}</p>
       </div>
     </div>
   </div>

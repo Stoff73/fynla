@@ -1530,23 +1530,6 @@ export default {
   gap: 12px;
 }
 
-.btn-secondary {
-  flex: 1;
-  padding: 12px 20px;
-  @apply bg-savannah-100;
-  @apply text-neutral-500;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-secondary:hover {
-  @apply bg-savannah-200;
-}
-
 .btn-primary {
   flex: 1;
   padding: 12px 20px;

@@ -44,7 +44,7 @@ class ChrisUserSeeder extends Seeder
             [
                 'first_name' => 'Chris',
                 'surname' => 'Jones',
-                'password' => Hash::make('Password1!'),
+                'password' => Hash::make(env('CHRIS_SEED_PASSWORD', 'Password1!')),
                 'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'is_admin' => true,
                 'is_advisor' => false,
@@ -522,6 +522,6 @@ class ChrisUserSeeder extends Seeder
             ]
         );
 
-        $this->command->info("Chris Jones (chris@fynla.org) seeded with production-matching data.");
+        $this->command->info('Chris Jones (chris@fynla.org) seeded with production-matching data.');
     }
 }

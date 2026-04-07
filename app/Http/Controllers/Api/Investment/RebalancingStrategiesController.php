@@ -10,7 +10,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\Rebalancing\RebalancingStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Rebalancing strategies controller
@@ -31,7 +30,7 @@ class RebalancingStrategiesController extends Controller
      */
     public function evaluateStrategies(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_allocation' => 'required|array|min:2',
             'target_allocation.equities' => 'required|numeric|min:0|max:100',
             'target_allocation.bonds' => 'required|numeric|min:0|max:100',
@@ -43,16 +42,6 @@ class RebalancingStrategiesController extends Controller
             'frequency' => 'nullable|in:quarterly,semi_annual,annual,biennial',
             'account_ids' => 'nullable|array',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
@@ -123,22 +112,12 @@ class RebalancingStrategiesController extends Controller
      */
     public function recommendFrequency(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'portfolio_value' => 'required|numeric|min:0',
             'risk_level' => 'required|integer|min:1|max:5',
             'expected_volatility' => 'required|numeric|min:0|max:100',
             'is_taxable' => 'nullable|boolean',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->strategyService->recommendRebalancingFrequency(
@@ -164,21 +143,11 @@ class RebalancingStrategiesController extends Controller
      */
     public function evaluateThresholdStrategy(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_allocation' => 'required|array|min:2',
             'threshold_percent' => 'required|numeric|min:1|max:50',
             'account_ids' => 'nullable|array',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
@@ -239,20 +208,10 @@ class RebalancingStrategiesController extends Controller
      */
     public function evaluateCalendarStrategy(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'last_rebalance_date' => 'required|date',
             'frequency' => 'required|in:quarterly,semi_annual,annual,biennial',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->strategyService->evaluateCalendarStrategy(
@@ -276,21 +235,11 @@ class RebalancingStrategiesController extends Controller
      */
     public function evaluateOpportunisticStrategy(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_allocation' => 'required|array|min:2',
             'new_cash_flow' => 'required|numeric',
             'account_ids' => 'nullable|array',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
