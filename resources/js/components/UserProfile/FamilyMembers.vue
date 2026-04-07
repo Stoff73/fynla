@@ -193,16 +193,33 @@
       @cancel="showDeleteConfirm = false"
     />
 
-    <!-- Marital Status Update Confirmation (after deleting spouse) -->
-    <ConfirmDialog
-      :show="showMaritalStatusPrompt"
-      title="Update Marital Status"
-      message="You have removed your spouse. Would you like to update your marital status to divorced?"
-      confirm-text="Yes, update to divorced"
-      cancel-text="No, keep current status"
-      @confirm="updateMaritalStatusDivorced"
-      @cancel="showMaritalStatusPrompt = false"
-    />
+    <!-- Marital Status Update (after removing spouse) -->
+    <div v-if="showMaritalStatusPrompt" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div class="bg-white rounded-xl shadow-xl p-6 max-w-md mx-4">
+        <h3 class="text-h5 font-bold text-horizon-500 mb-2">Update Marital Status</h3>
+        <p class="text-body-sm text-neutral-500 mb-5">You have removed your spouse. What would you like to update your marital status to?</p>
+        <div class="flex flex-col gap-2">
+          <button
+            class="w-full px-4 py-2.5 rounded-lg bg-raspberry-500 text-white text-body-sm font-medium hover:bg-raspberry-600 transition-colors"
+            @click="updateMaritalStatus('divorced')"
+          >
+            Divorced
+          </button>
+          <button
+            class="w-full px-4 py-2.5 rounded-lg bg-horizon-500 text-white text-body-sm font-medium hover:bg-horizon-600 transition-colors"
+            @click="updateMaritalStatus('widowed')"
+          >
+            Widowed
+          </button>
+          <button
+            class="w-full px-4 py-2.5 rounded-lg border border-light-gray text-neutral-500 text-body-sm font-medium hover:bg-eggshell-500 transition-colors"
+            @click="showMaritalStatusPrompt = false"
+          >
+            Keep current status
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Spouse Success Modal -->
     <SpouseSuccessModal
@@ -390,9 +407,10 @@ export default {
         }
 
         // Auto-update marital status to 'married' when adding a spouse
+        // Handles: single→married, divorced→married, widowed→married
         const isSpouseAdd = !selectedMember.value && formData.relationship === 'spouse';
         const currentMaritalStatus = store.getters['auth/user']?.marital_status;
-        if (isSpouseAdd && currentMaritalStatus !== 'married') {
+        if (isSpouseAdd && currentMaritalStatus !== 'married' && currentMaritalStatus !== 'civil_partnership') {
           try {
             await store.dispatch('userProfile/updatePersonalInfo', { marital_status: 'married' });
           } catch (err) {
@@ -472,11 +490,12 @@ export default {
       }
     };
 
-    const updateMaritalStatusDivorced = async () => {
+    const updateMaritalStatus = async (newStatus) => {
       try {
-        await store.dispatch('userProfile/updatePersonalInfo', { marital_status: 'divorced' });
+        await store.dispatch('userProfile/updatePersonalInfo', { marital_status: newStatus });
         showMaritalStatusPrompt.value = false;
-        successMessage.value = 'Marital status updated to divorced.';
+        const label = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+        successMessage.value = `Marital status updated to ${label}.`;
         if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout);
         deleteSuccessTimeout = setTimeout(() => {
           successMessage.value = '';
@@ -537,7 +556,7 @@ export default {
       closeSpouseSuccess,
       confirmDelete,
       handleDelete,
-      updateMaritalStatusDivorced,
+      updateMaritalStatus,
       showMaritalStatusPrompt,
       loadFamilyMembers,
     };
