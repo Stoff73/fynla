@@ -243,8 +243,13 @@
             </div>
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Recommended:</span>
-              <span class="font-semibold text-horizon-500">Whole of Life (in trust)</span>
+              <span class="font-semibold text-horizon-500">Whole of Life</span>
             </div>
+            <div v-if="isMarried" class="flex items-center justify-between">
+              <span class="text-neutral-500">Type:</span>
+              <span class="font-semibold text-horizon-500">Joint Second Death</span>
+            </div>
+            <p class="text-neutral-500 mt-1">Written in trust</p>
           </div>
         </div>
 
