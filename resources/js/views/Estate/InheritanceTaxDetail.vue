@@ -128,7 +128,11 @@ export default {
 
   computed: {
     ...mapState('estate', ['ihtData', 'projection', 'secondDeathPlanning', 'willInfo']),
-    ...mapGetters('estate', ['ihtLiability', 'taxableEstate', 'charitableBequest']),
+    ...mapGetters('estate', ['ihtLiability', 'taxableEstate']),
+
+    charitableBequest() {
+      return this.$store.state.auth.user?.charitable_bequest || false;
+    },
 
     isMarried() {
       return this.$store.state.auth.user?.marital_status === 'married';
@@ -209,7 +213,7 @@ export default {
   async mounted() {
     try {
       await this.fetchEstateData();
-      await this.$store.dispatch('estate/calculateSecondDeathIHT', {});
+      await this.calculateIHTPlanning();
     } catch {
       // Data may already be loaded from estate dashboard
     } finally {
@@ -218,7 +222,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('estate', ['fetchEstateData']),
+    ...mapActions('estate', ['fetchEstateData', 'calculateIHTPlanning']),
   },
 };
 </script>
