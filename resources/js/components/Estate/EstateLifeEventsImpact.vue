@@ -8,24 +8,6 @@
       </span>
     </div>
 
-    <!-- Review Triggers (high priority warnings) -->
-    <div v-if="reviewTriggers.length > 0" class="mb-6 space-y-3">
-      <div
-        v-for="(trigger, index) in reviewTriggers"
-        :key="'trigger-' + index"
-        :class="[
-          'rounded-lg p-4 border',
-          trigger.priority === 'high' ? 'bg-raspberry-50 border-raspberry-200' : 'bg-violet-50 border-violet-200'
-        ]"
-      >
-        <div>
-          <p class="text-sm font-medium text-horizon-500">{{ trigger.event_name }}</p>
-          <p class="text-sm text-neutral-500 mt-1">{{ trigger.reason }}</p>
-          <p class="text-sm text-raspberry-700 mt-1 font-medium">{{ trigger.recommendation }}</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Event Impact Cards -->
     <div class="space-y-3">
       <div
