@@ -44,7 +44,29 @@
           </div>
         </div>
 
-      <form class="space-y-6" @submit.prevent="handleRegister">
+        <!-- Cookie Consent Required for Registration -->
+        <div v-if="!cookiesAccepted" class="mt-4 bg-violet-50 border-2 border-violet-300 rounded-lg p-5">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-violet-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <div>
+              <p class="text-body-sm font-semibold text-horizon-500">Cookies Required</p>
+              <p class="text-body-sm text-neutral-500 mt-1">
+                Cookies are required to create an account. They allow us to keep you securely signed in.
+              </p>
+              <button
+                type="button"
+                class="mt-3 px-5 py-2 rounded-lg bg-raspberry-500 text-white text-body-sm font-medium hover:bg-raspberry-600 transition-colors"
+                @click="handleAcceptCookiesForRegistration"
+              >
+                Accept Cookies & Continue
+              </button>
+            </div>
+          </div>
+        </div>
+
+      <form v-if="cookiesAccepted" class="space-y-6" @submit.prevent="handleRegister">
         <div v-if="errorMessage" class="rounded-lg bg-raspberry-50 border border-raspberry-200 p-4">
           <p class="text-body-sm text-raspberry-700">{{ errorMessage }}</p>
           <div v-if="emailExists" class="mt-3 flex flex-col gap-2 text-sm text-center">
@@ -196,6 +218,7 @@ import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
 import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
+import { hasConsent, acceptCookies } from '@/utils/cookieConsent';
 
 export default {
   name: 'Register',
@@ -207,6 +230,12 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
+    const cookiesAccepted = ref(hasConsent());
+
+    const handleAcceptCookiesForRegistration = () => {
+      acceptCookies();
+      cookiesAccepted.value = true;
+    };
 
     onMounted(() => {
       document.title = 'Create Account — Fynla';
@@ -340,6 +369,8 @@ export default {
     };
 
     return {
+      cookiesAccepted,
+      handleAcceptCookiesForRegistration,
       form,
       errors,
       errorMessage,
