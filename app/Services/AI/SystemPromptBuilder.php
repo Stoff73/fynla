@@ -181,9 +181,31 @@ class SystemPromptBuilder
             $lines[] = "- Target retirement age: {$user->retirementProfile->target_retirement_age}";
         }
 
-        $children = $user->familyMembers()->where('relationship', 'child')->count();
-        if ($children > 0) {
-            $lines[] = "- Children: {$children}";
+        // Family members — names and ages so Fyn can reference them naturally
+        $familyLines = [];
+
+        $spouse = $user->spouse;
+        if ($spouse) {
+            $spouseName = $spouse->first_name ?? explode(' ', $spouse->name)[0] ?? 'Spouse';
+            $spouseAge = $spouse->date_of_birth ? $spouse->date_of_birth->age : null;
+            $familyLines[] = $spouseAge
+                ? "  - Spouse: {$spouseName} (age {$spouseAge})"
+                : "  - Spouse: {$spouseName}";
+        }
+
+        $familyMembers = $user->familyMembers()->orderBy('date_of_birth')->get();
+        foreach ($familyMembers as $member) {
+            $memberName = $member->first_name ?? 'Unknown';
+            $memberAge = $member->date_of_birth ? now()->diffInYears($member->date_of_birth) : null;
+            $relationship = ucfirst($member->relationship ?? 'family member');
+            $familyLines[] = $memberAge
+                ? "  - {$relationship}: {$memberName} (age {$memberAge})"
+                : "  - {$relationship}: {$memberName}";
+        }
+
+        if (! empty($familyLines)) {
+            $lines[] = '- Family:';
+            $lines = array_merge($lines, $familyLines);
         }
 
         return implode("\n", $lines);
