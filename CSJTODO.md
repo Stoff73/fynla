@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 5 April 2026 — session 37 (evening)*
-*Previous session: 5 April 2026 session 36 (morning)*
+*Last updated: 7 April 2026 — session 38*
+*Previous session: 5 April 2026 session 37 (evening)*
 
 ---
 
@@ -28,19 +28,24 @@
 - [x] **Deploy guide written** at `April/April5Updates/deployTaxFyn.md` (both repo + vault)
 - [x] **CLAUDE.md metrics updated** — Vue 651→654, Services 229→230, Vuex 32→33
 
+### Session 38 (7 April) — Code Review Fixes + Deploy
+
+- [x] **Full codebase review** — 68 issues found, 48 fixed in PR #193
+- [x] **Hardcoded tax values** — 14 of 24 locations fixed (TaxDefaults constants backend, taxConfig.js frontend)
+- [x] **Security fixes** — SQL injection (2 artisan commands), XSS (PublicLayout), MIME validation (LpaDocumentService), plaintext password (ChrisUserSeeder)
+- [x] **Dead code removed** — GiftingTimelineService, taxOptimisation Vuex module, 8 investmentService stubs, updateGoalProgress
+- [x] **Design system fixes** — banned color tokens in 6 components, duplicate .btn-secondary, hardcoded hex
+- [x] **Convention fixes** — readonly on 13 controllers, TrustResource/MortgageResource, Auditable on 4 models, 14 factories created
+- [x] **PR #193 merged + deployed to production** — 221 files, includes estateDash + code review fixes
+- [x] **PR #190 deployed** — was included in estateDash branch
+
 ### NOT Done — Outstanding
-- [ ] **Deploy PR #190 to production** — STILL OUTSTANDING from session 36. 25 PHP files + `public/build/` never uploaded. Deploy guide at `April/April5Updates/deployReview.md`. (Session 37 deployed the tax changes only — PR #190 fixes are independent.)
-- [ ] **Verify allowances display correctly on production after browser refresh** — tax year label showed "2025/26" during testing due to browser cache. Hard refresh needed. If it still shows old values after hard refresh, may need to investigate Laravel route cache on production.
 - [ ] **Clean up `.claude/worktrees/tax` directory** — no longer needed, branch merged
-- [ ] **Delete `tax` branch** locally and on origin (already merged to main)
+- [ ] **Delete `tax` and `estateDash` branches** locally and on origin (already merged to main)
 - [ ] **Consider adding HistoricalTaxYearSeeder overrides for 2021/22-2023/24** — BPA values for these years may now show 2025/26's 3130 instead of their true historical values (scope creep deferred)
 
 ### Context for Next Session
-**2026/27 is now the active tax year in production and local DB.** All allowance calculations (ISA, Pension AA) use 2026/27 rates. Switching years via admin dropdown is functional end-to-end. Browser testing on production verified manifests match, API endpoints work, and Fyn icons render.
-
-**PR #190 still awaits deploy.** Separate workstream from today's tax changes.
-
-**Worktree lesson captured:** Saved memory `feedback_worktree_deploy_disconnect.md` after today's 30+ min confusion where worktree changes weren't visible to user building from main. Current guidance: work directly in main dir per `feedback_never_switch_branches.md`.
+**PR #193 deployed to production 7 April 2026.** Includes estate dashboard redesign (3-col card grid), cookie consent, spouse lifecycle, code review fixes (48/68), and all prior estateDash work. Deploy guide at `April/April7Updates/estateBranchDeploy.md`.
 
 ---
 
@@ -66,11 +71,11 @@
 - [ ] API Resource extraction for Investment/Retirement/Goals/Savings/Auth (139+ raw json responses)
 - [ ] Split InvestmentController (1,067L) + RetirementController (789L) + GoalsController (792L) + AdminController (666L) + GDPRController (612L)
 - [ ] Refactor TaxConfigService to throw on missing keys instead of allowing `?? 60000` fallback patterns
-- [ ] AnnualAllowanceTracker.vue lines 266-267: hardcoded `2024/25`/`2023/24` carry-forward years — will go stale each year
+- [x] ~~AnnualAllowanceTracker.vue lines 266-267: hardcoded carry-forward years~~ — fixed, now dynamic from getCurrentTaxYear()
 - [ ] Add `/api/tax-year/current` response to frontend tests (not currently covered)
 
 ### Dead Code Cleanup
-- [ ] Delete 51 dead methods in investmentService.js (1,146→~350 lines)
+- [x] ~~Delete dead methods in investmentService.js~~ — 8 stubs removed (PR #193). ~8 remaining Phase 2 stubs still present.
 - [ ] Delete 7 orphaned Investment/PlanSections components (3 contain Rule 13 score violations)
 - [ ] Verify and delete DividendTaxCalculator + TaxEfficiencyCalculator
 - [ ] LifeEventAllocationController — wire routes or delete
@@ -103,6 +108,7 @@
 
 ## Deploy Status
 - **PR #189:** Deployed to fynla.org (session 35 Mac)
-- **PR #190:** Merged to main, NOT deployed — deploy guide at `April/April5Updates/deployReview.md`
-- **Tax branch (f646f88..19f7d23):** Merged to main + deployed to fynla.org today. 2026/27 active.
+- **PR #190:** Deployed to fynla.org (included in PR #193 estateDash branch)
+- **Tax branch (f646f88..19f7d23):** Deployed to fynla.org (session 37). 2026/27 active.
+- **PR #193 (estateDash):** Deployed to fynla.org 7 April 2026. Estate redesign + code review fixes + cookie consent + spouse lifecycle. Deploy guide at `April/April7Updates/estateBranchDeploy.md`.
 - **fynNew branch:** 25 Fyn Response Architecture commits still unmerged (parallel track)
