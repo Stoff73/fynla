@@ -418,6 +418,11 @@ export default {
           }
         }
 
+        // Refresh spouse permission state so sidebar updates (Expression of Wishes ↔ Letter to Spouse)
+        if (isSpouseAdd) {
+          store.dispatch('spousePermission/fetchPermissionStatus').catch(() => {});
+        }
+
         if (store.state.aiFormFill?.pendingFill) {
           store.dispatch('aiFormFill/cancelFill');
         }
@@ -474,8 +479,9 @@ export default {
         // Refresh family members list by refreshing the profile store
         await store.dispatch('userProfile/fetchProfile');
 
-        // If a spouse was deleted, prompt to update marital status
+        // If a spouse was deleted, refresh spouse state and prompt for marital status
         if (wasSpouse && !isPreviewMode) {
+          store.dispatch('spousePermission/fetchPermissionStatus').catch(() => {});
           showMaritalStatusPrompt.value = true;
         }
 
@@ -493,6 +499,8 @@ export default {
     const updateMaritalStatus = async (newStatus) => {
       try {
         await store.dispatch('userProfile/updatePersonalInfo', { marital_status: newStatus });
+        // Refresh spouse permission so sidebar label updates (Letter to Spouse ↔ Expression of Wishes)
+        store.dispatch('spousePermission/fetchPermissionStatus').catch(() => {});
         showMaritalStatusPrompt.value = false;
         const label = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
         successMessage.value = `Marital status updated to ${label}.`;
