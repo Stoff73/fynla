@@ -42,6 +42,21 @@ class UKTaxCalculator
         float $section24Credit = 0
     ): array {
         $incomeTaxConfig = $this->taxConfig->getIncomeTax();
+
+        // Apply Personal Allowance taper for incomes above £100,000
+        // Must be done BEFORE creating TaxBandTracker so band thresholds are correct
+        $totalIncomePreRelief = $employmentIncome + $selfEmploymentIncome + $rentalIncome
+            + $pensionIncome + $trustIncome + $interestIncome + $dividendIncome;
+        $taxableIncomePreRelief = $totalIncomePreRelief - $pensionContributions;
+
+        $taperThreshold = $incomeTaxConfig['personal_allowance_taper_threshold'] ?? 100000;
+        $fullPA = $incomeTaxConfig['personal_allowance'];
+        if ($taxableIncomePreRelief > $taperThreshold) {
+            $excess = $taxableIncomePreRelief - $taperThreshold;
+            $reduction = floor($excess / 2);
+            $incomeTaxConfig['personal_allowance'] = max(0, $fullPA - $reduction);
+        }
+
         $tracker = new TaxBandTracker($incomeTaxConfig);
 
         $incomeBreakdowns = [];
