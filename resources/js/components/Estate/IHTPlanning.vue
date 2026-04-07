@@ -56,6 +56,9 @@
       </div>
     </div>
 
+    <!-- Summary Cards (hidden when showing table-only detail view) -->
+    <template v-if="!tableOnly">
+
     <!-- Inheritance Tax Summary - Second Death (Married Users) -->
     <div v-if="isMarried && secondDeathData?.second_death_analysis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <!-- Joint Death NOW -->
@@ -304,7 +307,66 @@
       </div>
     </div>
 
-    <!-- IHT Calculation Table and Tax Allowances now in /estate/inheritance-tax view -->
+    </template>
+
+    <!-- IHT Calculation Table (shown in /estate/inheritance-tax detail view via tableOnly prop) -->
+    <template v-if="tableOnly">
+      <!-- Inheritance Tax Breakdown - Second Death (Married Users) -->
+      <div v-if="!loading && isMarried && secondDeathData?.second_death_analysis" class="bg-white rounded-lg border border-light-gray p-6 mb-8">
+        <div class="flex items-center gap-2 mb-4">
+          <h3 class="text-lg font-semibold text-horizon-500">Inheritance Tax Calculation (Joint Death Scenario)</h3>
+        </div>
+        <IHTCalculationTable
+          v-if="secondDeathTableProps"
+          v-bind="secondDeathTableProps"
+          :charitable-bequest="charitableBequest"
+          :effective-i-h-t-rate-label="effectiveIHTRateLabel"
+          :has-spouse-linked="hasSpouseLinked"
+          :show-minus-5-years="showMinus5Years"
+          :show-plus-5-years="showPlus5Years"
+          :growth-rate="growthRate"
+          :years-to-death-minus-5="yearsToDeathMinus5"
+          :years-to-death-plus-5="yearsToDeathPlus5"
+          @toggle-minus-5="showMinus5Years = !showMinus5Years"
+          @toggle-plus-5="showPlus5Years = !showPlus5Years"
+        />
+      </div>
+
+      <!-- Inheritance Tax Breakdown - Standard (Non-Married Users) -->
+      <div v-else-if="!loading && ihtData && standardTableProps" class="bg-white rounded-lg border border-light-gray p-6 mb-8">
+        <div class="flex items-center gap-2 mb-4">
+          <h3 class="text-lg font-semibold text-horizon-500">
+            {{ isMarried ? 'Inheritance Tax Calculation (Joint Death Scenario)' : 'Inheritance Tax Calculation Breakdown' }}
+          </h3>
+        </div>
+        <p v-if="!isMarried && projection" class="text-sm text-neutral-500 mb-6">Comparison of Inheritance Tax liability if death occurs now vs. at projected life expectancy (Age {{ projection.at_death.estimated_age_at_death }})</p>
+        <IHTCalculationTable
+          v-bind="standardTableProps"
+          :charitable-bequest="charitableBequest"
+          :effective-i-h-t-rate-label="effectiveIHTRateLabel"
+          :has-spouse-linked="false"
+          :show-minus-5-years="showMinus5Years"
+          :show-plus-5-years="showPlus5Years"
+          :growth-rate="growthRate"
+          :years-to-death-minus-5="yearsToDeathMinus5"
+          :years-to-death-plus-5="yearsToDeathPlus5"
+          @toggle-minus-5="showMinus5Years = !showMinus5Years"
+          @toggle-plus-5="showPlus5Years = !showPlus5Years"
+        />
+      </div>
+
+      <!-- Tax Allowances Information -->
+      <div v-if="!loading && ihtData" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div v-if="ihtData.nrb_message" class="bg-eggshell-500 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-violet-800">Tax-Free Allowance</h3>
+          <p class="mt-2 text-sm text-violet-800">{{ ihtData.nrb_message }}</p>
+        </div>
+        <div v-if="ihtData.rnrb_message" class="bg-eggshell-500 rounded-lg p-4">
+          <h3 class="text-sm font-semibold" :class="ihtData.rnrb_status === 'full' ? 'text-spring-800' : 'text-horizon-500'">Home Allowance</h3>
+          <p class="mt-2 text-sm" :class="ihtData.rnrb_status === 'full' ? 'text-spring-800' : 'text-horizon-500'">{{ ihtData.rnrb_message }}</p>
+        </div>
+      </div>
+    </template>
 
     <!-- Letter to Spouse Cross-Validation Warnings -->
     <LetterEstateWarnings
@@ -593,6 +655,13 @@ import { IHT_NIL_RATE_BAND, IHT_STANDARD_RATE, IHT_REDUCED_RATE } from '@/consta
 import logger from '@/utils/logger';
 export default {
   name: 'IHTPlanning',
+
+  props: {
+    tableOnly: {
+      type: Boolean,
+      default: false,
+    },
+  },
 
   emits: ['switch-tab', 'will-updated'],
 
