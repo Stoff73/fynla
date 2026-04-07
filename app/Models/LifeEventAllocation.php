@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LifeEventAllocation extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'life_event_id',
         'user_id',

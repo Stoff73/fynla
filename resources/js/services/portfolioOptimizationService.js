@@ -210,29 +210,6 @@ const portfolioOptimizationService = {
         };
     },
 
-    /**
-     * Helper: Format percentage for display
-     * @param {Number} value - Decimal value (e.g., 0.08)
-     * @param {Number} decimals - Number of decimal places
-     * @returns {String} Formatted percentage (e.g., "8.00%")
-     */
-    formatPercentage(value, decimals = 2) {
-        return `${(value * 100).toFixed(decimals)}%`;
-    },
-
-    /**
-     * Helper: Format currency for display
-     * @param {Number} value - Amount in pounds
-     * @returns {String} Formatted currency (e.g., "£12,345.67")
-     */
-    formatCurrency(value) {
-        return new Intl.NumberFormat('en-GB', {
-            style: 'currency',
-            currency: 'GBP',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(value);
-    }
 };
 
 export default portfolioOptimizationService;

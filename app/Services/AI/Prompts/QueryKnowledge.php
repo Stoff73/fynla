@@ -69,9 +69,6 @@ final class QueryKnowledge
             return '';
         }
 
-        // Always append the knowledge caveat
-        $parts[] = FinancialPlanningKnowledge::getKnowledgeCaveat();
-
         return implode("\n\n", $parts);
     }
 

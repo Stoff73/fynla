@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Services\Documents\FieldMappers\PropertyMapper;
 
 it('maps extracted property fields to Property model fields', function () {
-    $mapper = new PropertyMapper();
+    $mapper = new PropertyMapper;
 
     $extracted = [
         'address' => '14 Oakwood Drive, Manchester',
@@ -27,14 +27,14 @@ it('maps extracted property fields to Property model fields', function () {
 });
 
 it('validates required property fields', function () {
-    $mapper = new PropertyMapper();
+    $mapper = new PropertyMapper;
     $errors = $mapper->validate(['ownership_type' => 'individual']);
     expect($errors)->toHaveKey('address');
     expect($errors)->toHaveKey('current_value');
 });
 
 it('passes validation with required fields present', function () {
-    $mapper = new PropertyMapper();
+    $mapper = new PropertyMapper;
     $errors = $mapper->validate(['address' => '10 High St', 'current_value' => 500000]);
     expect($errors)->toBeEmpty();
 });

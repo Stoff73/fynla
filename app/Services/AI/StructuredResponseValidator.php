@@ -184,7 +184,7 @@ class StructuredResponseValidator
                 'query_type' => $classification['primary'] ?? 'unknown',
                 'violation_count' => count($result['violations']),
                 'high_severity_count' => count($highSeverity),
-                'violations' => array_map(fn ($v) => $v['rule'] . ': ' . $v['detail'], $result['violations']),
+                'violations' => array_map(fn ($v) => $v['rule'].': '.$v['detail'], $result['violations']),
             ]);
         }
 

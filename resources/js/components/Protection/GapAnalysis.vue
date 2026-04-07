@@ -410,6 +410,7 @@
 import { mapState, mapGetters } from 'vuex';
 import userProfileService from '@/services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { SSP_WEEKLY_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'GapAnalysis',
@@ -580,8 +581,7 @@ export default {
     },
 
     sspWeeklyRate() {
-      // UK Statutory Sick Pay rate (2024/25)
-      return 118.75;
+      return SSP_WEEKLY_RATE;
     },
 
     sspAnnualEquivalent() {

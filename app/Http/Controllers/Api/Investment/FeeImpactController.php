@@ -13,7 +13,6 @@ use App\Services\Investment\Fees\PlatformComparator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Fee Impact Controller
@@ -92,20 +91,10 @@ class FeeImpactController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'years' => 'nullable|integer|min:1|max:50',
             'expected_return' => 'nullable|numeric|min:0|max:0.5',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             // Get all user holdings
@@ -196,21 +185,11 @@ class FeeImpactController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'portfolio_value' => 'required|numeric|min:0',
             'account_type' => 'nullable|in:isa,sipp,gia,jisa,lifetime_isa',
             'trades_per_year' => 'nullable|integer|min:0|max:1000',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->platformComparator->comparePlatforms(
@@ -237,23 +216,13 @@ class FeeImpactController extends Controller
     {
         $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'platforms' => 'required|array|min:2',
             'platforms.*' => 'required|string',
             'portfolio_value' => 'required|numeric|min:0',
             'account_type' => 'nullable|in:isa,sipp,gia,jisa,lifetime_isa',
             'trades_per_year' => 'nullable|integer|min:0|max:1000',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
 
         try {
             $result = $this->platformComparator->compareSpecificPlatforms(

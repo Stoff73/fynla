@@ -128,6 +128,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { IHT_NIL_RATE_BAND, IHT_RESIDENCE_NIL_RATE_BAND, IHT_RNRB_TAPER_THRESHOLD } from '@/constants/taxConfig';
 
 export default {
   name: 'NRBRNRBTracker',
@@ -171,10 +172,10 @@ export default {
 
   data() {
     return {
-      // UK IHT allowances
-      nrbStandard: 325000,
-      rnrbStandard: 175000,
-      rnrbTaperingThreshold: 2000000,
+      // UK IHT allowances (from taxConfig fallback constants)
+      nrbStandard: IHT_NIL_RATE_BAND,
+      rnrbStandard: IHT_RESIDENCE_NIL_RATE_BAND,
+      rnrbTaperingThreshold: IHT_RNRB_TAPER_THRESHOLD,
     };
   },
 

@@ -28,8 +28,8 @@
                 class="input-field"
               >
                 <option value="">Select relationship</option>
-                <option v-if="isMarriedOrCivilPartnership" value="spouse">Spouse</option>
-                <option v-if="!isMarriedOrCivilPartnership" value="partner">Partner</option>
+                <option value="spouse">Spouse</option>
+                <option value="partner">Partner</option>
                 <option value="child">Child</option>
                 <option value="step_child">Step Child</option>
                 <option value="parent">Parent</option>

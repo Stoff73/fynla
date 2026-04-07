@@ -499,15 +499,14 @@
           </div>
         </DashboardCard>
 
-        <!-- Estate Planning Card — maps to 'estate' -->
+        <!-- Estate Planning Card — only shown when estate data exists -->
         <DashboardCard
-          v-if="isCardVisible('estate')"
+          v-if="isCardVisible('estate') && hasEstateData"
           title="Estate Planning"
           :loading="loading.estate"
-          :empty="!hasEstateData"
           @click="navigateTo('/estate')"
         >
-          <div v-if="hasEstateData" class="space-y-4">
+          <div class="space-y-4">
             <!-- Taxable Estate Now -->
             <div class="border-b border-light-gray pb-4">
               <div class="flex items-center gap-4">
@@ -536,16 +535,6 @@
               </div>
             </div>
 
-          </div>
-
-          <!-- Empty state when estate calculation not yet available -->
-          <div v-else class="text-center py-6">
-            <p class="text-sm text-neutral-500 mb-4">
-              Add your assets and liabilities to see your estate summary and Inheritance Tax position.
-            </p>
-            <router-link to="/estate" class="inline-flex items-center px-4 py-2 bg-horizon-500 text-white text-sm font-medium rounded-button hover:bg-horizon-600 transition-colors" @click.stop>
-              View Estate Planning
-            </router-link>
           </div>
 
           <!-- Will question when not yet answered -->
@@ -748,7 +737,7 @@
                 <span v-else></span>
                 <div>
                   <span class="text-sm font-bold text-spring-600">{{ formatCurrency(isaAllowanceData.totalUsed) }}</span>
-                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(20000) }}</span>
+                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE) }}</span>
                 </div>
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
@@ -956,7 +945,7 @@ import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/cons
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
-import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import { ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
@@ -964,7 +953,7 @@ import LifeTimelineCard from '@/components/Dashboard/LifeTimelineCard.vue';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Dashboard',
+  name: 'DashboardView',
 
   components: {
     AppLayout,
@@ -1009,6 +998,7 @@ export default {
       nwMouseX: 0,
       nwMouseY: 0,
       journeyBlurActive: false,
+      ISA_ANNUAL_ALLOWANCE,
     };
   },
 
@@ -1579,7 +1569,7 @@ export default {
     ...mapGetters('goals', ['dashboardData']),
 
     // Estate data
-    ...mapGetters('estate', ['ihtLiability', 'taxableEstate']),
+    ...mapGetters('estate', ['ihtLiability', 'taxableEstate', 'grossEstate']),
     ...mapState('estate', { willInfo: 'willInfo' }),
     ...mapState('trusts', { trusts: 'trusts' }),
 
@@ -1595,7 +1585,7 @@ export default {
     },
 
     hasEstateData() {
-      return this.taxableEstate > 0 || this.ihtLiability > 0;
+      return this.grossEstate > 0 || this.taxableEstate > 0 || this.ihtLiability > 0;
     },
 
     willAnswered() {
@@ -1903,7 +1893,7 @@ export default {
         grid: { show: false, padding: { left: 2, right: 2, top: -15, bottom: 0 } },
         dataLabels: { enabled: false },
         tooltip: {
-          y: { formatter: (val) => '£' + val.toLocaleString('en-GB') },
+          y: { formatter: (val) => this.formatCurrency(val) },
         },
       };
     },

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Document extends Model
 {
-    use HasFactory, SoftDeletes, Auditable;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',

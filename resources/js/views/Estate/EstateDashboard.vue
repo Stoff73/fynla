@@ -61,21 +61,8 @@
           </router-link>
         </div>
 
-        <!-- Tab Content -->
-        <div>
-          <!-- Inheritance Tax Planning Tab -->
-          <IHTPlanning v-if="activeTab === 'iht'" @will-updated="reloadIHTCalculation" @switch-tab="switchTab" />
-
-          <!-- Gifting Strategy Tab -->
-          <GiftingStrategy v-else-if="activeTab === 'gifting'" @switch-tab="switchTab" />
-
-          <!-- Life Policy Strategy Tab -->
-          <LifePolicyStrategy v-else-if="activeTab === 'life-policy'" @switch-tab="switchTab" />
-
-          <!-- Trust Planning Tab -->
-          <TrustPlanning v-else-if="activeTab === 'trusts'" @switch-tab="switchTab" />
-
-        </div>
+        <!-- Estate Planning Cards -->
+        <IHTPlanning @will-updated="reloadIHTCalculation" />
       </div>
       </div>
     </div>
@@ -86,9 +73,6 @@
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
-import GiftingStrategy from '@/components/Estate/GiftingStrategy.vue';
-import LifePolicyStrategy from '@/components/Estate/LifePolicyStrategy.vue';
-import TrustPlanning from '@/components/Estate/TrustPlanning.vue';
 import estateService from '@/services/estateService';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
 
@@ -99,23 +83,13 @@ export default {
   components: {
     AppLayout,
     IHTPlanning,
-    GiftingStrategy,
-    LifePolicyStrategy,
-    TrustPlanning,
     ModuleStatusBar,
   },
 
   data() {
     return {
-      activeTab: 'iht',
       initialLoading: true,
       hasWillDocument: false,
-      tabs: [
-        { id: 'iht', label: 'Inheritance Tax Planning' },
-        { id: 'gifting', label: 'Gifting Strategy' },
-        { id: 'life-policy', label: 'Life Policy Strategy' },
-        { id: 'trusts', label: 'Trust Strategy' },
-      ],
     };
   },
 
@@ -127,31 +101,7 @@ export default {
     },
   },
 
-  watch: {
-    '$store.state.aiFormFill.pendingFill'(fill) {
-      if (fill && fill.entityType === 'estate_asset') {
-        // Switch to IHT tab (which contains AssetsLiabilities with AssetForm)
-        this.activeTab = 'iht';
-      } else if (fill && fill.entityType === 'estate_gift') {
-        // Switch to gifting tab (which contains GiftingStrategy with GiftForm)
-        this.activeTab = 'gifting';
-      }
-    },
-  },
-
   mounted() {
-    // Check for pendingFill that was set before this component mounted
-    const fill = this.$store.state.aiFormFill?.pendingFill;
-    if (fill && fill.entityType === 'estate_asset') {
-      this.activeTab = 'iht';
-    } else if (fill && fill.entityType === 'estate_gift') {
-      this.activeTab = 'gifting';
-    }
-
-    // Check for tab query param (e.g. /estate?tab=power-of-attorney)
-    if (this.$route.query.tab && this.tabs.some(t => t.id === this.$route.query.tab)) {
-      this.activeTab = this.$route.query.tab;
-    }
     this.loadEstateData();
   },
 
@@ -182,16 +132,7 @@ export default {
     },
 
     reloadIHTCalculation() {
-      // Force reload Inheritance Tax calculation when will is updated
-      if (this.activeTab === 'iht') {
-        // IHTPlanning component will reload automatically
-        this.$forceUpdate();
-      }
-    },
-
-    switchTab(tabId) {
-      // Switch to a specific tab (e.g., from Inheritance Tax Planning to Gifting)
-      this.activeTab = tabId;
+      this.$forceUpdate();
     },
   },
 };

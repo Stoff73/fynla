@@ -732,6 +732,19 @@ const routes = [
     },
   },
   {
+    path: '/estate/inheritance-tax',
+    name: 'InheritanceTaxDetail',
+    component: () => import('@/views/Estate/InheritanceTaxDetail.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Estate Planning', path: '/estate' },
+        { label: 'Inheritance Tax', path: '/estate/inheritance-tax' },
+      ],
+    },
+  },
+  {
     path: '/estate/power-of-attorney',
     name: 'PowerOfAttorney',
     component: () => import('@/views/Estate/PowerOfAttorneyView.vue'),

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\ActuarialLifeTable;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class FutureValueCalculator
 {
@@ -87,8 +87,7 @@ class FutureValueCalculator
         $gender = in_array($gender, ['male', 'female']) ? $gender : 'male';
 
         // Try exact match first
-        $exactMatch = DB::table('actuarial_life_tables')
-            ->where('age', $age)
+        $exactMatch = ActuarialLifeTable::where('age', $age)
             ->where('gender', $gender)
             ->where('table_year', '2020-2022')
             ->value('life_expectancy_years');
@@ -98,15 +97,13 @@ class FutureValueCalculator
         }
 
         // Find surrounding ages for interpolation
-        $lowerRecord = DB::table('actuarial_life_tables')
-            ->where('age', '<', $age)
+        $lowerRecord = ActuarialLifeTable::where('age', '<', $age)
             ->where('gender', $gender)
             ->where('table_year', '2020-2022')
             ->orderBy('age', 'desc')
             ->first();
 
-        $upperRecord = DB::table('actuarial_life_tables')
-            ->where('age', '>', $age)
+        $upperRecord = ActuarialLifeTable::where('age', '>', $age)
             ->where('gender', $gender)
             ->where('table_year', '2020-2022')
             ->orderBy('age', 'asc')

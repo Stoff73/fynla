@@ -84,7 +84,7 @@ class AnnualAllowanceChecker
         $taxYearStart = Carbon::create($now->year, 4, 6);
         $startYear = $now->lt($taxYearStart) ? $now->year - 1 : $now->year;
 
-        return $startYear . '/' . substr((string) ($startYear + 1), -2);
+        return $startYear.'/'.substr((string) ($startYear + 1), -2);
     }
 
     /**
@@ -282,5 +282,4 @@ class AnnualAllowanceChecker
 
         return $total;
     }
-
 }

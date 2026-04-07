@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Services\Documents\FieldMappers\ProtectionMapper;
 
 it('maps extracted protection fields to policy model fields', function () {
-    $mapper = new ProtectionMapper();
+    $mapper = new ProtectionMapper;
 
     $extracted = [
         'provider' => 'Aviva',
@@ -29,7 +29,7 @@ it('maps extracted protection fields to policy model fields', function () {
 });
 
 it('detects policy model class from type', function () {
-    $mapper = new ProtectionMapper();
+    $mapper = new ProtectionMapper;
 
     expect($mapper->getModelClassForType('term'))->toBe(\App\Models\LifeInsurancePolicy::class);
     expect($mapper->getModelClassForType('whole_of_life'))->toBe(\App\Models\LifeInsurancePolicy::class);
@@ -38,7 +38,7 @@ it('detects policy model class from type', function () {
 });
 
 it('validates required protection fields', function () {
-    $mapper = new ProtectionMapper();
+    $mapper = new ProtectionMapper;
     $errors = $mapper->validate(['policy_type' => 'term']);
     expect($errors)->toHaveKey('provider');
     expect($errors)->toHaveKey('sum_assured');

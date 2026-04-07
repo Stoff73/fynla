@@ -173,8 +173,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'FeeAnalysisSection',
+
+  mixins: [currencyMixin],
 
   props: {
     data: {
@@ -184,11 +188,6 @@ export default {
   },
 
   methods: {
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     formatPercentage(value) {
       if (value === null || value === undefined) return '0.00';
       return value.toFixed(2);

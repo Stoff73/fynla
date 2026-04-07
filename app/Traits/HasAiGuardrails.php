@@ -28,10 +28,12 @@ trait HasAiGuardrails
     }
 
     private const DAILY_TOKEN_LIMITS = [
-        'preview' => 10_000,
-        'student' => 50_000,
-        'standard' => 200_000,
-        'pro' => 500_000,
+        'preview' => 50_000,
+        'trial' => 500_000,
+        'student' => 150_000,
+        'standard' => 500_000,
+        'family' => 500_000,
+        'pro' => 1_000_000,
     ];
 
     /**
@@ -171,7 +173,16 @@ trait HasAiGuardrails
             ? $user->subscription
             : $user->subscription()->first();
 
-        return $subscription?->plan ?? 'student';
+        if (! $subscription) {
+            return 'student';
+        }
+
+        // Trialing users get the trial tier regardless of plan slug
+        if ($subscription->isTrialing()) {
+            return 'trial';
+        }
+
+        return $subscription->plan ?? 'student';
     }
 
     /**

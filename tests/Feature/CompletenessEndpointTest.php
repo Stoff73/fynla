@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
 use App\Models\SavingsAccount;
-use App\Models\InvestmentAccount;
+use App\Models\User;
 
 describe('GET /api/life-stage/completeness', function () {
 

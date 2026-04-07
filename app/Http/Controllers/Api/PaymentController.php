@@ -28,7 +28,8 @@ class PaymentController extends Controller
     private const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
 
     public function __construct(
-        private readonly RevolutService $revolutService
+        private readonly RevolutService $revolutService,
+        private readonly DataPurgeService $purgeService
     ) {}
 
     /**
@@ -135,7 +136,7 @@ class PaymentController extends Controller
                 ],
             ]);
 
-            // Return token for SDK and order_id for confirm endpoint
+            // Intentional: Revolut SDK requires {token, order_id} at top level, not wrapped in {success, data}
             return response()->json([
                 'token' => $revolutOrder['token'],
                 'order_id' => $revolutOrder['id'],
@@ -172,7 +173,7 @@ class PaymentController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$payment) {
+        if (! $payment) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
@@ -348,7 +349,7 @@ class PaymentController extends Controller
         // Minimum charge of 1p (Revolut requires > 0)
         $upgradeAmount = max(1, $upgradeAmount);
 
-        $description = "Upgrade: ".ucfirst($currentPlanSlug)." \u{2192} ".ucfirst($newPlanSlug);
+        $description = 'Upgrade: '.ucfirst($currentPlanSlug)." \u{2192} ".ucfirst($newPlanSlug);
 
         try {
             $payment = Payment::create([
@@ -523,7 +524,7 @@ class PaymentController extends Controller
         $subscription = $user->subscription;
 
         if (! $subscription) {
-            return response()->json(['payments' => []]);
+            return response()->json(['success' => true, 'data' => ['payments' => []]]);
         }
 
         $payments = $subscription->payments()
@@ -541,7 +542,7 @@ class PaymentController extends Controller
                 'date' => $payment->created_at?->toISOString(),
             ]);
 
-        return response()->json(['payments' => $payments]);
+        return response()->json(['success' => true, 'data' => ['payments' => $payments]]);
     }
 
     /**
@@ -549,7 +550,7 @@ class PaymentController extends Controller
      *
      * POST /api/payment/delete-all-data
      */
-    public function deleteAllData(Request $request, DataPurgeService $purgeService): JsonResponse
+    public function deleteAllData(Request $request): JsonResponse
     {
         $user = $request->user();
 
@@ -580,7 +581,7 @@ class PaymentController extends Controller
         $email = $user->email;
 
         try {
-            $result = $purgeService->purgeUserData($user);
+            $result = $this->purgeService->purgeUserData($user);
 
             Log::info('User initiated data deletion', [
                 'user_id' => $user->id,

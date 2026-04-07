@@ -777,5 +777,4 @@ class DashboardAggregator
             return [];
         }
     }
-
 }

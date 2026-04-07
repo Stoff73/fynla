@@ -94,7 +94,7 @@ class ExcelParserService
             // Check if sheet has any data at all
             $hasAnyData = false;
             for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                if ($sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1')->getFormattedValue() !== '') {
+                if ($sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).'1')->getFormattedValue() !== '') {
                     $hasAnyData = true;
                     break;
                 }
@@ -106,7 +106,7 @@ class ExcelParserService
             // Get headers (first row)
             $headers = [];
             for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                $cellValue = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1')->getFormattedValue());
+                $cellValue = trim((string) $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).'1')->getFormattedValue());
                 if ($cellValue !== '') {
                     $headers[$col] = $cellValue;
                 }
@@ -124,7 +124,7 @@ class ExcelParserService
                 $hasData = false;
 
                 for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                    $value = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row)->getFormattedValue();
+                    $value = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$row)->getFormattedValue();
                     if ($value !== null && $value !== '') {
                         $hasData = true;
                         if (! empty($headers[$col])) {
@@ -180,7 +180,7 @@ class ExcelParserService
             // Get headers (first row) for context
             $headers = [];
             for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                $cellValue = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1')->getFormattedValue();
+                $cellValue = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).'1')->getFormattedValue();
                 $headers[$col] = trim((string) $cellValue);
             }
 
@@ -190,7 +190,7 @@ class ExcelParserService
                 $hasData = false;
 
                 for ($col = 1; $col <= $highestColumnIndex; $col++) {
-                    $cell = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $row);
+                    $cell = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col).$row);
                     $value = $cell->getFormattedValue();
 
                     if ($value !== null && $value !== '') {

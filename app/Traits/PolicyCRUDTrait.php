@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
-use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 
@@ -52,6 +51,7 @@ trait PolicyCRUDTrait
             ], 201);
         } catch (\Exception $e) {
             report($e);
+
             return response()->json(['message' => "Failed to process {$policyTypeName} policy. Please try again."], 500);
         }
     }
@@ -96,6 +96,7 @@ trait PolicyCRUDTrait
             ], 404);
         } catch (\Exception $e) {
             report($e);
+
             return response()->json(['message' => "Failed to process {$policyTypeName} policy. Please try again."], 500);
         }
     }
@@ -134,6 +135,7 @@ trait PolicyCRUDTrait
             ], 404);
         } catch (\Exception $e) {
             report($e);
+
             return response()->json(['message' => "Failed to process {$policyTypeName} policy. Please try again."], 500);
         }
     }

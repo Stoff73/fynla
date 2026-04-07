@@ -9,7 +9,7 @@
       <div class="flex flex-col items-end gap-1">
         <span
           v-if="hasNI"
-          class="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800"
+          class="px-2 py-1 text-xs font-medium rounded bg-light-blue-100 text-horizon-600"
         >
           NI Applies
         </span>
@@ -29,7 +29,7 @@
         <div class="flex justify-between items-center text-sm">
           <span class="text-neutral-500">{{ component.label }}</span>
           <span
-            :class="component.is_deduction ? 'text-green-600 font-medium' : 'text-horizon-500'"
+            :class="component.is_deduction ? 'text-spring-600 font-medium' : 'text-horizon-500'"
           >
             {{ formatCurrency(component.amount) }}
           </span>
@@ -71,7 +71,7 @@
         <span class="text-neutral-500">
           {{ breakdown.tax_breakdown.tax_description || 'Tax paid by trust' }}
         </span>
-        <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.tax_paid_by_trust) }}</span>
+        <span class="text-raspberry-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.tax_paid_by_trust) }}</span>
       </div>
 
       <!-- Net to Beneficiary -->
@@ -80,7 +80,7 @@
         class="flex justify-between items-center text-sm"
       >
         <span class="text-neutral-500">Net received from trust</span>
-        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.net_to_beneficiary) }}</span>
+        <span class="text-spring-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.net_to_beneficiary) }}</span>
       </div>
 
       <!-- Personalized Tax Reclaim Info -->
@@ -88,16 +88,16 @@
         v-if="breakdown.tax_breakdown.reclaim_info"
         class="mt-3 p-3 rounded-lg"
         :class="{
-          'bg-green-50 border border-green-200': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
-          'bg-blue-50 border border-blue-200': breakdown.tax_breakdown.reclaim_info.type === 'owe',
+          'bg-spring-50 border border-spring-200': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
+          'bg-light-blue-100 border border-horizon-200': breakdown.tax_breakdown.reclaim_info.type === 'owe',
           'bg-eggshell-500 border border-light-gray': breakdown.tax_breakdown.reclaim_info.type === 'none'
         }"
       >
         <p
           class="text-sm font-medium"
           :class="{
-            'text-green-800': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
-            'text-blue-800': breakdown.tax_breakdown.reclaim_info.type === 'owe',
+            'text-spring-800': breakdown.tax_breakdown.reclaim_info.type === 'reclaim',
+            'text-horizon-600': breakdown.tax_breakdown.reclaim_info.type === 'owe',
             'text-neutral-500': breakdown.tax_breakdown.reclaim_info.type === 'none'
           }"
         >
@@ -105,7 +105,7 @@
         </p>
         <p
           v-if="breakdown.tax_breakdown.reclaim_info.type === 'reclaim'"
-          class="text-xs text-green-700 mt-1"
+          class="text-xs text-spring-700 mt-1"
         >
           Claim via your Self Assessment tax return (form R40 if you don't file one).
         </p>
@@ -120,7 +120,7 @@
         class="flex justify-between items-center text-sm"
       >
         <span class="text-neutral-500">Personal Savings Allowance</span>
-        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.personal_savings_allowance) }}</span>
+        <span class="text-spring-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.personal_savings_allowance) }}</span>
       </div>
 
       <!-- Dividend Allowance (for dividend income) -->
@@ -129,7 +129,7 @@
         class="flex justify-between items-center text-sm"
       >
         <span class="text-neutral-500">Dividend Allowance</span>
-        <span class="text-green-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.dividend_allowance) }}</span>
+        <span class="text-spring-600 font-medium">{{ formatCurrency(breakdown.tax_breakdown.dividend_allowance) }}</span>
       </div>
     </div>
 
@@ -154,7 +154,7 @@
         <span class="text-neutral-500">
           Basic: {{ formatCurrency(breakdown.tax_breakdown.basic_rate.taxable) }} @ {{ formatPercent(breakdown.tax_breakdown.basic_rate.rate) }}
         </span>
-        <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.basic_rate.tax) }}</span>
+        <span class="text-raspberry-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.basic_rate.tax) }}</span>
       </div>
 
       <!-- Higher Rate -->
@@ -165,7 +165,7 @@
         <span class="text-neutral-500">
           Higher: {{ formatCurrency(breakdown.tax_breakdown.higher_rate.taxable) }} @ {{ formatPercent(breakdown.tax_breakdown.higher_rate.rate) }}
         </span>
-        <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.higher_rate.tax) }}</span>
+        <span class="text-raspberry-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.higher_rate.tax) }}</span>
       </div>
 
       <!-- Additional Rate -->
@@ -176,25 +176,25 @@
         <span class="text-neutral-500">
           Additional: {{ formatCurrency(breakdown.tax_breakdown.additional_rate.taxable) }} @ {{ formatPercent(breakdown.tax_breakdown.additional_rate.rate) }}
         </span>
-        <span class="text-red-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.additional_rate.tax) }}</span>
+        <span class="text-raspberry-600 font-medium">-{{ formatCurrency(breakdown.tax_breakdown.additional_rate.tax) }}</span>
       </div>
 
       <!-- Tax Payable Subtotal -->
       <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-light-gray pt-2 mt-2">
         <span class="text-neutral-500 font-medium">Tax Payable</span>
-        <span class="text-red-600 font-medium">-{{ formatCurrency(totalIncomeTax) }}</span>
+        <span class="text-raspberry-600 font-medium">-{{ formatCurrency(totalIncomeTax) }}</span>
       </div>
 
       <!-- Section 24 Tax Credit -->
       <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm">
         <span class="text-neutral-500">Section 24 Tax Credit</span>
-        <span class="text-green-600 font-medium">+{{ formatCurrency(section24.applied_credit) }}</span>
+        <span class="text-spring-600 font-medium">+{{ formatCurrency(section24.applied_credit) }}</span>
       </div>
 
       <!-- Tax Payable After Credit -->
       <div v-if="section24?.applied_credit > 0" class="flex justify-between items-center text-sm border-t border-light-gray pt-2 mt-2">
         <span class="text-neutral-500 font-medium">Tax Payable After Credit</span>
-        <span class="text-red-600 font-bold">-{{ formatCurrency(totalIncomeTax - section24.applied_credit) }}</span>
+        <span class="text-raspberry-600 font-bold">-{{ formatCurrency(totalIncomeTax - section24.applied_credit) }}</span>
       </div>
     </div>
 
@@ -212,7 +212,7 @@
           <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_1.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.earnings) }}
           </span>
-          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.contribution) }}</span>
+          <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.main_rate.contribution) }}</span>
         </div>
         <div
           v-if="breakdown.ni_breakdown.class_1.additional_rate?.contribution > 0"
@@ -221,7 +221,7 @@
           <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_1.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.earnings) }}
           </span>
-          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.contribution) }}</span>
+          <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.class_1.additional_rate.contribution) }}</span>
         </div>
       </template>
 
@@ -235,7 +235,7 @@
           <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_4.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.earnings) }}
           </span>
-          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.contribution) }}</span>
+          <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.main_rate.contribution) }}</span>
         </div>
         <div
           v-if="breakdown.ni_breakdown.class_4.additional_rate?.contribution > 0"
@@ -244,7 +244,7 @@
           <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.class_4.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.earnings) }}
           </span>
-          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.contribution) }}</span>
+          <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.class_4.additional_rate.contribution) }}</span>
         </div>
       </template>
 
@@ -257,7 +257,7 @@
           <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.main_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.main_rate.earnings) }}
           </span>
-          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.main_rate.contribution) }}</span>
+          <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.main_rate.contribution) }}</span>
         </div>
         <div
           v-if="breakdown.ni_breakdown.additional_rate?.contribution > 0"
@@ -266,7 +266,7 @@
           <span class="text-neutral-500">
             {{ formatPercent(breakdown.ni_breakdown.additional_rate.rate) }} on {{ formatCurrency(breakdown.ni_breakdown.additional_rate.earnings) }}
           </span>
-          <span class="text-red-600">-{{ formatCurrency(breakdown.ni_breakdown.additional_rate.contribution) }}</span>
+          <span class="text-raspberry-600">-{{ formatCurrency(breakdown.ni_breakdown.additional_rate.contribution) }}</span>
         </div>
       </template>
     </div>
@@ -275,7 +275,7 @@
     <div class="pt-2 border-t border-light-gray">
       <div class="flex justify-between items-center">
         <span class="text-sm font-medium text-neutral-500">Net Income</span>
-        <span class="text-lg font-bold text-green-700">{{ formatCurrency(adjustedNetIncome) }}</span>
+        <span class="text-lg font-bold text-spring-700">{{ formatCurrency(adjustedNetIncome) }}</span>
       </div>
     </div>
   </div>

@@ -212,6 +212,7 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 import userProfileService from '@/services/userProfileService';
+import { SSP_WEEKLY_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'ProtectionOverviewCard',
@@ -321,7 +322,7 @@ export default {
     },
 
     sspWeeklyRate() {
-      return 118.75; // UK SSP 2024/25
+      return SSP_WEEKLY_RATE;
     },
 
     sspAnnualEquivalent() {

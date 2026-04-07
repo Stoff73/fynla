@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
-use App\Models\DCPension;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\TaxConfigService;

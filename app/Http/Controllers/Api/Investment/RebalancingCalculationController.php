@@ -15,7 +15,6 @@ use App\Services\Investment\Rebalancing\TaxAwareRebalancer;
 use App\Services\TaxConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Portfolio rebalancing calculation controller
@@ -39,7 +38,7 @@ class RebalancingCalculationController extends Controller
      */
     public function calculateRebalancing(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_weights' => 'required|array|min:2',
             'target_weights.*' => 'required|numeric|min:0|max:1',
             'account_ids' => 'nullable|array',
@@ -50,16 +49,6 @@ class RebalancingCalculationController extends Controller
             'tax_rate' => 'nullable|numeric|min:0|max:1',
             'loss_carryforward' => 'nullable|numeric|min:0',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
@@ -162,7 +151,7 @@ class RebalancingCalculationController extends Controller
      */
     public function calculateFromOptimization(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'weights' => 'required|array|min:2',
             'weights.*' => 'required|numeric|min:0|max:1',
             'labels' => 'nullable|array',
@@ -173,16 +162,6 @@ class RebalancingCalculationController extends Controller
             'cgt_allowance' => 'nullable|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         // Forward to calculateRebalancing with target_weights
@@ -198,7 +177,7 @@ class RebalancingCalculationController extends Controller
      */
     public function compareCGTStrategies(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'strategy_1_weights' => 'required|array|min:2',
             'strategy_1_weights.*' => 'required|numeric|min:0|max:1',
             'strategy_2_weights' => 'required|array|min:2',
@@ -207,16 +186,6 @@ class RebalancingCalculationController extends Controller
             'cgt_allowance' => 'nullable|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
@@ -282,23 +251,13 @@ class RebalancingCalculationController extends Controller
      */
     public function rebalanceWithinCGTAllowance(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_weights' => 'required|array|min:2',
             'target_weights.*' => 'required|numeric|min:0|max:1',
             'account_ids' => 'nullable|array',
             'cgt_allowance' => 'nullable|numeric|min:0',
             'tax_rate' => 'nullable|numeric|min:0|max:1',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {
@@ -517,17 +476,9 @@ class RebalancingCalculationController extends Controller
      */
     public function updateRebalancingThreshold(Request $request, int $accountId): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'threshold_percent' => 'required|numeric|min:1|max:50',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         $user = $request->user();
 
@@ -543,7 +494,7 @@ class RebalancingCalculationController extends Controller
                 ], 404);
             }
 
-            $account->rebalance_threshold_percent = $request->threshold_percent;
+            $account->rebalance_threshold_percent = $validated['threshold_percent'];
             $account->save();
 
             return response()->json([
@@ -646,7 +597,7 @@ class RebalancingCalculationController extends Controller
      */
     public function analyzeDrift(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'target_allocation' => 'required|array|min:2',
             'target_allocation.equities' => 'required|numeric|min:0|max:100',
             'target_allocation.bonds' => 'required|numeric|min:0|max:100',
@@ -655,16 +606,6 @@ class RebalancingCalculationController extends Controller
             'account_ids' => 'nullable|array',
             'account_ids.*' => 'integer|exists:investment_accounts,id',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $validated = $validator->validated();
         $user = $request->user();
 
         try {

@@ -14,15 +14,14 @@ const state = {
 const getters = {
   /**
    * Check if user has an active spouse relationship.
-   * Returns false for widowed and divorced users even if spouse_id exists.
+   * Divorced users revert to non-spouse state (Expression of Wishes).
+   * Widowed users keep spouse state (Letter to Spouse remains).
    */
   hasSpouse: (state, getters, rootState, rootGetters) => {
     if (!state.hasSpouse) return false;
 
-    // Widowed and divorced users should not see spouse options
     const user = rootGetters['auth/currentUser'];
-    const excludedStatuses = ['widowed', 'divorced'];
-    if (user && excludedStatuses.includes(user.marital_status)) {
+    if (user && user.marital_status === 'divorced') {
       return false;
     }
 

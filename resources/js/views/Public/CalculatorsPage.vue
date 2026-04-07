@@ -1468,7 +1468,7 @@
                   <p class="text-lg font-bold text-horizon-500">{{ pensionWithdrawal.result.effectiveRate }}%</p>
                 </div>
               </div>
-              <div v-if="pensionWithdrawal.result.taxable > 50270 - (pensionWithdrawal.otherIncome || 0)" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
+              <div v-if="pensionWithdrawal.result.taxable > higherRateThreshold - (pensionWithdrawal.otherIncome || 0)" class="bg-eggshell-500 rounded-xl p-4 border border-light-gray">
                 <div class="flex items-start gap-3">
                   <svg class="w-5 h-5 text-violet-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   <p class="text-sm text-violet-700">Taking large lump sums can push you into higher tax bands. Consider spreading withdrawals across tax years to reduce the overall tax burden.</p>
@@ -1786,6 +1786,9 @@ export default {
   },
 
   computed: {
+    higherRateThreshold() {
+      return HIGHER_RATE_THRESHOLD;
+    },
     currentTaxYear() {
       return getCurrentTaxYear();
     },

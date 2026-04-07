@@ -15,26 +15,47 @@ final class QuerySchemas
     // ─── Query Type Constants ────────────────────────────────────────
 
     public const PROTECTION_COVER = 'protection_cover';
+
     public const PROTECTION_POLICY = 'protection_policy';
+
     public const SAVINGS_EMERGENCY = 'savings_emergency';
+
     public const SAVINGS_ACCOUNTS = 'savings_accounts';
+
     public const SAVINGS_DEBT = 'savings_debt';
+
     public const RETIREMENT_CONTRIBUTION = 'retirement_contribution';
+
     public const RETIREMENT_READINESS = 'retirement_readiness';
+
     public const RETIREMENT_DECUMULATION = 'retirement_decumulation';
+
     public const INVESTMENT_PORTFOLIO = 'investment_portfolio';
+
     public const INVESTMENT_FEES = 'investment_fees';
+
     public const INVESTMENT_TAX = 'investment_tax';
+
     public const ESTATE_IHT = 'estate_iht';
+
     public const ESTATE_PLANNING = 'estate_planning';
+
     public const GOALS_PROGRESS = 'goals_progress';
+
     public const TAX_OPTIMISATION = 'tax_optimisation';
+
     public const PROPERTY = 'property';
+
     public const INCOME = 'income';
+
     public const HOLISTIC_HEALTH = 'holistic_health';
+
     public const GENERAL = 'general';
+
     public const DATA_ENTRY = 'data_entry';
+
     public const NAVIGATION = 'navigation';
+
     public const AFFORDABILITY = 'affordability';
 
     // ─── Type Groups ─────────────────────────────────────────────────

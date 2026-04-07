@@ -2185,7 +2185,7 @@ class SavingsActionDefinitionService
 
         // Determine marginal tax rate based on income
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
+        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? TaxDefaults::PERSONAL_ALLOWANCE);
         $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
         $additionalRateThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -378,7 +379,7 @@ class SalarySacrificeAnalyzer
         }
 
         // Warning: below personal allowance (lose income tax personal allowance benefit)
-        $personalAllowance = (float) $this->taxConfig->get('income_tax.personal_allowance', 12570);
+        $personalAllowance = (float) $this->taxConfig->get('income_tax.personal_allowance', TaxDefaults::PERSONAL_ALLOWANCE);
 
         if ($postSacrificeSalary < $personalAllowance) {
             $warnings[] = [
@@ -395,7 +396,7 @@ class SalarySacrificeAnalyzer
         // Warning: below National Insurance primary threshold (lose National Insurance credits / State Pension qualifying)
         $niPrimaryThreshold = (float) $this->taxConfig->get(
             'national_insurance.class_1.employee.primary_threshold',
-            12570
+            TaxDefaults::NI_PRIMARY_THRESHOLD
         );
 
         if ($postSacrificeSalary < $niPrimaryThreshold) {

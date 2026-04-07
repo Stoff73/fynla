@@ -7,7 +7,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 it('parses workbook into per-sheet structured data', function () {
-    $spreadsheet = new Spreadsheet();
+    $spreadsheet = new Spreadsheet;
 
     $sheet1 = $spreadsheet->getActiveSheet();
     $sheet1->setTitle('ISA');
@@ -28,7 +28,7 @@ it('parses workbook into per-sheet structured data', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'test_').'.xlsx';
     (new Xlsx($spreadsheet))->save($tempFile);
 
-    $service = new ExcelParserService();
+    $service = new ExcelParserService;
     $sheets = $service->parseToSheets($tempFile);
 
     expect($sheets)->toHaveCount(2);
@@ -42,7 +42,7 @@ it('parses workbook into per-sheet structured data', function () {
 });
 
 it('skips empty sheets', function () {
-    $spreadsheet = new Spreadsheet();
+    $spreadsheet = new Spreadsheet;
     $spreadsheet->getActiveSheet()->setTitle('Data');
     $spreadsheet->getActiveSheet()->setCellValue('A1', 'Name');
     $spreadsheet->getActiveSheet()->setCellValue('A2', 'Test');
@@ -51,7 +51,7 @@ it('skips empty sheets', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'test_').'.xlsx';
     (new Xlsx($spreadsheet))->save($tempFile);
 
-    $service = new ExcelParserService();
+    $service = new ExcelParserService;
     $sheets = $service->parseToSheets($tempFile);
 
     expect($sheets)->toHaveCount(1);
@@ -61,7 +61,7 @@ it('skips empty sheets', function () {
 });
 
 it('caps at 10 sheets', function () {
-    $spreadsheet = new Spreadsheet();
+    $spreadsheet = new Spreadsheet;
     for ($i = 0; $i < 12; $i++) {
         $sheet = $i === 0 ? $spreadsheet->getActiveSheet() : $spreadsheet->createSheet();
         $sheet->setTitle("Sheet{$i}");
@@ -72,7 +72,7 @@ it('caps at 10 sheets', function () {
     $tempFile = tempnam(sys_get_temp_dir(), 'test_').'.xlsx';
     (new Xlsx($spreadsheet))->save($tempFile);
 
-    $service = new ExcelParserService();
+    $service = new ExcelParserService;
     $sheets = $service->parseToSheets($tempFile);
 
     expect($sheets)->toHaveCount(10);

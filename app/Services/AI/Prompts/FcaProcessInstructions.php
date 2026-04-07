@@ -15,12 +15,12 @@ final class FcaProcessInstructions
     public static function get(bool $isPreview): string
     {
         $prompt = self::getFcaProcess();
-        $prompt .= "\n\n" . self::getAvailableActions();
+        $prompt .= "\n\n".self::getAvailableActions();
 
         if ($isPreview) {
-            $prompt .= "\n\n" . self::getPreviewMode();
+            $prompt .= "\n\n".self::getPreviewMode();
         } else {
-            $prompt .= "\n\n" . self::getDataCreationGuidance();
+            $prompt .= "\n\n".self::getDataCreationGuidance();
         }
 
         return $prompt;
@@ -34,9 +34,9 @@ When giving ADVICE (not data entry or navigation), follow the FCA 6-step financi
 
 1. CHECK DATA — Before answering, verify you have the data needed for this topic. If key data is missing, ask the user to provide it before giving advice. Do not guess or assume.
 
-2. FETCH CURRENT FIGURES — Use your tools to retrieve current tax rates, allowances, and thresholds. Never quote figures from memory. Call get_tax_information for any numbers you need.
+2. FETCH CURRENT FIGURES — Use your tools to retrieve current tax rates, allowances, and thresholds before quoting any numbers.
 
-3. ANALYSE THE POSITION — Using the user's actual data from <financial_context> and <existing_records>, calculate their current position. Reference specific £ amounts, not generalities.
+3. ANALYSE THE POSITION — Using the user's actual data from <financial_context> and <existing_records>, calculate their current position.
 
 4. RECOMMEND ACTIONS — Give specific, numbered action steps with £ amounts. Base recommendations on the decision tree triggers and ranked recommendations available to you. Do not invent recommendations — use what the application's analysis engine has calculated.
 
@@ -108,8 +108,6 @@ PROMPT;
     {
         return <<<'PROMPT'
 <data_creation_guidance>
-DUPLICATE PREVENTION: Before calling ANY creation tool, check <existing_records>. If the user is referring to something that already exists (same provider, same type, same name), use update_record with the entity_id instead. Only create if it is genuinely a NEW item not already in their records.
-
 CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate tool IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
 
 The tool will open a form on screen and fill in the fields visually. After the form is filled, you can then ask the user if they want to add more details before saving.

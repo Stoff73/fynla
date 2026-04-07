@@ -312,10 +312,13 @@
 <script>
 import api from '@/services/api';
 import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, ERROR_COLORS, WARNING_COLORS, SECONDARY_COLORS, CHART_DEFAULTS, TEXT_COLORS, BORDER_COLORS } from '@/constants/designSystem';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'GoalProjection',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -590,11 +593,6 @@ export default {
       } finally {
         this.loading = false;
       }
-    },
-
-    formatNumber(value) {
-      if (!value && value !== 0) return '0';
-      return Math.round(value).toLocaleString('en-GB');
     },
 
     formatPercent(value) {

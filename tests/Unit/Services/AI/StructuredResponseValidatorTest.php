@@ -6,7 +6,7 @@ use App\Constants\QuerySchemas;
 use App\Services\AI\StructuredResponseValidator;
 
 beforeEach(function () {
-    $this->validator = new StructuredResponseValidator();
+    $this->validator = new StructuredResponseValidator;
 });
 
 describe('StructuredResponseValidator', function () {

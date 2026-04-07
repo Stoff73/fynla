@@ -61,7 +61,7 @@ class TaxConfigurationSeeder extends Seeder
             ->update(['is_active' => false]);
 
         $this->command->info('');
-        $this->command->info('✓ All 6 tax years seeded successfully. ' . self::ACTIVE_TAX_YEAR . ' is the active tax year.');
+        $this->command->info('✓ All 6 tax years seeded successfully. '.self::ACTIVE_TAX_YEAR.' is the active tax year.');
     }
 
     /**

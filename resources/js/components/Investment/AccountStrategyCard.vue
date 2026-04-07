@@ -28,6 +28,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'AccountStrategyCard',
@@ -178,7 +179,7 @@ export default {
 
       // 7. ISA allowance available
       if (this.account.account_type === 'isa') {
-        const remaining = 20000 - (parseFloat(this.account.isa_subscription_current_year) || 0);
+        const remaining = ISA_ANNUAL_ALLOWANCE - (parseFloat(this.account.isa_subscription_current_year) || 0);
         if (remaining > 5000) {
           recs.push({
             priority: 3,

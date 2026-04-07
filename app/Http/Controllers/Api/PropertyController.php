@@ -159,7 +159,6 @@ class PropertyController extends Controller
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
-
         return response()->json([
             'success' => true,
             'message' => 'Property created successfully',
@@ -278,7 +277,6 @@ class PropertyController extends Controller
         $propertyData['is_primary_owner'] = true;
         $propertyData['is_shared'] = $this->isSharedOwnership($property);
 
-
         return response()->json([
             'success' => true,
             'message' => 'Property updated successfully',
@@ -305,13 +303,15 @@ class PropertyController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        // Single-record pattern: Just delete the one record
-        // Mortgages will be cascade deleted due to foreign key constraint
+        // Soft-delete associated mortgages first (SQL CASCADE only fires on hard DELETE,
+        // not soft-delete, so we must cascade manually)
+        $property->mortgages()->delete();
+
+        // Then soft-delete the property
         $property->delete();
 
         // Sync rental income after deletion
         $this->syncUserRentalIncome($user);
-
 
         return response()->json([
             'success' => true,

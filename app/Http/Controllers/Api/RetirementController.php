@@ -17,6 +17,7 @@ use App\Models\DCPension;
 use App\Models\Investment\RiskProfile;
 use App\Models\RetirementProfile;
 use App\Models\StatePension;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
@@ -24,7 +25,6 @@ use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
-use App\Services\Cache\CacheInvalidationService;
 use App\Services\Retirement\RetirementStrategyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -608,11 +608,11 @@ class RetirementController extends Controller
         $user = $request->user();
         $impact = $this->strategyService->calculateStrategyImpact(
             $user->id,
-            $request->query('strategy_type'),
-            (float) $request->query('new_value'),
-            (float) ($request->query('prior_additional_monthly') ?? 0),
-            (float) ($request->query('prior_additional_income') ?? 0),
-            $request->query('prior_probability') !== null ? (float) $request->query('prior_probability') : null
+            $request->input('strategy_type'),
+            (float) $request->input('new_value'),
+            (float) ($request->input('prior_additional_monthly') ?? 0),
+            (float) ($request->input('prior_additional_income') ?? 0),
+            $request->input('prior_probability') !== null ? (float) $request->input('prior_probability') : null
         );
 
         return response()->json([

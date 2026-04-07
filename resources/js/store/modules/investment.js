@@ -11,11 +11,6 @@ const state = {
     monteCarloResultsByGoal: {},
     optimizationResult: null,    // Portfolio optimization result
     scenarios: null,
-    contributionOptimization: null,    // Phase 2.1: Contribution optimization results
-    assetLocationAnalysis: null,       // Phase 2.6: Asset location optimization
-    performanceAttribution: null,      // Phase 2.7: Performance attribution
-    benchmarkComparison: null,         // Phase 2.7: Benchmark comparison
-    feeAnalysis: null,                 // Phase 2.5: Detailed fee analysis
     portfolioProjections: null,        // Performance tab projections
     projectionsLoading: false,
     projectionsError: null,
@@ -229,17 +224,6 @@ const getters = {
     needsRebalancing: (state) => {
         return state.analysis?.allocation_deviation?.needs_rebalancing || false;
     },
-
-    // Phase 2 getters
-    contributionOptimization: (state) => state.contributionOptimization,
-
-    assetLocationAnalysis: (state) => state.assetLocationAnalysis,
-
-    performanceAttribution: (state) => state.performanceAttribution,
-
-    benchmarkComparison: (state) => state.benchmarkComparison,
-
-    feeAnalysis: (state) => state.feeAnalysis,
 
     // Portfolio projections getters
     portfolioProjections: (state) => state.portfolioProjections,
@@ -602,139 +586,6 @@ const actions = {
         }
     },
 
-    // Phase 2 actions
-
-    // Phase 2.1: Contribution Planning
-    async optimiseContributions({ commit }, inputs) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.optimiseContributions(inputs);
-            if (response.success && response.data) {
-                commit('setContributionOptimization', response.data);
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to optimise contributions';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async calculateAffordability({ commit }, inputs) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.calculateAffordability(inputs);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to calculate affordability';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async analyseLumpSumVsDCA({ commit }, inputs) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.analyzeLumpSumVsDCA(inputs);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to analyse lump sum vs DCA';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Phase 2.6: Asset Location & Tax Efficiency
-    async analyseAssetLocation({ commit }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.analyzeAssetLocation();
-            if (response.success && response.data) {
-                commit('setAssetLocationAnalysis', response.data);
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to analyse asset location';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Phase 2.7: Performance Attribution
-    async analysePerformanceAttribution({ commit }, params = {}) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.analyzePerformanceAttribution(params);
-            if (response.success && response.data) {
-                commit('setPerformanceAttribution', response.data);
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to analyse performance attribution';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    async compareBenchmarks({ commit }, benchmarkIds) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.compareBenchmarks(benchmarkIds);
-            if (response.success && response.data) {
-                commit('setBenchmarkComparison', response.data);
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to compare benchmarks';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Phase 2.5: Fee Analysis
-    async analyseFees({ commit }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.analyzeFees();
-            if (response.success && response.data) {
-                commit('setFeeAnalysis', response.data);
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to analyse fees';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     // Portfolio Projections (Performance tab)
     async fetchPortfolioProjections({ commit, state }, params = {}) {
         commit('setProjectionsLoading', true);
@@ -889,27 +740,6 @@ const mutations = {
 
     setError(state, error) {
         state.error = error;
-    },
-
-    // Phase 2 mutations
-    setContributionOptimization(state, data) {
-        state.contributionOptimization = data;
-    },
-
-    setAssetLocationAnalysis(state, data) {
-        state.assetLocationAnalysis = data;
-    },
-
-    setPerformanceAttribution(state, data) {
-        state.performanceAttribution = data;
-    },
-
-    setBenchmarkComparison(state, data) {
-        state.benchmarkComparison = data;
-    },
-
-    setFeeAnalysis(state, data) {
-        state.feeAnalysis = data;
     },
 
     // Portfolio projections mutations

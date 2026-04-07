@@ -299,7 +299,7 @@ class PrerequisiteGateService
                 $blockingItems = [];
                 foreach (($assessment['blocking'] ?? []) as $check) {
                     if (! $check['passed']) {
-                        $blockingItems[] = $check['key'] . ': ' . $check['message'];
+                        $blockingItems[] = $check['key'].': '.$check['message'];
                     }
                 }
                 $blockingList = ! empty($blockingItems) ? implode('; ', $blockingItems) : implode(', ', $gate['missing']);
@@ -416,7 +416,6 @@ class PrerequisiteGateService
             + (float) $user->annual_other_income
             + (float) $user->annual_trust_income;
     }
-
 
     private function deduplicateActions(array $actions): array
     {

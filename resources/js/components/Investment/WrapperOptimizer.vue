@@ -442,9 +442,12 @@
 
 <script>
 import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'WrapperOptimiser',
+
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -602,11 +605,6 @@ export default {
       if (winner === 'ISA') return 'text-spring-600';
       if (winner === 'Pension') return 'text-violet-600';
       return 'text-violet-600';
-    },
-
-    formatNumber(value) {
-      if (!value && value !== 0) return '0';
-      return Math.round(value).toLocaleString('en-GB');
     },
 
     getCurrentTaxYear() {

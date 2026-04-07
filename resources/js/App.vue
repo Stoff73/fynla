@@ -1,19 +1,27 @@
 <template>
   <router-view />
+  <CookieBanner />
 </template>
 
 <script>
 import { onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { removeToken } from '@/services/tokenStorage';
+import CookieBanner from '@/components/Shared/CookieBanner.vue';
+import { initCookieConsent } from '@/utils/cookieConsent';
 
 export default {
   name: 'App',
+
+  components: { CookieBanner },
 
   setup() {
     const store = useStore();
 
     onMounted(async () => {
+      // Initialise cookie consent — loads GA if previously accepted
+      initCookieConsent();
+
       // Token restoration from native Preferences happens in app.js BEFORE mount.
       // Here we just fetch the user profile if we have a valid token.
       if (store.getters['auth/isAuthenticated']) {

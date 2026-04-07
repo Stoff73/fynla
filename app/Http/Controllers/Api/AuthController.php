@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\VerificationCode;
 use App\Models\AuditLog;
@@ -28,7 +29,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Http\Resources\UserResource;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller

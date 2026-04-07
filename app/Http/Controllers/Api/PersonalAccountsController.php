@@ -19,7 +19,7 @@ class PersonalAccountsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private PersonalAccountsService $personalAccountsService
+        private readonly PersonalAccountsService $personalAccountsService
     ) {}
 
     /**

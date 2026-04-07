@@ -10,7 +10,6 @@ use App\Models\RecommendationTracking;
 use App\Services\Coordination\RecommendationsAggregatorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class RecommendationsController extends Controller
 {
@@ -30,21 +29,13 @@ class RecommendationsController extends Controller
         $userId = $request->user()->id;
 
         // Validate query parameters
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'module' => 'sometimes|string|in:protection,savings,investment,retirement,estate,property',
             'priority' => 'sometimes|string|in:high,medium,low',
             'timeline' => 'sometimes|string|in:immediate,short_term,medium_term,long_term',
             'status' => 'sometimes|string|in:pending,in_progress,completed,dismissed',
             'limit' => 'sometimes|integer|min:1|max:100',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $recommendations = $this->aggregatorService->aggregateRecommendations($userId);
@@ -114,17 +105,9 @@ class RecommendationsController extends Controller
     {
         $userId = $request->user()->id;
 
-        $validator = Validator::make($request->all(), [
+        $request->validate([
             'limit' => 'sometimes|integer|min:1|max:20',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $limit = (int) $request->input('limit', 5);
@@ -267,17 +250,9 @@ class RecommendationsController extends Controller
     {
         $userId = $request->user()->id;
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'notes' => 'required|string|max:1000',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
 
         try {
             $tracking = RecommendationTracking::where('user_id', $userId)
@@ -285,7 +260,7 @@ class RecommendationsController extends Controller
                 ->firstOrFail();
 
             $tracking->update([
-                'notes' => $request->notes,
+                'notes' => $validated['notes'],
             ]);
 
             return response()->json([

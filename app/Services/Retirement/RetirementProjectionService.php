@@ -619,7 +619,6 @@ class RetirementProjectionService
         return (float) ($user->statePension->state_pension_forecast_annual ?? 0);
     }
 
-
     private function calculateRetirementProbability(
         float $projectedIncome,
         float $targetIncome,

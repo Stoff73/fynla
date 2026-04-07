@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Models\ActuarialLifeTable;
 use App\Models\Estate\IHTProfile;
 use App\Models\FamilyMember;
 use App\Models\User;
@@ -188,8 +189,7 @@ class ComprehensiveEstatePlanService
         $gender = $user->gender ?? 'male';
 
         // Query actuarial life tables (same approach as IHTCalculationService)
-        $lifeExpectancy = \DB::table('actuarial_life_tables')
-            ->where('gender', $gender)
+        $lifeExpectancy = ActuarialLifeTable::where('gender', $gender)
             ->where('age', '<=', $age)
             ->where('table_year', '2020-2022')
             ->orderBy('age', 'desc')

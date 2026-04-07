@@ -207,9 +207,12 @@
 
 <script>
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   name: 'ISAOptimizationStrategy',
+
+  mixins: [currencyMixin],
 
   emits: ['refresh'],
 
@@ -232,11 +235,6 @@ export default {
   },
 
   methods: {
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     getAllowanceStatusClass(utilization) {
       if (utilization > 100) return 'bg-raspberry-500 text-white';
       if (utilization > 80) return 'bg-violet-500 text-white';

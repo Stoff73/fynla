@@ -6,7 +6,7 @@ use App\Constants\QuerySchemas;
 use App\Services\AI\QueryClassifier;
 
 beforeEach(function () {
-    $this->classifier = new QueryClassifier();
+    $this->classifier = new QueryClassifier;
 });
 
 describe('QueryClassifier', function () {

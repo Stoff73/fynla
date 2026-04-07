@@ -1140,6 +1140,8 @@ export default {
         this.$emit('deleted');
       } catch (error) {
         logger.error('Failed to delete account:', error);
+        this.showDeleteConfirm = false;
+        this.error = error.message || 'Failed to delete investment account. Please try again.';
       }
     },
 

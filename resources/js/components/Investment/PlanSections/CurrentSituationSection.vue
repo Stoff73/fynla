@@ -76,8 +76,12 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
+
 export default {
   name: 'CurrentSituationSection',
+
+  mixins: [currencyMixin],
 
   props: {
     data: {
@@ -87,11 +91,6 @@ export default {
   },
 
   methods: {
-    formatNumber(value) {
-      if (value === null || value === undefined) return '0';
-      return Math.round(value).toLocaleString('en-GB');
-    },
-
     formatPercentage(value) {
       if (value === null || value === undefined) return '0.0';
       return value.toFixed(1);

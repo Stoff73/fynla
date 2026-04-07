@@ -478,9 +478,16 @@ class TaxOptimisationService
         $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
         $additionalThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 
-        if ($grossIncome <= $personalAllowance) { return 'non_taxpayer'; }
-        if ($grossIncome <= $basicRateLimit) { return 'basic'; }
-        if ($grossIncome <= $additionalThreshold) { return 'higher'; }
+        if ($grossIncome <= $personalAllowance) {
+            return 'non_taxpayer';
+        }
+        if ($grossIncome <= $basicRateLimit) {
+            return 'basic';
+        }
+        if ($grossIncome <= $additionalThreshold) {
+            return 'higher';
+        }
+
         return 'additional';
     }
 }

@@ -49,7 +49,7 @@ class LifeStageController extends Controller
     public function setStage(Request $request): JsonResponse
     {
         $request->validate([
-            'life_stage' => 'required|string|in:' . implode(',', LifeStageService::VALID_STAGES),
+            'life_stage' => 'required|string|in:'.implode(',', LifeStageService::VALID_STAGES),
         ]);
 
         try {
@@ -176,5 +176,4 @@ class LifeStageController extends Controller
 
         return $modules;
     }
-
 }

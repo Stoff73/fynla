@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
-use App\Services\AI\XaiClient;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
+use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
@@ -19,10 +22,6 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
-use App\Models\BusinessInterest;
-use App\Models\Chattel;
-use App\Models\Estate\Trust;
-use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -638,8 +637,13 @@ class CoordinatingAgent extends BaseAgent
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
         $input = array_map(function ($v) {
-            if ($v === 'null') return null;
-            if (is_string($v)) return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($v === 'null') {
+                return null;
+            }
+            if (is_string($v)) {
+                return html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+
             return $v;
         }, $input);
 
@@ -738,14 +742,59 @@ class CoordinatingAgent extends BaseAgent
         $userId = $user->id;
         $records = [];
 
+        // Helper to build ownership fields from the record's own data
+        $ownershipFields = function ($record) use ($userId) {
+            $type = $record->ownership_type ?? 'individual';
+            if ($type === 'individual') {
+                return ['ownership_type' => 'individual'];
+            }
+
+            $userPct = (float) ($record->user_id === $userId
+                ? ($record->ownership_percentage ?? 100)
+                : (100 - ($record->ownership_percentage ?? 100)));
+
+            $coOwnerName = $record->joint_owner_name
+                ?? ($record->jointOwner?->first_name)
+                ?? null;
+
+            $fields = [
+                'ownership_type' => $type,
+                'your_share_percent' => $userPct,
+                'co_owner_share_percent' => 100 - $userPct,
+            ];
+            if ($coOwnerName) {
+                $fields['co_owner'] = $coOwnerName;
+            }
+
+            return $fields;
+        };
+
         switch ($entityType) {
             case 'savings_account':
                 $items = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($a) => ['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => (float) $a->current_balance, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate])->toArray();
+                $records = $items->map(function ($a) use ($ownershipFields) {
+                    $fields = $ownershipFields($a);
+                    $total = (float) $a->current_balance;
+                    if (isset($fields['your_share_percent']) && $fields['your_share_percent'] < 100) {
+                        $fields['total_balance'] = $total;
+                        $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
+                    }
+
+                    return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => $total, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate], $fields);
+                })->toArray();
                 break;
             case 'investment_account':
                 $items = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($a) => ['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => (float) $a->current_value, 'holdings_count' => $a->holdings()->count()])->toArray();
+                $records = $items->map(function ($a) use ($ownershipFields) {
+                    $fields = $ownershipFields($a);
+                    $total = (float) $a->current_value;
+                    if (isset($fields['your_share_percent']) && $fields['your_share_percent'] < 100) {
+                        $fields['total_value'] = $total;
+                        $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
+                    }
+
+                    return array_merge(['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => $total, 'holdings_count' => $a->holdings()->count()], $fields);
+                })->toArray();
                 break;
             case 'dc_pension':
                 $items = \App\Models\DCPension::where('user_id', $userId)->get();
@@ -756,8 +805,27 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years])->toArray();
                 break;
             case 'property':
-                $items = \App\Models\Property::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => (float) $p->current_value])->toArray();
+                $items = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(function ($p) use ($ownershipFields) {
+                    $fields = $ownershipFields($p);
+                    $total = (float) $p->current_value;
+                    $mortgageTotal = (float) $p->mortgages->sum('outstanding_balance');
+                    if (isset($fields['your_share_percent']) && $fields['your_share_percent'] < 100) {
+                        $pct = $fields['your_share_percent'] / 100;
+                        $fields['total_value'] = $total;
+                        $fields['your_share_value'] = round($total * $pct, 2);
+                        if ($mortgageTotal > 0) {
+                            $fields['total_mortgage'] = $mortgageTotal;
+                            $fields['your_mortgage_share'] = round($mortgageTotal * $pct, 2);
+                        }
+                    }
+
+                    return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal], $fields);
+                })->toArray();
+                break;
+            case 'mortgage':
+                $items = \App\Models\Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
                 break;
             case 'life_insurance':
                 $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
@@ -776,16 +844,16 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value])->toArray();
                 break;
             case 'business_interest':
-                $items = \App\Models\BusinessInterest::where('user_id', $userId)->get();
-                $records = $items->map(fn ($b) => ['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation])->toArray();
+                $items = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
-                $items = \App\Models\Chattel::where('user_id', $userId)->get();
-                $records = $items->map(fn ($c) => ['id' => $c->id, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value])->toArray();
+                $items = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
-                $items = \App\Models\Estate\Liability::where('user_id', $userId)->get();
-                $records = $items->map(fn ($l) => ['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance])->toArray();
+                $items = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($l) => array_merge(['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance], $ownershipFields($l)))->toArray();
                 break;
             case 'estate_gift':
                 $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();
@@ -918,7 +986,7 @@ class CoordinatingAgent extends BaseAgent
             'scenario_id' => $result['scenario_id'],
             'comparison' => $result,
             'action' => 'navigate',
-            'route_path' => '/planning/what-if/' . $result['scenario_id'],
+            'route_path' => '/planning/what-if/'.$result['scenario_id'],
         ];
     }
 
@@ -1122,7 +1190,7 @@ class CoordinatingAgent extends BaseAgent
         };
 
         // If ISA, set account_type to cash_isa so the form shows ISA fields
-        if ($isIsa && !in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
+        if ($isIsa && ! in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
             $formAccountType = 'cash_isa';
         }
 
@@ -1131,7 +1199,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'savings_account',
             'route' => '/net-worth/cash',
             'fields' => [
-                'institution' => !empty($input['institution']) ? $input['institution'] : (!empty($input['provider']) ? $input['provider'] : $input['account_name']),
+                'institution' => ! empty($input['institution']) ? $input['institution'] : (! empty($input['provider']) ? $input['provider'] : $input['account_name']),
                 'account_type' => $formAccountType,
                 'current_balance' => (float) $input['current_balance'],
                 'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
@@ -1305,8 +1373,8 @@ class CoordinatingAgent extends BaseAgent
         // Look up the investment account by name/provider for this user
         $account = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
             ->where(function ($query) use ($input) {
-                $query->where('provider', 'LIKE', '%' . $input['account_name'] . '%')
-                    ->orWhere('account_name', 'LIKE', '%' . $input['account_name'] . '%');
+                $query->where('provider', 'LIKE', '%'.$input['account_name'].'%')
+                    ->orWhere('account_name', 'LIKE', '%'.$input['account_name'].'%');
             })
             ->orderByDesc('id')
             ->first();
@@ -1380,7 +1448,7 @@ class CoordinatingAgent extends BaseAgent
         $category = $input['pension_category'] ?? 'dc';
         $entityType = $category === 'db' ? 'db_pension' : 'dc_pension';
 
-        $schemeName = !empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
+        $schemeName = ! empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
 
         $fields = [
             'scheme_name' => $schemeName,
@@ -1908,7 +1976,7 @@ class CoordinatingAgent extends BaseAgent
     private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
     {
         $allowedColumns = ['first_name', 'surname', 'name', 'email', 'asset_name', 'liability_name', 'trust_name', 'scheme_name', 'provider', 'account_name', 'policy_name', 'gift_type'];
-        if (!in_array($nameField, $allowedColumns, true)) {
+        if (! in_array($nameField, $allowedColumns, true)) {
             throw new \InvalidArgumentException("Invalid column name: {$nameField}");
         }
 
@@ -2204,7 +2272,7 @@ class CoordinatingAgent extends BaseAgent
                     'gift_value' => $initialValue,
                     'notes' => 'Chargeable Lifetime Transfer — settlement into trust. Auto-recorded.',
                 ]);
-                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue)." for Inheritance Tax tracking.";
+                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.';
             } catch (\Exception $e) {
                 Log::warning('[CoordinatingAgent] Failed to auto-create CLT gift for trust', [
                     'trust_name' => $input['trust_name'],
@@ -2356,7 +2424,7 @@ class CoordinatingAgent extends BaseAgent
 
         $formatted = collect($updateData)
             ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])
-            ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)) . ': £' . number_format($v, 2))
+            ->map(fn ($v, $k) => str_replace('_', ' ', ucfirst($k)).': £'.number_format($v, 2))
             ->values()
             ->implode(', ');
 
@@ -2368,7 +2436,7 @@ class CoordinatingAgent extends BaseAgent
             'fields_updated' => array_keys($updateData),
             'total_monthly' => $total,
             'total_annual' => $total * 12,
-            'message' => "Expenditure updated: {$formatted}. Total: £" . number_format($total, 2) . '/month.',
+            'message' => "Expenditure updated: {$formatted}. Total: £".number_format($total, 2).'/month.',
         ];
     }
 
@@ -2428,7 +2496,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_id' => $entityId,
             'route' => $route,
             'fields' => $safeFields,
-            'message' => "I'll update the " . str_replace('_', ' ', $entityType) . ' for you now.',
+            'message' => "I'll update the ".str_replace('_', ' ', $entityType).' for you now.',
         ];
     }
 
@@ -2473,7 +2541,7 @@ class CoordinatingAgent extends BaseAgent
 
         $model->delete();
 
-        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType)) . " \"{$name}\" deleted."];
+        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted."];
     }
 
     /**
@@ -2510,7 +2578,7 @@ class CoordinatingAgent extends BaseAgent
         $model = $modelClass::where('id', $entityId)->where('user_id', $userId)->first();
 
         if (! $model) {
-            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)) . " not found or does not belong to you."];
+            return ['error' => true, 'error_type' => 'not_found', 'message' => ucfirst(str_replace('_', ' ', $entityType)).' not found or does not belong to you.'];
         }
 
         return $model;
@@ -2556,6 +2624,6 @@ class CoordinatingAgent extends BaseAgent
 
         $user->update($safeFields);
 
-        return ['updated' => true, 'section' => $section, 'fields_updated' => array_keys($safeFields), 'message' => 'Profile (' . str_replace('_', ' ', $section) . ') updated successfully.'];
+        return ['updated' => true, 'section' => $section, 'fields_updated' => array_keys($safeFields), 'message' => 'Profile ('.str_replace('_', ' ', $section).') updated successfully.'];
     }
 }

@@ -61,7 +61,7 @@ class CheckFeatureAccess
         if ($userTier < $requiredTier) {
             return response()->json([
                 'error' => 'upgrade_required',
-                'message' => 'This feature requires the ' . ucfirst($requiredPlan) . ' plan or higher.',
+                'message' => 'This feature requires the '.ucfirst($requiredPlan).' plan or higher.',
                 'required_plan' => $requiredPlan,
             ], 403);
         }
