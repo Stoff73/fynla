@@ -1568,7 +1568,7 @@ export default {
     ...mapGetters('goals', ['dashboardData']),
 
     // Estate data
-    ...mapGetters('estate', ['ihtLiability', 'taxableEstate']),
+    ...mapGetters('estate', ['ihtLiability', 'taxableEstate', 'grossEstate']),
     ...mapState('estate', { willInfo: 'willInfo' }),
     ...mapState('trusts', { trusts: 'trusts' }),
 
@@ -1584,7 +1584,7 @@ export default {
     },
 
     hasEstateData() {
-      return this.taxableEstate > 0 || this.ihtLiability > 0;
+      return this.grossEstate > 0 || this.taxableEstate > 0 || this.ihtLiability > 0;
     },
 
     willAnswered() {
