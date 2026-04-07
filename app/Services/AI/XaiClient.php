@@ -22,6 +22,8 @@ class XaiClient
 {
     private Client $client;
 
+    private ?string $conversationId = null;
+
     public function __construct()
     {
         $apiKey = config('services.xai.api_key');
@@ -31,16 +33,48 @@ class XaiClient
             throw new \RuntimeException('XAI_API_KEY is not configured. Set it in your .env file.');
         }
 
+        $this->client = $this->buildClient($apiKey, $baseUrl);
+    }
+
+    /**
+     * Set the conversation ID for prompt cache routing.
+     *
+     * xAI uses the x-grok-conv-id header to route requests to the same server,
+     * dramatically increasing cache hit rates (75% discount on cached input tokens).
+     * Must be called before chat() for each conversation.
+     */
+    public function forConversation(int|string $conversationId): self
+    {
+        $this->conversationId = (string) $conversationId;
+
+        $apiKey = config('services.xai.api_key');
+        $baseUrl = config('services.xai.base_url', 'https://api.x.ai/v1');
+
+        $this->client = $this->buildClient($apiKey, $baseUrl, $this->conversationId);
+
+        return $this;
+    }
+
+    /**
+     * Build an OpenAI client instance, optionally with a conversation cache header.
+     */
+    private function buildClient(string $apiKey, string $baseUrl, ?string $conversationId = null): Client
+    {
         $httpClient = new GuzzleClient([
             'timeout' => 120,
             'connect_timeout' => 10,
         ]);
 
-        $this->client = OpenAI::factory()
+        $factory = OpenAI::factory()
             ->withApiKey($apiKey)
             ->withBaseUri($baseUrl)
-            ->withHttpClient($httpClient)
-            ->make();
+            ->withHttpClient($httpClient);
+
+        if ($conversationId !== null) {
+            $factory = $factory->withHttpHeader('x-grok-conv-id', $conversationId);
+        }
+
+        return $factory->make();
     }
 
     /**

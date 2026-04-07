@@ -30,7 +30,6 @@ final class FinancialPlanningKnowledge
             self::PROTECTION_CONCEPTS,
             self::RECOMMENDATION_FRAMEWORK,
             self::AFFORDABILITY_RULES,
-            self::KNOWLEDGE_CAVEAT,
         ]);
     }
 
@@ -85,22 +84,10 @@ Before suggesting ANY new contribution, increased contribution, or lump sum paym
 4. Active goals and life events — check if the user has upcoming financial commitments (home purchase, education, wedding) that require saving. These compete with pension/ISA contributions for the same surplus.
 5. Disposable income — the maximum affordable contribution is the monthly surplus MINUS emergency fund top-up MINUS goal contributions MINUS debt repayments. Never suggest contributing more than this.
 6. Relevant UK earnings cap — personal pension contributions cannot exceed relevant UK earnings (employment + self-employment income). A user earning £10,000 from employment can only get tax relief on £10,000 of personal contributions, even if their total income is higher.
-
-WHEN GIVING CONTRIBUTION OR SAVINGS ADVICE:
-- Always give specific £ amounts and what they achieve
-- Use the recommendations from <financial_context> — they contain the right calculations
-- Never suggest a contribution that exceeds the monthly surplus
-- Never use internal jargon like "waterfall", "prioritise affordability", "allocation framework", "phased approach", or "sequential phases" — just give the advice directly
-- Never mention concepts that do not apply to this user (e.g. do not mention Annual Allowance taper unless income exceeds £200,000, do not mention carry forward unless the user needs more than the standard Annual Allowance, do not mention salary sacrifice unless you know their employer offers it, do not mention Money Purchase Annual Allowance unless they have accessed a pension)
-- Present the advice as clear, numbered action steps with £ amounts — not as a framework or methodology
 TEXT;
 
-    private const KNOWLEDGE_CAVEAT = <<<'TEXT'
-CRITICAL RULES:
-1. NEVER quote specific rates, thresholds, or allowance amounts from this section. ALWAYS use the get_tax_information tool to retrieve current figures before stating any number.
-2. ONLY discuss what applies to THIS user. If a concept is not relevant to their income, assets, or situation — do not mention it at all. Not even as a caveat or "for your information".
-3. Give SPECIFIC £ amounts, not vague suggestions. Use the recommendations from <financial_context> and the waterfall in the affordability rules.
-TEXT;
+    // KNOWLEDGE_CAVEAT removed — rules consolidated into Layer 2 (ComplianceRules)
+    private const KNOWLEDGE_CAVEAT = '';
 
     private const INCOME_CLASSIFICATIONS = <<<'TEXT'
 INCOME CLASSIFICATIONS (UK):

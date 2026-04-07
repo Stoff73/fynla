@@ -52,9 +52,9 @@
             @click="selectAccount(account)"
             class="compact-account-card module-gradient"
           >
-              <!-- Joint Badge - Top Right Corner -->
+              <!-- Joint Badge - Top Right Corner (only if share < 100%) -->
               <span
-                v-if="account.ownership_type === 'joint'"
+                v-if="account.ownership_type === 'joint' && (!account.ownership_percentage || account.ownership_percentage < 100)"
                 class="joint-badge-corner"
               >
                 Joint

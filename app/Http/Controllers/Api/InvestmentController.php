@@ -631,7 +631,10 @@ class InvestmentController extends Controller
 
         $jointOwnerId = $account->joint_owner_id;
 
-        // Single-record pattern: Just delete the one record
+        // Soft-delete holdings first (polymorphic — no SQL CASCADE on soft-delete)
+        $account->holdings()->delete();
+
+        // Then soft-delete the account
         $account->delete();
 
         // Clear cache

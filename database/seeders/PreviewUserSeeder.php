@@ -319,6 +319,10 @@ class PreviewUserSeeder extends Seeder
         $user->occupation = $userData['occupation'] ?? null;
         $user->employer = $userData['employer_name'] ?? null;
         $user->annual_employment_income = $userData['annual_income'] ?? null;
+        $user->annual_dividend_income = $userData['annual_dividend_income'] ?? 0;
+        $user->annual_self_employment_income = $userData['annual_self_employment_income'] ?? 0;
+        $user->annual_rental_income = $userData['annual_rental_income'] ?? 0;
+        $user->annual_interest_income = $userData['annual_interest_income'] ?? 0;
         $user->annual_trust_income = $userData['annual_trust_income'] ?? null;
         $user->payday_day_of_month = $userData['payday_day_of_month'] ?? null;
         $user->target_retirement_age = $userData['target_retirement_age'] ?? 65;

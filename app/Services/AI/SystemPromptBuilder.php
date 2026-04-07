@@ -65,8 +65,9 @@ class SystemPromptBuilder
         // Layer 1: Core Identity (STATIC)
         $layers[] = CoreIdentity::get($firstName);
 
-        // Layer 2: Compliance & Rules (STATIC)
-        $layers[] = ComplianceRules::get();
+        // Layer 2: Compliance & Rules (STATIC, tax year dynamic)
+        $taxYear = $this->taxConfig->getTaxYear() ?? '2026/27';
+        $layers[] = ComplianceRules::get($taxYear);
 
         // Layer 3: FCA Process Instructions (STATIC)
         $layers[] = FcaProcessInstructions::get($isPreview);
@@ -181,9 +182,31 @@ class SystemPromptBuilder
             $lines[] = "- Target retirement age: {$user->retirementProfile->target_retirement_age}";
         }
 
-        $children = $user->familyMembers()->where('relationship', 'child')->count();
-        if ($children > 0) {
-            $lines[] = "- Children: {$children}";
+        // Family members — names and ages so Fyn can reference them naturally
+        $familyLines = [];
+
+        $spouse = $user->spouse;
+        if ($spouse) {
+            $spouseName = $spouse->first_name ?? explode(' ', $spouse->name)[0] ?? 'Spouse';
+            $spouseAge = $spouse->date_of_birth ? $spouse->date_of_birth->age : null;
+            $familyLines[] = $spouseAge
+                ? "  - Spouse: {$spouseName} (age {$spouseAge})"
+                : "  - Spouse: {$spouseName}";
+        }
+
+        $familyMembers = $user->familyMembers()->orderBy('date_of_birth')->get();
+        foreach ($familyMembers as $member) {
+            $memberName = $member->first_name ?? 'Unknown';
+            $memberAge = $member->date_of_birth ? now()->diffInYears($member->date_of_birth) : null;
+            $relationship = ucfirst($member->relationship ?? 'family member');
+            $familyLines[] = $memberAge
+                ? "  - {$relationship}: {$memberName} (age {$memberAge})"
+                : "  - {$relationship}: {$memberName}";
+        }
+
+        if (! empty($familyLines)) {
+            $lines[] = '- Family:';
+            $lines = array_merge($lines, $familyLines);
         }
 
         return implode("\n", $lines);
@@ -461,11 +484,47 @@ class SystemPromptBuilder
             $relevantTypes = $this->getRelevantRecordTypes($classification);
             $include = fn (string $type) => $relevantTypes === null || in_array($type, $relevantTypes, true);
 
+            // Helper to format ownership label from the record's own fields
+            $ownershipLabel = function ($record) use ($userId) {
+                $type = $record->ownership_type ?? 'individual';
+                if ($type === 'individual') {
+                    return '';
+                }
+
+                $pct = (int) ($record->user_id === $userId
+                    ? ($record->ownership_percentage ?? 100)
+                    : (100 - ($record->ownership_percentage ?? 100)));
+                $otherPct = 100 - $pct;
+
+                // Use the name stored on the record (joint_owner_name), or fall back to linked user
+                $coOwnerName = $record->joint_owner_name
+                    ?? ($record->jointOwner?->first_name)
+                    ?? null;
+
+                return $coOwnerName
+                    ? " {$type} with {$coOwnerName}({$pct}%/{$otherPct}%)"
+                    : " {$type}({$pct}%/{$otherPct}%)";
+            };
+
+            // Helper to format value with user's share for joint assets
+            $valueWithShare = function ($record, float $totalValue) use ($userId) {
+                $type = $record->ownership_type ?? 'individual';
+                if ($type === 'individual') {
+                    return '£' . number_format($totalValue, 0);
+                }
+                $userPct = (int) ($record->user_id === $userId
+                    ? ($record->ownership_percentage ?? 100)
+                    : (100 - ($record->ownership_percentage ?? 100)));
+                $userValue = $totalValue * ($userPct / 100);
+
+                return 'total:£' . number_format($totalValue, 0) . ' your-share:£' . number_format($userValue, 0);
+            };
+
             // Savings
             if ($include('savings_account')) {
                 $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($savings->isNotEmpty()) {
-                    $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}" . ($a->is_isa ? ' ISA(tax-free)' : '') . ' £' . number_format((float) $a->current_balance, 0) . ']')->implode(' ');
+                    $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}" . ($a->is_isa ? ' ISA(tax-free)' : '') . $ownershipLabel($a) . ' ' . $valueWithShare($a, (float) $a->current_balance) . ']')->implode(' ');
                     $lines[] = "SAVINGS: {$items}";
                 }
             }
@@ -474,7 +533,7 @@ class SystemPromptBuilder
             if ($include('investment_account')) {
                 $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($investments->isNotEmpty()) {
-                    $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" " . $this->formatInvestmentAccountType($a->account_type) . ' £' . number_format((float) $a->current_value, 0) . ']')->implode(' ');
+                    $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" " . $this->formatInvestmentAccountType($a->account_type) . $ownershipLabel($a) . ' ' . $valueWithShare($a, (float) $a->current_value) . ']')->implode(' ');
                     $lines[] = "INVESTMENTS: {$items}";
                 }
             }
@@ -497,21 +556,36 @@ class SystemPromptBuilder
                 }
             }
 
-            // Properties
+            // Properties — show total value, user's share, mortgage, and ownership with co-owner name
             if ($include('property') || $include('mortgage')) {
                 $properties = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($properties->isNotEmpty()) {
-                    $items = $properties->map(function ($p) use ($userId) {
-                        $value = number_format((float) $p->current_value, 0);
-                        $ownershipPct = $p->joint_owner_id ? (int) ($p->user_id === $userId ? $p->ownership_percentage : (100 - $p->ownership_percentage)) : 100;
-                        $ownershipLabel = $ownershipPct < 100 ? " {$ownershipPct}%owned" : '';
-                        $mortgageTotal = $p->mortgages->sum('outstanding_balance');
-                        $mortgageLabel = $mortgageTotal > 0 ? ' mortgage:£' . number_format((float) $mortgageTotal, 0) : '';
-                        $rentalLabel = $p->property_type === 'buy_to_let' && $p->monthly_rental_income > 0
-                            ? ' rent:£' . number_format((float) $p->monthly_rental_income, 0) . '/mo'
+                    $items = $properties->map(function ($p) use ($userId, $ownershipLabel) {
+                        $totalValue = (float) $p->current_value;
+                        $userPct = ($p->ownership_type !== 'individual')
+                            ? (int) ($p->user_id === $userId ? ($p->ownership_percentage ?? 100) : (100 - ($p->ownership_percentage ?? 100)))
+                            : 100;
+                        $userValue = $totalValue * ($userPct / 100);
+
+                        $mortgageTotal = (float) $p->mortgages->sum('outstanding_balance');
+                        $userMortgage = $mortgageTotal * ($userPct / 100);
+
+                        $valueLabel = $userPct < 100
+                            ? ' total:£' . number_format($totalValue, 0) . ' your-share:£' . number_format($userValue, 0)
+                            : ' £' . number_format($totalValue, 0);
+                        $mortgageLabel = $mortgageTotal > 0
+                            ? ($userPct < 100
+                                ? ' mortgage-total:£' . number_format($mortgageTotal, 0) . ' your-mortgage:£' . number_format($userMortgage, 0)
+                                : ' mortgage:£' . number_format($mortgageTotal, 0))
+                            : '';
+                        $rentalTotal = (float) ($p->monthly_rental_income ?? 0);
+                        $rentalLabel = $p->property_type === 'buy_to_let' && $rentalTotal > 0
+                            ? ($userPct < 100
+                                ? ' rent-total:£' . number_format($rentalTotal, 0) . '/mo your-rent:£' . number_format($rentalTotal * ($userPct / 100), 0) . '/mo'
+                                : ' rent:£' . number_format($rentalTotal, 0) . '/mo')
                             : '';
 
-                        return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}{$ownershipLabel}{$mortgageLabel}{$rentalLabel} £{$value}]";
+                        return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}" . $ownershipLabel($p) . "{$mortgageLabel}{$rentalLabel}{$valueLabel}]";
                     })->implode(' ');
                     $lines[] = "PROPERTIES: {$items}";
                 }
@@ -553,18 +627,18 @@ class SystemPromptBuilder
                 }
             }
 
-            // Business Interests (always included — no filter key)
+            // Business Interests
             if ($include('business')) {
-                $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->get();
+                $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($businesses->isNotEmpty()) {
                     $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £" . number_format((float) $b->current_valuation, 0) . ']')->implode(' ');
                     $lines[] = "BUSINESS: {$items}";
                 }
             }
 
-            // Chattels (always included — no filter key)
+            // Chattels
             if ($include('chattel')) {
-                $chattels = \App\Models\Chattel::where('user_id', $userId)->get();
+                $chattels = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($chattels->isNotEmpty()) {
                     $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->chattel_type} £" . number_format((float) $c->current_value, 0) . ']')->implode(' ');
                     $lines[] = "CHATTELS: {$items}";
@@ -573,7 +647,7 @@ class SystemPromptBuilder
 
             // Liabilities
             if ($include('liability')) {
-                $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->get();
+                $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($liabilities->isNotEmpty()) {
                     $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £" . number_format((float) $l->current_balance, 0) . ']')->implode(' ');
                     $lines[] = "LIABILITIES: {$items}";

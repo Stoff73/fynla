@@ -16,6 +16,7 @@
     "gender": "male",
     "marital_status": "single",
     "annual_income": 180000,
+    "annual_dividend_income": 60000,
     "employment_status": "self_employed",
     "business_name": "Chen Tech Consulting Ltd",
     "occupation": "Owner/Director",

@@ -738,14 +738,57 @@ class CoordinatingAgent extends BaseAgent
         $userId = $user->id;
         $records = [];
 
+        // Helper to build ownership fields from the record's own data
+        $ownershipFields = function ($record) use ($userId) {
+            $type = $record->ownership_type ?? 'individual';
+            if ($type === 'individual') {
+                return ['ownership_type' => 'individual'];
+            }
+
+            $userPct = (float) ($record->user_id === $userId
+                ? ($record->ownership_percentage ?? 100)
+                : (100 - ($record->ownership_percentage ?? 100)));
+
+            $coOwnerName = $record->joint_owner_name
+                ?? ($record->jointOwner?->first_name)
+                ?? null;
+
+            $fields = [
+                'ownership_type' => $type,
+                'your_share_percent' => $userPct,
+                'co_owner_share_percent' => 100 - $userPct,
+            ];
+            if ($coOwnerName) {
+                $fields['co_owner'] = $coOwnerName;
+            }
+
+            return $fields;
+        };
+
         switch ($entityType) {
             case 'savings_account':
                 $items = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($a) => ['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => (float) $a->current_balance, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate])->toArray();
+                $records = $items->map(function ($a) use ($ownershipFields) {
+                    $fields = $ownershipFields($a);
+                    $total = (float) $a->current_balance;
+                    if (isset($fields['your_share_percent']) && $fields['your_share_percent'] < 100) {
+                        $fields['total_balance'] = $total;
+                        $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
+                    }
+                    return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => $total, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate], $fields);
+                })->toArray();
                 break;
             case 'investment_account':
                 $items = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($a) => ['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => (float) $a->current_value, 'holdings_count' => $a->holdings()->count()])->toArray();
+                $records = $items->map(function ($a) use ($ownershipFields) {
+                    $fields = $ownershipFields($a);
+                    $total = (float) $a->current_value;
+                    if (isset($fields['your_share_percent']) && $fields['your_share_percent'] < 100) {
+                        $fields['total_value'] = $total;
+                        $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
+                    }
+                    return array_merge(['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => $total, 'holdings_count' => $a->holdings()->count()], $fields);
+                })->toArray();
                 break;
             case 'dc_pension':
                 $items = \App\Models\DCPension::where('user_id', $userId)->get();
@@ -756,8 +799,26 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years])->toArray();
                 break;
             case 'property':
-                $items = \App\Models\Property::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => (float) $p->current_value])->toArray();
+                $items = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(function ($p) use ($ownershipFields) {
+                    $fields = $ownershipFields($p);
+                    $total = (float) $p->current_value;
+                    $mortgageTotal = (float) $p->mortgages->sum('outstanding_balance');
+                    if (isset($fields['your_share_percent']) && $fields['your_share_percent'] < 100) {
+                        $pct = $fields['your_share_percent'] / 100;
+                        $fields['total_value'] = $total;
+                        $fields['your_share_value'] = round($total * $pct, 2);
+                        if ($mortgageTotal > 0) {
+                            $fields['total_mortgage'] = $mortgageTotal;
+                            $fields['your_mortgage_share'] = round($mortgageTotal * $pct, 2);
+                        }
+                    }
+                    return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal], $fields);
+                })->toArray();
+                break;
+            case 'mortgage':
+                $items = \App\Models\Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
                 break;
             case 'life_insurance':
                 $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
@@ -776,16 +837,16 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value])->toArray();
                 break;
             case 'business_interest':
-                $items = \App\Models\BusinessInterest::where('user_id', $userId)->get();
-                $records = $items->map(fn ($b) => ['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation])->toArray();
+                $items = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
-                $items = \App\Models\Chattel::where('user_id', $userId)->get();
-                $records = $items->map(fn ($c) => ['id' => $c->id, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value])->toArray();
+                $items = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
-                $items = \App\Models\Estate\Liability::where('user_id', $userId)->get();
-                $records = $items->map(fn ($l) => ['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance])->toArray();
+                $items = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $records = $items->map(fn ($l) => array_merge(['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance], $ownershipFields($l)))->toArray();
                 break;
             case 'estate_gift':
                 $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();

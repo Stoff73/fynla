@@ -139,7 +139,7 @@ class XaiToolDefinitions
                 [
                     'entity_type' => [
                         'type' => 'string',
-                        'enum' => ['savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'life_insurance', 'critical_illness', 'income_protection', 'trust', 'business_interest', 'chattel', 'estate_liability', 'estate_gift', 'family_member'],
+                        'enum' => ['savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'trust', 'business_interest', 'chattel', 'estate_liability', 'estate_gift', 'family_member'],
                         'description' => 'The type of record to list.',
                     ],
                 ],
