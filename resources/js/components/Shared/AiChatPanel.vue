@@ -231,8 +231,19 @@
           <!-- Spacer to allow last message to scroll to top of container -->
           <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
 
+          <!-- Token limit reached -->
+          <div v-if="tokenLimitReached" class="p-4 bg-violet-50 border border-violet-200 rounded-lg text-sm text-horizon-500">
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="w-5 h-5 text-violet-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="font-semibold">You've reached your daily Fyn usage limit</span>
+            </div>
+            <p class="text-neutral-500">Your allowance resets in <span class="font-semibold text-violet-600">{{ resetCountdown }}</span></p>
+          </div>
+
           <!-- Error message -->
-          <div v-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
+          <div v-else-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
             {{ error }}
           </div>
         </div>
@@ -247,13 +258,13 @@
               ref="inputField"
               v-model="inputMessage"
               @keydown.enter.exact.prevent="send"
-              placeholder="Ask about your finances..."
+              :placeholder="tokenLimitReached ? 'Daily limit reached — resets at midnight' : 'Ask about your finances...'"
               rows="1"
-              :disabled="streaming || loading"
+              :disabled="streaming || loading || tokenLimitReached"
               class="flex-1 resize-none rounded-lg border border-horizon-300 px-3 py-2 text-sm
                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
                      disabled:bg-savannah-100 disabled:cursor-not-allowed"
-              :class="{ 'opacity-60': streaming }"
+              :class="{ 'opacity-60': streaming || tokenLimitReached }"
             ></textarea>
             <button
               @click="send"
@@ -459,11 +470,12 @@
               ref="dockedInputField"
               v-model="inputMessage"
               @keydown.enter.exact.prevent="send"
-              placeholder="Ask Fyn..."
+              :placeholder="tokenLimitReached ? 'Daily limit reached' : 'Ask Fyn...'"
+              :disabled="streaming || loading || tokenLimitReached"
               class="flex-1 min-w-0 h-full resize-none rounded-lg border border-light-gray px-3 py-2.5 text-sm text-horizon-500 placeholder-neutral-500
                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
                      disabled:bg-savannah-100 disabled:cursor-not-allowed"
-              :class="{ 'opacity-60': streaming }"
+              :class="{ 'opacity-60': streaming || tokenLimitReached }"
             ></textarea>
             <button
               @click="send"
@@ -522,6 +534,8 @@ export default {
             _resizeStartHeight: 0,
             thinkingStatusIndex: 0,
             _thinkingTimer: null,
+            countdownSeconds: null,
+            _countdownTimer: null,
         };
     },
 
@@ -536,9 +550,19 @@ export default {
             'loading',
             'loadingConversations',
             'error',
+            'tokenLimitReached',
+            'secondsUntilReset',
             'showHistory',
             'pendingNavigation',
         ]),
+
+        resetCountdown() {
+            if (!this.countdownSeconds || this.countdownSeconds <= 0) return 'shortly';
+            const hours = Math.floor(this.countdownSeconds / 3600);
+            const minutes = Math.floor((this.countdownSeconds % 3600) / 60);
+            if (hours > 0) return `${hours}h ${minutes}m`;
+            return `${minutes}m`;
+        },
 
         isMobile() {
             return this.windowWidth < 768;
@@ -560,7 +584,7 @@ export default {
         },
 
         canSend() {
-            return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading;
+            return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached;
         },
 
         suggestedPrompts() {
@@ -658,12 +682,33 @@ export default {
         if (this._thinkingTimer) {
             clearInterval(this._thinkingTimer);
         }
+        if (this._countdownTimer) {
+            clearInterval(this._countdownTimer);
+        }
     },
 
     watch: {
         isOpen(newVal) {
             if (newVal) {
                 this.onOpen();
+            }
+        },
+
+        secondsUntilReset(newVal) {
+            if (this._countdownTimer) {
+                clearInterval(this._countdownTimer);
+                this._countdownTimer = null;
+            }
+            if (newVal && newVal > 0) {
+                this.countdownSeconds = newVal;
+                this._countdownTimer = setInterval(() => {
+                    this.countdownSeconds--;
+                    if (this.countdownSeconds <= 0) {
+                        clearInterval(this._countdownTimer);
+                        this._countdownTimer = null;
+                        this.$store.commit('aiChat/SET_TOKEN_LIMIT', { reached: false, resetAt: null, secondsUntilReset: null });
+                    }
+                }, 1000);
             }
         },
 

@@ -28,12 +28,12 @@ trait HasAiGuardrails
     }
 
     private const DAILY_TOKEN_LIMITS = [
-        'preview' => 50_000,
-        'trial' => 500_000,
-        'student' => 150_000,
-        'standard' => 500_000,
-        'family' => 500_000,
-        'pro' => 1_000_000,
+        'preview' => 100_000,
+        'trial' => 1_000_000,
+        'student' => 300_000,
+        'standard' => 1_000_000,
+        'family' => 1_500_000,
+        'pro' => 2_000_000,
     ];
 
     /**
@@ -110,6 +110,32 @@ trait HasAiGuardrails
         $todayUsage = $this->getTodayTokenUsage($user);
 
         return $todayUsage < $limit;
+    }
+
+    /**
+     * Get token usage details including reset time.
+     * Resets daily at midnight (00:00 UTC).
+     */
+    public function getTokenUsageDetails(User $user): array
+    {
+        $plan = $user->is_preview_user ? 'preview' : $this->getUserPlan($user);
+        $limit = self::DAILY_TOKEN_LIMITS[$plan] ?? self::DAILY_TOKEN_LIMITS['student'];
+        $used = $this->getTodayTokenUsage($user);
+        $remaining = max(0, $limit - $used);
+
+        // Reset is at midnight tomorrow
+        $resetAt = now()->copy()->addDay()->startOfDay();
+        $secondsUntilReset = now()->diffInSeconds($resetAt);
+
+        return [
+            'used' => $used,
+            'limit' => $limit,
+            'remaining' => $remaining,
+            'percent_used' => $limit > 0 ? round(($used / $limit) * 100) : 0,
+            'has_budget' => $used < $limit,
+            'reset_at' => $resetAt->toIso8601String(),
+            'seconds_until_reset' => $secondsUntilReset,
+        ];
     }
 
     /**

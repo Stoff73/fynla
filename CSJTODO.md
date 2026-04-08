@@ -112,3 +112,9 @@
 - **Tax branch (f646f88..19f7d23):** Deployed to fynla.org (session 37). 2026/27 active.
 - **PR #193 (estateDash):** Deployed to fynla.org 7 April 2026. Estate redesign + code review fixes + cookie consent + spouse lifecycle. Deploy guide at `April/April7Updates/estateBranchDeploy.md`.
 - **fynNew branch:** 25 Fyn Response Architecture commits still unmerged (parallel track)
+- **PR #197 (brett-v1):** Merged 8 April 2026. ISA guide + retirement planning articles.
+- **PR #198 (adhoc-changes-3):** Merged 8 April 2026. Fyn icon bundled via Vite + mega menu fix. Settings.json path fixed post-merge.
+- **PR #200 (revolutLive):** Deployed to fynla.org 8 April 2026. Invoice webhook race condition fix + aiChat session leakage fix.
+- **PR #201 (uiFixes):** Deployed to fynla.org 8 April 2026. Dashboard progress bar labels, journey complete state, portfolio projection double border.
+- **Revolut Live:** Switched from sandbox to production 8 April 2026. Live webhook created, card payments enabled.
+- **PR #202 (fynUpgrade):** Deployed to fynla.org 8 April 2026. Token limits doubled, token limit UI with countdown, new token-usage endpoint.
