@@ -830,6 +830,7 @@ Before responding to this query, you MUST call the following tools to retrieve c
 {$toolList}
 
 Call these tools BEFORE writing your response. If a tool fails, note it and continue with the others.
+IMPORTANT: Only call the tools listed above plus any that are strictly necessary for the specific question asked. Do not call extra tools speculatively — the user's data is already summarised in your context. Be efficient: most questions need 2-3 tool calls, not more.
 </required_tools>
 PROMPT;
         }
