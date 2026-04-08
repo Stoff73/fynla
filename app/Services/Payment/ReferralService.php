@@ -147,6 +147,8 @@ class ReferralService
 
         $isMonthly = $billingCycle === 'monthly';
 
+        // Refresh referee's subscription to get latest data (confirmPayment may have just updated it)
+        $referee->load('subscription');
         $refereeSub = $referee->subscription;
         if ($refereeSub && $refereeSub->current_period_end) {
             $refereeSub->update([
