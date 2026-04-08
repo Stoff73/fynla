@@ -133,12 +133,18 @@
                 <table>
                     <tr>
                         <td class="info-label">Plan:</td>
-                        <td class="info-value">{{ $planName }}</td>
+                        <td class="info-value">{{ $planName }} ({{ ucfirst($billingCycle) }})</td>
+                    </tr>
+                    @if($hasDiscount ?? false)
+                    <tr>
+                        <td class="info-label">Original Price:</td>
+                        <td class="info-value" style="text-decoration: line-through; color: #94a3b8;">&pound;{{ $originalAmount }}</td>
                     </tr>
                     <tr>
-                        <td class="info-label">Billing Cycle:</td>
-                        <td class="info-value">{{ ucfirst($billingCycle) }}</td>
+                        <td class="info-label">Discount:</td>
+                        <td class="info-value" style="color: #20B486;">{{ $discountDescription }} (Code: {{ $discountCode }})</td>
                     </tr>
+                    @endif
                     <tr>
                         <td class="info-label">Amount Paid:</td>
                         <td class="info-value">&pound;{{ $amount }}</td>
@@ -151,6 +157,12 @@
                         <td class="info-label">Reference:</td>
                         <td class="info-value">FYN-{{ str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT) }}</td>
                     </tr>
+                    @if(($autoRenew ?? false) && ($nextRenewalDate ?? null))
+                    <tr>
+                        <td class="info-label">Next Renewal:</td>
+                        <td class="info-value">{{ $nextRenewalDate }} (&pound;{{ $renewalAmount }})</td>
+                    </tr>
+                    @endif
                 </table>
             </div>
 

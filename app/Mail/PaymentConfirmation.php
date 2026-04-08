@@ -33,6 +33,11 @@ class PaymentConfirmation extends Mailable
     public function content(): Content
     {
         $subscription = $this->payment->subscription;
+        $discountCode = $this->payment->discountCode;
+        $hasDiscount = $this->payment->discount_amount > 0 && $discountCode;
+        $originalAmount = $hasDiscount
+            ? ($this->payment->amount + $this->payment->discount_amount)
+            : $this->payment->amount;
 
         return new Content(
             view: 'emails.payment-confirmation',
@@ -43,7 +48,24 @@ class PaymentConfirmation extends Mailable
                 'billingCycle' => $subscription->billing_cycle ?? 'monthly',
                 'amount' => number_format($this->payment->amount / 100, 2),
                 'paymentDate' => $this->payment->created_at?->format('j F Y'),
+                'hasDiscount' => $hasDiscount,
+                'discountCode' => $discountCode?->code,
+                'discountDescription' => $hasDiscount ? $this->describeDiscount($discountCode) : null,
+                'discountAmount' => $hasDiscount ? number_format($this->payment->discount_amount / 100, 2) : null,
+                'originalAmount' => number_format($originalAmount / 100, 2),
+                'renewalAmount' => number_format(($subscription->amount ?? $this->payment->amount) / 100, 2),
+                'nextRenewalDate' => $subscription->current_period_end?->format('j F Y'),
+                'autoRenew' => $subscription->auto_renew ?? false,
             ],
         );
+    }
+
+    private function describeDiscount(\App\Models\DiscountCode $discount): string
+    {
+        return match ($discount->type) {
+            'percentage' => "{$discount->value}% off",
+            'fixed_amount' => '£' . number_format($discount->value / 100, 2) . ' off',
+            default => 'Discount applied',
+        };
     }
 }

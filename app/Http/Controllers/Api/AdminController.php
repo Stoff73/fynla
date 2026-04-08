@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AdminUserResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\DiscountCode;
 use App\Models\Payment;
 use App\Models\Role;
 use App\Models\Subscription;
@@ -621,5 +622,173 @@ class AdminController extends Controller
             'message' => "AI provider switched to {$provider}",
             'data' => ['provider' => $provider],
         ]);
+    }
+
+    // ── Discount Code Management ──
+
+    /**
+     * List all discount codes.
+     *
+     * GET /api/admin/discount-codes
+     */
+    public function listDiscountCodes(): JsonResponse
+    {
+        try {
+            $codes = DiscountCode::orderByDesc('created_at')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $codes,
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to list discount codes', $e);
+        }
+    }
+
+    /**
+     * Create a new discount code.
+     *
+     * POST /api/admin/discount-codes
+     */
+    public function createDiscountCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            'code' => 'required|string|max:50|unique:discount_codes,code',
+            'type' => 'required|string|in:percentage,fixed_amount,trial_extension',
+            'value' => 'required|integer|min:1',
+            'max_uses' => 'nullable|integer|min:1',
+            'max_uses_per_user' => 'integer|min:1',
+            'applicable_plans' => 'nullable|array',
+            'applicable_plans.*' => 'string|in:student,standard,family,pro',
+            'applicable_cycles' => 'nullable|array',
+            'applicable_cycles.*' => 'string|in:monthly,yearly',
+            'starts_at' => 'nullable|date',
+            'expires_at' => 'nullable|date|after:starts_at',
+            'is_active' => 'boolean',
+        ]);
+
+        try {
+            $code = DiscountCode::create([
+                'code' => strtoupper(trim($request->input('code'))),
+                'type' => $request->input('type'),
+                'value' => $request->input('value'),
+                'max_uses' => $request->input('max_uses'),
+                'max_uses_per_user' => $request->input('max_uses_per_user', 1),
+                'applicable_plans' => $request->input('applicable_plans'),
+                'applicable_cycles' => $request->input('applicable_cycles'),
+                'starts_at' => $request->input('starts_at'),
+                'expires_at' => $request->input('expires_at'),
+                'is_active' => $request->input('is_active', true),
+                'created_by' => $request->user()->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount code created',
+                'data' => $code,
+            ], 201);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to create discount code', $e);
+        }
+    }
+
+    /**
+     * Update an existing discount code.
+     *
+     * PUT /api/admin/discount-codes/{id}
+     */
+    public function updateDiscountCode(Request $request, int $id): JsonResponse
+    {
+        $code = DiscountCode::find($id);
+        if (! $code) {
+            return response()->json(['success' => false, 'message' => 'Discount code not found'], 404);
+        }
+
+        $request->validate([
+            'code' => "required|string|max:50|unique:discount_codes,code,{$id}",
+            'type' => 'required|string|in:percentage,fixed_amount,trial_extension',
+            'value' => 'required|integer|min:1',
+            'max_uses' => 'nullable|integer|min:1',
+            'max_uses_per_user' => 'integer|min:1',
+            'applicable_plans' => 'nullable|array',
+            'applicable_plans.*' => 'string|in:student,standard,family,pro',
+            'applicable_cycles' => 'nullable|array',
+            'applicable_cycles.*' => 'string|in:monthly,yearly',
+            'starts_at' => 'nullable|date',
+            'expires_at' => 'nullable|date|after:starts_at',
+            'is_active' => 'boolean',
+        ]);
+
+        try {
+            $code->update([
+                'code' => strtoupper(trim($request->input('code'))),
+                'type' => $request->input('type'),
+                'value' => $request->input('value'),
+                'max_uses' => $request->input('max_uses'),
+                'max_uses_per_user' => $request->input('max_uses_per_user', 1),
+                'applicable_plans' => $request->input('applicable_plans'),
+                'applicable_cycles' => $request->input('applicable_cycles'),
+                'starts_at' => $request->input('starts_at'),
+                'expires_at' => $request->input('expires_at'),
+                'is_active' => $request->input('is_active', true),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount code updated',
+                'data' => $code->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to update discount code', $e);
+        }
+    }
+
+    /**
+     * Delete (soft-delete) a discount code.
+     *
+     * DELETE /api/admin/discount-codes/{id}
+     */
+    public function deleteDiscountCode(int $id): JsonResponse
+    {
+        $code = DiscountCode::find($id);
+        if (! $code) {
+            return response()->json(['success' => false, 'message' => 'Discount code not found'], 404);
+        }
+
+        try {
+            $code->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount code deleted',
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to delete discount code', $e);
+        }
+    }
+
+    /**
+     * Toggle a discount code's active status.
+     *
+     * PATCH /api/admin/discount-codes/{id}/toggle
+     */
+    public function toggleDiscountCode(int $id): JsonResponse
+    {
+        $code = DiscountCode::find($id);
+        if (! $code) {
+            return response()->json(['success' => false, 'message' => 'Discount code not found'], 404);
+        }
+
+        try {
+            $code->update(['is_active' => ! $code->is_active]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $code->is_active ? 'Discount code enabled' : 'Discount code disabled',
+                'data' => $code->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            return $this->safeErrorResponse('Failed to toggle discount code', $e);
+        }
     }
 }

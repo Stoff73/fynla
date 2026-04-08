@@ -9,17 +9,22 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Mail\DataDeletionConfirmation;
 use App\Mail\PaymentConfirmation;
 use App\Mail\SubscriptionCancellation;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Payment\DataPurgeService;
+use App\Services\Payment\DiscountCodeService;
+use App\Services\Payment\InvoiceService;
 use App\Services\Payment\RevolutService;
+use App\Services\Payment\RevolutSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -29,6 +34,9 @@ class PaymentController extends Controller
 
     public function __construct(
         private readonly RevolutService $revolutService,
+        private readonly RevolutSubscriptionService $subscriptionService,
+        private readonly DiscountCodeService $discountCodeService,
+        private readonly InvoiceService $invoiceService,
         private readonly DataPurgeService $purgeService
     ) {}
 
@@ -72,6 +80,7 @@ class PaymentController extends Controller
         $request->validate([
             'plan' => 'required|string|in:student,standard,family,pro',
             'billing_cycle' => 'required|string|in:monthly,yearly',
+            'discount_code' => 'nullable|string|max:50',
         ]);
 
         $plan = SubscriptionPlan::findBySlug($request->input('plan'));
@@ -83,10 +92,58 @@ class PaymentController extends Controller
         $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
         $description = "{$plan->name} — ".ucfirst($billingCycle);
 
+        // Validate discount code if provided
+        $discountResult = null;
+        $discountCode = null;
+        $discountAmount = 0;
+        $finalAmount = $amount;
+
+        if ($request->filled('discount_code')) {
+            $discountResult = $this->discountCodeService->validate(
+                $request->input('discount_code'),
+                $user->id,
+                $plan->slug,
+                $billingCycle,
+                $amount
+            );
+
+            if (! $discountResult['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $discountResult['message'],
+                ], 422);
+            }
+
+            $discountCode = $discountResult['discount'];
+
+            // Handle trial extension separately — no payment needed
+            if ($discountCode->type === 'trial_extension') {
+                $subscription = $user->subscription;
+                if ($subscription && $subscription->trial_ends_at) {
+                    $subscription->update([
+                        'trial_ends_at' => $subscription->trial_ends_at->addDays($discountCode->value),
+                    ]);
+                    $user->update([
+                        'trial_ends_at' => $subscription->trial_ends_at,
+                    ]);
+                    $this->discountCodeService->apply($discountCode, $user->id, 0, 0);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Trial extended by {$discountCode->value} days.",
+                    'trial_extension' => true,
+                ]);
+            }
+
+            $discountAmount = $discountResult['discount_amount'];
+            $finalAmount = $discountResult['final_amount'];
+        }
+
         try {
             // Ensure subscription record exists
             $subscription = $user->subscription ?? $user->subscription()->create([
-                'plan' => 'free',
+                'plan' => $plan->slug,
                 'billing_cycle' => $billingCycle,
                 'status' => 'trialing',
                 'amount' => 0,
@@ -94,40 +151,51 @@ class PaymentController extends Controller
                 'current_period_end' => now(),
             ]);
 
-            // Create pending Payment record FIRST so we have an ID for merchant_ref
-            $payment = Payment::create([
-                'subscription_id' => $subscription->id,
-                'user_id' => $user->id,
-                'revolut_order_id' => 'pending',
-                'amount' => $amount,
-                'currency' => 'GBP',
-                'status' => 'pending',
-                'description' => $description,
-                'plan_slug' => $plan->slug,
-                'billing_cycle' => $billingCycle,
-            ]);
+            // Ensure Revolut customer exists
+            if (! $user->revolut_customer_id) {
+                $this->subscriptionService->createCustomer($user);
+                $user->refresh();
+            }
 
-            // Build redirect URL for redirect-based payment methods (e.g. Pay by Bank)
-            // Revolut API rejects localhost — use production URL in sandbox/local dev
+            // Build redirect URL
             $baseUrl = config('services.revolut.sandbox')
                 ? 'https://fynla.org'
                 : config('app.url');
             $redirectUrl = $baseUrl.'/checkout?plan='.$plan->slug
                 .'&cycle='.$billingCycle.'&status=complete';
 
-            // POST to Revolut Merchant API: /api/orders
-            $revolutOrder = $this->revolutService->createOrder(
-                $amount,
+            // Build description (include discount code if applied)
+            $orderDescription = $discountCode
+                ? "{$description} (Code: {$discountCode->code})"
+                : $description;
+
+            // Create Revolut order at $finalAmount — this is the ONLY amount that matters.
+            // If a discount was applied, $finalAmount is already reduced.
+            // If no discount, $finalAmount equals $amount (full price).
+            $revolutOrder = $this->revolutService->createOrderWithCustomer(
+                $finalAmount,
                 'GBP',
-                $description,
+                $orderDescription,
                 $redirectUrl,
-                "payment_{$payment->id}",
-                $user->email
+                $user->revolut_customer_id,
+                null,
+                $user->email,
+                true
             );
 
-            // Update Payment with real Revolut order ID
-            $payment->update([
+            // Create pending Payment record
+            $payment = Payment::create([
+                'subscription_id' => $subscription->id,
+                'user_id' => $user->id,
                 'revolut_order_id' => $revolutOrder['id'],
+                'amount' => $finalAmount,
+                'currency' => 'GBP',
+                'status' => 'pending',
+                'description' => $description,
+                'plan_slug' => $plan->slug,
+                'billing_cycle' => $billingCycle,
+                'discount_code_id' => $discountCode?->id,
+                'discount_amount' => $discountAmount,
                 'revolut_payment_data' => [
                     'order_id' => $revolutOrder['id'],
                     'token' => $revolutOrder['token'],
@@ -136,7 +204,17 @@ class PaymentController extends Controller
                 ],
             ]);
 
-            // Intentional: Revolut SDK requires {token, order_id} at top level, not wrapped in {success, data}
+            Log::info('Revolut order created for checkout', [
+                'user_id' => $user->id,
+                'payment_id' => $payment->id,
+                'full_price' => $amount,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $finalAmount,
+                'discount_code' => $discountCode?->code,
+                'revolut_order_id' => $revolutOrder['id'],
+            ]);
+
+            // Intentional: Revolut SDK requires {token, order_id} at top level
             return response()->json([
                 'token' => $revolutOrder['token'],
                 'order_id' => $revolutOrder['id'],
@@ -265,10 +343,50 @@ class PaymentController extends Controller
                 return ['already_completed' => false, 'payment' => $payment, 'subscription' => $subscription];
             });
 
-            // Send confirmation email (only if newly activated)
+            // Post-transaction: emails, invoice, discount usage
             if (! $result['already_completed']) {
+                $payment = $result['payment'];
+
+                // Apply discount code usage
+                if ($payment->discount_code_id && $payment->discountCode) {
+                    try {
+                        $this->discountCodeService->apply(
+                            $payment->discountCode,
+                            $user->id,
+                            $payment->id,
+                            (int) ($payment->amount + $payment->discount_amount)
+                        );
+                    } catch (\Exception $e) {
+                        Log::error('Failed to apply discount code usage', [
+                            'payment_id' => $payment->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
+                // Set auto-renew flags if using Revolut subscription
+                $subscription = $result['subscription'] ?? $payment->subscription;
+                if ($subscription->revolut_subscription_id) {
+                    $subscription->update([
+                        'auto_renew' => true,
+                        'payment_method_saved' => true,
+                    ]);
+                }
+
+                // Generate invoice
                 try {
-                    Mail::to($user->email)->send(new PaymentConfirmation($user, $result['payment']));
+                    $invoice = $this->invoiceService->generateInvoice($payment, $payment->discountCode);
+                    $this->invoiceService->emailInvoice($invoice, $user);
+                } catch (\Exception $e) {
+                    Log::error('Failed to generate invoice', [
+                        'payment_id' => $payment->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Send payment confirmation email
+                try {
+                    Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
                 } catch (\Exception $e) {
                     Log::error('Failed to send payment confirmation email', [
                         'user_id' => $user->id,
@@ -437,6 +555,10 @@ class PaymentController extends Controller
             'grace_period_ends_at' => $paymentEnabled ? $subscription->gracePeriodEndsAt()?->toISOString() : null,
             'is_in_grace_period' => $paymentEnabled && $subscription->isInGracePeriod(),
             'payment_enabled' => $paymentEnabled,
+            'auto_renew' => $subscription->auto_renew ?? false,
+            'next_renewal_date' => ($subscription->status === 'active' && $subscription->auto_renew)
+                ? $subscription->current_period_end?->toISOString()
+                : null,
         ]);
     }
 
@@ -466,6 +588,18 @@ class PaymentController extends Controller
         }
 
         try {
+            // Cancel Revolut subscription if it exists
+            if ($subscription->revolut_subscription_id) {
+                try {
+                    $this->subscriptionService->cancelSubscription($subscription->revolut_subscription_id);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to cancel Revolut subscription', [
+                        'revolut_subscription_id' => $subscription->revolut_subscription_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             $accessUntil = DB::transaction(function () use ($subscription, $request) {
                 $locked = \App\Models\Subscription::where('id', $subscription->id)->lockForUpdate()->first();
 
@@ -479,6 +613,7 @@ class PaymentController extends Controller
                     'status' => 'cancelled',
                     'cancelled_at' => now(),
                     'cancellation_reason' => $reason ?: null,
+                    'auto_renew' => false,
                 ]);
 
                 return $locked->current_period_end?->toISOString();
@@ -540,6 +675,10 @@ class PaymentController extends Controller
                 'currency' => $payment->currency,
                 'status' => $payment->status,
                 'date' => $payment->created_at?->toISOString(),
+                'invoice_id' => $payment->invoice_id,
+                'has_invoice' => $payment->invoice_id !== null,
+                'discount_applied' => $payment->discount_amount > 0,
+                'discount_amount' => $payment->discount_amount,
             ]);
 
         return response()->json(['success' => true, 'data' => ['payments' => $payments]]);
@@ -611,6 +750,78 @@ class PaymentController extends Controller
 
             return response()->json(['success' => false, 'message' => 'Failed to delete data. Please try again or contact support.'], 500);
         }
+    }
+
+    /**
+     * Validate a discount code without applying it.
+     *
+     * POST /api/payment/validate-discount
+     */
+    public function validateDiscountCode(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'code' => 'required|string|max:50',
+            'plan' => 'required|string|in:student,standard,family,pro',
+            'billing_cycle' => 'required|string|in:monthly,yearly',
+        ]);
+
+        $plan = SubscriptionPlan::findBySlug($request->input('plan'));
+        if (! $plan) {
+            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+        }
+
+        $billingCycle = $request->input('billing_cycle');
+        $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
+
+        $result = $this->discountCodeService->validate(
+            $request->input('code'),
+            $user->id,
+            $request->input('plan'),
+            $billingCycle,
+            $amount
+        );
+
+        return response()->json([
+            'success' => $result['valid'],
+            'message' => $result['message'],
+            'data' => $result['valid'] ? [
+                'discount_amount' => $result['discount_amount'],
+                'final_amount' => $result['final_amount'],
+                'discount_type' => $result['discount_type'],
+                'discount_description' => $result['discount_description'],
+                'original_amount' => $amount,
+            ] : null,
+        ]);
+    }
+
+    /**
+     * Download an invoice PDF.
+     *
+     * GET /api/payment/invoices/{invoice}/download
+     */
+    public function downloadInvoice(Request $request, Invoice $invoice): \Symfony\Component\HttpFoundation\Response
+    {
+        $user = $request->user();
+
+        if ($invoice->user_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found'], 404);
+        }
+
+        if (! $invoice->pdf_path || ! Storage::exists($invoice->pdf_path)) {
+            // Regenerate if missing
+            try {
+                $this->invoiceService->regeneratePdf($invoice);
+                $invoice->refresh();
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'Invoice PDF not available'], 404);
+            }
+        }
+
+        return Storage::download($invoice->pdf_path, "{$invoice->invoice_number}.pdf", [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 
     /**

@@ -62,10 +62,10 @@
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£45.00' : '£4.99' }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£30.00' : '£3.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
+                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('student') }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('student') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£2.50/mo — save 33%</p>
+              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('student') }}</p>
             </div>
 
             <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
@@ -132,10 +132,10 @@
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£135.00' : '£14.99' }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£100.00' : '£10.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
+                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('standard') }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('standard') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£8.33/mo — save 26%</p>
+              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('standard') }}</p>
             </div>
 
             <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
@@ -204,10 +204,10 @@
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£199.00' : '£21.99' }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£150.00' : '£14.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
+                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('family') }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('family') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£12.50/mo — save 25%</p>
+              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('family') }}</p>
             </div>
 
             <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
@@ -249,10 +249,10 @@
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ isYearly ? '£269.99' : '£29.99' }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ isYearly ? '£200.00' : '£19.99' }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
+                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('pro') }}</span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('pro') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
               </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">£16.67/mo — save 26%</p>
+              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('pro') }}</p>
             </div>
 
             <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
@@ -418,6 +418,7 @@
 import { mapGetters } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getPricingFaqs } from '@/constants/faqData';
+import api from '@/services/api';
 
 export default {
   name: 'PricingPage',
@@ -439,6 +440,7 @@ export default {
       isYearly: true,
       openFaq: null,
       faqs: getPricingFaqs().map(item => ({ question: item.q, answer: item.a })),
+      plans: {},
     };
   },
 
@@ -446,9 +448,48 @@ export default {
     document.title = 'Pricing — Simple, Transparent Plans | Fynla';
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', 'Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required.');
+    this.fetchPlans();
   },
 
   methods: {
+    async fetchPlans() {
+      try {
+        const response = await api.get('/payment/plans');
+        const plansList = response.data.plans || [];
+        const map = {};
+        plansList.forEach(p => { map[p.slug] = p; });
+        this.plans = map;
+      } catch {
+        // Prices will show fallback
+      }
+    },
+
+    price(slug) {
+      const p = this.plans[slug];
+      if (!p) return '...';
+      const pence = this.isYearly
+        ? (p.launch_yearly_price || p.yearly_price)
+        : (p.launch_monthly_price || p.monthly_price);
+      return '£' + (pence / 100).toFixed(2);
+    },
+
+    fullPrice(slug) {
+      const p = this.plans[slug];
+      if (!p) return '...';
+      const pence = this.isYearly ? p.yearly_price : p.monthly_price;
+      return '£' + (pence / 100).toFixed(2);
+    },
+
+    monthlyEquivalent(slug) {
+      const p = this.plans[slug];
+      if (!p) return '';
+      const launchMonthly = p.launch_monthly_price || p.monthly_price;
+      const launchYearly = p.launch_yearly_price || p.yearly_price;
+      const monthlyEq = (launchYearly / 12 / 100).toFixed(2);
+      const saving = Math.round((1 - launchYearly / (launchMonthly * 12)) * 100);
+      return `£${monthlyEq}/mo — save ${saving}%`;
+    },
+
     startTrial(plan) {
       if (this.isAuthenticated) {
         this.$router.push({

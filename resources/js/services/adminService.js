@@ -138,4 +138,25 @@ export default {
   getUserMetricsEngagement() {
     return api.get('/admin/user-metrics/engagement');
   },
+
+  // Discount Code Management
+  getDiscountCodes() {
+    return api.get('/admin/discount-codes');
+  },
+
+  createDiscountCode(data) {
+    return api.post('/admin/discount-codes', data);
+  },
+
+  updateDiscountCode(id, data) {
+    return api.put(`/admin/discount-codes/${id}`, data);
+  },
+
+  deleteDiscountCode(id) {
+    return api.delete(`/admin/discount-codes/${id}`);
+  },
+
+  toggleDiscountCode(id) {
+    return api.patch(`/admin/discount-codes/${id}/toggle`);
+  },
 };

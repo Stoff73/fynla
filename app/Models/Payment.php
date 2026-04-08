@@ -20,16 +20,23 @@ class Payment extends Model
         'revolut_order_id',
         'amount',
         'currency',
+        'status',
         'revolut_payment_data',
         'description',
         'plan_slug',
         'billing_cycle',
         'upgrade_from_plan',
+        'discount_code_id',
+        'discount_amount',
+        'invoice_id',
+        'revolut_subscription_payment',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'revolut_payment_data' => 'array',
+        'discount_amount' => 'integer',
+        'revolut_subscription_payment' => 'boolean',
     ];
 
     public function subscription(): BelongsTo
@@ -40,5 +47,15 @@ class Payment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function discountCode(): BelongsTo
+    {
+        return $this->belongsTo(DiscountCode::class);
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
     }
 }
