@@ -29,6 +29,10 @@ class Subscription extends Model
         'cancellation_reason',
         'status',
         'revolut_order_id',
+        'revolut_plan_id',
+        'revolut_plan_variation_id',
+        'auto_renew',
+        'payment_method_saved',
         'data_retention_starts_at',
     ];
 
@@ -40,6 +44,8 @@ class Subscription extends Model
         'cancelled_at' => 'datetime',
         'data_retention_starts_at' => 'datetime',
         'amount' => 'decimal:2',
+        'auto_renew' => 'boolean',
+        'payment_method_saved' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -50,6 +56,11 @@ class Subscription extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     public function scopeActive($query)

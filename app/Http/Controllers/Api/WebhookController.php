@@ -10,6 +10,7 @@ use App\Mail\PaymentConfirmation;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Services\Payment\RevolutService;
+use App\Services\Payment\SubscriptionRenewalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,8 @@ class WebhookController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly RevolutService $revolutService
+        private readonly RevolutService $revolutService,
+        private readonly SubscriptionRenewalService $renewalService
     ) {}
 
     /**
@@ -58,9 +60,14 @@ class WebhookController extends Controller
             'merchant_order_ext_ref' => $merchantRef,
         ]);
 
-        if (in_array($event, ['ORDER_COMPLETED', 'ORDER_AUTHORISED']) && $orderId) {
-            $this->handleOrderCompleted($orderId, $merchantRef);
-        }
+        match ($event) {
+            'ORDER_COMPLETED', 'ORDER_AUTHORISED' => $orderId ? $this->handleOrderCompleted($orderId, $merchantRef) : null,
+            'SUBSCRIPTION_INITIATED' => $this->handleSubscriptionInitiated($payload),
+            'SUBSCRIPTION_OVERDUE' => $this->handleSubscriptionOverdue($payload),
+            'SUBSCRIPTION_CANCELLED' => $this->handleSubscriptionCancelled($payload),
+            'SUBSCRIPTION_FINISHED' => $this->handleSubscriptionFinished($payload),
+            default => Log::info('Revolut webhook: unhandled event', ['event' => $event]),
+        };
 
         return response()->json(['success' => true, 'message' => 'Webhook processed']);
     }
@@ -171,6 +178,48 @@ class WebhookController extends Controller
         } catch (\Throwable $e) {
             Log::error('Revolut webhook processing failed', [
                 'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function handleSubscriptionInitiated(array $payload): void
+    {
+        Log::info('Revolut subscription initiated', ['payload' => $payload]);
+
+        // The subscription is now active — Revolut will handle recurring billing.
+        // The initial payment is handled via ORDER_COMPLETED for the setup order.
+        // Future renewal payments also come via ORDER_COMPLETED for each cycle's order.
+    }
+
+    private function handleSubscriptionOverdue(array $payload): void
+    {
+        try {
+            $this->renewalService->handleSubscriptionOverdue($payload);
+        } catch (\Throwable $e) {
+            Log::error('Failed to handle subscription overdue webhook', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function handleSubscriptionCancelled(array $payload): void
+    {
+        try {
+            $this->renewalService->handleSubscriptionCancelled($payload);
+        } catch (\Throwable $e) {
+            Log::error('Failed to handle subscription cancelled webhook', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function handleSubscriptionFinished(array $payload): void
+    {
+        try {
+            $this->renewalService->handleSubscriptionFinished($payload);
+        } catch (\Throwable $e) {
+            Log::error('Failed to handle subscription finished webhook', [
                 'error' => $e->getMessage(),
             ]);
         }

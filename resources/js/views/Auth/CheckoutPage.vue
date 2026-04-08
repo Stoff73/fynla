@@ -41,18 +41,62 @@
                   <span class="text-body-sm text-neutral-500">Prorated</span>
                   <span class="text-body-sm font-medium text-horizon-500">{{ monthsRemaining }} {{ monthsRemaining === 1 ? 'month' : 'months' }} remaining</span>
                 </div>
+                <!-- Discount applied -->
+                <div v-if="discountApplied" class="flex justify-between">
+                  <span class="text-body-sm text-neutral-500">Subtotal</span>
+                  <span class="text-body-sm text-neutral-500 line-through">{{ originalPrice }}</span>
+                </div>
+                <div v-if="discountApplied" class="flex justify-between">
+                  <span class="text-body-sm text-spring-600">{{ discountDescription }}</span>
+                  <span class="text-body-sm font-medium text-spring-600">-{{ formatCurrencyWithPence(discountAmountPounds) }}</span>
+                </div>
+
                 <div class="border-t border-light-gray pt-3">
                   <div class="flex justify-between">
                     <span class="text-body-base font-semibold text-horizon-500">
                       {{ isUpgrade ? 'Upgrade Cost' : 'Total' }}
                     </span>
                     <span class="text-body-base font-semibold text-horizon-500">
-                      {{ isUpgrade && upgradeAmount ? formatCurrencyWithPence(upgradeAmount / 100) : planPrice }}
+                      {{ isUpgrade && upgradeAmount ? formatCurrencyWithPence(upgradeAmount / 100) : displayPrice }}
                     </span>
                   </div>
                   <p v-if="isUpgrade" class="text-caption text-neutral-500 mt-1">
                     Prorated difference until your next renewal
                   </p>
+                </div>
+              </div>
+
+              <!-- Discount Code Input -->
+              <div v-if="!isUpgrade" class="mt-4 pt-4 border-t border-light-gray">
+                <div v-if="!showDiscountInput" class="text-center">
+                  <button
+                    @click="showDiscountInput = true"
+                    class="text-body-sm text-violet-500 hover:text-violet-700 transition-colors"
+                  >
+                    Have a discount code?
+                  </button>
+                </div>
+                <div v-else>
+                  <label class="text-body-sm font-medium text-horizon-500 mb-1 block">Discount code</label>
+                  <div class="flex gap-2">
+                    <input
+                      v-model="discountCodeInput"
+                      type="text"
+                      placeholder="Enter code"
+                      class="flex-1 px-3 py-2 border border-light-gray rounded-lg text-body-sm uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+                      @keyup.enter="applyDiscountCode"
+                      :disabled="discountLoading"
+                    />
+                    <button
+                      @click="applyDiscountCode"
+                      :disabled="!discountCodeInput.trim() || discountLoading"
+                      class="px-4 py-2 bg-raspberry-500 text-white text-body-sm font-medium rounded-lg hover:bg-raspberry-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {{ discountLoading ? 'Checking...' : 'Apply' }}
+                    </button>
+                  </div>
+                  <p v-if="discountError" class="text-caption text-raspberry-600 mt-1">{{ discountError }}</p>
+                  <p v-if="discountSuccess" class="text-caption text-spring-600 mt-1">{{ discountSuccess }}</p>
                 </div>
               </div>
             </div>
@@ -82,6 +126,10 @@
                 {{ isUpgrade ? 'Upgrade Payment' : 'Payment Method' }}
               </h2>
               <div ref="checkoutContainer" class="min-h-[300px] revolut-checkout-container"></div>
+              <p class="text-caption text-neutral-500 mt-3 text-center">
+                Your subscription will automatically renew each {{ billingCycle === 'monthly' ? 'month' : 'year' }}.
+                You can cancel at any time from your profile.
+              </p>
             </div>
 
             <!-- Processing Overlay -->
@@ -184,6 +232,11 @@ function loadRevolutSDK(sandbox) {
   return promise;
 }
 
+// Module-level variable: stores the validated discount code so the Revolut
+// createOrder callback can always access it, regardless of execution context.
+// Updated by applyDiscountCode(), read by createOrder callback.
+let _validatedDiscountCode = '';
+
 export default {
   name: 'CheckoutPage',
 
@@ -204,6 +257,17 @@ export default {
       planData: null,
       upgradeAmount: null,
       monthsRemaining: null,
+      // Discount code
+      showDiscountInput: false,
+      discountCodeInput: '',
+      discountLoading: false,
+      discountError: null,
+      discountSuccess: null,
+      discountApplied: false,
+      discountAmountPence: 0,
+      discountDescription: '',
+      finalAmountPence: null,
+      originalAmountPence: null,
     };
   },
 
@@ -239,12 +303,44 @@ export default {
         : this.planData.yearly_price;
       return this.formatCurrencyWithPence((launchPence || fullPence) / 100);
     },
+
+    displayPrice() {
+      if (this.discountApplied && this.finalAmountPence !== null) {
+        return this.formatCurrencyWithPence(this.finalAmountPence / 100);
+      }
+      return this.planPrice;
+    },
+
+    originalPrice() {
+      if (this.originalAmountPence !== null) {
+        return this.formatCurrencyWithPence(this.originalAmountPence / 100);
+      }
+      return this.planPrice;
+    },
+
+    discountAmountPounds() {
+      return this.discountAmountPence / 100;
+    },
+
+    prefilledDiscountCode() {
+      return this.$route.query.discount || '';
+    },
   },
 
   mounted() {
     if (this.plan && this.billingCycle) {
       this.fetchPlanData();
-      this.initCheckout();
+      // If a prefilled discount code exists, apply it FIRST — then initCheckout
+      // will be called after the discount is validated (via reinitializeCheckout).
+      // This prevents creating a Revolut order at full price then immediately
+      // creating another at the discounted price.
+      if (this.prefilledDiscountCode) {
+        this.discountCodeInput = this.prefilledDiscountCode;
+        this.showDiscountInput = true;
+        this.applyDiscountCode();
+      } else {
+        this.initCheckout();
+      }
     }
   },
 
@@ -289,10 +385,18 @@ export default {
           createOrder: async () => {
             // Called by widget when user clicks Pay
             const endpoint = this.isUpgrade ? '/payment/upgrade' : '/payment/create-order';
-            const response = await api.post(endpoint, {
+            // Read discount code from module-level variable (not Vue reactive data)
+            // because the Revolut SDK may invoke this callback in a context where
+            // Vue's `this` is not accessible.
+            const discountCode = _validatedDiscountCode;
+            const payload = {
               plan: this.plan,
               billing_cycle: this.billingCycle,
-            });
+            };
+            if (discountCode) {
+              payload.discount_code = discountCode;
+            }
+            const response = await api.post(endpoint, payload);
             // Store the internal UUID for confirmPayment call
             // CRITICAL: onSuccess's orderId is the TOKEN, not the UUID
             this.revolutOrderId = response.data.order_id;
@@ -376,6 +480,56 @@ export default {
           return;
         }
       }
+    },
+
+    async applyDiscountCode() {
+      const code = this.discountCodeInput.trim();
+      if (!code) return;
+
+      this.discountLoading = true;
+      this.discountError = null;
+      this.discountSuccess = null;
+
+      try {
+        const response = await api.post('/payment/validate-discount', {
+          code,
+          plan: this.plan,
+          billing_cycle: this.billingCycle,
+        });
+
+        if (response.data.success) {
+          const data = response.data.data;
+          this.discountApplied = true;
+          this.discountAmountPence = data.discount_amount;
+          this.finalAmountPence = data.final_amount;
+          this.originalAmountPence = data.original_amount;
+          this.discountDescription = data.discount_description;
+          this.discountSuccess = response.data.message;
+          // Store in module-level variable so Revolut callback can always access it
+          _validatedDiscountCode = code;
+          // CRITICAL: Reinitialize the Revolut widget so that createOrder fires
+          // again with the discount code. The SDK calls createOrder at init time,
+          // so the previous order was created at full price.
+          await this.reinitializeCheckout();
+        } else {
+          this.discountApplied = false;
+          this.discountError = response.data.message;
+          _validatedDiscountCode = '';
+        }
+      } catch (err) {
+        this.discountApplied = false;
+        this.discountError = err.response?.data?.message || 'Failed to validate discount code.';
+      } finally {
+        this.discountLoading = false;
+      }
+    },
+
+    async reinitializeCheckout() {
+      if (this.destroyWidget) {
+        this.destroyWidget();
+        this.destroyWidget = null;
+      }
+      await this.initCheckout();
     },
 
     goToDashboard() {
