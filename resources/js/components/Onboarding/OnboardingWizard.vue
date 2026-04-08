@@ -987,7 +987,10 @@ export default {
     // Journey Map Modal handlers
     const handleStageSelected = async (stageId) => {
       if (typeof gtag === 'function') {
-        gtag('event', 'journey_select', { event_label: stageId });
+        gtag('event', 'journey_select', {
+          event_label: stageId,
+          source: document.referrer.includes('/dashboard') ? 'dashboard' : 'homepage',
+        });
       }
       // Reset state for new journey
       savedStepData.value = {};
@@ -1400,6 +1403,13 @@ export default {
     };
 
     onMounted(async () => {
+      // GA4: track onboarding start
+      if (typeof gtag === 'function') {
+        gtag('event', 'onboarding_start', {
+          source: document.referrer.includes('/dashboard') ? 'dashboard' : 'homepage',
+        });
+      }
+
       // If ?stage= is present, show the journey map for that stage instead of form steps
       const stageFromQuery = route.query?.stage;
       if (stageFromQuery && LIFE_STAGES[stageFromQuery]) {
