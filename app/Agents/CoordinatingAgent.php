@@ -780,7 +780,7 @@ class CoordinatingAgent extends BaseAgent
                         $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
                     }
 
-                    return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => $total, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate], $fields);
+                    return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'institution' => $a->institution, 'balance' => $total, 'type' => $a->account_type, 'interest_rate' => (float) $a->interest_rate, 'rate_valid_until' => $a->rate_valid_until?->format('Y-m-d'), 'access_type' => $a->access_type, 'notice_period_days' => $a->notice_period_days, 'maturity_date' => $a->maturity_date?->format('Y-m-d'), 'is_emergency_fund' => (bool) $a->is_emergency_fund, 'is_isa' => (bool) $a->is_isa, 'isa_type' => $a->isa_type, 'isa_subscription_amount' => $a->isa_subscription_amount ? (float) $a->isa_subscription_amount : null, 'regular_contribution' => $a->regular_contribution_amount ? (float) $a->regular_contribution_amount : null, 'contribution_frequency' => $a->contribution_frequency], $fields);
                 })->toArray();
                 break;
             case 'investment_account':
@@ -793,16 +793,16 @@ class CoordinatingAgent extends BaseAgent
                         $fields['your_share_value'] = round($total * $fields['your_share_percent'] / 100, 2);
                     }
 
-                    return array_merge(['id' => $a->id, 'provider' => $a->provider, 'account_type' => $a->account_type, 'current_value' => $total, 'holdings_count' => $a->holdings()->count()], $fields);
+                    return array_merge(['id' => $a->id, 'account_name' => $a->account_name, 'provider' => $a->provider, 'platform' => $a->platform, 'account_type' => $a->account_type, 'current_value' => $total, 'holdings_count' => $a->holdings()->count(), 'contributions_ytd' => $a->contributions_ytd ? (float) $a->contributions_ytd : null, 'monthly_contribution' => $a->monthly_contribution_amount ? (float) $a->monthly_contribution_amount : null, 'contribution_frequency' => $a->contribution_frequency, 'platform_fee_percent' => $a->platform_fee_percent ? (float) $a->platform_fee_percent : null, 'advisor_fee_percent' => $a->advisor_fee_percent ? (float) $a->advisor_fee_percent : null, 'isa_type' => $a->isa_type, 'isa_subscription_current_year' => $a->isa_subscription_current_year ? (float) $a->isa_subscription_current_year : null, 'include_in_retirement' => (bool) $a->include_in_retirement], $fields);
                 })->toArray();
                 break;
             case 'dc_pension':
                 $items = \App\Models\DCPension::where('user_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'current_value' => (float) $p->current_fund_value, 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0)])->toArray();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'provider' => $p->provider, 'current_value' => (float) $p->current_fund_value, 'employee_contribution' => (float) ($p->employee_contribution_percent ?? 0), 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0), 'employer_matching_limit' => $p->employer_matching_limit ? (float) $p->employer_matching_limit : null, 'monthly_contribution' => $p->monthly_contribution_amount ? (float) $p->monthly_contribution_amount : null, 'platform_fee_percent' => $p->platform_fee_percent ? (float) $p->platform_fee_percent : null, 'retirement_age' => $p->retirement_age, 'projected_value_at_retirement' => $p->projected_value_at_retirement ? (float) $p->projected_value_at_retirement : null, 'has_flexibly_accessed' => (bool) $p->has_flexibly_accessed])->toArray();
                 break;
             case 'db_pension':
                 $items = \App\Models\DBPension::where('user_id', $userId)->get();
-                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years])->toArray();
+                $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'scheme_type' => $p->scheme_type, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years, 'pensionable_salary' => $p->pensionable_salary ? (float) $p->pensionable_salary : null, 'normal_retirement_age' => $p->normal_retirement_age, 'spouse_pension_percent' => $p->spouse_pension_percent ? (float) $p->spouse_pension_percent : null, 'lump_sum_entitlement' => $p->lump_sum_entitlement ? (float) $p->lump_sum_entitlement : null, 'inflation_protection' => $p->inflation_protection])->toArray();
                 break;
             case 'property':
                 $items = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
@@ -844,15 +844,15 @@ class CoordinatingAgent extends BaseAgent
                 break;
             case 'trust':
                 $items = \App\Models\Estate\Trust::where('user_id', $userId)->get();
-                $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value])->toArray();
+                $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value, 'initial_value' => $t->initial_value ? (float) $t->initial_value : null, 'creation_date' => $t->trust_creation_date?->format('Y-m-d'), 'settlor' => $t->settlor, 'beneficiaries' => $t->beneficiaries, 'trustees' => $t->trustees, 'purpose' => $t->purpose, 'is_relevant_property_trust' => (bool) $t->is_relevant_property_trust, 'retained_income_annual' => $t->retained_income_annual ? (float) $t->retained_income_annual : null, 'loan_amount' => $t->loan_amount ? (float) $t->loan_amount : null, 'is_active' => (bool) $t->is_active])->toArray();
                 break;
             case 'business_interest':
                 $items = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation], $ownershipFields($b)))->toArray();
+                $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation, 'annual_revenue' => $b->annual_revenue ? (float) $b->annual_revenue : null, 'annual_profit' => $b->annual_profit ? (float) $b->annual_profit : null, 'annual_dividend_income' => $b->annual_dividend_income ? (float) $b->annual_dividend_income : null, 'trading_status' => $b->trading_status, 'employee_count' => $b->employee_count, 'acquisition_date' => $b->acquisition_date?->format('Y-m-d'), 'acquisition_cost' => $b->acquisition_cost ? (float) $b->acquisition_cost : null, 'bpr_eligible' => $b->bpr_eligible], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
                 $items = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
-                $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value], $ownershipFields($c)))->toArray();
+                $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'name' => $c->name, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value, 'purchase_price' => $c->purchase_price ? (float) $c->purchase_price : null, 'purchase_date' => $c->purchase_date?->format('Y-m-d'), 'make' => $c->make, 'model' => $c->model, 'year' => $c->year], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
                 $items = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
@@ -860,11 +860,11 @@ class CoordinatingAgent extends BaseAgent
                 break;
             case 'estate_gift':
                 $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();
-                $records = $items->map(fn ($g) => ['id' => $g->id, 'recipient' => $g->recipient, 'gift_type' => $g->gift_type, 'value' => (float) $g->gift_value, 'date' => $g->gift_date?->format('Y-m-d')])->toArray();
+                $records = $items->map(fn ($g) => ['id' => $g->id, 'recipient' => $g->recipient, 'gift_type' => $g->gift_type, 'value' => (float) $g->gift_value, 'date' => $g->gift_date?->format('Y-m-d'), 'status' => $g->status, 'taper_relief_applicable' => (bool) $g->taper_relief_applicable, 'notes' => $g->notes])->toArray();
                 break;
             case 'family_member':
                 $items = \App\Models\FamilyMember::where('user_id', $userId)->get();
-                $records = $items->map(fn ($m) => ['id' => $m->id, 'name' => trim($m->first_name.' '.$m->last_name), 'relationship' => $m->relationship, 'age' => $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : null])->toArray();
+                $records = $items->map(fn ($m) => ['id' => $m->id, 'name' => trim($m->first_name.' '.$m->last_name), 'relationship' => $m->relationship, 'age' => $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : null, 'date_of_birth' => $m->date_of_birth?->format('Y-m-d'), 'gender' => $m->gender, 'annual_income' => $m->annual_income ? (float) $m->annual_income : null, 'is_dependent' => (bool) $m->is_dependent, 'education_status' => $m->education_status, 'receives_child_benefit' => (bool) $m->receives_child_benefit])->toArray();
                 break;
             default:
                 return ['error' => true, 'message' => "Unknown entity type: {$entityType}"];
