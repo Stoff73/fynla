@@ -376,13 +376,13 @@ export default {
           createOrder: async () => {
             // Called by widget when user clicks Pay
             const endpoint = this.isUpgrade ? '/payment/upgrade' : '/payment/create-order';
+            const discountCode = this.discountCodeInput ? this.discountCodeInput.trim() : '';
             const payload = {
               plan: this.plan,
               billing_cycle: this.billingCycle,
             };
-            // Include validated discount code if applied
-            if (this.discountApplied && this.discountCodeInput.trim()) {
-              payload.discount_code = this.discountCodeInput.trim();
+            if (discountCode) {
+              payload.discount_code = discountCode;
             }
             const response = await api.post(endpoint, payload);
             // Store the internal UUID for confirmPayment call

@@ -164,80 +164,24 @@ class PaymentController extends Controller
             $redirectUrl = $baseUrl.'/checkout?plan='.$plan->slug
                 .'&cycle='.$billingCycle.'&status=complete';
 
-            // Determine order creation strategy:
-            // - If discount code applied: use one-off order at discounted price
-            //   (Revolut subscription plans have fixed prices — can't apply per-user discounts)
-            //   The subscription for auto-renewal is created in confirmPayment after first payment.
-            // - If no discount: try Revolut Subscription flow for automatic recurring billing
-            $revolutOrder = null;
+            // Build description (include discount code if applied)
+            $orderDescription = $discountCode
+                ? "{$description} (Code: {$discountCode->code})"
+                : $description;
 
-            if ($discountCode) {
-                // Discount applied — one-off order at discounted price, save card for future
-                $revolutOrder = $this->revolutService->createOrderWithCustomer(
-                    $finalAmount,
-                    'GBP',
-                    $description . " (Discount: {$discountCode->code})",
-                    $redirectUrl,
-                    $user->revolut_customer_id,
-                    null,
-                    $user->email,
-                    true
-                );
-            } else {
-                // No discount — try Revolut Subscription flow for auto-renewal
-                try {
-                    $revolutPlanId = $subscription->revolut_plan_id;
-                    if (! $revolutPlanId) {
-                        $revolutPlan = $this->subscriptionService->createSubscriptionPlan($plan);
-                        $revolutPlanId = $revolutPlan['id'];
-                    }
-
-                    $variationId = $this->subscriptionService->findVariationId($revolutPlanId, $billingCycle);
-
-                    if ($variationId) {
-                        $trialDuration = $subscription->isTrialing() ? null : 'P0D';
-
-                        $revolutSubscription = $this->subscriptionService->createSubscription(
-                            $user,
-                            $variationId,
-                            $redirectUrl,
-                            $trialDuration,
-                            "fynla_sub_{$subscription->id}"
-                        );
-
-                        $setupOrderId = $revolutSubscription['setup_order_id'] ?? null;
-
-                        if ($setupOrderId) {
-                            $revolutOrder = $this->revolutService->getOrder($setupOrderId);
-                        }
-
-                        $subscription->update([
-                            'revolut_subscription_id' => $revolutSubscription['id'] ?? null,
-                            'revolut_plan_id' => $revolutPlanId,
-                            'revolut_plan_variation_id' => $variationId,
-                        ]);
-                    }
-                } catch (\Throwable $e) {
-                    Log::warning('Revolut subscription creation failed, falling back to one-off order', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-
-                // Fallback if subscription flow didn't produce an order
-                if (! $revolutOrder) {
-                    $revolutOrder = $this->revolutService->createOrderWithCustomer(
-                        $finalAmount,
-                        'GBP',
-                        $description,
-                        $redirectUrl,
-                        $user->revolut_customer_id,
-                        null,
-                        $user->email,
-                        true
-                    );
-                }
-            }
+            // Create Revolut order at $finalAmount — this is the ONLY amount that matters.
+            // If a discount was applied, $finalAmount is already reduced.
+            // If no discount, $finalAmount equals $amount (full price).
+            $revolutOrder = $this->revolutService->createOrderWithCustomer(
+                $finalAmount,
+                'GBP',
+                $orderDescription,
+                $redirectUrl,
+                $user->revolut_customer_id,
+                null,
+                $user->email,
+                true
+            );
 
             // Create pending Payment record
             $payment = Payment::create([
@@ -254,18 +198,26 @@ class PaymentController extends Controller
                 'discount_amount' => $discountAmount,
                 'revolut_payment_data' => [
                     'order_id' => $revolutOrder['id'],
-                    'token' => $revolutOrder['token'] ?? null,
-                    'state' => $revolutOrder['state'] ?? 'pending',
+                    'token' => $revolutOrder['token'],
+                    'state' => $revolutOrder['state'],
                     'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
                 ],
             ]);
 
+            Log::info('Revolut order created for checkout', [
+                'user_id' => $user->id,
+                'payment_id' => $payment->id,
+                'full_price' => $amount,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $finalAmount,
+                'discount_code' => $discountCode?->code,
+                'revolut_order_id' => $revolutOrder['id'],
+            ]);
+
             // Intentional: Revolut SDK requires {token, order_id} at top level
             return response()->json([
-                'token' => $revolutOrder['token'] ?? $revolutOrder['public_id'] ?? null,
+                'token' => $revolutOrder['token'],
                 'order_id' => $revolutOrder['id'],
-                'discount_applied' => $discountAmount > 0,
-                'final_amount' => $finalAmount,
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Creating payment order');
