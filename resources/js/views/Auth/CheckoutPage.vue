@@ -232,6 +232,11 @@ function loadRevolutSDK(sandbox) {
   return promise;
 }
 
+// Module-level variable: stores the validated discount code so the Revolut
+// createOrder callback can always access it, regardless of execution context.
+// Updated by applyDiscountCode(), read by createOrder callback.
+let _validatedDiscountCode = '';
+
 export default {
   name: 'CheckoutPage',
 
@@ -376,11 +381,10 @@ export default {
           createOrder: async () => {
             // Called by widget when user clicks Pay
             const endpoint = this.isUpgrade ? '/payment/upgrade' : '/payment/create-order';
-            // Read discount code from both Vue data AND DOM directly (belt and braces)
-            const codeFromVue = this.discountCodeInput ? this.discountCodeInput.trim() : '';
-            const codeInput = document.querySelector('input[placeholder="Enter code"]');
-            const codeFromDom = codeInput ? codeInput.value.trim() : '';
-            const discountCode = codeFromVue || codeFromDom;
+            // Read discount code from module-level variable (not Vue reactive data)
+            // because the Revolut SDK may invoke this callback in a context where
+            // Vue's `this` is not accessible.
+            const discountCode = _validatedDiscountCode;
             const payload = {
               plan: this.plan,
               billing_cycle: this.billingCycle,
@@ -497,9 +501,12 @@ export default {
           this.originalAmountPence = data.original_amount;
           this.discountDescription = data.discount_description;
           this.discountSuccess = response.data.message;
+          // Store in module-level variable so Revolut callback can always access it
+          _validatedDiscountCode = code;
         } else {
           this.discountApplied = false;
           this.discountError = response.data.message;
+          _validatedDiscountCode = '';
         }
       } catch (err) {
         this.discountApplied = false;
