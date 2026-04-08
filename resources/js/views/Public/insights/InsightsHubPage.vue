@@ -45,8 +45,8 @@
             class="flex flex-col sm:flex-row bg-white rounded-2xl overflow-hidden hover:bg-light-pink-100 hover:shadow-md transition-all group"
           >
             <!-- Image -->
-            <div class="sm:w-[280px] flex-shrink-0 bg-gradient-to-br from-horizon-500 to-raspberry-500 flex items-center justify-center overflow-hidden" :class="article.image ? '' : 'p-8 sm:p-6'">
-              <img v-if="article.image" :src="article.image" :alt="article.title" class="w-full h-full object-cover" />
+            <div class="sm:w-[280px] flex-shrink-0 bg-gradient-to-br from-horizon-500 to-raspberry-500 flex items-center justify-center overflow-hidden" :class="getImage(article.image) ? '' : 'p-8 sm:p-6'">
+              <img v-if="getImage(article.image)" :src="getImage(article.image)" :alt="article.title" class="w-full h-full object-cover" />
               <div v-else class="w-full aspect-video sm:aspect-auto sm:h-full rounded-lg bg-white/10 flex items-center justify-center">
                 <svg class="w-12 h-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" :d="article.icon" />
@@ -99,6 +99,10 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
+// Auto-import all insight images — add new images to resources/js/assets/insights/
+// and reference the filename in the article's `image` field (e.g. 'my-article.jpg')
+const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
+
 export default {
   name: 'InsightsHubPage',
   components: { PublicLayout },
@@ -114,7 +118,7 @@ export default {
           date: 'April 2026',
           summary: 'Understand UK inheritance tax with our 2026 guide. Learn IHT thresholds, nil rate bands, calculation methods and strategies to reduce your estate\'s tax bill.',
           tags: ['Estate planning'],
-          image: '/images/insights/inheritance-tax-uk.jpg',
+          image: 'inheritance-tax-uk.jpg',
         },
         {
           slug: '/insights/pension-contribution-limits-uk',
@@ -122,7 +126,7 @@ export default {
           date: 'April 2026',
           summary: 'Find out the 2026/27 pension contribution limits, annual allowance, tax relief rates and carry forward rules. Updated guide for UK savers.',
           tags: ['Pensions'],
-          image: '/images/insights/pension-contribution-limits.jpg',
+          image: 'pension-contribution-limits.jpg',
         },
         {
           slug: '/insights/pension-iht-changes-2027',
@@ -130,7 +134,7 @@ export default {
           date: 'March 2026',
           summary: 'From April 2027, unused pension pots will be included in your estate for Inheritance Tax. Here\'s what\'s changing and what you can do.',
           tags: ['Pensions', 'Estate planning'],
-          image: '/images/insights/pension-iht-changes.jpg',
+          image: 'pension-iht-changes.jpg',
         },
         {
           slug: '/insights/isa-allowance-2025-26',
@@ -138,7 +142,7 @@ export default {
           date: 'March 2026',
           summary: 'The ISA allowance remains at \u00A320,000. Types, deadlines, and strategies for maximising your tax-free savings.',
           tags: ['Savings & ISA'],
-          image: '/images/insights/isa-allowance.jpg',
+          image: 'isa-allowance.jpg',
         },
       ],
     };
@@ -152,6 +156,12 @@ export default {
   },
 
   methods: {
+    getImage(filename) {
+      if (!filename) return null;
+      const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));
+      return key ? insightImages[key] : null;
+    },
+
     tagClass(tag) {
       const classes = {
         'Tax changes': 'bg-raspberry-50 text-raspberry-700',

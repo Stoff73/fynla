@@ -166,7 +166,7 @@
             class="mt-3 flex items-center gap-1.5 text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
             @click="$emit('toggle-chat')"
           >
-            <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full" />
+            <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full" />
             Got a question? Ask Fyn
           </button>
         </div>
@@ -314,7 +314,7 @@
               class="mt-3 flex items-center gap-1.5 text-xs font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
               @click="$emit('toggle-chat')"
             >
-              <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full" />
+              <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full" />
               Got a question? Ask Fyn
             </button>
           </div>

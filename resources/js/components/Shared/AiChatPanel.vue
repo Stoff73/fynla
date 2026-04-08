@@ -281,7 +281,7 @@
       <!-- Docked Header -->
       <div class="flex items-center justify-between px-4 py-2.5 flex-shrink-0 border-b border-light-gray bg-light-gray">
         <div class="flex items-center gap-2">
-          <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+          <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
           <h3 class="text-sm font-bold text-horizon-500">Fyn</h3>
         </div>
         <div class="flex items-center gap-1">
