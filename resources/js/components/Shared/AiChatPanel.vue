@@ -281,7 +281,7 @@
       <!-- Docked Header -->
       <div class="flex items-center justify-between px-4 py-2.5 flex-shrink-0 border-b border-light-gray bg-light-gray">
         <div class="flex items-center gap-2">
-          <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+          <img :src="fynIconUrl" alt="Fyn" class="w-7 h-7 rounded-full" />
           <h3 class="text-sm font-bold text-horizon-500">Fyn</h3>
         </div>
         <div class="flex items-center gap-1">
@@ -492,6 +492,7 @@ import AiMessageContent from './AiMessageContent.vue';
 
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
+import { fynIconUrl } from '@/constants/fynIcon';
 
 export default {
     name: 'AiChatPanel',
@@ -509,6 +510,7 @@ export default {
 
     data() {
         return {
+            fynIconUrl,
             inputMessage: '',
             windowWidth: window.innerWidth,
             Teleport: 'Teleport',

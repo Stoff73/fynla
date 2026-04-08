@@ -72,7 +72,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
         </svg>
       </button>
-      <img src="/images/Website/Fynla-Fyn-Icon.png" alt="Fyn" class="w-7 h-7 rounded-full" />
+      <img :src="fynIconUrl" alt="Fyn" class="w-7 h-7 rounded-full" />
     </aside>
 
     <!-- Information Guide panel (button moved to Navbar) -->
@@ -117,6 +117,7 @@ import SubNavBar from '@/components/SubNavBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';
 import api from '@/services/api';
 import storage from '@/utils/storage';
+import { fynIconUrl } from '@/constants/fynIcon';
 
 const STORAGE_KEY = 'sideMenuCollapsed';
 
@@ -144,6 +145,7 @@ export default {
     return {
       sideMenuCollapsed: storage.get(STORAGE_KEY) === 'true',
       sideMenuMobileOpen: false,
+      fynIconUrl,
       chatCollapsed: storage.get('fynChatCollapsed') === null ? true : storage.get('fynChatCollapsed') === 'true',
       headerOffset: 64,
       footerOffset: 0,
