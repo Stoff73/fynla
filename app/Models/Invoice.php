@@ -35,6 +35,7 @@ class Invoice extends Model
         'issued_at',
         'pdf_path',
         'billing_name',
+        'billing_address',
         'billing_email',
     ];
 

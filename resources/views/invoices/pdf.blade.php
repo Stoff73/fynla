@@ -43,7 +43,7 @@
             <tr>
                 <td style="border: none; padding: 0;">
                     <div class="logo"><img src="{{ public_path('images/logos/LogoHiResFynlaDark.png') }}" alt="Fynla"></div>
-                    <div class="logo-sub">UK Financial Planning</div>
+                    <div class="logo-sub">Your financial companion for life</div>
                 </td>
                 <td style="border: none; padding: 0; text-align: right;">
                     <div class="invoice-title">
@@ -61,17 +61,10 @@
                 <td style="border: none; padding: 0; width: 50%; vertical-align: top;">
                     <div class="meta-label">Billed To</div>
                     <div class="meta-value">{{ $invoice->billing_name ?? 'Customer' }}</div>
-                    @if($user->address_line_1 ?? null)
-                        <div class="meta-value" style="color: #717171;">{{ $user->address_line_1 }}</div>
-                    @endif
-                    @if($user->address_line_2 ?? null)
-                        <div class="meta-value" style="color: #717171;">{{ $user->address_line_2 }}</div>
-                    @endif
-                    @php
-                        $cityLine = collect([$user->city ?? null, $user->county ?? null, $user->postcode ?? null])->filter()->implode(', ');
-                    @endphp
-                    @if($cityLine)
-                        <div class="meta-value" style="color: #717171;">{{ $cityLine }}</div>
+                    @if($invoice->billing_address)
+                        @foreach(explode("\n", $invoice->billing_address) as $addressLine)
+                            <div class="meta-value" style="color: #717171;">{{ $addressLine }}</div>
+                        @endforeach
                     @endif
                     <div class="meta-value" style="color: #717171;">{{ $invoice->billing_email }}</div>
                 </td>

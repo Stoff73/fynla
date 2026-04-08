@@ -49,7 +49,8 @@ class InvoiceService
             'period_end' => $subscription->current_period_end,
             'next_renewal_date' => $subscription->auto_renew ? $nextRenewalDate : null,
             'issued_at' => now(),
-            'billing_name' => trim("{$user->first_name} {$user->last_name}"),
+            'billing_name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
+            'billing_address' => $this->buildAddress($user),
             'billing_email' => $user->email,
         ]);
 
@@ -123,6 +124,17 @@ class InvoiceService
         $invoice->update(['pdf_path' => $path]);
 
         return $path;
+    }
+
+    private function buildAddress($user): ?string
+    {
+        $lines = array_filter([
+            $user->address_line_1 ?? null,
+            $user->address_line_2 ?? null,
+            collect([$user->city ?? null, $user->county ?? null, $user->postcode ?? null])->filter()->implode(', '),
+        ]);
+
+        return count($lines) > 0 ? implode("\n", $lines) : null;
     }
 
     private function describeDiscount(DiscountCode $discount): string
