@@ -174,6 +174,11 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class);
     }
 
+    public function referralsSent(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
     /**
      * Check if user is currently on a trial.
      */

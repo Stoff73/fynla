@@ -5,6 +5,12 @@
     @close="handleLogoutModalClose"
   />
 
+  <!-- Referral Modal -->
+  <ReferralModal
+    :show="showReferralModal"
+    @close="showReferralModal = false"
+  />
+
   <nav class="bg-light-blue-100 shadow-sm border-b border-light-gray">
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center py-[15px]">
@@ -88,6 +94,18 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
             Upgrade Now
+          </button>
+
+          <!-- Refer a Friend (active paid subscribers only) -->
+          <button
+            v-if="isPaidSubscriber"
+            @click="showReferralModal = true"
+            class="inline-flex items-center text-sm font-semibold text-horizon-500 hover:text-horizon-600 hover:bg-white/40 px-3 py-1.5 rounded-md transition-all"
+          >
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Refer a Friend
           </button>
 
           <!-- Support Dropdown -->
@@ -279,6 +297,7 @@ import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
 import BugReportModal from './BugReportModal.vue';
+import ReferralModal from './Payment/ReferralModal.vue';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
 
@@ -298,6 +317,7 @@ export default {
   components: {
     LogoutSuccessModal,
     BugReportModal,
+    ReferralModal,
   },
 
   setup(props) {
@@ -390,6 +410,14 @@ export default {
       return status === 'active';
     });
 
+    const isPaidSubscriber = computed(() => {
+      if (!trialData.value) return false;
+      if (isPreviewMode.value) return false;
+      return trialData.value.status === 'active';
+    });
+
+    const showReferralModal = ref(false);
+
     // Show 2FA reminder if MFA is not enabled and user is not a preview user
     const showMFAReminder = computed(() => {
       const user = store.getters['auth/currentUser'];
@@ -472,6 +500,8 @@ export default {
       isAdvisor,
       isPreviewMode,
       showUpgradeButton,
+      isPaidSubscriber,
+      showReferralModal,
       trialData,
       trialPlanName,
       showMFAReminder,
