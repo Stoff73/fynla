@@ -165,9 +165,9 @@
             <p class="text-xs text-white/60 mt-2">Help with your account, data, or technical issues.</p>
           </div>
           <div class="bg-horizon-500 rounded-xl p-6 text-center">
-            <p class="text-lg sm:text-xl font-bold text-white mb-2">Press and media</p>
-            <a href="mailto:press@fynla.org" class="text-sm text-raspberry-300 hover:text-light-pink-200 transition-colors">press@fynla.org</a>
-            <p class="text-xs text-white/60 mt-2">Media enquiries, interviews, and press resources.</p>
+            <p class="text-lg sm:text-xl font-bold text-white mb-2">Marketing and media</p>
+            <a href="mailto:marketing@fynla.org" class="text-sm text-raspberry-300 hover:text-light-pink-200 transition-colors">marketing@fynla.org</a>
+            <p class="text-xs text-white/60 mt-2">Partnerships, press enquiries, and media resources.</p>
           </div>
         </div>
       </div>

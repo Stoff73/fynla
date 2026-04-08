@@ -262,10 +262,11 @@ export default {
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
-    // Capture plan/billing from query params (from PricingPage)
+    // Capture plan/billing/referral from query params
     const route = router.currentRoute.value;
     const selectedPlan = route.query.plan || null;
     const selectedBilling = route.query.billing || null;
+    const referralCode = route.query.ref || null;
 
     const handleRegister = async () => {
       // Guard against double submission
@@ -292,6 +293,9 @@ export default {
         }
         if (selectedBilling) {
           payload.billing_cycle = selectedBilling;
+        }
+        if (referralCode) {
+          payload.referral_code = referralCode;
         }
 
         const response = await api.post('/auth/register', payload);
