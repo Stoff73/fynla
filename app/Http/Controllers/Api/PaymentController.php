@@ -17,6 +17,7 @@ use App\Services\Payment\DataPurgeService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\InvoiceService;
 use App\Services\Payment\RevolutService;
+use App\Services\Payment\ReferralService;
 use App\Services\Payment\RevolutSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,8 @@ class PaymentController extends Controller
         private readonly RevolutSubscriptionService $subscriptionService,
         private readonly DiscountCodeService $discountCodeService,
         private readonly InvoiceService $invoiceService,
-        private readonly DataPurgeService $purgeService
+        private readonly DataPurgeService $purgeService,
+        private readonly ReferralService $referralService
     ) {}
 
     /**
@@ -392,6 +394,19 @@ class PaymentController extends Controller
                         'user_id' => $user->id,
                         'error' => $e->getMessage(),
                     ]);
+                }
+
+                // Apply referral bonus if user was referred
+                if ($user->referred_by_code) {
+                    try {
+                        $this->referralService->applyReferralBonus($user, $payment->billing_cycle);
+                    } catch (\Throwable $e) {
+                        Log::error('Failed to apply referral bonus', [
+                            'user_id' => $user->id,
+                            'referred_by_code' => $user->referred_by_code,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 

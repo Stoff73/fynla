@@ -82,9 +82,9 @@
                                                     <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                                 </div>
                                                 <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                                <div class="flex gap-1 flex-wrap mb-2">
-                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.netWorthRange }}</span>
-                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.focus }}</span>
+                                                <div class="flex flex-col gap-1 mb-2">
+                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
+                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                                 </div>
                                                 <span class="text-xs font-bold">View demo &rarr;</span>
                                             </button>
@@ -114,9 +114,9 @@
                                                     <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                                 </div>
                                                 <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                                <div class="flex gap-1 flex-wrap mb-2">
-                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.netWorthRange }}</span>
-                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.focus }}</span>
+                                                <div class="flex flex-col gap-1 mb-2">
+                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
+                                                    <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                                 </div>
                                                 <span class="text-xs font-bold">View demo &rarr;</span>
                                             </button>
@@ -149,9 +149,9 @@
                                                 <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                             </div>
                                             <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                            <div class="flex gap-1 flex-wrap mb-2">
-                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.netWorthRange }}</span>
-                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.focus }}</span>
+                                            <div class="flex flex-col gap-1 mb-2">
+                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
+                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                             </div>
                                             <span class="text-xs font-bold">View demo &rarr;</span>
                                         </button>
@@ -179,9 +179,9 @@
                                                 <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                             </div>
                                             <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                            <div class="flex gap-1 flex-wrap mb-2">
-                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.netWorthRange }}</span>
-                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.focus }}</span>
+                                            <div class="flex flex-col gap-1 mb-2">
+                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
+                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                             </div>
                                             <span class="text-xs font-bold">View demo &rarr;</span>
                                         </button>
@@ -209,9 +209,9 @@
                                                 <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                             </div>
                                             <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                            <div class="flex gap-1 flex-wrap mb-2">
-                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.netWorthRange }}</span>
-                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08]">{{ persona.focus }}</span>
+                                            <div class="flex flex-col gap-1 mb-2">
+                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
+                                                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                             </div>
                                             <span class="text-xs font-bold">View demo &rarr;</span>
                                         </button>
