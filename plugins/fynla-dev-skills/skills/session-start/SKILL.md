@@ -34,7 +34,7 @@ If seeding fails, diagnose immediately. Common fixes:
 | `TaxProductReferenceSeeder` | ISA/GIA/Bond tax treatment info |
 | `ActuarialLifeTablesSeeder` | ONS life expectancy data for estate/retirement projections |
 | `RolesPermissionsSeeder` | Auth roles and permissions |
-| `AdminUserSeeder` | Admin accounts (demo@fps.com, admin@fps.com) |
+| `AdminUserSeeder` | Admin account (chris@fynla.org) |
 | `PreviewUserSeeder` | 6 preview personas (young_family, peak_earners, widow, entrepreneur, young_saver, retired_couple) |
 | `SavingsMarketRatesSeeder` | Savings benchmark rates |
 | `PlanConfigurationSeeder` | Admin-configurable plan rates, benchmarks, defaults |

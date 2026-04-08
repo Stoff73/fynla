@@ -76,6 +76,9 @@ class DatabaseSeeder extends Seeder
 
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
+
+            // Discount codes (promotional codes for checkout)
+            DiscountCodeSeeder::class,
         ]);
 
         // ============================================================

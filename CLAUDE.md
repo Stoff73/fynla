@@ -295,7 +295,7 @@ php artisan tinker --execute="\$u = \App\Models\User::where('email','john@exampl
 | `john@example.com` | `password` | Test user with full data |
 | `jane@example.com` | `password` | Spouse of John |
 | `sarah@example.com` | `password` | Additional test user |
-| `admin@fps.com` | `admin123` | Admin user |
+| `chris@fynla.org` | `Password1!` | Admin user |
 
 ## Troubleshooting
 

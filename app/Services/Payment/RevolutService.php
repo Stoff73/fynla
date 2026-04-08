@@ -118,6 +118,83 @@ class RevolutService
     }
 
     /**
+     * Create a Revolut order with a customer ID and optional payment method saving.
+     *
+     * Used for the subscription setup flow — the order is created by Revolut when
+     * a subscription is created, but this method is kept as a fallback for upgrades
+     * and one-off payments where we need to associate a customer.
+     *
+     * @param  int  $amount  Amount in minor currency units (pence for GBP)
+     * @param  string  $currency  ISO 4217 currency code
+     * @param  string  $description  Order description
+     * @param  string  $redirectUrl  URL to redirect after payment
+     * @param  string  $customerId  Revolut customer UUID
+     * @param  string|null  $merchantRef  Internal reference
+     * @param  string|null  $email  Customer email
+     * @param  bool  $savePaymentMethod  Whether to save card for merchant-initiated charges
+     * @return array Revolut order response
+     */
+    public function createOrderWithCustomer(
+        int $amount,
+        string $currency,
+        string $description,
+        string $redirectUrl,
+        string $customerId,
+        ?string $merchantRef = null,
+        ?string $email = null,
+        bool $savePaymentMethod = false
+    ): array {
+        $body = [
+            'amount' => $amount,
+            'currency' => $currency,
+            'description' => $description,
+            'redirect_url' => $redirectUrl,
+            'customer' => [
+                'id' => $customerId,
+            ],
+        ];
+
+        if ($savePaymentMethod) {
+            $body['save_payment_method_for'] = 'merchant';
+        }
+
+        if ($merchantRef) {
+            $body['merchant_order_data'] = ['reference' => $merchantRef];
+        }
+
+        if ($email) {
+            $body['customer']['email'] = $email;
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+            'Revolut-Api-Version' => '2025-12-04',
+            'Content-Type' => 'application/json',
+        ])->post("{$this->apiUrl}/orders", $body);
+
+        if ($response->failed()) {
+            Log::error('Revolut createOrderWithCustomer failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'amount' => $amount,
+                'customer_id' => $customerId,
+            ]);
+            $response->throw();
+        }
+
+        $data = $response->json();
+
+        Log::info('Revolut order created with customer', [
+            'order_id' => $data['id'],
+            'customer_id' => $customerId,
+            'save_payment_method' => $savePaymentMethod,
+            'merchant_ref' => $merchantRef,
+        ]);
+
+        return $data;
+    }
+
+    /**
      * Verify a Revolut webhook signature.
      *
      * Algorithm (from Revolut docs):

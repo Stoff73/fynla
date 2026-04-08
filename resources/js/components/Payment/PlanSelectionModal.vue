@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 z-50 overflow-y-auto"
+    class="fixed inset-0 z-[70] overflow-y-auto"
     aria-labelledby="plan-modal-title"
     role="dialog"
     aria-modal="true"
@@ -79,8 +79,28 @@
           <button @click="fetchPlans" class="btn-secondary text-sm">Try Again</button>
         </div>
 
+        <!-- Discount Code -->
+        <div v-if="!loading && !error" class="mb-4">
+          <div v-if="!showDiscountField" class="text-center">
+            <button
+              @click="showDiscountField = true"
+              class="text-body-sm text-violet-500 hover:text-violet-700 transition-colors"
+            >
+              Have a discount code?
+            </button>
+          </div>
+          <div v-else class="flex gap-2 max-w-sm mx-auto">
+            <input
+              v-model="discountCode"
+              type="text"
+              placeholder="Enter discount code"
+              class="flex-1 px-3 py-1.5 border border-light-gray rounded-lg text-body-sm uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
+            />
+          </div>
+        </div>
+
         <!-- Plan Cards -->
-        <div v-else :class="gridClass">
+        <div v-if="!loading && !error" :class="gridClass">
           <div
             v-for="plan in filteredPlans"
             :key="plan.slug"
@@ -204,6 +224,8 @@ export default {
       error: null,
       billingCycle: 'yearly',
       selectedPlan: null,
+      showDiscountField: false,
+      discountCode: '',
     };
   },
 
@@ -305,6 +327,7 @@ export default {
         plan: slug,
         billingCycle: this.billingCycle,
         isUpgrade: !!this.currentPlan,
+        discountCode: this.discountCode.trim() || null,
       });
     },
 
@@ -314,6 +337,7 @@ export default {
         plan: this.selectedPlan,
         billingCycle: this.billingCycle,
         isUpgrade: !!this.currentPlan,
+        discountCode: this.discountCode.trim() || null,
       });
     },
   },
