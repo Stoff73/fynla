@@ -330,12 +330,16 @@ export default {
   mounted() {
     if (this.plan && this.billingCycle) {
       this.fetchPlanData();
-      this.initCheckout();
-      // Pre-fill discount code if passed from plan selection
+      // If a prefilled discount code exists, apply it FIRST — then initCheckout
+      // will be called after the discount is validated (via reinitializeCheckout).
+      // This prevents creating a Revolut order at full price then immediately
+      // creating another at the discounted price.
       if (this.prefilledDiscountCode) {
         this.discountCodeInput = this.prefilledDiscountCode;
         this.showDiscountInput = true;
         this.applyDiscountCode();
+      } else {
+        this.initCheckout();
       }
     }
   },
@@ -503,6 +507,10 @@ export default {
           this.discountSuccess = response.data.message;
           // Store in module-level variable so Revolut callback can always access it
           _validatedDiscountCode = code;
+          // CRITICAL: Reinitialize the Revolut widget so that createOrder fires
+          // again with the discount code. The SDK calls createOrder at init time,
+          // so the previous order was created at full price.
+          await this.reinitializeCheckout();
         } else {
           this.discountApplied = false;
           this.discountError = response.data.message;
@@ -514,6 +522,14 @@ export default {
       } finally {
         this.discountLoading = false;
       }
+    },
+
+    async reinitializeCheckout() {
+      if (this.destroyWidget) {
+        this.destroyWidget();
+        this.destroyWidget = null;
+      }
+      await this.initCheckout();
     },
 
     goToDashboard() {
