@@ -346,8 +346,11 @@ class PaymentController extends Controller
             });
 
             // Post-transaction: emails, invoice, discount usage
-            if (! $result['already_completed']) {
-                $payment = $result['payment'];
+            // Run if this call activated the payment, OR if webhook beat us but
+            // post-transaction work (invoice, discount) hasn't been done yet.
+            $payment = $result['payment'];
+            $needsPostTransaction = ! $result['already_completed'] || $payment->invoice_id === null;
+            if ($needsPostTransaction) {
 
                 // Apply discount code usage
                 if ($payment->discount_code_id && $payment->discountCode) {
@@ -386,14 +389,16 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                // Send payment confirmation email
-                try {
-                    Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
-                } catch (\Exception $e) {
-                    Log::error('Failed to send payment confirmation email', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
+                // Send payment confirmation email (skip if webhook already sent it)
+                if (! $result['already_completed']) {
+                    try {
+                        Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send payment confirmation email', [
+                            'user_id' => $user->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
 
                 // Apply referral bonus if user was referred

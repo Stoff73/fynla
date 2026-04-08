@@ -41,6 +41,7 @@ const actions = {
     commit('lifeStage/resetState', null, { root: true });
     commit('onboarding/RESET_STATE', null, { root: true });
     dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
+    dispatch('aiChat/reset', null, { root: true }).catch(() => {});
 
     // ALWAYS clear the stored token to prevent previous user's session leaking
     await removeToken();
@@ -78,6 +79,7 @@ const actions = {
     commit('lifeStage/resetState', null, { root: true });
     commit('onboarding/RESET_STATE', null, { root: true });
     dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
+    dispatch('aiChat/reset', null, { root: true }).catch(() => {});
 
     // ALWAYS clear the stored token to prevent previous user's session leaking
     await removeToken();
@@ -111,6 +113,7 @@ const actions = {
       commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
       dispatch('taxConfig/clear', null, { root: true }).catch(() => {});
+      dispatch('aiChat/reset', null, { root: true }).catch(() => {});
     } catch (error) {
       logger.error('Logout error:', error);
       commit('clearAuth');
@@ -135,6 +138,7 @@ const actions = {
       commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
       dispatch('mobileDashboard/clearCache', null, { root: true }).catch(() => {});
+      dispatch('aiChat/reset', null, { root: true }).catch(() => {});
     } finally {
       commit('setLoading', false);
     }
