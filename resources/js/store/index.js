@@ -34,6 +34,7 @@ import completeness from './modules/completeness';
 import subNav from './modules/subNav';
 import whatIf from './modules/whatIf';
 import aiFormFill from './modules/aiFormFill';
+import toast from './modules/toast';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -91,6 +92,7 @@ const store = createStore({
     subNav,
     whatIf,
     aiFormFill,
+    toast,
   },
   plugins: [
     createPersistedState({

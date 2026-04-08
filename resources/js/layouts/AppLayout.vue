@@ -82,6 +82,9 @@
     <AiChatButton v-if="!showDockedChat && !isPreviewMode" />
     <AiChatPanel v-if="(!showDockedChat || isMobileView) && !isPreviewMode" />
 
+    <!-- Global toast notifications -->
+    <ToastNotification />
+
     <!-- Trial Expired — non-dismissable plan selection -->
     <PlanSelectionModal
       v-if="showTrialExpiredModal"
@@ -109,6 +112,7 @@ import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue'
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 import AiChatButton from '@/components/Shared/AiChatButton.vue';
 import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
+import ToastNotification from '@/components/Shared/ToastNotification.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
 import OfflineBanner from '@/mobile/OfflineBanner.vue';
@@ -138,6 +142,7 @@ export default {
     AdvisorBanner,
     SubNavBar,
     PlanSelectionModal,
+    ToastNotification,
   },
 
   data() {

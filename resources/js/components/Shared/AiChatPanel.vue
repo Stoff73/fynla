@@ -459,7 +459,7 @@
               ref="dockedInputField"
               v-model="inputMessage"
               @keydown.enter.exact.prevent="send"
-              placeholder="Ask Fyn anything..."
+              placeholder="Ask Fyn..."
               class="flex-1 min-w-0 h-full resize-none rounded-lg border border-light-gray px-3 py-2.5 text-sm text-horizon-500 placeholder-neutral-500
                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
                      disabled:bg-savannah-100 disabled:cursor-not-allowed"

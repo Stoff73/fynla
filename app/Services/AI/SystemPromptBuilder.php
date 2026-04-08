@@ -173,6 +173,17 @@ class SystemPromptBuilder
             $lines[] = "- Monthly expenditure: £{$formatted}";
         }
 
+        $spouse = $user->spouse;
+        if ($spouse) {
+            $spouseExpenditure = $this->calculateTotalExpenditure($spouse);
+            if ($spouseExpenditure > 0) {
+                $lines[] = '- Spouse monthly expenditure: £'.number_format($spouseExpenditure, 2);
+            }
+            if ($totalExpenditure > 0 && $spouseExpenditure > 0) {
+                $lines[] = '- Combined household expenditure: £'.number_format($totalExpenditure + $spouseExpenditure, 2);
+            }
+        }
+
         if ($user->retirement_date) {
             $lines[] = "- Target retirement date: {$user->retirement_date->format('j F Y')}";
         } elseif ($user->target_retirement_age) {
@@ -649,7 +660,20 @@ class SystemPromptBuilder
             if ($include('liability')) {
                 $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($liabilities->isNotEmpty()) {
-                    $items = $liabilities->map(fn ($l) => "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £".number_format((float) $l->current_balance, 0).']')->implode(' ');
+                    $items = $liabilities->map(function ($l) {
+                        $parts = "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £".number_format((float) $l->current_balance, 0);
+                        if ($l->interest_rate) {
+                            $parts .= " rate:{$l->interest_rate}%";
+                        }
+                        if ($l->monthly_payment) {
+                            $parts .= ' £'.number_format((float) $l->monthly_payment, 0).'/mo';
+                        }
+                        if ($l->is_priority_debt) {
+                            $parts .= ' PRIORITY';
+                        }
+
+                        return $parts.']';
+                    })->implode(' ');
                     $lines[] = "LIABILITIES: {$items}";
                 }
             }
