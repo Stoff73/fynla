@@ -185,6 +185,15 @@ class PaymentController extends Controller
                 true
             );
 
+            // If a pending payment already exists for this user/plan/cycle,
+            // this is a widget reload (e.g. discount code entered). Clean up
+            // the prior pending record so it doesn't orphan.
+            Payment::where('user_id', $user->id)
+                ->where('plan_slug', $plan->slug)
+                ->where('billing_cycle', $billingCycle)
+                ->where('status', 'pending')
+                ->delete();
+
             // Create pending Payment record
             $payment = Payment::create([
                 'subscription_id' => $subscription->id,
