@@ -993,6 +993,13 @@ Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Api\PaymentController::class, 'downloadInvoice'])->middleware('throttle:10,1');
 });
 
+// Referral
+Route::middleware('auth:sanctum')->prefix('referral')->group(function () {
+    Route::get('/code', [\App\Http\Controllers\Api\ReferralController::class, 'getMyCode']);
+    Route::post('/invite', [\App\Http\Controllers\Api\ReferralController::class, 'sendInvitation'])->middleware('throttle:10,1');
+    Route::get('/list', [\App\Http\Controllers\Api\ReferralController::class, 'myReferrals']);
+});
+
 // Revolut webhook (no auth:sanctum — verified by HMAC signature)
 Route::post('/webhooks/revolut', [\App\Http\Controllers\Api\WebhookController::class, 'handleRevolut'])->middleware('throttle:60,1');
 
