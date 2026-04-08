@@ -30,7 +30,7 @@
             class="sm:hidden inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-button text-raspberry-600 bg-light-pink-100 hover:bg-light-pink-200 transition-all"
             title="Chat"
           >
-            <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-4 h-4 rounded-full mr-1" />
+            <img :src="fynIconUrl" alt="Fyn" class="w-4 h-4 rounded-full mr-1" />
             Chat
           </button>
 
@@ -178,7 +178,7 @@
             class="hidden sm:inline-flex items-center px-3 py-2 border border-transparent text-body-sm font-medium rounded-button text-raspberry-600 bg-light-pink-100 hover:bg-light-pink-200 transition-all"
             title="Chat with Fyn"
           >
-            <img src="/images/Fyn/Fyn-Icon.png" alt="Fyn" class="w-5 h-5 rounded-full mr-2" />
+            <img :src="fynIconUrl" alt="Fyn" class="w-5 h-5 rounded-full mr-2" />
             Chat with Fyn
           </button>
 
@@ -300,6 +300,7 @@ import BugReportModal from './BugReportModal.vue';
 import ReferralModal from './Payment/ReferralModal.vue';
 import { findCategoryConfig } from '@/constants/subNavConfig';
 import { stopInactivityTimer } from '@/services/sessionLifecycleService';
+import { fynIconUrl } from '@/constants/fynIcon';
 
 import logger from '@/utils/logger';
 export default {
@@ -491,6 +492,7 @@ export default {
     });
 
     return {
+      fynIconUrl,
       countdown,
       pageTitle,
       userDropdownOpen,
