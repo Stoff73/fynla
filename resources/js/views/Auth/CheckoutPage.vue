@@ -376,7 +376,11 @@ export default {
           createOrder: async () => {
             // Called by widget when user clicks Pay
             const endpoint = this.isUpgrade ? '/payment/upgrade' : '/payment/create-order';
-            const discountCode = this.discountCodeInput ? this.discountCodeInput.trim() : '';
+            // Read discount code from both Vue data AND DOM directly (belt and braces)
+            const codeFromVue = this.discountCodeInput ? this.discountCodeInput.trim() : '';
+            const codeInput = document.querySelector('input[placeholder="Enter code"]');
+            const codeFromDom = codeInput ? codeInput.value.trim() : '';
+            const discountCode = codeFromVue || codeFromDom;
             const payload = {
               plan: this.plan,
               billing_cycle: this.billingCycle,
