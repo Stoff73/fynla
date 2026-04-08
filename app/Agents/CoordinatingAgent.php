@@ -820,7 +820,10 @@ class CoordinatingAgent extends BaseAgent
                         }
                     }
 
-                    return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal], $fields);
+                    // Embed mortgage detail so the model gets it from property queries
+                    $mortgages = $p->mortgages->map(fn ($m) => ['lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months])->toArray();
+
+                    return array_merge(['id' => $p->id, 'address' => $p->address_line_1, 'property_type' => $p->property_type, 'current_value' => $total, 'outstanding_mortgage' => $mortgageTotal, 'mortgages' => $mortgages], $fields);
                 })->toArray();
                 break;
             case 'mortgage':
