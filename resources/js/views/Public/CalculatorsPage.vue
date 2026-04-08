@@ -1614,7 +1614,16 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { PERSONAL_ALLOWANCE, HIGHER_RATE_THRESHOLD, ADDITIONAL_RATE_THRESHOLD } from '@/constants/taxConfig';
+import {
+  PERSONAL_ALLOWANCE, PERSONAL_ALLOWANCE_TAPER_THRESHOLD, HIGHER_RATE_THRESHOLD, ADDITIONAL_RATE_THRESHOLD,
+  BASIC_RATE, HIGHER_RATE, ADDITIONAL_RATE,
+  NI_PRIMARY_THRESHOLD, NI_UPPER_EARNINGS_LIMIT, NI_BASIC_RATE, NI_ADDITIONAL_RATE,
+  SDLT_STANDARD_BANDS, SDLT_FTB_BANDS, SDLT_FTB_MAX_PRICE, SDLT_ADDITIONAL_SURCHARGE, SDLT_NON_UK_SURCHARGE,
+  LBTT_BANDS, LBTT_ADDITIONAL_SURCHARGE, LBTT_NON_UK_SURCHARGE,
+  LTT_BANDS, LTT_ADDITIONAL_SURCHARGE, LTT_NON_UK_SURCHARGE,
+  PENSION_TAX_FREE_RATE, PENSION_TAX_FREE_LUMP_SUM_LIMIT,
+  STUDENT_LOAN_REPAYMENT_RATE,
+} from '@/constants/taxConfig';
 
 export default {
   name: 'CalculatorsPage',
@@ -1676,91 +1685,91 @@ export default {
         },
       ],
       incomeTax: {
-        income: null,
+        income: 50000,
         pension: 0,
         result: null,
       },
       mortgage: {
         income: null,
-        propertyValue: null,
-        deposit: null,
+        propertyValue: 300000,
+        deposit: 30000,
         interestRate: 4.5,
         term: 25,
         repaymentType: 'repayment',
         result: null,
       },
       loan: {
-        amount: null,
-        rate: null,
-        term: null,
+        amount: 10000,
+        rate: 8.9,
+        term: 3,
         result: null,
       },
       emergencyFund: {
-        monthlyExpenses: null,
-        currentSavings: null,
+        monthlyExpenses: 2500,
+        currentSavings: 5000,
         targetMonths: 6,
         result: null,
       },
       pension: {
-        currentValue: null,
-        monthlyContribution: null,
-        currentAge: null,
+        currentValue: 50000,
+        monthlyContribution: 500,
+        currentAge: 35,
         retirementAge: 65,
         growthRate: 5.0,
         result: null,
       },
       savingsGoal: {
-        target: null,
-        current: null,
-        monthly: null,
+        target: 10000,
+        current: 1000,
+        monthly: 200,
         rate: 4,
         result: null,
       },
       mortgageAfford: {
-        salary1: null,
-        salary2: null,
-        monthlyDebts: null,
-        deposit: null,
+        salary1: 45000,
+        salary2: 0,
+        monthlyDebts: 200,
+        deposit: 25000,
         result: null,
       },
       stampDuty: {
-        price: null,
+        price: 300000,
         buyerType: 'home-mover',
         country: 'england',
         result: null,
       },
       compoundInterest: {
-        lumpSum: null,
-        monthly: null,
+        lumpSum: 5000,
+        monthly: 200,
         rate: 6,
         term: 20,
         frequency: 'monthly',
         result: null,
       },
       personalLoan: {
-        amount: null,
-        rate: null,
+        amount: 10000,
+        rate: 6.9,
         term: 5,
         result: null,
       },
       pensionWithdrawal: {
-        pot: null,
-        withdrawal: null,
+        pot: 250000,
+        withdrawal: 50000,
         withdrawalType: 'lump',
-        otherIncome: null,
+        otherIncome: 12570,
         taxFreeTaken: false,
         result: null,
       },
       pensionRelief: {
-        contribution: null,
+        contribution: 5000,
         taxBand: 'basic',
         pensionType: 'relief-at-source',
         result: null,
       },
       studentLoan: {
         plan: 'plan2',
-        balance: null,
-        salary: null,
+        balance: 45000,
+        salary: 30000,
         salaryGrowth: 3,
         result: null,
         plans: {
@@ -1902,10 +1911,11 @@ export default {
       const pension = this.incomeTax.pension || 0;
       const taxable = income - pension;
 
-      // UK Tax Bands (from centralised tax config)
-      const personalAllowance = PERSONAL_ALLOWANCE;
-      const basicRateLimit = HIGHER_RATE_THRESHOLD;
-      const higherRateLimit = ADDITIONAL_RATE_THRESHOLD;
+      // Personal Allowance with taper above £100k (reduces £1 per £2 over threshold)
+      let personalAllowance = PERSONAL_ALLOWANCE;
+      if (taxable > PERSONAL_ALLOWANCE_TAPER_THRESHOLD) {
+        personalAllowance = Math.max(0, PERSONAL_ALLOWANCE - Math.floor((taxable - PERSONAL_ALLOWANCE_TAPER_THRESHOLD) / 2));
+      }
 
       let tax = 0;
       let remaining = taxable;
@@ -1917,34 +1927,32 @@ export default {
         remaining = 0;
       }
 
-      // Basic rate (20%)
+      // Basic rate
       if (remaining > 0) {
-        const basicRateBand = Math.min(remaining, basicRateLimit - personalAllowance);
-        tax += basicRateBand * 0.20;
+        const basicRateBand = Math.min(remaining, HIGHER_RATE_THRESHOLD - personalAllowance);
+        tax += basicRateBand * BASIC_RATE;
         remaining -= basicRateBand;
       }
 
-      // Higher rate (40%)
+      // Higher rate
       if (remaining > 0) {
-        const higherRateBand = Math.min(remaining, higherRateLimit - basicRateLimit);
-        tax += higherRateBand * 0.40;
+        const higherRateBand = Math.min(remaining, ADDITIONAL_RATE_THRESHOLD - HIGHER_RATE_THRESHOLD);
+        tax += higherRateBand * HIGHER_RATE;
         remaining -= higherRateBand;
       }
 
-      // Additional rate (45%)
+      // Additional rate
       if (remaining > 0) {
-        tax += remaining * 0.45;
+        tax += remaining * ADDITIONAL_RATE;
       }
 
-      // National Insurance (simplified)
-      const niThreshold = PERSONAL_ALLOWANCE;
-      const niUpperLimit = HIGHER_RATE_THRESHOLD;
+      // National Insurance
       let ni = 0;
-      if (income > niThreshold) {
-        const niableIncome = Math.min(income - niThreshold, niUpperLimit - niThreshold);
-        ni = niableIncome * 0.12;
-        if (income > niUpperLimit) {
-          ni += (income - niUpperLimit) * 0.02;
+      if (income > NI_PRIMARY_THRESHOLD) {
+        const niableIncome = Math.min(income - NI_PRIMARY_THRESHOLD, NI_UPPER_EARNINGS_LIMIT - NI_PRIMARY_THRESHOLD);
+        ni = niableIncome * NI_BASIC_RATE;
+        if (income > NI_UPPER_EARNINGS_LIMIT) {
+          ni += (income - NI_UPPER_EARNINGS_LIMIT) * NI_ADDITIONAL_RATE;
         }
       }
 
@@ -1955,6 +1963,7 @@ export default {
         gross: income,
         pension: pension,
         taxable: taxable,
+        personalAllowance: personalAllowance,
         tax: Math.round(tax),
         ni: Math.round(ni),
         net: Math.round(net),
@@ -2171,7 +2180,7 @@ export default {
       let repaid = false;
 
       // Current monthly repayment at starting salary
-      const initialAnnualRepayment = salary > threshold ? (salary - threshold) * 0.09 : 0;
+      const initialAnnualRepayment = salary > threshold ? (salary - threshold) * STUDENT_LOAN_REPAYMENT_RATE : 0;
       const monthlyRepayment = Math.round(initialAnnualRepayment / 12);
 
       // Simulate year by year
@@ -2184,7 +2193,7 @@ export default {
         runningBalance += interest;
 
         // Annual repayment based on current salary
-        const annualRepayment = currentSalary > threshold ? (currentSalary - threshold) * 0.09 : 0;
+        const annualRepayment = currentSalary > threshold ? (currentSalary - threshold) * STUDENT_LOAN_REPAYMENT_RATE : 0;
 
         if (annualRepayment >= runningBalance) {
           totalRepaid += runningBalance;
@@ -2231,9 +2240,9 @@ export default {
         totalIncome,
         max4x: Math.round(max4x),
         max45x: Math.round(max45x),
-        property10: Math.round(max45x + deposit) + Math.round(deposit * 0.11),
-        property15: Math.round((max45x / 0.85)),
-        property20: Math.round((max45x / 0.8)),
+        property10: Math.round(max45x / 0.90),
+        property15: Math.round(max45x / 0.85),
+        property20: Math.round(max45x / 0.80),
       };
     },
 
@@ -2246,43 +2255,23 @@ export default {
 
       if (country === 'scotland') {
         taxName = 'Land and Buildings Transaction Tax';
-        bands = [
-          { threshold: 145000, rate: 0 },
-          { threshold: 250000, rate: 2 },
-          { threshold: 325000, rate: 5 },
-          { threshold: 750000, rate: 10 },
-          { threshold: Infinity, rate: 12 },
-        ];
-        if (buyerType === 'additional') surcharge = 6;
-        if (buyerType === 'non-uk') surcharge = 2;
+        bands = LBTT_BANDS;
+        if (buyerType === 'additional') surcharge = LBTT_ADDITIONAL_SURCHARGE;
+        if (buyerType === 'non-uk') surcharge = LBTT_NON_UK_SURCHARGE;
       } else if (country === 'wales') {
         taxName = 'Land Transaction Tax';
-        bands = [
-          { threshold: 225000, rate: 0 },
-          { threshold: 400000, rate: 6 },
-          { threshold: 750000, rate: 7.5 },
-          { threshold: 1500000, rate: 10 },
-          { threshold: Infinity, rate: 12 },
-        ];
-        if (buyerType === 'additional') surcharge = 4;
-        if (buyerType === 'non-uk') surcharge = 2;
+        bands = LTT_BANDS;
+        if (buyerType === 'additional') surcharge = LTT_ADDITIONAL_SURCHARGE;
+        if (buyerType === 'non-uk') surcharge = LTT_NON_UK_SURCHARGE;
       } else {
         taxName = 'Stamp Duty Land Tax';
-        if (buyerType === 'first-time' && price <= 625000) {
-          bands = [
-            { threshold: 425000, rate: 0 },
-            { threshold: 625000, rate: 5 },
-          ];
+        if (buyerType === 'first-time' && price <= SDLT_FTB_MAX_PRICE) {
+          bands = SDLT_FTB_BANDS;
         } else {
-          bands = [
-            { threshold: 250000, rate: 0 },
-            { threshold: 925000, rate: 5 },
-            { threshold: 1500000, rate: 10 },
-            { threshold: Infinity, rate: 12 },
-          ];
+          bands = SDLT_STANDARD_BANDS;
         }
-        if (buyerType === 'additional') surcharge = 5;
-        if (buyerType === 'non-uk') surcharge = 2;
+        if (buyerType === 'additional') surcharge = SDLT_ADDITIONAL_SURCHARGE;
+        if (buyerType === 'non-uk') surcharge = SDLT_NON_UK_SURCHARGE;
       }
 
       let totalTax = 0;
@@ -2300,16 +2289,10 @@ export default {
       }
 
       let saving = 0;
-      if (buyerType === 'first-time' && country === 'england' && price <= 625000) {
+      if (buyerType === 'first-time' && country === 'england' && price <= SDLT_FTB_MAX_PRICE) {
         let standardTax = 0;
         let sPrev = 0;
-        const stdBands = [
-          { threshold: 250000, rate: 0 },
-          { threshold: 925000, rate: 5 },
-          { threshold: 1500000, rate: 10 },
-          { threshold: Infinity, rate: 12 },
-        ];
-        for (const b of stdBands) {
+        for (const b of SDLT_STANDARD_BANDS) {
           const t = Math.min(price, b.threshold) - sPrev;
           if (t > 0) standardTax += t * (b.rate / 100);
           sPrev = b.threshold;
@@ -2386,10 +2369,10 @@ export default {
       const taxFreeTaken = this.pensionWithdrawal.taxFreeTaken;
       if (withdrawal <= 0) return;
 
-      // Tax-free cash: 25% of pot, max £268,275 lifetime limit
+      // Tax-free cash: 25% of pot, max lifetime limit
       let taxFree = 0;
       if (!taxFreeTaken) {
-        taxFree = Math.min(withdrawal * 0.25, pot * 0.25, 268275);
+        taxFree = Math.min(withdrawal * PENSION_TAX_FREE_RATE, pot * PENSION_TAX_FREE_RATE, PENSION_TAX_FREE_LUMP_SUM_LIMIT);
       }
       const taxable = withdrawal - taxFree;
 
@@ -2413,24 +2396,20 @@ export default {
 
     // Helper: calculate income tax on a given amount (uses centralised tax config)
     _calculateIncomeTax2526(income) {
-      const pa = PERSONAL_ALLOWANCE;
       const basicRateLimit = HIGHER_RATE_THRESHOLD - PERSONAL_ALLOWANCE;
-      // Personal allowance taper above £100k
-      let adjustedPA = pa;
-      if (income > 100000) {
-        adjustedPA = Math.max(0, pa - ((income - 100000) / 2));
+      // Personal allowance taper above threshold
+      let adjustedPA = PERSONAL_ALLOWANCE;
+      if (income > PERSONAL_ALLOWANCE_TAPER_THRESHOLD) {
+        adjustedPA = Math.max(0, PERSONAL_ALLOWANCE - Math.floor((income - PERSONAL_ALLOWANCE_TAPER_THRESHOLD) / 2));
       }
       const taxableIncome = Math.max(0, income - adjustedPA);
       let tax = 0;
-      // Basic rate: 20%
       const basicBand = Math.min(taxableIncome, basicRateLimit);
-      tax += basicBand * 0.20;
-      // Higher rate: 40%
+      tax += basicBand * BASIC_RATE;
       const higherBand = Math.min(Math.max(0, taxableIncome - basicRateLimit), ADDITIONAL_RATE_THRESHOLD - HIGHER_RATE_THRESHOLD);
-      tax += higherBand * 0.40;
-      // Additional rate: 45%
+      tax += higherBand * HIGHER_RATE;
       const additionalBand = Math.max(0, taxableIncome - (ADDITIONAL_RATE_THRESHOLD - PERSONAL_ALLOWANCE));
-      tax += additionalBand * 0.45;
+      tax += additionalBand * ADDITIONAL_RATE;
       return tax;
     },
 
@@ -2443,24 +2422,24 @@ export default {
       // For relief at source: you pay net (after 20% relief), provider claims 20%
       // For net pay: contribution comes from gross salary, full relief automatic
       const gross = contribution;
-      const basicRelief = Math.round(gross * 0.20);
+      const basicRelief = Math.round(gross * BASIC_RATE);
       let additionalRelief = 0;
       let effectiveCost = gross;
 
       if (band === 'higher') {
-        additionalRelief = Math.round(gross * 0.20); // extra 20% (40% - 20%)
-        effectiveCost = Math.round(gross * 0.60);
+        additionalRelief = Math.round(gross * (HIGHER_RATE - BASIC_RATE));
+        effectiveCost = Math.round(gross * (1 - HIGHER_RATE));
       } else if (band === 'additional') {
-        additionalRelief = Math.round(gross * 0.25); // extra 25% (45% - 20%)
-        effectiveCost = Math.round(gross * 0.55);
+        additionalRelief = Math.round(gross * (ADDITIONAL_RATE - BASIC_RATE));
+        effectiveCost = Math.round(gross * (1 - ADDITIONAL_RATE));
       } else {
-        effectiveCost = Math.round(gross * 0.80);
+        effectiveCost = Math.round(gross * (1 - BASIC_RATE));
       }
 
       const totalRelief = basicRelief + additionalRelief;
 
       // For relief at source, net contribution is what you actually pay out of pocket
-      const netContribution = isNetPay ? gross : Math.round(gross * 0.80);
+      const netContribution = isNetPay ? gross : Math.round(gross * (1 - BASIC_RATE));
 
       this.pensionRelief.result = {
         gross,
