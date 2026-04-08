@@ -317,6 +317,7 @@ export default {
   components: {
     LogoutSuccessModal,
     BugReportModal,
+    ReferralModal,
   },
 
   setup(props) {
