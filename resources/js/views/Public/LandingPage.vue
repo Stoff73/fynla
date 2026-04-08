@@ -294,14 +294,18 @@
             <span class="w-3 h-3 rounded-full bg-spring-500"></span>
             <span class="ml-3 text-xs text-neutral-500 font-mono">fynla.org</span>
           </div>
-          <img
-            :src="dashboardGifUrl"
-            alt="Fynla dashboard walkthrough showing net worth, pensions, investments, protection, and estate planning modules"
-            loading="lazy"
+          <video
+            src="/images/fynla-dashboard-walkthrough.mp4"
+            autoplay
+            loop
+            muted
+            playsinline
             width="1346"
             height="665"
             class="w-full h-auto block"
-          />
+          >
+            Your browser does not support the video tag.
+          </video>
         </div>
       </div>
     </div>
@@ -407,7 +411,6 @@ export default {
       previewError: '',
       chatInput: '',
       fynDetailsOpen: false,
-      dashboardGifUrl: '/images/fynla-dashboard-walkthrough.gif',
     };
   },
 

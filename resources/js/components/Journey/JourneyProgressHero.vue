@@ -84,19 +84,21 @@
                 </div>
               </div>
 
-              <button
-                v-if="nextStep"
-                class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap relative z-10"
-                @click="continueJourney"
-              >
-                Continue Journey
-              </button>
-              <button
-                class="mt-3 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors relative z-10"
-                @click="$router.push('/onboarding/welcome')"
-              >
-                Start a new journey
-              </button>
+              <div class="mt-3 flex items-center gap-4 relative z-10">
+                <button
+                  v-if="nextStep"
+                  class="bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+                  @click="continueJourney"
+                >
+                  Continue Journey
+                </button>
+                <button
+                  class="text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+                  @click="$router.push('/onboarding/welcome')"
+                >
+                  Start a new journey
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -242,19 +244,21 @@
             </div>
 
             <!-- Continue Journey button below the ring row -->
-            <button
-              v-if="nextStep"
-              class="mt-3 bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
-              @click="continueJourney"
-            >
-              Continue Journey
-            </button>
-            <button
-              class="mt-3 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
-              @click="$router.push('/onboarding/welcome')"
-            >
-              Start a new journey
-            </button>
+            <div class="mt-3 flex items-center gap-4">
+              <button
+                v-if="nextStep"
+                class="bg-raspberry-500 text-white px-5 py-2.5 rounded-button text-sm font-bold hover:bg-raspberry-600 transition-colors whitespace-nowrap"
+                @click="continueJourney"
+              >
+                Continue Journey
+              </button>
+              <button
+                class="text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+                @click="$router.push('/onboarding/welcome')"
+              >
+                Start a new journey
+              </button>
+            </div>
           </div>
 
           <!-- Slide 2: Profile Completeness -->
