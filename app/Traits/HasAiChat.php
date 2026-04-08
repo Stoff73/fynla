@@ -61,7 +61,13 @@ trait HasAiChat
 
         // Check token budget
         if (! $this->hasTokenBudget($user)) {
-            yield ['type' => 'error', 'message' => "You've reached your daily message limit. Your allowance resets tomorrow."];
+            $usage = $this->getTokenUsageDetails($user);
+            yield [
+                'type' => 'token_limit',
+                'message' => "You've reached your daily Fyn usage limit.",
+                'reset_at' => $usage['reset_at'],
+                'seconds_until_reset' => $usage['seconds_until_reset'],
+            ];
 
             return;
         }

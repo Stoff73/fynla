@@ -19,6 +19,9 @@ const state = {
     loadingConversations: false,
     pendingJourneyPrompt: false,
     error: null,
+    tokenLimitReached: false,
+    tokenResetAt: null,
+    secondsUntilReset: null,
     showHistory: false,
     pendingNavigation: null,
     prefilledPrompt: null,
@@ -35,6 +38,9 @@ const getters = {
     loading: (state) => state.loading,
     loadingConversations: (state) => state.loadingConversations,
     error: (state) => state.error,
+    tokenLimitReached: (state) => state.tokenLimitReached,
+    tokenResetAt: (state) => state.tokenResetAt,
+    secondsUntilReset: (state) => state.secondsUntilReset,
     showHistory: (state) => state.showHistory,
     pendingNavigation: (state) => state.pendingNavigation,
     prefilledPrompt: (state) => state.prefilledPrompt,
@@ -86,6 +92,12 @@ const mutations = {
         state.error = error;
     },
 
+    SET_TOKEN_LIMIT(state, { reached, resetAt, secondsUntilReset }) {
+        state.tokenLimitReached = reached;
+        state.tokenResetAt = resetAt;
+        state.secondsUntilReset = secondsUntilReset;
+    },
+
     SET_SHOW_HISTORY(state, show) {
         state.showHistory = show;
     },
@@ -134,6 +146,9 @@ const mutations = {
         state.loading = false;
         state.loadingConversations = false;
         state.error = null;
+        state.tokenLimitReached = false;
+        state.tokenResetAt = null;
+        state.secondsUntilReset = null;
         state.showHistory = false;
         state.pendingNavigation = null;
         state.prefilledPrompt = null;
@@ -358,6 +373,14 @@ const actions = {
                                         entity_id: event.entity_id,
                                     },
                                     created_at: new Date().toISOString(),
+                                });
+                                break;
+
+                            case 'token_limit':
+                                commit('SET_TOKEN_LIMIT', {
+                                    reached: true,
+                                    resetAt: event.reset_at,
+                                    secondsUntilReset: event.seconds_until_reset,
                                 });
                                 break;
 

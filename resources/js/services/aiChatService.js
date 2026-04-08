@@ -3,6 +3,14 @@ import { getToken } from './tokenStorage';
 
 const aiChatService = {
     /**
+     * Get current token usage and reset time.
+     */
+    async getTokenUsage() {
+        const response = await api.get('/ai-chat/token-usage');
+        return response.data;
+    },
+
+    /**
      * Get list of user's conversations.
      */
     async getConversations() {

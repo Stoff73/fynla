@@ -1183,6 +1183,7 @@ Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('what-if-scenari
 
 // AI Chat routes
 Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(function () {
+    Route::get('/token-usage', [AiChatController::class, 'tokenUsage']);
     Route::get('/conversations', [AiChatController::class, 'index']);
     Route::post('/conversations', [AiChatController::class, 'create']);
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);

@@ -107,6 +107,21 @@ class AiChatController extends Controller
     }
 
     /**
+     * Get the user's current token usage and reset time.
+     *
+     * GET /api/ai-chat/token-usage
+     */
+    public function tokenUsage(Request $request): JsonResponse
+    {
+        $usage = $this->coordinatingAgent->getTokenUsageDetails($request->user());
+
+        return response()->json([
+            'success' => true,
+            'data' => $usage,
+        ]);
+    }
+
+    /**
      * Send a message and stream the response via SSE.
      *
      * POST /api/ai-chat/conversations/{id}/messages
