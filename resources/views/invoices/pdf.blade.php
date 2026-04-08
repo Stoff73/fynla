@@ -8,8 +8,8 @@
         body { font-family: 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif; font-size: 14px; color: #1F2A44; line-height: 1.5; }
         .container { max-width: 700px; margin: 0 auto; padding: 40px; }
         .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-        .logo { font-size: 28px; font-weight: 900; color: #E83E6D; letter-spacing: -0.5px; }
-        .logo-sub { font-size: 11px; color: #717171; margin-top: 2px; }
+        .logo img { height: 40px; width: auto; }
+        .logo-sub { font-size: 11px; color: #717171; margin-top: 4px; }
         .invoice-title { text-align: right; }
         .invoice-title h1 { font-size: 24px; font-weight: 700; color: #1F2A44; margin-bottom: 4px; }
         .invoice-number { font-size: 14px; color: #717171; }
@@ -42,7 +42,7 @@
         <table style="width:100%; margin-bottom: 30px; border: none;">
             <tr>
                 <td style="border: none; padding: 0;">
-                    <div class="logo">fynla</div>
+                    <div class="logo"><img src="{{ public_path('images/logos/LogoHiResFynlaDark.png') }}" alt="Fynla"></div>
                     <div class="logo-sub">UK Financial Planning</div>
                 </td>
                 <td style="border: none; padding: 0; text-align: right;">
@@ -61,6 +61,18 @@
                 <td style="border: none; padding: 0; width: 50%; vertical-align: top;">
                     <div class="meta-label">Billed To</div>
                     <div class="meta-value">{{ $invoice->billing_name ?? 'Customer' }}</div>
+                    @if($user->address_line_1 ?? null)
+                        <div class="meta-value" style="color: #717171;">{{ $user->address_line_1 }}</div>
+                    @endif
+                    @if($user->address_line_2 ?? null)
+                        <div class="meta-value" style="color: #717171;">{{ $user->address_line_2 }}</div>
+                    @endif
+                    @php
+                        $cityLine = collect([$user->city ?? null, $user->county ?? null, $user->postcode ?? null])->filter()->implode(', ');
+                    @endphp
+                    @if($cityLine)
+                        <div class="meta-value" style="color: #717171;">{{ $cityLine }}</div>
+                    @endif
                     <div class="meta-value" style="color: #717171;">{{ $invoice->billing_email }}</div>
                 </td>
                 <td style="border: none; padding: 0; width: 50%; vertical-align: top; text-align: right;">
@@ -117,7 +129,8 @@
         {{-- Renewal Notice --}}
         @if($invoice->next_renewal_date)
         @php
-            $renewalAmount = $invoice->subscription?->amount ?? $invoice->subtotal_amount;
+            $subAmount = $invoice->subscription?->amount;
+            $renewalAmount = ($subAmount && $subAmount > 0) ? $subAmount : $invoice->subtotal_amount;
         @endphp
         <div class="renewal-box">
             <strong>Auto-renewal:</strong> Your subscription will automatically renew on <strong>{{ $invoice->next_renewal_date->format('d F Y') }}</strong> at <strong>&pound;{{ number_format($renewalAmount / 100, 2) }}/{{ $invoice->billing_cycle === 'monthly' ? 'month' : 'year' }}</strong>.

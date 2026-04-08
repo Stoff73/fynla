@@ -77,7 +77,10 @@ class InvoiceService
      */
     public function generatePdf(Invoice $invoice): string
     {
-        $pdf = Pdf::loadView('invoices.pdf', ['invoice' => $invoice]);
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice' => $invoice,
+            'user' => $invoice->user,
+        ]);
         $pdf->setPaper('A4', 'portrait');
 
         $directory = "invoices/{$invoice->user_id}";
