@@ -166,7 +166,7 @@
                 </table>
             </div>
 
-            <p>Your subscription is active and you have full access to all Fynla features.</p>
+            <p>Your subscription is now active. Thank you for choosing Fynla.</p>
 
             <div class="cta-container">
                 <a href="{{ config('app.url') }}/dashboard" class="cta-button">Go to Dashboard</a>
