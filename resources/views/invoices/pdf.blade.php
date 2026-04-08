@@ -98,7 +98,7 @@
             </div>
             @if($invoice->discount_amount > 0)
             <div class="totals-row">
-                <span class="totals-label">Discount{{ $invoice->discount_description ? ' (' . $invoice->discount_description . ')' : '' }}</span>
+                <span class="totals-label">Discount{{ $invoice->discount_description ? ' (' . $invoice->discount_description . ')' : '' }}{{ $invoice->discount_code ? ' — Code: ' . $invoice->discount_code : '' }}</span>
                 <span class="totals-value" style="color: #20B486;">-&pound;{{ number_format($invoice->discount_amount / 100, 2) }}</span>
             </div>
             @endif
@@ -116,8 +116,11 @@
 
         {{-- Renewal Notice --}}
         @if($invoice->next_renewal_date)
+        @php
+            $renewalAmount = $invoice->subscription?->amount ?? $invoice->subtotal_amount;
+        @endphp
         <div class="renewal-box">
-            <strong>Auto-renewal:</strong> Your subscription will automatically renew on <strong>{{ $invoice->next_renewal_date->format('d F Y') }}</strong>.
+            <strong>Auto-renewal:</strong> Your subscription will automatically renew on <strong>{{ $invoice->next_renewal_date->format('d F Y') }}</strong> at <strong>&pound;{{ number_format($renewalAmount / 100, 2) }}/{{ $invoice->billing_cycle === 'monthly' ? 'month' : 'year' }}</strong>.
             You can cancel at any time from your profile settings.
         </div>
         @endif

@@ -164,68 +164,79 @@ class PaymentController extends Controller
             $redirectUrl = $baseUrl.'/checkout?plan='.$plan->slug
                 .'&cycle='.$billingCycle.'&status=complete';
 
-            // Try Revolut Subscription flow (new users get auto-renewal)
-            $revolutSubscription = null;
-            $setupOrderId = null;
+            // Determine order creation strategy:
+            // - If discount code applied: use one-off order at discounted price
+            //   (Revolut subscription plans have fixed prices — can't apply per-user discounts)
+            //   The subscription for auto-renewal is created in confirmPayment after first payment.
+            // - If no discount: try Revolut Subscription flow for automatic recurring billing
             $revolutOrder = null;
 
-            try {
-                // Find or create Revolut subscription plan
-                $revolutPlanId = $subscription->revolut_plan_id;
-                if (! $revolutPlanId) {
-                    // Use sync command mapping or create on-the-fly
-                    $revolutPlan = $this->subscriptionService->createSubscriptionPlan($plan);
-                    $revolutPlanId = $revolutPlan['id'];
-                }
-
-                $variationId = $this->subscriptionService->findVariationId($revolutPlanId, $billingCycle);
-
-                if ($variationId) {
-                    // Skip trial for paying users (they already had their trial)
-                    $trialDuration = $subscription->isTrialing() ? null : 'P0D';
-
-                    $revolutSubscription = $this->subscriptionService->createSubscription(
-                        $user,
-                        $variationId,
-                        $redirectUrl,
-                        $trialDuration,
-                        "fynla_sub_{$subscription->id}"
-                    );
-
-                    $setupOrderId = $revolutSubscription['setup_order_id'] ?? null;
-
-                    // Get the setup order to retrieve the token for the widget
-                    if ($setupOrderId) {
-                        $revolutOrder = $this->revolutService->getOrder($setupOrderId);
-                    }
-
-                    // Store Revolut subscription details
-                    $subscription->update([
-                        'revolut_subscription_id' => $revolutSubscription['id'],
-                        'revolut_plan_id' => $revolutPlanId,
-                        'revolut_plan_variation_id' => $variationId,
-                    ]);
-                }
-            } catch (\Throwable $e) {
-                // Subscription API failed — fall back to one-off order
-                Log::warning('Revolut subscription creation failed, falling back to one-off order', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            // Fallback: create one-off order if subscription flow didn't produce an order
-            if (! $revolutOrder) {
+            if ($discountCode) {
+                // Discount applied — one-off order at discounted price, save card for future
                 $revolutOrder = $this->revolutService->createOrderWithCustomer(
                     $finalAmount,
                     'GBP',
-                    $description,
+                    $description . " (Discount: {$discountCode->code})",
                     $redirectUrl,
                     $user->revolut_customer_id,
                     null,
                     $user->email,
                     true
                 );
+            } else {
+                // No discount — try Revolut Subscription flow for auto-renewal
+                try {
+                    $revolutPlanId = $subscription->revolut_plan_id;
+                    if (! $revolutPlanId) {
+                        $revolutPlan = $this->subscriptionService->createSubscriptionPlan($plan);
+                        $revolutPlanId = $revolutPlan['id'];
+                    }
+
+                    $variationId = $this->subscriptionService->findVariationId($revolutPlanId, $billingCycle);
+
+                    if ($variationId) {
+                        $trialDuration = $subscription->isTrialing() ? null : 'P0D';
+
+                        $revolutSubscription = $this->subscriptionService->createSubscription(
+                            $user,
+                            $variationId,
+                            $redirectUrl,
+                            $trialDuration,
+                            "fynla_sub_{$subscription->id}"
+                        );
+
+                        $setupOrderId = $revolutSubscription['setup_order_id'] ?? null;
+
+                        if ($setupOrderId) {
+                            $revolutOrder = $this->revolutService->getOrder($setupOrderId);
+                        }
+
+                        $subscription->update([
+                            'revolut_subscription_id' => $revolutSubscription['id'] ?? null,
+                            'revolut_plan_id' => $revolutPlanId,
+                            'revolut_plan_variation_id' => $variationId,
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Revolut subscription creation failed, falling back to one-off order', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
+                // Fallback if subscription flow didn't produce an order
+                if (! $revolutOrder) {
+                    $revolutOrder = $this->revolutService->createOrderWithCustomer(
+                        $finalAmount,
+                        'GBP',
+                        $description,
+                        $redirectUrl,
+                        $user->revolut_customer_id,
+                        null,
+                        $user->email,
+                        true
+                    );
+                }
             }
 
             // Create pending Payment record
