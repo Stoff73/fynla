@@ -75,6 +75,7 @@ class AuthController extends Controller
             'preview_persona_id' => $request->preview_persona_id ?? null,
             'plan' => $request->plan ?? null,
             'billing_cycle' => $request->billing_cycle ?? null,
+            'referral_code' => $request->referral_code ?? null,
         ]);
 
         Log::info('Pending registration created', [
@@ -470,6 +471,7 @@ class AuthController extends Controller
                 'email' => $pending->email,
                 'password' => $pending->password, // Already hashed
                 'role_id' => $role?->id,
+                'referred_by_code' => $pending->referral_code,
             ]);
 
             // Sync is_admin flag (bypasses guarded)
@@ -487,6 +489,20 @@ class AuthController extends Controller
                 : 'standard';
             $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
             $this->trialService->startTrial($user, $plan, $billingCycle);
+
+            // Link referral if user registered with a referral code
+            if ($pending->referral_code) {
+                try {
+                    app(\App\Services\Payment\ReferralService::class)
+                        ->applyReferralOnRegistration($user, $pending->referral_code);
+                } catch (\Exception $e) {
+                    Log::error('Failed to link referral on registration', [
+                        'user_id' => $user->id,
+                        'referral_code' => $pending->referral_code,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
 
             // Audit log - new user registration
             $this->auditService->logAuth(AuditLog::ACTION_LOGIN_SUCCESS, $user, [
