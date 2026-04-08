@@ -36,6 +36,7 @@ class PendingRegistration extends Model
         'preview_persona_id',
         'plan',
         'billing_cycle',
+        'referral_code',
         'expires_at',
     ];
 
