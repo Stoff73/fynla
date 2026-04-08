@@ -20,6 +20,7 @@ class Payment extends Model
         'revolut_order_id',
         'amount',
         'currency',
+        'status',
         'revolut_payment_data',
         'description',
         'plan_slug',

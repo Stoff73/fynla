@@ -354,7 +354,7 @@ class PaymentController extends Controller
                             $payment->discountCode,
                             $user->id,
                             $payment->id,
-                            $payment->amount + $payment->discount_amount
+                            (int) ($payment->amount + $payment->discount_amount)
                         );
                     } catch (\Exception $e) {
                         Log::error('Failed to apply discount code usage', [
