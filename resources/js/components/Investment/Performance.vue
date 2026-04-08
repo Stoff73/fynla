@@ -38,7 +38,7 @@
     <div v-else class="space-y-6">
       <!-- Future Value Projections Section (Clickable) -->
       <div
-        class="chart-card"
+        class="chart-card border-0"
         @click="goToProjections"
         role="button"
         tabindex="0"

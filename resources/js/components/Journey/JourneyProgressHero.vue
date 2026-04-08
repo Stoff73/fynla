@@ -55,8 +55,10 @@
 
             <!-- Stage info + next step + button (pt-3 aligns with visual top of progress ring) -->
             <div class="flex-1 min-w-0 pt-3">
-              <p class="text-sm font-semibold text-horizon-500 mb-0.5">{{ stageLabel }}</p>
-              <p class="text-sm text-neutral-500 mb-1">{{ completedCount }} of {{ totalSteps }} steps complete</p>
+              <template v-if="!isJourneyComplete">
+                <p class="text-sm font-semibold text-horizon-500 mb-0.5">{{ stageLabel }}</p>
+                <p class="text-sm text-neutral-500 mb-1">{{ completedCount }} of {{ totalSteps }} steps complete</p>
+              </template>
 
               <!-- Next step -->
               <div v-if="nextStep" class="flex items-center gap-2 mt-2">
@@ -90,10 +92,10 @@
                 Continue Journey
               </button>
               <button
-                class="mt-1.5 text-xs text-neutral-500 hover:text-horizon-500 transition-colors relative z-10"
+                class="mt-3 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors relative z-10"
                 @click="$router.push('/onboarding/welcome')"
               >
-                Change journey
+                Start a new journey
               </button>
             </div>
           </div>
@@ -208,8 +210,10 @@
 
               <!-- Stage info + next step -->
               <div class="flex-1 min-w-0 pt-3">
-                <p class="text-sm font-semibold text-horizon-500 mb-0.5">{{ stageLabel }}</p>
-                <p class="text-sm text-neutral-500 mb-1">{{ completedCount }} of {{ totalSteps }} steps complete</p>
+                <template v-if="!isJourneyComplete">
+                  <p class="text-sm font-semibold text-horizon-500 mb-0.5">{{ stageLabel }}</p>
+                  <p class="text-sm text-neutral-500 mb-1">{{ completedCount }} of {{ totalSteps }} steps complete</p>
+                </template>
 
                 <!-- Next step -->
                 <div v-if="nextStep" class="flex items-center gap-2 mt-2">
@@ -244,6 +248,12 @@
               @click="continueJourney"
             >
               Continue Journey
+            </button>
+            <button
+              class="mt-3 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+              @click="$router.push('/onboarding/welcome')"
+            >
+              Start a new journey
             </button>
           </div>
 
