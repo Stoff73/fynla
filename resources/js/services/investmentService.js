@@ -286,6 +286,17 @@ const investmentService = {
         return response.data;
     },
 
+    /**
+     * Get portfolio projections for the Performance tab.
+     * POST /api/investment/projections
+     * @param {Object} params - projection_periods, selected_period, contribution_overrides
+     * @returns {Promise} Projection data with growth scenarios
+     */
+    async getPortfolioProjections(params = {}) {
+        const response = await api.post('/investment/projections', params);
+        return response.data;
+    },
+
 };
 
 export default investmentService;

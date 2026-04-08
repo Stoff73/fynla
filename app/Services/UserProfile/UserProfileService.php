@@ -1068,11 +1068,11 @@ class UserProfileService
             'liabilities' => collect($commitments['liabilities'])->sum('monthly_amount'),
         ];
 
-        $totals['total'] = array_sum($totals);
-
         // Lump sum totals (one-off amounts, not monthly)
         $totals['investments_lump_sum'] = collect($commitments['investments'])->sum('lump_sum_amount');
         $totals['annual_lump_sum'] = $totals['investments_lump_sum'];
+
+        $totals['total'] = $totals['retirement'] + $totals['properties'] + $totals['investments'] + $totals['savings'] + $totals['protection'] + $totals['liabilities'];
 
         return [
             'commitments' => $commitments,

@@ -197,8 +197,14 @@ class StructuredResponseValidator
      */
     public function sanitise(string $response): string
     {
-        // Strip any leaked [Context: ...] blocks
+        // Strip any leaked [Context: ...] blocks (including multi-line and nested brackets)
+        $response = preg_replace('/\[Context:[^\]]*\]/s', '', $response);
         $response = preg_replace('/\[Context:.*?\]/s', '', $response);
+
+        // Strip debug/system metadata that may leak through
+        $response = preg_replace('/\[System:.*?\]/s', '', $response);
+        $response = preg_replace('/\[Debug:.*?\]/s', '', $response);
+        $response = preg_replace('/\[Internal:.*?\]/s', '', $response);
 
         // Strip exposed record IDs like "ID:123" or "[ID:456]"
         $response = preg_replace('/\[?ID[:\s]?\d{1,6}\]?/', '', $response);

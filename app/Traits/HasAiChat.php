@@ -431,6 +431,14 @@ trait HasAiChat
                 continue;
             }
 
+            // If we hit the tool call limit but still have tool_use stop reason,
+            // make one final pass with tools disabled to force a text response
+            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= self::MAX_TOOL_CALLS_PER_TURN && $fullResponse === '') {
+                $xaiTools = [];
+                $tools = [];
+                continue;
+            }
+
             break;
         }
 

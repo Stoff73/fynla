@@ -51,8 +51,12 @@ const getters = {
     if (!steps.length) return 0;
     const completeness = state.stepCompleteness || {};
 
-    // If no completeness data yet, fall back to 0
-    if (Object.keys(completeness).length === 0) return 0;
+    // If no field-level completeness data, fall back to binary step completion
+    if (Object.keys(completeness).length === 0) {
+      const completed = getters.allCompletedSteps;
+      const stepsCompleted = completed.filter(s => steps.includes(s)).length;
+      return steps.length > 0 ? Math.round((stepsCompleted / steps.length) * 100) : 0;
+    }
 
     let totalFields = 0;
     let filledFields = 0;
