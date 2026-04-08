@@ -332,6 +332,18 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
+  <url>
+    <loc>https://fynla.org/insights/isa-guide-uk</loc>
+    <lastmod>2026-04-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fynla.org/insights/retirement-planning-uk</loc>
+    <lastmod>2026-04-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
   <!-- Compare -->
   <url>
     <loc>https://fynla.org/compare/fynla-vs-financial-centralisation-platform</loc>
