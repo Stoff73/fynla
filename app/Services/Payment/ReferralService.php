@@ -148,7 +148,7 @@ class ReferralService
         $isMonthly = $billingCycle === 'monthly';
 
         $refereeSub = $referee->subscription;
-        if ($refereeSub) {
+        if ($refereeSub && $refereeSub->current_period_end) {
             $refereeSub->update([
                 'current_period_end' => $isMonthly
                     ? $refereeSub->current_period_end->addWeek()
@@ -156,8 +156,10 @@ class ReferralService
             ]);
         }
 
+        // Refresh referrer's subscription to get latest data (confirmPayment may have just updated it)
+        $referrer->load('subscription');
         $referrerSub = $referrer->subscription;
-        if ($referrerSub) {
+        if ($referrerSub && $referrerSub->current_period_end) {
             $referrerSub->update([
                 'current_period_end' => $isMonthly
                     ? $referrerSub->current_period_end->addWeek()

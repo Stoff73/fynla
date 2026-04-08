@@ -400,7 +400,7 @@ class PaymentController extends Controller
                 if ($user->referred_by_code) {
                     try {
                         $this->referralService->applyReferralBonus($user, $payment->billing_cycle);
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         Log::error('Failed to apply referral bonus', [
                             'user_id' => $user->id,
                             'referred_by_code' => $user->referred_by_code,
