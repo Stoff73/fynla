@@ -163,7 +163,7 @@
             <p class="text-body-sm text-neutral-500 mb-6">
               {{ isUpgrade
                 ? `You have been upgraded to the ${planDisplayName} plan.`
-                : `Your ${planDisplayName} plan is now active. Enjoy full access to all features.`
+                : `Your ${planDisplayName} plan is now active.`
               }}
             </p>
             <button
