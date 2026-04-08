@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 7 April 2026 — session 38*
-*Previous session: 5 April 2026 session 37 (evening)*
+*Last updated: 8 April 2026 — session 47*
+*Previous session: 8 April 2026 session 46*
 
 ---
 
@@ -39,13 +39,28 @@
 - [x] **PR #193 merged + deployed to production** — 221 files, includes estateDash + code review fixes
 - [x] **PR #190 deployed** — was included in estateDash branch
 
+### Session 47 (8 April evening) — PRs, Revolut Live, Bug Fixes, Token Upgrade
+
+- [x] **PRs reviewed + merged** — #197 (ISA guide + retirement articles from Brett), #198 (Fyn icon Vite bundling from Phailanx)
+- [x] **Settings.json fix** — reverted Windows stop hook path to Mac path (PR #198 broke it)
+- [x] **Revolut sandbox → live** — live API keys, webhook created via API, card payments enabled, .env updated
+- [x] **aiChat session leakage fix** — Fyn store never reset on login/logout/register (PR #200)
+- [x] **Invoice webhook race condition fix** — webhook beats confirmPayment, invoice skipped; now checks invoice_id===null (PR #200, Pest tested)
+- [x] **Dashboard UI polish** — progress bar labels moved above bars, journey complete state hides step count, "Start a new journey" link, portfolio projection double border removed (PR #201)
+- [x] **Token limits doubled** — student 300k, standard 1M, family 1.5M, pro 2M (PR #202)
+- [x] **Token limit UI** — violet info box with live countdown to midnight reset, input disabled (PR #202)
+- [x] **All deployed to fynla.org** — PRs #200, #201, #202 + invoice PDF template + Revolut live config
+
 ### NOT Done — Outstanding
 - [ ] **Clean up `.claude/worktrees/tax` directory** — no longer needed, branch merged
-- [ ] **Delete `tax` and `estateDash` branches** locally and on origin (already merged to main)
+- [ ] **Delete `tax`, `estateDash`, `revolutLive`, `uiFixes`, `fynUpgrade` branches** locally and on origin (all merged)
+- [ ] **Invoice PDF template was stale on production** — "UK Financial Planning" instead of "Your financial companion for life". Uploaded correct version this session but verify it's rendering correctly on next payment.
+- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — payment completed but no invoice generated due to the race condition. Need to manually generate and email.
+- [ ] **PR #197 cleanup** — 9 markdown files dumped in repo root (faq.md, how-it-works.md, etc.) should be moved to Articles/ or removed
 - [ ] **Consider adding HistoricalTaxYearSeeder overrides for 2021/22-2023/24** — BPA values for these years may now show 2025/26's 3130 instead of their true historical values (scope creep deferred)
 
 ### Context for Next Session
-**PR #193 deployed to production 7 April 2026.** Includes estate dashboard redesign (3-col card grid), cookie consent, spouse lifecycle, code review fixes (48/68), and all prior estateDash work. Deploy guide at `April/April7Updates/estateBranchDeploy.md`.
+**Revolut is LIVE on production.** Real card payments processing. Invoice webhook race condition fixed. Token limits doubled with countdown UI. All PRs merged and deployed. Production `dc_pensions` table missing `current_value` column (repeated LifeStageService errors in logs). The `fynNew` branch (25 Fyn Response Architecture commits) is still unmerged — parallel track.
 
 ---
 
@@ -112,3 +127,9 @@
 - **Tax branch (f646f88..19f7d23):** Deployed to fynla.org (session 37). 2026/27 active.
 - **PR #193 (estateDash):** Deployed to fynla.org 7 April 2026. Estate redesign + code review fixes + cookie consent + spouse lifecycle. Deploy guide at `April/April7Updates/estateBranchDeploy.md`.
 - **fynNew branch:** 25 Fyn Response Architecture commits still unmerged (parallel track)
+- **PR #197 (brett-v1):** Merged 8 April 2026. ISA guide + retirement planning articles.
+- **PR #198 (adhoc-changes-3):** Merged 8 April 2026. Fyn icon bundled via Vite + mega menu fix. Settings.json path fixed post-merge.
+- **PR #200 (revolutLive):** Deployed to fynla.org 8 April 2026. Invoice webhook race condition fix + aiChat session leakage fix.
+- **PR #201 (uiFixes):** Deployed to fynla.org 8 April 2026. Dashboard progress bar labels, journey complete state, portfolio projection double border.
+- **Revolut Live:** Switched from sandbox to production 8 April 2026. Live webhook created, card payments enabled.
+- **PR #202 (fynUpgrade):** Deployed to fynla.org 8 April 2026. Token limits doubled, token limit UI with countdown, new token-usage endpoint.
