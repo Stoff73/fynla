@@ -368,9 +368,6 @@
               </div>
             </div>
 
-            <!-- 6-month sparkline -->
-            <DashboardSparkline :data="savingsSparklineData" />
-
             <!-- Collapsible accounts -->
             <div class="border-t border-light-gray pt-2">
               <button
@@ -397,7 +394,7 @@
                   <span class="text-neutral-500 truncate mr-2">{{ acc.account_name || acc.provider }}</span>
                   <span class="font-medium text-horizon-500 whitespace-nowrap">{{ formatCurrency(acc.current_balance) }}</span>
                 </div>
-                <div v-if="savingsAccountCount > 3" class="text-center pt-1">
+                <div v-if="savingsAccountCount > 5" class="text-center pt-1">
                   <router-link
                     to="/net-worth/cash"
                     class="text-xs font-semibold text-horizon-500 hover:text-horizon-600"
@@ -961,7 +958,7 @@ export default {
       mfaBannerDismissed: sessionStorage.getItem('mfaBannerDismissed') === 'true',
       knowledgeNudgeDismissed: storage.get('knowledgeNudgeDismissed') === 'true',
       savingKnowledgeLevel: false,
-      savingsAccountsExpanded: false,
+      savingsAccountsExpanded: true,
       investmentAccountsExpanded: false,
       financialCommitmentsData: null,
       willSelection: null,
@@ -1824,7 +1821,7 @@ export default {
         (b.current_balance || 0) - (a.current_balance || 0) || (a.account_name || a.provider || '').localeCompare(b.account_name || b.provider || '')
       );
       if (!this.savingsAccountsExpanded) return [];
-      return sorted.slice(0, 3);
+      return sorted.slice(0, 5);
     },
 
     investmentBarData() {
