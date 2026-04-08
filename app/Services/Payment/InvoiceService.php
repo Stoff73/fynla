@@ -49,7 +49,7 @@ class InvoiceService
             'period_end' => $subscription->current_period_end,
             'next_renewal_date' => $subscription->auto_renew ? $nextRenewalDate : null,
             'issued_at' => now(),
-            'billing_name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
+            'billing_name' => trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')),
             'billing_address' => $this->buildAddress($user),
             'billing_email' => $user->email,
         ]);

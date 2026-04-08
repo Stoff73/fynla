@@ -42,7 +42,7 @@ class RevolutSubscriptionService
         $response = Http::withHeaders($this->headers())
             ->post("{$this->apiUrl}/customers", [
                 'email' => $user->email,
-                'full_name' => trim("{$user->first_name} {$user->last_name}"),
+                'full_name' => trim("{$user->first_name} {$user->surname}"),
             ]);
 
         if ($response->failed()) {
