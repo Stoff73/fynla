@@ -3,6 +3,12 @@
  *
  * Use this instead of direct localStorage/sessionStorage access in components.
  * Handles cases where storage is unavailable (private browsing, quota exceeded).
+ *
+ * SECURITY: The default get/set/remove methods use localStorage which persists
+ * beyond the browser session. ONLY use for UI preferences (collapsed states,
+ * dismissed banners, menu positions). NEVER store financial data, PII, or
+ * auth tokens here — use tokenStorage.js for auth, and the Vuex store for
+ * financial data. Use storage.session.* for data that should not persist.
  */
 const storage = {
   get(key, fallback = null) {

@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class MFAController extends Controller
@@ -48,6 +49,8 @@ class MFAController extends Controller
         Cache::put("mfa_setup_secret:{$user->id}", $secret, 300);
 
         $qrCodeDataUri = $this->mfaService->getQRCodeDataUri($user, $secret);
+
+        Log::info('[MFA] Setup initiated — secret generated', ['user_id' => $user->id]);
 
         return response()->json([
             'success' => true,

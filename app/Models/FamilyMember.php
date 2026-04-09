@@ -30,7 +30,8 @@ class FamilyMember extends Model
         'last_name',
         'date_of_birth',
         'gender',
-        'national_insurance_number',
+        // SECURITY: national_insurance_number intentionally excluded from $fillable.
+        // Set explicitly in FamilyMembersController to prevent mass assignment of PII.
         'annual_income',
         'is_dependent',
         'education_status',
