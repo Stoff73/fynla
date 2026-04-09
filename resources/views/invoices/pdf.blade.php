@@ -136,6 +136,8 @@
             <p>Thank you for choosing Fynla.</p>
             <p style="margin-top: 4px;">Questions? Contact us at <a href="mailto:support@fynla.org">support@fynla.org</a></p>
             <p style="margin-top: 8px; font-size: 11px;">Payment processed by Revolut &bull; Currency: {{ $invoice->currency }}</p>
+            <p style="margin-top: 16px; font-size: 11px; color: #717171;">Fynla Limited is registered in England &amp; Wales, Company Number: 16903721</p>
+            <p style="font-size: 11px; color: #717171;">Registered address: 124 City Road, London, England, EC1V 2NX</p>
         </div>
     </div>
 </body>
