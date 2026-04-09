@@ -344,6 +344,9 @@ export default {
       storage.remove('preview_persona_id');
       storage.remove('preview_mode');
 
+      // CRITICAL: Reset aiChat state to prevent any prior user's conversation leaking
+      store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
+
       // Route based on registration source
       const fromParam = route.query.from;
       const stageParam = route.query.stage;

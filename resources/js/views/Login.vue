@@ -254,6 +254,10 @@ export default {
         if (response.data.data?.access_token) {
           await authService.setToken(response.data.data.access_token);
           store.commit('auth/setToken', response.data.data.access_token);
+
+          // CRITICAL: Reset aiChat state to prevent prior user's conversation leaking
+          store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
+
           await store.dispatch('auth/fetchUser');
           if (typeof gtag === 'function') {
             gtag('event', 'login_success');
@@ -284,6 +288,9 @@ export default {
       await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
 
+      // CRITICAL: Reset aiChat state to prevent prior user's conversation leaking
+      store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
+
       // Fetch user data fresh from API (sets user, role, and permissions)
       await store.dispatch('auth/fetchUser');
       if (typeof gtag === 'function') {
@@ -310,6 +317,9 @@ export default {
       // Store the token
       await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
+
+      // CRITICAL: Reset aiChat state to prevent prior user's conversation leaking
+      store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
 
       // Fetch user data fresh from API (sets user, role, and permissions)
       await store.dispatch('auth/fetchUser');
