@@ -56,7 +56,7 @@
           <!-- Student Plan -->
           <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-white mb-1">Student</h3>
+              <h3 class="text-2xl font-bold text-white mb-1">Student</h3>
               <p class="text-sm text-white/60">Get started with the essentials</p>
             </div>
 
@@ -126,7 +126,7 @@
           <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
 
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-white mb-1">Standard</h3>
+              <h3 class="text-2xl font-bold text-white mb-1">Standard</h3>
               <p class="text-sm text-white/60">Full platform access</p>
             </div>
 
@@ -198,7 +198,7 @@
               <span class="px-4 py-1.5 bg-raspberry-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
             </div>
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-white mb-1">Family</h3>
+              <h3 class="text-2xl font-bold text-white mb-1">Family</h3>
               <p class="text-sm text-white/60">Plan together as a household</p>
             </div>
 
@@ -243,7 +243,7 @@
           <!-- Pro Plan -->
           <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
             <div class="mb-6">
-              <h3 class="text-lg font-semibold text-white mb-1">Pro</h3>
+              <h3 class="text-2xl font-bold text-white mb-1">Pro</h3>
               <p class="text-sm text-white/60">For power users who need it all</p>
             </div>
 
