@@ -1979,6 +1979,8 @@ class CoordinatingAgent extends BaseAgent
 
     private function checkForDuplicate(string $modelClass, int $userId, string $nameField, string $nameValue): ?array
     {
+        // SECURITY: $allowedColumns is a whitelist preventing SQL injection in the whereRaw below.
+        // NEVER add user-supplied strings to this array — only hardcoded column names.
         $allowedColumns = ['first_name', 'surname', 'name', 'email', 'asset_name', 'liability_name', 'trust_name', 'scheme_name', 'provider', 'account_name', 'policy_name', 'gift_type'];
         if (! in_array($nameField, $allowedColumns, true)) {
             throw new \InvalidArgumentException("Invalid column name: {$nameField}");
