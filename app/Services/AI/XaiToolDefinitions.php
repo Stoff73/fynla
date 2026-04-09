@@ -876,7 +876,7 @@ class XaiToolDefinitions
                     ],
                     'fields' => [
                         'type' => 'object',
-                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status, occupation, employer, annual_employment_income. For domicile: country_of_birth, uk_arrival_date. Do NOT include any spending or expenditure keys here.',
+                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status (MUST be one of: employed, full_time, part_time, self_employed, retired, unemployed, other), occupation, employer, annual_employment_income. For domicile: country_of_birth, uk_arrival_date. Do NOT include any spending or expenditure keys here.',
                         'additionalProperties' => true,
                     ],
                 ],

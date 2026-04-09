@@ -52,6 +52,10 @@ export default {
 
             let text = this.escapeHtml(this.message.content);
 
+            // Headings: ### text, ## text (before bold/italic to prevent conflicts)
+            text = text.replace(/^###\s+(.+)$/gm, '<h4 class="font-bold text-horizon-500 text-sm mt-3 mb-1">$1</h4>');
+            text = text.replace(/^##\s+(.+)$/gm, '<h3 class="font-bold text-horizon-500 text-base mt-3 mb-1">$1</h3>');
+
             // Bold: **text**
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 

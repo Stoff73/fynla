@@ -263,6 +263,7 @@ export default {
                 // switchPersona will reload the page
             } catch (error) {
                 logger.error('Failed to switch persona:', error);
+            } finally {
                 this.switching = false;
             }
         },
@@ -280,6 +281,7 @@ export default {
                 // toggleSpouseView will reload the page via switchPersona
             } catch (error) {
                 logger.error('Failed to toggle spouse view:', error);
+            } finally {
                 this.switchingSpouse = false;
             }
         },

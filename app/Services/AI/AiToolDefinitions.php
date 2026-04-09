@@ -961,7 +961,7 @@ class AiToolDefinitions
                         ],
                         'fields' => [
                             'type' => 'object',
-                            'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth (YYYY-MM-DD), gender (male/female/other), marital_status (single/married/divorced/widowed), phone, address_line_1, city, postcode. For income_occupation: employment_status (employed/self_employed/retired/unemployed), occupation, employer, annual_employment_income, annual_self_employment_income. For expenditure: monthly_expenditure, annual_expenditure. For domicile: country_of_birth, uk_arrival_date.',
+                            'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth (YYYY-MM-DD), gender (male/female/other), marital_status (single/married/divorced/widowed), phone, address_line_1, city, postcode. For income_occupation: employment_status (employed/full_time/part_time/self_employed/retired/unemployed/other), occupation, employer, annual_employment_income, annual_self_employment_income. For expenditure: monthly_expenditure, annual_expenditure. For domicile: country_of_birth, uk_arrival_date.',
                             'additionalProperties' => true,
                         ],
                     ],
