@@ -56,14 +56,6 @@ class InvestmentScenario extends Model
     }
 
     /**
-     * Scope to get completed scenarios
-     */
-    public function scopeCompleted(Builder $query): Builder
-    {
-        return $query->where('status', 'completed');
-    }
-
-    /**
      * Scope to get scenarios by type
      */
     public function scopeOfType(Builder $query, string $type): Builder
@@ -71,41 +63,4 @@ class InvestmentScenario extends Model
         return $query->where('scenario_type', $type);
     }
 
-    /**
-     * Check if scenario is completed
-     */
-    public function isCompleted(): bool
-    {
-        return $this->status === 'completed';
-    }
-
-    /**
-     * Check if scenario is running
-     */
-    public function isRunning(): bool
-    {
-        return $this->status === 'running';
-    }
-
-    /**
-     * Mark scenario as completed
-     */
-    public function markAsCompleted(array $results): void
-    {
-        $this->update([
-            'status' => 'completed',
-            'results' => $results,
-            'completed_at' => now(),
-        ]);
-    }
-
-    /**
-     * Mark scenario as failed
-     */
-    public function markAsFailed(): void
-    {
-        $this->update([
-            'status' => 'failed',
-        ]);
-    }
 }

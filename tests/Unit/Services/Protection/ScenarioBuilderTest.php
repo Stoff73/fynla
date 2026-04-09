@@ -19,6 +19,10 @@ beforeEach(function () {
     $this->builder = new ScenarioBuilder($mockTaxConfig);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('modelDeathScenario', function () {
     it('calculates death scenario with sufficient coverage', function () {
         $user = User::factory()->create();

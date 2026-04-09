@@ -123,6 +123,10 @@ beforeEach(function () {
     ]);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('getCompleteProfile', function () {
     it('returns complete user profile with all sections', function () {
         $profile = $this->service->getCompleteProfile($this->user);

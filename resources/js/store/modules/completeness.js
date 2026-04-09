@@ -45,67 +45,15 @@ const getters = {
   },
 
   /**
-   * User-friendly guidance text for a blocked module.
-   */
-  moduleGuidance: (state) => (module) => {
-    return state.modules[module]?.guidance ?? '';
-  },
-
-  /**
-   * Actions the user can take to unblock a module.
-   */
-  moduleActions: (state) => (module) => {
-    return state.modules[module]?.required_actions ?? [];
-  },
-
-  /**
    * All module statuses.
    */
   allModules: (state) => state.modules,
-
-  /**
-   * Count of modules with any data (display level).
-   */
-  modulesWithData: (state) => {
-    return Object.values(state.modules).filter(m => m.has_data).length;
-  },
-
-  /**
-   * Count of modules ready for advice.
-   */
-  modulesReadyForAdvice: (state) => {
-    return Object.values(state.modules).filter(m => m.can_advise).length;
-  },
-
-  /**
-   * Overall completeness percentage based on advice readiness.
-   * 7 modules total.
-   */
-  overallAdviceReadiness: (state) => {
-    const total = Object.keys(state.modules).length || 7;
-    const ready = Object.values(state.modules).filter(m => m.can_advise).length;
-    return Math.round((ready / total) * 100);
-  },
 
   /**
    * Field-level completeness percentage for a module (from DataReadiness).
    */
   moduleCompleteness: (state) => (module) => {
     return state.modules[module]?.completeness_percent ?? 0;
-  },
-
-  /**
-   * Blocking checks that failed for a module (field-level detail).
-   */
-  moduleBlocking: (state) => (module) => {
-    return (state.modules[module]?.blocking ?? []).filter(c => !c.passed);
-  },
-
-  /**
-   * Warning checks that failed for a module.
-   */
-  moduleWarnings: (state) => (module) => {
-    return (state.modules[module]?.warnings ?? []).filter(c => !c.passed);
   },
 
   /**

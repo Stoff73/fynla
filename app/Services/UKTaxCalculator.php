@@ -425,23 +425,27 @@ class UKTaxCalculator
     {
         $trustsConfig = $this->taxConfig->getTrusts();
 
-        // Determine tax rate based on trust type
-        $taxRate = 0.45; // Default to discretionary rate
+        // Default to discretionary rate from config; fall back to additional income rate band
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $additionalRateFallback = (float) ($incomeTaxBands['bands'][2]['rate'] ?? 0.45);
+        $taxRate = (float) ($trustsConfig['income_tax']['discretionary']['standard_rate'] ?? $additionalRateFallback);
         $trustTypeLabel = 'Discretionary Trust';
-        $taxDescription = 'Tax paid by trust at 45%';
+        $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
+
+        $basicRateFallback = (float) ($incomeTaxBands['bands'][0]['rate'] ?? 0.20);
 
         switch ($trustType) {
             case 'discretionary':
             case 'accumulation_maintenance':
-                $taxRate = $trustsConfig['income_tax']['discretionary']['standard_rate'] ?? 0.45;
+                $taxRate = (float) ($trustsConfig['income_tax']['discretionary']['standard_rate'] ?? $additionalRateFallback);
                 $trustTypeLabel = $trustType === 'discretionary' ? 'Discretionary Trust' : 'Accumulation & Maintenance Trust';
-                $taxDescription = 'Tax paid by trust at 45%';
+                $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
                 break;
 
             case 'interest_in_possession':
-                $taxRate = $trustsConfig['income_tax']['interest_in_possession']['standard_rate'] ?? 0.20;
+                $taxRate = (float) ($trustsConfig['income_tax']['interest_in_possession']['standard_rate'] ?? $basicRateFallback);
                 $trustTypeLabel = 'Interest in Possession Trust';
-                $taxDescription = 'Tax paid by trust at 20%';
+                $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
                 break;
 
             case 'bare':
@@ -469,8 +473,8 @@ class UKTaxCalculator
 
             default:
                 // Default to discretionary rates for unknown types
-                $taxRate = 0.45;
-                $taxDescription = 'Tax paid by trust at 45%';
+                $taxRate = (float) ($trustsConfig['income_tax']['discretionary']['standard_rate'] ?? $additionalRateFallback);
+                $taxDescription = 'Tax paid by trust at '.number_format($taxRate * 100, 0).'%';
         }
 
         $taxPaidByTrust = round($trustIncome * $taxRate, 2);

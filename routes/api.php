@@ -1124,18 +1124,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])
 // Returns just the tax year label and effective dates so the frontend knows
 // which year to display and calculate allowances against. No sensitive admin
 // config is exposed here (that stays behind permission:admin.tax_config below).
-Route::middleware('auth:sanctum')->get('tax-year/current', function () {
-    $taxConfig = app(\App\Services\TaxConfigService::class);
-
-    return response()->json([
-        'success' => true,
-        'data' => [
-            'tax_year' => $taxConfig->getTaxYear(),
-            'effective_from' => $taxConfig->getEffectiveFrom(),
-            'effective_to' => $taxConfig->getEffectiveTo(),
-        ],
-    ]);
-});
+Route::middleware('auth:sanctum')->get('tax-year/current', [\App\Http\Controllers\Api\TaxYearController::class, 'current']);
 
 // Tax Settings routes (requires tax config permission)
 Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {

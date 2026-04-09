@@ -92,15 +92,14 @@ const authService = {
   },
 
   /**
-   * Clear all authentication data from both token storage and localStorage
+   * Clear all authentication data from token storage and localStorage
    * Comprehensive cleanup to prevent any data leakage between sessions
    */
   async clearAuth() {
-    // Clear token storage (primary location)
+    // Clear token via tokenStorage abstraction layer (handles web + native)
     await removeToken();
 
-    // Clear any legacy localStorage data
-    localStorage.removeItem('auth_token');
+    // Clear any legacy localStorage data (non-auth keys)
     localStorage.removeItem('user');
 
     // Clear ALL user-specific localStorage keys (financial data, accounts, etc.)

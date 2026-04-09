@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Constants\TaxDefaults;
 use App\Models\ActuarialLifeTable;
 use App\Models\Estate\Trust;
 use App\Services\TaxConfigService;
@@ -155,8 +156,8 @@ class TrustService
         // Default rates for discretionary trusts (from config, with fallbacks)
         $discretionaryConfig = $trustsConfig['income_tax']['discretionary'] ?? [];
         $incomeTaxRates = [
-            'standard_rate' => $discretionaryConfig['standard_rate'] ?? 0.45,
-            'dividend_rate' => $discretionaryConfig['dividend_rate'] ?? 0.3935,
+            'standard_rate' => (float) ($discretionaryConfig['standard_rate'] ?? $this->taxConfig->getIncomeTax()['additional_rate'] ?? 0.45),
+            'dividend_rate' => (float) ($discretionaryConfig['dividend_rate'] ?? TaxDefaults::DIVIDEND_ADDITIONAL_RATE),
         ];
 
         // Determine income tax treatment based on trust type
@@ -193,8 +194,8 @@ class TrustService
         } else {
             // Discretionary and accumulation trusts
             $incomeTaxRates = $trustsConfig['income_tax']['discretionary'] ?? [
-                'standard_rate' => 0.45,
-                'dividend_rate' => 0.3935,
+                'standard_rate' => $this->taxConfig->getIncomeTax()['additional_rate'] ?? 0.45,
+                'dividend_rate' => TaxDefaults::DIVIDEND_ADDITIONAL_RATE,
             ];
         }
 

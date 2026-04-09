@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Tax;
 
+use App\Constants\TaxDefaults;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Services\TaxConfigService;
@@ -41,7 +42,7 @@ class CGTHarvestingCalculator
 
         $cgtAllowance = $options['cgt_allowance'] ?? $cgtConfig['annual_exempt_amount'];
         $expectedGains = $options['expected_gains'] ?? 0;
-        $taxRate = $options['tax_rate'] ?? 0.20;
+        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['higher_rate'] ?? TaxDefaults::CGT_HIGHER_RATE);
         $lossCarryforward = $options['loss_carryforward'] ?? 0;
 
         // Get all non-ISA holdings with losses

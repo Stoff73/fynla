@@ -128,7 +128,7 @@
       <div>
         <p class="text-sm font-bold text-raspberry-900">Money Purchase Annual Allowance Triggered</p>
         <p class="text-sm text-raspberry-800 mt-1">
-          Your annual allowance is reduced to £10,000 because you've accessed pension benefits flexibly.
+          Your annual allowance is reduced to £{{ mpaaLimit.toLocaleString() }} because you've accessed pension benefits flexibly.
           Carry forward is not available under the Money Purchase Annual Allowance.
         </p>
       </div>
@@ -152,7 +152,7 @@
 <script>
 import { mapState } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
+import { ANNUAL_ALLOWANCE, MONEY_PURCHASE_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 import logger from '@/utils/logger';
 export default {
@@ -162,6 +162,7 @@ export default {
   data() {
     return {
       selectedTaxYear: getCurrentTaxYear(),
+      mpaaLimit: MONEY_PURCHASE_ANNUAL_ALLOWANCE,
     };
   },
 
@@ -187,7 +188,7 @@ export default {
     currentAllowance() {
       // Check if MPAA triggered
       if (this.mpaaTriggered) {
-        return 10000;
+        return MONEY_PURCHASE_ANNUAL_ALLOWANCE;
       }
       // Check if tapered
       if (this.isTapered) {

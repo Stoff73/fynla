@@ -12,14 +12,6 @@ export default {
     },
 
     /**
-     * Get asset breakdown with percentages
-     */
-    async getBreakdown() {
-        const response = await api.get(`${API_BASE}/breakdown`);
-        return response.data;
-    },
-
-    /**
      * Get assets summary
      */
     async getAssetsSummary() {

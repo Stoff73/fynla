@@ -90,6 +90,10 @@ beforeEach(function () {
     $this->analyzer = new CoverageGapAnalyzer($taxCalculator, $mockTaxConfig);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('calculateHumanCapital', function () {
     it('calculates life cover capital using sustainable drawdown at 4.7%', function () {
         $annualIncomeNeed = 50000;

@@ -366,6 +366,7 @@ import investmentService from '@/services/investmentService';
 import ISATransferModal from './ISATransferModal.vue';
 import HarvestLossModal from './HarvestLossModal.vue';
 import BedAndISAWizardModal from './BedAndISAWizardModal.vue';
+import { CGT_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -418,13 +419,13 @@ export default {
 
     cgtExcess() {
       const gains = this.currentPosition.net_unrealized_gains || 0;
-      const allowance = this.currentPosition.cgt_allowance || 3000;
+      const allowance = this.currentPosition.cgt_allowance || CGT_ANNUAL_ALLOWANCE;
       return Math.max(0, gains - allowance);
     },
 
     cgtAllowanceRemaining() {
       const gains = this.currentPosition.net_unrealized_gains || 0;
-      const allowance = this.currentPosition.cgt_allowance || 3000;
+      const allowance = this.currentPosition.cgt_allowance || CGT_ANNUAL_ALLOWANCE;
       return Math.max(0, allowance - gains);
     },
 

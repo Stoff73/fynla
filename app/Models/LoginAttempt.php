@@ -82,38 +82,6 @@ class LoginAttempt extends Model
     }
 
     /**
-     * Scope to filter by email
-     */
-    public function scopeByEmail(Builder $query, string $email): Builder
-    {
-        return $query->where('email', $email);
-    }
-
-    /**
-     * Scope to filter by IP
-     */
-    public function scopeByIp(Builder $query, string $ip): Builder
-    {
-        return $query->where('ip_address', $ip);
-    }
-
-    /**
-     * Scope for failed attempts
-     */
-    public function scopeFailed(Builder $query): Builder
-    {
-        return $query->where('successful', false);
-    }
-
-    /**
-     * Scope for successful attempts
-     */
-    public function scopeSuccessful(Builder $query): Builder
-    {
-        return $query->where('successful', true);
-    }
-
-    /**
      * Scope for recent attempts
      */
     public function scopeRecent(Builder $query, int $minutes = 60): Builder

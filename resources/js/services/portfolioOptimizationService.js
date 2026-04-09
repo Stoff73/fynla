@@ -19,15 +19,6 @@ const portfolioOptimizationService = {
     },
 
     /**
-     * Get current portfolio position relative to efficient frontier
-     * @returns {Promise} Current portfolio metrics and improvement opportunities
-     */
-    async getCurrentPosition() {
-        const response = await api.get('/investment/optimization/current-position');
-        return response.data;
-    },
-
-    /**
      * Optimise portfolio for minimum variance
      * @param {Object} constraints - Optional constraints
      * @param {Number} constraints.min_weight - Minimum weight per asset (0-1)
@@ -138,29 +129,6 @@ const portfolioOptimizationService = {
     },
 
     /**
-     * Get portfolio diversification metrics
-     * @returns {Promise} Diversification score and analysis
-     */
-    async getDiversificationMetrics() {
-        // This endpoint will be added later
-        const response = await api.get('/investment/optimization/diversification');
-        return response.data;
-    },
-
-    /**
-     * Compare current portfolio to optimal allocation
-     * Returns specific rebalancing trades needed
-     * @param {String} optimizationType - 'min_variance', 'max_sharpe', etc.
-     * @returns {Promise} Rebalancing recommendations
-     */
-    async getRebalancingRecommendations(optimizationType = 'max_sharpe') {
-        const response = await api.post('/investment/optimization/rebalancing-actions', {
-            optimization_type: optimizationType
-        });
-        return response.data;
-    },
-
-    /**
      * Helper: Format portfolio weights for display
      * @param {Object} portfolio - Portfolio object from optimization
      * @param {Array} holdings - Holdings array with asset names
@@ -179,37 +147,7 @@ const portfolioOptimizationService = {
         })).filter(item => item.weight > 0.001); // Filter out tiny allocations
     },
 
-    /**
-     * Helper: Calculate portfolio metrics
-     * @param {Array} weights - Portfolio weights
-     * @param {Array} expectedReturns - Expected returns for each asset
-     * @param {Array} covarianceMatrix - Covariance matrix
-     * @returns {Object} Portfolio metrics {return, risk, sharpe}
-     */
-    calculatePortfolioMetrics(weights, expectedReturns, covarianceMatrix) {
-        // Portfolio return = sum(weight * return)
-        const portfolioReturn = weights.reduce((sum, w, i) => sum + w * expectedReturns[i], 0);
-
-        // Portfolio variance = w^T * Cov * w
-        let portfolioVariance = 0;
-        for (let i = 0; i < weights.length; i++) {
-            for (let j = 0; j < weights.length; j++) {
-                portfolioVariance += weights[i] * weights[j] * covarianceMatrix[i][j];
-            }
-        }
-        const portfolioRisk = Math.sqrt(portfolioVariance);
-
-        // Sharpe ratio (assuming risk-free rate of 4.5%)
-        const riskFreeRate = 0.045;
-        const sharpe = portfolioRisk > 0 ? (portfolioReturn - riskFreeRate) / portfolioRisk : 0;
-
-        return {
-            expected_return: portfolioReturn,
-            expected_risk: portfolioRisk,
-            sharpe_ratio: sharpe
-        };
-    },
-
 };
+
 
 export default portfolioOptimizationService;

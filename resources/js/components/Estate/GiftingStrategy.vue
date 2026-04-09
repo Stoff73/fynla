@@ -40,7 +40,7 @@
         </div>
         <div class="bg-white rounded-lg p-4 border border-light-gray">
           <p class="text-sm text-violet-700 mb-1 font-medium">Annual Exemption</p>
-          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">£3,000/year</p>
+          <p class="text-lg sm:text-xl lg:text-2xl font-bold text-violet-900">£{{ annualExemption.toLocaleString() }}/year</p>
           <p class="text-xs text-violet-600">Immediately exempt gifts</p>
         </div>
         <div class="bg-white rounded-lg p-4 border border-light-gray">
@@ -460,6 +460,7 @@ import GiftForm from './GiftForm.vue';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
+import { ANNUAL_GIFT_EXEMPTION } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -478,7 +479,7 @@ export default {
       showGiftForm: false,
       currentGift: null,
       formMode: 'create',
-      annualExemption: 3000,
+      annualExemption: ANNUAL_GIFT_EXEMPTION,
       successMessage: '',
       errorMessage: '',
       messageTimeout: null,

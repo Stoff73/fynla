@@ -298,11 +298,15 @@ class DecumulationPlanner
             'strategy' => 'Consider purchasing annuity with remaining DC pot for security',
         ];
 
+        $incomeTax = $this->taxConfig->getIncomeTax();
+        $personalAllowance = (int) ($incomeTax['personal_allowance'] ?? 12570);
+        $higherRateThreshold = (int) ($incomeTax['higher_rate_threshold'] ?? 50270);
+
         return [
             'phasing_strategy' => $phasingStrategy,
             'tax_efficiency_tips' => [
-                'Use personal allowance (£12,570) efficiently each year',
-                'Avoid breaching higher rate threshold (£50,270) if possible',
+                'Use personal allowance (£'.number_format($personalAllowance).') efficiently each year',
+                'Avoid breaching higher rate threshold (£'.number_format($higherRateThreshold).') if possible',
                 'Coordinate pension income with part-time work if applicable',
                 'Consider spousal income splitting opportunities',
             ],

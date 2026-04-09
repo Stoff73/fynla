@@ -266,7 +266,7 @@
           <div class="space-y-2 text-xs">
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Annual Exemption:</span>
-              <span class="font-bold text-spring-700">£3,000</span>
+              <span class="font-bold text-spring-700">£{{ annualGiftExemption.toLocaleString() }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-neutral-500">Small Gift Allowance:</span>
@@ -530,7 +530,7 @@
               Your estate has a potential Inheritance Tax liability of {{ formatCurrency(ihtData?.iht_liability || 0) }}. Consider these strategies:
             </p>
             <ul class="list-disc list-inside space-y-1">
-              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£3,000/year)</li>
+              <li>Regular gifting using Potentially Exempt Transfers and annual exemptions (£{{ annualGiftExemption.toLocaleString() }}/year)</li>
               <li>Charitable giving (can reduce Inheritance Tax rate from 40% to 36% if ≥10% to charity)</li>
               <li>Trust planning to remove assets from your estate</li>
               <li>Life insurance policies written in trust to cover Inheritance Tax liability</li>
@@ -650,7 +650,7 @@ import LetterEstateWarnings from './LetterEstateWarnings.vue';
 import estateService from '../../services/estateService';
 import userProfileService from '../../services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { IHT_NIL_RATE_BAND, IHT_STANDARD_RATE, IHT_REDUCED_RATE } from '@/constants/taxConfig';
+import { IHT_NIL_RATE_BAND, IHT_STANDARD_RATE, IHT_REDUCED_RATE, ANNUAL_GIFT_EXEMPTION } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -679,6 +679,7 @@ export default {
 
   data() {
     return {
+      annualGiftExemption: ANNUAL_GIFT_EXEMPTION,
       ihtData: null,
       secondDeathData: null,
       projection: null,
@@ -842,7 +843,7 @@ export default {
               : 'Review your estate plan to ensure the additional funds are efficiently allocated',
             priority: event.projected_iht_change > 10000 ? 'high' : 'medium',
           });
-        } else if (!isIncome && event.event_type === 'gift_given' && amount >= 3000) {
+        } else if (!isIncome && event.event_type === 'gift_given' && amount >= ANNUAL_GIFT_EXEMPTION) {
           triggers.push({
             event_name: event.event_name,
             reason: 'Planned gift of ' + this.formatCurrency(amount) + ' is a Potentially Exempt Transfer',

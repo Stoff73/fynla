@@ -35,16 +35,6 @@ const advisorService = {
     },
 
     /**
-     * Get module summaries for a specific client
-     * @param {Number} id - Client ID
-     * @returns {Promise} Client module data
-     */
-    async getClientModules(id) {
-        const response = await api.get(`/advisor/clients/${id}/modules`);
-        return response.data;
-    },
-
-    /**
      * Enter a client context (impersonation)
      * @param {Number} id - Client ID
      * @returns {Promise} Impersonation session data
@@ -103,14 +93,6 @@ const advisorService = {
         return response.data;
     },
 
-    /**
-     * Get advisor reports
-     * @returns {Promise} Reports data
-     */
-    async getReports() {
-        const response = await api.get('/advisor/reports');
-        return response.data;
-    },
 };
 
 export default advisorService;

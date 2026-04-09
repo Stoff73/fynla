@@ -217,7 +217,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-spring-700">Less: Annual Exempt Amount:</dt>
-              <dd class="text-sm font-medium text-spring-900">-£3,000</dd>
+              <dd class="text-sm font-medium text-spring-900">-£{{ cgtAnnualAllowance.toLocaleString() }}</dd>
             </div>
             <div class="flex justify-between border-t border-spring-300 pt-2">
               <dt class="text-sm font-semibold text-spring-700">Taxable Gain:</dt>
@@ -310,6 +310,7 @@
 import { mapActions } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { CGT_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'PropertyTaxCalculator',
@@ -324,6 +325,7 @@ export default {
 
   data() {
     return {
+      cgtAnnualAllowance: CGT_ANNUAL_ALLOWANCE,
       activeCalculator: 'sdlt',
       calculatorTabs: [
         { id: 'sdlt', label: 'Stamp Duty' },

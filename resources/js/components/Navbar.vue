@@ -304,7 +304,7 @@ import { fynIconUrl } from '@/constants/fynIcon';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Navbar',
+  name: 'AppNavbar',
 
   emits: ['open-chat', 'open-plan-modal'],
 

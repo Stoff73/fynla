@@ -110,7 +110,7 @@ import { mapState } from 'vuex';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'Recommendations',
+  name: 'RetirementRecommendations',
 
   data() {
     return {

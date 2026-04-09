@@ -109,9 +109,8 @@ api.interceptors.response.use(
 
         if (!isAuthEndpoint && !isPreviewMode) {
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
-          // Clear token from both tokenStorage and localStorage, then redirect
+          // Clear token via tokenStorage abstraction layer
           await removeToken();
-          localStorage.removeItem('auth_token');
           // On native (Capacitor), use SPA navigation to avoid page reload
           if (isCapacitor && window.__appRouter) {
             window.__appRouter.push('/m/login');

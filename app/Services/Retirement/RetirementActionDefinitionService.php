@@ -681,7 +681,7 @@ class RetirementActionDefinitionService
             'question' => 'Is the user a higher or additional rate taxpayer?',
             'data_field' => 'Tax position',
             'data_value' => ucfirst($taxBand).' rate taxpayer ('.$reliefRate.'% relief), Personal Allowance £'.number_format($personalAllowance, 0),
-            'threshold' => 'Higher rate (income above £50,270) or additional rate (above £125,140)',
+            'threshold' => 'Higher rate (income above £'.number_format($higherRateThreshold).') or additional rate (above £'.number_format($additionalRateThreshold).')',
             'passed' => $isHigherRate,
             'explanation' => $isHigherRate
                 ? $userName.' is a '.$taxBand.' rate taxpayer with '.$reliefRate.'% tax relief available on pension contributions.'

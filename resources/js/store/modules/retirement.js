@@ -601,50 +601,6 @@ const actions = {
         return ongoingRequests[requestKey];
     },
 
-    async createDCPensionHolding({ dispatch }, { dcPensionId, holdingData }) {
-        try {
-            const response = await dcPensionHoldingsService.createHolding(dcPensionId, holdingData);
-            // Refresh portfolio analysis after adding a holding
-            await dispatch('fetchPortfolioAnalysis');
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    async updateDCPensionHolding({ dispatch }, { dcPensionId, holdingId, holdingData }) {
-        try {
-            const response = await dcPensionHoldingsService.updateHolding(dcPensionId, holdingId, holdingData);
-            // Refresh portfolio analysis after updating a holding
-            await dispatch('fetchPortfolioAnalysis');
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    async deleteDCPensionHolding({ dispatch }, { dcPensionId, holdingId }) {
-        try {
-            const response = await dcPensionHoldingsService.deleteHolding(dcPensionId, holdingId);
-            // Refresh portfolio analysis after deleting a holding
-            await dispatch('fetchPortfolioAnalysis');
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    },
-
-    async bulkUpdateDCPensionHoldings({ dispatch }, { dcPensionId, holdings }) {
-        try {
-            const response = await dcPensionHoldingsService.bulkUpdateHoldings(dcPensionId, holdings);
-            // Refresh portfolio analysis after bulk update
-            await dispatch('fetchPortfolioAnalysis');
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    },
-
     // Decumulation Analysis Actions
     async fetchDecumulationAnalysis({ commit }) {
         commit('SET_DECUMULATION_LOADING', true);

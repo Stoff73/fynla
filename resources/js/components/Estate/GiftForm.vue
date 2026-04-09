@@ -76,7 +76,7 @@
           <option value="clt">Chargeable Lifetime Transfer</option>
           <option value="exempt">Exempt Gift</option>
           <option value="small_gift">Small Gift Exemption (£250 limit)</option>
-          <option value="annual_exemption">Annual Exemption (£3,000)</option>
+          <option value="annual_exemption">Annual Exemption (£{{ annualGiftExemption.toLocaleString() }})</option>
         </select>
         <span v-if="errors.gift_type" class="error-message">
           {{ errors.gift_type }}
@@ -109,9 +109,9 @@
             ✓ This gift qualifies for the Small Gift Exemption (£250 or less per person per year)
           </li>
           <li v-if="canUseAnnualExemption">
-            ✓ You can use your Annual Exemption (£3,000 per tax year)
+            ✓ You can use your Annual Exemption (£{{ annualGiftExemption.toLocaleString() }} per tax year)
           </li>
-          <li v-if="!qualifiesForSmallGift && formData.gift_value > 3000">
+          <li v-if="!qualifiesForSmallGift && formData.gift_value > annualGiftExemption">
             ⚠️ This gift exceeds typical exemptions and will be a Potentially Exempt Transfer (subject to 7-year rule)
           </li>
         </ul>
@@ -136,6 +136,7 @@
 import { mapState } from 'vuex';
 
 import logger from '@/utils/logger';
+import { ANNUAL_GIFT_EXEMPTION } from '@/constants/taxConfig';
 export default {
   name: 'GiftForm',
 
@@ -154,6 +155,7 @@ export default {
 
   data() {
     return {
+      annualGiftExemption: ANNUAL_GIFT_EXEMPTION,
       formData: {
         gift_date: '',
         recipient: '',
@@ -183,7 +185,7 @@ export default {
         clt: 'Gift to a trust or company - immediately taxable at 20%',
         exempt: 'Gifts to spouses, charities, or political parties',
         small_gift: 'Up to £250 per person per year (exempt immediately)',
-        annual_exemption: 'First £3,000 of gifts each tax year (exempt immediately)',
+        annual_exemption: `First £${ANNUAL_GIFT_EXEMPTION.toLocaleString()} of gifts each tax year (exempt immediately)`,
       };
       return descriptions[this.formData.gift_type] || 'Select a type to see description';
     },
@@ -197,7 +199,7 @@ export default {
     },
 
     canUseAnnualExemption() {
-      return this.formData.gift_value <= 3000 && this.formData.gift_type === 'annual_exemption';
+      return this.formData.gift_value <= this.annualGiftExemption && this.formData.gift_type === 'annual_exemption';
     },
   },
 

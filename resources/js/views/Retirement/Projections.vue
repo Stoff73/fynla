@@ -128,7 +128,7 @@ import AccumulationChart from '../../components/Retirement/AccumulationChart.vue
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
-  name: 'Projections',
+  name: 'RetirementProjections',
   mixins: [currencyMixin],
 
   components: {

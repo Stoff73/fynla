@@ -60,6 +60,19 @@ document.addEventListener('wheel', (e) => {
 // without creating circular imports (store -> router -> store)
 window.__appRouter = router;
 
+// Register $toast global property — delegates to the toast Vuex store
+app.config.globalProperties.$toast = {
+  show(message, type = 'success', duration = 3000) {
+    store.dispatch('toast/show', { message, type, duration });
+  },
+  success(message) {
+    store.dispatch('toast/success', message);
+  },
+  error(message) {
+    store.dispatch('toast/error', message);
+  },
+};
+
 // Global Vue error handler — catches rendering and lifecycle errors
 app.config.errorHandler = (err, instance, info) => {
   console.error('[Vue Error]', err?.message || err, '| info:', info);

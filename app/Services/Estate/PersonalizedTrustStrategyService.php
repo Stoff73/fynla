@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Constants\TaxDefaults;
 use App\Models\Estate\IHTProfile;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
@@ -162,7 +163,7 @@ class PersonalizedTrustStrategyService
         array $liquidityAnalysis
     ): array {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $cltLifetimeRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
         $cltSettlorRate = $cltLifetimeRate / (1 - $cltLifetimeRate); // Grossed-up rate when settlor pays
 
@@ -266,7 +267,7 @@ class PersonalizedTrustStrategyService
 
         // IHT saving: IHT rate on total transferred (assuming survival)
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $ihtSaving = $totalOverLifetime * $ihtRate;
 
         $implementation = [
@@ -342,7 +343,7 @@ class PersonalizedTrustStrategyService
     private function calculateMultiCycleDeathCharge(array $schedule, int $yearsUntilDeath): float
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $totalCharge = 0;
 
         foreach ($schedule as $cycle) {
@@ -403,7 +404,7 @@ class PersonalizedTrustStrategyService
         $loanAmount = $totalLiquid;
         $assumedGrowthRate = 0.05; // 5% per year
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $growthOver20Years = $loanAmount * (pow(1 + $assumedGrowthRate, 20) - 1);
         $ihtSaving = $growthOver20Years * $ihtRate;
 
@@ -463,7 +464,7 @@ class PersonalizedTrustStrategyService
 
         // Get IHT configuration
         $ihtConfig = $this->taxConfig->getInheritanceTax();
-        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? 0.40);
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
         $cltLifetimeRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
 
         // Discounted gift trust: gift with retained income rights

@@ -771,7 +771,15 @@ class SavingsActionDefinitionService
         ];
 
         // 4. Tax payable calculation
-        $taxRate = $psaPosition['tax_band'] === 'higher' ? 0.40 : 0.20;
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $basicRate = (float) ($incomeTaxBands['bands'][0]['rate'] ?? 0.20);
+        $higherRate = (float) ($incomeTaxBands['bands'][1]['rate'] ?? 0.40);
+        $additionalRate = (float) ($incomeTaxBands['additional_rate'] ?? 0.45);
+        $taxRate = match ($psaPosition['tax_band']) {
+            'additional' => $additionalRate,
+            'higher' => $higherRate,
+            default => $basicRate,
+        };
         $taxPayable = $psaPosition['breach_amount'] * $taxRate;
 
         $trace[] = [
@@ -2189,14 +2197,17 @@ class SavingsActionDefinitionService
         $basicRateLimit = $personalAllowance + (float) ($incomeTax['bands'][0]['max'] ?? 37700);
         $additionalRateThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 
-        $marginalRate = 0.20;
+        $basicRate = (float) ($incomeTax['bands'][0]['rate'] ?? 0.20);
+        $higherRate = (float) ($incomeTax['bands'][1]['rate'] ?? 0.40);
+        $additionalRate = (float) ($incomeTax['additional_rate'] ?? 0.45);
+        $marginalRate = $basicRate;
         if ($grossIncome > $additionalRateThreshold) {
-            $marginalRate = 0.45;
+            $marginalRate = $additionalRate;
         } elseif ($grossIncome > $basicRateLimit) {
-            $marginalRate = 0.40;
+            $marginalRate = $higherRate;
         }
         $taxRelief = $pensionAmount * $marginalRate;
-        $rateLabel = $marginalRate === 0.45 ? 'additional' : ($marginalRate === 0.40 ? 'higher' : 'basic');
+        $rateLabel = $marginalRate === $additionalRate ? 'additional' : ($marginalRate === $higherRate ? 'higher' : 'basic');
 
         $trace[] = [
             'question' => 'What pension contribution and tax relief is available?',

@@ -46,7 +46,7 @@
 import { computed } from 'vue';
 
 export default {
-  name: 'Footer',
+  name: 'AppFooter',
 
   setup() {
     const currentYear = computed(() => new Date().getFullYear());

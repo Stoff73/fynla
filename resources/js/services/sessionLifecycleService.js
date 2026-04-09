@@ -102,7 +102,6 @@ async function handleInactivityLogout(store, router) {
   } catch (error) {
     // Ensure cleanup happens even if API call fails
     removeToken();
-    localStorage.removeItem('auth_token');
   }
 
   // Redirect to login with inactivity reason

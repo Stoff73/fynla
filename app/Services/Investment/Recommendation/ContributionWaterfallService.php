@@ -314,11 +314,15 @@ class ContributionWaterfallService
         $grossIncome = $context['financial']['gross_income'] ?? 0;
 
         // Tax relief percentage based on marginal rate
+        $incomeTaxBands = $this->taxConfig->getIncomeTax();
+        $basicRate = (float) ($incomeTaxBands['bands'][0]['rate'] ?? 0.20);
+        $higherRate = (float) ($incomeTaxBands['bands'][1]['rate'] ?? 0.40);
+        $additionalRate = (float) ($incomeTaxBands['bands'][2]['rate'] ?? 0.45);
         $reliefRate = match ($taxBand) {
-            'additional' => 0.45,
-            'higher' => 0.40,
-            'basic' => 0.20,
-            default => 0.20,
+            'additional' => $additionalRate,
+            'higher' => $higherRate,
+            'basic' => $basicRate,
+            default => $basicRate,
         };
 
         // For higher/additional rate — suggest more; for basic rate — suggest less
@@ -728,10 +732,14 @@ class ContributionWaterfallService
         }
 
         $taxBand = $context['financial']['tax_band'] ?? 'basic';
+        $carryIncomeTaxBands = $this->taxConfig->getIncomeTax();
+        $carryBasicRate = (float) ($carryIncomeTaxBands['bands'][0]['rate'] ?? 0.20);
+        $carryHigherRate = (float) ($carryIncomeTaxBands['bands'][1]['rate'] ?? 0.40);
+        $carryAdditionalRate = (float) ($carryIncomeTaxBands['bands'][2]['rate'] ?? 0.45);
         $reliefRate = match ($taxBand) {
-            'additional' => 0.45,
-            'higher' => 0.40,
-            default => 0.20,
+            'additional' => $carryAdditionalRate,
+            'higher' => $carryHigherRate,
+            default => $carryBasicRate,
         };
         $taxRelief = $allocation * $reliefRate;
         $netCost = $allocation * (1 - $reliefRate);

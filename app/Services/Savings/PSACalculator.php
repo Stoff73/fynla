@@ -23,10 +23,25 @@ class PSACalculator
     public function assessPSAPosition(User $user): array
     {
         $taxBand = $this->determineTaxBand($user);
-        $psaAmount = (float) $this->taxConfig->getPersonalSavingsAllowance($taxBand);
-
         $accounts = $user->savingsAccounts()->where('is_isa', false)->get();
         $annualInterest = $this->calculateAnnualInterest($accounts);
+
+        // Non-taxpayers pay no tax on savings interest — PSA is effectively unlimited.
+        // We use PHP_INT_MAX as a sentinel; downstream code should check tax_band first.
+        if ($taxBand === 'non_taxpayer') {
+            return [
+                'tax_band' => $taxBand,
+                'psa_amount' => PHP_INT_MAX,
+                'annual_interest' => round($annualInterest, 2),
+                'breach_amount' => 0.0,
+                'headroom' => PHP_INT_MAX,
+                'utilisation_percent' => 0.0,
+                'is_breached' => false,
+                'is_approaching' => false,
+            ];
+        }
+
+        $psaAmount = (float) $this->taxConfig->getPersonalSavingsAllowance($taxBand);
 
         $breachAmount = max(0, $annualInterest - $psaAmount);
         $headroom = max(0, $psaAmount - $annualInterest);
@@ -71,7 +86,7 @@ class PSACalculator
         $additionalThreshold = (float) ($incomeTax['additional_rate_threshold'] ?? 125140);
 
         if ($grossIncome <= $personalAllowance) {
-            return 'basic';
+            return 'non_taxpayer';
         }
 
         if ($grossIncome <= $basicRateLimit) {

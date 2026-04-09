@@ -19,6 +19,12 @@ beforeEach(function () {
     $this->mockTaxConfig->shouldReceive('get')
         ->with('retirement.withdrawal_rates.safe', 0.04)
         ->andReturn(0.04);
+    $this->mockTaxConfig->shouldReceive('getIncomeTax')
+        ->andReturn([
+            'personal_allowance' => 12570,
+            'higher_rate_threshold' => 50270,
+            'additional_rate_threshold' => 125140,
+        ]);
 
     $this->planner = new DecumulationPlanner($this->mockTaxConfig);
 });

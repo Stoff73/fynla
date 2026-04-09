@@ -338,18 +338,4 @@ class Goal extends Model
     {
         return $query->where('priority', $priority);
     }
-
-    /**
-     * Scope for on-track goals.
-     *
-     * Note: This scope filters active goals with progress > 0 (basic SQL filtering).
-     * Full on-track calculation requires PHP accessors, so use:
-     * Goal::active()->get()->filter(fn($goal) => $goal->is_on_track)
-     * for complete filtering.
-     */
-    public function scopeOnTrack(Builder $query): Builder
-    {
-        return $query->where('status', 'active')
-            ->where('current_amount', '>', 0);
-    }
 }

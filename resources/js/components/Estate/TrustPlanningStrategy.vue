@@ -41,7 +41,7 @@
             <h4 class="font-semibold text-violet-500 mb-2">Chargeable Lifetime Transfers</h4>
             <ul class="space-y-1 text-neutral-500">
               <li>• Transfers to most trusts are immediately chargeable</li>
-              <li>• <strong>20% tax</strong> on amounts exceeding £325,000 Nil Rate Band</li>
+              <li>• <strong>20% tax</strong> on amounts exceeding £{{ ihtNilRateBand.toLocaleString() }} Nil Rate Band</li>
               <li>• <strong>25% effective rate</strong> if settlor pays the tax</li>
               <li>• 7-year rolling window for cumulative transfers</li>
             </ul>
@@ -374,6 +374,7 @@
 <script>
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { IHT_NIL_RATE_BAND } from '@/constants/taxConfig';
 
 export default {
   name: 'TrustPlanningStrategy',
@@ -384,6 +385,7 @@ export default {
 
   data() {
     return {
+      ihtNilRateBand: IHT_NIL_RATE_BAND,
       trustStrategy: null,
       loadingTrustStrategy: false,
       trustStrategyError: null,

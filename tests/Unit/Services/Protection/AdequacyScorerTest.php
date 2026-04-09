@@ -14,6 +14,10 @@ beforeEach(function () {
     $this->scorer = new AdequacyScorer($mockTaxConfig);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('calculateAdequacyScore', function () {
     it('returns 100 when fully covered', function () {
         $gaps = ['total_gap' => 0];

@@ -14,6 +14,7 @@ beforeEach(function () {
 
 afterEach(function () {
     Carbon::setTestNow(null);
+    Mockery::close();
 });
 
 function createAccountMock(string $accessType, float $balance, ?int $noticeDays = null, ?string $maturityDate = null): SavingsAccount

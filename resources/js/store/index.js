@@ -19,7 +19,6 @@ import recommendations from './modules/recommendations';
 import spousePermission from './modules/spousePermission';
 import onboarding from './modules/onboarding';
 import preview from './modules/preview';
-import guidance from './modules/guidance';
 import infoGuide from './modules/infoGuide';
 import aiChat from './modules/aiChat';
 import plans from './modules/plans';
@@ -77,7 +76,6 @@ const store = createStore({
     spousePermission,
     onboarding,
     preview,
-    guidance,
     infoGuide,
     aiChat,
     plans,

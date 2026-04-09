@@ -31,6 +31,10 @@ beforeEach(function () {
     $this->engine = new RecommendationEngine($mockTaxConfig);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('generateRecommendations', function () {
     it('generates life insurance recommendation for large human capital gap', function () {
         $user = User::factory()->create(['date_of_birth' => now()->subYears(35)]);

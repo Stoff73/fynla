@@ -1832,7 +1832,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 
 export default {
-  name: 'Version',
+  name: 'VersionHistory',
 
   components: {
     AppLayout,

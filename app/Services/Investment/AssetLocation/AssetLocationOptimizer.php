@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\AssetLocation;
 
+use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
@@ -98,10 +99,13 @@ class AssetLocationOptimizer
         $annualIncome = $this->resolveGrossAnnualIncome($user);
         $incomeTaxRate = $this->calculateIncomeTaxRate($annualIncome);
 
-        // CGT rate (10% basic, 20% higher)
+        // CGT rate (basic or higher depending on income)
         $incomeTaxBands = $this->taxConfig->getIncomeTax();
         $higherRateThreshold = (float) ($incomeTaxBands['bands'][0]['upper_limit'] ?? 50270);
-        $cgtRate = $annualIncome <= $higherRateThreshold ? 0.10 : 0.20;
+        $cgtConfig = $this->taxConfig->getCapitalGainsTax();
+        $cgtBasicRate = (float) ($cgtConfig['basic_rate'] ?? TaxDefaults::CGT_BASIC_RATE);
+        $cgtHigherRate = (float) ($cgtConfig['higher_rate'] ?? TaxDefaults::CGT_HIGHER_RATE);
+        $cgtRate = $annualIncome <= $higherRateThreshold ? $cgtBasicRate : $cgtHigherRate;
 
         // ISA allowance
         $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'];
