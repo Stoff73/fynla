@@ -1655,16 +1655,17 @@ class CoordinatingAgent extends BaseAgent
             'has_mortgage' => true,
             'mortgage_lender_name' => $lenderName,
             'mortgage_outstanding_balance' => (float) $input['outstanding_balance'],
-            'mortgage_interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
+            'mortgage_interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : 4.5,
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
             'mortgage_rate_type' => $input['rate_type'] ?? 'fixed',
+            'mortgage_remaining_term_months' => isset($input['remaining_term_months']) ? (int) $input['remaining_term_months'] : 300,
             'mortgage_monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
             'mortgage_start_date' => $input['start_date'] ?? null,
             'mortgage_maturity_date' => $input['maturity_date'] ?? null,
         ];
 
-        // Strip nulls and empty strings
-        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
+        // Strip only empty strings — keep nulls so frontend form fill receives all fields
+        $fields = array_filter($fields, fn ($v) => $v !== '');
 
         return [
             'action' => 'fill_form',
