@@ -1,36 +1,30 @@
 # CSJTODO — Fynla
 
-*Last updated: 9 April 2026 — session 48*
-*Previous session: 8 April 2026 session 47*
+*Last updated: 9 April 2026 — session 50*
+*Previous session: 9 April 2026 session 49*
 
 ---
 
-## Session 48 (9 April) — Tech Debt Audit, Security Audit, Fyn Bugs, v1.0
+## Session 49-50 (9 April) — T&C Pricing, Persona Fixes, QA Review Fixes
 
 ### Completed This Session
-- [x] **Code reviewed PR #203** (GA4 events, Meta Pixel, dashboard video) — flagged settings.json path + CSP issue
-- [x] **Merged PR #203** + restored Mac path for tax hook
-- [x] **Full tech debt audit** — 1,246 files scanned, 68 issues found, 45 fixed (PR #204 included some)
-- [x] **$toast global registered** — 23 silent notification failures in Settings + MFA now working
-- [x] **PSACalculator bug fixed** — wrong PSA tier for below-PA earners
-- [x] **21 hardcoded tax values replaced** — 10 backend services + 10 Vue components + 1 store
-- [x] **1,204 lines dead code removed** — guidance module, dead store actions/getters, unused scopes, PythonAgentBridge
-- [x] **6 test files Mockery cleanup** + TaxYearController extracted + 2 factories created
-- [x] **UI cleanup** — removed feedback nav, wishlist links, beta warning (PR #204)
-- [x] **Hidden Fyn Quick Start CTA** — new user flow broken, documented for later fix
-- [x] **Fixed aiChat state leak** — Login.vue + Register.vue bypassed auth store, aiChat/reset never fired
-- [x] **Invoice PDF** — added company registration (Fynla Limited, 16903721, 124 City Road London) (PR #205)
-- [x] **6 Fyn chat bugs fixed** — fill queue for multiple entries, scroll-to-top, expenditure routing, mortgage defaults (PR #206)
-- [x] **Full security audit** — 0 critical, 0 high, 3 medium, 5 low — all 8 remediated (PR #207)
-- [x] **Terms/Privacy pages** — updated address to London, privacy@ → support@fynla.org
-- [x] **Version bumped to v1.0** in footer
-- [x] **CLAUDE.md metrics updated** — Vue 660, Services 233, Controllers 94, Stores 32
-- [x] **Vault sync complete** — April Index, Git History, Home.md all updated
-- [x] **All 6 deploy guides written and marked deployed**
+- [x] **T&C pricing updated** — added Family plan, expanded table to show launch + regular prices, added launch special explanation, added Student/Family upload limits
+- [x] **About page** — hidden bottom "About Fynla" section
+- [x] **Alex Chen dividend income** — diagnosed outdated persona JSONs on production, uploaded all 6, reseeded — dividend now showing
+- [x] **Preview spouse toggle fixed** — `switchingSpouse` flag never reset on success, moved to `finally` block
+- [x] **Dashboard data refresh** — `loadAllData()` now detects `user.id` change on persona switch and refetches
+- [x] **Fyn AI markdown headings** — `##` and `###` now rendered as styled headings in chat
+- [x] **Employment status enum** — added `full_time` to DB enum (was causing silent data truncation on production)
+- [x] **AI tool definitions** — both `AiToolDefinitions.php` and `XaiToolDefinitions.php` now list all valid `employment_status` values
+- [x] **Family tab gating** — User Profile Family tab now requires Family plan or higher
+- [x] **Liabilities route gating** — extracted from Pro estate group to Standard; estate read-only endpoints ungated for dashboard
+- [x] **Brett's QA report reviewed** — 14 bugs assessed against dev codebase, 0 critical bugs confirmed in code
+- [x] **PR #208 (claudeReview)** — merged and deployed
+- [x] **Vault sync complete** — April Index, Git History updated
 
 ### NOT Done — Outstanding
-- [ ] **Fyn Quick Start flow** — hidden CTA, but root cause unfixed (see `fynQuickStartBugs.md`): production missing `dc_pensions.current_value` column, `users.employment_status` enum missing `full_time`, AI analyses empty data for new users
-- [ ] **Run pending migrations on production** — `dc_pensions.current_value`, `users.plan` enum with `family`
+- [ ] **Fyn Quick Start flow** — hidden CTA, root cause unfixed (see `fynQuickStartBugs.md`): production missing `dc_pensions.current_value` column, AI analyses empty data for new users
+- [ ] **Run pending migration on production** — `dc_pensions.current_value`
 - [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47
 - [ ] **PR #197 cleanup** — 9 markdown files in repo root should be moved to Articles/
 - [ ] **Meta Pixel CSP** — `connect.facebook.net` and `www.facebook.com` not in SecurityHeaders.php CSP whitelist
@@ -38,7 +32,7 @@
 - [ ] **Add `.claude/settings.json` to .gitignore** — tax-hook path keeps reverting
 
 ### Context for Next Session
-**v1.0 deployed.** Major cleanup session — tech debt, security, Fyn bugs all addressed. The Fyn Quick Start CTA is hidden until the new-user flow is fixed (3 production DB issues + AI needs a "no data" prompt path). The `fynNew` branch with the Fyn Response Architecture (25 commits) is still a separate parallel track. Terms/Privacy pages now show London address. All PRs #203-#207 merged and deployed.
+**v1.0 deployed + QA review fixes deployed.** Brett's QA report (claudeReview.md) reviewed — most "bugs" were either already fixed, non-existent routes, or correct behaviour (dividend rate 35.75% is correct for 2026/27). Real fixes: spouse toggle, dashboard data refresh, markdown headings, employment_status enum, tier gating. The `employment_status` enum now includes `full_time` on production. Family plan users now see the Family tab in profile, and Liabilities page works for Standard+ (was incorrectly Pro-gated). The `fynNew` branch with the Fyn Response Architecture (25 commits) is still a separate parallel track.
 
 ---
 
@@ -81,8 +75,11 @@
 ## Deploy Status
 - **PR #203 (ga-updates):** DEPLOYED 9 April 2026
 - **Tech debt audit (45 fixes):** DEPLOYED 9 April 2026
-- **PR #204 (fynStart):** DEPLOYED 9 April 2026 — UI cleanup + aiChat state leak fix
-- **PR #205 (invoice):** DEPLOYED 9 April 2026 — company registration in PDF
-- **PR #206 (fynBugs):** DEPLOYED 9 April 2026 — fill queue, scroll, mortgage, expenditure
-- **PR #207 (security):** DEPLOYED 9 April 2026 — NI $fillable, MFA log, safety comments
-- **Terms/Privacy + v1.0:** DEPLOYED 9 April 2026 (committed directly to main)
+- **PR #204 (fynStart):** DEPLOYED 9 April 2026
+- **PR #205 (invoice):** DEPLOYED 9 April 2026
+- **PR #206 (fynBugs):** DEPLOYED 9 April 2026
+- **PR #207 (security):** DEPLOYED 9 April 2026
+- **Terms/Privacy + v1.0:** DEPLOYED 9 April 2026
+- **T&C pricing + About page:** DEPLOYED 9 April 2026
+- **Persona JSONs (all 6):** DEPLOYED 9 April 2026
+- **PR #208 (claudeReview):** DEPLOYED 9 April 2026 — spouse toggle, dashboard refresh, markdown, enum, tier gating
