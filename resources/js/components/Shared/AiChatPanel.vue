@@ -228,9 +228,6 @@
             </div>
           </template>
 
-          <!-- Spacer to allow last message to scroll to top of container -->
-          <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
-
           <!-- Token limit reached -->
           <div v-if="tokenLimitReached" class="p-4 bg-violet-50 border border-violet-200 rounded-lg text-sm text-horizon-500">
             <div class="flex items-center gap-2 mb-2">
@@ -417,8 +414,6 @@
           </div>
         </div>
 
-        <!-- Spacer to allow last message to scroll to top of container -->
-        <div v-if="messages && messages.length > 0" class="min-h-[60vh]"></div>
       </div>
 
       <!-- Stop streaming button (docked) -->
@@ -722,7 +717,9 @@ export default {
             if (lastMsg.role === 'user') {
                 this.$nextTick(() => this.scrollToBottom());
             } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
-                this.$nextTick(() => this.scrollToLastAssistantMessage());
+                this.$nextTick(() => {
+                    setTimeout(() => this.scrollToLastAssistantMessage(), 50);
+                });
             }
         },
 
@@ -963,19 +960,12 @@ export default {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (!container) return;
 
-            // Find the last assistant message element (or streaming indicator)
-            const messageElements = container.querySelectorAll('.flex.justify-start');
-            const lastAssistant = messageElements[messageElements.length - 1];
-
+            const assistantMessages = container.querySelectorAll('.bg-savannah-100');
+            const lastAssistant = assistantMessages[assistantMessages.length - 1];
             if (lastAssistant) {
-                // Scroll so the top of the assistant's response is visible with a small offset
-                const containerRect = container.getBoundingClientRect();
-                const messageRect = lastAssistant.getBoundingClientRect();
-                const offset = messageRect.top - containerRect.top + container.scrollTop - 8;
-                container.scrollTop = offset;
+                lastAssistant.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
-                // Fallback to bottom if no assistant message found
-                container.scrollTop = container.scrollHeight;
+                this.scrollToBottom();
             }
         },
 

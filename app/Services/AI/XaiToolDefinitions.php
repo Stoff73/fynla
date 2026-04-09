@@ -865,16 +865,18 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'update_profile',
                 'Update the user\'s profile information (personal details, income, or domicile). '
-                .'Do NOT use this for expenditure — use set_expenditure instead for monthly spending.',
+                .'NEVER use this for any expenditure or spending data — use set_expenditure instead. '
+                .'Expenditure fields (food_groceries, transport_fuel, rent, utilities, childcare, entertainment_dining, etc.) '
+                .'are ALL handled exclusively by set_expenditure.',
                 [
                     'section' => [
                         'type' => 'string',
                         'enum' => ['personal', 'income_occupation', 'domicile'],
-                        'description' => 'Which profile section to update. NOT for expenditure — use set_expenditure tool.',
+                        'description' => 'Which profile section to update. Must be one of: personal, income_occupation, domicile. NEVER pass expenditure — use set_expenditure for all spending fields.',
                     ],
                     'fields' => [
                         'type' => 'object',
-                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status, occupation, employer, annual_employment_income. For domicile: country_of_birth, uk_arrival_date.',
+                        'description' => 'Key-value pairs of fields to update. For personal: first_name, surname, date_of_birth, gender, marital_status, phone, address_line_1, city, postcode. For income_occupation: employment_status, occupation, employer, annual_employment_income. For domicile: country_of_birth, uk_arrival_date. Do NOT include any spending or expenditure keys here.',
                         'additionalProperties' => true,
                     ],
                 ],

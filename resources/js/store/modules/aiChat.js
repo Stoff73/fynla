@@ -344,23 +344,18 @@ const actions = {
                                 break;
 
                             case 'fill_form':
-                                // Clear any stale fill state from a previous fill
-                                dispatch('aiFormFill/cancelFill', null, { root: true });
-
                                 // Navigate to the page first
                                 if (event.route) {
                                     commit('SET_PENDING_NAVIGATION', event.route);
                                 }
-                                // Dispatch fill after a short delay to let navigation complete
-                                setTimeout(() => {
-                                    dispatch('aiFormFill/startFill', {
-                                        entityType: event.entity_type,
-                                        fields: event.fields,
-                                        route: event.route,
-                                        mode: event.mode || 'create',
-                                        entityId: event.entity_id || null,
-                                    }, { root: true });
-                                }, 500);
+                                // Queue the fill — aiFormFill processes them sequentially
+                                dispatch('aiFormFill/startFill', {
+                                    entityType: event.entity_type,
+                                    fields: event.fields,
+                                    route: event.route,
+                                    mode: event.mode || 'create',
+                                    entityId: event.entity_id || null,
+                                }, { root: true });
                                 break;
 
                             case 'entity_created':

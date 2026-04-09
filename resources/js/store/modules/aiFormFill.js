@@ -37,6 +37,7 @@ const state = {
   fieldOrder: [],
   highlightedField: null,
   currentStep: 0,
+  queue: [],              // Queued fills to process sequentially
 };
 
 const getters = {
@@ -63,25 +64,38 @@ const mutations = {
     state.highlightedField = null;
     state.currentStep = 0;
   },
+  ENQUEUE_FILL(state, fill) {
+    state.queue.push(fill);
+  },
+  DEQUEUE_FILL(state) {
+    state.queue.shift();
+  },
+  CLEAR_QUEUE(state) {
+    state.queue = [];
+  },
 };
 
 let fallbackTimer = null;
 
 const actions = {
-  startFill({ commit, state: s }, { entityType, fields, route, mode, entityId }) {
-    // Clear any stale state from a previous fill before starting a new one
-    clearTimeout(fallbackTimer);
-    if (s.pendingFill || s.filling) {
-      commit('CLEAR');
-    }
-
-    commit('SET_PENDING_FILL', {
+  startFill({ commit, state: s, dispatch }, { entityType, fields, route, mode, entityId }) {
+    const fillData = {
       entityType,
       fields,
       route,
       mode: mode || 'create',
       entityId: entityId || null,
-    });
+    };
+
+    // If a fill is already in progress, queue this one for sequential processing
+    if (s.pendingFill || s.filling) {
+      commit('ENQUEUE_FILL', fillData);
+      return;
+    }
+
+    clearTimeout(fallbackTimer);
+
+    commit('SET_PENDING_FILL', fillData);
     commit('SET_FORM_READY', false);
 
     // Fallback: if the form hasn't acknowledged within 30 seconds, clear state
@@ -97,6 +111,7 @@ const actions = {
           created_at: new Date().toISOString(),
         }, { root: true });
         commit('CLEAR');
+        dispatch('processNextInQueue');
       }
     }, 30000);
   },
@@ -180,7 +195,7 @@ const actions = {
     return map?.[stepNumber] || [];
   },
 
-  completeFill({ commit, state: s, rootCommit }) {
+  completeFill({ commit, state: s, dispatch }) {
     // Add confirmation message to chat
     if (s.pendingFill) {
       const entityType = s.pendingFill.entityType;
@@ -207,11 +222,29 @@ const actions = {
 
     clearTimeout(fallbackTimer);
     commit('CLEAR');
+    dispatch('processNextInQueue');
   },
 
-  cancelFill({ commit }) {
+  cancelFill({ commit, dispatch }) {
+    // Cancels only the current fill; queued fills still proceed
     clearTimeout(fallbackTimer);
     commit('CLEAR');
+    dispatch('processNextInQueue');
+  },
+
+  cancelAll({ commit }) {
+    // Cancels the current fill AND clears the entire queue
+    clearTimeout(fallbackTimer);
+    commit('CLEAR');
+    commit('CLEAR_QUEUE');
+  },
+
+  processNextInQueue({ commit, state: s, dispatch }) {
+    if (s.queue.length === 0) return;
+    const next = s.queue[0];
+    commit('DEQUEUE_FILL', next);
+    // Kick off the next fill via startFill, which will set pendingFill and the fallback timer
+    dispatch('startFill', next);
   },
 };
 
