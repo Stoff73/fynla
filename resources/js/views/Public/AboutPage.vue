@@ -172,8 +172,8 @@
       </div>
     </div>
 
-    <!-- About Fynla Section -->
-    <div class="relative bg-light-pink-100 py-20 overflow-hidden">
+    <!-- About Fynla Section (hidden) -->
+    <div v-if="false" class="relative bg-light-pink-100 py-20 overflow-hidden">
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
           <h2 class="text-3xl md:text-4xl font-bold text-horizon-500 mb-6">About Fynla</h2>
