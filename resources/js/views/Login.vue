@@ -280,6 +280,9 @@ export default {
           await authService.setToken(response.data.data.access_token);
           store.commit('auth/setToken', response.data.data.access_token);
           await store.dispatch('auth/fetchUser');
+          if (typeof gtag === 'function') {
+            gtag('event', 'login_success');
+          }
 
           // Check if user must change password
           if (response.data.data.must_change_password) {
@@ -308,6 +311,9 @@ export default {
 
       // Fetch user data fresh from API (sets user, role, and permissions)
       await store.dispatch('auth/fetchUser');
+      if (typeof gtag === 'function') {
+        gtag('event', 'login_success');
+      }
 
       // Check if user must change password
       if (data.must_change_password) {

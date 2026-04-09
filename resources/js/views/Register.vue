@@ -273,6 +273,9 @@ export default {
       if (isSubmitting.value) {
         return;
       }
+      if (typeof gtag === 'function') {
+        gtag('event', 'sign_up_start', { method: 'email' });
+      }
       errors.value = {};
       errorMessage.value = '';
       emailExists.value = false;
@@ -339,7 +342,7 @@ export default {
 
     const completeRegistration = async (data) => {
       if (typeof gtag === 'function') {
-        gtag('event', 'sign_up', { method: 'email' });
+        gtag('event', 'sign_up_complete', { method: 'email' });
       }
       // Store the token
       await authService.setToken(data.access_token);
