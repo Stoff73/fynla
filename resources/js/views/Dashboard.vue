@@ -2169,10 +2169,13 @@ export default {
   watch: {
     currentUser: {
       immediate: true,
-      handler(user) {
+      handler(user, oldUser) {
         if (user && !this.dataLoaded) {
           this.dataLoaded = true;
-          // Fetch life stage data (for stage-curated dashboard)
+          this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
+          this.loadAllData();
+        } else if (user && oldUser && user.id !== oldUser.id) {
+          // User changed (e.g. preview persona switch) — reload all data
           this.$store.dispatch('lifeStage/fetchStage').catch(() => {});
           this.loadAllData();
         }

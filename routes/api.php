@@ -758,15 +758,23 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
     });
 });
 
-// Estate Planning module routes
-Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(function () {
-    // Main estate data
-    Route::get('/', [EstateController::class, 'index']);
+// Estate Liabilities (standard tier — part of Finances/Net Worth, not estate-only)
+Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('estate/liabilities')->group(function () {
+    Route::post('/', [EstateController::class, 'storeLiability']);
+    Route::put('/{id}', [EstateController::class, 'updateLiability']);
+    Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
+});
 
-    // IHT calculation and net worth
+// Estate read-only + IHT calculations (all tiers — used by dashboard)
+Route::middleware(['auth:sanctum'])->prefix('estate')->group(function () {
+    Route::get('/', [EstateController::class, 'index']);
     Route::post('/calculate-iht', [IHTController::class, 'calculateIHT']);
     Route::get('/net-worth', [EstateController::class, 'getNetWorth']);
     Route::get('/cash-flow', [EstateController::class, 'getCashFlow']);
+});
+
+// Estate Planning write operations (pro tier)
+Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(function () {
 
     // IHT Profile
     Route::post('/profile', [IHTController::class, 'storeOrUpdateIHTProfile']);
@@ -776,13 +784,6 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(func
         Route::post('/', [EstateController::class, 'storeAsset']);
         Route::put('/{id}', [EstateController::class, 'updateAsset']);
         Route::delete('/{id}', [EstateController::class, 'destroyAsset']);
-    });
-
-    // Liabilities
-    Route::prefix('liabilities')->group(function () {
-        Route::post('/', [EstateController::class, 'storeLiability']);
-        Route::put('/{id}', [EstateController::class, 'updateLiability']);
-        Route::delete('/{id}', [EstateController::class, 'destroyLiability']);
     });
 
     // Gifts (CRUD in EstateController, Strategy in GiftingController)
