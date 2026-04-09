@@ -29,13 +29,12 @@
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">1. Data Controller</h2>
           <p class="text-neutral-500 leading-relaxed mb-4">The data controller responsible for your personal data is:</p>
           <div class="pl-4 border-l-2 border-light-gray mb-4">
-            <p class="text-horizon-500 font-semibold">Fynla Ltd</p>
-            <p class="text-neutral-500">Kent, England</p>
+            <p class="text-horizon-500 font-semibold">Fynla Limited</p>
+            <p class="text-neutral-500">124 City Road, London, EC1V 2NX</p>
             <p class="text-neutral-500">Company Number: 16903721</p>
           </div>
           <p class="text-neutral-500 leading-relaxed">
-            Privacy enquiries: <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a><br />
-            General support: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>
+            Email: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>
           </p>
         </section>
 
@@ -135,7 +134,7 @@
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">8. International Data Transfers</h2>
           <p class="text-neutral-500 leading-relaxed mb-4">Your personal data is primarily stored and processed within the United Kingdom and the European Economic Area.</p>
           <p class="text-neutral-500 leading-relaxed mb-4">Where we transfer personal data outside the UK (specifically to the United States for document processing via Anthropic), we ensure appropriate safeguards are in place in accordance with UK GDPR Articles 46&ndash;49, including the UK International Data Transfer Agreement (IDTA) or the UK Addendum to the EU Standard Contractual Clauses, and encryption in transit.</p>
-          <p class="text-neutral-500 leading-relaxed">You may request a copy of the safeguards we have in place by contacting <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a>.</p>
+          <p class="text-neutral-500 leading-relaxed">You may request a copy of the safeguards we have in place by contacting <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>.</p>
         </section>
 
         <!-- 9. Data Retention -->
@@ -191,7 +190,7 @@
         <!-- 10. Your Rights -->
         <section class="mb-10" id="your-rights">
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">10. Your Rights</h2>
-          <p class="text-neutral-500 leading-relaxed mb-4">Under UK GDPR, you have the following rights in relation to your personal data. You can exercise most of these rights directly through the Service, or by contacting <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a>.</p>
+          <p class="text-neutral-500 leading-relaxed mb-4">Under UK GDPR, you have the following rights in relation to your personal data. You can exercise most of these rights directly through the Service, or by contacting <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>.</p>
           <ul class="list-disc pl-6 space-y-3">
             <li class="text-neutral-500 leading-relaxed"><strong>Right of access (Article 15)</strong> &mdash; request a copy of your data via our self-service data export (JSON or CSV) or by formal request. We will respond within one calendar month.</li>
             <li class="text-neutral-500 leading-relaxed"><strong>Right to rectification (Article 16)</strong> &mdash; update inaccurate personal data directly through the Service.</li>
@@ -265,7 +264,7 @@
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">14. How to Complain</h2>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Contact us first</h3>
-          <p class="text-neutral-500 leading-relaxed mb-6">Email <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a>. We will acknowledge your complaint within 5 working days and provide a full response within 14 working days.</p>
+          <p class="text-neutral-500 leading-relaxed mb-6">Email <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>. We will acknowledge your complaint within 5 working days and provide a full response within 14 working days.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">Escalate to the ICO</h3>
           <p class="text-neutral-500 leading-relaxed mb-4">If you are not satisfied with our response, you have the right to lodge a complaint with:</p>
@@ -288,9 +287,8 @@
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">16. Contact Us</h2>
           <p class="text-neutral-500 leading-relaxed mb-4">For any questions, concerns, or requests relating to this privacy policy or your personal data:</p>
           <div class="pl-4 border-l-2 border-light-gray mb-4">
-            <p class="text-neutral-500">Email: <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a></p>
-            <p class="text-neutral-500">General support: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a></p>
-            <p class="text-neutral-500">Postal address: Fynla Ltd, Kent, England</p>
+            <p class="text-neutral-500">Email: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a></p>
+            <p class="text-neutral-500">Postal address: Fynla Limited, 124 City Road, London, EC1V 2NX</p>
           </div>
           <p class="text-neutral-500 leading-relaxed">We aim to respond to all enquiries within 5 working days.</p>
         </section>

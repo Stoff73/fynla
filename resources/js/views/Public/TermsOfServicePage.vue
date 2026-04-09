@@ -29,13 +29,12 @@
           <h2 class="text-xl font-bold text-horizon-500 mb-4 pb-2 border-b border-light-gray">1. About Us</h2>
           <p class="text-neutral-500 leading-relaxed mb-4">The Service is operated by:</p>
           <div class="pl-4 border-l-2 border-light-gray mb-4">
-            <p class="text-horizon-500 font-semibold">Fynla Ltd</p>
-            <p class="text-neutral-500">Kent, England</p>
+            <p class="text-horizon-500 font-semibold">Fynla Limited</p>
+            <p class="text-neutral-500">124 City Road, London, EC1V 2NX</p>
             <p class="text-neutral-500">Company Number: 16903721</p>
           </div>
           <p class="text-neutral-500 leading-relaxed">
-            General support: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a><br />
-            Privacy enquiries: <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a>
+            Email: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a>
           </p>
         </section>
 
@@ -352,8 +351,7 @@
           <p class="text-neutral-500 leading-relaxed mb-4">For any questions about these Terms:</p>
           <div class="pl-4 border-l-2 border-light-gray mb-4">
             <p class="text-neutral-500">Email: <a href="mailto:support@fynla.org" class="text-violet-600 hover:text-violet-800 underline">support@fynla.org</a></p>
-            <p class="text-neutral-500">Privacy enquiries: <a href="mailto:privacy@fynla.org" class="text-violet-600 hover:text-violet-800 underline">privacy@fynla.org</a></p>
-            <p class="text-neutral-500">Postal address: Fynla Ltd, Kent, England</p>
+            <p class="text-neutral-500">Postal address: Fynla Limited, 124 City Road, London, EC1V 2NX</p>
           </div>
         </section>
 

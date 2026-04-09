@@ -139,7 +139,7 @@
         </ul>
         <p class="contact-info">
           For any data protection queries, contact us at
-          <a href="mailto:privacy@fynla.org">privacy@fynla.org</a>
+          <a href="mailto:support@fynla.org">support@fynla.org</a>
         </p>
       </div>
 
