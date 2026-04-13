@@ -310,6 +310,9 @@
       </div>
     </div>
 
+    <!-- Review Carousel -->
+    <ReviewCarousel />
+
     <!-- Scenarios -->
     <div id="solutions" class="bg-light-pink-100 pt-10 lg:pt-12 pb-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -394,6 +397,7 @@ import { mapActions, mapGetters } from 'vuex';
 import { nextTick } from 'vue';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vue';
+import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 import logger from '@/utils/logger';
 export default {
@@ -402,6 +406,7 @@ export default {
   components: {
     PublicLayout,
     PersonaSelectionModal,
+    ReviewCarousel,
   },
 
   data() {
