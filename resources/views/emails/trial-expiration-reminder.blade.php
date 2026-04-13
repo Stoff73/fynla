@@ -5,162 +5,136 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Fynla Trial is Ending Soon</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        .content {
-            padding: 30px;
-        }
-        .content p {
-            margin: 0 0 15px 0;
-        }
-        .info-box {
-            background-color: #f0f9ff;
-            border: 2px solid #3b82f6;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .days-label {
-            font-size: 14px;
-            color: #1e40af;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-        .days-number {
-            font-size: 36px;
-            font-weight: bold;
-            color: #3b82f6;
-        }
-        .days-text {
-            font-size: 14px;
-            color: #64748b;
-        }
-        .feature-list {
-            background-color: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 6px;
-            padding: 15px 20px;
-            margin: 20px 0;
-        }
-        .feature-list p {
-            margin: 0 0 10px 0;
-            color: #991b1b;
-            font-weight: 600;
-        }
-        .feature-list ul {
-            margin: 0;
-            padding-left: 20px;
-            color: #7f1d1d;
-        }
-        .feature-list li {
-            margin-bottom: 5px;
-        }
-        .cta-button {
-            display: inline-block;
-            background-color: #3b82f6;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 14px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-        }
-        .cta-container {
-            text-align: center;
-            margin: 25px 0;
-        }
-        .sign-off {
-            margin-top: 30px;
-        }
-        .sign-off p {
-            margin: 5px 0;
-        }
-        .logo {
-            margin-top: 20px;
-        }
-        .logo img {
-            max-width: 120px;
-            height: auto;
-        }
-        .footer {
-            background-color: #f9fafb;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 14px;
-            color: #6b7280;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        .footer a {
-            color: #3b82f6;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            text-decoration: underline;
-        }
+        body { font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44; }
+        a { text-decoration: none; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="content">
-            <p>Dear {{ $user->first_name ?? 'User' }},</p>
+<body style="font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f0eb;">
+        <tr><td align="center" style="padding: 20px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px #d9d3cc;">
 
-            <p>Your <strong>{{ $planName }}</strong> plan trial is ending soon. Here's how much time you have left:</p>
+                {{-- Logo Bar --}}
+                <tr><td style="background: #ffffff; padding: 14px 36px;">
+                    <a href="https://fynla.org" style="display: inline-block;">
+                        <img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaDark.png" alt="Fynla" style="height: 32px; width: auto; display: block;" />
+                    </a>
+                </td></tr>
 
-            <div class="info-box">
-                <div class="days-label">Trial ends in</div>
-                <div class="days-number">{{ $daysRemaining }}</div>
-                <div class="days-text">{{ $daysRemaining === 1 ? 'day' : 'days' }} remaining</div>
-            </div>
+                {{-- Hero Header --}}
+                <tr><td style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="padding-bottom: 28px; vertical-align: bottom;">
+                            <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Take the time<br/>to <span style="color: #f9a8c0;">save</span></h2>
+                            <p style="font-size: 14px; color: #a8b0bf; margin: 6px 0 0 0;">Your free trial ends soon &mdash; don't lose your progress</p>
+                        </td>
+                        <td style="vertical-align: bottom; width: 120px;" align="right">
+                            <img src="{{ config('app.url') }}/images/Fyn/Design%20Character%20001a.webp" alt="Fyn" style="height: 171px; width: auto; display: block; margin-bottom: -15px;" />
+                        </td>
+                    </tr></table>
+                </td></tr>
 
-            <div class="feature-list">
-                <p>When your trial ends, you'll lose access to:</p>
-                <ul>
-                    <li>All financial planning tools and dashboards</li>
-                    <li>Protection, savings, and investment tracking</li>
-                    <li>Retirement and estate planning features</li>
-                    <li>Document uploads and AI extraction</li>
-                </ul>
-            </div>
+                {{-- Body: Eggshell --}}
+                <tr><td style="background: #f5f0eb; padding: 32px 36px;">
+                    <p style="font-size: 20px; color: #1F2A44; font-weight: 700; margin: 0 0 10px 0;">Hi {{ $user->first_name ?? 'there' }},</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;">Your {{ $daysRemaining }}-day free trial of the <strong>{{ $planName }}</strong> plan ends soon. You've made great progress setting up your financial dashboard &mdash; don't let it go to waste.</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">Subscribe now to keep all your data, projections, and personalised recommendations.</p>
+                </td></tr>
 
-            <p>Upgrade now to keep your financial plan on track and never lose your data.</p>
+                {{-- CTA Block: Light Pink --}}
+                <tr><td style="background: #fce4ec; padding: 28px 36px; text-align: center;">
+                    <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Keep your progress &mdash; subscribe today</p>
+                    <a href="{{ config('app.url') }}/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">Continue your journey</a>
+                </td></tr>
 
-            <div class="cta-container">
-                <a href="{{ config('app.url') }}/checkout" class="cta-button">Upgrade Now</a>
-            </div>
+                {{-- Dark Features Block --}}
+                <tr><td style="background-color: #0F172A; padding: 32px 36px;">
+                    <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin: 0 0 10px 0;">Check out some of our features</h3>
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                        <tr>
+                            <td width="50%" style="padding: 5px;" valign="top">
+                                <a href="https://fynla.org/features#protection" style="display: block; background: #1F2A44; border-radius: 12px; padding: 16px; text-decoration: none; height: 110px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width: 32px; height: 32px; border-radius: 8px; background: #e74c6f; text-align: center; vertical-align: middle; font-size: 16px; color: #ffffff; font-weight: 700;">&#10003;</td></tr></table>
+                                    <div style="font-size: 13px; font-weight: 600; color: #ffffff; margin-top: 8px;">Protection</div>
+                                    <div style="font-size: 11px; color: #9ca4b4; margin-top: 2px; line-height: 1.4;">Life insurance and income protection coverage</div>
+                                </a>
+                            </td>
+                            <td width="50%" style="padding: 5px;" valign="top">
+                                <a href="https://fynla.org/features#savings" style="display: block; background: #1F2A44; border-radius: 12px; padding: 16px; text-decoration: none; height: 110px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width: 32px; height: 32px; border-radius: 8px; background: #22c55e; text-align: center; vertical-align: middle; font-size: 16px; color: #ffffff; font-weight: 700;">&pound;</td></tr></table>
+                                    <div style="font-size: 13px; font-weight: 600; color: #ffffff; margin-top: 8px;">Savings</div>
+                                    <div style="font-size: 11px; color: #9ca4b4; margin-top: 2px; line-height: 1.4;">Track emergency funds and ISA allowances</div>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="50%" style="padding: 5px;" valign="top">
+                                <a href="https://fynla.org/features#investment" style="display: block; background: #1F2A44; border-radius: 12px; padding: 16px; text-decoration: none; height: 110px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width: 32px; height: 32px; border-radius: 8px; background: #8b5cf6; text-align: center; vertical-align: middle; font-size: 16px; color: #ffffff; font-weight: 700;">&#8599;</td></tr></table>
+                                    <div style="font-size: 13px; font-weight: 600; color: #ffffff; margin-top: 8px;">Investment</div>
+                                    <div style="font-size: 11px; color: #9ca4b4; margin-top: 2px; line-height: 1.4;">Portfolio analysis and risk profiling</div>
+                                </a>
+                            </td>
+                            <td width="50%" style="padding: 5px;" valign="top">
+                                <a href="https://fynla.org/features#retirement" style="display: block; background: #1F2A44; border-radius: 12px; padding: 16px; text-decoration: none; height: 110px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width: 32px; height: 32px; border-radius: 8px; background: #3b82f6; text-align: center; vertical-align: middle; font-size: 16px; color: #ffffff; font-weight: 700;">&#9200;</td></tr></table>
+                                    <div style="font-size: 13px; font-weight: 600; color: #ffffff; margin-top: 8px;">Retirement</div>
+                                    <div style="font-size: 11px; color: #9ca4b4; margin-top: 2px; line-height: 1.4;">Pension tracking and income projections</div>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="50%" style="padding: 5px;" valign="top">
+                                <a href="https://fynla.org/features#estate" style="display: block; background: #1F2A44; border-radius: 12px; padding: 16px; text-decoration: none; height: 110px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width: 32px; height: 32px; border-radius: 8px; background: #c4956a; text-align: center; vertical-align: middle; font-size: 16px; color: #ffffff; font-weight: 700;">&#9965;</td></tr></table>
+                                    <div style="font-size: 13px; font-weight: 600; color: #ffffff; margin-top: 8px;">Estate</div>
+                                    <div style="font-size: 11px; color: #9ca4b4; margin-top: 2px; line-height: 1.4;">Inheritance Tax and gifting strategies</div>
+                                </a>
+                            </td>
+                            <td width="50%" style="padding: 5px;" valign="top">
+                                <a href="https://fynla.org/features#networth" style="display: block; background: #1F2A44; border-radius: 12px; padding: 16px; text-decoration: none; height: 110px;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="width: 32px; height: 32px; border-radius: 8px; background: #64748b; text-align: center; vertical-align: middle; font-size: 16px; color: #ffffff; font-weight: 700;">&#9776;</td></tr></table>
+                                    <div style="font-size: 13px; font-weight: 600; color: #ffffff; margin-top: 8px;">Net Worth</div>
+                                    <div style="font-size: 11px; color: #9ca4b4; margin-top: 2px; line-height: 1.4;">Properties, assets, and liabilities tracking</div>
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </td></tr>
 
-            <div class="sign-off">
-                <p>Kindest regards,</p>
-                <p><strong>The Fynla Team (Chris & Brett)</strong></p>
-                <div class="logo">
-                    <img src="{{ config('app.url') }}/images/logos/logoMain.png" alt="Fynla">
-                </div>
-            </div>
-        </div>
+                {{-- Don't lose your data: Eggshell --}}
+                <tr><td style="background: #f5f0eb; padding: 32px 36px;">
+                    <h3 style="font-size: 20px; font-weight: 700; color: #1F2A44; margin: 0 0 10px 0;">Don't lose your data</h3>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;">Subscribe to a Fynla plan before your trial ends to keep all your financial information safe. After your trial expires, your data will be retained for 30 days before being permanently deleted.</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">Plans start from just &pound;3.99/month with our launch pricing. Lock in this rate before it increases.</p>
+                </td></tr>
 
-        <div class="footer">
-            <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>Need help? <a href="mailto:support@fynla.org">Contact Support</a></p>
-        </div>
-    </div>
+                {{-- CTA Block: Light Pink --}}
+                <tr><td style="background: #fce4ec; padding: 28px 36px; text-align: center;">
+                    <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Choose a plan that works for you</p>
+                    <a href="{{ config('app.url') }}/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">Choose a plan</a>
+                </td></tr>
+
+                {{-- Footer --}}
+                <tr><td style="background: #1F2A44; padding: 24px 36px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="vertical-align: top; width: 100px;">
+                            <a href="https://fynla.org" style="display: inline-block;"><img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaLight.png" alt="Fynla" style="height: 28px; width: auto;" /></a>
+                        </td>
+                        <td style="vertical-align: top; padding-left: 24px;">
+                            <p style="margin: 0 0 10px 0;">
+                                <a href="{{ config('app.url') }}/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                                <a href="{{ config('app.url') }}/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                                <a href="mailto:support@fynla.org" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Help</a>
+                                <a href="{{ config('app.url') }}/unsubscribe" style="font-size: 12px; color: #b3b9c5; text-decoration: none;">Unsubscribe</a>
+                            </p>
+                            <p style="font-size: 11px; color: #7a8194; line-height: 1.5; margin: 0;">&copy; {{ date('Y') }} Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</p>
+                        </td>
+                    </tr></table>
+                </td></tr>
+
+            </table>
+        </td></tr>
+    </table>
 </body>
 </html>

@@ -5,174 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Retention Warning</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        .content {
-            padding: 30px;
-        }
-        .content p {
-            margin: 0 0 15px 0;
-        }
-        .countdown-box {
-            background-color: {{ $isFinalWarning ? '#fef2f2' : ($isUrgent ? '#eff6ff' : '#f0f9ff') }};
-            border: 2px solid {{ $isFinalWarning ? '#ef4444' : '#3b82f6' }};
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .countdown-label {
-            font-size: 14px;
-            color: {{ $isFinalWarning ? '#991b1b' : '#1e40af' }};
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-        .countdown-number {
-            font-size: 36px;
-            font-weight: bold;
-            color: {{ $isFinalWarning ? '#ef4444' : '#3b82f6' }};
-        }
-        .countdown-text {
-            font-size: 14px;
-            color: #64748b;
-        }
-        .data-list {
-            background-color: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin: 20px 0;
-        }
-        .data-list p {
-            margin: 0 0 10px 0;
-            font-weight: 600;
-            color: #374151;
-        }
-        .data-list ul {
-            margin: 0;
-            padding-left: 20px;
-            color: #6b7280;
-        }
-        .data-list li {
-            margin-bottom: 5px;
-        }
-        .cta-button {
-            display: inline-block;
-            background-color: #3b82f6;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 14px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-        }
-        .cta-container {
-            text-align: center;
-            margin: 25px 0;
-        }
-        .sign-off {
-            margin-top: 30px;
-        }
-        .sign-off p {
-            margin: 5px 0;
-        }
-        .logo {
-            margin-top: 20px;
-        }
-        .logo img {
-            max-width: 120px;
-            height: auto;
-        }
-        .footer {
-            background-color: #f9fafb;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 14px;
-            color: #6b7280;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        .footer a {
-            color: #3b82f6;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            text-decoration: underline;
-        }
+        body { font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44; }
+        a { text-decoration: none; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="content">
-            <p>Dear {{ $user->first_name ?? 'User' }},</p>
+<body style="font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f0eb;">
+        <tr><td align="center" style="padding: 20px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px #d9d3cc;">
 
-            @if($isFinalWarning)
-                <p><strong>This is your final warning.</strong> Your Fynla data will be permanently deleted tomorrow.</p>
-            @elseif($isUrgent)
-                <p>Your Fynla data will be permanently deleted in <strong>{{ $daysRemaining }} {{ $daysRemaining === 1 ? 'day' : 'days' }}</strong>. Subscribe now to keep your financial plans.</p>
-            @elseif($daysRemaining === 15)
-                <p>This is a reminder that your Fynla data will be permanently deleted in <strong>15 days</strong>.</p>
-            @else
-                <p>Your Fynla subscription has ended. Your data will be retained for <strong>30 days</strong> before being permanently deleted.</p>
-            @endif
+                {{-- Logo Bar --}}
+                <tr><td style="background: #ffffff; padding: 14px 36px;">
+                    <a href="https://fynla.org" style="display: inline-block;">
+                        <img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaDark.png" alt="Fynla" style="height: 32px; width: auto; display: block;" />
+                    </a>
+                </td></tr>
 
-            <div class="countdown-box">
-                <div class="countdown-label">{{ $isFinalWarning ? 'Final Warning' : 'Data deleted in' }}</div>
-                <div class="countdown-number">{{ $daysRemaining }}</div>
-                <div class="countdown-text">{{ $daysRemaining === 1 ? 'day' : 'days' }} remaining</div>
-            </div>
+                {{-- Hero Header --}}
+                <tr><td style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="padding-bottom: 28px; vertical-align: bottom;">
+                            <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Data <span style="color: #f9a8c0;">retention</span> warning</h2>
+                            <p style="font-size: 14px; color: #a8b0bf; margin: 6px 0 0 0;">Your data will be deleted in {{ $daysRemaining }} {{ $daysRemaining === 1 ? 'day' : 'days' }}</p>
+                        </td>
+                        <td style="vertical-align: bottom; width: 120px;" align="right">
+                            <img src="{{ config('app.url') }}/images/Fyn/Design%20Character%20001a.webp" alt="Fyn" style="height: 171px; width: auto; display: block; margin-bottom: -15px;" />
+                        </td>
+                    </tr></table>
+                </td></tr>
 
-            <div class="data-list">
-                <p>The following data will be permanently deleted:</p>
-                <ul>
-                    <li>Properties, mortgages, and property valuations</li>
-                    <li>Pensions (defined contribution, defined benefit, state pension)</li>
-                    <li>Investment accounts and holdings</li>
-                    <li>Savings accounts and ISA tracking</li>
-                    <li>Protection policies (life, critical illness, income protection)</li>
-                    <li>Goals and life events</li>
-                    <li>Estate plans, trusts, and wills</li>
-                    <li>Uploaded documents</li>
-                </ul>
-            </div>
+                {{-- Body: Light Pink --}}
+                <tr><td style="background: #fce4ec; padding: 32px 36px;">
+                    <p style="font-size: 20px; color: #1F2A44; font-weight: 700; margin: 0 0 10px 0;">Hi {{ $user->first_name ?? 'there' }},</p>
 
-            <p>Subscribe now to regain full access and keep all your financial plans and data safe.</p>
+                    @if($isFinalWarning)
+                        <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;"><strong>This is your final warning.</strong> Your Fynla data will be permanently deleted tomorrow.</p>
+                    @elseif($isUrgent)
+                        <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;">Your Fynla data will be permanently deleted in <strong>{{ $daysRemaining }} {{ $daysRemaining === 1 ? 'day' : 'days' }}</strong>. Subscribe now to keep your financial plans.</p>
+                    @else
+                        <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;">Your Fynla subscription has ended. Your financial data will be permanently deleted in <strong>{{ $daysRemaining }} {{ $daysRemaining === 1 ? 'day' : 'days' }}</strong>.</p>
+                    @endif
 
-            <div class="cta-container">
-                <a href="{{ config('app.url') }}/checkout" class="cta-button">Subscribe Now</a>
-            </div>
+                    {{-- Alert: Raspberry --}}
+                    <div style="background: #e74c6f; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
+                        <p style="font-size: 13px; margin: 0; color: #ffffff;"><strong>This action is irreversible.</strong> Once deleted, your financial data, projections, goals, and conversation history with Fyn cannot be recovered.</p>
+                    </div>
 
-            <div class="sign-off">
-                <p>Kindest regards,</p>
-                <p><strong>The Fynla Team (Chris & Brett)</strong></p>
-                <div class="logo">
-                    <img src="{{ config('app.url') }}/images/logos/logoMain.png" alt="Fynla">
-                </div>
-            </div>
-        </div>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">To keep your data, simply resubscribe before the deletion date. Everything will be exactly as you left it.</p>
+                </td></tr>
 
-        <div class="footer">
-            <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>Need help? <a href="mailto:support@fynla.org">Contact Support</a></p>
-        </div>
-    </div>
+                {{-- CTA Block: Light Pink --}}
+                <tr><td style="background: #fce4ec; padding: 28px 36px; text-align: center;">
+                    <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Keep your financial data safe</p>
+                    <a href="{{ config('app.url') }}/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">Resubscribe now</a>
+                </td></tr>
+
+                {{-- Export note: Eggshell --}}
+                <tr><td style="background: #f5f0eb; padding: 20px 36px; text-align: center;">
+                    <p style="font-size: 13px; color: #999; margin: 0;">If you'd like to export your data before deletion, please contact <a href="mailto:support@fynla.org" style="color: #e74c6f; text-decoration: none;">support@fynla.org</a></p>
+                </td></tr>
+
+                {{-- Footer --}}
+                <tr><td style="background: #1F2A44; padding: 24px 36px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="vertical-align: top; width: 100px;">
+                            <a href="https://fynla.org" style="display: inline-block;"><img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaLight.png" alt="Fynla" style="height: 28px; width: auto;" /></a>
+                        </td>
+                        <td style="vertical-align: top; padding-left: 24px;">
+                            <p style="margin: 0 0 10px 0;">
+                                <a href="{{ config('app.url') }}/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                                <a href="{{ config('app.url') }}/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                                <a href="mailto:support@fynla.org" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Help</a>
+                                <a href="{{ config('app.url') }}/unsubscribe" style="font-size: 12px; color: #b3b9c5; text-decoration: none;">Unsubscribe</a>
+                            </p>
+                            <p style="font-size: 11px; color: #7a8194; line-height: 1.5; margin: 0;">&copy; {{ date('Y') }} Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</p>
+                        </td>
+                    </tr></table>
+                </td></tr>
+
+            </table>
+        </td></tr>
+    </table>
 </body>
 </html>

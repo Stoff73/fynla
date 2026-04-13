@@ -5,153 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Fynla Verification Code</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        .content {
-            padding: 30px;
-            text-align: center;
-        }
-        .content p {
-            margin: 0 0 15px 0;
-            text-align: left;
-        }
-        .code-box {
-            background-color: #f0f9ff;
-            border: 2px solid #3b82f6;
-            border-radius: 12px;
-            padding: 30px;
-            margin: 30px 0;
-            text-align: center;
-        }
-        .code-label {
-            font-size: 14px;
-            color: #1e40af;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .verification-code {
-            font-family: 'Courier New', monospace;
-            font-size: 42px;
-            font-weight: bold;
-            letter-spacing: 8px;
-            color: #3b82f6;
-            background-color: #ffffff;
-            padding: 15px 25px;
-            border-radius: 8px;
-            display: inline-block;
-            border: 1px solid #bfdbfe;
-        }
-        .info-box {
-            background-color: #f0f9ff;
-            border: 1px solid #3b82f6;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        .info-box p {
-            margin: 0;
-            color: #1e40af;
-            font-size: 14px;
-        }
-        .security-note {
-            background-color: #f0fdf4;
-            border: 1px solid #22c55e;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        .security-note p {
-            margin: 0;
-            color: #166534;
-            font-size: 14px;
-        }
-        .sign-off {
-            margin-top: 30px;
-            text-align: left;
-        }
-        .sign-off p {
-            margin: 5px 0;
-        }
-        .logo {
-            margin-top: 20px;
-            text-align: left;
-        }
-        .logo img {
-            max-width: 120px;
-            height: auto;
-        }
-        .footer {
-            background-color: #f9fafb;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 14px;
-            color: #6b7280;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        .footer a {
-            color: #3b82f6;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            text-decoration: underline;
-        }
+        body { font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44; }
+        a { text-decoration: none; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="content">
-            <p>Dear {{ $user->first_name ?? 'User' }},</p>
+<body style="font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f0eb;">
+        <tr><td align="center" style="padding: 20px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px #d9d3cc;">
 
-            <p>Please use the following code to {{ $typeLabel }}:</p>
+                {{-- Logo Bar --}}
+                <tr><td style="background: #ffffff; padding: 14px 36px;">
+                    <a href="https://fynla.org" style="display: inline-block;">
+                        <img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaDark.png" alt="Fynla" style="height: 32px; width: auto; display: block;" />
+                    </a>
+                </td></tr>
 
-            <div class="code-box">
-                <div class="code-label">Your verification code</div>
-                <div class="verification-code">{{ $code }}</div>
-            </div>
+                {{-- Hero Header --}}
+                <tr><td style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="padding-bottom: 28px; vertical-align: bottom;">
+                            <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Your <span style="color: #f9a8c0;">verification</span> code</h2>
+                            <p style="font-size: 14px; color: #a8b0bf; margin: 6px 0 0 0;">Verify your identity to continue</p>
+                        </td>
+                        <td style="vertical-align: bottom; width: 120px;" align="right">
+                            <img src="{{ config('app.url') }}/images/Fyn/Design%20Character%20001a.webp" alt="Fyn" style="height: 171px; width: auto; display: block; margin-bottom: -15px;" />
+                        </td>
+                    </tr></table>
+                </td></tr>
 
-            <div class="info-box">
-                <p><strong>Important:</strong> Enter this code in the verification form to {{ $typeLabel }}. If you need a new code, click "Resend Code" in the form.</p>
-            </div>
+                {{-- Body: Eggshell --}}
+                <tr><td style="background: #f5f0eb; padding: 32px 36px;">
+                    <p style="font-size: 20px; color: #1F2A44; font-weight: 700; margin: 0 0 10px 0;">Hi {{ $user->first_name ?? 'there' }},</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;">Use the code below to {{ $typeLabel }}. This code expires in 10 minutes.</p>
 
-            <div class="security-note">
-                <p><strong>Security tip:</strong> Never share this code with anyone. Fynla will never ask you for this code via phone or email.</p>
-            </div>
+                    {{-- Code Box --}}
+                    <div style="background: #1F2A44; border-radius: 12px; padding: 24px; text-align: center; margin: 20px 0;">
+                        <div style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #ffffff; font-family: 'Segoe UI', monospace;">{{ $code }}</div>
+                        <div style="font-size: 12px; color: #8f97a8; margin-top: 8px;">Verification code</div>
+                    </div>
 
-            <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">If you did not request this code, please ignore this email or <a href="mailto:support@fynla.org" style="color: #3b82f6;">contact support</a> if you have concerns.</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 14px 0;">If you didn't request this code, you can safely ignore this email. Someone may have entered your email address by mistake.</p>
 
-            <div class="sign-off">
-                <p>Kindest regards,</p>
-                <p><strong>The Fynla Team (Chris & Brett)</strong></p>
-                <div class="logo">
-                    <img src="{{ config('app.url') }}/images/logos/logoMain.png" alt="Fynla">
-                </div>
-            </div>
-        </div>
+                    {{-- Security Alert (light pink) --}}
+                    <div style="background: #fce4ec; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
+                        <p style="font-size: 13px; margin: 0; color: #1F2A44;">Never share this code with anyone. Fynla will never ask you for your verification code by phone or message.</p>
+                    </div>
+                </td></tr>
 
-        <div class="footer">
-            <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>Need help? <a href="mailto:support@fynla.org">Contact Support</a></p>
-        </div>
-    </div>
+                {{-- Footer --}}
+                <tr><td style="background: #1F2A44; padding: 24px 36px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="vertical-align: top; width: 100px;">
+                            <a href="https://fynla.org" style="display: inline-block;"><img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaLight.png" alt="Fynla" style="height: 28px; width: auto;" /></a>
+                        </td>
+                        <td style="vertical-align: top; padding-left: 24px;">
+                            <p style="margin: 0 0 10px 0;">
+                                <a href="{{ config('app.url') }}/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                                <a href="{{ config('app.url') }}/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                                <a href="mailto:support@fynla.org" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Help</a>
+                            </p>
+                            <p style="font-size: 11px; color: #7a8194; line-height: 1.5; margin: 0;">&copy; {{ date('Y') }} Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</p>
+                        </td>
+                    </tr></table>
+                </td></tr>
+
+            </table>
+        </td></tr>
+    </table>
 </body>
 </html>

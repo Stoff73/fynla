@@ -8,257 +8,163 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Inter, sans-serif; background: #f5f0eb; color: #1F2A44; }
 
-    .page-header {
-      background: linear-gradient(135deg, #1F2A44, #e74c6f);
-      color: white;
-      text-align: center;
-      padding: 40px 20px;
-    }
+    .page-header { background: linear-gradient(135deg, #1F2A44, #e74c6f); color: white; text-align: center; padding: 40px 20px; }
     .page-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
     .page-header p { font-size: 14px; opacity: 0.7; }
 
-    .nav-bar {
-      background: #1F2A44;
-      padding: 12px 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .nav-bar a {
-      color: white;
-      text-decoration: none;
-      font-size: 12px;
-      padding: 6px 14px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.1);
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
+    .nav-bar { background: #1F2A44; padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; position: sticky; top: 0; z-index: 10; }
+    .nav-bar a { color: white; text-decoration: none; font-size: 12px; padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,0.1); white-space: nowrap; }
     .nav-bar a:hover { background: #e74c6f; }
 
-    .email-section {
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-    .section-label {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #e74c6f;
-      margin-bottom: 12px;
-    }
-
-    /* Email frame */
-    .email-frame {
-      background: #e8e2db;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    }
-    .email-chrome {
-      background: #d4cec7;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .email-section { max-width: 700px; margin: 40px auto; padding: 0 20px; }
+    .section-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #e74c6f; margin-bottom: 12px; }
+    .email-frame { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .email-chrome { background: #d4cec7; padding: 10px 16px; display: flex; align-items: center; gap: 6px; }
     .email-chrome .dot { width: 10px; height: 10px; border-radius: 50%; }
     .email-chrome .dot-r { background: #e74c6f; }
     .email-chrome .dot-v { background: #8b5cf6; }
     .email-chrome .dot-s { background: #22c55e; }
-    .email-chrome .subject {
-      margin-left: 12px;
-      font-size: 12px;
-      color: #1F2A44;
-      font-weight: 600;
-    }
+    .email-chrome .subject { margin-left: 12px; font-size: 12px; color: #1F2A44; font-weight: 600; }
 
-    /* Email body */
-    .email-body {
-      background: #f5f0eb;
-      padding: 32px 24px;
-    }
-
-    .email-container {
-      max-width: 560px;
-      margin: 0 auto;
-    }
-
-    /* Logo header */
-    .email-logo {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-    .email-logo img {
-      height: 48px;
-      width: auto;
-    }
-
-    /* Card */
-    .email-card {
+    /* Logo bar above hero */
+    .email-logo-bar {
       background: white;
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      padding: 14px 36px;
     }
+    .email-logo-bar a { display: inline-block; }
+    .email-logo-bar img { height: 32px; width: auto; display: block; }
 
-    .email-card h2 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #1F2A44;
-      margin-bottom: 16px;
-      line-height: 1.3;
-    }
-
-    .email-card p {
-      font-size: 14px;
-      color: #555;
-      line-height: 1.7;
-      margin-bottom: 16px;
-    }
-
-    .email-card .greeting {
-      font-size: 14px;
-      color: #1F2A44;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    /* Icon header */
-    .icon-header {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
+    /* Hero header */
+    .email-hero {
+      background: linear-gradient(135deg, #1F2A44, #e74c6f);
+      padding: 28px 36px 0;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 180px;
+      position: relative;
     }
-    .icon-header svg { width: 28px; height: 28px; color: white; }
-    .icon-header.raspberry { background: #e74c6f; }
-    .icon-header.spring { background: #22c55e; }
-    .icon-header.violet { background: #8b5cf6; }
-    .icon-header.horizon { background: #1F2A44; }
-    .icon-header.savannah { background: #c4956a; }
+    .email-hero-text { flex: 1; padding-bottom: 28px; }
+    .email-hero-text h2 { font-size: 36px; font-weight: 800; color: white; line-height: 1.15; margin: 0; }
+    .email-hero-text h2 .accent { color: #f9a8c0; }
+    .email-hero-text .subtitle { font-size: 14px; color: rgba(255,255,255,0.65); margin-top: 6px; }
+    .email-hero-fyn { flex-shrink: 0; align-self: flex-end; margin-bottom: -15px; position: relative; z-index: 1; }
+    .email-hero-fyn img { height: 171px; width: auto; display: block; }
 
-    /* Buttons */
-    .btn {
-      display: inline-block;
-      padding: 12px 32px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
+    /* Body section blocks */
+    .block { padding: 32px 36px; }
+    .block p { font-size: 14px; color: #555; line-height: 1.7; margin-bottom: 14px; }
+    .block p:last-child { margin-bottom: 0; }
+    .block .greeting { font-size: 20px; color: #1F2A44; font-weight: 700; margin-bottom: 10px; }
+    .block .section-title { font-size: 20px; font-weight: 700; color: #1F2A44; margin-bottom: 10px; }
+
+    .bg-eggshell { background: #f5f0eb; }
+    .bg-light-pink { background: #fce4ec; }
+    .bg-horizon-light { background: #e8edf4; }
+    .bg-light-blue { background: #dbeafe; }
+
+    /* Dark block */
+    .block-dark { background: linear-gradient(135deg, #2a3654, #1F2A44); padding: 32px 36px; }
+    .block-dark .section-title { color: white; }
+    .block-dark p { color: rgba(255,255,255,0.7); }
+
+    /* CTA blocks */
+    .cta-block {
+      background: linear-gradient(135deg, #e74c6f, #d43a5e);
+      padding: 28px 36px;
       text-align: center;
-      transition: all 0.2s;
     }
+    .cta-block p { color: white; font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .cta-block .btn-cta {
+      display: inline-block; padding: 14px 40px; border-radius: 12px;
+      font-size: 16px; font-weight: 700; text-decoration: none;
+      background: white; color: #e74c6f; box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+
+    .cta-block-pink {
+      background: #fce4ec;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .cta-block-pink p { color: #1F2A44; font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .cta-block-pink .btn-cta {
+      display: inline-block; padding: 14px 40px; border-radius: 12px;
+      font-size: 16px; font-weight: 700; text-decoration: none;
+      background: #e74c6f; color: white; box-shadow: 0 4px 14px rgba(231,76,111,0.3);
+    }
+
+    .cta-block-blue {
+      background: #dbeafe;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .cta-block-blue p { color: #1F2A44; font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .cta-block-blue .btn-cta {
+      display: inline-block; padding: 14px 40px; border-radius: 12px;
+      font-size: 16px; font-weight: 700; text-decoration: none;
+      background: #1F2A44; color: white; box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+
+    .cta-block-horizon {
+      background: #1F2A44;
+      padding: 28px 36px;
+      text-align: center;
+    }
+    .cta-block-horizon p { color: rgba(255,255,255,0.8); font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .cta-block-horizon .btn-cta {
+      display: inline-block; padding: 14px 40px; border-radius: 12px;
+      font-size: 16px; font-weight: 700; text-decoration: none;
+      background: #e74c6f; color: white; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    }
+
+    /* Inline buttons */
+    .btn { display: inline-block; padding: 12px 32px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; }
     .btn-raspberry { background: #e74c6f; color: white; }
-    .btn-spring { background: #22c55e; color: white; }
-    .btn-horizon { background: #1F2A44; color: white; }
-    .btn-outline {
-      background: transparent;
-      color: #1F2A44;
-      border: 2px solid #1F2A44;
-    }
-
-    .btn-center {
-      text-align: center;
-      margin: 24px 0 8px;
-    }
-
-    /* Info box */
-    .info-box {
-      background: #f0ecf9;
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin: 16px 0;
-    }
-    .info-box.warning {
-      background: #f5f0eb;
-      border-left: 3px solid #c4956a;
-    }
-    .info-box.danger {
-      background: #fef2f4;
-      border-left: 3px solid #e74c6f;
-    }
-    .info-box.success {
-      background: #f0faf4;
-      border-left: 3px solid #22c55e;
-    }
-    .info-box p {
-      font-size: 13px;
-      margin: 0;
-      color: #1F2A44;
-    }
+    .btn-outline { background: transparent; color: #1F2A44; border: 2px solid #1F2A44; }
+    .btn-pink { background: #fce4ec; color: #1F2A44; }
 
     /* Code box */
-    .code-box {
-      background: #1F2A44;
-      border-radius: 12px;
-      padding: 24px;
-      text-align: center;
-      margin: 20px 0;
-    }
-    .code-box .code {
-      font-size: 36px;
-      font-weight: 800;
-      letter-spacing: 8px;
-      color: white;
-      font-family: 'Segoe UI', monospace;
-    }
-    .code-box .code-label {
-      font-size: 12px;
-      color: rgba(255,255,255,0.5);
-      margin-top: 8px;
-    }
+    .code-box { background: #1F2A44; border-radius: 12px; padding: 24px; text-align: center; margin: 20px 0; }
+    .code-box .code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: white; font-family: 'Segoe UI', monospace; }
+    .code-box .code-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 8px; }
 
-    /* Detail row */
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #f0ece7;
-      font-size: 14px;
-    }
+    /* Detail rows */
+    .detail-box { background: rgba(0,0,0,0.04); border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 14px; }
     .detail-row:last-child { border-bottom: none; }
     .detail-row .label { color: #888; }
     .detail-row .value { font-weight: 600; color: #1F2A44; }
 
-    /* Divider */
-    .divider {
-      height: 1px;
-      background: #e8e2db;
-      margin: 20px 0;
-    }
+    .divider { height: 1px; background: rgba(0,0,0,0.08); margin: 20px 0; }
+
+    /* Feature cards */
+    .feature-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 8px; }
+    .feature-card { flex: 1 1 calc(50% - 5px); background: #1F2A44; border-radius: 12px; padding: 16px; min-width: 140px; }
+    .feature-card .fc-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+    .feature-card .fc-icon svg { width: 16px; height: 16px; color: white; }
+    .feature-card .fc-label { font-size: 13px; font-weight: 600; color: white; }
+    .feature-card .fc-desc { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; line-height: 1.4; }
+
+    /* Alert boxes */
+    .alert-raspberry { background: #e74c6f; border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .alert-raspberry p { font-size: 13px; margin: 0 !important; color: white; }
+    .alert-pink { background: #fce4ec; border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .alert-pink p { font-size: 13px; margin: 0 !important; color: #1F2A44; }
+    .alert-blue { background: #dbeafe; border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+    .alert-blue p { font-size: 13px; margin: 0 !important; color: #1F2A44; }
 
     /* Footer */
-    .email-footer {
-      text-align: center;
-      padding: 24px 0 8px;
-    }
-    .email-footer p {
-      font-size: 12px;
-      color: #999;
-      line-height: 1.6;
-      margin: 0;
-    }
-    .email-footer a {
-      color: #e74c6f;
-      text-decoration: none;
-    }
+    .email-footer { background: #1F2A44; padding: 24px 36px; display: flex; align-items: flex-start; gap: 24px; }
+    .email-footer .footer-logo { flex-shrink: 0; }
+    .email-footer .footer-logo img { height: 28px; width: auto; }
+    .email-footer .footer-content { flex: 1; }
+    .email-footer .footer-links { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 10px; }
+    .email-footer .footer-links a { font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
+    .email-footer .footer-links a:hover { color: #e74c6f; }
+    .email-footer .footer-text { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
 
-    /* Separator between emails */
-    .email-separator {
-      max-width: 700px;
-      margin: 48px auto;
-      border-top: 2px dashed #d4cec7;
-    }
+    .email-separator { max-width: 700px; margin: 48px auto; border-top: 2px dashed #d4cec7; }
   </style>
 </head>
 <body>
@@ -285,40 +191,23 @@
 <div class="email-section" id="verification-code">
   <div class="section-label">1. Verification Code</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Your Fynla verification code</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header violet">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          </div>
-          <h2>Your verification code</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Use the code below to verify your identity. This code expires in 10 minutes.</p>
-
-          <div class="code-box">
-            <div class="code">847293</div>
-            <div class="code-label">Verification code</div>
-          </div>
-
-          <p>If you didn't request this code, you can safely ignore this email. Someone may have entered your email address by mistake.</p>
-
-          <div style="background: #fce4ec; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
-            <p style="font-size: 13px; margin: 0; color: #1F2A44;">Never share this code with anyone. Fynla will never ask you for your verification code by phone or message.</p>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Your Fynla verification code</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Your <span class="accent">verification</span> code</h2>
+        <p class="subtitle">Verify your identity to continue</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-eggshell">
+      <p class="greeting">Hi Chris,</p>
+      <p>Use the code below to verify your identity. This code expires in 10 minutes.</p>
+      <div class="code-box"><div class="code">847293</div><div class="code-label">Verification code</div></div>
+      <p>If you didn't request this code, you can safely ignore this email. Someone may have entered your email address by mistake.</p>
+      <div class="alert-pink"><p>Never share this code with anyone. Fynla will never ask you for your verification code by phone or message.</p></div>
+    </div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -327,43 +216,23 @@
 <div class="email-section" id="payment-confirmation">
   <div class="section-label">2. Payment Confirmation</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Payment confirmed — Fynla Family Plan</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header spring">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h2>Payment confirmed</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Your payment has been processed successfully. Here are the details:</p>
-
-          <div style="background: #f5f0eb; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
-            <div class="detail-row"><span class="label">Plan</span><span class="value">Fynla Family</span></div>
-            <div class="detail-row"><span class="label">Billing cycle</span><span class="value">Yearly</span></div>
-            <div class="detail-row"><span class="label">Amount</span><span class="value">&pound;150.00</span></div>
-            <div class="detail-row"><span class="label">Next payment</span><span class="value">13 April 2027</span></div>
-            <div class="detail-row"><span class="label">Invoice</span><span class="value">#INV-2026-0018</span></div>
-          </div>
-
-          <p>You can download your invoice or manage your subscription from your account settings.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-raspberry">View invoice</a>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Payment confirmed — Fynla Family Plan</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Payment <span class="accent">confirmed</span></h2>
+        <p class="subtitle">Thank you for subscribing to Fynla</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-light-pink">
+      <p class="greeting">Hi Chris,</p>
+      <p>Your payment has been processed successfully. Here are the details:</p>
+      <div class="detail-box"><div class="detail-row"><span class="label">Plan</span><span class="value">Fynla Family</span></div><div class="detail-row"><span class="label">Billing cycle</span><span class="value">Yearly</span></div><div class="detail-row"><span class="label">Amount</span><span class="value">&pound;150.00</span></div><div class="detail-row"><span class="label">Next payment</span><span class="value">13 April 2027</span></div><div class="detail-row"><span class="label">Invoice</span><span class="value">#INV-2026-0018</span></div></div>
+      <p>You can download your invoice or manage your subscription from your account settings.</p>
+    </div>
+    <div class="cta-block"><p>View and download your invoice</p><a href="#" class="btn-cta">View invoice</a></div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -372,42 +241,69 @@
 <div class="email-section" id="trial-expiration">
   <div class="section-label">3. Trial Expiration Reminder</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Your Fynla free trial ends in 2 days</span>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Take the time to save — your trial ends soon</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Take the time<br/>to <span class="accent">save</span></h2>
+        <p class="subtitle">Your free trial ends soon — don't lose your progress</p>
+      </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header savannah">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h2>Your free trial ends in 2 days</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Your 7-day free trial of the Fynla Standard plan expires on <strong>15 April 2026</strong>. After this date, you'll lose access to your dashboard and financial data.</p>
-
-          <div class="info-box">
-            <p><strong>What happens next?</strong><br/>Choose a plan to keep your data, projections, and personalised recommendations. Your progress will be exactly where you left off.</p>
-          </div>
-
-          <p>Plans start from just &pound;3.99/month with our launch pricing. Lock in this rate before it increases.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-raspberry">Choose a plan</a>
-          </div>
-
-          <div class="divider"></div>
-          <p style="font-size: 13px; color: #999; text-align: center;">Not ready yet? Your data will be retained for 30 days after your trial ends.</p>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="block bg-eggshell">
+      <p class="greeting">Hi Chris,</p>
+      <p>Your 7-day free trial of the Fynla Standard plan expires on <strong>15 April 2026</strong>. You've made great progress setting up your financial dashboard &mdash; don't let it go to waste.</p>
+      <p>Subscribe now to keep all your data, projections, and personalised recommendations.</p>
+    </div>
+    <div class="cta-block-pink"><p>Keep your progress — subscribe today</p><a href="#" class="btn-cta">Continue your journey</a></div>
+    <div class="block-dark">
+      <h3 class="section-title">Check out some of our features</h3>
+      <div class="feature-grid">
+        <a href="https://fynla.org/features#protection" class="feature-card" style="text-decoration:none;">
+          <div class="fc-icon" style="background:#e74c6f;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+          <div class="fc-label">Protection</div>
+          <div class="fc-desc">Life insurance, critical illness, and income protection coverage</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Life Cover</span><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Income Protection</span></div>
+        </a>
+        <a href="https://fynla.org/features#savings" class="feature-card" style="text-decoration:none;">
+          <div class="fc-icon" style="background:#22c55e;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+          <div class="fc-label">Savings</div>
+          <div class="fc-desc">Track emergency funds, ISA allowances, and savings goals</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Emergency Fund</span><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">ISA</span></div>
+        </a>
+        <a href="https://fynla.org/features#investment" class="feature-card" style="text-decoration:none;">
+          <div class="fc-icon" style="background:#8b5cf6;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
+          <div class="fc-label">Investment</div>
+          <div class="fc-desc">Portfolio analysis, risk profiling, and Monte Carlo projections</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Portfolio</span><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Risk Profile</span></div>
+        </a>
+        <a href="https://fynla.org/features#retirement" class="feature-card" style="text-decoration:none;">
+          <div class="fc-icon" style="background:#3b82f6;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+          <div class="fc-label">Retirement</div>
+          <div class="fc-desc">Pension tracking with retirement income projections</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Pension</span><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">State Pension</span></div>
+        </a>
+        <a href="https://fynla.org/features#estate" class="feature-card" style="text-decoration:none;">
+          <div class="fc-icon" style="background:#c4956a;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></div>
+          <div class="fc-label">Estate</div>
+          <div class="fc-desc">Inheritance Tax calculations and gifting strategies</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Inheritance Tax</span><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Trusts</span></div>
+        </a>
+        <a href="https://fynla.org/features#networth" class="feature-card" style="text-decoration:none;">
+          <div class="fc-icon" style="background:#64748b;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+          <div class="fc-label">Net Worth</div>
+          <div class="fc-desc">Properties, assets, and liabilities tracking</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Assets</span><span style="padding:2px 8px;border-radius:20px;background:rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.7);">Liabilities</span></div>
+        </a>
       </div>
     </div>
+    <div class="block bg-eggshell">
+      <h3 class="section-title">Don't lose your data</h3>
+      <p>Subscribe to a Fynla plan before your trial ends to keep all your financial information safe. After your trial expires, your data will be retained for 30 days before being permanently deleted.</p>
+      <p>Plans start from just &pound;3.99/month with our launch pricing. Lock in this rate before it increases.</p>
+    </div>
+    <div class="cta-block-pink"><p>Choose a plan that works for you</p><a href="#" class="btn-cta">Choose a plan</a></div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -416,42 +312,23 @@
 <div class="email-section" id="subscription-renewal">
   <div class="section-label">4. Subscription Renewal Reminder</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Your Fynla subscription renews on 20 April 2026</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header horizon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          </div>
-          <h2>Subscription renewal reminder</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Your Fynla Family plan will automatically renew on <strong>20 April 2026</strong>.</p>
-
-          <div style="background: #f5f0eb; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
-            <div class="detail-row"><span class="label">Plan</span><span class="value">Fynla Family</span></div>
-            <div class="detail-row"><span class="label">Renewal amount</span><span class="value">&pound;150.00/year</span></div>
-            <div class="detail-row"><span class="label">Payment method</span><span class="value">Visa ending 4242</span></div>
-            <div class="detail-row"><span class="label">Renewal date</span><span class="value">20 April 2026</span></div>
-          </div>
-
-          <p>No action is needed if you'd like to continue. If you wish to change your plan or cancel, you can do so from your account settings before the renewal date.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-horizon">Manage subscription</a>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Your Fynla subscription renews on 20 April 2026</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Subscription <span class="accent">renewal</span></h2>
+        <p class="subtitle">Your plan renews soon — no action needed</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-eggshell">
+      <p class="greeting">Hi Chris,</p>
+      <p>Your Fynla Family plan will automatically renew on <strong>20 April 2026</strong>.</p>
+      <div class="detail-box"><div class="detail-row"><span class="label">Plan</span><span class="value">Fynla Family</span></div><div class="detail-row"><span class="label">Renewal amount</span><span class="value">&pound;150.00/year</span></div><div class="detail-row"><span class="label">Payment method</span><span class="value">Visa ending 4242</span></div><div class="detail-row"><span class="label">Renewal date</span><span class="value">20 April 2026</span></div></div>
+      <p>No action is needed if you'd like to continue. If you wish to change your plan or cancel, you can do so from your account settings before the renewal date.</p>
+    </div>
+    <div class="cta-block-blue"><p>Manage your subscription settings</p><a href="#" class="btn-cta">Manage subscription</a></div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -460,40 +337,24 @@
 <div class="email-section" id="subscription-cancellation">
   <div class="section-label">5. Subscription Cancellation</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Your Fynla subscription has been cancelled</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header raspberry">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </div>
-          <h2>Subscription cancelled</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Your Fynla Family plan has been cancelled as requested. You'll continue to have full access until <strong>20 April 2026</strong>, the end of your current billing period.</p>
-
-          <div style="background: #fce4ec; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
-            <p style="font-size: 13px; margin: 0; color: #1F2A44;"><strong>What happens after 20 April 2026?</strong><br/>Your data will be retained for 30 days. After that, it will be permanently deleted unless you resubscribe.</p>
-          </div>
-
-          <p>We're sorry to see you go. If there's anything we could have done differently, we'd love to hear from you.</p>
-
-          <div class="btn-center" style="display: flex; gap: 12px; justify-content: center;">
-            <a href="#" class="btn btn-raspberry">Resubscribe</a>
-            <a href="#" class="btn btn-outline">Share feedback</a>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Your Fynla subscription has been cancelled</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Subscription <span class="accent">cancelled</span></h2>
+        <p class="subtitle">We're sorry to see you go</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-light-pink">
+      <p class="greeting">Hi Chris,</p>
+      <p>Your Fynla Family plan has been cancelled as requested. You'll continue to have full access until <strong>20 April 2026</strong>, the end of your current billing period.</p>
+      <div class="alert-pink"><p><strong>What happens after 20 April 2026?</strong><br/>Your data will be retained for 30 days. After that, it will be permanently deleted unless you resubscribe.</p></div>
+      <p>If there's anything we could have done differently, we'd love to hear from you.</p>
+    </div>
+    <div class="cta-block"><p>Changed your mind? Resubscribe instantly</p><a href="#" class="btn-cta">Resubscribe</a></div>
+    <div class="block bg-eggshell" style="text-align: center; padding: 20px 36px;"><a href="#" class="btn btn-pink">Share feedback</a></div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -502,45 +363,34 @@
 <div class="email-section" id="spouse-creation">
   <div class="section-label">6. Spouse Account Creation</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Welcome to Fynla — your spouse account is ready</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header spring">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </div>
-          <h2>Welcome to Fynla</h2>
-          <p class="greeting">Hi Jane,</p>
-          <p>Chris has created a spouse account for you on Fynla. You now have your own login to manage your personal financial data as part of your household's Family plan.</p>
-
-          <div style="background: #f5f0eb; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
-            <div class="detail-row"><span class="label">Your email</span><span class="value">jane@example.com</span></div>
-            <div class="detail-row"><span class="label">Plan</span><span class="value">Fynla Family (shared)</span></div>
-            <div class="detail-row"><span class="label">Linked to</span><span class="value">Chris's account</span></div>
-          </div>
-
-          <p>To get started, set your password using the link below. This link expires in 48 hours.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-raspberry">Set your password</a>
-          </div>
-
-          <div class="info-box success">
-            <p><strong>Your data is private.</strong> Chris cannot see your individual financial details. Only shared assets (joint accounts, properties) are visible to both of you.</p>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Welcome to Fynla — your spouse account is ready</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Welcome<br/>to <span class="accent">Fynla</span></h2>
+        <p class="subtitle">You're on your way to financial freedom!</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-light-pink">
+      <p class="greeting">Hi Jane,</p>
+      <p>Chris has created a spouse account for you on Fynla. You now have your own login to manage your personal financial data as part of your household's Family plan.</p>
+    </div>
+    <div class="block bg-eggshell">
+      <h3 class="section-title">Your login details</h3>
+      <div class="detail-box"><div class="detail-row"><span class="label">Email</span><span class="value">jane@example.com</span></div><div class="detail-row"><span class="label">Password</span><span class="value">Set via link below</span></div><div class="detail-row"><span class="label">Plan</span><span class="value">Fynla Family (shared)</span></div><div class="detail-row"><span class="label">Linked to</span><span class="value">Chris's account</span></div></div>
+      <p>To get started, set your password using the button below. This link expires in 48 hours.</p>
+    </div>
+    <div class="cta-block-horizon"><p>Get started with your account</p><a href="#" class="btn-cta">Set your password</a></div>
+    <div class="block bg-light-pink">
+      <h3 class="section-title">You've met Fyn...</h3>
+      <p>Fyn is your personal AI financial companion. Once you're logged in, Fyn can help you understand your finances, answer your questions, and guide you through setting up your dashboard step by step.</p>
+    </div>
+    <div class="block bg-eggshell">
+      <h3 class="section-title">What next?</h3>
+      <p>Log in and complete your personal profile to get started. Fyn will walk you through adding your financial information &mdash; savings, pensions, investments, and more. Your data is completely private; Chris cannot see your individual financial details. Only shared assets (joint accounts, properties) are visible to both of you.</p>
+    </div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -549,39 +399,23 @@
 <div class="email-section" id="spouse-linked">
   <div class="section-label">7. Spouse Account Linked</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Spouse account linked to your Fynla household</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header violet">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-          </div>
-          <h2>Spouse account linked</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Jane has accepted your invitation and their spouse account is now linked to your Fynla household.</p>
-
-          <div class="info-box success">
-            <p><strong>What's shared:</strong> Joint assets (properties, joint accounts) will now appear in both dashboards. Individual data (personal pensions, savings, protection) remains private to each account.</p>
-          </div>
-
-          <p>You can manage household settings and linked accounts from your profile.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-horizon">View household</a>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Spouse account linked to your Fynla household</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Spouse account <span class="accent">linked</span></h2>
+        <p class="subtitle">Your household is now connected</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-eggshell">
+      <p class="greeting">Hi Chris,</p>
+      <p>Jane has accepted your invitation and their spouse account is now linked to your Fynla household.</p>
+      <div class="alert-pink"><p><strong>What's shared:</strong> Joint assets (properties, joint accounts) will now appear in both dashboards. Individual data (personal pensions, savings, protection) remains private to each account.</p></div>
+      <p>You can manage household settings and linked accounts from your profile.</p>
+    </div>
+    <div class="cta-block-pink"><p>See your household dashboard</p><a href="#" class="btn-cta">View household</a></div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -590,42 +424,26 @@
 <div class="email-section" id="data-retention">
   <div class="section-label">8. Data Retention Warning (30 Day)</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Your Fynla data will be deleted in 30 days</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header savannah">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          </div>
-          <h2>Your data will be deleted in 30 days</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Your Fynla subscription ended on <strong>20 April 2026</strong>. As outlined in our data retention policy, your financial data will be permanently deleted on <strong>20 May 2026</strong>.</p>
-
-          <div class="info-box danger">
-            <p><strong>This action is irreversible.</strong> Once deleted, your financial data, projections, goals, and conversation history with Fyn cannot be recovered.</p>
-          </div>
-
-          <p>To keep your data, simply resubscribe before the deletion date. Everything will be exactly as you left it.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-raspberry">Resubscribe now</a>
-          </div>
-
-          <div class="divider"></div>
-          <p style="font-size: 13px; color: #999; text-align: center;">If you'd like to export your data before deletion, please contact <a href="#" style="color: #e74c6f; text-decoration: none;">support@fynla.org</a></p>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Your Fynla data will be deleted in 30 days</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Data <span class="accent">retention</span> warning</h2>
+        <p class="subtitle">Your data will be deleted in 30 days</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-light-pink">
+      <p class="greeting">Hi Chris,</p>
+      <p>Your Fynla subscription ended on <strong>20 April 2026</strong>. As outlined in our data retention policy, your financial data will be permanently deleted on <strong>20 May 2026</strong>.</p>
+      <div class="alert-raspberry"><p><strong>This action is irreversible.</strong> Once deleted, your financial data, projections, goals, and conversation history with Fyn cannot be recovered.</p></div>
+      <p>To keep your data, simply resubscribe before the deletion date. Everything will be exactly as you left it.</p>
+    </div>
+    <div class="cta-block-pink"><p>Keep your financial data safe</p><a href="#" class="btn-cta">Resubscribe now</a></div>
+    <div class="block bg-eggshell" style="text-align: center; padding: 20px 36px;">
+      <p style="font-size: 13px; color: #999;">If you'd like to export your data before deletion, please contact <a href="#" style="color: #e74c6f; text-decoration: none;">support@fynla.org</a></p>
+    </div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -634,49 +452,32 @@
 <div class="email-section" id="deletion-verification">
   <div class="section-label">9. Deletion Verification Email</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Confirm your Fynla account deletion request</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header raspberry">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </div>
-          <h2>Confirm account deletion</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>We received a request to permanently delete your Fynla account and all associated data. This includes:</p>
-
-          <ul style="font-size: 14px; color: #555; line-height: 2; padding-left: 20px; margin-bottom: 16px;">
-            <li>All financial data (accounts, pensions, investments, properties)</li>
-            <li>Goals, life events, and projections</li>
-            <li>Conversation history with Fyn</li>
-            <li>Your account and login credentials</li>
-          </ul>
-
-          <div class="info-box danger">
-            <p><strong>This action cannot be undone.</strong> Once confirmed, your data will be permanently deleted within 48 hours.</p>
-          </div>
-
-          <p>If you made this request, click the button below to confirm. This link expires in 24 hours.</p>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-raspberry">Confirm deletion</a>
-          </div>
-
-          <div class="divider"></div>
-          <p style="font-size: 13px; color: #999; text-align: center;">If you didn't request this, please ignore this email or contact <a href="#" style="color: #e74c6f; text-decoration: none;">support@fynla.org</a> immediately.</p>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Unsubscribe</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Confirm your Fynla account deletion request</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Confirm <span class="accent">deletion</span></h2>
+        <p class="subtitle">Please verify your account deletion request</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-eggshell">
+      <p class="greeting">Hi Chris,</p>
+      <p>We received a request to permanently delete your Fynla account and all associated data. This includes:</p>
+      <ul style="font-size: 14px; color: #555; line-height: 2; padding-left: 20px; margin-bottom: 14px;">
+        <li>All financial data (accounts, pensions, investments, properties)</li>
+        <li>Goals, life events, and projections</li>
+        <li>Conversation history with Fyn</li>
+        <li>Your account and login credentials</li>
+      </ul>
+      <div class="alert-raspberry"><p><strong>This action cannot be undone.</strong> Once confirmed, your data will be permanently deleted within 48 hours.</p></div>
+      <p>If you made this request, click the button below to confirm. This link expires in 24 hours.</p>
+    </div>
+    <div class="cta-block"><p>Permanently delete your account</p><a href="#" class="btn-cta">Confirm deletion</a></div>
+    <div class="block bg-eggshell" style="text-align: center; padding: 20px 36px;">
+      <p style="font-size: 13px; color: #999;">If you didn't request this, please ignore this email or contact <a href="#" style="color: #e74c6f; text-decoration: none;">support@fynla.org</a> immediately.</p>
+    </div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Help</a><a href="#">Unsubscribe</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
@@ -685,45 +486,24 @@
 <div class="email-section" id="deletion-confirmation">
   <div class="section-label">10. Data Deletion Confirmation</div>
   <div class="email-frame">
-    <div class="email-chrome">
-      <div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div>
-      <span class="subject">Your Fynla account has been deleted</span>
-    </div>
-    <div class="email-body">
-      <div class="email-container">
-        <div class="email-logo"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></div>
-        <div class="email-card">
-          <div class="icon-header horizon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <h2>Account deletion complete</h2>
-          <p class="greeting">Hi Chris,</p>
-          <p>Your Fynla account and all associated data have been permanently deleted as requested. This includes all financial records, projections, goals, and conversation history.</p>
-
-          <div style="background: #f5f0eb; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
-            <div class="detail-row"><span class="label">Account</span><span class="value">chris@fynla.org</span></div>
-            <div class="detail-row"><span class="label">Deletion date</span><span class="value">13 April 2026</span></div>
-            <div class="detail-row"><span class="label">Reference</span><span class="value">DEL-2026-0042</span></div>
-          </div>
-
-          <p>This data cannot be recovered. If you'd like to use Fynla again in the future, you're welcome to create a new account at any time.</p>
-
-          <div class="info-box success">
-            <p>A copy of this confirmation has been saved for our records in compliance with GDPR. No personal financial data has been retained.</p>
-          </div>
-
-          <div class="btn-center">
-            <a href="#" class="btn btn-horizon">Visit Fynla</a>
-          </div>
-        </div>
-
-        <div class="email-footer">
-          <p>This is an automated message from Fynla.<br/>
-          <a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a><br/>
-          Fynla Ltd, 124 City Road, London, EC1V 2NX</p>
-        </div>
+    <div class="email-chrome"><div class="dot dot-r"></div><div class="dot dot-v"></div><div class="dot dot-s"></div><span class="subject">Your Fynla account has been deleted</span></div>
+    <div class="email-logo-bar"><a href="https://fynla.org"><img src="/images/logos/LogoHiResFynlaDark.png" alt="Fynla" /></a></div>
+    <div class="email-hero">
+      <div class="email-hero-text">
+        <h2>Account <span class="accent">deleted</span></h2>
+        <p class="subtitle">Your data has been permanently removed</p>
       </div>
+      <div class="email-hero-fyn"><img src="/images/Fyn/Design Character 001a.webp" alt="Fyn" /></div>
     </div>
+    <div class="block bg-eggshell">
+      <p class="greeting">Hi Chris,</p>
+      <p>Your Fynla account and all associated data have been permanently deleted as requested. This includes all financial records, projections, goals, and conversation history.</p>
+      <div class="detail-box"><div class="detail-row"><span class="label">Account</span><span class="value">chris@fynla.org</span></div><div class="detail-row"><span class="label">Deletion date</span><span class="value">13 April 2026</span></div><div class="detail-row"><span class="label">Reference</span><span class="value">DEL-2026-0042</span></div></div>
+      <p>This data cannot be recovered. If you'd like to use Fynla again in the future, you're welcome to create a new account at any time.</p>
+      <div class="alert-blue"><p>A copy of this confirmation has been saved for our records in compliance with GDPR. No personal financial data has been retained.</p></div>
+    </div>
+    <div class="cta-block-horizon"><p>Start fresh with a new account</p><a href="#" class="btn-cta">Visit Fynla</a></div>
+    <div class="email-footer"><div class="footer-logo"><img src="/images/logos/LogoHiResFynlaLight.png" alt="Fynla" /></div><div class="footer-content"><div class="footer-links"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div><div class="footer-text">&copy; 2026 Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</div></div></div>
   </div>
 </div>
 
