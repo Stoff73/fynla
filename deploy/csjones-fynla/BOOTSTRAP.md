@@ -36,13 +36,30 @@ These go into the server `.env` in step 5 below. Never commit them.
 
 ---
 
-## 2. Create the directory on the server
+## 2. Create the app directory on the server (sibling layout)
+
+Fynla follows the same sibling-directory pattern as the existing `tengo-app`
+on this server — Laravel code lives OUTSIDE `public_html/`, and only the
+`public/` folder is exposed to the web via a symlink. This keeps app
+source, vendor, storage etc. out of the document root.
+
+Layout:
+
+```
+~/www/csjones.co/
+  tengo-app/               ← existing sibling Laravel app (leave alone)
+  fynla-app/               ← NEW: Fynla dev install goes here
+     app/ config/ public/ ...
+  public_html/
+     tengo → ../tengo-app/public    ← existing symlink (leave alone)
+     fynla → ../fynla-app/public    ← NEW symlink (created in step 7)
+```
 
 ```bash
 ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
-mkdir -p ~/www/csjones.co/public_html/fynla
-cd ~/www/csjones.co/public_html/fynla
-pwd  # should print /home/u163-.../www/csjones.co/public_html/fynla
+mkdir -p ~/www/csjones.co/fynla-app
+cd ~/www/csjones.co/fynla-app
+pwd  # should print /home/u163-.../www/csjones.co/fynla-app
 ```
 
 Leave the SSH session open — you'll come back to it in step 6.
@@ -66,7 +83,7 @@ Expected output: `public/build/` populated with hashed asset filenames. The buil
 
 ## 4. Upload the code (first-time only — entire project)
 
-For the **first** upload, send the whole project (minus vendor, node_modules, env, storage caches) to `~/www/csjones.co/public_html/fynla/`.
+For the **first** upload, send the whole project (minus vendor, node_modules, env, storage caches) to `~/www/csjones.co/fynla-app/`.
 
 The easiest way from macOS is `rsync` over SSH:
 
@@ -89,7 +106,7 @@ rsync -avz --delete \
   --exclude="April/" \
   --exclude=".claude/" \
   ./ \
-  u163-ptanegf9edny@ssh.csjones.co:www/csjones.co/public_html/fynla/
+  u163-ptanegf9edny@ssh.csjones.co:www/csjones.co/fynla-app/
 ```
 
 **Important:** the `-p 18765` non-standard port is passed via the inner `-e "ssh -p 18765 ..."` string. Test with a small file first if you're nervous — `rsync` respects `--dry-run`.
@@ -104,7 +121,7 @@ The `public/.htaccess` in the repo is the **production** (root-deployment) versi
 # From your Mac, still in the fynla repo
 scp -P 18765 -i ~/.ssh/fynlaDev \
     deploy/csjones-fynla/.htaccess \
-    u163-ptanegf9edny@ssh.csjones.co:www/csjones.co/public_html/fynla/public/.htaccess
+    u163-ptanegf9edny@ssh.csjones.co:www/csjones.co/fynla-app/public/.htaccess
 ```
 
 **Verify this happens.** The wrong `.htaccess` silently breaks routing.
@@ -117,7 +134,7 @@ SSH back in:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
-cd ~/www/csjones.co/public_html/fynla
+cd ~/www/csjones.co/fynla-app
 ```
 
 Copy the template and edit:
@@ -146,7 +163,7 @@ Save and exit.
 
 ## 6. Install Composer dependencies and finalise Laravel
 
-Still SSH'd in at `~/www/csjones.co/public_html/fynla`:
+Still SSH'd in at `~/www/csjones.co/fynla-app`:
 
 ```bash
 # Check PHP version — must be 8.2 or higher
@@ -190,39 +207,40 @@ Option B is sometimes necessary on tight memory limits. If you use it, run `comp
 
 ---
 
-## 7. Configure the SiteGround document root
+## 7. Create the public symlink
 
-By default, SiteGround serves `csjones.co/fynla` from `~/www/csjones.co/public_html/fynla/` directly, but Laravel's `index.php` is inside `public/`. Two options:
-
-### Option A (preferred): symlink at the document root
-
-Rename the `public/` folder's contents to be served from `fynla/`:
+Expose the Laravel `public/` folder to the web by creating a symlink from
+`public_html/fynla` to `fynla-app/public`. This matches the existing
+`tengo-app` setup on the same server.
 
 ```bash
-cd ~/www/csjones.co/public_html/fynla
-# Move the public folder contents up to fynla/ so / serves them
-# BUT this breaks the Laravel convention — use Option B instead.
+cd ~/www/csjones.co/public_html
+ln -s ../fynla-app/public fynla
+ls -la fynla
+# expected: lrwxrwxrwx ... fynla -> ../fynla-app/public
 ```
 
-**Don't do Option A.** Go to Option B.
+Apache follows the symlink automatically — no SiteGround admin panel
+changes needed. The URL `https://csjones.co/fynla` now serves
+`~/www/csjones.co/fynla-app/public/index.php`, which is Laravel's
+front controller.
 
-### Option B: point the SiteGround subdirectory at `public/`
+**Verify the symlink target is correct** by listing the symlinked path:
 
-1. In SiteGround Site Tools → **Domain → Subdirectories** (or **Redirects** if that tab isn't available)
-2. Create or edit the `fynla` subdirectory
-3. Set the document root to `~/www/csjones.co/public_html/fynla/public`
-4. Save
-
-If SiteGround won't let you change the subdirectory doc root, fallback is to use an `.htaccess` redirect in `~/www/csjones.co/public_html/fynla/.htaccess` that rewrites `/fynla/*` to `/fynla/public/*`:
-
-```apache
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteRule ^(.*)$ public/$1 [L]
-</IfModule>
+```bash
+ls ~/www/csjones.co/public_html/fynla/index.php
+# expected: the file exists (symlink resolves)
 ```
 
-Save that as a separate `.htaccess` in `~/www/csjones.co/public_html/fynla/.htaccess` (NOT the one in `public/`).
+If you ever need to remove the symlink (e.g. to clean up), delete it
+without touching the target:
+
+```bash
+rm ~/www/csjones.co/public_html/fynla   # removes the symlink only
+```
+
+`rm -rf` would also work since `rm` doesn't follow the symlink, but
+prefer the plain `rm` to keep the blast radius obvious.
 
 ---
 
