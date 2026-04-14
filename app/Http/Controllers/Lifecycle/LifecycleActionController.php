@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Payment\TrialService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
 /**
@@ -94,11 +95,22 @@ class LifecycleActionController extends Controller
 
         $this->markClicked($userId, $campaign, "feedback:{$reason}");
 
+        // Re-sign for the POST target — signed URL signatures are path-specific,
+        // so the original /lifecycle/feedback signature can't be reused on the
+        // /lifecycle/feedback-text path. Generate a fresh, short-lived signed
+        // URL scoped to this user+campaign so the free-text form POST can pass
+        // the signed middleware.
+        $feedbackTextUrl = URL::temporarySignedRoute(
+            'lifecycle.feedback-text',
+            now()->addHour(),
+            ['user_id' => $userId, 'campaign' => $campaign]
+        );
+
         return view('lifecycle.feedback-thanks', [
             'campaign' => $campaign,
             'reason' => $reason,
             'user_id' => $userId,
-            'signed_token' => $request->fullUrl(),
+            'feedback_text_url' => $feedbackTextUrl,
         ]);
     }
 

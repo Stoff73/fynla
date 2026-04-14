@@ -24,7 +24,7 @@
 
         <p>If there's anything else you'd like to share, we'd love to hear it. Optional — but every word helps us improve Fynla.</p>
 
-        <form method="POST" action="{{ route('lifecycle.feedback-text') }}{{ '?' . parse_url($signed_token, PHP_URL_QUERY) }}">
+        <form method="POST" action="{{ $feedback_text_url }}">
             @csrf
             <input type="hidden" name="user_id" value="{{ $user_id }}">
             <input type="hidden" name="campaign" value="{{ $campaign }}">
