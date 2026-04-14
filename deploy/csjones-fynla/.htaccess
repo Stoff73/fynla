@@ -65,10 +65,10 @@
     Deny from all
 </Files>
 
-<DirectoryMatch "\.git">
-    Order allow,deny
-    Deny from all
-</DirectoryMatch>
+# Block access to .git directories (using RewriteRule for shared hosting compatibility)
+# DirectoryMatch is not permitted in .htaccess on SiteGround shared hosting — it
+# causes a 500 Internal Server Error with "DirectoryMatch not allowed here".
+RewriteRule ^\.git - [F,L]
 
 <FilesMatch "^(composer\.(json|lock)|package(-lock)?\.json)$">
     Order allow,deny
