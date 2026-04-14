@@ -22,20 +22,20 @@ Route::get('/insights/{slug}', function () {
     return view('app');
 })->middleware('insights.seo')->where('slug', '[a-z0-9-]+');
 
-// Lifecycle email magic-link routes.
-//
-// These are stub closures at this stage — they only exist so that
-// URL::temporarySignedRoute() calls in the lifecycle campaigns can build
-// signed URLs for the email templates. The real handlers are installed in
-// Phase 9 Task 9.2 (LifecycleActionController). The names/paths here must
-// stay in sync with that controller's route group.
+// Lifecycle email magic-link routes. All behind Laravel's signed middleware —
+// URLs are built via URL::temporarySignedRoute() in the lifecycle campaigns
+// (see app/Services/Lifecycle/Campaigns/*.php) and validated on hit.
 Route::middleware('signed')->prefix('lifecycle')->group(function () {
-    Route::get('/restart-trial', fn () => null)->name('lifecycle.restart-trial');
-    Route::get('/apply-discount', fn () => null)->name('lifecycle.apply-discount');
-    Route::get('/feedback', fn () => null)->name('lifecycle.feedback');
-    Route::get('/update-payment', fn () => null)->name('lifecycle.update-payment');
+    Route::get('/restart-trial', [\App\Http\Controllers\Lifecycle\LifecycleActionController::class, 'restartTrial'])
+        ->name('lifecycle.restart-trial');
+    Route::get('/apply-discount', [\App\Http\Controllers\Lifecycle\LifecycleActionController::class, 'applyDiscount'])
+        ->name('lifecycle.apply-discount');
+    Route::get('/feedback', [\App\Http\Controllers\Lifecycle\LifecycleActionController::class, 'feedback'])
+        ->name('lifecycle.feedback');
+    Route::get('/update-payment', [\App\Http\Controllers\Lifecycle\LifecycleActionController::class, 'updatePayment'])
+        ->name('lifecycle.update-payment');
 });
-Route::post('/lifecycle/feedback-text', fn () => null)
+Route::post('/lifecycle/feedback-text', [\App\Http\Controllers\Lifecycle\LifecycleActionController::class, 'submitFeedbackText'])
     ->name('lifecycle.feedback-text')
     ->middleware('signed');
 

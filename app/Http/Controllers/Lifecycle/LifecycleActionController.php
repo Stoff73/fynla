@@ -1,0 +1,150 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Lifecycle;
+
+use App\Http\Controllers\Controller;
+use App\Models\FeedbackResponse;
+use App\Models\LifecycleEmailLog;
+use App\Models\User;
+use App\Services\Payment\TrialService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+/**
+ * Handles magic-link actions from lifecycle emails.
+ *
+ * All routes are behind Laravel's `signed` middleware. Each method updates the
+ * corresponding LifecycleEmailLog row with click metadata, performs its action
+ * (or stores it in the session for post-login execution), and redirects to the
+ * relevant SPA page — Fynla's web layer is SPA-routed, so targets here are
+ * hard-coded string paths, not Laravel named routes.
+ */
+class LifecycleActionController extends Controller
+{
+    public function __construct(
+        private readonly TrialService $trialService,
+    ) {
+    }
+
+    public function restartTrial(Request $request): RedirectResponse
+    {
+        $userId = (int) $request->query('user_id');
+        $user = User::findOrFail($userId);
+
+        $this->markClicked($userId, 'empty_trialer', 'restarted_trial');
+
+        $this->trialService->restartTrial(
+            $user,
+            days: (int) config('lifecycle.trial_restart_days', 14),
+        );
+
+        if (auth()->check() && auth()->id() === $userId) {
+            return redirect('/dashboard')
+                ->with('success', 'Welcome back! Your Fynla trial is active for another '
+                    . config('lifecycle.trial_restart_days', 14) . ' days.');
+        }
+
+        return redirect('/login')
+            ->with('lifecycle_message', 'Sign in to access your reactivated Fynla trial.');
+    }
+
+    public function applyDiscount(Request $request): RedirectResponse
+    {
+        $userId = (int) $request->query('user_id');
+        $campaign = (string) $request->query('campaign');
+        $code = (string) $request->query('code');
+
+        $this->markClicked($userId, $campaign, 'applied_discount');
+
+        session([
+            'lifecycle.pending_discount' => [
+                'code' => $code,
+                'user_id' => $userId,
+                'expires' => now()->addHour(),
+            ],
+        ]);
+
+        $checkoutPath = '/checkout?discount_code=' . urlencode($code);
+
+        if (auth()->check() && auth()->id() === $userId) {
+            return redirect($checkoutPath);
+        }
+
+        return redirect('/login')
+            ->with('intended_after_login', $checkoutPath)
+            ->with('lifecycle_message', 'Sign in to claim your welcome discount.');
+    }
+
+    public function feedback(Request $request): View
+    {
+        $userId = (int) $request->query('user_id');
+        $campaign = (string) $request->query('campaign');
+        $reason = (string) $request->query('reason');
+
+        $allowedReasons = config("lifecycle.feedback_reasons.{$campaign}", []);
+        abort_unless(in_array($reason, $allowedReasons, true), 400);
+
+        FeedbackResponse::updateOrCreate(
+            ['user_id' => $userId, 'campaign' => $campaign],
+            ['reason_code' => $reason, 'clicked_at' => now()],
+        );
+
+        $this->markClicked($userId, $campaign, "feedback:{$reason}");
+
+        return view('lifecycle.feedback-thanks', [
+            'campaign' => $campaign,
+            'reason' => $reason,
+            'user_id' => $userId,
+            'signed_token' => $request->fullUrl(),
+        ]);
+    }
+
+    public function submitFeedbackText(Request $request): View
+    {
+        $request->validate(['free_text' => 'required|string|max:2000']);
+
+        FeedbackResponse::where('user_id', (int) $request->input('user_id'))
+            ->where('campaign', (string) $request->input('campaign'))
+            ->update([
+                'free_text' => $request->input('free_text'),
+                'text_submitted_at' => now(),
+            ]);
+
+        return view('lifecycle.feedback-text-thanks');
+    }
+
+    public function updatePayment(Request $request): RedirectResponse
+    {
+        $userId = (int) $request->query('user_id');
+
+        $this->markClicked($userId, 'lapsed_subscriber', 'clicked_update_payment');
+
+        // Subscription management lives in the UserProfile SPA view under a
+        // tab, so /profile is the closest equivalent to the plan's
+        // route('account.billing'). The user needs to click the Subscription
+        // tab once landed — deep-linking the tab is a separate UX task.
+        $profilePath = '/profile';
+
+        if (auth()->check() && auth()->id() === $userId) {
+            return redirect($profilePath);
+        }
+
+        return redirect('/login')
+            ->with('intended_after_login', $profilePath)
+            ->with('lifecycle_message', 'Sign in to update your payment method.');
+    }
+
+    private function markClicked(int $userId, string $campaign, string $action): void
+    {
+        LifecycleEmailLog::where('user_id', $userId)
+            ->where('campaign', $campaign)
+            ->whereNull('clicked_at')
+            ->update([
+                'clicked_at' => now(),
+                'action_taken' => $action,
+            ]);
+    }
+}
