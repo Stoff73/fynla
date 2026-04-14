@@ -10,10 +10,13 @@ use App\Models\User;
 use App\Services\Lifecycle\LifecycleEngine;
 use Database\Seeders\LifecycleTestSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\URL;
 
 class RunLifecycleEngineE2ETest extends Command
 {
-    protected $signature = 'lifecycle:e2e-test {--recipient= : Real email to send all test emails to}';
+    protected $signature = 'lifecycle:e2e-test
+        {--recipient= : Real email to send all test emails to}
+        {--url= : Override the URL root used for magic links (defaults to APP_URL, or http://localhost:8000 when APP_URL is the bare http://localhost)}';
 
     protected $description = 'Run the lifecycle engine against dummy seeded users with email recipient override';
 
@@ -27,6 +30,22 @@ class RunLifecycleEngineE2ETest extends Command
         }
 
         $this->info("Running lifecycle e2e test, sending all emails to: {$recipient}");
+
+        // Force the URL root for this run. Needed locally because APP_URL is
+        // commonly set to "http://localhost" (no port) while the dev server
+        // runs on :8000 — without this override, email magic links point at
+        // port 80, which isn't listening, and the user sees "can't load page"
+        // in Chrome. Production is unaffected because APP_URL there is a
+        // fully-qualified https URL.
+        $urlOverride = $this->option('url');
+        if (! $urlOverride && config('app.url') === 'http://localhost') {
+            $urlOverride = 'http://localhost:8000';
+            $this->warn("APP_URL is bare 'http://localhost' — forcing URL root to {$urlOverride} so magic links work against php artisan serve.");
+        }
+        if ($urlOverride) {
+            URL::forceRootUrl($urlOverride);
+            $this->info("URL root for this run: {$urlOverride}");
+        }
 
         // Override config for this run — the engine's dispatchEmail() reads
         // lifecycle.test_recipient_override and redirects test users' email
