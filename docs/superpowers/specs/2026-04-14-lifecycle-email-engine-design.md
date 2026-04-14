@@ -175,7 +175,17 @@ This must work for the three user populations on the day the migration runs:
 | **B. Users with NO `notification_preferences` row yet** (lazy-created on first access) | `NotificationPreference::getOrCreateForUser($userId)` defaults block is updated to include the 5 new fields, all `true`. Row gets created the first time the user hits the settings page or the engine queries them. | Row materialised with all 14 fields on. |
 | **C. New users registering after the migration** | Same as B — first call to `getOrCreateForUser` creates a row with all 14 defaults. | Row created with all 14 fields on. |
 
-**The settings menu UI must surface all 14 toggles for every user, regardless of which population they're in.** This is a hard requirement, not a nice-to-have. The Vue settings component (location TBD in writing-plans phase — see §10) gets a new section "Lifecycle emails" with 5 line-by-line toggles, immediately below the existing notification preference toggles.
+**The settings menu UI must surface all 14 toggles for every user, regardless of which population they're in.** This is a hard requirement, not a nice-to-have.
+
+**Discovery during writing-plans phase (Option B chosen):** The existing notification preferences UI **only exists in the mobile app** at `resources/js/mobile/views/NotificationSettings.vue` and uses the API at `/v1/mobile/notifications/preferences`. There is no web equivalent — web users currently cannot manage notification preferences at all.
+
+This means we need:
+
+1. **Mobile** — augment the existing `NotificationSettings.vue` to add the 5 lifecycle toggles (small change, ~30 lines).
+2. **Web (NEW)** — build a new web page `NotificationPreferences.vue` under `resources/js/components/UserProfile/` showing all 14 toggles (9 existing + 5 lifecycle), exposed as a tab in the user profile settings.
+3. **API (NEW web endpoint)** — the existing `App\Http\Controllers\Api\V1\Mobile\NotificationPreferenceController` is namespaced under `/v1/mobile/`. Create a new controller `App\Http\Controllers\Api\NotificationPreferenceController` (without the Mobile namespace) that exposes identical endpoints under `/api/notifications/preferences`. Both controllers call the same `NotificationPreference::getOrCreateForUser()` and `update()` patterns. No refactor of the existing mobile controller — it stays as-is to preserve mobile compatibility.
+
+Resolves the original §10.5 open question and closes off the unsubscribe footer URL (§7).
 
 #### Updates to `NotificationPreference.php` model
 
@@ -1257,10 +1267,35 @@ app/Models/NotificationPreference.php
   - 5 lifecycle_* fields added to $fillable + $casts
   - getOrCreateForUser() defaults updated to include 5 new fields (all true)
 
-resources/js/components/UserProfile/<TBD>.vue   ← see §10
-  - 5 new toggles added under a "Lifecycle emails" section header
-  - Same toggle component as existing notification preferences
-  - Persists via the existing notification preference save endpoint
+resources/js/mobile/views/NotificationSettings.vue
+  - 5 new toggles added to the toggleItems array under a "Lifecycle emails" section header
+  - No structural changes — same toggle component, same persistence flow
+  - ~30 lines added
+
+resources/js/components/UserProfile/NotificationPreferences.vue   (NEW)
+  - Brand-new web settings page (mirrors the mobile component's structure)
+  - All 14 toggles (9 existing + 5 lifecycle), grouped into 3 sections:
+    * Account (security_alerts, payment_alerts)
+    * Feature alerts (policy_renewals, goal_milestones, contribution_reminders,
+                       market_updates, fyn_daily_insight, mortgage_rate_alerts)
+    * Lifecycle emails (5 new)
+  - Persists via the new /api/notifications/preferences endpoint
+  - ~250 lines
+
+resources/js/components/UserProfile/Settings.vue
+  - Add a new "Notifications" tab linking to NotificationPreferences.vue
+  - ~10 lines added
+
+app/Http/Controllers/Api/NotificationPreferenceController.php   (NEW)
+  - Mirrors the existing mobile controller's show() and update() methods
+  - Returns/accepts all 14 fields (the existing controller only handles 8 — needs
+    fix for estate_alerts which IS in the model but missing from controller's
+    show() response — fold this fix in as scope-adjacent cleanup)
+  - ~70 lines
+
+routes/api.php
+  - 2 new routes: GET/PUT /api/notifications/preferences
+  - Both behind auth:sanctum middleware
 
 app/Models/Subscription.php
   - (no changes — existing fields cover all our needs)
@@ -1306,8 +1341,10 @@ These don't block the design — they're things to verify when reading the actua
 2. **Existing subscription indexes:** check whether `idx_subs_status_trial`, `idx_subs_status_period`, `idx_subs_status_cancelled` already exist. Skip the migration if so.
 3. **Discount type column on `discount_codes`:** verified to be varchar (not enum) in schema, but worth re-checking before generating the migration to add `lifecycle_welcome`.
 4. **`first_name` nullability on `users`:** check whether legacy users may have null `first_name`. The fallback subject line strings should be tested against the real DB shape.
-5. **Vue settings component path:** find which Vue component currently renders the existing notification preference toggles (`policy_renewals`, `goal_milestones`, `fyn_daily_insight`, etc.). Likely under `resources/js/components/UserProfile/` or `resources/js/views/Settings/`. The 5 new lifecycle toggles need to be added to the same component, in their own "Lifecycle emails" section. Search for `policy_renewals` in resources/js to locate.
-6. **Existing notification preference save endpoint:** find the API route the settings UI uses to persist preferences. Confirm it accepts arbitrary fields (so adding 5 new boolean fields works without backend changes), or whether it uses an explicit allowlist that needs updating.
+5. **Vue settings component path:** RESOLVED during writing-plans phase. Found that notification preferences UI exists ONLY in mobile (`resources/js/mobile/views/NotificationSettings.vue`). Per Option B (chosen), a new web component at `resources/js/components/UserProfile/NotificationPreferences.vue` is being added as part of this work. See §3 for the full Option B treatment.
+6. **Existing notification preference save endpoint:** RESOLVED. The mobile endpoint at `/v1/mobile/notifications/preferences` uses an `UpdateNotificationPreferencesRequest` Form Request that we need to update to allow the 5 new fields. The new web endpoint at `/api/notifications/preferences` will use the same Form Request (or its own copy — to be decided in the plan).
+7. **`UpdateNotificationPreferencesRequest` rules:** find the existing Form Request and update its `rules()` method to include the 5 new lifecycle boolean fields.
+8. **Estate alerts field gap in mobile controller:** noticed during investigation that the mobile `NotificationPreferenceController::show()` returns 8 fields but the model has 9 (`estate_alerts` is missing from the response). Worth fixing as scope-adjacent cleanup since we're already touching this area — flag in the plan as a small fix. **Confirm with user before bundling.**
 
 ---
 
