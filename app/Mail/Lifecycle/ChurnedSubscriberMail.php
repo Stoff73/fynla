@@ -7,13 +7,11 @@ namespace App\Mail\Lifecycle;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-/**
- * Stub — replaced in Phase 8 Task 8.4.
- */
 class ChurnedSubscriberMail extends Mailable
 {
     use Queueable;
@@ -28,11 +26,21 @@ class ChurnedSubscriberMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Stub — replaced in Phase 8');
+        return new Envelope(
+            from: new Address('noreply@fynla.org', 'Fynla'),
+            subject: "Thank you for being a Fynla subscriber — we'd love your feedback",
+        );
     }
 
     public function content(): Content
     {
-        return new Content(htmlString: '<p>stub</p>');
+        return new Content(
+            view: 'emails.lifecycle.churned-subscriber',
+            with: [
+                'firstName' => $this->user->first_name ?: 'there',
+                'feedbackUrls' => $this->feedbackUrls,
+                'subscriptionDuration' => $this->subscriptionDuration,
+            ],
+        );
     }
 }
