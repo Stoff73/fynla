@@ -1393,12 +1393,13 @@ export default {
 
     const handleSkipToDashboard = async () => {
       showSkipToDashboardModal.value = false;
+      const isNewUser = route.query.newUser === '1';
       if (isJourneyMode.value || isLifeStageMode.value) {
         await store.dispatch('auth/fetchUser', null, { root: true });
-        router.push({ name: 'Dashboard' });
+        router.push({ name: 'Dashboard', query: isNewUser ? { newUser: '1' } : {} });
       } else {
         await store.dispatch('onboarding/skipToDashboard');
-        router.push('/dashboard');
+        router.push({ path: '/dashboard', query: isNewUser ? { newUser: '1' } : {} });
       }
     };
 

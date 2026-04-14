@@ -72,6 +72,12 @@ ios/App/App/public/
 # Local dev script
 dev.sh
 
+# Reference images, mockups, screenshots (design assets, not app code)
+public/images/References/
+public/images/screenshots/
+public/mockups/
+public/images/Fyn/Fyn-Brain-Animation.mov
+
 # Temp files (snapshots, prompts, uploads, test artifacts)
 scenario1-before-submit.md
 systemPrompt.md

@@ -2139,6 +2139,17 @@ export default {
     // (e.g. after onboarding, adding data via Fyn, etc.)
     this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
 
+    // Meta Pixel: StartTrial — first dashboard visit after registration
+    if (this.$route.query.newUser === '1') {
+      if (typeof fbq === 'function') {
+        fbq('track', 'StartTrial', { currency: 'GBP', value: 0 });
+      }
+      // Clean the newUser param
+      const cleanQuery = { ...this.$route.query };
+      delete cleanQuery.newUser;
+      this.$router.replace({ query: cleanQuery });
+    }
+
     // Handle openFyn=journey from "Get started with Fyn" registration
     if (this.$route.query.openFyn === 'journey') {
       // Set flag so AiChatPanel adds the journey message after conversation is created
