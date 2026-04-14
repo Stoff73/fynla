@@ -17,19 +17,19 @@
                 {{-- Logo Bar --}}
                 <tr><td style="background: #ffffff; padding: 14px 36px;">
                     <a href="https://fynla.org" style="display: inline-block;">
-                        <img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaDark.png" alt="Fynla" style="height: 32px; width: auto; display: block;" />
+                        <img src="https://fynla.org/images/logos/LogoHiResFynlaDark.png" alt="Fynla" width="71" height="32" style="height: 32px; width: 71px; display: block;" />
                     </a>
                 </td></tr>
 
                 {{-- Hero Header --}}
-                <tr><td style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
+                <tr><td bgcolor="#1F2A44" style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
                     <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
                         <td style="padding-bottom: 28px; vertical-align: bottom;">
-                            <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Take the time<br/>to <span style="color: #f9a8c0;">save</span></h2>
+                            <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Don't lose<br/>your <span style="color: #f9a8c0;">money</span></h2>
                             <p style="font-size: 14px; color: #a8b0bf; margin: 6px 0 0 0;">Your free trial ends soon &mdash; don't lose your progress</p>
                         </td>
                         <td style="vertical-align: bottom; width: 120px;" align="right">
-                            <img src="{{ config('app.url') }}/images/Fyn/Design%20Character%20001a.webp" alt="Fyn" style="height: 171px; width: auto; display: block; margin-bottom: -15px;" />
+                            <img src="https://fynla.org/images/Fyn/Design%20Character%20001a.png" alt="Fyn" width="130" height="171" style="height: 171px; width: 130px; display: block; margin-bottom: -15px;" />
                         </td>
                     </tr></table>
                 </td></tr>
@@ -41,10 +41,17 @@
                     <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">Subscribe now to keep all your data, projections, and personalised recommendations.</p>
                 </td></tr>
 
-                {{-- CTA Block: Light Pink --}}
-                <tr><td style="background: #fce4ec; padding: 28px 36px; text-align: center;">
-                    <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Keep your progress &mdash; subscribe today</p>
-                    <a href="{{ config('app.url') }}/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">Continue your journey</a>
+                {{-- Days remaining counter --}}
+                <tr><td style="background: #fce4ec; padding: 36px 36px 20px; text-align: center;">
+                    <div style="font-size: 96px; font-weight: 900; color: #e74c6f; line-height: 1; margin-bottom: 4px;">{{ $daysRemaining }}</div>
+                    <div style="font-size: 18px; font-weight: 700; color: #1F2A44; text-transform: uppercase; letter-spacing: 2px;">{{ $daysRemaining === 1 ? 'day' : 'days' }} remaining</div>
+                    <div style="font-size: 13px; color: #888; margin-top: 4px;">on your free trial</div>
+                </td></tr>
+
+                {{-- CTA Block: Raspberry --}}
+                <tr><td style="background-color: #e74c6f; padding: 24px 36px; text-align: center;">
+                    <p style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Keep your progress &mdash; subscribe today</p>
+                    <a href="https://fynla.org/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #ffffff; color: #e74c6f; text-decoration: none; box-shadow: 0 4px 14px #d9a0b0;">Continue your journey</a>
                 </td></tr>
 
                 {{-- Dark Features Block --}}
@@ -112,21 +119,21 @@
                 {{-- CTA Block: Light Pink --}}
                 <tr><td style="background: #fce4ec; padding: 28px 36px; text-align: center;">
                     <p style="color: #1F2A44; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Choose a plan that works for you</p>
-                    <a href="{{ config('app.url') }}/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">Choose a plan</a>
+                    <a href="https://fynla.org/checkout" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #d9a0b0;">Choose a plan</a>
                 </td></tr>
 
                 {{-- Footer --}}
-                <tr><td style="background: #1F2A44; padding: 24px 36px;">
+                <tr><td bgcolor="#1F2A44" style="background: #1F2A44; padding: 24px 36px;">
                     <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
                         <td style="vertical-align: top; width: 100px;">
-                            <a href="https://fynla.org" style="display: inline-block;"><img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaLight.png" alt="Fynla" style="height: 28px; width: auto;" /></a>
+                            <a href="https://fynla.org" style="display: inline-block;"><img src="https://fynla.org/images/logos/LogoHiResFynlaLight.png" alt="Fynla" width="62" height="28" style="height: 28px; width: 62px;" /></a>
                         </td>
                         <td style="vertical-align: top; padding-left: 24px;">
                             <p style="margin: 0 0 10px 0;">
-                                <a href="{{ config('app.url') }}/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
-                                <a href="{{ config('app.url') }}/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                                <a href="https://fynla.org/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                                <a href="https://fynla.org/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
                                 <a href="mailto:support@fynla.org" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Help</a>
-                                <a href="{{ config('app.url') }}/unsubscribe" style="font-size: 12px; color: #b3b9c5; text-decoration: none;">Unsubscribe</a>
+                                <a href="https://fynla.org/unsubscribe" style="font-size: 12px; color: #b3b9c5; text-decoration: none;">Unsubscribe</a>
                             </p>
                             <p style="font-size: 11px; color: #7a8194; line-height: 1.5; margin: 0;">&copy; {{ date('Y') }} Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</p>
                         </td>

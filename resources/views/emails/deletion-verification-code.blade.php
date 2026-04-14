@@ -17,19 +17,19 @@
                 {{-- Logo Bar --}}
                 <tr><td style="background: #ffffff; padding: 14px 36px;">
                     <a href="https://fynla.org" style="display: inline-block;">
-                        <img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaDark.png" alt="Fynla" style="height: 32px; width: auto; display: block;" />
+                        <img src="https://fynla.org/images/logos/LogoHiResFynlaDark.png" alt="Fynla" width="71" height="32" style="height: 32px; width: 71px; display: block;" />
                     </a>
                 </td></tr>
 
                 {{-- Hero Header --}}
-                <tr><td style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
+                <tr><td bgcolor="#1F2A44" style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
                     <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
                         <td style="padding-bottom: 28px; vertical-align: bottom;">
                             <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Confirm <span style="color: #f9a8c0;">deletion</span></h2>
                             <p style="font-size: 14px; color: #a8b0bf; margin: 6px 0 0 0;">Please verify your account deletion request</p>
                         </td>
                         <td style="vertical-align: bottom; width: 120px;" align="right">
-                            <img src="{{ config('app.url') }}/images/Fyn/Design%20Character%20001a.webp" alt="Fyn" style="height: 171px; width: auto; display: block; margin-bottom: -15px;" />
+                            <img src="https://fynla.org/images/Fyn/Design%20Character%20001a.png" alt="Fyn" width="130" height="171" style="height: 171px; width: 130px; display: block; margin-bottom: -15px;" />
                         </td>
                     </tr></table>
                 </td></tr>
@@ -66,15 +66,15 @@
                 </td></tr>
 
                 {{-- Footer --}}
-                <tr><td style="background: #1F2A44; padding: 24px 36px;">
+                <tr><td bgcolor="#1F2A44" style="background: #1F2A44; padding: 24px 36px;">
                     <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
                         <td style="vertical-align: top; width: 100px;">
-                            <a href="https://fynla.org" style="display: inline-block;"><img src="{{ config('app.url') }}/images/logos/LogoHiResFynlaLight.png" alt="Fynla" style="height: 28px; width: auto;" /></a>
+                            <a href="https://fynla.org" style="display: inline-block;"><img src="https://fynla.org/images/logos/LogoHiResFynlaLight.png" alt="Fynla" width="62" height="28" style="height: 28px; width: 62px;" /></a>
                         </td>
                         <td style="vertical-align: top; padding-left: 24px;">
                             <p style="margin: 0 0 10px 0;">
-                                <a href="{{ config('app.url') }}/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
-                                <a href="{{ config('app.url') }}/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                                <a href="https://fynla.org/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                                <a href="https://fynla.org/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
                                 <a href="mailto:support@fynla.org" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Help</a>
                             </p>
                             <p style="font-size: 11px; color: #7a8194; line-height: 1.5; margin: 0;">&copy; {{ date('Y') }} Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</p>
