@@ -150,6 +150,75 @@ ALTER TABLE users
 
 Used only by the e2e test seeder and cleanup command. Real users always have `false`. Negligible storage.
 
+### Schema additions to existing `notification_preferences` table
+
+Per Q1 in §13, each lifecycle campaign gets its own opt-out toggle so users have line-by-line control in the settings menu.
+
+```sql
+ALTER TABLE notification_preferences
+    ADD COLUMN lifecycle_empty_trialer       BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN lifecycle_engaged_trialer     BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN lifecycle_cancelled_trialer   BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN lifecycle_churned_subscriber  BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN lifecycle_lapsed_subscriber   BOOLEAN NOT NULL DEFAULT TRUE;
+```
+
+**5 independent toggles, no master switch.** Each defaults to `TRUE` (opted-in) and can be flipped independently.
+
+#### Existing user handling — explicit
+
+This must work for the three user populations on the day the migration runs:
+
+| User population | Mechanism | Result |
+|---|---|---|
+| **A. Users WITH an existing `notification_preferences` row** (most users) | `ALTER TABLE ... ADD COLUMN ... DEFAULT TRUE` — MySQL backfills the new columns to `TRUE` for every existing row as part of the DDL. No separate `UPDATE` statement needed. | All 14 preferences (9 existing + 5 new) immediately visible, all on. |
+| **B. Users with NO `notification_preferences` row yet** (lazy-created on first access) | `NotificationPreference::getOrCreateForUser($userId)` defaults block is updated to include the 5 new fields, all `true`. Row gets created the first time the user hits the settings page or the engine queries them. | Row materialised with all 14 fields on. |
+| **C. New users registering after the migration** | Same as B — first call to `getOrCreateForUser` creates a row with all 14 defaults. | Row created with all 14 fields on. |
+
+**The settings menu UI must surface all 14 toggles for every user, regardless of which population they're in.** This is a hard requirement, not a nice-to-have. The Vue settings component (location TBD in writing-plans phase — see §10) gets a new section "Lifecycle emails" with 5 line-by-line toggles, immediately below the existing notification preference toggles.
+
+#### Updates to `NotificationPreference.php` model
+
+Two changes:
+
+```php
+// Add to $fillable
+protected $fillable = [
+    // ... existing 9 fields ...
+    'lifecycle_empty_trialer',
+    'lifecycle_engaged_trialer',
+    'lifecycle_cancelled_trialer',
+    'lifecycle_churned_subscriber',
+    'lifecycle_lapsed_subscriber',
+];
+
+// Add to $casts
+protected $casts = [
+    // ... existing 9 casts ...
+    'lifecycle_empty_trialer' => 'boolean',
+    'lifecycle_engaged_trialer' => 'boolean',
+    'lifecycle_cancelled_trialer' => 'boolean',
+    'lifecycle_churned_subscriber' => 'boolean',
+    'lifecycle_lapsed_subscriber' => 'boolean',
+];
+
+// Update getOrCreateForUser() defaults block
+public static function getOrCreateForUser(int $userId): self
+{
+    return self::firstOrCreate(
+        ['user_id' => $userId],
+        [
+            // ... existing 9 defaults ...
+            'lifecycle_empty_trialer' => true,
+            'lifecycle_engaged_trialer' => true,
+            'lifecycle_cancelled_trialer' => true,
+            'lifecycle_churned_subscriber' => true,
+            'lifecycle_lapsed_subscriber' => true,
+        ]
+    );
+}
+```
+
 ### Indexes on `subscriptions` table
 
 ```sql
@@ -234,6 +303,22 @@ Before any campaign-specific logic runs:
 - Soft-deleted users → excluded automatically by Eloquent `SoftDeletes`
 - Already in `lifecycle_email_log` for the campaign being checked → excluded
 - Already emailed today by an earlier-priority campaign → excluded
+- `notification_preferences.lifecycle_<campaign>` is `false` → excluded (per-campaign opt-out)
+
+### Notification preference filter — handles the "no preference row" case
+
+Each campaign filters by its corresponding `notification_preferences` column. **Users without a `notification_preferences` row at all are treated as opted-in** (matches the `getOrCreateForUser()` default behaviour). The query shape:
+
+```php
+->where(function ($q) use ($preferenceColumn) {
+    $q->whereDoesntHave('notificationPreference')          // no row = opted in
+      ->orWhereHas('notificationPreference', fn ($q2) =>
+            $q2->where($preferenceColumn, true)             // row exists, flag is true
+        );
+})
+```
+
+The engine knows which preference column applies to each campaign via `config('lifecycle.campaign_to_preference')` — a one-to-one mapping (see §6 config file).
 
 ### Campaigns 1 and 2 — shared base candidate fetch
 
@@ -634,10 +719,10 @@ class RunLifecycleEngine extends Command
 
 ### Kernel.php integration
 
-One new line in `app/Console/Kernel.php`, alongside the other 09:00 email commands:
+One new line in `app/Console/Kernel.php`. Per Q4 in §13, scheduled at **08:30** — 30 minutes ahead of the existing 09:00 cluster so lifecycle emails arrive first in users' inboxes (better visibility for Campaign 2 conversion):
 
 ```php
-$schedule->command('lifecycle:run-daily')->dailyAt('09:00');
+$schedule->command('lifecycle:run-daily')->dailyAt('08:30');
 ```
 
 ### Configuration file
@@ -676,6 +761,16 @@ return [
         'cancelled_trialer'   => ['too_expensive', 'missing_features', 'found_alternative', 'not_what_expected', 'bugs_or_ux', 'personal_change', 'other'],
         'churned_subscriber'  => ['too_expensive', 'missing_features', 'found_alternative', 'not_what_expected', 'bugs_or_ux', 'personal_change', 'other'],
         'lapsed_subscriber'   => ['will_fix', 'wants_to_cancel', 'needs_help'],
+    ],
+
+    // Maps each campaign slug to its corresponding notification_preferences column.
+    // Used by LifecycleEngine::eligibleUsers() to apply the opt-out filter.
+    'campaign_to_preference' => [
+        'empty_trialer'       => 'lifecycle_empty_trialer',
+        'engaged_trialer'     => 'lifecycle_engaged_trialer',
+        'cancelled_trialer'   => 'lifecycle_cancelled_trialer',
+        'churned_subscriber'  => 'lifecycle_churned_subscriber',
+        'lapsed_subscriber'   => 'lifecycle_lapsed_subscriber',
     ],
 
     'test_recipient_override' => env('LIFECYCLE_TEST_RECIPIENT', null),
@@ -793,6 +888,20 @@ app/Mail/Lifecycle/
 
 Each takes the user, the snapshot context, the magic links, and the discount code (Campaign 2 only) as constructor args. The `content()` method maps these into the Blade template's expected variables. Subject lines support a `{first_name}` token with a graceful fallback if `first_name` is null.
 
+### Unsubscribe footer (all 5 templates)
+
+Per Q1 in §13, every lifecycle email template includes a footer that points to the user's notification settings:
+
+```
+You're receiving this because you signed up for Fynla.
+You can manage which Fynla emails you receive in your
+account settings: https://fynla.org/account/notifications
+```
+
+**Note:** No one-click "unsubscribe all" link in the footer (per Q1's confirmation). The user must visit settings to opt out — either of the specific lifecycle email type or of any other notification preference. Settings is the single point of control.
+
+This footer is **only added to the 5 new lifecycle templates**. The existing transactional email templates (trial reminder, renewal reminder, data retention warning) are deliberately left alone — they are required communication and don't honour notification preferences.
+
 ### Email content shapes
 
 #### Campaign 1 — Empty trialer fresh restart
@@ -863,7 +972,7 @@ tests/Unit/Services/Payment/
   └── TrialServiceTest.php          (augmented — new restartTrial tests)
 ```
 
-### Layer 2 — Pest feature tests (~25 methods)
+### Layer 2 — Pest feature tests (~30 methods)
 
 Full HTTP stack, real DB via `RefreshDatabase`, `Mail::fake()` so mailables are asserted without sending.
 
@@ -880,6 +989,13 @@ tests/Feature/Lifecycle/
 ```
 
 Also one Pest end-to-end happy-path test for Campaign 2 (`tests/Feature/Lifecycle/LifecycleEngineEndToEndTest.php`) — keeps the integration path covered in CI.
+
+**Notification preference filter coverage (5 new tests):** Each campaign test class adds one test:
+
+- `it excludes users with lifecycle_<campaign> = false` — create eligible user, set preference to false, run engine, assert NOT emailed
+- Plus: `it includes users with no notification_preferences row at all` — verifies the "no row = opted in" fallback works correctly
+
+This covers the per-campaign opt-out mechanism end-to-end at the feature level.
 
 ### Layer 3 — Live end-to-end validation suite (NEW)
 
@@ -998,6 +1114,12 @@ The full 12-step manual checklist runs before lifecycle:run-daily is enabled:
 □ 11. Edge cases:
        - Tampered URL: change one character of signature → verify 403
        - Expired URL: edit ?expires= to past timestamp → verify 403
+       - Notification preference opt-out:
+           - Log in as TestEngaged
+           - Open settings → notifications → toggle "Engaged trialer" off
+           - Manually re-trigger lifecycle:e2e-test
+           - Verify engaged_trialer email is NOT sent (other 4 still sent)
+           - Toggle back on, re-run, verify it's sent
 
 □ 12. Cleanup:
        - php artisan lifecycle:e2e-cleanup
@@ -1077,6 +1199,7 @@ database/migrations/
   ├── YYYY_MM_DD_create_feedback_responses_table.php
   ├── YYYY_MM_DD_add_user_id_and_metadata_to_discount_codes.php
   ├── YYYY_MM_DD_add_is_lifecycle_test_user_to_users.php
+  ├── YYYY_MM_DD_add_lifecycle_columns_to_notification_preferences.php
   └── YYYY_MM_DD_add_subscriptions_indexes.php  (only if missing)
 
 database/seeders/
@@ -1130,6 +1253,15 @@ app/Models/User.php
   - is_lifecycle_test_user added to $fillable + $casts
   - hasMany('lifecycleEmails') relation
 
+app/Models/NotificationPreference.php
+  - 5 lifecycle_* fields added to $fillable + $casts
+  - getOrCreateForUser() defaults updated to include 5 new fields (all true)
+
+resources/js/components/UserProfile/<TBD>.vue   ← see §10
+  - 5 new toggles added under a "Lifecycle emails" section header
+  - Same toggle component as existing notification preferences
+  - Persists via the existing notification preference save endpoint
+
 app/Models/Subscription.php
   - (no changes — existing fields cover all our needs)
 
@@ -1174,7 +1306,8 @@ These don't block the design — they're things to verify when reading the actua
 2. **Existing subscription indexes:** check whether `idx_subs_status_trial`, `idx_subs_status_period`, `idx_subs_status_cancelled` already exist. Skip the migration if so.
 3. **Discount type column on `discount_codes`:** verified to be varchar (not enum) in schema, but worth re-checking before generating the migration to add `lifecycle_welcome`.
 4. **`first_name` nullability on `users`:** check whether legacy users may have null `first_name`. The fallback subject line strings should be tested against the real DB shape.
-5. **Existing `notification_preferences` table:** users may have an opt-out preference for lifecycle emails. Worth checking whether to honour it (probably yes — add `fyn_lifecycle_email` boolean preference, default true, exclude users who set false).
+5. **Vue settings component path:** find which Vue component currently renders the existing notification preference toggles (`policy_renewals`, `goal_milestones`, `fyn_daily_insight`, etc.). Likely under `resources/js/components/UserProfile/` or `resources/js/views/Settings/`. The 5 new lifecycle toggles need to be added to the same component, in their own "Lifecycle emails" section. Search for `policy_renewals` in resources/js to locate.
+6. **Existing notification preference save endpoint:** find the API route the settings UI uses to persist preferences. Confirm it accepts arbitrary fields (so adding 5 new boolean fields works without backend changes), or whether it uses an explicit allowlist that needs updating.
 
 ---
 
@@ -1197,7 +1330,115 @@ These don't block the design — they're things to verify when reading the actua
 
 1. **The system cron must be firing on production.** This was added by CSJ at the end of session 51 but verification is pending session 52 (see `April/April14Updates/trialReminderInvestigation.md` and `April/April15Updates/CSJTODO.md`). **The lifecycle engine cannot ship until cron is verified working** because it depends on `lifecycle:run-daily` actually being triggered each morning.
 2. **`notifications` table on production.** Already created in session 51 (PR commit `f50428b`). No further action needed.
-3. **Existing trial reminder system stays in place.** This work does not modify or replace `trials:send-reminders` — the lifecycle engine fires AFTER the trial expires, so the two systems are sequential, not overlapping.
+3. **Existing trial reminder system stays in place.** This work does not modify or replace `trials:send-reminders` — the lifecycle engine fires AFTER the trial expires, so the two systems are sequential, not overlapping. See §13 for the full relationship analysis.
+
+---
+
+## 13. Relationship to existing email commands
+
+The lifecycle engine does not exist in isolation. Several existing scheduled commands already send emails to overlapping user populations, and it's important the new engine plays nicely with them. This section documents the existing email surface, the day-by-day overlap analysis, and the decisions made about how the lifecycle engine relates to each.
+
+### 13.1 The existing email command matrix
+
+| Command | Schedule slot | Trigger | Target state | Honours `notification_preferences`? |
+|---|---|---|---|---|
+| `trials:send-reminders` | 09:00 daily | 3/2/1 days before `trial_ends_at` | `status='trialing'` | **No** — always sent (transactional) |
+| `subscriptions:send-renewal-reminders` | 09:00 daily | 7 days before `current_period_end` | `status='active'` | **No** — always sent (transactional) |
+| `data-retention:send-warnings` | 09:00 daily | Days 1, 15, 20-29 of the 30-day grace period | `status='expired'` AND `data_retention_starts_at IS NOT NULL` | **No** — always sent (transactional) |
+| `notifications:policy-renewals` | 09:00 daily | Per-policy expiry dates | Active users with policies | **Yes** (`policy_renewals` flag) |
+| `protection:send-alerts` | 09:15 daily | Various protection alert conditions | Active users with protection data | **Yes** (`policy_renewals` flag — shared) |
+| `notifications:mortgage-rate-alerts` | 09:30 daily | When user's mortgage rate is uncompetitive | Active users with mortgages | **Yes** (`mortgage_rate_alerts` flag) |
+| `savings:send-alerts` | 10:00 daily | Savings rate expiry, ISA allowance warnings, emergency fund alerts | Active users with savings data | **Yes** (mixed — multiple flags) |
+| `estate:send-alerts` | 10:30 daily | Gift exemption windows, trust anniversaries | Active users with estate data | **Yes** (`estate_alerts` flag) |
+| `notifications:daily-insight` | 08:00 daily | Daily push notification (not email) | Mobile users with `fyn_daily_insight = true` | **Yes** (`fyn_daily_insight` flag) |
+| **`lifecycle:run-daily` (NEW)** | **08:30 daily** | **Per-campaign — see §1** | **Per-campaign — see §1** | **Yes** (5 new per-campaign flags) |
+
+### 13.2 The pattern
+
+The existing commands fall into two categories:
+
+**Transactional emails** (always sent, no opt-out):
+- `trials:send-reminders` — required communication during a trial
+- `subscriptions:send-renewal-reminders` — required heads-up before charging a card
+- `data-retention:send-warnings` — required notice before deleting data (legal/GDPR consideration)
+
+**Feature alerts** (honour `notification_preferences`):
+- `notifications:policy-renewals`, `protection:send-alerts`, `notifications:mortgage-rate-alerts`, `savings:send-alerts`, `estate:send-alerts`, `notifications:daily-insight`
+
+**The lifecycle engine sits in a third category: re-engagement and feedback.** These emails are *promotional-feeling* (especially Campaign 2's discount offer). Per Q1 below, they honour notification preferences, with each campaign individually toggleable.
+
+### 13.3 Day-by-day overlap analysis (post-trial users)
+
+The lifecycle engine's most active overlap surface is the post-trial period. Mapped out by day from sign-up:
+
+| Days from sign-up | User state | Existing emails sent | Lifecycle engine sends | Total |
+|---:|---|---|---|---:|
+| Day 5 | `trialing`, day 5 of trial | trial reminder (3 days left) | — | 1 |
+| Day 6 | `trialing`, day 6 of trial | trial reminder (2 days left) | — | 1 |
+| Day 7 | `trialing`, day 7 of trial | trial reminder (1 day left) | — | 1 |
+| 00:05 day 8 | `trials:expire` runs | (no email) | — | — |
+| **Day 8** (retention day 1) | `expired`, day 1 of grace | data-retention warning (day 1 in EMAIL_DAYS) | — | 1 |
+| **Day 9** (retention day 2) | `expired`, day 2 of grace | (day 2 NOT in EMAIL_DAYS) | **empty/engaged trialer** | 1 |
+| Days 10-21 | `expired`, days 3-14 of grace | (none — gap in EMAIL_DAYS) | (dedup-ed since day 9) | 0 |
+| **Day 22** (retention day 15) | `expired`, day 15 of grace | data-retention warning (day 15) | (dedup-ed) | 1 |
+| **Day 27** (retention day 20) | `expired`, day 20 | data-retention warning (day 20) | (dedup-ed) | 1 |
+| Days 28-36 | `expired`, days 21-29 | data-retention warnings (daily urgency) | (dedup-ed) | 1/day |
+| Day 37 | `data-retention:purge-expired` runs | data deleted | — | — |
+
+**Key insight:** Day 9 is in the gap between `data-retention:send-warnings` Day 1 (= sign-up day 8) and Day 15 (= sign-up day 22). The two systems are sequential by accident of timing — **no single user receives both a data retention warning AND a lifecycle email on the same day**.
+
+### 13.4 Other overlap considerations
+
+| Scenario | Risk | Mitigation |
+|---|---|---|
+| Active subscriber with `past_due` status + has feature-alert-eligible data | Could receive Campaign 5 (lapsed) AND a feature alert (e.g., savings rate) on the same morning | Campaign 5's "needs help" framing is compatible with concurrent feature alerts. Both pieces of information are useful. **No mitigation required.** |
+| Churned subscriber within 30 days of churning + still in `notification_preferences` | Could receive Campaign 4 feedback email AND a stale feature alert if the alert command isn't filtering for `status='active'` | Verify in implementation: feature alert commands should filter by subscription state. **§10 open question added.** |
+| User opts out of 1 lifecycle preference but stays opted in to others | They receive 4 lifecycle emails over their lifecycle, not 5 | This is the intended behaviour. Per-campaign granularity is the whole point of Q1's choice. |
+
+### 13.5 Decisions captured from session 51 brainstorm
+
+#### Q1 — Should the lifecycle engine honour notification preferences?
+
+**Decision: YES, per-campaign granularity.** Add 5 boolean columns to `notification_preferences` (one per lifecycle campaign), each defaulting to `TRUE`. Surface as 5 line-by-line toggles in the user settings menu under a new "Lifecycle emails" section. No master switch — each toggle is independent.
+
+**Rationale:** Lifecycle emails are promotional-feeling (especially Campaign 2's discount offer) and users should be able to opt out. Per-campaign granularity gives the user maximum control without master-switch UI complexity. Existing users get all 5 set to `TRUE` automatically via `ALTER TABLE ... DEFAULT TRUE` (§3 explains the migration).
+
+**Implementation impact:** New migration, model updates, eligibility filter in every campaign, Vue settings component update, 5 new tests.
+
+#### Q2 — Should any existing commands be folded into the lifecycle engine?
+
+**Decision: NO. Leave existing commands alone.**
+
+**Rationale:** The existing trial reminder, renewal reminder, and data retention warning commands work, are tested, and have their own dedup. Refactoring them into the lifecycle engine would touch tested production code without adding user-visible value. The lifecycle engine handles the **moments that nothing currently handles**: empty trialer outreach, engaged trialer conversion, cancellation feedback, churn feedback, lapsed recovery. Consolidation is a v2 conversation.
+
+**Implementation impact:** None — preserves existing behaviour.
+
+#### Q3 — Same-morning email count cap?
+
+**Decision: (a) + (b) — no global cap, but the engine's internal "one lifecycle email per user per day" rule stands.**
+
+**Rationale:** The existing systems already partition users by subscription state (active/trialing/expired/cancelled/past_due), so the realistic worst case for a single user receiving multiple emails on the same morning is small. Adding a global cap would require a new "global send log" that all commands write to — significant cross-cutting change for a problem that may not exist. Revisit if real data shows it's a problem.
+
+**Implementation impact:** None — the engine already enforces single-lifecycle-email-per-day via the collision rules in §4.
+
+#### Q4 — Time-of-day spread
+
+**Decision: (b) — Move lifecycle engine to 08:30, 30 minutes ahead of the existing 09:00 cluster.**
+
+**Rationale:** Lifecycle emails (especially Campaign 2's discount conversion) benefit from being the first thing in the user's morning inbox. Moving to 08:30 gets them out before the 09:00 transactional batch and any feature alerts (which run 09:15-10:30). The existing 08:00 daily insight is a push notification, not an email, so it doesn't compete for inbox attention.
+
+**Implementation impact:** Single Kernel.php change (§6).
+
+### 13.6 What the lifecycle engine does NOT touch
+
+To be explicit:
+
+- **Does NOT modify** `trials:send-reminders`, `subscriptions:send-renewal-reminders`, `data-retention:send-warnings`, `notifications:policy-renewals`, `protection:send-alerts`, `notifications:mortgage-rate-alerts`, `savings:send-alerts`, `estate:send-alerts`, `notifications:daily-insight`
+- **Does NOT add** unsubscribe footers to the existing transactional or feature alert templates
+- **Does NOT consolidate** any existing dedup tables (`trial_reminder_log`, `renewal_reminder_log`, `data_retention_email_log`) into `lifecycle_email_log`
+- **Does NOT change** the existing `notification_preferences` columns or behaviour — only **adds** 5 new columns
+
+The new engine is purely additive. If you disable it (`LIFECYCLE_ENGINE_ENABLED=false`), the rest of Fynla's email systems continue working exactly as they did before.
 
 ---
 
