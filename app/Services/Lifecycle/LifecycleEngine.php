@@ -92,16 +92,31 @@ class LifecycleEngine
      *  - reject lifecycle test users unless engine is in test mode
      *  - reject users who already got an email earlier in this same run
      *  - reject users who already have a log row for this campaign
+     *  - reject users who have opted out of this campaign via
+     *    notification_preferences (no row = opted in by default)
      */
     private function filterEligible(LifecycleCampaign $campaign, Collection $emailedToday): Collection
     {
+        $preferenceColumn = config("lifecycle.campaign_to_preference.{$campaign->name()}");
+
         return $campaign->eligibleUsers()
             ->reject(fn (User $u) => $u->is_preview_user)
             ->reject(fn (User $u) => $u->is_lifecycle_test_user && ! $this->testMode)
             ->reject(fn (User $u) => $emailedToday->contains($u->id))
             ->reject(fn (User $u) => LifecycleEmailLog::where('user_id', $u->id)
                 ->where('campaign', $campaign->name())
-                ->exists());
+                ->exists())
+            ->reject(function (User $u) use ($preferenceColumn) {
+                if (! $preferenceColumn) {
+                    return false;  // No mapping config → don't filter
+                }
+                $pref = $u->notificationPreference;
+                if (! $pref) {
+                    return false;  // No row → opted in by default
+                }
+
+                return $pref->{$preferenceColumn} === false;
+            });
     }
 
     private function dispatchEmail(LifecycleCampaign $campaign, User $user): void
