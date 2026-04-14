@@ -10,6 +10,7 @@ use App\Services\Lifecycle\Contracts\LifecycleCampaign;
 use App\Services\Lifecycle\LifecycleEngine;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\URL;
 
 class EmptyTrialerCampaign implements LifecycleCampaign
 {
@@ -42,6 +43,12 @@ class EmptyTrialerCampaign implements LifecycleCampaign
 
     public function mailable(User $user): Mailable
     {
-        return new EmptyTrialerMail($user);
+        $magicUrl = URL::temporarySignedRoute(
+            'lifecycle.restart-trial',
+            now()->addDays((int) config('lifecycle.magic_link_ttl_days', 7)),
+            ['user_id' => $user->id]
+        );
+
+        return new EmptyTrialerMail($user, $magicUrl);
     }
 }
