@@ -3,168 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Fynla Account Has Been Created</title>
+    <title>Welcome to Fynla</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        .content {
-            padding: 30px;
-        }
-        .content p {
-            margin: 0 0 15px 0;
-        }
-        .credentials-box {
-            background-color: #f0f9ff;
-            border: 1px solid #3b82f6;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .credentials-box h2 {
-            margin: 0 0 15px 0;
-            font-size: 18px;
-            color: #1e40af;
-        }
-        .credential-item {
-            margin: 10px 0;
-        }
-        .credential-label {
-            font-weight: 600;
-            color: #4b5563;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .credential-value {
-            font-family: monospace;
-            background-color: #ffffff;
-            border: 1px solid #bfdbfe;
-            padding: 8px 12px;
-            border-radius: 4px;
-            display: inline-block;
-            font-size: 14px;
-        }
-        .info-box {
-            background-color: #f0f9ff;
-            border: 1px solid #3b82f6;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .info-box p {
-            margin: 0;
-            color: #1e40af;
-        }
-        .btn {
-            display: inline-block;
-            background-color: #3b82f6;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 6px;
-            font-weight: 600;
-            margin: 20px 0;
-        }
-        .sign-off {
-            margin-top: 30px;
-        }
-        .sign-off p {
-            margin: 5px 0;
-        }
-        .logo {
-            margin-top: 20px;
-        }
-        .logo img {
-            max-width: 120px;
-            height: auto;
-        }
-        .footer {
-            background-color: #f9fafb;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 14px;
-            color: #6b7280;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        .footer a {
-            color: #3b82f6;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            text-decoration: underline;
-        }
+        body { font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44; }
+        a { text-decoration: none; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="content">
-            <p>Dear {{ $spouse->first_name ?? $spouse->name }},</p>
+<body style="font-family: 'Segoe UI', Inter, sans-serif; margin: 0; padding: 0; background-color: #f5f0eb; color: #1F2A44;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f5f0eb;">
+        <tr><td align="center" style="padding: 20px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width: 600px; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px #d9d3cc;">
 
-            <p>{{ $createdBy->name }} has created an account for you on Fynla and added you as their spouse.</p>
+                {{-- Logo Bar --}}
+                <tr><td style="background: #ffffff; padding: 14px 36px;">
+                    <a href="https://fynla.org" style="display: inline-block;">
+                        <img src="https://fynla.org/images/logos/LogoHiResFynlaDark.png" alt="Fynla" width="71" height="32" style="height: 32px; width: 71px; display: block;" />
+                    </a>
+                </td></tr>
 
-            <p>This allows you both to manage your family's financial planning together, including sharing financial data and coordinating your planning goals.</p>
+                {{-- Hero Header --}}
+                <tr><td bgcolor="#1F2A44" style="background-color: #1F2A44; background-image: linear-gradient(135deg, #1F2A44, #e74c6f); padding: 28px 36px 0; min-height: 180px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="padding-bottom: 28px; vertical-align: bottom;">
+                            <h2 style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1.15; margin: 0;">Welcome<br/>to <span style="color: #f9a8c0;">Fynla</span></h2>
+                            <p style="font-size: 14px; color: #a8b0bf; margin: 6px 0 0 0;">You're on your way to financial freedom!</p>
+                        </td>
+                        <td style="vertical-align: bottom; width: 120px;" align="right">
+                            <img src="https://fynla.org/images/Fyn/Design%20Character%20001a.png" alt="Fyn" width="130" height="171" style="height: 171px; width: 130px; display: block; margin-bottom: -15px;" />
+                        </td>
+                    </tr></table>
+                </td></tr>
 
-            <div class="credentials-box">
-                <h2>Your Login Credentials</h2>
+                {{-- Body: Light Pink --}}
+                <tr><td style="background: #fce4ec; padding: 32px 36px;">
+                    <p style="font-size: 20px; color: #1F2A44; font-weight: 700; margin: 0 0 10px 0;">Hi {{ $spouse->first_name ?? $spouse->name }},</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">{{ $createdBy->name }} has created a spouse account for you on Fynla. You now have your own login to manage your personal financial data as part of your household's Family plan.</p>
+                </td></tr>
 
-                <div class="credential-item">
-                    <span class="credential-label">Email Address:</span>
-                    <span class="credential-value">{{ $spouse->email }}</span>
-                </div>
+                {{-- Login Details: Eggshell --}}
+                <tr><td style="background: #f5f0eb; padding: 32px 36px;">
+                    <h3 style="font-size: 20px; font-weight: 700; color: #1F2A44; margin: 0 0 10px 0;">Your login details</h3>
+                    <div style="background: #ffffff; border-radius: 10px; padding: 16px 20px; margin: 16px 0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Email</td>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">{{ $spouse->email }}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Password</td>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">Set via link below</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Plan</td>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">Fynla Family (shared)</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 0; font-size: 14px; color: #888;">Linked to</td>
+                                <td style="padding: 10px 0; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">{{ $createdBy->name }}'s account</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">To get started, set your password using the button below. This link expires in 48 hours.</p>
+                </td></tr>
 
-                <div class="credential-item">
-                    <span class="credential-label">Temporary Password:</span>
-                    <span class="credential-value">{{ $temporaryPassword }}</span>
-                </div>
-            </div>
+                {{-- CTA Block: Horizon Blue --}}
+                <tr><td style="background: #1F2A44; padding: 28px 36px; text-align: center;">
+                    <p style="color: #c0c5cf; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Get started with your account</p>
+                    <a href="https://fynla.org/login" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #e74c6f; color: #ffffff; box-shadow: 0 4px 14px #cccccc;">Set your password</a>
+                </td></tr>
 
-            <div class="info-box">
-                <p><strong>Important:</strong> This is a temporary password. You will be required to change it when you first log in to ensure your account security.</p>
-            </div>
+                {{-- You've met Fyn: Light Pink --}}
+                <tr><td style="background: #fce4ec; padding: 32px 36px;">
+                    <h3 style="font-size: 20px; font-weight: 700; color: #1F2A44; margin: 0 0 10px 0;">You've met Fyn...</h3>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">Fyn is your personal AI financial companion. Once you're logged in, Fyn can help you understand your finances, answer your questions, and guide you through setting up your dashboard step by step.</p>
+                </td></tr>
 
-            <center>
-                <a href="{{ config('app.url') }}/login" class="btn">Log In to Your Account</a>
-            </center>
+                {{-- What next: Eggshell --}}
+                <tr><td style="background: #f5f0eb; padding: 32px 36px;">
+                    <h3 style="font-size: 20px; font-weight: 700; color: #1F2A44; margin: 0 0 10px 0;">What next?</h3>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">Log in and complete your personal profile to get started. Fyn will walk you through adding your financial information &mdash; savings, pensions, investments, and more. Your data is completely private; {{ $createdBy->name }} cannot see your individual financial details. Only shared assets (joint accounts, properties) are visible to both of you.</p>
+                </td></tr>
 
-            <p style="margin-top: 30px;">Once you log in, you can:</p>
-            <ul>
-                <li>Change your password to something secure and memorable</li>
-                <li>Complete your personal profile information</li>
-                <li>Review permission requests from {{ $createdBy->name }} to share financial data</li>
-                <li>Start managing your own financial planning data</li>
-            </ul>
+                {{-- Footer --}}
+                <tr><td bgcolor="#1F2A44" style="background: #1F2A44; padding: 24px 36px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+                        <td style="vertical-align: top; width: 100px;">
+                            <a href="https://fynla.org" style="display: inline-block;"><img src="https://fynla.org/images/logos/LogoHiResFynlaLight.png" alt="Fynla" width="62" height="28" style="height: 28px; width: 62px;" /></a>
+                        </td>
+                        <td style="vertical-align: top; padding-left: 24px;">
+                            <p style="margin: 0 0 10px 0;">
+                                <a href="https://fynla.org/privacy" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Privacy Policy</a>
+                                <a href="https://fynla.org/terms" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Terms of Service</a>
+                                <a href="mailto:support@fynla.org" style="font-size: 12px; color: #b3b9c5; text-decoration: none; margin-right: 16px;">Help</a>
+                                <a href="https://fynla.org/unsubscribe" style="font-size: 12px; color: #b3b9c5; text-decoration: none;">Unsubscribe</a>
+                            </p>
+                            <p style="font-size: 11px; color: #7a8194; line-height: 1.5; margin: 0;">&copy; {{ date('Y') }} Fynla Ltd, 124 City Road, London, EC1V 2NX<br/>This is an automated message. Please do not reply directly to this email.</p>
+                        </td>
+                    </tr></table>
+                </td></tr>
 
-            <p style="margin-top: 30px;">If you have any questions or did not expect to receive this email, please contact {{ $createdBy->name }} directly or <a href="mailto:support@fynla.org" style="color: #3b82f6;">contact support</a>.</p>
-
-            <div class="sign-off">
-                <p>Kindest regards,</p>
-                <p><strong>The Fynla Team (Chris & Brett)</strong></p>
-                <div class="logo">
-                    <img src="{{ config('app.url') }}/images/logos/logoMain.png" alt="Fynla">
-                </div>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>&copy; {{ date('Y') }} Fynla. All rights reserved.</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>Need help? <a href="mailto:support@fynla.org">Contact Support</a></p>
-        </div>
-    </div>
+            </table>
+        </td></tr>
+    </table>
 </body>
 </html>

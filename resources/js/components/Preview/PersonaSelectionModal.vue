@@ -57,13 +57,15 @@
                                 </div>
 
                                 <!-- Row 1: Starting Out (1) + Protecting (2) -->
-                                <div class="flex gap-3 mb-3 items-stretch">
+                                <div class="flex flex-col sm:flex-row gap-3 mb-3 items-stretch">
                                     <!-- Starting Out -->
                                     <div class="flex-1 flex flex-col">
-                                        <div class="flex items-center gap-1.5 mb-2">
-                                            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                            <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Starting Out</span>
-                                            <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 mb-2">
+                                            <svg class="w-6 h-6 sm:w-4 sm:h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                            <div class="flex items-center gap-1.5 flex-1">
+                                                <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Starting Out</span>
+                                                <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                            </div>
                                         </div>
                                         <div class="flex gap-2.5 flex-1">
                                             <button
@@ -71,18 +73,18 @@
                                                 :key="persona.id"
                                                 @click="selectPersona(persona)"
                                                 :disabled="loadingPersonaId !== null"
-                                                class="flex-1 text-left rounded-xl p-3.5 transition-all duration-200 focus:outline-none persona-card-starting"
+                                                class="flex-1 text-left rounded-xl p-3 sm:p-3.5 transition-all duration-200 focus:outline-none persona-card-starting"
                                                 :class="[
                                                     loadingPersonaId === persona.id ? 'ring-2 ring-raspberry-500' : 'hover:-translate-y-0.5 hover:shadow-md',
                                                     loadingPersonaId !== null && loadingPersonaId !== persona.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                                 ]"
                                             >
                                                 <div class="flex items-center gap-2 mb-1.5">
-                                                    <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
+                                                    <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
                                                     <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                                 </div>
                                                 <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                                <div class="flex flex-col gap-1 mb-2">
+                                                <div class="hidden sm:flex flex-col gap-1 mb-2">
                                                     <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
                                                     <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                                 </div>
@@ -91,11 +93,13 @@
                                         </div>
                                     </div>
                                     <!-- Protecting and Growing -->
-                                    <div class="flex-[2] flex flex-col">
-                                        <div class="flex items-center gap-1.5 mb-2">
-                                            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                                            <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Protecting and Growing</span>
-                                            <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                    <div class="flex-1 sm:flex-[2] flex flex-col">
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 mb-2">
+                                            <svg class="w-6 h-6 sm:w-4 sm:h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                            <div class="flex items-center gap-1.5 flex-1">
+                                                <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Protecting and Growing</span>
+                                                <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                            </div>
                                         </div>
                                         <div class="flex gap-2.5 flex-1">
                                             <button
@@ -103,18 +107,18 @@
                                                 :key="persona.id"
                                                 @click="selectPersona(persona)"
                                                 :disabled="loadingPersonaId !== null"
-                                                class="flex-1 text-left rounded-xl p-3.5 transition-all duration-200 focus:outline-none persona-card-protecting"
+                                                class="flex-1 text-left rounded-xl p-3 sm:p-3.5 transition-all duration-200 focus:outline-none persona-card-protecting"
                                                 :class="[
                                                     loadingPersonaId === persona.id ? 'ring-2 ring-raspberry-500' : 'hover:-translate-y-0.5 hover:shadow-md',
                                                     loadingPersonaId !== null && loadingPersonaId !== persona.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                                 ]"
                                             >
                                                 <div class="flex items-center gap-2 mb-1.5">
-                                                    <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
+                                                    <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
                                                     <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                                 </div>
                                                 <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                                <div class="flex flex-col gap-1 mb-2">
+                                                <div class="hidden sm:flex flex-col gap-1 mb-2">
                                                     <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
                                                     <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                                 </div>
@@ -125,31 +129,33 @@
                                 </div>
 
                                 <!-- Row 2: Building Foundations (1) + Planning (1) + Enjoying (1) -->
-                                <div class="flex gap-3">
+                                <div class="flex flex-col sm:flex-row gap-3">
                                     <!-- Building Foundations -->
                                     <div class="flex-1">
-                                        <div class="flex items-center gap-1.5 mb-2">
-                                            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                                            <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Building Foundations</span>
-                                            <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 mb-2">
+                                            <svg class="w-6 h-6 sm:w-4 sm:h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                                            <div class="flex items-center gap-1.5 flex-1">
+                                                <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Building Foundations</span>
+                                                <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                            </div>
                                         </div>
                                         <button
                                             v-for="persona in getPersonasForStage('early_career')"
                                             :key="persona.id"
                                             @click="selectPersona(persona)"
                                             :disabled="loadingPersonaId !== null"
-                                            class="w-full text-left rounded-xl p-3.5 transition-all duration-200 focus:outline-none persona-card-building"
+                                            class="w-full text-left rounded-xl p-3 sm:p-3.5 transition-all duration-200 focus:outline-none persona-card-building"
                                             :class="[
                                                 loadingPersonaId === persona.id ? 'ring-2 ring-raspberry-500' : 'hover:-translate-y-0.5 hover:shadow-md',
                                                 loadingPersonaId !== null && loadingPersonaId !== persona.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                             ]"
                                         >
                                             <div class="flex items-center gap-2 mb-1.5">
-                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
+                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
                                                 <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                             </div>
                                             <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                            <div class="flex flex-col gap-1 mb-2">
+                                            <div class="hidden sm:flex flex-col gap-1 mb-2">
                                                 <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
                                                 <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                             </div>
@@ -158,28 +164,30 @@
                                     </div>
                                     <!-- Planning Your Future -->
                                     <div class="flex-1">
-                                        <div class="flex items-center gap-1.5 mb-2">
-                                            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Planning Your Future</span>
-                                            <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 mb-2">
+                                            <svg class="w-6 h-6 sm:w-4 sm:h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <div class="flex items-center gap-1.5 flex-1">
+                                                <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Planning Your Future</span>
+                                                <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                            </div>
                                         </div>
                                         <button
                                             v-for="persona in getPersonasForStage('peak')"
                                             :key="persona.id"
                                             @click="selectPersona(persona)"
                                             :disabled="loadingPersonaId !== null"
-                                            class="w-full text-left rounded-xl p-3.5 transition-all duration-200 focus:outline-none persona-card-planning"
+                                            class="w-full text-left rounded-xl p-3 sm:p-3.5 transition-all duration-200 focus:outline-none persona-card-planning"
                                             :class="[
                                                 loadingPersonaId === persona.id ? 'ring-2 ring-raspberry-500' : 'hover:-translate-y-0.5 hover:shadow-md',
                                                 loadingPersonaId !== null && loadingPersonaId !== persona.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                             ]"
                                         >
                                             <div class="flex items-center gap-2 mb-1.5">
-                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
+                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
                                                 <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                             </div>
                                             <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                            <div class="flex flex-col gap-1 mb-2">
+                                            <div class="hidden sm:flex flex-col gap-1 mb-2">
                                                 <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
                                                 <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                             </div>
@@ -188,28 +196,30 @@
                                     </div>
                                     <!-- Enjoying Your Wealth -->
                                     <div class="flex-1">
-                                        <div class="flex items-center gap-1.5 mb-2">
-                                            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7"/></svg>
-                                            <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Enjoying Your Wealth</span>
-                                            <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 mb-2">
+                                            <svg class="w-6 h-6 sm:w-4 sm:h-4 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7"/></svg>
+                                            <div class="flex items-center gap-1.5 flex-1">
+                                                <span class="text-[0.7rem] font-bold text-horizon-500 uppercase tracking-wider">Enjoying Your Wealth</span>
+                                                <div class="flex-1 h-px bg-light-gray ml-1"></div>
+                                            </div>
                                         </div>
                                         <button
                                             v-for="persona in getPersonasForStage('retirement')"
                                             :key="persona.id"
                                             @click="selectPersona(persona)"
                                             :disabled="loadingPersonaId !== null"
-                                            class="w-full text-left rounded-xl p-3.5 mb-2.5 last:mb-0 transition-all duration-200 focus:outline-none persona-card-enjoying"
+                                            class="w-full text-left rounded-xl p-3 sm:p-3.5 mb-2.5 last:mb-0 transition-all duration-200 focus:outline-none persona-card-enjoying"
                                             :class="[
                                                 loadingPersonaId === persona.id ? 'ring-2 ring-raspberry-500' : 'hover:-translate-y-0.5 hover:shadow-md',
                                                 loadingPersonaId !== null && loadingPersonaId !== persona.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                                             ]"
                                         >
                                             <div class="flex items-center gap-2 mb-1.5">
-                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
+                                                <svg v-if="loadingPersonaId !== persona.id" class="w-5 h-5 flex-shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getPersonaIcon(persona.id)"/></svg>
                                                 <span class="text-sm font-bold leading-tight">{{ persona.name }}</span>
                                             </div>
                                             <p class="text-[0.7rem] opacity-70 leading-relaxed mb-2">{{ persona.tagline }}</p>
-                                            <div class="flex flex-col gap-1 mb-2">
+                                            <div class="hidden sm:flex flex-col gap-1 mb-2">
                                                 <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.netWorthRange }}</span>
                                                 <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md bg-black/[0.08] self-start">{{ persona.focus }}</span>
                                             </div>
