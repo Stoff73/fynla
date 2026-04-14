@@ -27,17 +27,22 @@ class LifecycleTestSeeder extends Seeder
 
     public function run(): void
     {
-        // Clear any pre-existing test users (idempotent reseeds)
-        User::where('is_lifecycle_test_user', true)->each(function (User $u) {
-            $u->subscriptions()->delete();
-            $u->properties()->delete();
-            $u->dcPensions()->delete();
-            $u->savingsAccounts()->delete();
-            $u->investmentAccounts()->delete();
-            $u->lifeInsurancePolicies()->delete();
-            $u->goals()->delete();
-            $u->delete();
-        });
+        // Clear any pre-existing test users (idempotent reseeds). User uses
+        // SoftDeletes, so we include trashed rows in the lookup and use
+        // forceDelete() to fully remove them — otherwise the unique email
+        // constraint would block a second run.
+        User::withTrashed()
+            ->where('is_lifecycle_test_user', true)
+            ->each(function (User $u) {
+                $u->subscriptions()->withTrashed()->forceDelete();
+                $u->properties()->withTrashed()->forceDelete();
+                $u->dcPensions()->withTrashed()->forceDelete();
+                $u->savingsAccounts()->withTrashed()->forceDelete();
+                $u->investmentAccounts()->withTrashed()->forceDelete();
+                $u->lifeInsurancePolicies()->withTrashed()->forceDelete();
+                $u->goals()->withTrashed()->forceDelete();
+                $u->forceDelete();
+            });
 
         $this->createEmptyTrialer();
         $this->createEngagedTrialer();
