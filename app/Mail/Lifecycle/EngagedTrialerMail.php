@@ -7,13 +7,11 @@ namespace App\Mail\Lifecycle;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-/**
- * Stub — replaced in Phase 8 Task 8.3 (the most complex template).
- */
 class EngagedTrialerMail extends Mailable
 {
     use Queueable;
@@ -29,11 +27,30 @@ class EngagedTrialerMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Stub — replaced in Phase 8');
+        $firstName = $this->user->first_name;
+        $subject = $firstName
+            ? "Your Fynla picture so far, {$firstName} — and 25-45% off to finish it"
+            : 'Your Fynla picture so far — and 25-45% off to finish it';
+
+        return new Envelope(
+            from: new Address('noreply@fynla.org', 'Fynla'),
+            subject: $subject,
+        );
     }
 
     public function content(): Content
     {
-        return new Content(htmlString: '<p>stub</p>');
+        return new Content(
+            view: 'emails.lifecycle.engaged-trialer',
+            with: [
+                'user' => $this->user,
+                'firstName' => $this->user->first_name ?: 'there',
+                'completionPct' => $this->context['completion_pct'] ?? 0,
+                'modulesWithData' => $this->context['modules_with_data'] ?? [],
+                'modulesRemaining' => $this->context['modules_remaining'] ?? [],
+                'magicUrl' => $this->magicUrl,
+                'discountCode' => $this->discountCode,
+            ],
+        );
     }
 }
