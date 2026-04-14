@@ -1,38 +1,46 @@
 # CSJTODO — Fynla
 
-*Last updated: 9 April 2026 — session 50*
-*Previous session: 9 April 2026 session 49*
+*Last updated: 14 April 2026 — session 51*
+*Previous session: 9 April 2026 — session 50*
 
 ---
 
-## Session 49-50 (9 April) — T&C Pricing, Persona Fixes, QA Review Fixes
+## Session 51 (14 April) — Trial Reminder System Investigation + Production Fixes
 
 ### Completed This Session
-- [x] **T&C pricing updated** — added Family plan, expanded table to show launch + regular prices, added launch special explanation, added Student/Family upload limits
-- [x] **About page** — hidden bottom "About Fynla" section
-- [x] **Alex Chen dividend income** — diagnosed outdated persona JSONs on production, uploaded all 6, reseeded — dividend now showing
-- [x] **Preview spouse toggle fixed** — `switchingSpouse` flag never reset on success, moved to `finally` block
-- [x] **Dashboard data refresh** — `loadAllData()` now detects `user.id` change on persona switch and refetches
-- [x] **Fyn AI markdown headings** — `##` and `###` now rendered as styled headings in chat
-- [x] **Employment status enum** — added `full_time` to DB enum (was causing silent data truncation on production)
-- [x] **AI tool definitions** — both `AiToolDefinitions.php` and `XaiToolDefinitions.php` now list all valid `employment_status` values
-- [x] **Family tab gating** — User Profile Family tab now requires Family plan or higher
-- [x] **Liabilities route gating** — extracted from Pro estate group to Standard; estate read-only endpoints ungated for dashboard
-- [x] **Brett's QA report reviewed** — 14 bugs assessed against dev codebase, 0 critical bugs confirmed in code
-- [x] **PR #208 (claudeReview)** — merged and deployed
-- [x] **Vault sync complete** — April Index, Git History updated
 
-### NOT Done — Outstanding
-- [ ] **Fyn Quick Start flow** — hidden CTA, root cause unfixed (see `fynQuickStartBugs.md`): production missing `dc_pensions.current_value` column, AI analyses empty data for new users
-- [ ] **Run pending migration on production** — `dc_pensions.current_value`
-- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47
-- [ ] **PR #197 cleanup** — 9 markdown files in repo root should be moved to Articles/
-- [ ] **Meta Pixel CSP** — `connect.facebook.net` and `www.facebook.com` not in SecurityHeaders.php CSP whitelist
-- [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged
-- [ ] **Add `.claude/settings.json` to .gitignore** — tax-hook path keeps reverting
+- [x] **Investigated trial reminder email system** — root cause found: no system cron entry on production triggering `php artisan schedule:run`. ALL 15 scheduled commands (not just trial reminders) had never run. Full report at `April/April14Updates/trialReminderInvestigation.md` (also in vault)
+- [x] **Cron job added on production** (CSJ via SiteGround Site Tools → Devs → Cron Jobs)
+- [x] **11 ghost trialing subscriptions expired** via `php artisan trials:expire` on production. 11 subs moved `trialing → expired`, 11 users moved to `plan='free'`, 30-day data retention countdown started for each. **Of those 11, only 1 is a real user (Jessica Cracknell, user 301, `jessicacracknell18@gmail.com`)** — she had 34 days of bonus access she shouldn't have had and never received a single reminder email. Worth flagging if she gets in touch about losing access.
+- [x] **`notifications` table created on production** — fixed a latent crash bug. Original report claim that `notifications:daily-insight` would crash was **wrong** (that command bypasses Laravel's notification system and uses FCM directly). The actual issue affected 5 OTHER scheduled commands that call `$user->notify(...)` with `via(['database'])` notification classes: `notifications:policy-renewals`, `protection:send-alerts`, `notifications:mortgage-rate-alerts`, `savings:send-alerts`, `estate:send-alerts`. All 5 would have crashed daily once cron started running them.
+- [x] **New migration** `database/migrations/2026_04_14_094042_create_notifications_table.php` — generated locally via `php artisan notifications:table`, edited to match Fynla conventions (`declare(strict_types=1)`, `Schema::hasTable()` safety check), uploaded to production via SSH, applied via `migrate --force`. Verified with insert/readback/delete.
+- [x] **`schedule:run` proven healthy** on production manually — Laravel chain works end-to-end, no errors, exit 0.
+- [x] **Disclosure:** I ran `php artisan schedule:test --name="trials:send-reminders"` on production thinking it was a dry run — it isn't. As a side effect, **10 real reminder emails were sent** at 08:42 UTC to users 581–588 (3-day reminders) and 551/552/580 (2-day reminders). All were legitimate reminders the system was supposed to send anyway. The `trial_reminder_log` was correctly populated so they will not receive duplicates.
+- [x] **Repo cleanup** — removed 487 archived vault note files from `Articles/`, `Feb/`, `March/` directories (these were already in vault and `April/` is `.gitignore`d).
+
+### NOT Done — Outstanding from Session 51
+
+- [ ] **🔴 Verify cron is firing on production** — to be done first thing tomorrow. Full verification checklist in `April/April15Updates/CSJTODO.md` (also in vault). The 09:00 UTC fire on 15 April is the moment of truth.
+- [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to add the cron setup as a documented deploy step (so this can never recur on a future server migration).
+- [ ] **Confirm Jessica Cracknell** (user 301) doesn't need a goodwill gesture or trial reset — she's the only real user affected by the ghost trial cleanup, and she never received a reminder email through no fault of her own.
 
 ### Context for Next Session
-**v1.0 deployed + QA review fixes deployed.** Brett's QA report (claudeReview.md) reviewed — most "bugs" were either already fixed, non-existent routes, or correct behaviour (dividend rate 35.75% is correct for 2026/27). Real fixes: spouse toggle, dashboard data refresh, markdown headings, employment_status enum, tier gating. The `employment_status` enum now includes `full_time` on production. Family plan users now see the Family tab in profile, and Liabilities page works for Standard+ (was incorrectly Pro-gated). The `fynNew` branch with the Fyn Response Architecture (25 commits) is still a separate parallel track.
+
+The cron entry was added to SiteGround at the very end of this session. We did **not** have time to verify it actually fires before close — `crontab` command is not available on this user (SiteGround panel cron, not visible from SSH), and `schedule:run` is a no-op when nothing is due. Tomorrow's first task is to verify by checking `trial_reminder_log` for new rows after 09:00 UTC, `pending_registrations` for the January rows being cleared (hourly), and `laravel.log` for any errors. **If cron is NOT firing, the diagnostic next steps are documented in tomorrow's CSJTODO.**
+
+The 5-bug correction in the notifications table fix is a reminder to **read command code** before claiming what depends on what — I made a wrong claim in the original report based on a failed tinker query rather than reading `SendDailyInsightNotifications.php`. The corrected report is now in both repo and vault.
+
+---
+
+## Carry-Over From Session 50 — Still Outstanding
+
+- [ ] **Fyn Quick Start flow** — hidden CTA, root cause unfixed (`fynQuickStartBugs.md`): production missing `dc_pensions.current_value` column, AI analyses empty data for new users
+- [ ] **Run pending migration on production** — `dc_pensions.current_value`
+- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47
+- [ ] **PR #197 cleanup** — 9 markdown files in repo root should be moved to `Articles/`
+- [ ] **Meta Pixel CSP** — `connect.facebook.net` and `www.facebook.com` not in `SecurityHeaders.php` whitelist
+- [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged
+- [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting
 
 ---
 
@@ -73,13 +81,6 @@
 - [ ] property_sale life event creates property record (double navigation)
 
 ## Deploy Status
-- **PR #203 (ga-updates):** DEPLOYED 9 April 2026
-- **Tech debt audit (45 fixes):** DEPLOYED 9 April 2026
-- **PR #204 (fynStart):** DEPLOYED 9 April 2026
-- **PR #205 (invoice):** DEPLOYED 9 April 2026
-- **PR #206 (fynBugs):** DEPLOYED 9 April 2026
-- **PR #207 (security):** DEPLOYED 9 April 2026
-- **Terms/Privacy + v1.0:** DEPLOYED 9 April 2026
-- **T&C pricing + About page:** DEPLOYED 9 April 2026
-- **Persona JSONs (all 6):** DEPLOYED 9 April 2026
 - **PR #208 (claudeReview):** DEPLOYED 9 April 2026 — spouse toggle, dashboard refresh, markdown, enum, tier gating
+- **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026 (uploaded via SSH, applied via `migrate --force`)
+- **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verification pending session 52
