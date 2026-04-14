@@ -27,11 +27,14 @@ class DiscountCode extends Model
         'expires_at',
         'is_active',
         'created_by',
+        'user_id',
+        'metadata',
     ];
 
     protected $casts = [
         'applicable_plans' => 'array',
         'applicable_cycles' => 'array',
+        'metadata' => 'array',
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
         'is_active' => 'boolean',
@@ -49,6 +52,15 @@ class DiscountCode extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user this code is locked to (for per-user lifecycle codes).
+     * Returns null for shared codes.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
