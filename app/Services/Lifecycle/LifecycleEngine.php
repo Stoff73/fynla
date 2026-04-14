@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Lifecycle;
 
 use App\Models\LifecycleEmailLog;
+use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Services\Lifecycle\Contracts\LifecycleCampaign;
 use Illuminate\Support\Collection;
@@ -99,18 +100,30 @@ class LifecycleEngine
     {
         $preferenceColumn = config("lifecycle.campaign_to_preference.{$campaign->name()}");
 
-        return $campaign->eligibleUsers()
+        $candidates = $campaign->eligibleUsers();
+
+        // Batch-load notification preferences for every candidate user in a
+        // single query. Avoids triggering Laravel's preventLazyLoading throw
+        // (enforced in AppServiceProvider::boot for non-production) that
+        // would otherwise fire on $u->notificationPreference access inside
+        // the reject closure. Returns a dictionary keyed by user_id so the
+        // filter closure can look up prefs in O(1).
+        $preferencesByUserId = $preferenceColumn
+            ? NotificationPreference::whereIn('user_id', $candidates->pluck('id'))->get()->keyBy('user_id')
+            : collect();
+
+        return $candidates
             ->reject(fn (User $u) => $u->is_preview_user)
             ->reject(fn (User $u) => $u->is_lifecycle_test_user && ! $this->testMode)
             ->reject(fn (User $u) => $emailedToday->contains($u->id))
             ->reject(fn (User $u) => LifecycleEmailLog::where('user_id', $u->id)
                 ->where('campaign', $campaign->name())
                 ->exists())
-            ->reject(function (User $u) use ($preferenceColumn) {
+            ->reject(function (User $u) use ($preferenceColumn, $preferencesByUserId) {
                 if (! $preferenceColumn) {
                     return false;  // No mapping config → don't filter
                 }
-                $pref = $u->notificationPreference;
+                $pref = $preferencesByUserId->get($u->id);
                 if (! $pref) {
                     return false;  // No row → opted in by default
                 }

@@ -12,7 +12,7 @@
         <li>The bank requires extra authentication</li>
     </ul>
 
-    <p>The good news: your account is still active and your data is safe. We'll keep trying for a few more days, but if your payment isn't sorted@if ($gracePeriodEnd) by {{ $gracePeriodEnd }}@endif, your subscription will lapse and you'll lose access.</p>
+    <p>The good news: your account is still active and your data is safe. We'll keep trying for a few more days, but if your payment isn't sorted{{ $gracePeriodEnd ? ' by ' . $gracePeriodEnd : '' }}, your subscription will lapse and you'll lose access.</p>
 
     @include('emails.lifecycle._button', ['url' => $updatePaymentUrl, 'label' => 'UPDATE PAYMENT METHOD'])
 
