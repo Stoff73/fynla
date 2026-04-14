@@ -44,3 +44,41 @@ it('isEmpty returns false for a user with any module data (test all 6 tables)', 
         expect($service->isEmpty($user))->toBeFalse();
     }
 });
+
+it('findUserIdsWithData returns the subset of user IDs that have data', function () {
+    $userWithData = User::factory()->create();
+    $userWithoutData = User::factory()->create();
+    $anotherUserWithData = User::factory()->create();
+
+    \App\Models\Property::factory()->create(['user_id' => $userWithData->id]);
+    \App\Models\Goal::factory()->create(['user_id' => $anotherUserWithData->id]);
+
+    $service = app(LifecycleSnapshotService::class);
+    $result = $service->findUserIdsWithData([
+        $userWithData->id,
+        $userWithoutData->id,
+        $anotherUserWithData->id,
+    ]);
+
+    expect($result->all())->toEqualCanonicalizing([
+        $userWithData->id,
+        $anotherUserWithData->id,
+    ]);
+});
+
+it('findUserIdsWithData returns empty collection when no candidates have data', function () {
+    $u1 = User::factory()->create();
+    $u2 = User::factory()->create();
+
+    $service = app(LifecycleSnapshotService::class);
+    $result = $service->findUserIdsWithData([$u1->id, $u2->id]);
+
+    expect($result->isEmpty())->toBeTrue();
+});
+
+it('findUserIdsWithData handles empty input array', function () {
+    $service = app(LifecycleSnapshotService::class);
+    $result = $service->findUserIdsWithData([]);
+
+    expect($result->isEmpty())->toBeTrue();
+});

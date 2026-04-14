@@ -29,4 +29,28 @@ class LifecycleSnapshotService
 
         return true;
     }
+
+    /**
+     * Return the subset of the given user IDs that have data in any module table.
+     *
+     * Uses a UNION across the 6 module tables — faster than N individual exists() checks
+     * when the candidate set is large (eg. batch eligibility filtering in the engine).
+     *
+     * @param  array<int>  $userIds
+     * @return Collection<int, int>
+     */
+    public function findUserIdsWithData(array $userIds): Collection
+    {
+        if (empty($userIds)) {
+            return collect();
+        }
+
+        $query = DB::table('properties')->whereIn('user_id', $userIds)->select('user_id');
+
+        foreach (['dc_pensions', 'savings_accounts', 'investment_accounts', 'life_insurance_policies', 'goals'] as $table) {
+            $query->union(DB::table($table)->whereIn('user_id', $userIds)->select('user_id'));
+        }
+
+        return $query->pluck('user_id')->unique()->values();
+    }
 }
