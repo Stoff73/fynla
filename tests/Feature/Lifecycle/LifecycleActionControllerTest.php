@@ -35,8 +35,10 @@ it('restartTrial via valid signed URL reactivates the trial', function () {
 
     $response = $this->get($url);
 
-    // SPA has no named 'login' route — controller redirects to /login
-    $response->assertRedirect('/login');
+    // SPA has no named 'login' route — controller redirects to /login with
+    // a ?redirect=/dashboard query param that Login.vue consumes after a
+    // successful sign-in to send the user back to their reactivated trial.
+    $response->assertRedirect('/login?redirect=' . rawurlencode('/dashboard'));
     $user->refresh();
     expect($user->plan)->toBe('pro');
 

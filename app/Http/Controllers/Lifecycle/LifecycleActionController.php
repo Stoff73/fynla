@@ -43,13 +43,10 @@ class LifecycleActionController extends Controller
         );
 
         if (auth()->check() && auth()->id() === $userId) {
-            return redirect('/dashboard')
-                ->with('success', 'Welcome back! Your Fynla trial is active for another '
-                    . config('lifecycle.trial_restart_days', 14) . ' days.');
+            return redirect('/dashboard');
         }
 
-        return redirect('/login')
-            ->with('lifecycle_message', 'Sign in to access your reactivated Fynla trial.');
+        return redirect('/login?redirect=' . rawurlencode('/dashboard'));
     }
 
     public function applyDiscount(Request $request): RedirectResponse
@@ -60,23 +57,17 @@ class LifecycleActionController extends Controller
 
         $this->markClicked($userId, $campaign, 'applied_discount');
 
-        session([
-            'lifecycle.pending_discount' => [
-                'code' => $code,
-                'user_id' => $userId,
-                'expires' => now()->addHour(),
-            ],
-        ]);
-
-        $checkoutPath = '/checkout?discount_code=' . urlencode($code);
+        // Route through /dashboard with a lifecycle_discount query param so
+        // AppLayout's trial-expired modal picks up the code and threads it
+        // through PlanSelectionModal → handlePlanSelect → /checkout?...&discount=CODE.
+        // CheckoutPage's existing prefilledDiscountCode logic then auto-applies.
+        $target = '/dashboard?lifecycle_discount=' . rawurlencode($code);
 
         if (auth()->check() && auth()->id() === $userId) {
-            return redirect($checkoutPath);
+            return redirect($target);
         }
 
-        return redirect('/login')
-            ->with('intended_after_login', $checkoutPath)
-            ->with('lifecycle_message', 'Sign in to claim your welcome discount.');
+        return redirect('/login?redirect=' . rawurlencode($target));
     }
 
     public function feedback(Request $request): View
@@ -144,9 +135,7 @@ class LifecycleActionController extends Controller
             return redirect($profilePath);
         }
 
-        return redirect('/login')
-            ->with('intended_after_login', $profilePath)
-            ->with('lifecycle_message', 'Sign in to update your payment method.');
+        return redirect('/login?redirect=' . rawurlencode($profilePath));
     }
 
     private function markClicked(int $userId, string $campaign, string $action): void
