@@ -82,3 +82,46 @@ it('findUserIdsWithData handles empty input array', function () {
 
     expect($result->isEmpty())->toBeTrue();
 });
+
+it('buildContext returns first_name, completion_pct, and modules_with_data', function () {
+    $user = User::factory()->create(['first_name' => 'James']);
+    \App\Models\Property::factory()->count(2)->create(['user_id' => $user->id]);
+    \App\Models\Goal::factory()->count(3)->create(['user_id' => $user->id]);
+
+    $service = app(LifecycleSnapshotService::class);
+    $context = $service->buildContext($user);
+
+    expect($context['first_name'])->toBe('James');
+    expect($context['completion_pct'])->toBeInt();
+    expect($context['modules_with_data'])->toBeArray();
+
+    $moduleNames = collect($context['modules_with_data'])->pluck('name')->all();
+    expect($moduleNames)->toContain('Properties');
+    expect($moduleNames)->toContain('Goals');
+});
+
+it('buildContext omits modules with zero count', function () {
+    $user = User::factory()->create(['first_name' => 'Test']);
+    \App\Models\Property::factory()->create(['user_id' => $user->id]);
+
+    $service = app(LifecycleSnapshotService::class);
+    $context = $service->buildContext($user);
+
+    $moduleNames = collect($context['modules_with_data'])->pluck('name')->all();
+    expect($moduleNames)->toContain('Properties');
+    expect($moduleNames)->not->toContain('Goals');
+    expect($moduleNames)->not->toContain('Pensions');
+});
+
+it('buildContext passes through empty first_name gracefully', function () {
+    // Note: users.first_name is NOT NULL in the schema, so the plan's original
+    // "handles null first_name" test is not constructable. Empty string is the
+    // minimum value the DB permits, and the service's contract is still
+    // "pass through whatever is on the user" — which this test verifies.
+    $user = User::factory()->create(['first_name' => '']);
+
+    $service = app(LifecycleSnapshotService::class);
+    $context = $service->buildContext($user);
+
+    expect($context['first_name'])->toBe('');
+});
