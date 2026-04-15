@@ -87,11 +87,31 @@ final class OnboardingStateMachine
                 'turn_type' => 'bubbles',
                 'prompt_text' => 'Which journey fits your situation best?',
                 'bubbles' => [
-                    ['id' => 'budgeting', 'label' => 'Budgeting'],
-                    ['id' => 'estate', 'label' => 'Estate planning'],
-                    ['id' => 'family', 'label' => 'Family'],
-                    ['id' => 'business', 'label' => 'Business'],
-                    ['id' => 'goals', 'label' => 'Goals'],
+                    [
+                        'id' => 'budgeting',
+                        'label' => 'Starting out',
+                        'description' => 'Build strong financial habits for your future.',
+                    ],
+                    [
+                        'id' => 'goals',
+                        'label' => 'Building foundations',
+                        'description' => 'Save, invest, and grow your wealth with confidence.',
+                    ],
+                    [
+                        'id' => 'family',
+                        'label' => 'Protecting and growing',
+                        'description' => 'Ensure your family and assets are fully covered.',
+                    ],
+                    [
+                        'id' => 'business',
+                        'label' => 'Planning your future',
+                        'description' => 'Retirement projections, pension tracking, and estate planning.',
+                    ],
+                    [
+                        'id' => 'estate',
+                        'label' => 'Enjoying your wealth',
+                        'description' => 'Make the most of your financial success.',
+                    ],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
                 'next' => self::STATE_BASE_PERSONAL,
