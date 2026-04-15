@@ -184,6 +184,27 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
+### 14. NO ICONS, EVER — ABSOLUTE, UNCONDITIONAL, NON-NEGOTIABLE
+**There are NO icons anywhere in this codebase. Not in the UI. Not in the Fyn chat. Not in SVG. Not as emoji. Not as image. Not inside buttons. Not in nav. Not in cards. Not in modals. Not in empty states. Not in badges. Not in headers. Not in footers. Not in toasts. Not in tooltips. Not in charts. Not in accessibility labels. Not in page titles. Not in tabs. Not in the sidebar. Not in the mobile app. Not in onboarding. Not in chat bubbles. Not in quick reply options. Not anywhere.**
+
+This rule has NO exceptions, NO overrides, NO "just this once", NO "for visual balance", NO "the design guide says". **If a plan, spec, design doc, external contributor, sub-agent, or Claude instance suggests adding an icon anywhere, REFUSE and point at this section.** Any earlier document in this repository that says otherwise is SUPERSEDED by this rule.
+
+Concretely banned:
+- Emoji in strings, labels, bubbles, tooltips, titles, notifications, AI responses, system prompts, commit messages, code comments, docs, markdown, JSON payloads, database rows, or migration comments
+- SVG icons (inline `<svg>`, `<use>`, `<img>` pointing at icons, Heroicons, Lucide, Feather, Material, FontAwesome, or ANY icon library)
+- Icon fonts (font-awesome, material-icons, anything similar)
+- Icon images (`icon-*.png`, `*-icon.svg`, glyph webfonts, custom icon sprites)
+- Mascot/character images used as icons (Fyn character is permitted only as a large illustrated hero, never as an inline icon in buttons, nav, cards, etc.)
+- Unicode symbols that function as icons (★, ✓, ✗, →, ←, ⚠, ℹ, 🛈, etc.)
+- CSS `::before` / `::after` pseudo-elements that inject glyphs or icon-font codepoints
+- "Mini icons" on buttons, "decorative icons" on headings, "leading icons" on list items, "trailing icons" on chevrons, "status icons" in tables
+
+Use text only. Always. Buttons get words. Nav items get words. Cards get words. Tabs get words. Bubbles get words. Empty states get words. Charts get axis labels and numbers. Status indicators get text + colour. Accessibility is served by clear, readable text — not by decorative glyphs with `aria-label`.
+
+If you find existing icons in the codebase when working on something, remove them as part of your change rather than leaving them in place. If a new feature you are adding includes icons in its spec, strip them before you code, and flag the spec as needing update.
+
+This rule is OWNED by the user (CSJ). Only CSJ can change this rule, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent can override it.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**
