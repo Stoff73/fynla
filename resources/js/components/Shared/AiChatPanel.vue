@@ -410,6 +410,17 @@
           </div>
         </div>
 
+        <!-- Error banner (docked) — must mirror the modal error display so
+             failures in the director / Claude call are actually visible to
+             the user. Without this, the store commits SET_ERROR but the
+             docked panel never renders it, producing silent failures. -->
+        <div
+          v-if="error && !streaming"
+          class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700"
+        >
+          {{ error }}
+        </div>
+
       </div>
 
       <!-- Stop streaming button (docked) -->
@@ -719,15 +730,18 @@ export default {
         },
 
         messages(newMessages, oldMessages) {
-            // When a new user message is added, scroll to bottom so they see it
-            // When assistant message is added (stream complete), scroll to top of that message
+            // Any new message should be scrolled into view — user messages
+            // jump to bottom, assistant and quick_replies bring the new
+            // content to the top of the visible area so users don't have
+            // to chase long replies.
             if (!newMessages || !oldMessages) return;
+            if (newMessages.length <= oldMessages.length) return;
             const lastMsg = newMessages[newMessages.length - 1];
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
                 this.$nextTick(() => this.scrollToBottom());
-            } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
+            } else if (lastMsg.role === 'assistant' || lastMsg.role === 'quick_replies') {
                 this.$nextTick(() => {
                     setTimeout(() => this.scrollToLastAssistantMessage(), 50);
                 });
@@ -998,10 +1012,13 @@ export default {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (!container) return;
 
-            const assistantMessages = container.querySelectorAll('.bg-savannah-100');
-            const lastAssistant = assistantMessages[assistantMessages.length - 1];
-            if (lastAssistant) {
-                lastAssistant.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Match both assistant text bubbles (bg-savannah-100) and the
+            // FynQuickReplies wrapper (.fyn-quick-replies) so grouped and
+            // bubble turns both scroll into view correctly.
+            const targets = container.querySelectorAll('.bg-savannah-100, .fyn-quick-replies');
+            const last = targets[targets.length - 1];
+            if (last) {
+                last.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
                 this.scrollToBottom();
             }
