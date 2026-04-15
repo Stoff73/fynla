@@ -20,9 +20,9 @@
         <div class="relative z-10 flex flex-col items-start gap-3 mb-0">
           <router-link to="/register" class="px-16 py-2.5 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all" @click="trackGA('cta_click', 'get_started')">Get started</router-link>
           <p class="text-sm text-white/70 flex flex-wrap items-center gap-2">
-            <a href="#dashboard" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToDashboard">View the video</a>
+            <a href="#meet-fyn" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToMeetFyn">Meet Fyn</a>
             <span class="text-white/40">|</span>
-            <a href="#meet-fyn" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToMeetFyn">Ask Fyn</a>
+            <a href="#dashboard" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="scrollToDashboard">View the video</a>
             <span class="text-white/40">|</span>
             <a href="/?demo=true" class="text-white/90 no-underline hover:text-spring-400 transition-colors" @click.prevent="trackGA('cta_click', 'see_demo'); enterPreviewMode()">See our demo</a>
           </p>
