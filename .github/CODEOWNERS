@@ -1,0 +1,15 @@
+# Fynla — Code Owners
+#
+# This file is used by GitHub to automatically request reviews from the right
+# people when a pull request is opened. When combined with branch protection
+# rules that require code-owner approval, it ensures every change to the
+# protected branches (`main`, `dev`) is reviewed by the project lead.
+#
+# Syntax reference:
+#   https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# The pattern `*` matches every file in the repository. @Stoff73 is the sole
+# reviewer required for any PR — contributors (icecube-acc, Phailanx) cannot
+# self-approve or approve each other's work into `dev` or `main`.
+
+*  @Stoff73

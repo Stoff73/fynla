@@ -467,6 +467,20 @@ export default {
             });
           }
 
+          // Meta Pixel: Subscribe
+          if (typeof fbq === 'function' && this.planData) {
+            const monthlyPence = this.planData.launch_monthly_price || this.planData.monthly_price;
+            const yearlyPence = this.planData.launch_yearly_price || this.planData.yearly_price;
+            const isMonthly = this.billingCycle === 'monthly';
+            const priceGBP = ((isMonthly ? monthlyPence : yearlyPence) || 0) / 100;
+            const ltvGBP = ((isMonthly ? monthlyPence * 12 : yearlyPence) || 0) / 100;
+            fbq('track', 'Subscribe', {
+              currency: 'GBP',
+              value: priceGBP,
+              predicted_ltv: ltvGBP,
+            });
+          }
+
           // Awin affiliate conversion — browser-side pixel. Backend returns
           // the full payload (order_ref, amount, currency, voucher, customer
           // acquisition flag) only when AWIN_ENABLED=true and the user is

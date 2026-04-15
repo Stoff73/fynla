@@ -30,9 +30,11 @@
     <meta name="twitter:description" content="Plan savings, investments, retirement, and estate with confidence. One platform for your complete financial picture.">
     <meta name="twitter:image" content="https://fynla.org/images/logos/LogoHiResFynlaDark.png">
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/images/logos/favicon.png">
-    <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico">
+    <!-- Favicon — use asset() so the path respects APP_URL (works for both
+         root deployments like fynla.org and subdirectory ones like
+         csjones.co/fynla) -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logos/favicon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/logos/favicon.ico') }}">
 
     <!-- Structured Data -->
     <script type="application/ld+json">

@@ -319,6 +319,10 @@ export default {
       if (typeof gtag === 'function') {
         gtag('event', 'sign_up_complete', { method: 'email' });
       }
+      // Meta Pixel: CompleteRegistration
+      if (typeof fbq === 'function') {
+        fbq('track', 'CompleteRegistration', { currency: 'GBP', value: 0 });
+      }
       // Store the token
       await authService.setToken(data.access_token);
       store.commit('auth/setToken', data.access_token);
@@ -339,11 +343,11 @@ export default {
 
       if (fromParam === 'fyn') {
         // Came from "Get started with Fyn" — go to dashboard with Fyn chat open
-        router.push({ name: 'Dashboard', query: { openFyn: 'journey' } });
+        router.push({ name: 'Dashboard', query: { openFyn: 'journey', newUser: '1' } });
       } else if (stageParam) {
-        router.push({ name: 'Onboarding', query: { stage: stageParam } });
+        router.push({ name: 'Onboarding', query: { stage: stageParam, newUser: '1' } });
       } else {
-        router.push({ name: 'Onboarding' });
+        router.push({ name: 'Onboarding', query: { newUser: '1' } });
       }
     };
 
