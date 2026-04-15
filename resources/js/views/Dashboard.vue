@@ -2166,12 +2166,18 @@ export default {
 
       // Populate the store BEFORE opening the panel so onOpen() sees the
       // active conversation and skips its own initialisation path.
+      const expandDockedChat = () => {
+        // Docked chat on desktop starts collapsed — force-expand it.
+        window.dispatchEvent(new Event('fyn-open-chat'));
+        // And open the floating/mobile chat panel.
+        this.$store.dispatch('aiChat/open');
+      };
       this.$store.dispatch('aiChat/startOnboardingConversation')
-        .then(() => this.$store.dispatch('aiChat/open'))
+        .then(expandDockedChat)
         .catch((err) => {
           // Fall back to just opening an empty chat if the director fails.
           console.warn('[Dashboard] startOnboardingConversation failed, falling back', err);
-          this.$store.dispatch('aiChat/open');
+          expandDockedChat();
         });
     }
   },

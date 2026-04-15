@@ -284,6 +284,15 @@ const actions = {
         commit('SET_STREAMING_TEXT', '');
         commit('SET_ERROR', null);
 
+        // Snapshot count AFTER adding the user message so we can detect whether
+        // the stream produced any new assistant/quick_replies/etc. messages.
+        // Without this check the finally-block below fires a false-positive
+        // "Fyn couldn't generate a response" banner on pure quick_replies turns
+        // (the onboarding director's base_dependants + add_more loops emit
+        // quick_replies events that ADD_MESSAGE directly without populating
+        // streamingText).
+        const preStreamMessageCount = state.messages.length;
+
         const abortController = new AbortController();
         commit('SET_ABORT_CONTROLLER', abortController);
 
@@ -442,8 +451,12 @@ const actions = {
             logger.error('Chat streaming error:', error);
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
-            // Detect empty response — stream completed but Fyn never replied
-            if (state.streaming && !state.streamingText && !state.error) {
+            // Detect empty response — stream completed but Fyn never replied.
+            // "Replied" = either streamingText has content OR new messages
+            // (assistant, quick_replies, navigation, entity_created, etc.)
+            // were pushed during the stream.
+            const producedNewMessages = state.messages.length > preStreamMessageCount;
+            if (state.streaming && !state.streamingText && !producedNewMessages && !state.error) {
                 commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
             }
             commit('SET_STREAMING', false);
