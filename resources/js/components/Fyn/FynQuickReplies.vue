@@ -6,7 +6,35 @@
     >
       {{ promptText }}
     </p>
-    <div class="flex flex-wrap gap-2">
+    <div
+      v-if="hasDescriptions"
+      class="flex flex-col gap-2"
+    >
+      <button
+        v-for="bubble in bubbles"
+        :key="bubble.id"
+        :disabled="disabled"
+        class="w-full text-left px-4 py-3 rounded-xl
+               bg-white border-2 border-raspberry-500 text-raspberry-500
+               hover:bg-raspberry-500 hover:text-white
+               active:bg-raspberry-600 active:border-raspberry-600
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-colors"
+        @click="handleSelect(bubble)"
+      >
+        <div class="text-sm font-semibold leading-tight">{{ bubble.label }}</div>
+        <div
+          v-if="bubble.description"
+          class="text-xs mt-1 leading-snug opacity-80"
+        >
+          {{ bubble.description }}
+        </div>
+      </button>
+    </div>
+    <div
+      v-else
+      class="flex flex-wrap gap-2"
+    >
       <button
         v-for="bubble in bubbles"
         :key="bubble.id"
@@ -46,6 +74,12 @@ export default {
   },
 
   emits: ['select'],
+
+  computed: {
+    hasDescriptions() {
+      return Array.isArray(this.bubbles) && this.bubbles.some(b => b && b.description);
+    },
+  },
 
   methods: {
     handleSelect(bubble) {
