@@ -80,6 +80,43 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * Chat with an override system prompt and tool allowlist.
+     *
+     * Used by OnboardingChatDirector during asset_capture delegation to
+     * run the existing chat() pipeline (streaming, tool loop, persistence)
+     * with a stripped-down prompt and a focus-filtered create_* tool set.
+     *
+     * Overrides are applied for the duration of this call only — a
+     * try/finally block guarantees they are cleared even if the delegated
+     * chat() generator throws.
+     *
+     * @param  list<string>|null  $allowedTools
+     */
+    public function chatWithPromptOverride(
+        \App\Models\User $user,
+        \App\Models\AiConversation $conversation,
+        string $message,
+        ?string $currentRoute,
+        ?string $systemPromptOverride,
+        ?array $allowedTools,
+        bool $persistUserMessage = true,
+    ): \Generator {
+        $this->setChatOverrides(
+            systemPrompt: $systemPromptOverride,
+            allowedTools: $allowedTools,
+            skipUserMessagePersistence: ! $persistUserMessage,
+        );
+
+        try {
+            foreach ($this->chat($user, $conversation, $message, $currentRoute) as $event) {
+                yield $event;
+            }
+        } finally {
+            $this->clearChatOverrides();
+        }
+    }
+
+    /**
      * Generate personalized recommendations (BaseAgent requirement)
      */
     public function generateRecommendations(array $analysisData): array

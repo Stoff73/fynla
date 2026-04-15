@@ -1223,6 +1223,9 @@ Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(f
     Route::get('/conversations/{id}', [AiChatController::class, 'show']);
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage']);
+    // Fyn-driven onboarding flow (backend-authoritative state machine)
+    Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
+    Route::post('/onboarding/start', [AiChatController::class, 'startOnboarding']);
 });
 
 // Internal Agent API routes (Python Agent SDK sidecar callbacks)

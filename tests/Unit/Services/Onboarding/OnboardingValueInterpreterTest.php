@@ -110,6 +110,24 @@ describe('OnboardingValueInterpreter::parseExpenditureAmount', function () {
     });
 });
 
+describe('OnboardingValueInterpreter sentence-embedded amounts', function () {
+    it('extracts amounts from a natural phrase with a pound sign', function () {
+        expect(OnboardingValueInterpreter::parseIncomeAmount('About £75,000 gross'))->toBe(75000.0)
+            ->and(OnboardingValueInterpreter::parseExpenditureAmount('About £2,800 per month'))->toBe(2800.0)
+            ->and(OnboardingValueInterpreter::parseIncomeAmount("I earn roughly £42,000 per year"))->toBe(42000.0);
+    });
+
+    it('extracts amounts from a natural phrase with a k suffix', function () {
+        expect(OnboardingValueInterpreter::parseIncomeAmount('roughly 75k'))->toBe(75000.0)
+            ->and(OnboardingValueInterpreter::parseIncomeAmount('around £120k gross'))->toBe(120000.0);
+    });
+
+    it('does NOT match bare ages or counts', function () {
+        expect(OnboardingValueInterpreter::parseIncomeAmount('I am 42 years old'))->toBeNull()
+            ->and(OnboardingValueInterpreter::parseExpenditureAmount('I have 3 kids'))->toBeNull();
+    });
+});
+
 describe('OnboardingValueInterpreter::parseRetirementDate', function () {
     it('accepts year-only input', function () {
         expect(OnboardingValueInterpreter::parseRetirementDate('2020'))->toBe('2020-01-01');
