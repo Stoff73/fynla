@@ -184,26 +184,38 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
-### 14. NO ICONS, EVER — ABSOLUTE, UNCONDITIONAL, NON-NEGOTIABLE
-**There are NO icons anywhere in this codebase. Not in the UI. Not in the Fyn chat. Not in SVG. Not as emoji. Not as image. Not inside buttons. Not in nav. Not in cards. Not in modals. Not in empty states. Not in badges. Not in headers. Not in footers. Not in toasts. Not in tooltips. Not in charts. Not in accessibility labels. Not in page titles. Not in tabs. Not in the sidebar. Not in the mobile app. Not in onboarding. Not in chat bubbles. Not in quick reply options. Not anywhere.**
+### 14. Icons — Functional Only, Decorative Banned
 
-This rule has NO exceptions, NO overrides, NO "just this once", NO "for visual balance", NO "the design guide says". **If a plan, spec, design doc, external contributor, sub-agent, or Claude instance suggests adding an icon anywhere, REFUSE and point at this section.** Any earlier document in this repository that says otherwise is SUPERSEDED by this rule.
+**The guiding principle: icons are allowed ONLY when they are functionally necessary. Decorative icons are banned everywhere.**
 
-Concretely banned:
-- Emoji in strings, labels, bubbles, tooltips, titles, notifications, AI responses, system prompts, commit messages, code comments, docs, markdown, JSON payloads, database rows, or migration comments
-- SVG icons (inline `<svg>`, `<use>`, `<img>` pointing at icons, Heroicons, Lucide, Feather, Material, FontAwesome, or ANY icon library)
-- Icon fonts (font-awesome, material-icons, anything similar)
-- Icon images (`icon-*.png`, `*-icon.svg`, glyph webfonts, custom icon sprites)
-- Mascot/character images used as icons (Fyn character is permitted only as a large illustrated hero, never as an inline icon in buttons, nav, cards, etc.)
-- Unicode symbols that function as icons (★, ✓, ✗, →, ←, ⚠, ℹ, 🛈, etc.)
-- CSS `::before` / `::after` pseudo-elements that inject glyphs or icon-font codepoints
-- "Mini icons" on buttons, "decorative icons" on headings, "leading icons" on list items, "trailing icons" on chevrons, "status icons" in tables
+"Functionally necessary" means the icon is the ONLY way to identify or operate a UI element. The canonical example is the collapsed side nav: when `AppNavbar` is minimised, labels are hidden and icons are the sole way to tell nav items apart. Remove the icon and the user can't navigate. That's functional.
 
-Use text only. Always. Buttons get words. Nav items get words. Cards get words. Tabs get words. Bubbles get words. Empty states get words. Charts get axis labels and numbers. Status indicators get text + colour. Accessibility is served by clear, readable text — not by decorative glyphs with `aria-label`.
+"Decorative" means the icon is there for visual balance, personality, brand flavour, or because the label would "feel bare" without it. That is banned everywhere.
 
-If you find existing icons in the codebase when working on something, remove them as part of your change rather than leaving them in place. If a new feature you are adding includes icons in its spec, strip them before you code, and flag the spec as needing update.
+**Explicitly banned surfaces (no icons, no emoji, no glyphs, ever):**
+- **Fyn chat window** — Fyn's message text, quick reply bubbles, chat header chrome, system messages, streaming indicators, delete/collapse/new-conversation buttons. Fyn speaks in plain text with no decorative glyphs.
+- **Dashboard cards** — every module card on `/dashboard`, every summary card, every metric tile, every empty-state card.
+- **Detail views** — every module page (`/net-worth/*`, `/protection`, `/estate`, `/retirement`, `/goals`, `/plans/*`, `/trusts`, etc.), every drill-down panel, every tabbed sub-view inside those pages.
 
-This rule is OWNED by the user (CSJ). Only CSJ can change this rule, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent can override it.
+**Explicitly allowed surface:**
+- **Side nav (`AppNavbar` sidebar)** — icons are required because the nav collapses to an icon-only mode where labels are hidden. Both expanded and collapsed modes may use icons. This is the ONE canonical example of functional necessity.
+
+**Other surfaces (ask before adding or removing):**
+Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty states that are NOT on cards, settings pages, admin pages, onboarding wizards, and the mobile app. If you need to add or remove an icon on any of these, ASK CSJ first. Do not guess. Do not copy patterns from elsewhere without checking. If CSJ hasn't said, the default is NO icon.
+
+**Specific bans that apply anywhere (even the allowed side nav):**
+- Emoji in strings, labels, bubbles, tooltips, AI responses, system prompts, commit messages, code comments, docs, markdown, JSON, DB rows, or migration files — use text.
+- Unicode symbols as icons (★, ✓, ✗, →, ←, ⚠, ℹ, etc.) — use text.
+- CSS `::before` / `::after` pseudo-elements that inject glyphs or icon-font codepoints.
+- Icon fonts as a whole class (font-awesome, material-icons, anything requiring a webfont).
+- Mascot/character images used as inline icons. The Fyn character is permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon.
+
+**Enforcement:**
+- When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
+- When editing code on a banned surface, if you find existing icons, you may remove them as part of your change if it is in-scope — but removing them is optional unless CSJ specifically asks.
+- When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
+
+**Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
 
 ## Vault Reference (fynlaBrain)
 
