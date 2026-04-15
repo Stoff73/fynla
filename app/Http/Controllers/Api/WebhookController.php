@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Jobs\FireAwinConversionJob;
 use App\Mail\PaymentConfirmation;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
@@ -174,6 +175,14 @@ class WebhookController extends Controller
                     'plan' => $planSlug,
                     'billing_cycle' => $billingCycle,
                 ]);
+
+                // Fire Awin conversion (idempotent — job short-circuits if
+                // awin_fired_at is already set). Dispatched from both webhook
+                // and confirmPayment paths; whichever arrives second is a
+                // no-op. Admin accounts are excluded.
+                if (config('awin.enabled') && ! $user->is_admin) {
+                    FireAwinConversionJob::dispatch($payment->id);
+                }
             });
         } catch (\Throwable $e) {
             Log::error('Revolut webhook processing failed', [

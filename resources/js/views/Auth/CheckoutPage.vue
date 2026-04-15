@@ -184,6 +184,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import logger from '@/utils/logger';
+import { fireConversion as fireAwinConversion } from '@/utils/awinTracking';
 
 /**
  * Load the Revolut Merchant SDK from CDN.
@@ -441,7 +442,7 @@ export default {
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          await api.post('/payment/confirm', { order_id: this.revolutOrderId });
+          const confirmResponse = await api.post('/payment/confirm', { order_id: this.revolutOrderId });
           this.paymentComplete = true;
           this.processing = false;
 
@@ -464,6 +465,15 @@ export default {
                 item_category: this.isUpgrade ? 'upgrade' : 'new_subscription',
               }],
             });
+          }
+
+          // Awin affiliate conversion — browser-side pixel. Backend returns
+          // the full payload (order_ref, amount, currency, voucher, customer
+          // acquisition flag) only when AWIN_ENABLED=true and the user is
+          // not an admin, so this is a no-op otherwise.
+          const awinPayload = confirmResponse?.data?.awin;
+          if (awinPayload) {
+            fireAwinConversion(awinPayload);
           }
 
           return;

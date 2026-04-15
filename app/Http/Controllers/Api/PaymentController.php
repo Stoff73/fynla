@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Jobs\FireAwinConversionJob;
 use App\Mail\DataDeletionConfirmation;
 use App\Mail\PaymentConfirmation;
 use App\Mail\SubscriptionCancellation;
@@ -13,6 +14,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Marketing\AwinTrackingService;
 use App\Services\Payment\DataPurgeService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\InvoiceService;
@@ -39,7 +41,8 @@ class PaymentController extends Controller
         private readonly DiscountCodeService $discountCodeService,
         private readonly InvoiceService $invoiceService,
         private readonly DataPurgeService $purgeService,
-        private readonly ReferralService $referralService
+        private readonly ReferralService $referralService,
+        private readonly AwinTrackingService $awinTracking
     ) {}
 
     /**
@@ -214,6 +217,22 @@ class PaymentController extends Controller
                     'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
                 ],
             ]);
+
+            // Capture Awin affiliate attribution at order creation time.
+            // This is the ONLY point in the flow where the user's browser
+            // cookie is reachable — the webhook has no access to it. Fields
+            // are persisted on the Payment row so the downstream conversion
+            // job (dispatched from webhook or confirmPayment) has everything
+            // it needs without touching the request.
+            if (config('awin.enabled') && ! $user->is_admin) {
+                $payment->forceFill([
+                    'awin_order_ref' => $this->awinTracking->orderRefFor($payment),
+                    'awin_cks' => $request->cookie('awc') ?: null,
+                    'awin_customer_acquisition' => $this->awinTracking->isCustomerAcquisition($user, $payment->id)
+                        ? 'new'
+                        : 'existing',
+                ])->save();
+            }
 
             Log::info('Revolut order created for checkout', [
                 'user_id' => $user->id,
@@ -424,9 +443,30 @@ class PaymentController extends Controller
                 }
             }
 
+            // Fire Awin conversion (idempotent — job short-circuits if
+            // awin_fired_at is already set). Dispatched from both confirm and
+            // webhook paths; whichever arrives second is a no-op.
+            $awinPayload = null;
+            if (config('awin.enabled') && ! $user->is_admin) {
+                FireAwinConversionJob::dispatch($payment->id);
+
+                // Return the browser-side conversion payload so CheckoutPage
+                // can fire the MasterTag Sale object / fallback pixel.
+                $payment->refresh();
+                $awinPayload = [
+                    'order_ref' => $payment->awin_order_ref ?? $this->awinTracking->orderRefFor($payment),
+                    'amount' => number_format(((int) $payment->amount) / 100, 2, '.', ''),
+                    'currency' => $payment->currency ?: 'GBP',
+                    'voucher_code' => $payment->discountCode?->code ?? '',
+                    'customer_acquisition' => $payment->awin_customer_acquisition ?? 'existing',
+                    'commission_group' => $this->awinTracking->commissionGroupFor($payment->plan_slug),
+                ];
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Subscription activated successfully',
+                'awin' => $awinPayload,
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Confirming payment');
