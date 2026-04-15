@@ -166,7 +166,7 @@
           <!-- Message list -->
           <template v-else>
             <div
-              v-for="msg in messages"
+              v-for="(msg, idx) in messages"
               :key="msg.id"
             >
               <!-- Quick-reply bubbles (Fyn onboarding tool output) -->
@@ -174,7 +174,7 @@
                 v-if="msg.role === 'quick_replies'"
                 :prompt-text="msg.content"
                 :bubbles="msg.metadata?.bubbles || []"
-                :disabled="streaming || loading"
+                :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
                 @select="handleQuickReplySelect"
               />
               <div
@@ -379,7 +379,7 @@
             v-if="msg.role === 'quick_replies'"
             :prompt-text="msg.content"
             :bubbles="msg.metadata?.bubbles || []"
-            :disabled="streaming || loading"
+            :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
             @select="handleQuickReplySelect"
           />
           <div
@@ -578,6 +578,19 @@ export default {
 
         canSend() {
             return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached;
+        },
+
+        // Index of the most recent quick_replies message in the message
+        // list. Used to disable historical bubble sets so the user cannot
+        // click an earlier answer after they have moved past it. Returns
+        // -1 if no quick_replies messages exist.
+        latestQuickRepliesIndex() {
+            for (let i = this.messages.length - 1; i >= 0; i--) {
+                if (this.messages[i]?.role === 'quick_replies') {
+                    return i;
+                }
+            }
+            return -1;
         },
 
         suggestedPrompts() {
