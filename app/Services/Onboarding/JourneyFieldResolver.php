@@ -91,7 +91,7 @@ class JourneyFieldResolver
     private const FIELD_DEFINITIONS = [
         'date_of_birth' => [
             'label' => 'Your date of birth',
-            'fyn_prompt' => "To get started, when were you born? I'll use your age for retirement projections, protection needs, and tax planning — nothing personal beyond the basics.",
+            'fyn_prompt' => "First things first — when were you born? I'll use your age to pitch retirement projections, insurance terms, and tax planning at the right level.",
             'why' => [
                 'protection' => 'Used to calculate life expectancy and insurance term lengths',
                 'investment' => 'Your age affects recommended asset allocation — younger investors can typically take more risk',
@@ -105,7 +105,7 @@ class JourneyFieldResolver
         ],
         'annual_employment_income' => [
             'label' => 'Your annual income',
-            'fyn_prompt' => "What's your gross annual income from work? I'll use it to work out your tax band, how much you can contribute to pensions, and your realistic savings capacity.",
+            'fyn_prompt' => "Roughly what do you earn a year (gross, before tax)? It drives your tax band, your pension contribution headroom, and what I think you can realistically save each month.",
             'why' => [
                 'budgeting' => 'Shows your earnings and helps calculate your savings rate',
                 'protection' => 'Determines how much income protection cover you need if you cannot work',
@@ -119,7 +119,7 @@ class JourneyFieldResolver
         ],
         'monthly_expenditure' => [
             'label' => 'Your monthly spending',
-            'fyn_prompt' => 'Roughly how much do you spend each month? This helps me work out how much you could save, the size of emergency fund you need, and how much income you will need in retirement.',
+            'fyn_prompt' => "And roughly how much goes out each month — rent or mortgage, bills, food, transport, the lot? A ballpark figure is fine. I'll use it to work out your savings capacity, emergency fund target, and how much income you'll need in retirement.",
             'why' => [
                 'budgeting' => 'Helps track your budget and calculate how much you can save each month',
                 'protection' => 'Helps calculate how much your family would need to maintain their lifestyle',
@@ -132,7 +132,7 @@ class JourneyFieldResolver
         ],
         'marital_status' => [
             'label' => 'Your marital status',
-            'fyn_prompt' => 'Are you single, married, in a civil partnership, divorced, or widowed? Married couples and civil partners get important tax advantages I can factor in.',
+            'fyn_prompt' => "Single, married, in a civil partnership, divorced, or widowed? Couples and civil partners get some meaningful tax advantages — I want to make sure we use them.",
             'why' => [
                 'protection' => 'Married people often need more life cover to protect their spouse',
                 'estate' => 'Married couples can pass assets tax-free to each other (spouse exemption)',
@@ -143,7 +143,7 @@ class JourneyFieldResolver
         ],
         'occupation' => [
             'label' => 'Your occupation',
-            'fyn_prompt' => 'What do you do for a living? Your job affects insurance premiums and your eligibility for income protection cover.',
+            'fyn_prompt' => "What do you do for a living? Your role affects insurance premiums and whether you qualify for income protection cover — worth capturing.",
             'why' => [
                 'protection' => 'Your job affects insurance premiums and income protection eligibility',
                 'business' => 'Your role affects tax treatment and business exit planning',
@@ -153,7 +153,7 @@ class JourneyFieldResolver
         ],
         'health_status' => [
             'label' => 'Your health status',
-            'fyn_prompt' => "How's your general health? Any conditions that an insurer would want to know about — things like diabetes, heart conditions, or a recent surgery — affect what cover you qualify for.",
+            'fyn_prompt' => "How's your general health? Anything an insurer would want to know about — diabetes, heart conditions, a recent surgery — affects what cover you can get and at what price. If you're in good health, just say so.",
             'why' => [
                 'protection' => 'Health conditions affect insurance premiums and eligibility for cover',
             ],
@@ -162,7 +162,7 @@ class JourneyFieldResolver
         ],
         'target_retirement_age' => [
             'label' => 'When you want to retire',
-            'fyn_prompt' => 'When would you like to retire? Even a rough age is fine — I can refine the plan as things change.',
+            'fyn_prompt' => "When would you ideally like to stop working? Even a rough age is fine — we can refine it as things change.",
             'why' => [
                 'investment' => 'Your investment timeline affects how much risk you should take',
                 'retirement' => 'Projects how much you need to save and what income you will have',
@@ -172,7 +172,7 @@ class JourneyFieldResolver
         ],
         'domicile_status' => [
             'label' => 'Your domicile status',
-            'fyn_prompt' => "Where are you domiciled for tax purposes? For most people born and living in the United Kingdom, this is UK — but if you're non-domiciled or have strong ties to another country, let me know.",
+            'fyn_prompt' => "Where are you domiciled for tax purposes? For most people born and raised in the UK this is just UK — but if you're non-domiciled or have strong ties elsewhere, let me know. It changes how inheritance tax works for you.",
             'why' => [
                 'estate' => 'Determines which inheritance tax rules apply to your estate',
             ],
@@ -181,7 +181,7 @@ class JourneyFieldResolver
         ],
         'employment_status' => [
             'label' => 'Your employment status',
-            'fyn_prompt' => 'Are you employed, self-employed, retired, a student, or something else? This affects which tax and pension rules apply to you.',
+            'fyn_prompt' => "What's your employment situation? Employed, self-employed, part-time, retired, or not working at the moment? It changes which tax and pension rules apply to you.",
             'why' => [
                 'business' => 'Determines whether you are self-employed, a company director, or employed — affects tax and pension options',
             ],
@@ -190,7 +190,7 @@ class JourneyFieldResolver
         ],
         'savings_accounts' => [
             'label' => 'Your savings accounts',
-            'fyn_prompt' => "Tell me about your savings and current accounts — just the bank, balance, and whether it's a cash Individual Savings Account if you know. You can list several in one go if it's easier.",
+            'fyn_prompt' => "Tell me about your savings and current accounts — just the bank name, the balance, and whether it's a cash ISA if you know. You can list several in one go and I'll add them all at once.",
             'why' => [
                 'budgeting' => 'Tracks your cash savings, emergency fund, and tax-free savings allowances',
                 'savings' => 'Captures your existing savings balances so I can assess your emergency fund cover, Individual Savings Account allowance usage, and rate competitiveness',
@@ -200,7 +200,7 @@ class JourneyFieldResolver
         ],
         'family_members' => [
             'label' => 'Your children or dependants',
-            'fyn_prompt' => "Do you have any children or dependants? If yes, I'll need their names and ages — it affects your protection needs and your estate planning.",
+            'fyn_prompt' => "Any children or other dependants I should know about? If yes, their first names, ages, and how they're related to you is plenty — it shapes your protection cover and estate planning.",
             'why' => [
                 'protection' => 'Dependants need financial protection if something happens to you',
                 'estate' => 'Leaving your home to direct descendants can unlock the residence nil-rate band',
@@ -211,7 +211,7 @@ class JourneyFieldResolver
         ],
         'mortgages' => [
             'label' => 'Your mortgage details',
-            'fyn_prompt' => 'Do you have a mortgage on any property? Share the outstanding balance, monthly payment, and the interest rate if you know them.',
+            'fyn_prompt' => "Got a mortgage on any property? Share the outstanding balance, the monthly payment, and the interest rate if you have them to hand — rough numbers are fine.",
             'why' => [
                 'protection' => 'Mortgage debt is often the largest protection need — should be covered by life insurance',
             ],
@@ -220,7 +220,7 @@ class JourneyFieldResolver
         ],
         'liabilities' => [
             'label' => 'Your other debts and loans',
-            'fyn_prompt' => 'Any other loans or debts — credit cards, car finance, student loans, or personal loans? These factor into your protection cover and day-to-day budgeting.',
+            'fyn_prompt' => "Any other loans or debts on the go — credit cards, car finance, student loans, personal loans? These shape your protection cover and day-to-day budget, so it helps to have them captured.",
             'why' => [
                 'protection' => 'All debts should be considered when calculating protection needs',
             ],
@@ -229,7 +229,7 @@ class JourneyFieldResolver
         ],
         'protection_policies' => [
             'label' => 'Your existing protection policies',
-            'fyn_prompt' => 'Do you already have any life insurance, critical illness, or income protection cover? If yes, tell me the type, the provider, and the cover amount.',
+            'fyn_prompt' => "Do you already have any life insurance, critical illness cover, or income protection? If yes, the type, the provider, and the cover amount is what I need. If not, just say so and we'll come back to it.",
             'why' => [
                 'protection' => 'Existing cover reduces the gap between what you have and what you need',
             ],
@@ -238,7 +238,7 @@ class JourneyFieldResolver
         ],
         'investment_accounts' => [
             'label' => 'Your investment accounts',
-            'fyn_prompt' => 'Tell me about any investment accounts — a Stocks and Shares Individual Savings Account, a General Investment Account, bonds, or company share schemes. Provider and current value is enough to start with.',
+            'fyn_prompt' => "What investment accounts are you running? A Stocks & Shares ISA, a General Investment Account, bonds, company share schemes — provider and current value is enough to start. List as many as you have.",
             'why' => [
                 'investment' => 'Analyse your portfolio, track performance, and optimise asset allocation',
                 'estate' => 'Investment assets form part of your taxable estate',
@@ -248,7 +248,7 @@ class JourneyFieldResolver
         ],
         'dc_pensions' => [
             'label' => 'Your money purchase pensions',
-            'fyn_prompt' => 'Do you have any workplace or personal pensions with a pot value — the kind you can draw from flexibly? Think a Self-Invested Personal Pension, a workplace auto-enrolment scheme, or a group personal pension. Tell me the provider and the current value.',
+            'fyn_prompt' => "Got any pensions with a pot value you can draw from flexibly? That's workplace auto-enrolment pots, personal pensions, or a Self-Invested Personal Pension. Tell me the provider and the current value of each one.",
             'why' => [
                 'retirement' => 'Workplace pensions, SIPPs, and personal pensions with a pot value that you can draw from flexibly in retirement',
             ],
@@ -257,7 +257,7 @@ class JourneyFieldResolver
         ],
         'db_pensions' => [
             'label' => 'Your final salary or career average pensions',
-            'fyn_prompt' => 'Do you have any Defined Benefit pensions — the kind that pay a guaranteed income based on your salary and years of service? If yes, I need the scheme name and your projected annual income at retirement.',
+            'fyn_prompt' => "Any Defined Benefit pensions — the kind that pay a guaranteed income based on your salary and years of service? If yes, I need the scheme name and the annual income they'll pay you at retirement.",
             'why' => [
                 'retirement' => 'Defined benefit schemes pay a guaranteed income based on your salary and years of service',
             ],
@@ -266,7 +266,7 @@ class JourneyFieldResolver
         ],
         'state_pension' => [
             'label' => 'Your State Pension forecast',
-            'fyn_prompt' => 'Have you checked your State Pension forecast on GOV.UK? Adding it gives me a realistic baseline for your retirement income.',
+            'fyn_prompt' => "Have you checked your State Pension forecast on GOV.UK? If so, pop the amount in — it's a key baseline for your retirement income projections. If you haven't, I can remind you to check.",
             'why' => [
                 'retirement' => 'Most people receive State Pension from age 66-68 — add your forecast for accurate projections',
             ],
@@ -275,7 +275,7 @@ class JourneyFieldResolver
         ],
         'properties' => [
             'label' => 'Your properties',
-            'fyn_prompt' => 'Do you own any property — your home, a buy-to-let, a holiday home, or a property abroad? I need the current estimated value for your net worth and estate planning.',
+            'fyn_prompt' => "Do you own any property — your home, a buy-to-let, a holiday home, or somewhere abroad? I need the current estimated value and the type (main residence, second home, or buy-to-let) for each one.",
             'why' => [
                 'estate' => 'Properties count towards your estate value for inheritance tax',
             ],
@@ -284,7 +284,7 @@ class JourneyFieldResolver
         ],
         'spouse' => [
             'label' => 'Your spouse details',
-            'fyn_prompt' => 'Can you tell me about your spouse or civil partner — their first name, date of birth, and rough annual income? Couples can share allowances and make meaningful tax savings.',
+            'fyn_prompt' => "Tell me about your spouse or partner — first name, date of birth, and email address. I'll create an account and link the two of you so we can plan together.",
             'why' => [
                 'estate' => 'Spouse exemption and transferable allowances can significantly reduce inheritance tax',
                 'family' => 'Spouse details enable household-level financial planning',
@@ -294,7 +294,7 @@ class JourneyFieldResolver
         ],
         'business_interests' => [
             'label' => 'Your business interests',
-            'fyn_prompt' => 'Do you own or have a stake in any business? Whether it is a limited company, a partnership, or a sole trade, it affects your tax position and your estate.',
+            'fyn_prompt' => "Do you own or have a stake in any business? Sole trade, partnership, limited company — either way, it shapes your tax position and your estate. Trade name, entity type, ownership percentage, and rough valuation for each.",
             'why' => [
                 'business' => 'Track business ownership, valuation, and exit plans',
             ],
@@ -303,7 +303,7 @@ class JourneyFieldResolver
         ],
         'goals' => [
             'label' => 'Your financial goals',
-            'fyn_prompt' => "What are you saving or planning for? A house deposit, early retirement, children's university fees, a dream holiday — tell me what matters to you and I will help you track progress.",
+            'fyn_prompt' => "What are you working towards? A house deposit, early retirement, children's university fees, a dream trip — tell me what matters to you. For each one, a short name, a rough target amount, and when you'd like to hit it by.",
             'why' => [
                 'goals' => 'Track your goals with timelines, costs, and linked savings or investments',
             ],
