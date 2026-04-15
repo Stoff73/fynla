@@ -807,25 +807,39 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
+            const s = () => this.$store.state.aiChat;
+
             // If there's already an active conversation with messages or streaming,
             // don't replace it — just fetch the conversation list for history.
-            const hasActiveConversation = this.$store.state.aiChat.currentConversation
-                && (this.$store.state.aiChat.messages.length > 0 || this.$store.state.aiChat.streaming);
+            const hasActive = () => s().currentConversation
+                && (s().messages.length > 0 || s().streaming);
+
+            // Another action may have kicked off a conversation while the
+            // panel was mounting (Dashboard.vue dispatches
+            // startOnboardingConversation in parallel when openFyn=journey).
+            // Skip our own initialiser if we can see it is in flight.
+            const busy = () => s().loading || s().streaming;
+
+            if (hasActive() || busy()) {
+                await this.fetchConversations();
+                this.$nextTick(() => this.$refs.inputField?.focus());
+                return;
+            }
 
             await this.fetchConversations();
 
-            if (hasActiveConversation) {
-                this.$nextTick(() => {
-                    this.$refs.inputField?.focus();
-                });
+            // RE-CHECK after the fetch. Dashboard.vue's
+            // startOnboardingConversation may have populated the store
+            // while we were awaiting the conversations list — creating a
+            // fresh empty conversation at this point would orphan the
+            // real onboarding conversation and split the transcript.
+            if (hasActive() || busy()) {
+                this.$nextTick(() => this.$refs.inputField?.focus());
                 return;
             }
 
             // If the user is mid-onboarding from a previous tab/session,
             // resume the director flow instead of starting a blank chat.
-            // The direct CTA entry path dispatches from Dashboard.vue, so
-            // by the time we reach this branch the conversation is already
-            // populated and hasActiveConversation above short-circuits.
             const user = this.$store.getters['auth/user'];
             const isMidOnboarding = !!(
                 user

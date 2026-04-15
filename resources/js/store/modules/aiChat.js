@@ -237,6 +237,10 @@ const actions = {
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
         commit('SET_SHOW_HISTORY', false);
+        // Historical conversations are display-only. Clear any lingering
+        // pendingNavigation so that loading a completed onboarding
+        // transcript can never accidentally re-navigate the router.
+        commit('SET_PENDING_NAVIGATION', null);
 
         try {
             const response = await aiChatService.getConversation(conversationId);

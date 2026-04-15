@@ -942,10 +942,17 @@ PROMPT;
 
         yield ['type' => 'done', 'message_id' => $assistantMessage->id];
 
-        // Finalise user state
+        // Finalise user state. Clear ALL the onboarding_fyn_* scratch
+        // columns so any future re-open of the chat reads the user as
+        // fully complete and drops straight into the normal Fyn chat
+        // path. The onboarding_progress rows are the audit trail; the
+        // user row is runtime state only.
         $user->onboarding_completed = true;
         $user->onboarding_completed_at = now();
         $user->onboarding_fyn_step = null;
+        $user->onboarding_fyn_path = null;
+        $user->onboarding_fyn_selection = null;
+        $user->onboarding_fyn_context = null;
         $user->save();
 
         $this->recordProgress($user, OnboardingStateMachine::STATE_DONE, ['next_route' => $nextRoute]);
