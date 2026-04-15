@@ -718,23 +718,23 @@ final class OnboardingChatDirector
                 'state' => $currentStateId,
                 'tool' => $toolName,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            yield [
-                'type' => 'content',
-                'text' => (string) ($state['retry_text'] ?? "Sorry, I couldn't read that. Could you try again?"),
-            ];
+            yield from $this->emitRetry($conversation, $state, $currentStateId);
 
             return;
         }
 
         if (! $captureReceived) {
-            // Claude didn't call the tool or the handler errored. Stay
-            // on the current state so the user can retry.
-            yield [
-                'type' => 'content',
-                'text' => (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?"),
-            ];
+            // Claude didn't call the tool or the handler errored. Stay on
+            // the current state so the user can retry.
+            Log::warning('[OnboardingChatDirector] Grouped extract completed without capture event', [
+                'user_id' => $user->id,
+                'state' => $currentStateId,
+                'tool' => $toolName,
+            ]);
+            yield from $this->emitRetry($conversation, $state, $currentStateId);
 
             return;
         }
@@ -781,6 +781,28 @@ final class OnboardingChatDirector
         ];
 
         yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Emit a retry turn for a failed grouped_extract. The retry text is
+     * saved as a real assistant message (so it survives the frontend's
+     * streamingText finally block that clears unflushed text), then a
+     * content + done event are yielded to close the turn cleanly. The
+     * user stays on the current state so they can try again.
+     */
+    private function emitRetry(AiConversation $conversation, array $state, string $currentStateId): \Generator
+    {
+        $retryText = (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?");
+
+        $message = $this->saveMessage($conversation, 'assistant', $retryText, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_retry' => true,
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $retryText];
+        yield ['type' => 'done', 'message_id' => $message->id];
     }
 
     /**
