@@ -2,7 +2,7 @@
 # Stop hook: Check for hardcoded tax values in app code
 # Runs after every session to catch any newly introduced hardcoded tax values
 
-cd /Users/CSJ/Desktop/fynla
+cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 
 # Only check files that have been modified (staged or unstaged)
 CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null; git diff --cached --name-only 2>/dev/null)
