@@ -373,8 +373,19 @@
         </div>
 
         <!-- Messages -->
-        <template v-for="(msg, idx) in messages" :key="idx">
-          <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+        <div v-for="(msg, idx) in messages" :key="idx">
+          <!-- Quick-reply bubbles (Fyn onboarding) -->
+          <FynQuickReplies
+            v-if="msg.role === 'quick_replies'"
+            :prompt-text="msg.content"
+            :bubbles="msg.metadata?.bubbles || []"
+            :disabled="streaming || loading"
+            @select="handleQuickReplySelect"
+          />
+          <div
+            v-else
+            :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
+          >
             <div :class="[
               'max-w-[85%] rounded-lg px-3 py-2 text-sm',
               msg.role === 'user'
@@ -385,7 +396,7 @@
               <span v-else>{{ msg.content }}</span>
             </div>
           </div>
-        </template>
+        </div>
 
         <!-- Streaming indicator -->
         <div v-if="streaming" class="flex justify-start">
@@ -784,21 +795,38 @@ export default {
             analyticsService.trackChatOpened();
 
             // If there's already an active conversation with messages or streaming,
-            // don't replace it — just fetch the conversation list for history
+            // don't replace it — just fetch the conversation list for history.
             const hasActiveConversation = this.$store.state.aiChat.currentConversation
                 && (this.$store.state.aiChat.messages.length > 0 || this.$store.state.aiChat.streaming);
 
             await this.fetchConversations();
 
-            if (!hasActiveConversation) {
-                await this.startNewConversation();
+            if (hasActiveConversation) {
+                this.$nextTick(() => {
+                    this.$refs.inputField?.focus();
+                });
+                return;
             }
 
-            // NOTE: onboarding trigger path (?openFyn=journey) is intentionally
-            // inert here between commits 0 and 4. Commit 4 will dispatch
-            // aiChat/startOnboardingConversation after the backend director +
-            // endpoints land in commit 3. Until then new-user CTA clicks get a
-            // standard empty Fyn chat.
+            // If the user is mid-onboarding from a previous tab/session,
+            // resume the director flow instead of starting a blank chat.
+            // The direct CTA entry path dispatches from Dashboard.vue, so
+            // by the time we reach this branch the conversation is already
+            // populated and hasActiveConversation above short-circuits.
+            const user = this.$store.getters['auth/user'];
+            const isMidOnboarding = !!(
+                user
+                && user.onboarding_completed === false
+                && user.onboarding_fyn_step
+            );
+
+            if (isMidOnboarding) {
+                // startOnboardingConversation detects in_progress via the
+                // /status endpoint and loads the existing conversation.
+                await this.$store.dispatch('aiChat/startOnboardingConversation');
+            } else {
+                await this.startNewConversation();
+            }
 
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
