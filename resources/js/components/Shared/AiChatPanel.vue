@@ -730,20 +730,27 @@ export default {
         },
 
         messages(newMessages, oldMessages) {
-            // Any new message should be scrolled into view — user messages
-            // jump to bottom, assistant and quick_replies bring the new
-            // content to the top of the visible area so users don't have
-            // to chase long replies.
+            // Anchor the latest user bubble to the TOP of the chat viewport so
+            // Fyn's reply streams in below it and stays visible. If there's
+            // no user bubble yet (first turn of onboarding), fall back to
+            // scrollToBottom so the assistant's content is visible.
             if (!newMessages || !oldMessages) return;
             if (newMessages.length <= oldMessages.length) return;
             const lastMsg = newMessages[newMessages.length - 1];
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
-                this.$nextTick(() => this.scrollToBottom());
+                this.$nextTick(() => this.scrollToLastUserMessage());
             } else if (lastMsg.role === 'assistant' || lastMsg.role === 'quick_replies') {
                 this.$nextTick(() => {
-                    setTimeout(() => this.scrollToLastAssistantMessage(), 50);
+                    const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+                    if (!container) return;
+                    const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
+                    if (userBubbles.length > 0) {
+                        this.scrollToLastUserMessage();
+                    } else {
+                        this.scrollToBottom();
+                    }
                 });
             }
         },
