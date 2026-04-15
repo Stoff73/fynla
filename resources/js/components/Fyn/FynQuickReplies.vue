@@ -11,7 +11,7 @@
         v-for="bubble in bubbles"
         :key="bubble.id"
         :disabled="disabled"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold
+        class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold
                bg-white border-2 border-raspberry-500 text-raspberry-500
                hover:bg-raspberry-500 hover:text-white
                active:bg-raspberry-600 active:border-raspberry-600
@@ -19,8 +19,7 @@
                transition-colors"
         @click="handleSelect(bubble)"
       >
-        <span v-if="bubble.icon" aria-hidden="true">{{ bubble.icon }}</span>
-        <span>{{ bubble.label }}</span>
+        {{ bubble.label }}
       </button>
     </div>
   </div>

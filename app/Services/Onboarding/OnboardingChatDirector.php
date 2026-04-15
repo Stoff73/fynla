@@ -255,7 +255,9 @@ final class OnboardingChatDirector
      * we don't offer the same option twice. The "I'm done" bubble is always
      * last. All other states return the static bubble config unchanged.
      *
-     * @return list<array{id: string, label: string, icon?: string}>
+     * Bubbles are {id, label} only — see the NO ICONS rule in CLAUDE.md §14.
+     *
+     * @return list<array{id: string, label: string}>
      */
     private function filterBubbles(User $user, string $stateId, array $state): array
     {
@@ -284,7 +286,7 @@ final class OnboardingChatDirector
         }
 
         // Always append the "I'm done" bubble
-        $filtered[] = ['id' => 'done', 'label' => "I'm done", 'icon' => '✅'];
+        $filtered[] = ['id' => 'done', 'label' => "I'm done"];
 
         return $filtered;
     }

@@ -15,11 +15,16 @@ use App\Models\User;
  *
  * Plan: April/April15Updates/fynOnboardFix.md §5.
  *
+ * NO ICONS RULE: Bubble entries are {id, label} ONLY. Per the NO ICONS
+ * rule in CLAUDE.md §14 and fynlaDesignGuide.md v1.4.0, no emoji, SVG,
+ * Unicode symbol, or glyph field may be added to bubbles, state prompts,
+ * or any output emitted by this machine.
+ *
  * State record shape:
  *   turn_type:    'bubbles' | 'free_text' | 'delegated' | 'terminal'
  *   prompt_text:  string | callable(User): string
  *                 (uses {first_name} / {selection} template tokens when string)
- *   bubbles:      array<{id, label, icon?}>  — only for turn_type='bubbles'
+ *   bubbles:      array<{id, label}>  — only for turn_type='bubbles', NO ICONS
  *   capture_field: 'users.column_name' | null
  *                 (null for scratch-pad-only or FamilyMember-creating states)
  *   value_parser: OnboardingValueInterpreter method name | null
@@ -71,8 +76,8 @@ final class OnboardingStateMachine
                 'turn_type' => 'bubbles',
                 'prompt_text' => "Hi {first_name}, I'm Fyn — welcome to Fynla. I'll help you set up your financial plan. To start, do you want to follow a life-stage journey or pick a single module focus?",
                 'bubbles' => [
-                    ['id' => 'journey', 'label' => 'Follow a journey', 'icon' => '🧭'],
-                    ['id' => 'focus', 'label' => 'Pick a focus', 'icon' => '🎯'],
+                    ['id' => 'journey', 'label' => 'Follow a journey'],
+                    ['id' => 'focus', 'label' => 'Pick a focus'],
                 ],
                 'capture_field' => 'onboarding_fyn_path',
                 'next' => self::class.'::nextFromPathChoice',
@@ -81,11 +86,11 @@ final class OnboardingStateMachine
                 'turn_type' => 'bubbles',
                 'prompt_text' => 'Which journey fits your situation best?',
                 'bubbles' => [
-                    ['id' => 'budgeting', 'label' => 'Budgeting', 'icon' => '💰'],
-                    ['id' => 'estate', 'label' => 'Estate planning', 'icon' => '📋'],
-                    ['id' => 'family', 'label' => 'Family', 'icon' => '👨‍👩‍👧'],
-                    ['id' => 'business', 'label' => 'Business', 'icon' => '🏢'],
-                    ['id' => 'goals', 'label' => 'Goals', 'icon' => '🎯'],
+                    ['id' => 'budgeting', 'label' => 'Budgeting'],
+                    ['id' => 'estate', 'label' => 'Estate planning'],
+                    ['id' => 'family', 'label' => 'Family'],
+                    ['id' => 'business', 'label' => 'Business'],
+                    ['id' => 'goals', 'label' => 'Goals'],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
                 'next' => self::STATE_BASE_DOB,
@@ -94,10 +99,10 @@ final class OnboardingStateMachine
                 'turn_type' => 'bubbles',
                 'prompt_text' => 'Which area would you like me to focus on first?',
                 'bubbles' => [
-                    ['id' => 'savings', 'label' => 'Savings', 'icon' => '🏦'],
-                    ['id' => 'investment', 'label' => 'Investment', 'icon' => '📈'],
-                    ['id' => 'retirement', 'label' => 'Retirement', 'icon' => '👴'],
-                    ['id' => 'protection', 'label' => 'Protection', 'icon' => '🛡️'],
+                    ['id' => 'savings', 'label' => 'Savings'],
+                    ['id' => 'investment', 'label' => 'Investment'],
+                    ['id' => 'retirement', 'label' => 'Retirement'],
+                    ['id' => 'protection', 'label' => 'Protection'],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
                 'next' => self::STATE_BASE_DOB,
@@ -210,11 +215,11 @@ final class OnboardingStateMachine
                     // Dynamic per-user — director strips already-visited focuses
                     // and always appends the "I'm done" bubble. Static config here
                     // lists the full option set for reference.
-                    ['id' => 'savings', 'label' => 'Savings', 'icon' => '🏦'],
-                    ['id' => 'investment', 'label' => 'Investment', 'icon' => '📈'],
-                    ['id' => 'retirement', 'label' => 'Retirement', 'icon' => '👴'],
-                    ['id' => 'protection', 'label' => 'Protection', 'icon' => '🛡️'],
-                    ['id' => 'done', 'label' => "I'm done", 'icon' => '✅'],
+                    ['id' => 'savings', 'label' => 'Savings'],
+                    ['id' => 'investment', 'label' => 'Investment'],
+                    ['id' => 'retirement', 'label' => 'Retirement'],
+                    ['id' => 'protection', 'label' => 'Protection'],
+                    ['id' => 'done', 'label' => "I'm done"],
                 ],
                 'capture_field' => null,
                 'next' => self::class.'::nextFromAddMore',
