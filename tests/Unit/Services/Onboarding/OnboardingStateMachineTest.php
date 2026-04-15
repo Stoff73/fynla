@@ -98,9 +98,7 @@ describe('OnboardingStateMachine::nextFromMarital', function () {
     });
 
     it('routes civil partnership users to base_spouse', function () {
-        $user = User::factory()->create();
-        // Manually set — the enum may not include civil_partnership on this DB
-        $user->marital_status = 'civil_partnership';
+        $user = User::factory()->create(['marital_status' => 'civil_partnership']);
         expect(OnboardingStateMachine::nextFromMarital('Civil partnership', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
     });

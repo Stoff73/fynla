@@ -122,13 +122,9 @@ final class OnboardingValueInterpreter
     /**
      * Parse a free-text marital status answer into the enum value.
      *
-     * Canonical values: 'single', 'married', 'civil_partnership',
-     * 'divorced', 'widowed'. The users.marital_status enum on dev/prod
-     * currently only allows 'single'|'married'|'divorced'|'widowed' —
-     * 'civil_partnership' is NOT in the enum, so the director maps it to
-     * 'married' when writing to the column while preserving the original
-     * choice in onboarding_fyn_context. This parser returns the user's
-     * INTENT; the caller decides whether to canonicalise for DB storage.
+     * Canonical values match the users.marital_status enum after the
+     * 2026_04_15 civil_partnership migration: 'single', 'married',
+     * 'civil_partnership', 'divorced', 'widowed'.
      */
     public static function parseMaritalFromText(?string $input): ?string
     {
