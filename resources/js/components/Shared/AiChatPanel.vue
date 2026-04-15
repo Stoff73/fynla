@@ -240,6 +240,15 @@
           <div v-else-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
             {{ error }}
           </div>
+
+          <!-- Bottom scroll spacer — reserves room so the latest user bubble
+               can always be scrolled to the TOP of the visible area. -->
+          <div
+            v-if="messages && messages.length > 0"
+            class="flex-shrink-0"
+            :style="{ height: scrollSpacerHeight + 'px' }"
+            aria-hidden="true"
+          ></div>
         </div>
 
         <!-- Card Footer - Input area -->
@@ -421,6 +430,16 @@
           {{ error }}
         </div>
 
+        <!-- Bottom scroll spacer — reserves room so the latest user bubble
+             can always be scrolled to the TOP of the visible area (without
+             this, short conversations can't scroll enough and the user's
+             reply anchors mid-panel instead of at the top). -->
+        <div
+          v-if="messages && messages.length > 0"
+          class="flex-shrink-0"
+          :style="{ height: scrollSpacerHeight + 'px' }"
+          aria-hidden="true"
+        ></div>
       </div>
 
       <!-- Stop streaming button (docked) -->
@@ -540,6 +559,7 @@ export default {
             _thinkingTimer: null,
             countdownSeconds: null,
             _countdownTimer: null,
+            scrollSpacerHeight: 300,
         };
     },
 
@@ -665,7 +685,10 @@ export default {
     },
 
     mounted() {
-        this.handleResize = () => { this.windowWidth = window.innerWidth; };
+        this.handleResize = () => {
+            this.windowWidth = window.innerWidth;
+            this.updateScrollSpacer();
+        };
         window.addEventListener('resize', this.handleResize);
 
         // In docked mode, auto-open and load conversations immediately
@@ -682,7 +705,10 @@ export default {
                     this._defaultInputHeight = naturalHeight;
                     this.dockedInputHeight = naturalHeight;
                 }
+                this.updateScrollSpacer();
             });
+        } else {
+            this.$nextTick(() => this.updateScrollSpacer());
         }
     },
 
@@ -758,15 +784,7 @@ export default {
         streaming(isStreaming) {
             if (isStreaming) {
                 // Scroll user message to top now that thinking indicator is in the DOM
-                this.$nextTick(() => {
-                    const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
-                    if (!container) return;
-                    const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
-                    const lastBubble = userBubbles[userBubbles.length - 1];
-                    if (lastBubble) {
-                        lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
-                    }
-                });
+                this.$nextTick(() => this.scrollToLastUserMessage());
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
                 this._thinkingTimer = setInterval(() => {
@@ -1008,10 +1026,33 @@ export default {
             const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
             const lastBubble = userBubbles[userBubbles.length - 1];
 
-            if (lastBubble) {
-                lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
-            } else {
+            if (!lastBubble) {
                 container.scrollTop = container.scrollHeight;
+                return;
+            }
+
+            // Ensure the bottom spacer is sized so there's enough scroll room
+            // to push the user bubble flush with the top.
+            this.updateScrollSpacer();
+
+            // Direct scrollTop math — more reliable than scrollIntoView which
+            // browsers may skip if the element is already "visible enough".
+            // Walk up offsetParent chain to account for nested positioning.
+            const containerRect = container.getBoundingClientRect();
+            const bubbleRect = lastBubble.getBoundingClientRect();
+            const delta = bubbleRect.top - containerRect.top;
+            container.scrollTop = container.scrollTop + delta;
+        },
+
+        updateScrollSpacer() {
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+            if (!container) return;
+            // Reserve scroll room equal to the container viewport minus a
+            // single message worth of padding. This guarantees the latest
+            // user bubble can always reach the top of the visible area.
+            const target = Math.max(200, container.clientHeight - 100);
+            if (this.scrollSpacerHeight !== target) {
+                this.scrollSpacerHeight = target;
             }
         },
 
