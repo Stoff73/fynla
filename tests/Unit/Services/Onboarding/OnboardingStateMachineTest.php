@@ -294,7 +294,7 @@ describe('OnboardingStateMachine::interpolate + resolvePromptText', function () 
         $user->onboarding_fyn_selection = 'investment';
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_ASSET_CAPTURE);
         $text = OnboardingStateMachine::resolvePromptText($state, $user);
-        expect($text)->toContain('investment accounts');
+        expect($text)->toContain('Stocks & Shares ISAs');
     });
 
     it('uses "partner" in the base_spouse prompt for civil partnership', function () {
