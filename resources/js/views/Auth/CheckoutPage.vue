@@ -445,8 +445,12 @@ export default {
           this.paymentComplete = true;
           this.processing = false;
 
+          // Analytics tracking — skip for preview/admin/test users
+          const trackingUser = this.$store.state.auth?.user;
+          const skipTracking = trackingUser?.is_preview_user || trackingUser?.is_admin;
+
           // GA4 ecommerce purchase tracking
-          if (typeof gtag === 'function' && this.planData) {
+          if (!skipTracking && typeof gtag === 'function' && this.planData) {
             const pricePence = this.billingCycle === 'monthly'
               ? (this.planData.launch_monthly_price || this.planData.monthly_price)
               : (this.planData.launch_yearly_price || this.planData.yearly_price);
@@ -467,7 +471,7 @@ export default {
           }
 
           // Meta Pixel: Subscribe
-          if (typeof fbq === 'function' && this.planData) {
+          if (!skipTracking && typeof fbq === 'function' && this.planData) {
             const monthlyPence = this.planData.launch_monthly_price || this.planData.monthly_price;
             const yearlyPence = this.planData.launch_yearly_price || this.planData.yearly_price;
             const isMonthly = this.billingCycle === 'monthly';
