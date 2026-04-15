@@ -9,22 +9,20 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 describe('OnboardingStateMachine::states', function () {
-    it('defines all 16 states referenced by the spec', function () {
+    it('defines the full state list referenced by the spec', function () {
         $states = OnboardingStateMachine::states();
 
         $expected = [
             OnboardingStateMachine::STATE_PATH_CHOICE,
             OnboardingStateMachine::STATE_JOURNEY_SELECTION,
             OnboardingStateMachine::STATE_FOCUS_SELECTION,
-            OnboardingStateMachine::STATE_BASE_DOB,
-            OnboardingStateMachine::STATE_BASE_MARITAL,
+            OnboardingStateMachine::STATE_BASE_PERSONAL,
             OnboardingStateMachine::STATE_BASE_SPOUSE,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL,
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT,
-            OnboardingStateMachine::STATE_BASE_OCCUPATION,
+            OnboardingStateMachine::STATE_BASE_WORK,
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE,
-            OnboardingStateMachine::STATE_BASE_INCOME,
             OnboardingStateMachine::STATE_BASE_EXPENDITURE,
             OnboardingStateMachine::STATE_ASSET_CAPTURE,
             OnboardingStateMachine::STATE_ADD_MORE,
@@ -40,7 +38,7 @@ describe('OnboardingStateMachine::states', function () {
 
     it('only uses known turn_types', function () {
         foreach (OnboardingStateMachine::states() as $id => $state) {
-            expect($state['turn_type'])->toBeIn(['bubbles', 'free_text', 'delegated', 'terminal'])
+            expect($state['turn_type'])->toBeIn(['bubbles', 'free_text', 'delegated', 'terminal', 'grouped_extract'])
                 ->and($id)->toBeString();
         }
     });
@@ -56,6 +54,18 @@ describe('OnboardingStateMachine::states', function () {
             foreach ($bubbles as $bubble) {
                 expect($bubble)->toHaveKeys(['id', 'label']);
             }
+        }
+    });
+
+    it('every grouped_extract state declares an extraction_tool + retry_text', function () {
+        foreach (OnboardingStateMachine::states() as $id => $state) {
+            if ($state['turn_type'] !== 'grouped_extract') {
+                continue;
+            }
+            expect($state)->toHaveKey('extraction_tool')
+                ->and($state['extraction_tool'])->toBeString()
+                ->and($state['extraction_tool'])->not->toBe('')
+                ->and($state)->toHaveKey('retry_text');
         }
     });
 });
@@ -90,34 +100,34 @@ describe('OnboardingStateMachine::nextFromPathChoice', function () {
     });
 });
 
-describe('OnboardingStateMachine::nextFromMarital', function () {
+describe('OnboardingStateMachine::nextFromPersonal (post base_personal branch)', function () {
     it('routes married users to base_spouse', function () {
         $user = User::factory()->create(['marital_status' => 'married']);
-        expect(OnboardingStateMachine::nextFromMarital('Married', $user))
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
     });
 
     it('routes civil partnership users to base_spouse', function () {
         $user = User::factory()->create(['marital_status' => 'civil_partnership']);
-        expect(OnboardingStateMachine::nextFromMarital('Civil partnership', $user))
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
     });
 
     it('routes single users straight to dependants', function () {
         $user = User::factory()->create(['marital_status' => 'single']);
-        expect(OnboardingStateMachine::nextFromMarital('Single', $user))
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
     });
 
     it('routes divorced users straight to dependants', function () {
         $user = User::factory()->create(['marital_status' => 'divorced']);
-        expect(OnboardingStateMachine::nextFromMarital('Divorced', $user))
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
     });
 
     it('routes widowed users straight to dependants', function () {
         $user = User::factory()->create(['marital_status' => 'widowed']);
-        expect(OnboardingStateMachine::nextFromMarital('Widowed', $user))
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
     });
 });
@@ -135,16 +145,22 @@ describe('OnboardingStateMachine::nextFromDependants', function () {
 });
 
 describe('OnboardingStateMachine::nextFromEmployment', function () {
-    it('routes employed to occupation', function () {
+    it('routes employed users to base_work', function () {
         $user = User::factory()->create(['employment_status' => 'employed']);
         expect(OnboardingStateMachine::nextFromEmployment('Employed', $user))
-            ->toBe(OnboardingStateMachine::STATE_BASE_OCCUPATION);
+            ->toBe(OnboardingStateMachine::STATE_BASE_WORK);
     });
 
-    it('routes self_employed to occupation', function () {
+    it('routes self_employed users to base_work', function () {
         $user = User::factory()->create(['employment_status' => 'self_employed']);
         expect(OnboardingStateMachine::nextFromEmployment('Self-employed', $user))
-            ->toBe(OnboardingStateMachine::STATE_BASE_OCCUPATION);
+            ->toBe(OnboardingStateMachine::STATE_BASE_WORK);
+    });
+
+    it('routes part_time users to base_work', function () {
+        $user = User::factory()->create(['employment_status' => 'part_time']);
+        expect(OnboardingStateMachine::nextFromEmployment('Part-time', $user))
+            ->toBe(OnboardingStateMachine::STATE_BASE_WORK);
     });
 
     it('routes retired users to retirement_date', function () {
@@ -153,10 +169,10 @@ describe('OnboardingStateMachine::nextFromEmployment', function () {
             ->toBe(OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE);
     });
 
-    it('routes unemployed users straight to income', function () {
+    it('routes unemployed users straight to expenditure', function () {
         $user = User::factory()->create(['employment_status' => 'unemployed']);
         expect(OnboardingStateMachine::nextFromEmployment('Unemployed', $user))
-            ->toBe(OnboardingStateMachine::STATE_BASE_INCOME);
+            ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
     });
 });
 
@@ -184,33 +200,38 @@ describe('OnboardingStateMachine::getNextStateId (branching via state config)', 
         ))->toBe(OnboardingStateMachine::STATE_FOCUS_SELECTION);
     });
 
-    it('skips base_dob when user already has DOB set', function () {
-        $user = User::factory()->create(['date_of_birth' => '1985-01-12']);
-        // From focus_selection the direct next is base_dob, but the user
-        // already has date_of_birth so skip_rules should NOT block us from
-        // advancing into base_dob (skip_if is evaluated on the TARGET state).
-        // applySkipRules is called with base_dob and should advance past it.
+    it('skips base_personal when user already has DOB AND marital set', function () {
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => 'married',
+        ]);
         $result = OnboardingStateMachine::applySkipRules(
-            OnboardingStateMachine::STATE_BASE_DOB,
+            OnboardingStateMachine::STATE_BASE_PERSONAL,
             $user
         );
-        expect($result)->not->toBe(OnboardingStateMachine::STATE_BASE_DOB);
+        expect($result)->not->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 
-    it('does NOT skip base_dob when DOB is null', function () {
-        $user = User::factory()->create(['date_of_birth' => null]);
+    it('does NOT skip base_personal when DOB is null', function () {
+        $user = User::factory()->create([
+            'date_of_birth' => null,
+            'marital_status' => 'married',
+        ]);
         expect(OnboardingStateMachine::applySkipRules(
-            OnboardingStateMachine::STATE_BASE_DOB,
+            OnboardingStateMachine::STATE_BASE_PERSONAL,
             $user
-        ))->toBe(OnboardingStateMachine::STATE_BASE_DOB);
+        ))->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 
-    it('skips base_income when user already has employment income', function () {
-        $user = User::factory()->create(['annual_employment_income' => 75000]);
+    it('does NOT skip base_personal when marital is null', function () {
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => null,
+        ]);
         expect(OnboardingStateMachine::applySkipRules(
-            OnboardingStateMachine::STATE_BASE_INCOME,
+            OnboardingStateMachine::STATE_BASE_PERSONAL,
             $user
-        ))->not->toBe(OnboardingStateMachine::STATE_BASE_INCOME);
+        ))->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 });
 
@@ -245,7 +266,7 @@ describe('OnboardingStateMachine::matchBubble', function () {
 
     it('returns null for a non-bubble state', function () {
         expect(OnboardingStateMachine::matchBubble(
-            OnboardingStateMachine::STATE_BASE_DOB,
+            OnboardingStateMachine::STATE_BASE_PERSONAL,
             'anything'
         ))->toBeNull();
     });
@@ -274,5 +295,34 @@ describe('OnboardingStateMachine::interpolate + resolvePromptText', function () 
         $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_ASSET_CAPTURE);
         $text = OnboardingStateMachine::resolvePromptText($state, $user);
         expect($text)->toContain('investment accounts');
+    });
+
+    it('uses "partner" in the base_spouse prompt for civil partnership', function () {
+        $user = User::factory()->create(['marital_status' => 'civil_partnership']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+        expect($text)->toContain('partner')
+            ->and($text)->not->toContain('spouse');
+    });
+
+    it('uses "spouse" in the base_spouse prompt for married', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+        expect($text)->toContain('spouse');
+    });
+
+    it('uses trade-name phrasing in base_work for self-employed users', function () {
+        $user = User::factory()->create(['employment_status' => 'self_employed']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+        expect($text)->toContain('trade or business name');
+    });
+
+    it('uses company phrasing in base_work for employed users', function () {
+        $user = User::factory()->create(['employment_status' => 'employed']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_WORK);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+        expect($text)->toContain('company you work for');
     });
 });

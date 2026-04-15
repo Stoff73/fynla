@@ -58,6 +58,16 @@ trait HasAiChat
     private bool $skipUserMessagePersistence = false;
 
     /**
+     * Replacement tool list for grouped_extract turns. When set, takes
+     * priority over getTools() + allowedToolsOverride — Claude sees ONLY
+     * these tools. Used so onboarding extraction tools never pollute the
+     * main Fyn chat token budget.
+     *
+     * @var list<array<string, mixed>>|null
+     */
+    private ?array $toolsListOverride = null;
+
+    /**
      * Send a message and yield SSE chunks.
      *
      * @return \Generator yields SSE event arrays
@@ -113,19 +123,24 @@ trait HasAiChat
         $toolDefinitions = $isXai
             ? app(XaiToolDefinitions::class)
             : $this->toolDefinitions;
-        $tools = $toolDefinitions->getTools($user->is_preview_user);
 
-        // Filter tools if the caller restricted the allowed set (used by
-        // OnboardingChatDirector during asset_capture delegation). Each
-        // provider has a different shape — handle both.
-        if ($this->allowedToolsOverride !== null) {
-            $allowed = array_flip($this->allowedToolsOverride);
-            $tools = array_values(array_filter($tools, function ($tool) use ($allowed): bool {
-                $name = $tool['name']
-                    ?? ($tool['function']['name'] ?? null);
+        // Tool list priority: toolsListOverride > allowedToolsOverride > getTools().
+        // Directors can either replace the full tool list (grouped_extract) or
+        // narrow the existing list to a subset (asset_capture).
+        if ($this->toolsListOverride !== null) {
+            $tools = $this->toolsListOverride;
+        } else {
+            $tools = $toolDefinitions->getTools($user->is_preview_user);
 
-                return $name !== null && isset($allowed[$name]);
-            }));
+            if ($this->allowedToolsOverride !== null) {
+                $allowed = array_flip($this->allowedToolsOverride);
+                $tools = array_values(array_filter($tools, function ($tool) use ($allowed): bool {
+                    $name = $tool['name']
+                        ?? ($tool['function']['name'] ?? null);
+
+                    return $name !== null && isset($allowed[$name]);
+                }));
+            }
         }
 
         // Auto-generate title from first message
@@ -416,6 +431,20 @@ trait HasAiChat
                             'entity_type' => $toolResult['entity_type'],
                             'entity_id' => $toolResult['entity_id'],
                             'name' => $toolResult['name'] ?? '',
+                        ];
+                    }
+
+                    // Handle grouped onboarding field captures (used by the
+                    // Fyn onboarding director's grouped_extract turns). The
+                    // handler writes fields to the DB and returns a structured
+                    // receipt; we yield an SSE event so the director can see
+                    // the capture arrived and advance state.
+                    if (isset($toolResult['onboarding_capture']) && $toolResult['onboarding_capture'] === true) {
+                        yield [
+                            'type' => 'onboarding_field_captured',
+                            'field_group' => $toolResult['field_group'] ?? 'unknown',
+                            'summary' => $toolResult['summary'] ?? '',
+                            'details' => $toolResult['details'] ?? [],
                         ];
                     }
 
@@ -732,19 +761,23 @@ trait HasAiChat
     /**
      * Configure per-call overrides for the next chat() invocation. Used by
      * OnboardingChatDirector to swap the system prompt and tool list for
-     * asset_capture delegations without touching the main Fyn flow. The
-     * caller MUST pair this with clearChatOverrides() in a finally block.
+     * asset_capture and grouped_extract delegations without touching the
+     * main Fyn flow. The caller MUST pair this with clearChatOverrides()
+     * in a finally block.
      *
      * @param  list<string>|null  $allowedTools
+     * @param  list<array<string, mixed>>|null  $toolsListOverride
      */
     public function setChatOverrides(
         ?string $systemPrompt,
         ?array $allowedTools,
-        bool $skipUserMessagePersistence = false
+        bool $skipUserMessagePersistence = false,
+        ?array $toolsListOverride = null
     ): void {
         $this->systemPromptOverride = $systemPrompt;
         $this->allowedToolsOverride = $allowedTools;
         $this->skipUserMessagePersistence = $skipUserMessagePersistence;
+        $this->toolsListOverride = $toolsListOverride;
     }
 
     public function clearChatOverrides(): void
@@ -752,5 +785,6 @@ trait HasAiChat
         $this->systemPromptOverride = null;
         $this->allowedToolsOverride = null;
         $this->skipUserMessagePersistence = false;
+        $this->toolsListOverride = null;
     }
 }

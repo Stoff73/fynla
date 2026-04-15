@@ -97,10 +97,19 @@ final class OnboardingChatDirector
             return;
         }
 
-        // Asset capture is the only delegated turn — everything else is
-        // deterministic from the state machine.
+        // Asset capture is the delegated turn.
         if (($state['turn_type'] ?? '') === 'delegated') {
             yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute);
+
+            return;
+        }
+
+        // Grouped extraction turns (base_personal, base_spouse,
+        // base_dependants_detail, base_work) delegate to Claude with a
+        // narrow extraction tool, which writes the fields to the DB and
+        // returns a capture receipt via SSE.
+        if (($state['turn_type'] ?? '') === 'grouped_extract') {
+            yield from $this->handleGroupedExtractTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
         }
@@ -585,6 +594,229 @@ final class OnboardingChatDirector
         }
 
         return null;
+    }
+
+    // ─── Grouped-extract delegation ───────────────────────────────────────
+
+    /**
+     * Handle a grouped_extract turn (base_personal, base_spouse,
+     * base_dependants_detail, base_work). The director delegates to
+     * Claude with a SINGLE extraction tool (filtered by the state config)
+     * and a restricted system prompt. Claude parses the user's free-text
+     * reply, calls the tool, and the CoordinatingAgent handler writes
+     * fields to the DB + returns an `onboarding_capture` receipt that
+     * HasAiChat yields as an `onboarding_field_captured` SSE event.
+     *
+     * If the capture event arrives, director advances state. Otherwise
+     * it emits a retry message and stays on the current state so the
+     * user can try again.
+     */
+    private function handleGroupedExtractTurn(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        ?string $currentRoute,
+        string $currentStateId,
+        array $state
+    ): \Generator {
+        $toolName = (string) ($state['extraction_tool'] ?? '');
+        if ($toolName === '') {
+            yield $this->errorEvent('Onboarding state is missing its extraction tool.');
+
+            return;
+        }
+
+        $toolDefinitions = app(\App\Services\AI\AiToolDefinitions::class);
+        // Match the active provider so the tools ship in the correct
+        // format. xAI expects the OpenAI function-calling wrapper,
+        // Anthropic expects the flattened input_schema shape.
+        $provider = \Illuminate\Support\Facades\Cache::get(
+            'ai_provider',
+            config('services.ai_provider', 'anthropic')
+        );
+        $allExtractionTools = $toolDefinitions->onboardingExtractionTools(provider: $provider);
+
+        // Filter to the single tool this state needs. The filter key
+        // lookup differs between providers — xAI wraps the name inside
+        // function.name, Anthropic has it at the top level.
+        $filtered = array_values(array_filter(
+            $allExtractionTools,
+            function (array $tool) use ($toolName): bool {
+                $candidate = $tool['name']
+                    ?? ($tool['function']['name'] ?? null);
+
+                return $candidate === $toolName;
+            }
+        ));
+
+        if (count($filtered) === 0) {
+            Log::error('[OnboardingChatDirector] extraction tool not found', [
+                'tool' => $toolName,
+                'state' => $currentStateId,
+            ]);
+            yield $this->errorEvent('Onboarding is temporarily unavailable.');
+
+            return;
+        }
+
+        $systemPrompt = $this->buildGroupedExtractPrompt($user, $currentStateId, $toolName);
+
+        $captureReceived = false;
+        $captureDetails = [];
+
+        try {
+            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+                $user,
+                $conversation,
+                $message,
+                $currentRoute,
+                $systemPrompt,
+                allowedTools: null,
+                persistUserMessage: false,
+                toolsListOverride: $filtered,
+            );
+
+            foreach ($generator as $event) {
+                // Swallow the per-turn `title` event — the title is already
+                // set to "Onboarding" when the conversation was created.
+                if (($event['type'] ?? '') === 'title') {
+                    continue;
+                }
+
+                if (($event['type'] ?? '') === 'onboarding_field_captured') {
+                    $captureReceived = true;
+                    $captureDetails = $event['details'] ?? [];
+
+                    // Stop consuming the delegated generator immediately.
+                    // LLMs occasionally re-call the extraction tool after
+                    // the first success because the system prompt does not
+                    // communicate termination — the max-tool-calls limit
+                    // catches it but wastes latency. We have everything we
+                    // need; abandon the rest of the delegation.
+                    break;
+                }
+
+                // Don't forward the `done` event from the delegated chat
+                // — the director emits its own `done` after the next
+                // turn so the frontend doesn't think we've finished.
+                if (($event['type'] ?? '') === 'done') {
+                    continue;
+                }
+
+                // Swallow tool_use status events — they leak implementation
+                // details to the frontend. The director's own onboarding_advance
+                // + quick_replies / content events tell the user what's happening.
+                if (($event['type'] ?? '') === 'tool_use') {
+                    continue;
+                }
+
+                yield $event;
+            }
+        } catch (\Throwable $e) {
+            Log::error('[OnboardingChatDirector] Grouped extract delegation failed', [
+                'user_id' => $user->id,
+                'state' => $currentStateId,
+                'tool' => $toolName,
+                'error' => $e->getMessage(),
+            ]);
+
+            yield [
+                'type' => 'content',
+                'text' => (string) ($state['retry_text'] ?? "Sorry, I couldn't read that. Could you try again?"),
+            ];
+
+            return;
+        }
+
+        if (! $captureReceived) {
+            // Claude didn't call the tool or the handler errored. Stay
+            // on the current state so the user can retry.
+            yield [
+                'type' => 'content',
+                'text' => (string) ($state['retry_text'] ?? "Sorry, I didn't catch that. Could you try again?"),
+            ];
+
+            return;
+        }
+
+        $this->recordProgress($user, $currentStateId, $captureDetails);
+
+        // Refresh the user so skip_if helpers on the next state see the
+        // freshly-written columns.
+        $user->refresh();
+
+        $nextStateId = OnboardingStateMachine::getNextStateId(
+            $currentStateId,
+            $message,
+            $user
+        );
+
+        if ($nextStateId === null) {
+            yield $this->errorEvent('Onboarding state machine reached a dead end after grouped capture.');
+
+            return;
+        }
+
+        $user->onboarding_fyn_step = $nextStateId;
+
+        if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
+            yield from $this->emitDoneTurn($user, $conversation);
+
+            return;
+        }
+
+        $user->save();
+
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState === null) {
+            yield $this->errorEvent('Unknown next state: '.$nextStateId);
+
+            return;
+        }
+
+        yield [
+            'type' => 'onboarding_advance',
+            'from_step' => $currentStateId,
+            'to_step' => $nextStateId,
+        ];
+
+        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Build the restricted system prompt for grouped-extract turns. Must
+     * stay narrow — we do not want Claude to answer the user, we just
+     * want it to call the single extraction tool with parsed fields.
+     */
+    private function buildGroupedExtractPrompt(User $user, string $stateId, string $toolName): string
+    {
+        $nameParts = explode(' ', (string) $user->name);
+        $firstName = $nameParts[0] ?: 'there';
+
+        $instructions = match ($toolName) {
+            'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
+            'capture_spouse_details' => 'Extract the user\'s spouse or partner details. You need their first name, date of birth, and email address. If they mention an annual income, extract it too. Do NOT invent missing fields — if the user did not provide all three required fields, return an error.',
+            'capture_dependants' => 'Extract a list of the user\'s dependants. Each entry needs an age and a relationship (child, parent, or other_dependent). First names are optional. Map phrases: "son", "daughter", "step-daughter", "step-son", "kid", "child" → child. "mother", "father", "mum", "dad", "mum-in-law", etc. → parent. Sibling, nephew, elderly relative, friend → other_dependent. If the user says "two kids aged 4 and 7" return two entries with relationship=child.',
+            'capture_work_details' => 'Extract the user\'s employer or trade name, their role/position, and their gross annual income in GBP. Strip currency symbols and commas before returning the number. "75k" means 75000. Do not invent fields.',
+            default => 'Extract the user\'s reply using the provided tool.',
+        };
+
+        return <<<PROMPT
+<identity>
+You are an extraction helper for the Fynla onboarding flow. {$firstName} is a new user setting up their account. Your ONLY job this turn is to extract structured fields from their plain-English reply and call the `{$toolName}` tool exactly once. Do not answer, greet, analyse, or respond conversationally — just call the tool.
+</identity>
+
+<instructions>
+{$instructions}
+
+Rules:
+- Call `{$toolName}` exactly ONCE per turn with the fields extracted from the user's most recent message.
+- Do not call any other tool. Do not emit a text response.
+- If the user's reply is missing a required field, still call the tool but leave the missing field empty or return an error via the tool's standard result — the director will retry.
+- Dates must be in YYYY-MM-DD format.
+- Numbers must be plain integers or decimals without currency symbols, commas, or units.
+</instructions>
+PROMPT;
     }
 
     // ─── Asset capture delegation ─────────────────────────────────────────
