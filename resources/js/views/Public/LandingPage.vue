@@ -153,13 +153,12 @@
               </transition>
             </div>
 
-            <!-- Get started with Fyn (hidden until new-user Fyn flow is fixed — see April/April9Updates/fynQuickStartBugs.md) -->
-            <!-- <router-link
+            <router-link
               to="/register?from=fyn"
               class="inline-block px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap"
             >
               Quick start with Fyn
-            </router-link> -->
+            </router-link>
           </div>
 
           <!-- Right: Fyn character -->

@@ -739,8 +739,14 @@ export default {
             this.formData.holdings = [];
           }
         } else {
-          // Reset form when opening in "add" mode (no account)
-          this.resetForm();
+          // Reset form when opening in "add" mode (no account), UNLESS there's
+          // an active AI fill — the pendingFill watcher sets account_type before
+          // show flips to true, so resetting here would clobber the AI's value
+          // and leave the account_type select empty on auto-submit.
+          const hasAiFill = this.pendingFill && this.pendingFill.entityType === 'investment_account';
+          if (!hasAiFill) {
+            this.resetForm();
+          }
         }
         this.errors = {};
         this.submitting = false;

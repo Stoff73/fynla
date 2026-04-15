@@ -26,7 +26,7 @@ class UpdateIncomeOccupationRequest extends FormRequest
             'occupation' => ['sometimes', 'nullable', 'string', 'max:255'],
             'employer' => ['sometimes', 'nullable', 'string', 'max:255'],
             'industry' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'employment_status' => ['sometimes', 'nullable', Rule::in(['employed', 'part_time', 'self_employed', 'unemployed', 'retired', 'student', 'other'])],
+            'employment_status' => ['sometimes', 'nullable', Rule::in(['employed', 'full_time', 'part_time', 'self_employed', 'unemployed', 'retired', 'student', 'other'])],
             'target_retirement_age' => ['sometimes', 'nullable', 'integer', 'min:30', 'max:100'],
             'retirement_date' => ['sometimes', 'nullable', 'date'],
             'annual_employment_income' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999999.99'],

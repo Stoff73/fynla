@@ -169,7 +169,16 @@
               v-for="msg in messages"
               :key="msg.id"
             >
+              <!-- Quick-reply bubbles (Fyn onboarding tool output) -->
+              <FynQuickReplies
+                v-if="msg.role === 'quick_replies'"
+                :prompt-text="msg.content"
+                :bubbles="msg.metadata?.bubbles || []"
+                :disabled="streaming || loading"
+                @select="handleQuickReplySelect"
+              />
               <div
+                v-else
                 class="flex"
                 :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
               >
@@ -182,18 +191,6 @@
                     @navigate="handleNavigation"
                   />
                 </div>
-              </div>
-              <!-- Clickable options attached to message -->
-              <div v-if="msg.options && msg.options.length" class="mt-2 space-y-1.5 pl-1">
-                <button
-                  v-for="option in msg.options"
-                  :key="option"
-                  @click="sendSuggested(option)"
-                  class="w-full text-left px-3 py-2 text-sm bg-light-pink-100 hover:bg-light-pink-200 border border-light-gray rounded-lg transition-colors text-horizon-500"
-                  :disabled="streaming || loading"
-                >
-                  {{ option }}
-                </button>
               </div>
             </div>
 
@@ -388,18 +385,6 @@
               <span v-else>{{ msg.content }}</span>
             </div>
           </div>
-          <!-- Clickable options attached to message -->
-          <div v-if="msg.options && msg.options.length" class="space-y-1.5 pl-1">
-            <button
-              v-for="option in msg.options"
-              :key="option"
-              @click="sendSuggested(option)"
-              class="w-full text-left px-3 py-2 text-sm bg-light-pink-100 hover:bg-light-pink-200 border border-light-gray rounded-lg transition-colors text-horizon-500"
-              :disabled="streaming || loading"
-            >
-              {{ option }}
-            </button>
-          </div>
         </template>
 
         <!-- Streaming indicator -->
@@ -496,6 +481,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
+import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
@@ -506,6 +492,7 @@ export default {
 
     components: {
         AiMessageContent,
+        FynQuickReplies,
     },
 
     props: {
@@ -796,10 +783,6 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
-            // Check for journey prompt flag — either from store or directly from URL query param
-            const isJourneyPrompt = this.$store.state.aiChat.pendingJourneyPrompt
-                || new URLSearchParams(window.location.search).get('openFyn') === 'journey';
-
             // If there's already an active conversation with messages or streaming,
             // don't replace it — just fetch the conversation list for history
             const hasActiveConversation = this.$store.state.aiChat.currentConversation
@@ -809,24 +792,13 @@ export default {
 
             if (!hasActiveConversation) {
                 await this.startNewConversation();
-
-                // Add journey stage message if user arrived from "Get started with Fyn"
-                if (isJourneyPrompt) {
-                    this.$store.commit('aiChat/ADD_MESSAGE', {
-                        id: 'journey_' + Date.now(),
-                        role: 'assistant',
-                        content: "Welcome to Fynla! I'm Fyn, your financial companion. What stage of your journey are you on?",
-                        options: [
-                            'Starting out — student or early career',
-                            'Building foundations — first home, growing savings',
-                            'Protecting and growing — family, career progression',
-                            'Planning your future — peak earnings, retirement planning',
-                            'Enjoying your wealth — retired or approaching retirement',
-                        ],
-                    });
-                    this.$store.commit('aiChat/SET_PENDING_JOURNEY_PROMPT', false);
-                }
             }
+
+            // NOTE: onboarding trigger path (?openFyn=journey) is intentionally
+            // inert here between commits 0 and 4. Commit 4 will dispatch
+            // aiChat/startOnboardingConversation after the backend director +
+            // endpoints land in commit 3. Until then new-user CTA clicks get a
+            // standard empty Fyn chat.
 
             this.$nextTick(() => {
                 this.$refs.inputField?.focus();
@@ -919,6 +891,17 @@ export default {
 
             analyticsService.trackChatMessageSent(message.length);
             await this.sendMessage(message);
+        },
+
+        // Handler for FynQuickReplies clicks — sends the bubble's label as if
+        // the user had typed it. The matchNavigationIntent check is skipped
+        // because onboarding bubbles are never navigation intents.
+        async handleQuickReplySelect(bubble) {
+            const label = (bubble && bubble.label) ? bubble.label.trim() : '';
+            if (!label || this.streaming || this.loading) return;
+            window.dispatchEvent(new Event('fyn-chat-interaction'));
+            analyticsService.trackChatMessageSent(label.length);
+            await this.sendMessage(label);
         },
 
         handleNavigation(routePath) {

@@ -9,6 +9,7 @@ use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
+use App\Services\AI\Prompts\EmptyDataGuard;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\PrerequisiteGateService;
@@ -75,17 +76,26 @@ class SystemPromptBuilder
         $profile = $this->buildUserProfile($user);
         $layers[] = "<user_profile>\n{$profile}\n</user_profile>";
 
-        // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification
-        $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
-        $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
+        // For brand-new users with zero financial data, skip layers 5/6/7
+        // (FinancialContext, ExistingRecords, DataCompleteness) and substitute
+        // a lightweight EmptyDataGuard block. Running orchestrateAnalysis
+        // against empty data causes Fyn to hallucinate specific figures — see
+        // April/April9Updates/fynQuickStartBugs.md for the prior incident.
+        if ($this->isNewUserWithNoData($user)) {
+            $layers[] = EmptyDataGuard::get();
+        } else {
+            // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification
+            $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
+            $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
 
-        // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification
-        $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
-        $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
+            // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification
+            $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
+            $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
 
-        // Layer 7: Data Completeness (DYNAMIC/user)
-        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
-        $layers[] = $this->buildDataCompletenessBlock($prerequisiteState);
+            // Layer 7: Data Completeness (DYNAMIC/user)
+            $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+            $layers[] = $this->buildDataCompletenessBlock($prerequisiteState);
+        }
 
         // Layer 7b: Review Due (DYNAMIC/user)
         $reviewBlock = $this->buildReviewDueBlock($user);
@@ -117,6 +127,52 @@ class SystemPromptBuilder
         }
 
         return implode("\n\n", $layers);
+    }
+
+    /**
+     * Detect a brand-new user with zero financial data.
+     *
+     * Returns true when the user has NO income of any type AND NO savings,
+     * investment, DC pension, or DB pension records. In this state we skip
+     * the expensive orchestrateAnalysis call (which would hallucinate values
+     * against empty modules) and substitute the EmptyDataGuard prompt layer.
+     *
+     * Spouse data (if any) still wires through the normal flow — a newly
+     * registered user with a linked spouse who already has data is not
+     * considered "new" for prompt purposes.
+     */
+    private function isNewUserWithNoData(User $user): bool
+    {
+        $totalIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + (float) ($user->annual_interest_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0)
+            + (float) ($user->annual_other_income ?? 0);
+
+        if ($totalIncome > 0) {
+            return false;
+        }
+
+        if (\App\Models\SavingsAccount::forUserOrJoint($user->id)->exists()) {
+            return false;
+        }
+
+        if (\App\Models\Investment\InvestmentAccount::forUserOrJoint($user->id)->exists()) {
+            return false;
+        }
+
+        // DC/DB pensions don't use HasJointOwnership — they are individual records
+        if (\App\Models\DCPension::where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
+        if (\App\Models\DBPension::where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
+        return true;
     }
 
     // ─── Layer 4: User Profile ───────────────────────────────────────
