@@ -2150,21 +2150,29 @@ export default {
       this.$router.replace({ query: cleanQuery });
     }
 
-    // Handle openFyn=journey from "Get started with Fyn" registration
+    // Handle openFyn=journey from the "Quick start with Fyn" CTA.
+    // Directly dispatches the Fyn onboarding flow and opens the chat
+    // panel — the backend director streams turn 1 via SSE.
     if (this.$route.query.openFyn === 'journey') {
-      // Set flag so AiChatPanel adds the journey message after conversation is created
-      this.$store.commit('aiChat/SET_PENDING_JOURNEY_PROMPT', true);
-      window.dispatchEvent(new Event('fyn-open-chat'));
-
-      // Blur dashboard background on desktop until user interacts with chat
+      // Blur dashboard background on desktop until user interacts with chat.
       if (window.innerWidth >= 1024) {
         this.journeyBlurActive = true;
         this._clearBlur = () => { this.journeyBlurActive = false; };
         window.addEventListener('fyn-chat-interaction', this._clearBlur, { once: true });
       }
 
-      // Clean the query param so it doesn't trigger again on refresh
+      // Clean the query param first so a page reload doesn't re-trigger.
       this.$router.replace({ query: {} });
+
+      // Populate the store BEFORE opening the panel so onOpen() sees the
+      // active conversation and skips its own initialisation path.
+      this.$store.dispatch('aiChat/startOnboardingConversation')
+        .then(() => this.$store.dispatch('aiChat/open'))
+        .catch((err) => {
+          // Fall back to just opening an empty chat if the director fails.
+          console.warn('[Dashboard] startOnboardingConversation failed, falling back', err);
+          this.$store.dispatch('aiChat/open');
+        });
     }
   },
 

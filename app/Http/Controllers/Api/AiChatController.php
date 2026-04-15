@@ -279,6 +279,19 @@ class AiChatController extends Controller
         $user->save();
 
         return new StreamedResponse(function () use ($user, $conversation) {
+            // Emit the conversation id first so the frontend can route
+            // subsequent /messages calls to this specific conversation.
+            $firstEvent = [
+                'type' => 'conversation_created',
+                'conversation_id' => $conversation->id,
+                'title' => $conversation->title,
+            ];
+            echo 'data: '.json_encode($firstEvent)."\n\n";
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
+            flush();
+
             try {
                 foreach ($this->onboardingDirector->emitFirstTurn($user, $conversation) as $event) {
                     echo 'data: '.json_encode($event)."\n\n";

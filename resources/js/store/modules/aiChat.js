@@ -393,6 +393,20 @@ const actions = {
                                 });
                                 break;
 
+                            case 'onboarding_advance':
+                                // Informational — the director transitioned from one
+                                // state to another. No UI change yet; logged for debug.
+                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'onboarding_complete':
+                                // Terminal state — the director marked the user as
+                                // onboarded and told us where to navigate next.
+                                // SET_PENDING_NAVIGATION is picked up by AiChatPanel's
+                                // existing navigation handler.
+                                commit('SET_PENDING_NAVIGATION', event.nextRoute || '/dashboard');
+                                break;
+
                             case 'token_limit':
                                 commit('SET_TOKEN_LIMIT', {
                                     reached: true,
@@ -461,6 +475,170 @@ const actions = {
 
         commit('SET_STREAMING', false);
         commit('SET_STREAMING_TEXT', '');
+    },
+
+    /**
+     * Get the user's current onboarding status from the backend director.
+     * Returns {in_progress, current_step, path, selection, conversation_id}.
+     */
+    async getOnboardingStatus() {
+        try {
+            const response = await aiChatService.getOnboardingStatus();
+            return response.data || { in_progress: false };
+        } catch (error) {
+            logger.error('Failed to get onboarding status:', error);
+            return { in_progress: false };
+        }
+    },
+
+    /**
+     * Start (or resume) the Fyn-driven onboarding conversation. On first
+     * open from the "Quick start with Fyn" CTA, this calls the backend
+     * /onboarding/start endpoint which emits turn 1 via SSE with no
+     * preceding user message — the user sees Fyn's greeting + bubbles as
+     * the first thing in an empty chat.
+     *
+     * On subsequent loads (tab reopen, reload), checks /onboarding/status
+     * first. If the user is already mid-flow, loads the existing
+     * conversation. If onboarding is already complete or the feature flag
+     * is off, falls back to a normal startNewConversation.
+     */
+    async startOnboardingConversation({ commit, dispatch, state, rootState }) {
+        // Reset chat state before starting
+        commit('SET_LOADING', true);
+        commit('SET_ERROR', null);
+        commit('SET_MESSAGES', []);
+        commit('SET_STREAMING_TEXT', '');
+
+        // Check status first — if already in progress, resume instead of starting
+        try {
+            const status = await aiChatService.getOnboardingStatus();
+            const inProgress = status?.data?.in_progress === true;
+            const conversationId = status?.data?.conversation_id;
+            if (inProgress && conversationId) {
+                commit('SET_LOADING', false);
+                await dispatch('loadConversation', conversationId);
+                return;
+            }
+        } catch (error) {
+            // Non-fatal — we'll attempt /start anyway and fall back if it 503s
+            logger.warn('[onboarding] status check failed, proceeding to /start', error);
+        }
+
+        commit('SET_STREAMING', true);
+
+        const abortController = new AbortController();
+        commit('SET_ABORT_CONTROLLER', abortController);
+
+        let reader;
+        try {
+            reader = await aiChatService.startOnboardingStream({ signal: abortController.signal });
+        } catch (error) {
+            // 503 disabled / 409 already_completed / 403 preview_mode — fall back
+            // to a normal empty chat so the user can still talk to Fyn.
+            logger.warn('[onboarding] /start failed, falling back to normal chat', error);
+            commit('SET_STREAMING', false);
+            commit('SET_LOADING', false);
+            await dispatch('startNewConversation');
+            return;
+        }
+
+        commit('SET_LOADING', false);
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+
+                    try {
+                        const event = JSON.parse(line.slice(6));
+
+                        switch (event.type) {
+                            case 'conversation_created':
+                                // Backend created the AiConversation row — store the
+                                // reference so sendMessage() knows where to POST.
+                                commit('SET_CURRENT_CONVERSATION', {
+                                    id: event.conversation_id,
+                                    title: event.title || 'Onboarding',
+                                    message_count: 0,
+                                });
+                                break;
+
+                            case 'resume':
+                                // User is already mid-flow — switch to the existing
+                                // conversation and load its history.
+                                if (event.conversation_id) {
+                                    await dispatch('loadConversation', event.conversation_id);
+                                }
+                                return;
+
+                            case 'content':
+                                commit('APPEND_STREAMING_TEXT', event.text);
+                                break;
+
+                            case 'quick_replies':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'qr_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                commit('ADD_MESSAGE', {
+                                    id: 'qr_' + Date.now(),
+                                    role: 'quick_replies',
+                                    content: event.prompt_text || '',
+                                    metadata: { bubbles: event.bubbles || [] },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+
+                            case 'onboarding_advance':
+                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'done':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: event.message_id || 'msg_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                break;
+
+                            case 'error':
+                                commit('SET_ERROR', event.message);
+                                break;
+                        }
+                    } catch {
+                        // Skip malformed SSE lines
+                    }
+                }
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                logger.error('[onboarding] stream error', error);
+                commit('SET_ERROR', 'Onboarding is temporarily unavailable. Please try again.');
+            }
+        } finally {
+            commit('SET_STREAMING', false);
+            commit('SET_ABORT_CONTROLLER', null);
+        }
     },
 
     /**
