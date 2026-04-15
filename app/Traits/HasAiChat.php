@@ -46,6 +46,18 @@ trait HasAiChat
     private const MAX_HISTORY_MESSAGES = 20;
 
     /**
+     * Chat overrides used by OnboardingChatDirector during delegated
+     * asset_capture turns. Per-call state only — always cleared via the
+     * try/finally block in chatWithPromptOverride().
+     */
+    private ?string $systemPromptOverride = null;
+
+    /** @var list<string>|null */
+    private ?array $allowedToolsOverride = null;
+
+    private bool $skipUserMessagePersistence = false;
+
+    /**
      * Send a message and yield SSE chunks.
      *
      * @return \Generator yields SSE event arrays
@@ -56,8 +68,13 @@ trait HasAiChat
         string $message,
         ?string $currentRoute = null
     ): \Generator {
-        // Save user message
-        $userMessage = $this->saveMessage($conversation, 'user', $message);
+        // Save user message (skipped when the caller has already persisted
+        // the message itself — for example OnboardingChatDirector saves it
+        // BEFORE delegating here, so the history reflects the user turn
+        // even if the delegated call fails).
+        if (! $this->skipUserMessagePersistence) {
+            $userMessage = $this->saveMessage($conversation, 'user', $message);
+        }
 
         // Check token budget
         if (! $this->hasTokenBudget($user)) {
@@ -84,7 +101,8 @@ trait HasAiChat
         }
 
         // Build context
-        $systemPrompt = $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult);
+        $systemPrompt = $this->systemPromptOverride
+            ?? $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult);
         $messageHistory = $this->buildMessageHistory($conversation);
 
         // Model selection
@@ -96,6 +114,19 @@ trait HasAiChat
             ? app(XaiToolDefinitions::class)
             : $this->toolDefinitions;
         $tools = $toolDefinitions->getTools($user->is_preview_user);
+
+        // Filter tools if the caller restricted the allowed set (used by
+        // OnboardingChatDirector during asset_capture delegation). Each
+        // provider has a different shape — handle both.
+        if ($this->allowedToolsOverride !== null) {
+            $allowed = array_flip($this->allowedToolsOverride);
+            $tools = array_values(array_filter($tools, function ($tool) use ($allowed): bool {
+                $name = $tool['name']
+                    ?? ($tool['function']['name'] ?? null);
+
+                return $name !== null && isset($allowed[$name]);
+            }));
+        }
 
         // Auto-generate title from first message
         if ($conversation->message_count === 0) {
@@ -696,5 +727,30 @@ trait HasAiChat
         }
 
         return implode(', ', $parts) ?: 'processed';
+    }
+
+    /**
+     * Configure per-call overrides for the next chat() invocation. Used by
+     * OnboardingChatDirector to swap the system prompt and tool list for
+     * asset_capture delegations without touching the main Fyn flow. The
+     * caller MUST pair this with clearChatOverrides() in a finally block.
+     *
+     * @param  list<string>|null  $allowedTools
+     */
+    public function setChatOverrides(
+        ?string $systemPrompt,
+        ?array $allowedTools,
+        bool $skipUserMessagePersistence = false
+    ): void {
+        $this->systemPromptOverride = $systemPrompt;
+        $this->allowedToolsOverride = $allowedTools;
+        $this->skipUserMessagePersistence = $skipUserMessagePersistence;
+    }
+
+    public function clearChatOverrides(): void
+    {
+        $this->systemPromptOverride = null;
+        $this->allowedToolsOverride = null;
+        $this->skipUserMessagePersistence = false;
     }
 }

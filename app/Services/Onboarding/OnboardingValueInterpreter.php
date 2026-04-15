@@ -195,8 +195,11 @@ final class OnboardingValueInterpreter
     }
 
     /**
-     * Attempt a shared money parser. Strips £/$ and commas, handles "k"
-     * suffix (e.g. "75k" → 75000), enforces finite bounds.
+     * Attempt a shared money parser. Finds the first currency/numeric
+     * pattern in the input so phrases like "About £2,800 per month" and
+     * "roughly 75k" both work. Accepts bare numbers only when they have a
+     * k/m suffix or are the ONLY content (prevents "age 42" matching as
+     * £42 income).
      */
     private static function parseMoney(?string $input, float $minInclusive, float $maxInclusive): ?float
     {
@@ -205,29 +208,36 @@ final class OnboardingValueInterpreter
             return null;
         }
 
-        // Strip currency symbols and thousands separators
-        $cleaned = preg_replace('/[£\$,]/', '', $cleaned) ?? '';
-        $cleaned = preg_replace('/\s+/', '', $cleaned) ?? '';
-        if ($cleaned === '') {
-            return null;
-        }
-
         $lower = mb_strtolower($cleaned);
+        $numeric = null;
         $multiplier = 1.0;
 
-        // Suffix: "k" = thousand, "m" = million
-        if (preg_match('/^(\d+(?:\.\d+)?)k$/', $lower, $matches) === 1) {
-            $multiplier = 1_000.0;
+        // Pattern 1: explicit currency marker — most reliable
+        if (preg_match('/£\s*(\d[\d,]*(?:\.\d+)?)\s*(k|m)?/i', $cleaned, $matches) === 1) {
+            $numeric = str_replace(',', '', $matches[1]);
+            $suffix = isset($matches[2]) ? mb_strtolower($matches[2]) : '';
+            $multiplier = match ($suffix) {
+                'k' => 1_000.0,
+                'm' => 1_000_000.0,
+                default => 1.0,
+            };
+        }
+        // Pattern 2: numeric with k/m suffix — also reliable
+        elseif (preg_match('/\b(\d+(?:\.\d+)?)\s*(k|m)\b/i', $lower, $matches) === 1) {
             $numeric = $matches[1];
-        } elseif (preg_match('/^(\d+(?:\.\d+)?)m$/', $lower, $matches) === 1) {
-            $multiplier = 1_000_000.0;
-            $numeric = $matches[1];
-        } else {
-            // Plain numeric — must match a simple number pattern
-            if (preg_match('/^\d+(\.\d+)?$/', $cleaned) !== 1) {
-                return null;
+            $multiplier = $matches[2] === 'k' ? 1_000.0 : 1_000_000.0;
+        }
+        // Pattern 3: pure numeric (input is just digits + optional decimal,
+        // optional commas, nothing else). Prevents "age 42" from matching.
+        else {
+            $stripped = str_replace([',', ' '], '', $cleaned);
+            if (preg_match('/^\d+(\.\d+)?$/', $stripped) === 1) {
+                $numeric = $stripped;
             }
-            $numeric = $cleaned;
+        }
+
+        if ($numeric === null) {
+            return null;
         }
 
         $value = (float) $numeric * $multiplier;
