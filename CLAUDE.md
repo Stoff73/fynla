@@ -234,16 +234,17 @@ Fynla runs on two environments, isolated database, code, and credentials:
 ### Branch workflow
 
 ```
-feature/<owner>/<short-task>   ──PR──►   dev   ──PR──►   main
+<feature-branch>   ──PR──►   dev   ──PR──►   main
 ```
 
 - `main` = exactly what's running on `fynla.org`. Protected. Only `@Stoff73` can merge.
 - `dev` = exactly what's running on `csjones.co/fynla`. Protected. Only `@Stoff73` can merge.
-- `feature/<owner>/<task>` = working branches. Naming is **mandatory**:
-  - `feature/csj/<task>` — your own work
-  - `feature/icecube/<task>` — `icecube-acc`
-  - `feature/phailanx/<task>` — `Phailanx`
-  - Any other prefix is wrong and the PR will be closed.
+- **Feature branches** = working branches. Branch off `dev`, not `main`. Naming:
+  - **CSJ's own work:** any short descriptive name is fine — camelCase or kebab-case. Examples: `onboardingFyn`, `fyn-quick-start`, `lifecycle-email-engine`, `revolutLive`. No prefix required.
+  - **External contributors (mandatory prefix for traceability):**
+    - `feature/icecube/<task>` — `icecube-acc`
+    - `feature/phailanx/<task>` — `Phailanx`
+  - PRs from contributors without the correct prefix will be closed.
 - **All PRs target `dev`**, never `main` directly (except the periodic `dev → main` release PR which only `@Stoff73` opens).
 - `.github/CODEOWNERS` forces `@Stoff73` as a required reviewer on every PR.
 
@@ -274,7 +275,7 @@ The scripts set different Vite environment variables so the SPA routing and asse
 
 ### Deploying to dev (csjones.co/fynla)
 
-1. Work on a `feature/<owner>/<task>` branch, open PR → `dev`
+1. Work on a feature branch off `dev`, open PR → `dev`
 2. After merge: `git checkout dev && git pull`
 3. Build: `./deploy/csjones-fynla/build.sh`
 4. Upload `public/build/` + changed PHP files to `~/www/csjones.co/public_html/fynla/` via SiteGround File Manager or `rsync`

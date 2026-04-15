@@ -344,11 +344,10 @@ const actions = {
                                 break;
 
                             case 'fill_form':
-                                // Navigate to the page first
-                                if (event.route) {
-                                    commit('SET_PENDING_NAVIGATION', event.route);
-                                }
-                                // Queue the fill — aiFormFill processes them sequentially
+                                // Hand the fill to aiFormFill. startFill drives navigation
+                                // itself so that multi-entity messages navigate in queue
+                                // order (previously, setting pendingNavigation here clobbered
+                                // the first entity's route when a second fill_form arrived).
                                 dispatch('aiFormFill/startFill', {
                                     entityType: event.entity_type,
                                     fields: event.fields,
@@ -366,6 +365,29 @@ const actions = {
                                     metadata: {
                                         entity_type: event.entity_type,
                                         entity_id: event.entity_id,
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+
+                            case 'quick_replies':
+                                // Flush any streaming text into a normal assistant message first
+                                // so the bubbles appear AFTER the intro text Claude wrote.
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'qr_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                commit('ADD_MESSAGE', {
+                                    id: 'qr_' + Date.now(),
+                                    role: 'quick_replies',
+                                    content: event.prompt_text || '',
+                                    metadata: {
+                                        bubbles: event.bubbles || [],
                                     },
                                     created_at: new Date().toISOString(),
                                 });
