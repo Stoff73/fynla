@@ -945,6 +945,168 @@ class AiToolDefinitions
         ];
     }
 
+    /**
+     * Onboarding extraction tools — used ONLY by OnboardingChatDirector
+     * during grouped_extract turns. Not included in getTools() so they
+     * never leak into the normal Fyn chat token budget. The director
+     * passes this list as a `toolsListOverride` when delegating the
+     * grouped turn to the coordinating agent.
+     *
+     * Each tool extracts a named group of onboarding fields from a
+     * free-text reply and returns a structured payload. Handlers in
+     * CoordinatingAgent write the fields to the database and return
+     * a capture receipt that HasAiChat yields as an SSE
+     * `onboarding_field_captured` event.
+     *
+     * @param  string  $provider  'anthropic' or 'xai' — picks the output
+     *                            format so the director can route the
+     *                            same tools to either API.
+     * @return list<array<string, mixed>>
+     */
+    public function onboardingExtractionTools(string $provider = 'anthropic'): array
+    {
+        $tools = [
+            [
+                'name' => 'capture_personal_details',
+                'description' => 'Capture the user\'s date of birth and marital status from a free-text reply during onboarding. Call this once per turn. Do not call any other tool.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'date_of_birth' => [
+                            'type' => 'string',
+                            'description' => 'Date of birth in YYYY-MM-DD format. Parse natural language dates like "12 January 1985" into ISO format.',
+                        ],
+                        'marital_status' => [
+                            'type' => 'string',
+                            'enum' => ['single', 'married', 'civil_partnership', 'divorced', 'widowed'],
+                            'description' => 'The user\'s marital status. Map phrases: "married" → married, "civil partnership" or "civil partner" → civil_partnership, "single" or "unmarried" → single, "divorced" or "separated" → divorced, "widowed" or "widow" → widowed.',
+                        ],
+                    ],
+                    'required' => ['date_of_birth', 'marital_status'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'capture_spouse_details',
+                'description' => 'Capture the user\'s spouse or civil partner details from a free-text reply during onboarding. This creates a linked spouse user account. Call this once per turn. Do not call any other tool.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'first_name' => [
+                            'type' => 'string',
+                            'description' => 'The spouse or partner\'s first name. Extract from phrases like "my partner Jamie" or "called Sarah".',
+                        ],
+                        'last_name' => [
+                            'type' => 'string',
+                            'description' => 'The spouse or partner\'s last name, if provided. Optional.',
+                        ],
+                        'date_of_birth' => [
+                            'type' => 'string',
+                            'description' => 'Spouse/partner date of birth in YYYY-MM-DD format. Parse natural language dates into ISO format.',
+                        ],
+                        'email' => [
+                            'type' => 'string',
+                            'description' => 'The spouse or partner\'s email address. Required — this is used to create their linked account.',
+                        ],
+                        'annual_income' => [
+                            'type' => 'number',
+                            'description' => 'The spouse or partner\'s rough annual income in GBP, if mentioned. Optional. Strip currency symbols and commas; "75k" = 75000.',
+                        ],
+                    ],
+                    'required' => ['first_name', 'date_of_birth', 'email'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'capture_dependants',
+                'description' => 'Capture a list of the user\'s dependants (children or other dependants) from a free-text reply during onboarding. Call this once per turn with an array of all dependants mentioned. Do not call any other tool.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'dependants' => [
+                            'type' => 'array',
+                            'description' => 'One entry per dependant mentioned. Names may be omitted if the user did not provide them (use null).',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'first_name' => [
+                                        'type' => 'string',
+                                        'description' => 'The dependant\'s first name if mentioned, otherwise null.',
+                                    ],
+                                    'age' => [
+                                        'type' => 'integer',
+                                        'description' => 'The dependant\'s age in whole years. Required.',
+                                    ],
+                                    'relationship' => [
+                                        'type' => 'string',
+                                        'enum' => ['child', 'parent', 'other_dependent'],
+                                        'description' => 'Child (son, daughter, step-child, etc.), parent (mother, father, in-law), or other_dependent (sibling, nephew, elderly relative, friend).',
+                                    ],
+                                ],
+                                'required' => ['age', 'relationship'],
+                                'additionalProperties' => false,
+                            ],
+                        ],
+                    ],
+                    'required' => ['dependants'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'capture_work_details',
+                'description' => 'Capture the user\'s employer, position, and annual income from a free-text reply during onboarding. Only used when the user is employed, self-employed, or part-time. Call this once per turn. Do not call any other tool.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'employer' => [
+                            'type' => 'string',
+                            'description' => 'The company or employer name. For self-employed users this may be their trading name or "self-employed".',
+                        ],
+                        'occupation' => [
+                            'type' => 'string',
+                            'description' => 'The user\'s job title or role. e.g. "Software engineer", "Sole trader", "Consultant".',
+                        ],
+                        'annual_income' => [
+                            'type' => 'number',
+                            'description' => 'Gross annual income in GBP. Strip currency symbols and commas; "75k" = 75000. For self-employed users this is self-employment income.',
+                        ],
+                    ],
+                    'required' => ['employer', 'occupation', 'annual_income'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+
+        if ($provider === 'xai') {
+            // xAI / OpenAI function-calling format: wrap in function object
+            // with strict mode. Matches the shape XaiToolDefinitions emits.
+            return array_map(function (array $tool): array {
+                $params = $tool['parameters'];
+                // strict mode requires all properties in `required` — for
+                // extraction tools we already mark required fields, so we
+                // just copy the flag through.
+                $params['additionalProperties'] = false;
+
+                return [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $tool['name'],
+                        'description' => $tool['description'],
+                        'parameters' => $params,
+                        'strict' => false, // strict=false to allow optional fields like last_name
+                    ],
+                ];
+            }, $tools);
+        }
+
+        // Anthropic format: parameters → input_schema
+        return array_map(fn (array $tool) => [
+            'name' => $tool['name'],
+            'description' => $tool['description'],
+            'input_schema' => $tool['parameters'],
+        ], $tools);
+    }
+
     private function profileTools(): array
     {
         return [

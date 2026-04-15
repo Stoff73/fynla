@@ -39,9 +39,9 @@ final class OnboardingStateMachine
 
     public const STATE_FOCUS_SELECTION = 'focus_selection';
 
-    public const STATE_BASE_DOB = 'base_dob';
-
-    public const STATE_BASE_MARITAL = 'base_marital';
+    // base_personal replaces the old base_dob + base_marital pair — one
+    // grouped_extract turn captures both at once via Claude.
+    public const STATE_BASE_PERSONAL = 'base_personal';
 
     public const STATE_BASE_SPOUSE = 'base_spouse';
 
@@ -51,11 +51,12 @@ final class OnboardingStateMachine
 
     public const STATE_BASE_EMPLOYMENT = 'base_employment';
 
-    public const STATE_BASE_OCCUPATION = 'base_occupation';
+    // base_work replaces the old base_occupation + base_income pair —
+    // one grouped_extract turn captures employer, occupation, and income
+    // for employed / self-employed / part-time users.
+    public const STATE_BASE_WORK = 'base_work';
 
     public const STATE_BASE_RETIREMENT_DATE = 'base_retirement_date';
-
-    public const STATE_BASE_INCOME = 'base_income';
 
     public const STATE_BASE_EXPENDITURE = 'base_expenditure';
 
@@ -93,7 +94,7 @@ final class OnboardingStateMachine
                     ['id' => 'goals', 'label' => 'Goals'],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
-                'next' => self::STATE_BASE_DOB,
+                'next' => self::STATE_BASE_PERSONAL,
             ],
             self::STATE_FOCUS_SELECTION => [
                 'turn_type' => 'bubbles',
@@ -105,41 +106,26 @@ final class OnboardingStateMachine
                     ['id' => 'protection', 'label' => 'Protection'],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
-                'next' => self::STATE_BASE_DOB,
+                'next' => self::STATE_BASE_PERSONAL,
             ],
-            self::STATE_BASE_DOB => [
-                'turn_type' => 'free_text',
-                'prompt_text' => JourneyFieldResolver::getFynPrompt('date_of_birth'),
-                'capture_field' => 'date_of_birth',
-                'value_parser' => 'parseDateOfBirth',
-                'next' => self::STATE_BASE_MARITAL,
-                'skip_if' => [self::class, 'skipIfDobSet'],
-            ],
-            self::STATE_BASE_MARITAL => [
-                'turn_type' => 'bubbles',
-                'prompt_text' => JourneyFieldResolver::getFynPrompt('marital_status'),
-                'bubbles' => [
-                    ['id' => 'single', 'label' => 'Single'],
-                    ['id' => 'married', 'label' => 'Married'],
-                    ['id' => 'civil_partnership', 'label' => 'Civil partnership'],
-                    ['id' => 'divorced', 'label' => 'Divorced'],
-                    ['id' => 'widowed', 'label' => 'Widowed'],
-                ],
-                'capture_field' => 'marital_status',
-                'value_parser' => 'parseMaritalFromText',
-                'next' => self::class.'::nextFromMarital',
-                'skip_if' => [self::class, 'skipIfMaritalSet'],
+            self::STATE_BASE_PERSONAL => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => "Let me grab a few basics first, {first_name}. What's your date of birth, and are you single, married, in a civil partnership, divorced, or widowed?",
+                'extraction_tool' => 'capture_personal_details',
+                'retry_text' => "Sorry, I didn't catch both pieces. Could you tell me your date of birth (something like 12 January 1985) and your marital status?",
+                'next' => self::class.'::nextFromPersonal',
+                'skip_if' => [self::class, 'skipIfPersonalComplete'],
             ],
             self::STATE_BASE_SPOUSE => [
-                'turn_type' => 'free_text',
-                'prompt_text' => 'Tell me about your spouse or civil partner — their first name, date of birth, and rough annual income.',
-                'capture_field' => null, // creates FamilyMember row via director
-                'value_parser' => null,  // director handles this manually
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => self::class.'::buildSpousePrompt',
+                'extraction_tool' => 'capture_spouse_details',
+                'retry_text' => "I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?",
                 'next' => self::STATE_BASE_DEPENDANTS,
             ],
             self::STATE_BASE_DEPENDANTS => [
                 'turn_type' => 'bubbles',
-                'prompt_text' => 'Do you have any children or dependants?',
+                'prompt_text' => 'Any children or dependants to add?',
                 'bubbles' => [
                     ['id' => 'yes', 'label' => 'Yes'],
                     ['id' => 'no', 'label' => 'No'],
@@ -148,14 +134,15 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromDependants',
             ],
             self::STATE_BASE_DEPENDANTS_DETAIL => [
-                'turn_type' => 'free_text',
-                'prompt_text' => 'How many, and what are their ages? A short list is fine — something like "two children aged 4 and 7".',
-                'capture_field' => null, // creates FamilyMember rows via director
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => 'Lovely. Tell me their first names, ages, and how they are related to you (child, parent, or other dependant). You can list several in one go.',
+                'extraction_tool' => 'capture_dependants',
+                'retry_text' => 'Could you list them again with ages and how they are related? Something like "Alice 7 child, Bob 4 child".',
                 'next' => self::STATE_BASE_EMPLOYMENT,
             ],
             self::STATE_BASE_EMPLOYMENT => [
                 'turn_type' => 'bubbles',
-                'prompt_text' => JourneyFieldResolver::getFynPrompt('employment_status'),
+                'prompt_text' => "And what's your employment situation at the moment?",
                 'bubbles' => [
                     ['id' => 'employed', 'label' => 'Employed'],
                     ['id' => 'self_employed', 'label' => 'Self-employed'],
@@ -169,27 +156,19 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromEmployment',
                 'skip_if' => [self::class, 'skipIfEmploymentSet'],
             ],
-            self::STATE_BASE_OCCUPATION => [
-                'turn_type' => 'free_text',
-                'prompt_text' => JourneyFieldResolver::getFynPrompt('occupation'),
-                'capture_field' => 'occupation',
-                'value_parser' => null, // store as-is
-                'next' => self::STATE_BASE_INCOME,
+            self::STATE_BASE_WORK => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => self::class.'::buildWorkPrompt',
+                'extraction_tool' => 'capture_work_details',
+                'retry_text' => 'I need three things: the company or trade name, your position, and your gross annual income in GBP. Could you share all three?',
+                'next' => self::STATE_BASE_EXPENDITURE,
             ],
             self::STATE_BASE_RETIREMENT_DATE => [
                 'turn_type' => 'free_text',
-                'prompt_text' => 'When did you retire? A year is fine if you do not remember the exact month.',
+                'prompt_text' => 'When did you retire? A year is fine — something like "2020".',
                 'capture_field' => 'retirement_date',
                 'value_parser' => 'parseRetirementDate',
-                'next' => self::STATE_BASE_INCOME,
-            ],
-            self::STATE_BASE_INCOME => [
-                'turn_type' => 'free_text',
-                'prompt_text' => JourneyFieldResolver::getFynPrompt('annual_employment_income'),
-                'capture_field' => 'annual_employment_income',
-                'value_parser' => 'parseIncomeAmount',
                 'next' => self::STATE_BASE_EXPENDITURE,
-                'skip_if' => [self::class, 'skipIfIncomeSet'],
             ],
             self::STATE_BASE_EXPENDITURE => [
                 'turn_type' => 'free_text',
@@ -280,7 +259,9 @@ final class OnboardingStateMachine
     /**
      * Follow skip_if rules transitively — if the target state's skip_if
      * returns true, advance to its own next state without user interaction.
-     * Bounded to avoid infinite loops with bad config.
+     * Handles both static next state ids and callable next references
+     * (e.g. nextFromPersonal which branches on marital_status). Bounded
+     * to avoid infinite loops with bad config.
      */
     public static function applySkipRules(string $targetStateId, User $user, int $depth = 0): ?string
     {
@@ -302,7 +283,11 @@ final class OnboardingStateMachine
             return $targetStateId;
         }
 
-        // Skip this state — evaluate its 'next' without user input
+        // Skip this state — evaluate its 'next' without a user answer.
+        // For callable next references, pass an empty answer string — the
+        // branching helpers in this file use `$user` state (marital_status,
+        // employment_status, etc.) to pick the target, so the empty answer
+        // is safe.
         $next = $state['next'] ?? null;
         if ($next === null) {
             return null;
@@ -312,10 +297,20 @@ final class OnboardingStateMachine
             return self::applySkipRules($next, $user, $depth + 1);
         }
 
-        // For skip transitions, we don't have a user answer to branch on —
-        // if the next is a callable, we fall back to the first bubble id or
-        // return the state as-is. In practice all skip_if states use static
-        // next values so this is fine.
+        if (is_string($next) && self::isCallableReference($next)) {
+            $target = self::invokeCallableString($next, '', $user);
+            if (is_string($target)) {
+                return self::applySkipRules($target, $user, $depth + 1);
+            }
+        }
+
+        if (is_callable($next)) {
+            $target = $next('', $user);
+            if (is_string($target)) {
+                return self::applySkipRules($target, $user, $depth + 1);
+            }
+        }
+
         return $targetStateId;
     }
 
@@ -331,7 +326,12 @@ final class OnboardingStateMachine
         return self::STATE_FOCUS_SELECTION;
     }
 
-    public static function nextFromMarital(string $answer, User $user): string
+    /**
+     * After base_personal (grouped DOB + marital_status), branch:
+     *  - married or civil_partnership → base_spouse
+     *  - single / divorced / widowed → base_dependants
+     */
+    public static function nextFromPersonal(string $answer, User $user): string
     {
         $marital = $user->marital_status ?? '';
         if (in_array($marital, ['married', 'civil_partnership'], true)) {
@@ -351,18 +351,57 @@ final class OnboardingStateMachine
         return self::STATE_BASE_EMPLOYMENT;
     }
 
+    /**
+     * After base_employment bubble pick:
+     *  - employed / full_time / self_employed / part_time → base_work
+     *    (grouped employer + occupation + income)
+     *  - retired → base_retirement_date
+     *  - unemployed / other → straight to base_expenditure (no income to ask)
+     */
     public static function nextFromEmployment(string $answer, User $user): string
     {
         $status = $user->employment_status ?? '';
         if (in_array($status, ['employed', 'full_time', 'part_time', 'self_employed'], true)) {
-            return self::STATE_BASE_OCCUPATION;
+            return self::STATE_BASE_WORK;
         }
 
         if ($status === 'retired') {
             return self::STATE_BASE_RETIREMENT_DATE;
         }
 
-        return self::STATE_BASE_INCOME;
+        return self::STATE_BASE_EXPENDITURE;
+    }
+
+    /**
+     * Builds a personalised spouse prompt that uses "partner" for civil
+     * partnership and "spouse" for married. Called at runtime from the
+     * grouped_extract turn config.
+     */
+    public static function buildSpousePrompt(string $answer, User $user): string
+    {
+        $isCivilPartnership = ($user->marital_status ?? '') === 'civil_partnership';
+        $word = $isCivilPartnership ? 'partner' : 'spouse';
+
+        return "Great — let's add your {$word}'s details. Can you share their first name, date of birth, and email address? I'll create an account and link the two of you so you can plan together.";
+    }
+
+    /**
+     * Builds a personalised work prompt that matches the user's chosen
+     * employment_status (self-employed users get "trade name" wording).
+     */
+    public static function buildWorkPrompt(string $answer, User $user): string
+    {
+        $status = $user->employment_status ?? 'employed';
+
+        if ($status === 'self_employed') {
+            return "Brilliant. Let me know your trade or business name, your main role, and your gross annual self-employment income — all in one go is fine.";
+        }
+
+        if ($status === 'part_time') {
+            return "Lovely. Share the company you work for part-time, your position, and your gross annual income from that role.";
+        }
+
+        return "Brilliant. Share the company you work for, your position, and your gross annual income — all in one go is fine.";
     }
 
     public static function nextFromAddMore(string $answer, User $user): string
@@ -401,31 +440,19 @@ final class OnboardingStateMachine
 
     // ─── skip_if helpers ─────────────────────────────────────────────────
 
-    public static function skipIfDobSet(User $user): bool
+    /**
+     * Skip base_personal only if BOTH date_of_birth AND marital_status
+     * are already set. Either one missing means we still need to run
+     * the grouped_extract turn.
+     */
+    public static function skipIfPersonalComplete(User $user): bool
     {
-        return ! empty($user->date_of_birth);
-    }
-
-    public static function skipIfMaritalSet(User $user): bool
-    {
-        return ! empty($user->marital_status);
+        return ! empty($user->date_of_birth) && ! empty($user->marital_status);
     }
 
     public static function skipIfEmploymentSet(User $user): bool
     {
         return ! empty($user->employment_status);
-    }
-
-    public static function skipIfIncomeSet(User $user): bool
-    {
-        $total = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0);
-
-        return $total > 0;
     }
 
     public static function skipIfExpenditureSet(User $user): bool

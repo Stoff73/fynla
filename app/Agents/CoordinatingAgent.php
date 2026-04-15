@@ -82,15 +82,17 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Chat with an override system prompt and tool allowlist.
      *
-     * Used by OnboardingChatDirector during asset_capture delegation to
-     * run the existing chat() pipeline (streaming, tool loop, persistence)
-     * with a stripped-down prompt and a focus-filtered create_* tool set.
+     * Used by OnboardingChatDirector during asset_capture delegation
+     * (allowedTools filters the existing tool set) and grouped_extract
+     * delegation (toolsListOverride replaces the tool set entirely with
+     * the onboarding extraction tools).
      *
      * Overrides are applied for the duration of this call only — a
      * try/finally block guarantees they are cleared even if the delegated
      * chat() generator throws.
      *
      * @param  list<string>|null  $allowedTools
+     * @param  list<array<string, mixed>>|null  $toolsListOverride
      */
     public function chatWithPromptOverride(
         \App\Models\User $user,
@@ -100,11 +102,13 @@ class CoordinatingAgent extends BaseAgent
         ?string $systemPromptOverride,
         ?array $allowedTools,
         bool $persistUserMessage = true,
+        ?array $toolsListOverride = null,
     ): \Generator {
         $this->setChatOverrides(
             systemPrompt: $systemPromptOverride,
             allowedTools: $allowedTools,
             skipUserMessagePersistence: ! $persistUserMessage,
+            toolsListOverride: $toolsListOverride,
         );
 
         try {
@@ -705,6 +709,10 @@ class CoordinatingAgent extends BaseAgent
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
+                'capture_personal_details' => $this->handleCapturePersonalDetails($input, $user),
+                'capture_spouse_details' => $this->handleCaptureSpouseDetails($input, $user),
+                'capture_dependants' => $this->handleCaptureDependants($input, $user),
+                'capture_work_details' => $this->handleCaptureWorkDetails($input, $user),
                 'list_records' => $this->handleListRecords($input, $user),
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
@@ -767,6 +775,239 @@ class CoordinatingAgent extends BaseAgent
     private function handleNavigation(array $input): array
     {
         return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
+    }
+
+    // ─── Onboarding grouped-extraction handlers ──────────────────────
+
+    /**
+     * capture_personal_details — writes date_of_birth + marital_status
+     * to users. Validates the DOB and enforces the age bounds used by
+     * OnboardingValueInterpreter.
+     */
+    private function handleCapturePersonalDetails(array $input, User $user): array
+    {
+        $dob = (string) ($input['date_of_birth'] ?? '');
+        $marital = (string) ($input['marital_status'] ?? '');
+
+        if ($dob === '' || $marital === '') {
+            return ['error' => true, 'message' => 'date_of_birth and marital_status are both required'];
+        }
+
+        try {
+            $carbonDob = \Carbon\Carbon::parse($dob);
+        } catch (\Throwable $e) {
+            return ['error' => true, 'message' => 'Invalid date_of_birth — must be YYYY-MM-DD'];
+        }
+
+        $age = $carbonDob->diffInYears(\Carbon\Carbon::now());
+        if ($age < 18 || $age > 105) {
+            return ['error' => true, 'message' => 'date_of_birth gives an age outside 18–105'];
+        }
+
+        $allowedMarital = ['single', 'married', 'civil_partnership', 'divorced', 'widowed'];
+        if (! in_array($marital, $allowedMarital, true)) {
+            return ['error' => true, 'message' => 'Invalid marital_status'];
+        }
+
+        $user->date_of_birth = $carbonDob->format('Y-m-d');
+        $user->marital_status = $marital;
+        $user->save();
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'personal',
+            'summary' => 'Personal details saved',
+            'details' => [
+                'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+                'marital_status' => $user->marital_status,
+            ],
+        ];
+    }
+
+    /**
+     * capture_spouse_details — delegates to SpouseLinkingService to
+     * create or link the spouse user account and create the reciprocal
+     * FamilyMember rows. Respects the user's current marital_status
+     * (civil_partnership stays civil_partnership).
+     */
+    private function handleCaptureSpouseDetails(array $input, User $user): array
+    {
+        $firstName = trim((string) ($input['first_name'] ?? ''));
+        $email = trim((string) ($input['email'] ?? ''));
+        $dob = trim((string) ($input['date_of_birth'] ?? ''));
+
+        if ($firstName === '' || $email === '' || $dob === '') {
+            return ['error' => true, 'message' => 'first_name, date_of_birth and email are required'];
+        }
+
+        // Validate email shape before hitting the service
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['error' => true, 'message' => 'Invalid spouse email address'];
+        }
+
+        try {
+            $dobFormatted = \Carbon\Carbon::parse($dob)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return ['error' => true, 'message' => 'Invalid spouse date_of_birth'];
+        }
+
+        $service = app(\App\Services\Onboarding\SpouseLinkingService::class);
+
+        try {
+            $result = $service->linkOrCreateSpouse($user, [
+                'first_name' => $firstName,
+                'last_name' => trim((string) ($input['last_name'] ?? '')),
+                'date_of_birth' => $dobFormatted,
+                'email' => $email,
+                'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return ['error' => true, 'message' => $e->getMessage()];
+        } catch (\Throwable $e) {
+            Log::error('[CoordinatingAgent] handleCaptureSpouseDetails failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['error' => true, 'message' => 'Could not link spouse account. Please try again.'];
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'spouse',
+            'summary' => $result['created_new_user']
+                ? 'Spouse account created and linked'
+                : 'Spouse account linked',
+            'details' => [
+                'family_member_id' => $result['family_member']->id,
+                'spouse_user_id' => $result['spouse_user']->id,
+                'created_new_user' => $result['created_new_user'],
+                'already_linked' => $result['already_linked'],
+                'email_sent' => $result['email_sent'],
+                'first_name' => $firstName,
+            ],
+        ];
+    }
+
+    /**
+     * capture_dependants — creates one FamilyMember row per dependant.
+     * Age drives relationship (child < 18, other_dependent >= 18 unless
+     * the caller already specified 'parent'). DOB is inferred from age.
+     */
+    private function handleCaptureDependants(array $input, User $user): array
+    {
+        $dependants = is_array($input['dependants'] ?? null) ? $input['dependants'] : [];
+        if (count($dependants) === 0) {
+            return ['error' => true, 'message' => 'dependants list is empty'];
+        }
+
+        $created = [];
+        foreach ($dependants as $dep) {
+            $age = (int) ($dep['age'] ?? -1);
+            if ($age < 0 || $age > 120) {
+                continue;
+            }
+
+            $relationship = (string) ($dep['relationship'] ?? 'other_dependent');
+            if (! in_array($relationship, ['child', 'parent', 'other_dependent'], true)) {
+                $relationship = $age < 18 ? 'child' : 'other_dependent';
+            }
+
+            $firstName = trim((string) ($dep['first_name'] ?? ''));
+
+            $familyMember = \App\Models\FamilyMember::create([
+                'user_id' => $user->id,
+                'household_id' => $user->household_id,
+                'relationship' => $relationship,
+                'first_name' => $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant'),
+                'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
+                'is_dependent' => true,
+                'education_status' => $this->educationStatusForAge($age),
+                'notes' => 'Captured via Fyn onboarding.',
+            ]);
+
+            $created[] = [
+                'id' => $familyMember->id,
+                'first_name' => $familyMember->first_name,
+                'age' => $age,
+                'relationship' => $relationship,
+            ];
+        }
+
+        if (count($created) === 0) {
+            return ['error' => true, 'message' => 'No valid dependants could be saved'];
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'dependants',
+            'summary' => count($created).' dependant'.(count($created) === 1 ? '' : 's').' saved',
+            'details' => [
+                'count' => count($created),
+                'dependants' => $created,
+            ],
+        ];
+    }
+
+    /**
+     * capture_work_details — writes employer + occupation + income to
+     * users. For self-employed users, income lands on
+     * annual_self_employment_income instead of annual_employment_income.
+     */
+    private function handleCaptureWorkDetails(array $input, User $user): array
+    {
+        $employer = trim((string) ($input['employer'] ?? ''));
+        $occupation = trim((string) ($input['occupation'] ?? ''));
+        $income = isset($input['annual_income']) ? (float) $input['annual_income'] : null;
+
+        if ($employer === '' || $occupation === '' || $income === null || $income < 0) {
+            return ['error' => true, 'message' => 'employer, occupation, and annual_income are required'];
+        }
+
+        if ($income > 99_999_999) {
+            return ['error' => true, 'message' => 'annual_income exceeds permitted range'];
+        }
+
+        $user->employer = $employer;
+        $user->occupation = $occupation;
+
+        if ($user->employment_status === 'self_employed') {
+            $user->annual_self_employment_income = $income;
+        } else {
+            $user->annual_employment_income = $income;
+        }
+
+        $user->save();
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'work',
+            'summary' => 'Work details saved',
+            'details' => [
+                'employer' => $employer,
+                'occupation' => $occupation,
+                'annual_income' => $income,
+                'income_field' => $user->employment_status === 'self_employed'
+                    ? 'annual_self_employment_income'
+                    : 'annual_employment_income',
+            ],
+        ];
+    }
+
+    /**
+     * Map a dependant age to the closest education_status enum value on
+     * family_members. Mirrors OnboardingChatDirector::educationStatusForAge
+     * so the legacy regex path and the new LLM path are consistent.
+     */
+    private function educationStatusForAge(int $age): string
+    {
+        return match (true) {
+            $age < 5 => 'pre_school',
+            $age < 11 => 'primary',
+            $age < 18 => 'secondary',
+            $age < 25 => 'higher_education',
+            default => 'not_applicable',
+        };
     }
 
     private function handleListRecords(array $input, User $user): array
