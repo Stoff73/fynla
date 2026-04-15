@@ -314,7 +314,7 @@
     <ReviewCarousel />
 
     <!-- Scenarios -->
-    <div id="solutions" class="bg-light-pink-100 pt-10 lg:pt-12 pb-24">
+    <div id="solutions" class="bg-eggshell-500 pt-10 lg:pt-12 pb-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your personal journey</h2>
 
@@ -359,23 +359,61 @@
       </div>
     </div>
 
-    <!-- Stats Bar - Straddles solutions section and footer -->
+    <!-- Latest insights -->
+    <div class="bg-light-pink-100 pt-12 pb-28">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6" style="letter-spacing:-0.02em;">Latest insights</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <router-link
+            v-for="article in latestInsights"
+            :key="article.slug"
+            :to="article.slug"
+            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col no-underline"
+          >
+            <div class="aspect-[16/9] overflow-hidden bg-horizon-100">
+              <img
+                :src="getInsightImage(article.image)"
+                :alt="article.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col">
+              <p class="text-[0.65rem] text-neutral-400 mb-1 uppercase tracking-wide">{{ article.date }}</p>
+              <h3 class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-1.5 leading-snug">
+                {{ article.title }}
+              </h3>
+              <p class="text-xs text-neutral-500 mb-2 leading-relaxed flex-1 line-clamp-2">{{ article.summary }}</p>
+              <span class="text-xs font-semibold text-raspberry-500">Read &rarr;</span>
+            </div>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-6">
+          <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">
+            See all insights &rarr;
+          </router-link>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Bar - Straddles latest insights section and footer -->
     <div class="relative z-10 -mt-14 -mb-24">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="card-lg flex flex-col sm:flex-row items-start justify-around gap-6 py-8">
-          <div class="text-center flex-1">
-            <div class="text-4xl font-bold text-horizon-500">91%</div>
-            <div class="text-sm font-semibold text-neutral-500 mt-1">UK adults don't get financial advice</div>
+        <div class="card-lg flex flex-row items-start justify-around gap-3 sm:gap-6 py-6 sm:py-8">
+          <div class="text-center flex-1 min-w-0">
+            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">91%</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">UK adults don't get financial advice</div>
           </div>
-          <div class="hidden sm:block w-px self-stretch bg-light-gray"></div>
-          <div class="text-center flex-1">
-            <div class="text-4xl font-bold text-horizon-500">1</div>
-            <div class="text-sm font-semibold text-neutral-500 mt-1">The only UK platform designed for students to retirees</div>
+          <div class="block w-px self-stretch bg-light-gray"></div>
+          <div class="text-center flex-1 min-w-0">
+            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">1</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">The only UK platform designed for students to retirees</div>
           </div>
-          <div class="hidden sm:block w-px self-stretch bg-light-gray"></div>
-          <div class="text-center flex-1">
-            <div class="text-4xl font-bold text-horizon-500">30+</div>
-            <div class="text-sm font-semibold text-neutral-500 mt-1">Fynla features for financial planning</div>
+          <div class="block w-px self-stretch bg-light-gray"></div>
+          <div class="text-center flex-1 min-w-0">
+            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">30+</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">Fynla features for financial planning</div>
           </div>
         </div>
       </div>
@@ -400,6 +438,11 @@ import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vu
 import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 import logger from '@/utils/logger';
+
+// Auto-import insight images so the latest-insights panels resolve the same
+// bundled URLs as the Insights hub page.
+const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
+
 export default {
   name: 'LandingPage',
 
@@ -416,6 +459,29 @@ export default {
       previewError: '',
       chatInput: '',
       fynDetailsOpen: false,
+      latestInsights: [
+        {
+          slug: '/insights/how-much-to-retire-uk',
+          title: 'How Much Do I Need to Retire in the UK?',
+          date: '14 April 2026',
+          summary: 'Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.',
+          image: 'how-much-to-retire-uk.jpg',
+        },
+        {
+          slug: '/insights/stocks-shares-isa-uk',
+          title: 'What Is a Stocks and Shares ISA?',
+          date: '13 April 2026',
+          summary: 'How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.',
+          image: 'stocks-shares-isa.jpg',
+        },
+        {
+          slug: '/insights/isa-guide-uk',
+          title: 'The Ultimate Guide to ISAs in the UK',
+          date: '8 April 2026',
+          summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and choosing the right one.',
+          image: 'isa-guide-uk.jpg',
+        },
+      ],
     };
   },
 
@@ -441,6 +507,12 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
+
+    getInsightImage(filename) {
+      if (!filename) return null;
+      const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));
+      return key ? insightImages[key] : null;
+    },
 
     setMetaDescription(content) {
       let meta = document.querySelector('meta[name="description"]');
