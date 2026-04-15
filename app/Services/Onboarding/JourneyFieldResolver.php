@@ -330,6 +330,30 @@ class JourneyFieldResolver
         'monthly_expenditure',
     ];
 
+    /**
+     * Return a single field definition from FIELD_DEFINITIONS, or null if
+     * the key is not known. Used by the OnboardingStateMachine to pull the
+     * fyn_prompt copy for each state without duplicating it in state config.
+     */
+    public static function getFieldDefinition(string $fieldKey): ?array
+    {
+        return self::FIELD_DEFINITIONS[$fieldKey] ?? null;
+    }
+
+    /**
+     * Return just the fyn_prompt string for a field, falling back to the
+     * label if fyn_prompt is missing. Safe default for the state machine.
+     */
+    public static function getFynPrompt(string $fieldKey): string
+    {
+        $definition = self::FIELD_DEFINITIONS[$fieldKey] ?? null;
+        if ($definition === null) {
+            return '';
+        }
+
+        return (string) ($definition['fyn_prompt'] ?? $definition['label'] ?? '');
+    }
+
     public function getFieldsForJourneys(array $journeys): array
     {
         $this->validateJourneyNames($journeys);
