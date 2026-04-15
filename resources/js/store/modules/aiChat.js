@@ -17,7 +17,6 @@ const state = {
     streamingText: '',
     loading: false,
     loadingConversations: false,
-    pendingJourneyPrompt: false,
     error: null,
     tokenLimitReached: false,
     tokenResetAt: null,
@@ -110,10 +109,6 @@ const mutations = {
         state.prefilledPrompt = prompt;
     },
 
-    SET_PENDING_JOURNEY_PROMPT(state, pending) {
-        state.pendingJourneyPrompt = pending;
-    },
-
     SET_ABORT_CONTROLLER(state, controller) {
         state.abortController = controller;
     },
@@ -153,7 +148,6 @@ const mutations = {
         state.pendingNavigation = null;
         state.prefilledPrompt = null;
         state.abortController = null;
-        state.pendingJourneyPrompt = false;
     },
 };
 
