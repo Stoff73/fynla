@@ -85,13 +85,13 @@
                         </table>
                     </div>
 
-                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">You can download your invoice or manage your subscription from your account settings.</p>
+                    <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0;">Your invoice is attached to this email. You can manage your subscription from your account settings.</p>
                 </td></tr>
 
                 {{-- CTA Block: Raspberry Gradient --}}
                 <tr><td style="background-color: #e74c6f; padding: 28px 36px; text-align: center;">
-                    <p style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">View and download your invoice</p>
-                    <a href="https://fynla.org/profile#subscription" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #ffffff; color: #e74c6f; box-shadow: 0 4px 14px #d9d3cc;">View invoice</a>
+                    <p style="color: #ffffff; font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Manage your subscription</p>
+                    <a href="{{ config('app.url') }}/profile?section=subscription" style="display: inline-block; padding: 14px 40px; border-radius: 12px; font-size: 16px; font-weight: 700; background: #ffffff; color: #e74c6f; box-shadow: 0 4px 14px #d9d3cc;">View subscription</a>
                 </td></tr>
 
                 {{-- Footer --}}
