@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 21 April 2026 — session 58*
-*Previous session: 17 April 2026 — session 57*
+*Last updated: 22 April 2026 — session 60*
+*Previous session: 21 April 2026 — session 58*
 
 ---
 
@@ -14,7 +14,9 @@
 
 ### NOT Done — Outstanding from Session 58
 
-- [ ] **Quick start Fyn flow bugs** — the "Quick start with Fyn" CTA on `/quickstart` links to `/register?from=fyn` but the underlying new-user Fyn flow has known bugs (see `fynQuickStartBugs.md`). The CTA is enabled on the campaign page as requested; verify the flow works before driving traffic to `/quickstart`.
+- [ ] **Quick start Fyn flow bugs** — the "Quick start with Fyn" CTA on `/quickstart` links to `/register?from=fyn` but the underlying new-user Fyn flow has known bugs (see `fynQuickStartBugs.md`).
+- [ ] **Dev server Awin env vars** — `AWIN_ENABLED`, `AWIN_MERCHANT_ID`, `AWIN_COOKIE_DOMAIN=csjones.co` need adding to csjones.co `.env`.
+- [ ] **Re-enable branch protection** — review requirement on `dev` branch was disabled for PR merges.
 
 ### Context for Next Session
 
@@ -95,7 +97,7 @@ grep '\[awin\]' storage/logs/laravel.log | tail -20
 - [ ] **Jessica Cracknell (user 301)** — ghost trial cleanup side effect from session 51; she was the only real user in the batch of 11 expired trialing subs. Never received a reminder email. Worth flagging if she gets in touch, and/or a goodwill gesture (trial reset, one-off discount).
 - [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to document the SiteGround cron setup as a deploy step (so this can never recur on a future server migration).
 - [ ] **Verify cron is still firing on production** — should be running daily per session 51 setup. Check trial_reminder_log + pending_registrations cleanup (hourly) + laravel.log for any scheduler errors.
-- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47.
+- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47. Note: chris@fynla.org now has a new payment with invoice from session 59 testing.
 - [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged.
 - [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting. Note: this is a different file from `.claude/settings.local.json` (already ignored) and `.claude/scheduled_tasks.lock` (ignored by session 56).
 - [ ] **Fyn Quick Start flow "empty user" issue** — the `dc_pensions.current_value` typo blocker is now resolved, but the original fynQuickStartBugs.md report also flagged that `CoordinatingAgent::buildFinancialContext()` runs full module analyses against users with zero data, causing the AI to hallucinate numbers and module agents to error on empty data. Fix options documented in `April/April9Updates/fynQuickStartBugs.md` section 2. The "Quick start with Fyn" CTA is still hidden on the landing page until this is addressed.
@@ -148,4 +150,6 @@ grep '\[awin\]' storage/logs/laravel.log | tail -20
 - **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
 - **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
 - **Awin tracking fix + email consolidation:** DEPLOYED 16 April 2026 — `voucher` property name fix (was `voucherCode`), MasterTag defer-only, payment email consolidation (single email with invoice PDF), Affiliate Reference conditional on AWC cookie. PR #216 (awinPlusDev → dev).
+- **Fyn chat fix (fynChatFix):** DEPLOYED TO DEV 16 April 2026 — tool metadata stripping, path→link conversion, savings query tool routing fix. On `onboardingFyn` branch. Not yet on production.
+- **Invoice fix + auto-renew + admin pagination + privacy policy:** DEPLOYED 16 April 2026 — PR #218 merged + direct commit to main. Invoice view page, billing history fix, email link fix, auto-renew on all payments, admin pagination server-side, Fyn AI privacy notice.
 - **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.
