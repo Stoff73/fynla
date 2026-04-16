@@ -94,13 +94,19 @@ class AdminController extends Controller
             $request->validate([
                 'per_page' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|nullable|string|max:100',
+                'status' => 'sometimes|nullable|string|in:trialing,active,expired,cancelled,past_due',
             ]);
 
             $perPage = min((int) $request->query('per_page', 15), 100);
             $search = $request->query('search');
+            $status = $request->query('status');
 
             $query = User::with(['role', 'spouse:id,first_name,surname,email', 'subscription', 'subscription.payments'])
                 ->where('is_preview_user', false);
+
+            if ($status) {
+                $query->whereHas('subscription', fn ($q) => $q->where('status', $status));
+            }
 
             if ($search) {
                 $search = substr($search, 0, 100); // Extra safety: truncate to max 100 chars
