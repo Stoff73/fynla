@@ -64,10 +64,18 @@
                                 <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Date</td>
                                 <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">{{ $paymentDate }}</td>
                             </tr>
+                            @if($invoiceNumber ?? null)
                             <tr>
-                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Reference</td>
-                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">FYN-{{ str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT) }}</td>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Invoice Reference</td>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">{{ $invoiceNumber }}</td>
                             </tr>
+                            @endif
+                            @if($awinOrderRef ?? null)
+                            <tr>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; color: #888;">Affiliate Reference</td>
+                                <td style="padding: 10px 0; border-bottom: 1px solid #e8e2db; font-size: 14px; font-weight: 600; color: #1F2A44;" align="right">{{ $awinOrderRef }}</td>
+                            </tr>
+                            @endif
                             @if(($autoRenew ?? false) && ($nextRenewalDate ?? null))
                             <tr>
                                 <td style="padding: 10px 0; font-size: 14px; color: #888;">Next renewal</td>

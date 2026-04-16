@@ -9,9 +9,12 @@ use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentConfirmation extends Mailable
 {
@@ -39,6 +42,8 @@ class PaymentConfirmation extends Mailable
             ? ($this->payment->amount + $this->payment->discount_amount)
             : $this->payment->amount;
 
+        $invoice = $this->payment->invoice;
+
         return new Content(
             view: 'emails.payment-confirmation',
             with: [
@@ -56,8 +61,42 @@ class PaymentConfirmation extends Mailable
                 'renewalAmount' => number_format(($subscription->amount ?? $this->payment->amount) / 100, 2),
                 'nextRenewalDate' => $subscription->current_period_end?->format('j F Y'),
                 'autoRenew' => $subscription->auto_renew ?? false,
+                'invoiceNumber' => $invoice?->invoice_number,
+                'awinOrderRef' => $this->payment->awin_cks ? $this->payment->awin_order_ref : null,
             ],
         );
+    }
+
+    /**
+     * @return array<int, Attachment>
+     */
+    public function attachments(): array
+    {
+        $invoice = $this->payment->invoice;
+
+        if (! $invoice) {
+            Log::warning('CRITICAL: Payment confirmation sent without invoice — legal requirement', [
+                'payment_id' => $this->payment->id,
+            ]);
+
+            return [];
+        }
+
+        if ($invoice->pdf_path && Storage::exists($invoice->pdf_path)) {
+            return [
+                Attachment::fromStorage($invoice->pdf_path)
+                    ->as("{$invoice->invoice_number}.pdf")
+                    ->withMime('application/pdf'),
+            ];
+        }
+
+        Log::warning('Invoice exists but PDF file missing', [
+            'payment_id' => $this->payment->id,
+            'invoice_number' => $invoice->invoice_number,
+            'pdf_path' => $invoice->pdf_path,
+        ]);
+
+        return [];
     }
 
     private function describeDiscount(\App\Models\DiscountCode $discount): string

@@ -191,7 +191,7 @@ class LifeStageService
      */
     private function hasPensionValueAbove(User $user, float $threshold): bool
     {
-        $dcTotal = $user->dcPensions()->sum('current_value');
+        $dcTotal = $user->dcPensions()->sum('current_fund_value');
         $dbTotal = $user->dbPensions()->sum('transfer_value');
 
         return ($dcTotal + $dbTotal) > $threshold;

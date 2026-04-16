@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
-use App\Mail\PaymentConfirmation;
+use App\Jobs\FireAwinConversionJob;
 use App\Models\Payment;
 use App\Models\SubscriptionPlan;
 use App\Services\Payment\RevolutService;
@@ -15,7 +15,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class WebhookController extends Controller
 {
@@ -158,15 +157,9 @@ class WebhookController extends Controller
                     'trial_ends_at' => null,
                 ]);
 
-                // Send confirmation email
-                try {
-                    Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
-                } catch (\Exception $e) {
-                    Log::error('Webhook: failed to send payment confirmation email', [
-                        'user_id' => $user->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                // Confirmation email is sent from confirmPayment() after invoice
+                // generation so the PDF can be attached. Not sent here because
+                // the invoice doesn't exist yet at webhook time.
 
                 Log::info('Revolut webhook: subscription activated', [
                     'user_id' => $user->id,
@@ -174,6 +167,14 @@ class WebhookController extends Controller
                     'plan' => $planSlug,
                     'billing_cycle' => $billingCycle,
                 ]);
+
+                // Fire Awin conversion (idempotent — job short-circuits if
+                // awin_fired_at is already set). Dispatched from both webhook
+                // and confirmPayment paths; whichever arrives second is a
+                // no-op. Admin accounts are excluded.
+                if (config('awin.enabled') && ! $user->is_admin) {
+                    FireAwinConversionJob::dispatch($payment->id);
+                }
             });
         } catch (\Throwable $e) {
             Log::error('Revolut webhook processing failed', [

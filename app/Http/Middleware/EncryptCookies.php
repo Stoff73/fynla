@@ -14,6 +14,8 @@ class EncryptCookies extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        // Awin's affiliate click reference — must reach their S2S endpoint as
+        // the raw value captured at click time, unencrypted by Laravel.
+        'awc',
     ];
 }
