@@ -343,7 +343,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gradient-to-r from-horizon-600 to-horizon-700 pt-28">
+    <footer class="bg-gradient-to-r from-horizon-600 to-horizon-700 pt-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-8">
           <!-- Company Info -->
