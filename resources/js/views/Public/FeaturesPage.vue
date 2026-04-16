@@ -137,6 +137,8 @@
       </div>
     </div>
 
+    <ReviewCarousel />
+
     <!-- CTA Section -->
     <div class="bg-light-pink-100 py-16">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -158,10 +160,11 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 export default {
   name: 'FeaturesPage',
-  components: { PublicLayout },
+  components: { PublicLayout, ReviewCarousel },
 
   data() {
     return {

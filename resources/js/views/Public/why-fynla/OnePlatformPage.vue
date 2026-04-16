@@ -68,6 +68,8 @@
       </div>
     </section>
 
+    <ReviewCarousel />
+
     <!-- Explore the platform -->
     <section class="py-14 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -88,12 +90,14 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 export default {
   name: 'OnePlatformPage',
 
   components: {
     PublicLayout,
+    ReviewCarousel,
   },
 
   data() {
