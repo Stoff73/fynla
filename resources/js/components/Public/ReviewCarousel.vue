@@ -105,19 +105,19 @@ export default {
           text: '"It was so easy to see all my finances in one place. I had all current and savings accounts in different locations and had no idea what to do with my money. Fyn was really helpful in getting my information into Fynla, and then I had clear next steps on what I needed to do with my money."',
         },
         {
-          name: 'David W.',
-          plan: 'Standard plan user',
-          text: '"I\'d been putting off sorting my estate planning for years. Fynla walked me through it step by step. Now I actually understand my inheritance tax position."',
+          name: 'Anne L.',
+          plan: 'Fynla user',
+          text: '"Fynla has been a useful way to get a clearer picture of my finances without it feeling overwhelming. It pulls everything into one place, making it much easier to see where things stand. The recommendations are sensible and practical, giving me clear next steps rather than trying to do everything at once."',
         },
         {
-          name: 'Richard T.',
-          plan: 'Family plan user',
-          text: '"My wife and I use the Family plan together. Being able to see our joint assets and individual pensions side by side has completely changed how we plan. Worth every penny."',
+          name: 'Neil S.',
+          plan: 'Fynla user',
+          text: '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save \u00A31,400 a year!"',
         },
         {
-          name: 'Laura P.',
-          plan: 'Standard plan user',
-          text: '"As someone who\'s self-employed, keeping track of multiple pensions and ISAs was a nightmare. Fynla brought it all together beautifully. The retirement projections alone are worth the subscription."',
+          name: 'Ron B.',
+          plan: 'Fynla user',
+          text: '"Finally, everything in one place. Our family\u2019s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless \u2014 intuitive, genuinely useful, and asks exactly the right questions. I can\u2019t imagine going back to spreadsheets."',
         },
         {
           name: 'Michael H.',
