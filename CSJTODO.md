@@ -1,7 +1,34 @@
 # CSJTODO — Fynla
 
-*Last updated: 15 April 2026 — session 56*
-*Previous session: 14 April 2026 — sessions 51 & 52*
+*Last updated: 16 April 2026 — session 57*
+*Previous session: 15 April 2026 — session 56*
+
+---
+
+## Session 57 (16 April) — Awin Tracking Fix + Email Consolidation
+
+### Completed This Session
+
+- [x] **Full Awin installation guide audit** — compared all 5 pages of the Awin Tracking Installation Guide against our implementation. Found 3 issues, all fixed.
+- [x] **CRITICAL: `voucherCode` → `voucher`** — `AWIN.Tracking.Sale.voucherCode` renamed to `AWIN.Tracking.Sale.voucher`. Root cause of the "Parameter Values not matching across Tracking Tags" warning on FYN-PAY-33.
+- [x] **MasterTag compliance** — removed `async` attribute (guide says `defer` only), moved from `<head>` to `<body>` (guide says before `</body>`).
+- [x] **Payment email consolidation** — merged InvoiceEmail into PaymentConfirmation. Users now get one email (not two) with invoice PDF attached. Removed early email from WebhookController (invoice doesn't exist at webhook time). CRITICAL log warnings if invoice or PDF is missing.
+- [x] **Affiliate Reference conditional** — only shown when `awin_cks` (AWC cookie) is present, not just when `awin_order_ref` exists. Non-affiliate payments show invoice reference only.
+- [x] **Email notification reference** — created comprehensive `emails.md` documenting all 21 email types (3 scheduled, 5 lifecycle, 3 webhook, 9 user-action, 1 internal) + full daily timeline.
+- [x] **PRs #215, #216, #217 merged to main.** Production build completed. Dev build from `onboardingFyn` branch restored after accidental overwrite.
+- [x] **Vault sync** — git history, April Index, Home.md, AwinIntegration current state doc all updated.
+
+### NOT Done — Outstanding from Session 57
+
+- [ ] **Re-test Awin tracking diagnosis** — the voucher fix is deployed but needs a discount-code transaction to verify the warning is resolved in Awin's dashboard.
+- [ ] **Dev server Awin env vars** — `AWIN_ENABLED`, `AWIN_MERCHANT_ID`, `AWIN_COOKIE_DOMAIN=csjones.co` need adding to csjones.co `.env` when dev is next deployed from a branch that includes Awin code.
+- [ ] **Re-enable branch protection** — review requirement on `dev` branch was disabled for PR merges this session. Needs re-enabling.
+
+### Context for Next Session
+
+Production is running the Awin tracking fix + email consolidation as of 16 April. The `onboardingFyn` branch build was restored on the dev server after the `dev` branch build accidentally overwrote it. **CRITICAL lesson recorded in memory: the dev server may be running a different branch than `dev` — always ask which branch is deployed before building/uploading.**
+
+The Awin voucher code mismatch warning should be resolved for future transactions. The next real payment with a discount code will confirm. Monitor the Awin Tracking Diagnosis page.
 
 ---
 
@@ -29,7 +56,7 @@
 
 ### NOT Done — Outstanding from Session 56
 
-- [ ] **🔴 First real Awin conversion validation** — `awinPlusDev` holding on merging to `main` until a real purchase fires end-to-end. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
+- [x] **🔴 First real Awin conversion validation** — `awinPlusDev` merged to `main` via PRs #216 + #217 on 16 April. Voucher code mismatch fixed. Awaiting next discount-code transaction to confirm tracking diagnosis is clean. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
   ```bash
   git checkout main
   git merge awinPlusDev --no-ff -m "merge: awinPlusDev → main — Awin live validated"
@@ -114,4 +141,5 @@ grep '\[awin\]' storage/logs/laravel.log | tail -20
 - **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026
 - **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
 - **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
+- **Awin tracking fix + email consolidation:** DEPLOYED 16 April 2026 — `voucher` property name fix (was `voucherCode`), MasterTag defer-only, payment email consolidation (single email with invoice PDF), Affiliate Reference conditional on AWC cookie. PR #216 (awinPlusDev → dev).
 - **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.
