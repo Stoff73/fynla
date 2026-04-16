@@ -133,9 +133,11 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'list_records',
-                'List existing records of a given type with IDs and key details. Use this BEFORE calling update_record to find the correct entity_id. '
-                .'Also use when the user asks "what accounts do I have?" or "show me my pensions". '
-                .'The <existing_records> section in the system prompt already has a snapshot — use this tool for a fresh, detailed lookup.',
+                'List existing records of a given type with IDs, key details, balances, interest rates, and values. Use this BEFORE calling update_record to find the correct entity_id. '
+                .'Use this for factual questions about the user\'s accounts — balances, interest rates, providers, policy details. '
+                .'For example: "how much interest will I earn?" → list_records(savings_account) to get balances and rates. '
+                .'"What pensions do I have?" → list_records(dc_pension). '
+                .'This tool returns raw data. For full module analysis (recommendations, gaps, capacity), use get_module_analysis instead.',
                 [
                     'entity_type' => [
                         'type' => 'string',
@@ -159,7 +161,9 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'get_module_analysis',
-                'Get detailed financial analysis for a specific module. Returns personalised analysis based on the user\'s actual financial data.',
+                'Run a comprehensive financial analysis for a module — returns recommendations, gaps, capacity assessments, and projections. '
+                .'Only use this when the user needs analysis, advice, or recommendations (e.g. "am I saving enough?", "analyse my estate", "what should I do about my pension?"). '
+                .'Do NOT use for simple data lookups like account balances, interest rates, or tax allowances — use list_records or get_tax_information instead.',
                 [
                     'module' => [
                         'type' => 'string',
@@ -185,7 +189,10 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'get_tax_information',
-                'Get current UK tax year information for a specific topic. ALWAYS use this tool when the user asks about tax thresholds, allowances, rates, or any financial product tax treatment. Never state tax values from memory — always retrieve them. Use income_definitions to get the user\'s detailed income breakdown including adjusted net income, threshold income, and tapered pension allowances.',
+                'Get current UK tax year information for a specific topic. ALWAYS use this tool when the user asks about tax thresholds, allowances, rates, or any financial product tax treatment. Never state tax values from memory — always retrieve them. '
+                .'Key topics: savings_config (Personal Savings Allowance, starting rate for savings, dividend allowance), '
+                .'income_tax (tax bands, personal allowance), isa_allowances (ISA annual limits), pension_allowances (Annual Allowance, Lifetime Allowance), '
+                .'income_definitions (user\'s adjusted net income, threshold income, tapered allowances).',
                 [
                     'topic' => [
                         'type' => 'string',

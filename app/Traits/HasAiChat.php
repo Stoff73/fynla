@@ -412,6 +412,16 @@ trait HasAiChat
                         ];
                     }
 
+                    // Auto-navigate when a tool is blocked and has a suggested route
+                    if (isset($toolResult['blocked']) && $toolResult['blocked'] === true
+                        && isset($toolResult['suggested_action']['route'])) {
+                        yield [
+                            'type' => 'navigation',
+                            'route_path' => $toolResult['suggested_action']['route'],
+                            'description' => $toolResult['suggested_action']['label'] ?? '',
+                        ];
+                    }
+
                     // Handle form fill results
                     if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {
                         yield [
@@ -640,18 +650,9 @@ trait HasAiChat
         $messages = [];
 
         foreach ($dbMessages as $msg) {
-            $content = $msg->content;
-
-            if ($msg->role === 'assistant' && ! empty($msg->metadata['tool_calls'])) {
-                $toolContext = $this->buildToolCallContext($msg->metadata['tool_calls']);
-                if ($toolContext !== '') {
-                    $content .= "\n\n".$toolContext;
-                }
-            }
-
             $messages[] = [
                 'role' => $msg->role,
-                'content' => $content,
+                'content' => $msg->content,
             ];
         }
 
@@ -672,24 +673,6 @@ trait HasAiChat
         return $title;
     }
 
-    /**
-     * Build context from tool call metadata.
-     */
-    private function buildToolCallContext(array $toolCalls): string
-    {
-        if (empty($toolCalls)) {
-            return '';
-        }
-
-        $parts = [];
-        foreach ($toolCalls as $call) {
-            $tool = $call['tool'] ?? 'unknown';
-            $summary = $call['result_summary'] ?? '';
-            $parts[] = "- {$tool}: {$summary}";
-        }
-
-        return "[Context: This response used the following data lookups]\n".implode("\n", $parts);
-    }
 
     /**
      * Summarise tool input.
