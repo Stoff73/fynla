@@ -143,9 +143,9 @@ export default {
       // Preview users are real database users and use the same code paths
       loadProfile();
 
-      // Check for section query parameter and set active tab
+      // Check for section query parameter or hash fragment and set active tab
       const urlParams = new URLSearchParams(window.location.search);
-      const section = urlParams.get('section');
+      const section = urlParams.get('section') || window.location.hash?.replace('#', '');
       if (section) {
         const validTabIds = allTabs.map(tab => tab.id);
         if (validTabIds.includes(section)) {

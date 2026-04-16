@@ -39,7 +39,7 @@
             @endif
 
             <p style="text-align: center;">
-                <a href="{{ config('app.url') }}/profile" class="btn">Update Payment Method</a>
+                <a href="{{ config('app.url') }}/profile?section=subscription" class="btn">Update Payment Method</a>
             </p>
 
             <p style="font-size: 13px; color: #717171;">If you believe this is an error or need assistance, please contact us at <a href="mailto:support@fynla.org" style="color: #E83E6D;">support@fynla.org</a>.</p>

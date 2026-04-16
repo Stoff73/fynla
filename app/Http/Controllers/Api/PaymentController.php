@@ -333,7 +333,7 @@ class PaymentController extends Controller
 
                 $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
                 $fullPrice = $subscriptionPlan
-                    ? ($subscriptionPlan->getLaunchPriceForCycle($billingCycle) ?? $subscriptionPlan->getPriceForCycle($billingCycle))
+                    ? $subscriptionPlan->getPriceForCycle($billingCycle)
                     : $payment->amount;
 
                 // Update Payment
@@ -397,9 +397,10 @@ class PaymentController extends Controller
                     }
                 }
 
-                // Set auto-renew flags if using Revolut subscription
+                // Set auto-renew flags on every completed payment — discount
+                // code payments bypass Revolut subscriptions but still renew.
                 $subscription = $result['subscription'] ?? $payment->subscription;
-                if ($subscription->revolut_subscription_id) {
+                if (! $subscription->auto_renew) {
                     $subscription->update([
                         'auto_renew' => true,
                         'payment_method_saved' => true,
@@ -732,6 +733,7 @@ class PaymentController extends Controller
         }
 
         $payments = $subscription->payments()
+            ->with('invoice:id,invoice_number')
             ->where('status', 'completed')
             ->orderByDesc('created_at')
             ->limit(24)
@@ -745,6 +747,7 @@ class PaymentController extends Controller
                 'status' => $payment->status,
                 'date' => $payment->created_at?->toISOString(),
                 'invoice_id' => $payment->invoice_id,
+                'invoice_number' => $payment->invoice?->invoice_number,
                 'has_invoice' => $payment->invoice_id !== null,
                 'discount_applied' => $payment->discount_amount > 0,
                 'discount_amount' => $payment->discount_amount,
@@ -862,6 +865,48 @@ class PaymentController extends Controller
                 'discount_description' => $result['discount_description'],
                 'original_amount' => $amount,
             ] : null,
+        ]);
+    }
+
+    /**
+     * Show invoice details.
+     *
+     * GET /api/payment/invoices/{invoice}
+     */
+    public function showInvoice(Request $request, Invoice $invoice): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($invoice->user_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Invoice not found'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'status' => $invoice->status,
+                'plan_name' => $invoice->plan_name,
+                'billing_cycle' => $invoice->billing_cycle,
+                'subtotal_amount' => $invoice->subtotal_amount,
+                'discount_amount' => $invoice->discount_amount,
+                'discount_description' => $invoice->discount_description,
+                'discount_code' => $invoice->discount_code,
+                'tax_amount' => $invoice->tax_amount,
+                'total_amount' => $invoice->total_amount,
+                'currency' => $invoice->currency,
+                'issued_at' => $invoice->issued_at?->toIso8601String(),
+                'period_start' => $invoice->period_start?->toIso8601String(),
+                'period_end' => $invoice->period_end?->toIso8601String(),
+                'next_renewal_date' => $invoice->next_renewal_date?->toIso8601String(),
+                'billing_name' => $invoice->billing_name,
+                'billing_address' => $invoice->billing_address,
+                'billing_email' => $invoice->billing_email,
+                'has_pdf' => $invoice->pdf_path && Storage::exists($invoice->pdf_path),
+                'auto_renew' => $invoice->subscription?->auto_renew ?? false,
+                'renewal_amount' => $invoice->subscription?->amount ?? $invoice->subtotal_amount,
+            ],
         ]);
     }
 

@@ -73,7 +73,7 @@
             @endif
 
             <p style="text-align: center;">
-                <a href="{{ config('app.url') }}/profile" class="btn">View Your Subscription</a>
+                <a href="{{ config('app.url') }}/profile?section=subscription" class="btn">View Your Subscription</a>
             </p>
 
             <p style="font-size: 13px; color: #717171;">A PDF copy of this invoice is attached to this email for your records.</p>
