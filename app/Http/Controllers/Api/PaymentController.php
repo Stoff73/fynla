@@ -333,7 +333,7 @@ class PaymentController extends Controller
 
                 $subscriptionPlan = SubscriptionPlan::findBySlug($planSlug);
                 $fullPrice = $subscriptionPlan
-                    ? ($subscriptionPlan->getLaunchPriceForCycle($billingCycle) ?? $subscriptionPlan->getPriceForCycle($billingCycle))
+                    ? $subscriptionPlan->getPriceForCycle($billingCycle)
                     : $payment->amount;
 
                 // Update Payment
@@ -397,9 +397,10 @@ class PaymentController extends Controller
                     }
                 }
 
-                // Set auto-renew flags if using Revolut subscription
+                // Set auto-renew flags on every completed payment — discount
+                // code payments bypass Revolut subscriptions but still renew.
                 $subscription = $result['subscription'] ?? $payment->subscription;
-                if ($subscription->revolut_subscription_id) {
+                if (! $subscription->auto_renew) {
                     $subscription->update([
                         'auto_renew' => true,
                         'payment_method_saved' => true,
