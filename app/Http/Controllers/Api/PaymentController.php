@@ -406,27 +406,27 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                // Generate invoice
+                // Generate invoice then send confirmation email with PDF attached.
+                // Invoice is a legal requirement — if generation fails, log the
+                // error but still attempt the email (without attachment) so the
+                // user is notified. The invoice can be regenerated manually.
                 try {
-                    $invoice = $this->invoiceService->generateInvoice($payment, $payment->discountCode);
-                    $this->invoiceService->emailInvoice($invoice, $user);
+                    $this->invoiceService->generateInvoice($payment, $payment->discountCode);
                 } catch (\Exception $e) {
-                    Log::error('Failed to generate invoice', [
+                    Log::error('CRITICAL: Failed to generate invoice — legal requirement', [
                         'payment_id' => $payment->id,
                         'error' => $e->getMessage(),
                     ]);
                 }
 
-                // Send payment confirmation email (skip if webhook already sent it)
-                if (! $result['already_completed']) {
-                    try {
-                        Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
-                    } catch (\Exception $e) {
-                        Log::error('Failed to send payment confirmation email', [
-                            'user_id' => $user->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
+                try {
+                    $payment->refresh();
+                    Mail::to($user->email)->send(new PaymentConfirmation($user, $payment));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send payment confirmation email', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
 
                 // Apply referral bonus if user was referred

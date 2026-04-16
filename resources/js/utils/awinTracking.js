@@ -73,8 +73,7 @@ export function loadMasterTag() {
     script.id = MASTER_TAG_ID;
     script.src = MASTER_TAG_URL;
     script.defer = true;
-    script.async = true;
-    document.head.appendChild(script);
+    document.body.appendChild(script);
     masterTagLoaded = true;
   } catch {
     // Tracking must never break the app
@@ -132,7 +131,7 @@ export function fireConversion(params) {
       orderRef: params.order_ref,
       parts: `${params.commission_group || 'SUB'}:${params.amount}`,
       currency: params.currency || 'GBP',
-      voucherCode: params.voucher_code || '',
+      voucher: params.voucher_code || '',
       test: '0',
       channel: 'aw',
       customerAcquisition: params.customer_acquisition || 'existing',
