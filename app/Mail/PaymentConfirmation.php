@@ -62,7 +62,7 @@ class PaymentConfirmation extends Mailable
                 'nextRenewalDate' => $subscription->current_period_end?->format('j F Y'),
                 'autoRenew' => $subscription->auto_renew ?? false,
                 'invoiceNumber' => $invoice?->invoice_number,
-                'awinOrderRef' => $this->payment->awin_order_ref,
+                'awinOrderRef' => $this->payment->awin_cks ? $this->payment->awin_order_ref : null,
             ],
         );
     }
