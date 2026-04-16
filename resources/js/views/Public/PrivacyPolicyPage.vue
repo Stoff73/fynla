@@ -63,7 +63,10 @@
           <p class="text-neutral-500 leading-relaxed mb-5">IP address, browser type, device information, and login timestamps collected automatically for security monitoring.</p>
 
           <h3 class="text-base font-semibold text-horizon-500 mb-2">(g) Uploaded Documents</h3>
-          <p class="text-neutral-500 leading-relaxed">Financial documents you optionally upload (pension statements, insurance documents, etc.) to assist with data entry. These are processed using artificial intelligence to extract relevant financial data.</p>
+          <p class="text-neutral-500 leading-relaxed mb-5">Financial documents you optionally upload (pension statements, insurance documents, etc.) to assist with data entry. These are processed using artificial intelligence to extract relevant financial data.</p>
+
+          <h3 class="text-base font-semibold text-horizon-500 mb-2">(h) Fyn AI Conversations</h3>
+          <p class="text-neutral-500 leading-relaxed">When you use Fyn, our AI financial assistant, your conversation messages are processed to generate responses and may reference your financial data held within the Service. Conversations may be reviewed in anonymised form to improve the quality and accuracy of Fyn's responses. All personal identifiers (name, email, account numbers, specific financial values) are removed before any such review. You can delete your conversation history at any time from within the chat interface.</p>
         </section>
 
         <!-- 3. How We Collect -->
@@ -122,7 +125,7 @@
           <p class="text-neutral-500 leading-relaxed mb-4">We share your personal data only where necessary and only with the following recipients:</p>
           <ul class="list-disc pl-6 mb-6 space-y-3">
             <li class="text-neutral-500 leading-relaxed"><strong>GetAddress.io</strong> &mdash; UK postcode lookup service. Only postcodes are sent; no personal data is transmitted.</li>
-            <li class="text-neutral-500 leading-relaxed"><strong>Anthropic</strong> &mdash; Document data extraction via artificial intelligence. Document content is transmitted over encrypted connections. Anthropic's API usage policy states that data sent via the API is not used to train their models. See Section 8 regarding international transfers.</li>
+            <li class="text-neutral-500 leading-relaxed"><strong>Anthropic</strong> &mdash; Powers document data extraction and the Fyn AI assistant. Your queries and relevant financial context are transmitted over encrypted connections to generate responses. Anthropic's API usage policy states that data sent via the API is not used to train their models. See Section 8 regarding international transfers.</li>
             <li class="text-neutral-500 leading-relaxed"><strong>SiteGround</strong> &mdash; Web hosting provider. Servers located in the United Kingdom and European Economic Area. Data processing agreement in place.</li>
             <li class="text-neutral-500 leading-relaxed"><strong>mail.fynla.org</strong> &mdash; Email delivery for verification codes and service notifications. Hosted by SiteGround (UK). Emails contain only your name and the relevant notification content.</li>
           </ul>
