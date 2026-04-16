@@ -44,6 +44,9 @@ yarn-error.log
 # Claude worktrees (temporary, created by Agent isolation or manual git worktree add)
 .claude/worktrees/
 
+# Claude runtime state
+.claude/scheduled_tasks.lock
+
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf

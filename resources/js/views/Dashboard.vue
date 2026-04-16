@@ -2140,8 +2140,10 @@ export default {
     this.$store.dispatch('lifeStage/refreshCompleteness').catch(() => {});
 
     // Meta Pixel: StartTrial — first dashboard visit after registration
+    // Skip for preview/admin/test users
     if (this.$route.query.newUser === '1') {
-      if (typeof fbq === 'function') {
+      const user = this.$store.state.auth?.user;
+      if (!user?.is_preview_user && !user?.is_admin && typeof fbq === 'function') {
         fbq('track', 'StartTrial', { currency: 'GBP', value: 0 });
       }
       // Clean the newUser param

@@ -30,6 +30,10 @@ class Payment extends Model
         'discount_amount',
         'invoice_id',
         'revolut_subscription_payment',
+        'awin_order_ref',
+        'awin_cks',
+        'awin_customer_acquisition',
+        'awin_fired_at',
     ];
 
     protected $casts = [
@@ -37,6 +41,7 @@ class Payment extends Model
         'revolut_payment_data' => 'array',
         'discount_amount' => 'integer',
         'revolut_subscription_payment' => 'boolean',
+        'awin_fired_at' => 'datetime',
     ];
 
     public function subscription(): BelongsTo

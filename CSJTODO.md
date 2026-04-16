@@ -1,46 +1,72 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 April 2026 — session 51*
-*Previous session: 9 April 2026 — session 50*
+*Last updated: 15 April 2026 — session 56*
+*Previous session: 14 April 2026 — sessions 51 & 52*
 
 ---
 
-## Session 51 (14 April) — Trial Reminder System Investigation + Production Fixes
+## Session 56 (15 April) — Awin Affiliate Integration Live on Production
 
 ### Completed This Session
 
-- [x] **Investigated trial reminder email system** — root cause found: no system cron entry on production triggering `php artisan schedule:run`. ALL 15 scheduled commands (not just trial reminders) had never run. Full report at `April/April14Updates/trialReminderInvestigation.md` (also in vault)
-- [x] **Cron job added on production** (CSJ via SiteGround Site Tools → Devs → Cron Jobs)
-- [x] **11 ghost trialing subscriptions expired** via `php artisan trials:expire` on production. 11 subs moved `trialing → expired`, 11 users moved to `plan='free'`, 30-day data retention countdown started for each. **Of those 11, only 1 is a real user (Jessica Cracknell, user 301, `jessicacracknell18@gmail.com`)** — she had 34 days of bonus access she shouldn't have had and never received a single reminder email. Worth flagging if she gets in touch about losing access.
-- [x] **`notifications` table created on production** — fixed a latent crash bug. Original report claim that `notifications:daily-insight` would crash was **wrong** (that command bypasses Laravel's notification system and uses FCM directly). The actual issue affected 5 OTHER scheduled commands that call `$user->notify(...)` with `via(['database'])` notification classes: `notifications:policy-renewals`, `protection:send-alerts`, `notifications:mortgage-rate-alerts`, `savings:send-alerts`, `estate:send-alerts`. All 5 would have crashed daily once cron started running them.
-- [x] **New migration** `database/migrations/2026_04_14_094042_create_notifications_table.php` — generated locally via `php artisan notifications:table`, edited to match Fynla conventions (`declare(strict_types=1)`, `Schema::hasTable()` safety check), uploaded to production via SSH, applied via `migrate --force`. Verified with insert/readback/delete.
-- [x] **`schedule:run` proven healthy** on production manually — Laravel chain works end-to-end, no errors, exit 0.
-- [x] **Disclosure:** I ran `php artisan schedule:test --name="trials:send-reminders"` on production thinking it was a dry run — it isn't. As a side effect, **10 real reminder emails were sent** at 08:42 UTC to users 581–588 (3-day reminders) and 551/552/580 (2-day reminders). All were legitimate reminders the system was supposed to send anyway. The `trial_reminder_log` was correctly populated so they will not receive duplicates.
-- [x] **Repo cleanup** — removed 487 archived vault note files from `Articles/`, `Feb/`, `March/` directories (these were already in vault and `April/` is `.gitignore`d).
+- [x] **Full Awin affiliate attribution integration built, bundled with dev branch, and deployed to production.** Merchant ID 126105. Dual-track attribution (browser pixel + server-to-server). Phase 1 scaffold (`config/awin.php`, `CaptureAwcCookie` middleware, `EncryptCookies` exception, CSP extension, 4 new `payments.awin_*` columns via nullable/backfill-safe migration). Phase 2 backend (`AwinTrackingService`, `FireAwinConversionJob` with `tries=3` + backoff `[30s, 5min, 30min]` + idempotent via `awin_fired_at`, wired into `PaymentController::createOrder`/`confirmPayment` + `WebhookController::handleOrderCompleted`, response payload threading). Phase 3 frontend (`resources/js/utils/awinTracking.js`, `cookieConsent` hooks, `router.afterEach` hook, `CheckoutPage.vue` fires browser pixel after GA4 event). 32 new tests (16 unit + 7 job + 9 integration) all green.
+- [x] **Merged `origin/dev` into `awinPlusDev`** to bundle PR #210 (Stocks & Shares ISA + How Much To Retire insight pages) and PR #211 (10 email template redesigns + review carousel + Meta Pixel tracking + persona modal mobile fix + `email:test` artisan command) with the Awin ship. Resolved 3-way merge conflict in `CheckoutPage.vue` (both branches inserted blocks at the same post-GA4 location — kept both, Meta Pixel first then Awin) + clean auto-merges in 2 `.env.production` templates.
+- [x] **Meta Pixel CSP fix** — PR #211 shipped `fbq('track','Subscribe')` but never updated `SecurityHeaders.php`. Added `connect.facebook.net` + `www.facebook.com` to `script-src` / `img-src` / `connect-src`. **Resolves CSJTODO session 51 outstanding item "Meta Pixel CSP — connect.facebook.net and www.facebook.com not in SecurityHeaders.php whitelist."**
+- [x] **PR #197 cleanup** — moved 9 content blueprints from repo root to `Articles/` via `git mv` (history preserved): `faq.md`, `how-it-works.md`, `ice-letters.md`, `iht-planning.md`, `monte-carlo.md`, `net-worth-dashboard.md`, `pension-tracker.md`, `protection-gap.md`, `when-can-i-retire.md`. `SITE_ARCHITECTURE.md` moved to `fynlaBrain/Architecture/`. **Resolves CSJTODO carry-over "PR #197 cleanup — 9 markdown files in repo root should be moved to Articles/"** (was actually 10 files, not 9).
+- [x] **LifeStageService `current_value` typo fix** — diagnosed the "missing migration" CSJTODO item as a **code typo, not a missing migration**. `hasPensionValueAbove()` at line 194 summed `current_value` but the `dc_pensions` table column has always been `current_fund_value`. 57 production errors logged since 8 April (all silently caught in a try/catch). Fixed in commit `1ce51d4`, verified post-deploy against 5 real users with DC pensions returning correct sums (£12k-£844k range). **Resolves CSJTODO carry-over "Fyn Quick Start flow — `dc_pensions.current_value` column missing on prod" and "Run pending migration on production — `dc_pensions.current_value`."** Also confirmed during the investigation that the other two fynQuickStartBugs items (`employment_status` enum missing `full_time`, `users.plan` enum missing `family`) are already resolved on production.
+- [x] **Committed remaining untracked sources** — `awin/` onboarding materials (6 PNGs + integration.md), 4 research `.docx` files, `.claude/skills/security-and-hardening/SKILL.md`. Extended `.gitignore` with `.claude/scheduled_tasks.lock` runtime state file.
+- [x] **Deployed to production in-session.** 23 PHP/Blade files uploaded via SSH with 17-file rollback backup at `~/www/fynla.org/backup/2026-04-15-awin-deploy/`. Migration `2026_04_15_153100_add_awin_tracking_to_payments_table` run on prod. `AWIN_ENABLED=true` added to live `.env`. All Laravel caches cleared + rebuilt. Local production build run via `./deploy/fynla-org/build.sh` with `VITE_AWIN_ENABLED=true` baked in, `public/build/` uploaded by CSJ.
+- [x] **Post-deploy smoke tests all clean.** Playwright verification on `https://fynla.org/`:
+  - 0 console errors (previously 1: Meta Pixel CSP — now fixed)
+  - `window.fbq === 'function'`, PageView queue flushed
+  - `window.AWIN` initialised, `#awin-master-tag` script with `src=https://www.dwin1.com/126105.js` present in DOM
+  - `awc=DEPLOY-SMOKE-2026-04-15` Set-Cookie captured with all 6 attributes: 365d TTL, Secure, HttpOnly, SameSite=Lax, domain=fynla.org, path=/
+  - Both new insight pages render with correct titles: `/insights/stocks-shares-isa-uk`, `/insights/how-much-to-retire-uk`
+  - CSP headers contain all 4 whitelisted domains: `dwin1.com`, `awin1.com`, `connect.facebook.net`, `facebook.com`
+- [x] **Pushed `awinPlusDev` and `awinIntegrate` to origin.** `awinPlusDev` is 8 commits ahead of `main`, tracking `origin/awinPlusDev`.
+- [x] **Full vault sync** — 6 new update notes copied to vault, `Apr15.md` git history file created, April Index updated with Session 56 summary + 11 wikilinks, Home.md updated with new totals (2,219 commits / 279 for April / 11 days) and `AwinIntegration` added to Current State section, CLAUDE.md metrics bumped (Vue 660→663, PHP services 233→234).
+- [x] **Tech debt audit** — clean bill of health across the 14 in-scope files I authored this session. Report at `tech-debt-report.md`. Zero issues found (strict_types ✓, type hints ✓, no hardcoded tax values ✓, no banned colours ✓, no TODO markers ✓, no dead code ✓, all file sizes well under thresholds, security invariants correct).
 
-### NOT Done — Outstanding from Session 51
+### NOT Done — Outstanding from Session 56
 
-- [ ] **🔴 Verify cron is firing on production** — to be done first thing tomorrow. Full verification checklist in `April/April15Updates/CSJTODO.md` (also in vault). The 09:00 UTC fire on 15 April is the moment of truth.
-- [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to add the cron setup as a documented deploy step (so this can never recur on a future server migration).
-- [ ] **Confirm Jessica Cracknell** (user 301) doesn't need a goodwill gesture or trial reset — she's the only real user affected by the ghost trial cleanup, and she never received a reminder email through no fault of her own.
+- [ ] **🔴 First real Awin conversion validation** — `awinPlusDev` holding on merging to `main` until a real purchase fires end-to-end. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
+  ```bash
+  git checkout main
+  git merge awinPlusDev --no-ff -m "merge: awinPlusDev → main — Awin live validated"
+  git push origin main
+  ```
+  Then delete `awinIntegrate` (subset of `awinPlusDev`).
+- [ ] **Clean up `public/build/` cruft on production** — directory is currently 207MB with stale hashed files from multiple prior builds. Not a blocker (older files are unreachable from the current `manifest.json`), but future housekeeping task.
 
 ### Context for Next Session
 
-The cron entry was added to SiteGround at the very end of this session. We did **not** have time to verify it actually fires before close — `crontab` command is not available on this user (SiteGround panel cron, not visible from SSH), and `schedule:run` is a no-op when nothing is due. Tomorrow's first task is to verify by checking `trial_reminder_log` for new rows after 09:00 UTC, `pending_registrations` for the January rows being cleared (hourly), and `laravel.log` for any errors. **If cron is NOT firing, the diagnostic next steps are documented in tomorrow's CSJTODO.**
+Production is running the full Awin stack as of ~20:00 BST on 15 April. Backend cookie capture, S2S job, and admin/preview exclusions are all live. First Meta Pixel `Subscribe` event will fire on next real subscription checkout (CSP fix is live). First Awin S2S will fire when a user with an `awc` cookie completes a payment.
 
-The 5-bug correction in the notifications table fix is a reminder to **read command code** before claiming what depends on what — I made a wrong claim in the original report based on a failed tinker query rather than reading `SendDailyInsightNotifications.php`. The corrected report is now in both repo and vault.
+The `awinPlusDev` branch is 8 commits ahead of main, all pushed to origin. Main has received no changes this session — the user explicitly asked to hold the merge until first-conversion validation. If a real Awin conversion lands overnight, tomorrow's session should:
+1. Run the verification tinker command (below) to confirm `awin_fired_at` populated
+2. Grep `storage/logs/laravel.log` for `[awin] s2s fired` entries
+3. If both confirm, merge `awinPlusDev` → `main` and delete the feature branches
+
+Verification command:
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan tinker --execute="\$p = \App\Models\Payment::where('status','completed')->whereNotNull('awin_fired_at')->latest()->first(); echo \$p ? json_encode(['id'=>\$p->id,'cks'=>\$p->awin_cks,'ref'=>\$p->awin_order_ref,'acq'=>\$p->awin_customer_acquisition,'fired'=>\$p->awin_fired_at?->toIso8601String()], JSON_PRETTY_PRINT) : 'no conversion yet';"
+grep '\[awin\]' storage/logs/laravel.log | tail -20
+```
 
 ---
 
-## Carry-Over From Session 50 — Still Outstanding
+## Carry-Over From Sessions 51 & 50 — Still Outstanding
 
-- [ ] **Fyn Quick Start flow** — hidden CTA, root cause unfixed (`fynQuickStartBugs.md`): production missing `dc_pensions.current_value` column, AI analyses empty data for new users
-- [ ] **Run pending migration on production** — `dc_pensions.current_value`
-- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47
-- [ ] **PR #197 cleanup** — 9 markdown files in repo root should be moved to `Articles/`
-- [ ] **Meta Pixel CSP** — `connect.facebook.net` and `www.facebook.com` not in `SecurityHeaders.php` whitelist
-- [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged
-- [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting
+- [ ] **Jessica Cracknell (user 301)** — ghost trial cleanup side effect from session 51; she was the only real user in the batch of 11 expired trialing subs. Never received a reminder email. Worth flagging if she gets in touch, and/or a goodwill gesture (trial reset, one-off discount).
+- [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to document the SiteGround cron setup as a deploy step (so this can never recur on a future server migration).
+- [ ] **Verify cron is still firing on production** — should be running daily per session 51 setup. Check trial_reminder_log + pending_registrations cleanup (hourly) + laravel.log for any scheduler errors.
+- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47.
+- [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged.
+- [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting. Note: this is a different file from `.claude/settings.local.json` (already ignored) and `.claude/scheduled_tasks.lock` (ignored by session 56).
+- [ ] **Fyn Quick Start flow "empty user" issue** — the `dc_pensions.current_value` typo blocker is now resolved, but the original fynQuickStartBugs.md report also flagged that `CoordinatingAgent::buildFinancialContext()` runs full module analyses against users with zero data, causing the AI to hallucinate numbers and module agents to error on empty data. Fix options documented in `April/April9Updates/fynQuickStartBugs.md` section 2. The "Quick start with Fyn" CTA is still hidden on the landing page until this is addressed.
+- [ ] **Lifecycle email engine (PR #212)** still not deployed. Still targeted at main. Requires conflict resolution in `trial-expiration-reminder.blade.php` (PR #211 redesigned it, PR #212 palette-fixed it) when it comes time to ship.
 
 ---
 
@@ -75,12 +101,17 @@ The 5-bug correction in the notifications table fix is a reminder to **read comm
 - [ ] AutoRiskCalculatorTest — `risk_level` column enum doesn't accept `medium_low` (2 pre-existing failures)
 
 ## Known Issues
+
 - [ ] Retirement "Other Assets" cards overflow at 1118px
 - [ ] DB pension field mapping mismatch
 - [ ] Expenditure form fill doesn't animate
 - [ ] property_sale life event creates property record (double navigation)
+- [ ] 3 flaky WillBuilder tests (`tests/Feature/Estate/WillBuilderApiTest.php`) — "James Serenity Carter" persona middle name pollution only surfaces under full-suite ordering. Pass 14/14 in isolation. Pre-existing on main, not introduced by this session's work.
 
 ## Deploy Status
+
 - **PR #208 (claudeReview):** DEPLOYED 9 April 2026 — spouse toggle, dashboard refresh, markdown, enum, tier gating
-- **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026 (uploaded via SSH, applied via `migrate --force`)
-- **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verification pending session 52
+- **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026
+- **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
+- **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
+- **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.

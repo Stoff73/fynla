@@ -3,6 +3,8 @@ import store from '@/store';
 import analyticsService from '@/services/analyticsService';
 import { platform } from '@/utils/platform';
 import { getRequiredTier, hasFeatureAccess } from '@/constants/featureGating';
+import { hasConsent } from '@/utils/cookieConsent';
+import { shouldLoadAwin, loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag } from '@/utils/awinTracking';
 
 // Lazy load components
 // Public pages
@@ -1398,6 +1400,18 @@ router.afterEach((to) => {
 // Analytics: track page views on every route change
 router.afterEach((to) => {
   analyticsService.trackPageView(to.name, to.path);
+});
+
+// Awin MasterTag: respect route exclusions on every navigation. The tag
+// must not load on checkout pages per Awin's own guidance. Cookie consent
+// is still required — declined users never load the tag at all.
+router.afterEach((to) => {
+  if (!hasConsent()) return;
+  if (shouldLoadAwin(to.name)) {
+    loadAwinMasterTag();
+  } else {
+    unloadAwinMasterTag();
+  }
 });
 
 export default router;

@@ -1,5 +1,7 @@
 // resources/js/utils/cookieConsent.js
 
+import { loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag, shouldLoadAwin } from '@/utils/awinTracking';
+
 const STORAGE_KEY = 'cookie_consent';
 const GA_ID = import.meta.env.VITE_GA_ID || 'G-3Y8DL3QB09';
 
@@ -25,7 +27,7 @@ export function hasConsent() {
 }
 
 /**
- * Accept cookies — store preference and load Google Analytics.
+ * Accept cookies — store preference and load Google Analytics + Awin MasterTag.
  */
 export function acceptCookies() {
   try {
@@ -34,10 +36,18 @@ export function acceptCookies() {
     // localStorage unavailable — proceed anyway
   }
   loadGoogleAnalytics();
+
+  // Load Awin MasterTag if the current route is not excluded (checkout, etc.).
+  // The router.afterEach hook in router/index.js handles subsequent navigation.
+  const currentRouteName = window?.__appRouter?.currentRoute?.value?.name;
+  if (shouldLoadAwin(currentRouteName)) {
+    loadAwinMasterTag();
+  }
 }
 
 /**
- * Decline cookies — store preference, do not load GA.
+ * Decline cookies — store preference, do not load GA, and scrub the Awin
+ * MasterTag if it was loaded from a prior session.
  */
 export function declineCookies() {
   try {
@@ -45,6 +55,7 @@ export function declineCookies() {
   } catch {
     // localStorage unavailable
   }
+  unloadAwinMasterTag();
 }
 
 /**
@@ -82,11 +93,18 @@ function loadGoogleAnalytics() {
 }
 
 /**
- * Initialise — if user previously accepted, load GA on page load.
+ * Initialise — if user previously accepted, load GA + Awin on page load.
  * Called from App.vue on mount.
  */
 export function initCookieConsent() {
   if (hasConsent()) {
     loadGoogleAnalytics();
+
+    // Awin MasterTag — respect route exclusions (checkout, etc.). The
+    // router.afterEach hook re-evaluates on every subsequent navigation.
+    const currentRouteName = window?.__appRouter?.currentRoute?.value?.name;
+    if (shouldLoadAwin(currentRouteName)) {
+      loadAwinMasterTag();
+    }
   }
 }
