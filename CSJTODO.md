@@ -14,20 +14,15 @@
 
 ### NOT Done — Outstanding from Session 58
 
-- [ ] **PR for `email-onboarding-reviews` branch** — 3 commits pushed (testimonials + ReviewCarousel reuse + pricing banner + quickstart page). No PR opened yet.
 - [ ] **Quick start Fyn flow bugs** — the "Quick start with Fyn" CTA on `/quickstart` links to `/register?from=fyn` but the underlying new-user Fyn flow has known bugs (see `fynQuickStartBugs.md`). The CTA is enabled on the campaign page as requested; verify the flow works before driving traffic to `/quickstart`.
 
 ### Context for Next Session
 
-Branch `email-onboarding-reviews` has 3 commits ahead of dev, all pushed to origin. Ready for PR → dev when the user decides.
-
-The quickstart page reuses `ReviewCarousel` (component), `getPricingFaqs()` (data), and data-drives the features/stages grids from local arrays. If homepage sections change, the quickstart page's inline copies (Meet Fyn, Why Fynla) would need manual sync — only ReviewCarousel auto-updates.
-
-Local build uses `VITE_BASE_PATH=/build/`. Pending local migration (`create_notifications_table`) still not applied.
+Branch `email-onboarding-reviews` has PR #221 open → dev. Branch `email-onboarding-video` rebased on top.
 
 ---
 
-## Session 57 (15–17 April) — Insights Hub Redesign, Landing Page Updates, Reviews & Testimonials
+## Session 57 (15–17 April) — Insights Hub + Awin Fix + Email Consolidation
 
 ### Completed
 
@@ -38,7 +33,8 @@ Local build uses `VITE_BASE_PATH=/build/`. Pending local migration (`create_noti
 - [x] Real customer testimonials (Anne L., Neil S., Ron B.)
 - [x] ReviewCarousel made reusable on 3 pages
 - [x] Pricing banner trimmed
-- [x] Design mockups (v1 + v2)
+- [x] Awin voucherCode → voucher fix, MasterTag compliance, payment email consolidation
+- [x] PRs #215, #216, #217 merged to main
 
 ---
 
@@ -66,7 +62,7 @@ Local build uses `VITE_BASE_PATH=/build/`. Pending local migration (`create_noti
 
 ### NOT Done — Outstanding from Session 56
 
-- [ ] **🔴 First real Awin conversion validation** — `awinPlusDev` holding on merging to `main` until a real purchase fires end-to-end. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
+- [x] **🔴 First real Awin conversion validation** — `awinPlusDev` merged to `main` via PRs #216 + #217 on 16 April. Voucher code mismatch fixed. Awaiting next discount-code transaction to confirm tracking diagnosis is clean. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
   ```bash
   git checkout main
   git merge awinPlusDev --no-ff -m "merge: awinPlusDev → main — Awin live validated"
@@ -151,4 +147,5 @@ grep '\[awin\]' storage/logs/laravel.log | tail -20
 - **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026
 - **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
 - **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
+- **Awin tracking fix + email consolidation:** DEPLOYED 16 April 2026 — `voucher` property name fix (was `voucherCode`), MasterTag defer-only, payment email consolidation (single email with invoice PDF), Affiliate Reference conditional on AWC cookie. PR #216 (awinPlusDev → dev).
 - **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.
