@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockup v2 — Insights editorial/bento layout (20 articles)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { font-family: 'Segoe UI', Inter, system-ui, sans-serif; }
+    .title-serif { font-family: 'Segoe UI', Inter, sans-serif; letter-spacing: -0.02em; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            raspberry:{50:'#FDF2F8',100:'#FCE7F3',200:'#F9A8D4',300:'#F472B6',400:'#EC4899',500:'#E83E6D',600:'#DB2777',700:'#BE185D'},
+            horizon:{50:'#F8FAFC',100:'#F1F5F9',200:'#E2E8F0',300:'#CBD5E1',400:'#94A3B8',500:'#1F2A44',700:'#020617'},
+            spring:{50:'#F0FDF9',100:'#D1FAE5',500:'#20B486',700:'#047857'},
+            violet:{50:'#F5F3FF',100:'#EDE9FE',500:'#5854E6',700:'#6D28D9'},
+            eggshell:{500:'#F7F6F4'},
+            neutral:{400:'#A3A3A3',500:'#717171'},
+            'light-gray':'#EEEEEE',
+            'light-blue':{100:'#DDE2EF',500:'#6C83BC',700:'#3E4E7A'},
+            'light-pink':{50:'#FDF0F4',100:'#FAD6E0',200:'#F5B3C5'}
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-eggshell-500">
+
+  <!-- ===== HERO ===== -->
+  <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+      <h1 class="text-4xl md:text-6xl font-black text-white mb-4 title-serif">
+        Fynla <span class="text-raspberry-300">Insights</span>
+      </h1>
+      <p class="text-lg text-white/70">Timely commentary on what's changing — and what it means for you.</p>
+    </div>
+  </div>
+
+  <!-- ===== EDITORIAL FEATURE BENTO — pink bg ===== -->
+  <section class="py-14" style="background-color:#FAD6E0;">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="flex items-end justify-between mb-7">
+        <div>
+          <p class="text-[0.7rem] tracking-[0.2em] font-semibold text-raspberry-700 mb-1 uppercase">Just published</p>
+          <h2 class="text-2xl md:text-4xl font-bold text-horizon-500 title-serif">Latest articles</h2>
+        </div>
+        <a href="#" class="hidden md:inline text-sm font-semibold text-horizon-500 hover:text-raspberry-500">See all &rarr;</a>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        <!-- HERO FEATURE -->
+        <a href="#" class="lg:col-span-2 group relative block rounded-3xl overflow-hidden bg-horizon-500 min-h-[420px] lg:min-h-[520px]">
+          <img src="https://picsum.photos/seed/retire-uk/1200/800" alt="" class="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"/>
+          <div class="absolute inset-0 bg-gradient-to-t from-horizon-700 via-horizon-500/50 to-transparent"></div>
+          <div class="relative h-full flex flex-col justify-end p-7 md:p-10">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="text-[0.65rem] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-raspberry-500 text-white">Featured</span>
+              <span class="text-[0.65rem] font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-white/20 backdrop-blur text-white">Pensions</span>
+            </div>
+            <p class="text-xs text-white/70 mb-2">14 April 2026 &middot; 8 min read</p>
+            <h3 class="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight title-serif group-hover:text-raspberry-300 transition-colors">
+              How Much Do I Need to Retire in the UK?
+            </h3>
+            <p class="text-sm md:text-base text-white/80 mb-4 leading-relaxed max-w-2xl">
+              A realistic guide using 2026 PLSA living standards. Calculate your personal retirement number and see how to bridge the State Pension gap.
+            </p>
+            <span class="inline-flex items-center gap-1 text-sm font-semibold text-white">
+              Read the full guide
+              <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </span>
+          </div>
+        </a>
+
+        <div class="grid grid-rows-2 gap-5">
+          <a href="#" class="group relative block rounded-3xl overflow-hidden bg-white hover:shadow-xl transition-all">
+            <div class="flex h-full min-h-[200px]">
+              <div class="w-2/5 relative overflow-hidden bg-horizon-100">
+                <img src="https://picsum.photos/seed/stocks-shares/400/400" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+              </div>
+              <div class="flex-1 p-5 flex flex-col justify-center">
+                <p class="text-[0.65rem] text-neutral-400 mb-1">13 APR 2026</p>
+                <h4 class="text-base md:text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+                  What Is a Stocks and Shares ISA?
+                </h4>
+                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-100 text-spring-700 self-start">Savings &amp; ISA</span>
+              </div>
+            </div>
+          </a>
+
+          <a href="#" class="group relative block rounded-3xl overflow-hidden bg-white hover:shadow-xl transition-all">
+            <div class="flex h-full min-h-[200px]">
+              <div class="w-2/5 relative overflow-hidden bg-horizon-100">
+                <img src="https://picsum.photos/seed/isa-guide/400/400" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"/>
+              </div>
+              <div class="flex-1 p-5 flex flex-col justify-center">
+                <p class="text-[0.65rem] text-neutral-400 mb-1">8 APR 2026</p>
+                <h4 class="text-base md:text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+                  The Ultimate Guide to ISAs in the UK
+                </h4>
+                <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-100 text-spring-700 self-start">Savings &amp; ISA</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== INTRO + FILTER ===== -->
+  <section class="pt-12 pb-4 bg-eggshell-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl mb-8">
+        <h3 class="text-xl md:text-2xl font-bold text-horizon-500 mb-3 title-serif">Browse all insights</h3>
+        <p class="text-sm text-neutral-500 leading-relaxed">
+          Focused, practical pieces about tax changes, pension rules, budget updates, and their impact on your financial plan.
+          Our insights draw on information from key financial institutions and regulatory bodies, advice from certified advisors,
+          and updates on the Fynla platform including upcoming releases.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-horizon-500 text-white">All <span class="ml-1 opacity-70">(17)</span></button>
+        <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-light-gray text-neutral-500 hover:border-raspberry-300 hover:text-horizon-500">Tax changes <span class="opacity-60">(4)</span></button>
+        <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-light-gray text-neutral-500 hover:border-raspberry-300 hover:text-horizon-500">Pensions <span class="opacity-60">(6)</span></button>
+        <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-light-gray text-neutral-500 hover:border-raspberry-300 hover:text-horizon-500">Savings &amp; ISA <span class="opacity-60">(4)</span></button>
+        <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-light-gray text-neutral-500 hover:border-raspberry-300 hover:text-horizon-500">Estate planning <span class="opacity-60">(3)</span></button>
+        <button class="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-light-gray text-neutral-500 hover:border-raspberry-300 hover:text-horizon-500">Platform updates <span class="opacity-60">(1)</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STAGGERED MASONRY — 17 remaining articles ===== -->
+  <section class="pb-14 bg-eggshell-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- 1. Tall: Retirement Planning UK -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all md:row-span-2 flex flex-col">
+          <div class="aspect-[4/5] md:aspect-auto md:flex-1 overflow-hidden bg-horizon-100 min-h-[280px]">
+            <img src="https://picsum.photos/seed/retirement-plan/600/800" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-6">
+            <p class="text-xs text-neutral-400 mb-1">8 April 2026</p>
+            <h3 class="text-xl font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight title-serif">
+              The Complete Guide to Retirement Planning in the UK
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed">Plan a retirement that lasts — pensions, State Pension, ISAs, drawdown strategies and tax.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700">Pensions</span>
+          </div>
+        </a>
+
+        <!-- 2. Inheritance Tax -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/iht/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">April 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Inheritance Tax Explained: Thresholds &amp; Rules
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Learn IHT thresholds, nil rate bands and strategies to reduce your estate's tax bill.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Estate planning</span>
+          </div>
+        </a>
+
+        <!-- 3. Pension Contribution Limits -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/pension-limits/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">April 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Pension Contribution Limits UK 2026/27
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Annual allowance, tax relief and carry forward rules. Updated guide for UK savers.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Pensions</span>
+          </div>
+        </a>
+
+        <!-- 4. Budget 2026 -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/budget-2026/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">March 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Spring Budget 2026: Everything That Changed
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Income tax, capital gains and pension changes — a full breakdown of what's moved.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-raspberry-50 text-raspberry-700 self-start">Tax changes</span>
+          </div>
+        </a>
+
+        <!-- 5. Pension IHT Changes 2027 -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/pension-iht/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">March 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Pension Inheritance Tax Changes: April 2027
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Unused pension pots will be included in your estate for IHT. Here's what you can do.</p>
+            <div class="flex flex-wrap gap-1">
+              <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700">Pensions</span>
+              <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700">Estate planning</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 6. Tall: Capital Gains -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all md:row-span-2 flex flex-col">
+          <div class="aspect-[4/5] md:aspect-auto md:flex-1 overflow-hidden bg-horizon-100 min-h-[280px]">
+            <img src="https://picsum.photos/seed/cgt-cut/600/800" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-6">
+            <p class="text-xs text-neutral-400 mb-1">February 2026</p>
+            <h3 class="text-xl font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight title-serif">
+              Capital Gains Tax Allowance Cut: What You Can Do Now
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed">The CGT annual exempt amount has been slashed again. Practical steps to protect gains — Bed &amp; ISA, spousal transfers, timing disposals.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-raspberry-50 text-raspberry-700">Tax changes</span>
+          </div>
+        </a>
+
+        <!-- 7. LISA vs Pension -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/lisa-vs-pension/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">February 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Lifetime ISA vs Pension: Which One Wins?
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Run the numbers on both wrappers — tax relief, access age, 25% bonus and withdrawal penalties.</p>
+            <div class="flex flex-wrap gap-1">
+              <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-100 text-spring-700">Savings &amp; ISA</span>
+              <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700">Pensions</span>
+            </div>
+          </div>
+        </a>
+
+        <!-- 8. State Pension rates -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/state-pension/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">January 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              State Pension 2026/27: New Rates Explained
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">The triple lock increase, new full-rate figures, and what it means for your retirement income.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Pensions</span>
+          </div>
+        </a>
+
+        <!-- 9. Gifts IHT -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/gifting-iht/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">January 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Using Gifts to Reduce Inheritance Tax
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Annual exemption, 7-year rule, gifts from surplus income — the playbook for lifetime giving.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Estate planning</span>
+          </div>
+        </a>
+
+        <!-- 10. ISA Allowance -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/isa-allowance/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">January 2026</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              ISA Allowance 2026/27: Make the Most of £20,000
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Types, deadlines, and strategies for maximising your tax-free savings this tax year.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-100 text-spring-700 self-start">Savings &amp; ISA</span>
+          </div>
+        </a>
+
+        <!-- 11. SIPP vs Workplace -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/sipp-vs-workplace/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">December 2025</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              SIPP vs Workplace Pension: Which Is Better?
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Employer match, investment choice, fees — when a SIPP beats your workplace scheme (and when it doesn't).</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Pensions</span>
+          </div>
+        </a>
+
+        <!-- 12. Tall: Junior ISA -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all md:row-span-2 flex flex-col">
+          <div class="aspect-[4/5] md:aspect-auto md:flex-1 overflow-hidden bg-horizon-100 min-h-[280px]">
+            <img src="https://picsum.photos/seed/junior-isa/600/800" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-6">
+            <p class="text-xs text-neutral-400 mb-1">December 2025</p>
+            <h3 class="text-xl font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight title-serif">
+              Junior ISA Guide 2026: Saving for Your Child's Future
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed">£9,000 allowance, cash vs stocks &amp; shares, grandparent contributions and what happens at 18.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-spring-100 text-spring-700">Savings &amp; ISA</span>
+          </div>
+        </a>
+
+        <!-- 13. Lump sum -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/lump-sum-55/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">November 2025</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Pension Lump Sum Rules After Age 55
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Tax-free cash, UFPLS, the 2028 age increase — what you can take, when and how it's taxed.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Pensions</span>
+          </div>
+        </a>
+
+        <!-- 14. Trusts -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/trusts-iht/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">November 2025</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Trusts and Inheritance Tax: A Beginner's Guide
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Bare, discretionary and interest-in-possession trusts — how they work and when they make sense.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-violet-50 text-violet-700 self-start">Estate planning</span>
+          </div>
+        </a>
+
+        <!-- 15. Marriage Allowance -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/marriage-allowance/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">October 2025</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Marriage Allowance: £252 a Year You're Missing
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Who qualifies, how to claim four years back, and the paperwork involved.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-raspberry-50 text-raspberry-700 self-start">Tax changes</span>
+          </div>
+        </a>
+
+        <!-- 16. HICBC -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/hicbc/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">October 2025</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              High-Income Child Benefit Charge: What's Changed
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">The new £60,000 threshold and taper — how to model whether you should still claim.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide bg-raspberry-50 text-raspberry-700 self-start">Tax changes</span>
+          </div>
+        </a>
+
+        <!-- 17. Platform update -->
+        <a href="#" class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col">
+          <div class="aspect-[16/10] overflow-hidden bg-horizon-100">
+            <img src="https://picsum.photos/seed/fynla-platform/600/400" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
+          </div>
+          <div class="p-5 flex-1 flex flex-col">
+            <p class="text-xs text-neutral-400 mb-1">September 2025</p>
+            <h3 class="text-lg font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-2 leading-tight">
+              Introducing the Fynla Insights Hub
+            </h3>
+            <p class="text-sm text-neutral-500 mb-3 leading-relaxed flex-1">Why we're publishing plain-English UK financial commentary — and what's coming next.</p>
+            <span class="text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide" style="background:#DDE2EF;color:#3E4E7A;">Platform updates</span>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-neutral-400">Showing 17 of 17 articles</p>
+        <div class="flex items-center gap-1">
+          <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-light-gray text-neutral-400 cursor-not-allowed" disabled>&larr; Prev</button>
+          <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-horizon-500 text-white">1</button>
+          <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-light-gray text-horizon-500 hover:border-raspberry-300">2</button>
+          <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-light-gray text-horizon-500 hover:border-raspberry-300">Next &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Notes -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-xs text-neutral-500 border-t border-horizon-200">
+    <p class="mb-2"><strong>v2 — Editorial / bento layout (20 articles total)</strong></p>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>20 = 3 in Latest articles bento + 17 in masonry grid. 12 of the masonry entries are fabricated placeholders to show how the layout scales.</li>
+      <li><strong>Filter chips</strong> now show counts per category. <strong>Pagination</strong> added at the bottom (mockup shows single-page; at real scale this would switch to multi-page at e.g. 12 per page).</li>
+      <li>Masonry rhythm: three "tall" cards (span 2 rows with portrait image, larger title, longer summary) inserted at positions 1, 6, 12 — breaks up the grid and gives editorial pacing. Other cards are uniform 16:10 image + compact body.</li>
+      <li>Card hover = <code>hover:bg-light-pink-100</code> + <code>hover:shadow-lg</code>, matching current behaviour.</li>
+      <li>Images are Picsum placeholders.</li>
+    </ul>
+    <p class="mt-4">v1 (classic list): <a href="/mockup-insights.html" class="text-raspberry-500 font-semibold hover:underline">/mockup-insights.html</a></p>
+  </div>
+
+</body>
+</html>

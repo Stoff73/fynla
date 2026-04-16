@@ -44,6 +44,9 @@ yarn-error.log
 # Claude worktrees (temporary, created by Agent isolation or manual git worktree add)
 .claude/worktrees/
 
+# Claude runtime state
+.claude/scheduled_tasks.lock
+
 # Design source files and screenshots (root-level)
 /*.png
 /*.pdf
@@ -71,6 +74,12 @@ ios/App/App/public/
 
 # Local dev script
 dev.sh
+
+# Reference images, mockups, screenshots (design assets, not app code)
+public/images/References/
+public/images/screenshots/
+public/mockups/
+public/images/Fyn/Fyn-Brain-Animation.mov
 
 # Temp files (snapshots, prompts, uploads, test artifacts)
 scenario1-before-submit.md

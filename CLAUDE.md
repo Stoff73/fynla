@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 660 |
-| PHP Services | 233 |
+| Vue Components | 663 |
+| PHP Services | 234 |
 | Controllers | 94 |
 | Models | 94 |
 | Vuex Stores | 32 |
@@ -192,28 +192,108 @@ Never dispatch an agent with just "fix X" or "build Y". Always include:
 
 ## Deployment
 
-**Build locally** (server lacks memory for npm):
-```bash
-./deploy/fynla-org/build.sh        # Builds public/build/ for fynla.org
-./deploy/csjones-fynla/build.sh    # Builds for csjones.co/fynla
+### Two environments
+
+Fynla runs on two environments, isolated database, code, and credentials:
+
+| Env | URL | Purpose | Branch | Server path | SSH alias |
+|-----|-----|---------|--------|-------------|-----------|
+| **Production** | `https://fynla.org` | Live customers — real charges, real emails | `main` | `~/www/fynla.org/public_html/` | `ssh.fynla.org:18765` as `u2783-hrf1k8bpfg02` |
+| **Dev / staging** | `https://csjones.co/fynla` | Pre-production testing — Revolut sandbox, throwaway DB | `dev` | `~/www/csjones.co/public_html/fynla/` | `ssh.csjones.co:18765` as `u163-ptanegf9edny` |
+
+**Work always flows `feature → dev → main`, never skipping the dev gate.** See the branch workflow section below.
+
+**⚠️ Never** deploy `dev` to fynla.org or `main` to csjones.co — the build scripts target different `VITE_BASE_PATH` / `RewriteBase` paths and the wrong combination breaks routing silently.
+
+### Branch workflow
+
+```
+feature/<owner>/<short-task>   ──PR──►   dev   ──PR──►   main
 ```
 
-| Setting | fynla.org | csjones.co/fynla |
-|---------|-----------|------------------|
-| VITE_BASE_PATH | `/build/` | `/fynla/build/` |
-| RewriteBase | `/` | `/fynla/` |
+- `main` = exactly what's running on `fynla.org`. Protected. Only `@Stoff73` can merge.
+- `dev` = exactly what's running on `csjones.co/fynla`. Protected. Only `@Stoff73` can merge.
+- `feature/<owner>/<task>` = working branches. Naming is **mandatory**:
+  - `feature/csj/<task>` — your own work
+  - `feature/icecube/<task>` — `icecube-acc`
+  - `feature/phailanx/<task>` — `Phailanx`
+  - Any other prefix is wrong and the PR will be closed.
+- **All PRs target `dev`**, never `main` directly (except the periodic `dev → main` release PR which only `@Stoff73` opens).
+- `.github/CODEOWNERS` forces `@Stoff73` as a required reviewer on every PR.
 
-**Manual upload process:**
-1. Run build script locally
-2. Upload `public/build/` directory via SiteGround File Manager to `~/www/fynla.org/public_html/public/build/`
-3. Upload any changed PHP files (listed in deployment notes)
-4. SSH to clear caches:
+### Build scripts (per environment)
+
+**Build locally** — server lacks memory for npm:
+
+```bash
+./deploy/fynla-org/build.sh        # Build for fynla.org (root deployment)
+./deploy/csjones-fynla/build.sh    # Build for csjones.co/fynla (subdirectory)
+```
+
+The scripts set different Vite environment variables so the SPA routing and asset paths match the target:
+
+| Setting | fynla.org (main) | csjones.co/fynla (dev) |
+|---------|------------------|------------------------|
+| `VITE_BASE_PATH` | `/build/` | `/fynla/build/` |
+| `VITE_ROUTER_BASE` | `/` | `/fynla/` |
+| `VITE_API_BASE_URL` | `https://fynla.org` | `https://csjones.co/fynla` |
+| `VITE_REVOLUT_SANDBOX` | `false` | `true` |
+| `.htaccess` `RewriteBase` | `/` | `/fynla/` |
+| `APP_ENV` | `production` | `staging` |
+| `APP_DEBUG` | `false` | `true` |
+| `REVOLUT_SANDBOX` | `false` | `true` |
+| `LIFECYCLE_TEST_RECIPIENT` | unset | `chris@fynla.org` |
+
+**Never mix environments.** If you build with `csjones-fynla/build.sh` and upload to fynla.org, the Vue router base path will be wrong and the app won't load. There's no nice error — you'll just see a blank page or a 404 loop.
+
+### Deploying to dev (csjones.co/fynla)
+
+1. Work on a `feature/<owner>/<task>` branch, open PR → `dev`
+2. After merge: `git checkout dev && git pull`
+3. Build: `./deploy/csjones-fynla/build.sh`
+4. Upload `public/build/` + changed PHP files to `~/www/csjones.co/public_html/fynla/` via SiteGround File Manager or `rsync`
+5. Upload `deploy/csjones-fynla/.htaccess` to `~/www/csjones.co/public_html/fynla/public/.htaccess` (only if routing rules changed)
+6. SSH in and finalise:
+
+```bash
+ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
+cd ~/www/csjones.co/public_html/fynla
+php artisan migrate --force
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+```
+
+7. Smoke test `https://csjones.co/fynla`
+8. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh` — see rule above)
+
+**First-time dev setup** (one-time only): see `deploy/csjones-fynla/BOOTSTRAP.md` for the full provision-and-deploy guide.
+
+### Deploying to production (fynla.org)
+
+Only after dev is tested and green:
+
+1. Open PR `dev → main` (you open and approve this yourself)
+2. Merge
+3. `git checkout main && git pull`
+4. Build: `./deploy/fynla-org/build.sh`
+5. Upload `public/build/` + changed PHP files to `~/www/fynla.org/public_html/`
+6. SSH in and finalise:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
+php artisan migrate --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 ```
+
+7. Smoke test `https://fynla.org`
+8. Monitor `storage/logs/laravel.log` for errors for the next 10-15 minutes
+
+### Environment config templates
+
+- `deploy/csjones-fynla/.env.production` — template for the dev `.env`. Has `APP_ENV=staging`, `REVOLUT_SANDBOX=true`, `LIFECYCLE_TEST_RECIPIENT=chris@fynla.org`.
+- `deploy/fynla-org/.env.production` — template for the production `.env`. Has `APP_ENV=production`, `REVOLUT_SANDBOX=false`, no test recipient override.
+
+Real credentials (DB password, mail password, Revolut keys, Anthropic key) live only in each server's `.env` — never in the repo, never echoed in chat.
 
 ## Mobile App (Capacitor iOS)
 

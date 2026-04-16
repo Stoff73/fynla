@@ -3,6 +3,8 @@ import store from '@/store';
 import analyticsService from '@/services/analyticsService';
 import { platform } from '@/utils/platform';
 import { getRequiredTier, hasFeatureAccess } from '@/constants/featureGating';
+import { hasConsent } from '@/utils/cookieConsent';
+import { shouldLoadAwin, loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag } from '@/utils/awinTracking';
 
 // Lazy load components
 // Public pages
@@ -45,6 +47,8 @@ const InheritanceTaxExplainedPage = () => import('@/views/Public/insights/Inheri
 const PensionContributionLimitsPage = () => import('@/views/Public/insights/PensionContributionLimitsPage.vue');
 const IsaGuideUkPage = () => import('@/views/Public/insights/IsaGuideUkPage.vue');
 const RetirementPlanningUkPage = () => import('@/views/Public/insights/RetirementPlanningUkPage.vue');
+const StocksSharesIsaUkPage = () => import('@/views/Public/insights/StocksSharesIsaUkPage.vue');
+const HowMuchToRetireUkPage = () => import('@/views/Public/insights/HowMuchToRetireUkPage.vue');
 const WhatIsSalarySacrificePage = () => import('@/views/Public/learn/WhatIsSalarySacrificePage.vue');
 const WhatIsAnLpaPage = () => import('@/views/Public/learn/WhatIsAnLpaPage.vue');
 const WhatIsASippPage = () => import('@/views/Public/learn/WhatIsASippPage.vue');
@@ -310,6 +314,8 @@ const routes = [
   { path: '/insights/pension-contribution-limits-uk', name: 'InsightPensionLimits', component: PensionContributionLimitsPage, meta: { public: true } },
   { path: '/insights/isa-guide-uk', name: 'InsightIsaGuide', component: IsaGuideUkPage, meta: { public: true } },
   { path: '/insights/retirement-planning-uk', name: 'InsightRetirementPlanning', component: RetirementPlanningUkPage, meta: { public: true } },
+  { path: '/insights/stocks-shares-isa-uk', name: 'InsightStocksSharesIsa', component: StocksSharesIsaUkPage, meta: { public: true } },
+  { path: '/insights/how-much-to-retire-uk', name: 'InsightHowMuchToRetire', component: HowMuchToRetireUkPage, meta: { public: true } },
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },
@@ -1394,6 +1400,18 @@ router.afterEach((to) => {
 // Analytics: track page views on every route change
 router.afterEach((to) => {
   analyticsService.trackPageView(to.name, to.path);
+});
+
+// Awin MasterTag: respect route exclusions on every navigation. The tag
+// must not load on checkout pages per Awin's own guidance. Cookie consent
+// is still required — declined users never load the tag at all.
+router.afterEach((to) => {
+  if (!hasConsent()) return;
+  if (shouldLoadAwin(to.name)) {
+    loadAwinMasterTag();
+  } else {
+    unloadAwinMasterTag();
+  }
 });
 
 export default router;
