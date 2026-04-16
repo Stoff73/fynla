@@ -93,6 +93,7 @@ const SecuritySettings = () => import('@/views/Settings/SecuritySettings.vue');
 const PrivacySettings = () => import('@/views/Settings/PrivacySettings.vue');
 const AssumptionsSettings = () => import('@/views/Settings/AssumptionsSettings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
+const InvoiceView = () => import('@/views/InvoiceView.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
 const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
 const PropertyList = () => import('@/components/NetWorth/PropertyList.vue');
@@ -517,6 +518,19 @@ const routes = [
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Profile', path: '/profile' },
+      ],
+    },
+  },
+  {
+    path: '/invoice/:id',
+    name: 'InvoiceView',
+    component: InvoiceView,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Profile', path: '/profile' },
+        { label: 'Invoice', path: '' },
       ],
     },
   },
