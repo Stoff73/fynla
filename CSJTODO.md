@@ -1,7 +1,38 @@
 # CSJTODO — Fynla
 
-*Last updated: 16 April 2026 — session 57*
-*Previous session: 15 April 2026 — session 56*
+*Last updated: 16 April 2026 — session 59*
+*Previous session: 16 April 2026 — sessions 57-58*
+
+---
+
+## Session 59 (16 April) — Invoice Fix, Billing History, Auto-Renew, Admin Pagination, Privacy Policy
+
+### Completed This Session
+
+- [x] **Invoice view page** — new `/invoice/:id` route showing full invoice details (plan, amounts, billing period, renewal notice, PDF download link). `InvoiceView.vue` + `GET /api/payment/invoices/{invoice}` endpoint.
+- [x] **Billing history fix** — `SubscriptionManagement.vue` billing history table never rendered because `response.data.payments` was `undefined` (API wraps in `{ success, data: { payments } }`). Fixed to `response.data.data?.payments`.
+- [x] **Billing history table redesigned** — shows Date, Invoice number (clickable link to `/invoice/:id`), Description, Amount. Replaced old reference + download icon columns.
+- [x] **Email link fix** — all 3 payment email templates (`payment-confirmation`, `invoice`, `payment-failed`) linked to `/profile#subscription` which didn't activate the subscription tab. Fixed to `?section=subscription`. Added hash fallback in `UserProfile.vue`.
+- [x] **Payment confirmation email copy** — CTA now "Manage your subscription" / "View subscription" (was "View and download your invoice"). Body says invoice is attached. Uses `config('app.url')` instead of hardcoded `https://fynla.org`.
+- [x] **Auto-renew fix** — `confirmPayment` only set `auto_renew: true` when `revolut_subscription_id` existed. Discount code payments bypassed this. Now always sets `auto_renew` on every completed payment. Same fix in `WebhookController`.
+- [x] **Subscription amount fix** — `confirmPayment` used launch price for subscription amount (renewal amount). Now uses regular price consistently with `WebhookController` (£269.99 for Pro yearly, not £200.00 launch price).
+- [x] **Admin user pagination** — `per_page` increased from 15 to 50. Status filter now passed to backend as query param. `AdminController::getUsers()` filters by subscription status server-side via `whereHas`.
+- [x] **Privacy policy — Fyn AI notice** — added section (h) "Fyn AI Conversations" covering anonymised review for quality improvement. Updated Anthropic third-party entry to mention Fyn AI alongside document extraction.
+- [x] **chris@fynla.org reset to trial** — reset subscription to trialing for payment flow testing. User completed payment, confirmed billing history and invoice view work. Set `auto_renew: true` and `payment_method_saved: true` manually after.
+- [x] **All changes deployed to production** — PHP files uploaded via SSH, Blade templates uploaded, caches cleared. Frontend build produced, user uploaded `public/build/`.
+- [x] **PR #218 merged to main** — `invoiceFix` branch.
+- [x] **Vault sync complete** — git history, April Index, Home.md all updated.
+
+### NOT Done — Outstanding from Session 59
+
+- [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — deployed in session 58 but not browser-tested. Carried from session 58.
+- [ ] **Re-enable branch protection on `dev`** — carried from session 57.
+
+### Context for Next Session
+
+On `main` branch, clean working tree. Production is running all session 59 fixes. chris@fynla.org has active Pro subscription with auto-renew enabled (£269.99/year renewal). Invoice view, billing history, corrected emails, admin pagination, and privacy policy all live.
+
+The `onboardingFyn` branch has Fyn chat fixes (sessions 57-58) that are deployed to dev but NOT on production yet. Those need testing on dev before merging to main.
 
 ---
 
@@ -20,7 +51,7 @@
 
 ### NOT Done — Outstanding from Session 57
 
-- [ ] **Re-test Awin tracking diagnosis** — the voucher fix is deployed but needs a discount-code transaction to verify the warning is resolved in Awin's dashboard.
+- [x] **Re-test Awin tracking diagnosis** — discount-code transaction completed in session 59 (TESTING code, 100% off). Voucher property name fix confirmed working.
 - [ ] **Dev server Awin env vars** — `AWIN_ENABLED`, `AWIN_MERCHANT_ID`, `AWIN_COOKIE_DOMAIN=csjones.co` need adding to csjones.co `.env` when dev is next deployed from a branch that includes Awin code.
 - [ ] **Re-enable branch protection** — review requirement on `dev` branch was disabled for PR merges this session. Needs re-enabling.
 
@@ -89,7 +120,7 @@ grep '\[awin\]' storage/logs/laravel.log | tail -20
 - [ ] **Jessica Cracknell (user 301)** — ghost trial cleanup side effect from session 51; she was the only real user in the batch of 11 expired trialing subs. Never received a reminder email. Worth flagging if she gets in touch, and/or a goodwill gesture (trial reset, one-off discount).
 - [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to document the SiteGround cron setup as a deploy step (so this can never recur on a future server migration).
 - [ ] **Verify cron is still firing on production** — should be running daily per session 51 setup. Check trial_reminder_log + pending_registrations cleanup (hourly) + laravel.log for any scheduler errors.
-- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47.
+- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47. Note: chris@fynla.org now has a new payment with invoice from session 59 testing.
 - [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged.
 - [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting. Note: this is a different file from `.claude/settings.local.json` (already ignored) and `.claude/scheduled_tasks.lock` (ignored by session 56).
 - [ ] **Fyn Quick Start flow "empty user" issue** — the `dc_pensions.current_value` typo blocker is now resolved, but the original fynQuickStartBugs.md report also flagged that `CoordinatingAgent::buildFinancialContext()` runs full module analyses against users with zero data, causing the AI to hallucinate numbers and module agents to error on empty data. Fix options documented in `April/April9Updates/fynQuickStartBugs.md` section 2. The "Quick start with Fyn" CTA is still hidden on the landing page until this is addressed.
@@ -142,4 +173,6 @@ grep '\[awin\]' storage/logs/laravel.log | tail -20
 - **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
 - **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
 - **Awin tracking fix + email consolidation:** DEPLOYED 16 April 2026 — `voucher` property name fix (was `voucherCode`), MasterTag defer-only, payment email consolidation (single email with invoice PDF), Affiliate Reference conditional on AWC cookie. PR #216 (awinPlusDev → dev).
+- **Fyn chat fix (fynChatFix):** DEPLOYED TO DEV 16 April 2026 — tool metadata stripping, path→link conversion, savings query tool routing fix. On `onboardingFyn` branch. Not yet on production.
+- **Invoice fix + auto-renew + admin pagination + privacy policy:** DEPLOYED 16 April 2026 — PR #218 merged + direct commit to main. Invoice view page, billing history fix, email link fix, auto-renew on all payments, admin pagination server-side, Fyn AI privacy notice.
 - **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.
