@@ -1096,6 +1096,11 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/in
     Route::post('articles/{article}/resync-template', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'resyncFromTemplate']);
     Route::get('articles/{article}/revisions', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'revisions']);
     Route::post('articles/{article}/revisions/{revision}/restore', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'restoreRevision']);
+
+    Route::get('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'index']);
+    Route::post('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'store']);
+    Route::put('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'update']);
+    Route::delete('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'destroy']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
