@@ -90,6 +90,9 @@
     /></noscript>
     <!-- End Meta Pixel Code -->
 
+    {{-- Insight articles push per-article SEO meta tags here (see InsightsSeoMetaInjector middleware) --}}
+    @stack('head')
+
 </head>
 <body class="antialiased" style="background-color: #F7F6F4;">
     <div id="app"></div>
