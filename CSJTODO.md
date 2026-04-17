@@ -1,76 +1,145 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 64 (subscription/checkout hotfix day)*
-*Previous session: 18 April 2026 — session 63 (full codebase tech debt audit + remediation)*
+*Last updated: 17 April 2026 — session 57*
+*Previous session: 15 April 2026 — session 56*
 
 ---
 
-## Session 64 (23 April) — Subscription/checkout hotfix: R1–R5 shipped to production and merged
+## Session 57 (15–17 April) — Insights Hub Redesign, Landing Page Updates, Reviews & Testimonials
 
 ### Completed This Session
 
-- [x] **R1 — expired-trial checkout loop fixed** — `PlanSelectionModal` + `DataRetentionOverlay` no longer stack on `/checkout`. New `isOnCheckoutRoute` computed in `AppLayout` gates both overlays. `DataRetentionOverlay` "Subscribe Now" is now an `@subscribe` event emitter (was a `<router-link>` that dropped plan/cycle query params). `checkTrialStatus` only auto-shows the non-dismissable plan modal for non-grace expired users.
-- [x] **R2 — Student plan gated to `.ac.uk` emails** — `User::isEligibleForStudentPlan()` helper (case-insensitive `str_ends_with('.ac.uk')`) + `PaymentController::createOrder` 422 gate. Frontend hides the Student card in `PlanSelectionModal.filteredPlans`. Public `/pricing` unchanged (all 4 plans for marketing).
-- [x] **R3 — plan-card feature copy polish** — new `displayFeatures(plan)` computed. Standard card inlines Student bullets when Student is hidden. Family card always shows "Parents included" + "Children for free".
-- [x] **R4 — "Have a discount code?" link removed** from `PlanSelectionModal`. CheckoutPage discount field remains the single entry point.
-- [x] **R5 — /pricing Family card bullets** match plan modal (Parents included + Children for free).
-- [x] **Production smoke-tested end-to-end** across all five releases with test user `bugrepro_expired_2026_04_23@fynla.org` (non-`.ac.uk`) and temporary `bugrepro_student_r3_2026_04_23@kent.ac.uk` (deleted post-test). `POST /api/payment/create-order` confirmed 200 for eligible users, 422 with correct message for ineligible.
-- [x] **PR #222 admin-merged to main** as squashed commit `ad73bd0` (6 files, +140/-41). `prodHotFix` branch deleted (local + remote).
-- [x] **Deploy guide + findings + fix plan + patch notes** all written to `April/April23Updates/production/` (repo) + mirrored to `fynlaBrain/April/April23Updates/production/` (vault).
-- [x] **User-facing patch notes** written at `April/April23Updates/subscribePatch.md` — ready for you to publish (blog / email / in-app). Also mirrored to vault.
-- [x] **Tech debt audit** on changed files — 0 critical, 0 warnings, 3 suggestions (minor). Report at `tech-debt-report.md` + mirrored to vault.
-- [x] **Vault sync done** — April Index updated with April 23 session summary, `Git History/Apr2026/Apr23.md` written, all deploy docs + findings + patch notes mirrored.
+- [x] **Insights hub editorial redesign (PR #215, merged to dev)** — `InsightsHubPage.vue` rebuilt with bento layout: 1 hero feature card + 2 stacked side cards on light-pink "Latest articles" section, followed by masonry "Browse all insights" grid with tall-card rhythm and per-category filter counts. 4 Unsplash images downloaded for previously missing article cards (how-much-to-retire, stocks-shares-isa, isa-guide, retirement-planning).
+- [x] **Landing page "Latest insights" section** — New light-pink section below "Your personal journey" (switched to eggshell bg) with 3 compact article panels linking to the insights hub. Stats bar made horizontal on all viewports with responsive type scaling. Footer padding bumped (`pt-28` → `pt-40` in `PublicLayout.vue`) to eliminate white gap behind the straddling stats card.
+- [x] **Header CTA reorder** — "Ask Fyn" renamed to "Meet Fyn", links reordered to: Meet Fyn | View the video | See our demo.
+- [x] **Analytics gating for preview/admin users** — `CheckoutPage.vue` and `Dashboard.vue` skip GA4 purchase, Meta Pixel Subscribe, and Meta Pixel StartTrial events for `is_preview_user` or `is_admin` users.
+- [x] **PR #215 (insights-page) merged to dev** — 3 commits, 11 files.
+- [x] **Real customer testimonials** — Reviews 3–5 in `ReviewCarousel.vue` replaced with Anne L., Neil S., and Ron B. (real users). Anne L. and Ron B. shortened to ~5 lines.
+- [x] **ReviewCarousel made reusable** — Added to `HowItWorksPage`, `FeaturesPage`, `OnePlatformPage`. Update once, updates everywhere.
+- [x] **Pricing page tweaks** — Removed "prices will increase when this offer expires" from limited-time banner. ReviewCarousel initially added then removed per user direction.
+- [x] **Design mockups** — `public/mockup-insights.html` (v1 classic list) and `public/mockup-insights-v2.html` (v2 editorial bento) created for design review before implementation.
 
-### Outstanding from this session
+### NOT Done — Outstanding from Session 57
 
-- [ ] **Publish `subscribePatch.md`** wherever you communicate updates to users (blog, email, in-app notification). The markdown is plain-English and ready to post as-is.
-- [ ] **Delete the prod test user** when you're finished with it: `bugrepro_expired_2026_04_23@fynla.org` (currently `status=expired` + in grace period, left in place per your earlier instruction). Tinker snippet is in `deploy-fix-2026-04-23.md` §"Tear down test user".
-- [ ] **Optional — address the 3 tech-debt suggestions** (all low priority, none block anything): (S1) rename module-level `isEligibleForStudentPlan` helper in `PlanSelectionModal.vue` to avoid shadowing the computed of the same name; (S2) drop the semi-dead `discountCode: null` from the emit payload and clean up the downstream `discountParam` branch in `SubscriptionManagement.vue`; (S3) extract a `<BulletItem>` component in `PricingPage.vue` to stop duplicating the checkmark SVG (~18 occurrences).
+- [ ] **PR for `email-onboarding-reviews` branch** — 1 commit pushed to origin, no PR opened yet. Contains: testimonial updates, ReviewCarousel on 3 pages, pricing banner trim.
 
 ### Context for Next Session
 
-On `main`, clean working tree, in sync with `origin/main`. The subscription hotfix is fully merged and live. No rollback needed, no pending deployments from today's work.
+Two branches were worked on this session:
+1. `insights-page` — **merged to dev** via PR #215 (insights hub + landing page + analytics gating). Already in dev.
+2. `email-onboarding-reviews` — **1 commit pushed, PR not yet opened**. Contains testimonials + ReviewCarousel reuse + pricing tweak. Open PR → dev when ready.
 
-The **session 63 tech-debt branch** (`feature/csj/tech-debt-session-63`) remains unmerged and is still the top priority carried forward — browser testing + PR to `dev` → `main` hasn't been done yet. See the "Outstanding — session 63 carryover" block below for the full state.
-
-If next session is another fire-fighting day, today's test user (`bugrepro_expired_2026_04_23@fynla.org`) is still on production with `status=expired` + grace period — useful as a ready-made expired-trial account for any subscription-path investigation.
-
----
-
-## Outstanding — session 63 carryover (tech debt remediation branch)
-
-Branch `feature/csj/tech-debt-session-63` (3 commits, +729/-2,160 net, 84 files) is pushed to origin and **ready for PR**. All work is isolated on the feature branch — `main` is untouched. PR gate blockers:
-
-- [ ] **Browser-test the feature branch end-to-end** before opening PR to dev. Per `April/April18Updates/handover-tech-debt.md` §4a, 8 flows must be verified: Estate/IHT dashboard, Investment dashboard (holdings/fees/tax/rebalance), Protection dashboard, Expenditure form (penny-level totals), Estate CRUD (asset/liability/gift/LPA/trust — Vuex actions removed, components call service directly), Net worth dashboard (NetWorthAnalyzer patched), Savings dashboard (renamed component), Investment detail (renamed components).
-- [ ] **PR `feature/csj/tech-debt-session-63` → `dev`** — follow feature → dev → main workflow per CLAUDE.md. Do NOT PR straight to main. CODEOWNERS requires @Stoff73 review.
-- [ ] **After dev green, PR `dev` → `main` + deploy** — standard two-environment flow.
-
-### Why this matters
-
-The tech-debt branch closes **7 critical items** from the full codebase audit: 70 float→decimal:2 casts across 12 models, 17 dead API methods removed, 54 orphaned Vuex actions removed (store size −31%), 2 dead Vue components deleted, 5 single-word components renamed, strict_types added to 38 files, 6 generic exception throws converted to `FinancialCalculationException` factories, architecture test added to prevent regression. Sitting unmerged, none of it is benefitting production.
+The `public/build/` directory on localhost has a production-style build (with `VITE_BASE_PATH=/build/`). If you need HMR for the next session, kill the vite process on port 5174 and restart `npm run dev` so the hot file gets created. There's a pending migration locally (`2026_04_14_094042_create_notifications_table`) — already applied on production but not on this Windows dev machine.
 
 ---
 
-## Outstanding — other carryovers
+## Session 56 (15 April) — Awin Affiliate Integration Live on Production
 
-- [ ] **NPM `--force` fix** — schedule a 2-4h window for vite 8 + @capacitor/cli 8 major upgrades with full PWA + iOS + web regression. 6 high-severity vulnerabilities remain until this is done. Carried from session 63.
-- [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — deployed in session 58 but not browser-tested. Carried from session 58.
-- [ ] **Re-enable branch protection on `dev`** — carried from session 57.
-- [ ] **Add `Current State/Insights.md`** to the vault — carried from session 62.
-- [ ] **`AutoRiskCalculatorTest` pre-existing failure** — `risk_level` enum truncation. Pre-existing since 16 April. Surfaces in every full-suite run but not blocking.
+### Completed This Session
+
+- [x] **Full Awin affiliate attribution integration built, bundled with dev branch, and deployed to production.** Merchant ID 126105. Dual-track attribution (browser pixel + server-to-server). Phase 1 scaffold (`config/awin.php`, `CaptureAwcCookie` middleware, `EncryptCookies` exception, CSP extension, 4 new `payments.awin_*` columns via nullable/backfill-safe migration). Phase 2 backend (`AwinTrackingService`, `FireAwinConversionJob` with `tries=3` + backoff `[30s, 5min, 30min]` + idempotent via `awin_fired_at`, wired into `PaymentController::createOrder`/`confirmPayment` + `WebhookController::handleOrderCompleted`, response payload threading). Phase 3 frontend (`resources/js/utils/awinTracking.js`, `cookieConsent` hooks, `router.afterEach` hook, `CheckoutPage.vue` fires browser pixel after GA4 event). 32 new tests (16 unit + 7 job + 9 integration) all green.
+- [x] **Merged `origin/dev` into `awinPlusDev`** to bundle PR #210 (Stocks & Shares ISA + How Much To Retire insight pages) and PR #211 (10 email template redesigns + review carousel + Meta Pixel tracking + persona modal mobile fix + `email:test` artisan command) with the Awin ship. Resolved 3-way merge conflict in `CheckoutPage.vue` (both branches inserted blocks at the same post-GA4 location — kept both, Meta Pixel first then Awin) + clean auto-merges in 2 `.env.production` templates.
+- [x] **Meta Pixel CSP fix** — PR #211 shipped `fbq('track','Subscribe')` but never updated `SecurityHeaders.php`. Added `connect.facebook.net` + `www.facebook.com` to `script-src` / `img-src` / `connect-src`. **Resolves CSJTODO session 51 outstanding item "Meta Pixel CSP — connect.facebook.net and www.facebook.com not in SecurityHeaders.php whitelist."**
+- [x] **PR #197 cleanup** — moved 9 content blueprints from repo root to `Articles/` via `git mv` (history preserved): `faq.md`, `how-it-works.md`, `ice-letters.md`, `iht-planning.md`, `monte-carlo.md`, `net-worth-dashboard.md`, `pension-tracker.md`, `protection-gap.md`, `when-can-i-retire.md`. `SITE_ARCHITECTURE.md` moved to `fynlaBrain/Architecture/`. **Resolves CSJTODO carry-over "PR #197 cleanup — 9 markdown files in repo root should be moved to Articles/"** (was actually 10 files, not 9).
+- [x] **LifeStageService `current_value` typo fix** — diagnosed the "missing migration" CSJTODO item as a **code typo, not a missing migration**. `hasPensionValueAbove()` at line 194 summed `current_value` but the `dc_pensions` table column has always been `current_fund_value`. 57 production errors logged since 8 April (all silently caught in a try/catch). Fixed in commit `1ce51d4`, verified post-deploy against 5 real users with DC pensions returning correct sums (£12k-£844k range). **Resolves CSJTODO carry-over "Fyn Quick Start flow — `dc_pensions.current_value` column missing on prod" and "Run pending migration on production — `dc_pensions.current_value`."** Also confirmed during the investigation that the other two fynQuickStartBugs items (`employment_status` enum missing `full_time`, `users.plan` enum missing `family`) are already resolved on production.
+- [x] **Committed remaining untracked sources** — `awin/` onboarding materials (6 PNGs + integration.md), 4 research `.docx` files, `.claude/skills/security-and-hardening/SKILL.md`. Extended `.gitignore` with `.claude/scheduled_tasks.lock` runtime state file.
+- [x] **Deployed to production in-session.** 23 PHP/Blade files uploaded via SSH with 17-file rollback backup at `~/www/fynla.org/backup/2026-04-15-awin-deploy/`. Migration `2026_04_15_153100_add_awin_tracking_to_payments_table` run on prod. `AWIN_ENABLED=true` added to live `.env`. All Laravel caches cleared + rebuilt. Local production build run via `./deploy/fynla-org/build.sh` with `VITE_AWIN_ENABLED=true` baked in, `public/build/` uploaded by CSJ.
+- [x] **Post-deploy smoke tests all clean.** Playwright verification on `https://fynla.org/`:
+  - 0 console errors (previously 1: Meta Pixel CSP — now fixed)
+  - `window.fbq === 'function'`, PageView queue flushed
+  - `window.AWIN` initialised, `#awin-master-tag` script with `src=https://www.dwin1.com/126105.js` present in DOM
+  - `awc=DEPLOY-SMOKE-2026-04-15` Set-Cookie captured with all 6 attributes: 365d TTL, Secure, HttpOnly, SameSite=Lax, domain=fynla.org, path=/
+  - Both new insight pages render with correct titles: `/insights/stocks-shares-isa-uk`, `/insights/how-much-to-retire-uk`
+  - CSP headers contain all 4 whitelisted domains: `dwin1.com`, `awin1.com`, `connect.facebook.net`, `facebook.com`
+- [x] **Pushed `awinPlusDev` and `awinIntegrate` to origin.** `awinPlusDev` is 8 commits ahead of `main`, tracking `origin/awinPlusDev`.
+- [x] **Full vault sync** — 6 new update notes copied to vault, `Apr15.md` git history file created, April Index updated with Session 56 summary + 11 wikilinks, Home.md updated with new totals (2,219 commits / 279 for April / 11 days) and `AwinIntegration` added to Current State section, CLAUDE.md metrics bumped (Vue 660→663, PHP services 233→234).
+- [x] **Tech debt audit** — clean bill of health across the 14 in-scope files I authored this session. Report at `tech-debt-report.md`. Zero issues found (strict_types ✓, type hints ✓, no hardcoded tax values ✓, no banned colours ✓, no TODO markers ✓, no dead code ✓, all file sizes well under thresholds, security invariants correct).
+
+### NOT Done — Outstanding from Session 56
+
+- [ ] **🔴 First real Awin conversion validation** — `awinPlusDev` holding on merging to `main` until a real purchase fires end-to-end. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
+  ```bash
+  git checkout main
+  git merge awinPlusDev --no-ff -m "merge: awinPlusDev → main — Awin live validated"
+  git push origin main
+  ```
+  Then delete `awinIntegrate` (subset of `awinPlusDev`).
+- [ ] **Clean up `public/build/` cruft on production** — directory is currently 207MB with stale hashed files from multiple prior builds. Not a blocker (older files are unreachable from the current `manifest.json`), but future housekeeping task.
+
+### Context for Next Session
+
+Production is running the full Awin stack as of ~20:00 BST on 15 April. Backend cookie capture, S2S job, and admin/preview exclusions are all live. First Meta Pixel `Subscribe` event will fire on next real subscription checkout (CSP fix is live). First Awin S2S will fire when a user with an `awc` cookie completes a payment.
+
+The `awinPlusDev` branch is 8 commits ahead of main, all pushed to origin. Main has received no changes this session — the user explicitly asked to hold the merge until first-conversion validation. If a real Awin conversion lands overnight, tomorrow's session should:
+1. Run the verification tinker command (below) to confirm `awin_fired_at` populated
+2. Grep `storage/logs/laravel.log` for `[awin] s2s fired` entries
+3. If both confirm, merge `awinPlusDev` → `main` and delete the feature branches
+
+Verification command:
+```bash
+ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
+cd ~/www/fynla.org/public_html
+php artisan tinker --execute="\$p = \App\Models\Payment::where('status','completed')->whereNotNull('awin_fired_at')->latest()->first(); echo \$p ? json_encode(['id'=>\$p->id,'cks'=>\$p->awin_cks,'ref'=>\$p->awin_order_ref,'acq'=>\$p->awin_customer_acquisition,'fired'=>\$p->awin_fired_at?->toIso8601String()], JSON_PRETTY_PRINT) : 'no conversion yet';"
+grep '\[awin\]' storage/logs/laravel.log | tail -20
+```
 
 ---
 
-## Outstanding — long-running tech debt (session 63 deferred, still valid)
+## Carry-Over From Sessions 51 & 50 — Still Outstanding
 
-- [ ] **28 Vue god components** (>800 lines) — prioritise `Admin/TaxSettings.vue` (3,068 lines) and `UserProfile/ExpenditureForm.vue` (2,574 lines). Multi-week.
-- [ ] **13 backend god files** — decompose `SavingsActionDefinitionService.php` (3,686 lines), `RetirementActionDefinitionService.php` (2,701), `ProtectionActionDefinitionService.php` (2,349), `RetirementIncomeService.php` (2,292), `IHTCalculationService.php` (1,641).
-- [ ] **54 controllers using inline `$request->validate()`** — convert to Form Request classes (~60-80h total). Top 10 first: Admin, Payment, Retirement, Auth, UserProfile, Investment, Property, TaxSettings, Onboarding, Recommendations.
+- [ ] **Jessica Cracknell (user 301)** — ghost trial cleanup side effect from session 51; she was the only real user in the batch of 11 expired trialing subs. Never received a reminder email. Worth flagging if she gets in touch, and/or a goodwill gesture (trial reset, one-off discount).
+- [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to document the SiteGround cron setup as a deploy step (so this can never recur on a future server migration).
+- [ ] **Verify cron is still firing on production** — should be running daily per session 51 setup. Check trial_reminder_log + pending_registrations cleanup (hourly) + laravel.log for any scheduler errors.
+- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47.
+- [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged.
+- [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting. Note: this is a different file from `.claude/settings.local.json` (already ignored) and `.claude/scheduled_tasks.lock` (ignored by session 56).
+- [ ] **Fyn Quick Start flow "empty user" issue** — the `dc_pensions.current_value` typo blocker is now resolved, but the original fynQuickStartBugs.md report also flagged that `CoordinatingAgent::buildFinancialContext()` runs full module analyses against users with zero data, causing the AI to hallucinate numbers and module agents to error on empty data. Fix options documented in `April/April9Updates/fynQuickStartBugs.md` section 2. The "Quick start with Fyn" CTA is still hidden on the landing page until this is addressed.
+- [ ] **Lifecycle email engine (PR #212)** still not deployed. Still targeted at main. Requires conflict resolution in `trial-expiration-reminder.blade.php` (PR #211 redesigned it, PR #212 palette-fixed it) when it comes time to ship.
 
 ---
+
+## Outstanding — Tech Debt (Deferred from Code Review)
+
+### Duplicate Code Consolidation (from 9 April audit)
+- [ ] DUP-01: Consolidate `determineTaxBand` — 7 implementations across services → UKTaxCalculator
+- [ ] DUP-02: Consolidate DC pension annual contribution — 5 duplicates
+- [ ] DUP-03: Consolidate pension tax relief — 3 duplicates
+- [ ] DUP-04: Consolidate `calculateFutureValue` — 5 duplicates (shared service exists but not injected)
+- [ ] CONV-03: Migrate 22 Vue components from direct currency import to currencyMixin
+
+### God Class Refactors (multi-session each)
+- [ ] RetirementIncomeService.php (2,292L) → extract ProjectionEngine, PCLSCalculatorService, AllocationStrategyService
+- [ ] IHTCalculationService.php (1,641L) → extract CharitableRateCalculator, RNRBCalculator, ProjectedEstateService
+- [ ] UserProfileService::getFinancialCommitments (421-line method)
+- [ ] User.php (713L, 59 methods) → extract HasSubscription trait, DomicileService
+- [ ] InvestmentAccount.php (492L, ~164 fillable) → polymorphic sub-type tables
+- [ ] TaxSettings.vue (3,068L), ExpenditureForm.vue (2,574L), CalculatorsPage.vue (2,471L), Dashboard.vue (2,215L), RetirementIncomeTab.vue (2,107L)
+
+### Architectural Debt
+- [ ] Float-to-decimal cast sweep across 9 models (65 columns)
+- [ ] FormRequest migration across 26 controllers (~78 new classes)
+- [ ] API Resource extraction for 92 controllers returning raw JSON
+- [ ] Split InvestmentController (1,070L) + AdminController (794L) + GoalsController (792L)
+- [ ] Nonce-based CSP to replace `unsafe-inline` (MEDIUM-01 from security audit)
+- [ ] npm audit fix (14 vulnerabilities, 11 high — breaking changes need testing)
+
+### Test Coverage Gaps
+- [ ] ~85 services with zero tests (IHTCalculationService most critical)
+- [ ] Investment Analytics/Rebalancing/Performance/Tax subdirectories entirely untested (~35 services)
+- [ ] AutoRiskCalculatorTest — `risk_level` column enum doesn't accept `medium_low` (2 pre-existing failures)
+
+## Known Issues
+
+- [ ] Retirement "Other Assets" cards overflow at 1118px
+- [ ] DB pension field mapping mismatch
+- [ ] Expenditure form fill doesn't animate
+- [ ] property_sale life event creates property record (double navigation)
+- [ ] 3 flaky WillBuilder tests (`tests/Feature/Estate/WillBuilderApiTest.php`) — "James Serenity Carter" persona middle name pollution only surfaces under full-suite ordering. Pass 14/14 in isolation. Pre-existing on main, not introduced by this session's work.
 
 ## Deploy Status
 
-- **fynla.org (production)** — subscription hotfix R1–R5 live (commit `ad73bd0` on main). Test user `bugrepro_expired_2026_04_23@fynla.org` still on prod for follow-up testing.
-- **csjones.co/fynla (dev)** — deployed state unknown; last known state was the `onboardingFyn` branch from earlier April work. If you need dev for another test, verify which branch is currently deployed before building (`feedback_dev_server_is_separate.md`).
-- **Tech debt branch (session 63)** — not deployed anywhere; sitting on `feature/csj/tech-debt-session-63` awaiting browser tests + PR.
+- **PR #208 (claudeReview):** DEPLOYED 9 April 2026 — spouse toggle, dashboard refresh, markdown, enum, tier gating
+- **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026
+- **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
+- **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
+- **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.
