@@ -323,7 +323,11 @@ const routes = [
   { path: '/insights/how-much-to-retire-uk', name: 'InsightHowMuchToRetire', component: HowMuchToRetireUkPage, meta: { public: true } },
   // IMPORTANT: /insights/:slug catch-all MUST come AFTER all named insight routes
   // so bespoke Vue articles take precedence. Enforced by an architecture test in Phase 6.
-  { path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } },
+  // Gated by VITE_INSIGHTS_CMS_ENABLED so production can ship backend-only builds
+  // first and flip the flag after smoke-testing the API.
+  ...(import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true'
+    ? [{ path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } }]
+    : []),
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },

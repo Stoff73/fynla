@@ -40,12 +40,17 @@ export VITE_AWIN_MERCHANT_ID=126105
 export VITE_AWIN_MASTER_TAG_URL=https://www.dwin1.com/126105.js
 export VITE_AWIN_FALLBACK_PIXEL=https://www.awin1.com/sread.img
 
+# Insights CMS feature flag — dev defaults to true so the new hub/landing
+# layouts and the /insights/:slug catch-all route are always testable here.
+export VITE_INSIGHTS_CMS_ENABLED=true
+
 echo "Environment:"
 echo "  NODE_ENV: $NODE_ENV"
 echo "  VITE_BASE_PATH: $VITE_BASE_PATH"
 echo "  VITE_ROUTER_BASE: $VITE_ROUTER_BASE"
 echo "  VITE_API_BASE_URL: $VITE_API_BASE_URL"
 echo "  VITE_AWIN_ENABLED: $VITE_AWIN_ENABLED"
+echo "  VITE_INSIGHTS_CMS_ENABLED: $VITE_INSIGHTS_CMS_ENABLED"
 echo ""
 
 # Build frontend assets

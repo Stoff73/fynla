@@ -501,10 +501,16 @@ export default {
     document.title = 'Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments';
     this.setMetaDescription('Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place.');
     this.checkDemoParam();
-    try {
-      await this.fetchFeatured();
-    } catch (e) {
-      // non-fatal — hero hides if nothing returned
+
+    // Feature flag off → skip the fetch; the `v-if="insightsFeatured"` block
+    // in the template hides the Latest insights section entirely when there's
+    // no data, which is the intended behaviour during a backend-only deploy.
+    if (import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true') {
+      try {
+        await this.fetchFeatured();
+      } catch (e) {
+        // non-fatal — hero hides if nothing returned
+      }
     }
   },
 
