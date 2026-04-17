@@ -122,6 +122,9 @@ const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
+const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
+const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
+const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -1052,6 +1055,30 @@ const routes = [
         { label: 'Admin Panel', path: '/admin' },
       ],
     },
+  },
+  {
+    path: '/admin/insights',
+    name: 'AdminInsights',
+    component: InsightsArticleListPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/new',
+    name: 'AdminInsightNew',
+    component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/templates',
+    name: 'AdminInsightTemplates',
+    component: InsightsTemplateListPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/:id/edit',
+    name: 'AdminInsightEdit',
+    component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/version',
