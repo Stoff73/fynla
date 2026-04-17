@@ -285,14 +285,18 @@ export default {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', 'UK financial planning insights covering tax changes, pension rules, budget updates, and platform news from Fynla.');
 
-    try {
-      await this.fetchList();
-    } catch (e) {
-      // non-fatal — the legacy hardcoded list below keeps the page alive
-      // if the API is unavailable during a transition deploy.
-    } finally {
-      this.loading = false;
+    // Feature-flag off (production default until backend is verified) → skip
+    // the API call and render the legacyArticles fallback. Feature-flag on →
+    // fetch from /api/insights and render whatever the DB returns.
+    if (import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true') {
+      try {
+        await this.fetchList();
+      } catch (e) {
+        // non-fatal — the legacy hardcoded list keeps the page alive
+        // if the API is unavailable during a transition deploy.
+      }
     }
+    this.loading = false;
   },
 
   methods: {
