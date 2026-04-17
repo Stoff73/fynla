@@ -45,6 +45,7 @@
         "@capgo/capacitor-native-biometric": "^6.0.4",
         "@vitejs/plugin-vue": "^5.2.4",
         "apexcharts": "^5.3.5",
+        "dompurify": "^3.4.0",
         "vue": "^3.5.22",
         "vue-router": "^4.5.1",
         "vue3-apexcharts": "^1.9.0",
