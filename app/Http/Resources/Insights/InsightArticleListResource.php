@@ -14,6 +14,7 @@ class InsightArticleListResource extends JsonResource
         $base = rtrim(config('app.url'), '/').'/storage/';
 
         return [
+            'id' => $this->id,
             'slug' => $this->slug,
             'title' => $this->title,
             'summary' => $this->summary,
