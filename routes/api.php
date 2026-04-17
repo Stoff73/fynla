@@ -156,6 +156,14 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// Public Insights API (no auth required; admins can preview drafts via ?preview=true)
+Route::prefix('insights')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Public\InsightController::class, 'index']);
+    Route::get('featured', [\App\Http\Controllers\Api\Public\InsightController::class, 'featured']);
+    Route::get('{slug}', [\App\Http\Controllers\Api\Public\InsightController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+');
+});
+
 // Preview Mode routes (allows unauthenticated preview access)
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)
