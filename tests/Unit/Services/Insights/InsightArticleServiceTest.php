@@ -66,6 +66,18 @@ it('archives an article without deleting it', function () {
         ->and($article->fresh()->deleted_at)->toBeNull();
 });
 
+it('writes a revision on every update via the observer', function () {
+    $article = InsightArticle::factory()->create();
+    $baselineRevisions = $article->fresh()->revisions()->count();
+
+    $this->service->update($article, ['title' => 'New Title'], $this->admin);
+
+    $latest = $article->fresh()->revisions()->first();
+
+    expect($article->fresh()->revisions()->count())->toBe($baselineRevisions + 1)
+        ->and($latest->title)->toBe('New Title');
+});
+
 it('resyncs blocks from the article template', function () {
     $template = InsightTemplate::factory()->create([
         'body_blocks' => [['type' => 'heading', 'level' => 2, 'text' => 'Fresh']],
