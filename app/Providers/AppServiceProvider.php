@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Insights\InsightArticle;
+use App\Observers\InsightArticleObserver;
 use App\Services\Plans\PlanConfigService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -42,5 +44,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Prevent lazy loading in non-production environments to catch N+1 query issues
         Model::preventLazyLoading(! app()->isProduction());
+
+        InsightArticle::observe(InsightArticleObserver::class);
     }
 }
