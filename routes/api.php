@@ -1081,6 +1081,23 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::patch('/discount-codes/{id}/toggle', [\App\Http\Controllers\Api\AdminController::class, 'toggleDiscountCode']);
 });
 
+// Admin Insights CMS
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/insights')->group(function () {
+    Route::get('articles', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'index']);
+    Route::post('articles', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'store']);
+    Route::get('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'show']);
+    Route::put('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'update']);
+    Route::delete('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'destroy']);
+    Route::post('articles/{article}/publish', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'publish']);
+    Route::post('articles/{article}/archive', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'archive']);
+    Route::post('articles/{article}/unarchive', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'unarchive']);
+    Route::post('articles/{article}/feature', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'feature']);
+    Route::post('articles/{article}/unfeature', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'unfeature']);
+    Route::post('articles/{article}/resync-template', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'resyncFromTemplate']);
+    Route::get('articles/{article}/revisions', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'revisions']);
+    Route::post('articles/{article}/revisions/{revision}/restore', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'restoreRevision']);
+});
+
 // Retirement Action Definitions (admin-configurable plan actions)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/retirement-actions')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'index']);
