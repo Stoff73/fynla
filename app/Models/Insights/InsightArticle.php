@@ -64,7 +64,12 @@ class InsightArticle extends Model
 
     public function revisions(): HasMany
     {
-        return $this->hasMany(InsightArticleRevision::class, 'article_id')->orderByDesc('saved_at');
+        // Secondary sort by id — when two revisions are written in the same
+        // millisecond (common in fast tests), saved_at alone would tie and
+        // make ->first() non-deterministic.
+        return $this->hasMany(InsightArticleRevision::class, 'article_id')
+            ->orderByDesc('saved_at')
+            ->orderByDesc('id');
     }
 
     public function scopePublished(Builder $query): Builder
