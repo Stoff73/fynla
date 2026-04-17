@@ -16,6 +16,8 @@ export default {
     'bg-spring-50', 'bg-spring-100', 'bg-spring-500', 'text-spring-500', 'text-spring-700', 'border-spring-300',
     'bg-violet-50', 'bg-violet-100', 'bg-violet-500', 'text-violet-500', 'text-violet-700', 'border-violet-300',
     'bg-horizon-50', 'bg-horizon-100', 'bg-horizon-400', 'text-horizon-500', 'border-horizon-200',
+    // Insight callout block border-l-4 accents (CalloutBlock VARIANT_STYLES)
+    'border-horizon-500', 'border-spring-500', 'border-violet-500',
     // Progress bar gradients
     'from-horizon-400', 'to-horizon-500', 'from-horizon-200', 'to-horizon-400',
     'from-raspberry-400', 'to-raspberry-600', 'from-violet-400', 'to-violet-600',
