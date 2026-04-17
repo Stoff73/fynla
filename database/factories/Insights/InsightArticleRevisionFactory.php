@@ -17,9 +17,9 @@ class InsightArticleRevisionFactory extends Factory
     {
         return [
             'article_id' => InsightArticle::factory(),
-            'title' => $this->faker->sentence(6),
+            'title' => fake()->sentence(6),
             'subtitle' => null,
-            'summary' => $this->faker->paragraph(),
+            'summary' => fake()->paragraph(),
             'body_blocks' => [],
             'saved_by' => User::factory(),
             'saved_at' => now(),

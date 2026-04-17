@@ -15,20 +15,20 @@ class InsightArticleFactory extends Factory
 
     public function definition(): array
     {
-        $title = $this->faker->sentence(6);
+        $title = fake()->sentence(6);
 
         return [
-            'slug' => Str::slug($title).'-'.$this->faker->unique()->randomNumber(4),
+            'slug' => Str::slug($title).'-'.fake()->unique()->randomNumber(4),
             'title' => $title,
-            'subtitle' => $this->faker->sentence(10),
-            'summary' => $this->faker->paragraph(2),
-            'category' => $this->faker->randomElement([
+            'subtitle' => fake()->sentence(10),
+            'summary' => fake()->paragraph(2),
+            'category' => fake()->randomElement([
                 'tax-changes', 'pensions', 'savings-isa', 'estate-planning', 'platform-updates',
             ]),
-            'tags' => [$this->faker->word(), $this->faker->word()],
+            'tags' => [fake()->word(), fake()->word()],
             'body_blocks' => [
                 ['type' => 'heading', 'level' => 2, 'text' => 'Overview'],
-                ['type' => 'paragraph', 'html' => '<p>'.$this->faker->paragraph().'</p>'],
+                ['type' => 'paragraph', 'html' => '<p>'.fake()->paragraph().'</p>'],
             ],
             'status' => 'draft',
             'is_featured' => false,
