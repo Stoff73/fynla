@@ -10,6 +10,11 @@ use App\Services\Insights\InsightArticleService;
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 beforeEach(function () {
+    // Reset auth between tests — the observer reads auth()->id() for saved_by,
+    // so a stale user id from a prior test (whose User row has already been
+    // rolled back) would produce a FK violation on the revision insert.
+    \Illuminate\Support\Facades\Auth::logout();
+
     $this->admin = User::factory()->create(['is_admin' => true]);
     $this->service = app(InsightArticleService::class);
 });
