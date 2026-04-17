@@ -15,8 +15,8 @@ class InsightTemplateFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->words(3, true),
-            'description' => $this->faker->sentence(),
+            'name' => fake()->unique()->words(3, true),
+            'description' => fake()->sentence(),
             'body_blocks' => [
                 ['type' => 'heading', 'level' => 2, 'text' => 'Section'],
                 ['type' => 'paragraph', 'html' => '<p>Template paragraph</p>'],
