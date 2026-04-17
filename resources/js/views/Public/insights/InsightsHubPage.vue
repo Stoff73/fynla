@@ -27,12 +27,12 @@
           <!-- Hero feature -->
           <router-link
             v-if="latestArticles[0]"
-            :to="latestArticles[0].slug"
+            :to="'/insights/' + latestArticles[0].slug"
             class="lg:col-span-2 group relative block rounded-3xl overflow-hidden bg-horizon-500 min-h-[420px] lg:min-h-[520px]"
           >
             <img
-              v-if="getImage(latestArticles[0].image)"
-              :src="getImage(latestArticles[0].image)"
+              v-if="latestArticles[0].image"
+              :src="latestArticles[0].image"
               :alt="latestArticles[0].title"
               class="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
             />
@@ -69,14 +69,14 @@
             <router-link
               v-for="article in latestArticles.slice(1, 3)"
               :key="article.slug"
-              :to="article.slug"
+              :to="'/insights/' + article.slug"
               class="group relative block rounded-3xl overflow-hidden bg-white hover:shadow-xl transition-all"
             >
               <div class="flex h-full min-h-[200px]">
                 <div class="w-2/5 relative overflow-hidden bg-horizon-100">
                   <img
-                    v-if="getImage(article.image)"
-                    :src="getImage(article.image)"
+                    v-if="article.image"
+                    :src="article.image"
                     :alt="article.title"
                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
@@ -136,7 +136,7 @@
           <router-link
             v-for="(article, idx) in otherArticles"
             :key="article.slug"
-            :to="article.slug"
+            :to="'/insights/' + article.slug"
             class="group bg-white rounded-3xl overflow-hidden hover:bg-light-pink-100 hover:shadow-lg transition-all flex flex-col"
             :class="isTallCard(idx) ? 'md:row-span-2' : ''"
           >
@@ -145,14 +145,14 @@
               :class="isTallCard(idx) ? 'aspect-[4/5] md:aspect-auto md:flex-1 min-h-[280px]' : 'aspect-[16/10]'"
             >
               <img
-                v-if="getImage(article.image)"
-                :src="getImage(article.image)"
+                v-if="article.image"
+                :src="article.image"
                 :alt="article.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-horizon-500 to-raspberry-500">
                 <svg class="w-12 h-12 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" :d="article.icon" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l6 6v10a2 2 0 01-2 2z" />
                 </svg>
               </div>
             </div>
@@ -201,12 +201,20 @@
 </template>
 
 <script>
+import { mapActions, mapGetters } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
-import { getCurrentTaxYear } from '@/utils/dateFormatter';
+import { formatDateLong } from '@/utils/dateFormatter';
 
-// Auto-import all insight images — add new images to resources/js/assets/insights/
-// and reference the filename in the article's `image` field (e.g. 'my-article.jpg')
-const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
+// Human-readable labels for each `category` enum value stored on the article.
+// The category filter uses these labels; matching back to the raw value for
+// filtering is done via CATEGORY_VALUE_BY_LABEL.
+const CATEGORY_LABELS = {
+  'tax-changes': 'Tax changes',
+  'pensions': 'Pensions',
+  'savings-isa': 'Savings & ISA',
+  'estate-planning': 'Estate planning',
+  'platform-updates': 'Platform updates',
+};
 
 export default {
   name: 'InsightsHubPage',
@@ -216,97 +224,86 @@ export default {
     return {
       activeCategory: 'All',
       categories: ['All', 'Tax changes', 'Pensions', 'Savings & ISA', 'Estate planning', 'Platform updates'],
-      articles: [
-        {
-          slug: '/insights/how-much-to-retire-uk',
-          title: 'How Much Do I Need to Retire in the UK? A Realistic Guide',
-          date: '14 April 2026',
-          summary: 'Calculate your UK retirement number using 2026 PLSA living standards. Pension pot sizes needed and how to bridge the State Pension gap.',
-          tags: ['Pensions'],
-          image: 'how-much-to-retire-uk.jpg',
-          icon: 'M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941',
-        },
-        {
-          slug: '/insights/stocks-shares-isa-uk',
-          title: 'What Is a Stocks and Shares ISA? How It Works, Benefits & Risks',
-          date: '13 April 2026',
-          summary: 'A complete guide to Stocks and Shares ISAs — how they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.',
-          tags: ['Savings & ISA'],
-          image: 'stocks-shares-isa.jpg',
-          icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
-        },
-        {
-          slug: '/insights/isa-guide-uk',
-          title: 'The Ultimate Guide to ISAs in the UK: Types, Rules & Best Options',
-          date: '8 April 2026',
-          summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and how to choose the right one for your goals.',
-          tags: ['Savings & ISA'],
-          image: 'isa-guide-uk.jpg',
-          icon: 'M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25',
-        },
-        {
-          slug: '/insights/retirement-planning-uk',
-          title: 'The Complete Guide to Retirement Planning in the UK',
-          date: '8 April 2026',
-          summary: 'Plan a retirement that lasts — pensions, State Pension, ISAs, drawdown strategies, tax and how to estimate what you will need.',
-          tags: ['Pensions'],
-          image: 'retirement-planning-uk.jpg',
-          icon: 'M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h9a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75',
-        },
-        {
-          slug: '/insights/inheritance-tax-uk',
-          title: 'Inheritance Tax Explained: Thresholds, Rules & How to Calculate IHT',
-          date: 'April 2026',
-          summary: 'Understand UK inheritance tax with our 2026 guide. Learn IHT thresholds, nil rate bands, calculation methods and strategies to reduce your estate\'s tax bill.',
-          tags: ['Estate planning'],
-          image: 'inheritance-tax-uk.jpg',
-        },
-        {
-          slug: '/insights/pension-contribution-limits-uk',
-          title: 'Pension Contribution Limits UK 2026/27: How Much Can You Pay In?',
-          date: 'April 2026',
-          summary: 'Find out the 2026/27 pension contribution limits, annual allowance, tax relief rates and carry forward rules. Updated guide for UK savers.',
-          tags: ['Pensions'],
-          image: 'pension-contribution-limits.jpg',
-        },
-        {
-          slug: '/insights/pension-iht-changes-2027',
-          title: 'Pension Inheritance Tax Changes: April 2027',
-          date: 'March 2026',
-          summary: 'From April 2027, unused pension pots will be included in your estate for Inheritance Tax. Here\'s what\'s changing and what you can do.',
-          tags: ['Pensions', 'Estate planning'],
-          image: 'pension-iht-changes.jpg',
-        },
-        {
-          slug: '/insights/isa-allowance-2025-26',
-          title: `ISA Allowance ${getCurrentTaxYear()}: Make the Most of Your \u00A320,000`,
-          date: 'April 2025',
-          summary: 'The ISA allowance remains at \u00A320,000. Types, deadlines, and strategies for maximising your tax-free savings.',
-          tags: ['Savings & ISA'],
-          image: 'isa-allowance.jpg',
-        },
+      loading: true,
+      // Resilience fallback: rendered only when the API fetch returns an
+      // empty list (e.g. seeder hasn't run on a fresh deploy). Slugs are
+      // slug-only — the template prefixes `/insights/`. Images are null;
+      // bespoke Vue pages still own their full layouts when visited.
+      legacyArticles: [
+        { slug: 'how-much-to-retire-uk', title: 'How Much Do I Need to Retire in the UK? A Realistic Guide', date: '14 April 2026', summary: 'Calculate your UK retirement number using 2026 PLSA living standards. Pension pot sizes needed and how to bridge the State Pension gap.', tags: ['Pensions'], image: null },
+        { slug: 'stocks-shares-isa-uk', title: 'What Is a Stocks and Shares ISA? How It Works, Benefits & Risks', date: '13 April 2026', summary: 'A complete guide to Stocks and Shares ISAs — how they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.', tags: ['Savings & ISA'], image: null },
+        { slug: 'isa-guide-uk', title: 'The Ultimate Guide to ISAs in the UK: Types, Rules & Best Options', date: '8 April 2026', summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and how to choose the right one for your goals.', tags: ['Savings & ISA'], image: null },
+        { slug: 'retirement-planning-uk', title: 'The Complete Guide to Retirement Planning in the UK', date: '8 April 2026', summary: 'Plan a retirement that lasts — pensions, State Pension, ISAs, drawdown strategies, tax and how to estimate what you will need.', tags: ['Pensions'], image: null },
+        { slug: 'inheritance-tax-uk', title: 'Inheritance Tax Explained: Thresholds, Rules & How to Calculate IHT', date: 'April 2026', summary: 'Understand UK inheritance tax with our 2026 guide. Learn IHT thresholds, nil rate bands, calculation methods and strategies to reduce your estate\'s tax bill.', tags: ['Estate planning'], image: null },
+        { slug: 'pension-contribution-limits-uk', title: 'Pension Contribution Limits UK 2026/27: How Much Can You Pay In?', date: 'April 2026', summary: 'Find out the 2026/27 pension contribution limits, annual allowance, tax relief rates and carry forward rules. Updated guide for UK savers.', tags: ['Pensions'], image: null },
+        { slug: 'pension-iht-changes-2027', title: 'Pension Inheritance Tax Changes: April 2027', date: 'March 2026', summary: 'From April 2027, unused pension pots will be included in your estate for Inheritance Tax. Here\'s what\'s changing and what you can do.', tags: ['Pensions', 'Estate planning'], image: null },
+        { slug: 'isa-allowance-2025-26', title: 'ISA Allowance: Make the Most of Your Tax-Free Allowance', date: 'April 2025', summary: 'The ISA allowance remains at the annual limit. Types, deadlines, and strategies for maximising your tax-free savings.', tags: ['Savings & ISA'], image: null },
       ],
     };
   },
 
   computed: {
+    ...mapGetters('insights', ['listItems']),
+
+    // Normalise DB articles into the shape the template expects.
+    // `slug` stays as a slug (template prefixes `/insights/`); `image` is the
+    // full URL returned by InsightArticleListResource; `date` is the human
+    // string derived from published_at.
+    articles() {
+      const source = Array.isArray(this.listItems) && this.listItems.length > 0
+        ? this.listItems
+        : this.legacyArticles;
+
+      return source.map(a => ({
+        id: a.id,
+        slug: a.slug,
+        title: a.title,
+        summary: a.summary,
+        tags: a.tags || [],
+        image: a.image_card || a.image || null,
+        date: a.published_at ? formatDateLong(a.published_at) : (a.date || ''),
+        category: a.category || null,
+      }));
+    },
+
     latestArticles() {
       return this.articles.slice(0, 3);
     },
+
     remainingArticles() {
       return this.articles.slice(3);
     },
+
     otherArticles() {
       if (this.activeCategory === 'All') return this.remainingArticles;
-      return this.remainingArticles.filter(a => a.tags.includes(this.activeCategory));
+      return this.remainingArticles.filter(a => this.matchesCategory(a, this.activeCategory));
     },
   },
 
+  async mounted() {
+    document.title = 'Insights \u2014 UK Financial Planning News & Commentary | Fynla';
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', 'UK financial planning insights covering tax changes, pension rules, budget updates, and platform news from Fynla.');
+
+    try {
+      await this.fetchList();
+    } catch (e) {
+      // non-fatal — the legacy hardcoded list below keeps the page alive
+      // if the API is unavailable during a transition deploy.
+    } finally {
+      this.loading = false;
+    }
+  },
+
   methods: {
-    getImage(filename) {
-      if (!filename) return null;
-      const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));
-      return key ? insightImages[key] : null;
+    ...mapActions('insights', ['fetchList']),
+
+    // An article matches a filter label when either one of its tags
+    // equals that label, OR its category enum maps to that label.
+    matchesCategory(article, label) {
+      if (Array.isArray(article.tags) && article.tags.includes(label)) return true;
+      if (article.category && CATEGORY_LABELS[article.category] === label) return true;
+      return false;
     },
 
     tagClass(tag) {
@@ -322,19 +319,12 @@ export default {
 
     categoryCount(cat) {
       if (cat === 'All') return this.remainingArticles.length;
-      return this.remainingArticles.filter(a => a.tags.includes(cat)).length;
+      return this.remainingArticles.filter(a => this.matchesCategory(a, cat)).length;
     },
 
     isTallCard(idx) {
-      // First card in the filtered list gets a tall treatment for editorial rhythm
       return idx === 0;
     },
-  },
-
-  mounted() {
-    document.title = 'Insights \u2014 UK Financial Planning News & Commentary | Fynla';
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'UK financial planning insights covering tax changes, pension rules, budget updates, and platform news from Fynla.');
   },
 };
 </script>
