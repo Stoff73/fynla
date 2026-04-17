@@ -1097,6 +1097,8 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/in
     Route::get('articles/{article}/revisions', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'revisions']);
     Route::post('articles/{article}/revisions/{revision}/restore', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'restoreRevision']);
 
+    Route::post('images', [\App\Http\Controllers\Api\Admin\InsightImageController::class, 'store']);
+
     Route::get('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'index']);
     Route::post('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'store']);
     Route::put('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'update']);
