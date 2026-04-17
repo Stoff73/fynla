@@ -49,6 +49,7 @@ const IsaGuideUkPage = () => import('@/views/Public/insights/IsaGuideUkPage.vue'
 const RetirementPlanningUkPage = () => import('@/views/Public/insights/RetirementPlanningUkPage.vue');
 const StocksSharesIsaUkPage = () => import('@/views/Public/insights/StocksSharesIsaUkPage.vue');
 const HowMuchToRetireUkPage = () => import('@/views/Public/insights/HowMuchToRetireUkPage.vue');
+const InsightArticlePage = () => import('@/views/Public/insights/InsightArticlePage.vue');
 const WhatIsSalarySacrificePage = () => import('@/views/Public/learn/WhatIsSalarySacrificePage.vue');
 const WhatIsAnLpaPage = () => import('@/views/Public/learn/WhatIsAnLpaPage.vue');
 const WhatIsASippPage = () => import('@/views/Public/learn/WhatIsASippPage.vue');
@@ -317,6 +318,9 @@ const routes = [
   { path: '/insights/retirement-planning-uk', name: 'InsightRetirementPlanning', component: RetirementPlanningUkPage, meta: { public: true } },
   { path: '/insights/stocks-shares-isa-uk', name: 'InsightStocksSharesIsa', component: StocksSharesIsaUkPage, meta: { public: true } },
   { path: '/insights/how-much-to-retire-uk', name: 'InsightHowMuchToRetire', component: HowMuchToRetireUkPage, meta: { public: true } },
+  // IMPORTANT: /insights/:slug catch-all MUST come AFTER all named insight routes
+  // so bespoke Vue articles take precedence. Enforced by an architecture test in Phase 6.
+  { path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } },
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },
