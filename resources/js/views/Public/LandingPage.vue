@@ -359,34 +359,65 @@
       </div>
     </div>
 
-    <!-- Latest insights -->
+    <!-- Latest insights — featured 2/3 + two supporting 1/3 (DB-driven) -->
     <div class="bg-light-pink-100 pt-12 pb-28">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6" style="letter-spacing:-0.02em;">Latest insights</h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div v-if="insightsFeatured" class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+          <!-- Featured (2/3) -->
           <router-link
-            v-for="article in latestInsights"
-            :key="article.slug"
-            :to="article.slug"
-            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col no-underline"
+            :to="'/insights/' + insightsFeatured.slug"
+            class="lg:col-span-2 group relative block rounded-3xl overflow-hidden bg-horizon-500 min-h-[320px] lg:min-h-[420px]"
           >
-            <div class="aspect-[16/9] overflow-hidden bg-horizon-100">
-              <img
-                :src="getInsightImage(article.image)"
-                :alt="article.title"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-            <div class="p-3.5 flex-1 flex flex-col">
-              <p class="text-[0.65rem] text-neutral-400 mb-1 uppercase tracking-wide">{{ article.date }}</p>
-              <h3 class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-1.5 leading-snug">
-                {{ article.title }}
+            <img
+              v-if="insightsFeatured.image_card"
+              :src="insightsFeatured.image_card"
+              :alt="insightsFeatured.title"
+              class="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-horizon-700 via-horizon-500/50 to-transparent"></div>
+            <div class="relative h-full flex flex-col justify-end p-6 md:p-8">
+              <span class="text-[0.65rem] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-raspberry-500 text-white self-start mb-3">
+                Featured
+              </span>
+              <h3
+                class="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight group-hover:text-raspberry-300 transition-colors"
+                style="letter-spacing:-0.02em;"
+              >
+                {{ insightsFeatured.title }}
               </h3>
-              <p class="text-xs text-neutral-500 mb-2 leading-relaxed flex-1 line-clamp-2">{{ article.summary }}</p>
-              <span class="text-xs font-semibold text-raspberry-500">Read &rarr;</span>
+              <p class="text-sm md:text-base text-white/80 leading-relaxed line-clamp-2">
+                {{ insightsFeatured.summary }}
+              </p>
             </div>
           </router-link>
+
+          <!-- Two supporting (1/3 stacked) -->
+          <div class="grid grid-rows-2 gap-5">
+            <router-link
+              v-for="article in insightsSupporting"
+              :key="article.slug"
+              :to="'/insights/' + article.slug"
+              class="group relative block rounded-3xl overflow-hidden bg-white hover:shadow-xl transition-all"
+            >
+              <div class="flex h-full min-h-[150px] lg:min-h-[200px]">
+                <div class="w-2/5 relative overflow-hidden bg-horizon-100">
+                  <img
+                    v-if="article.image_card"
+                    :src="article.image_card"
+                    :alt="article.title"
+                    class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
+                <div class="flex-1 p-4 flex flex-col justify-center">
+                  <h4 class="text-sm md:text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors leading-tight">
+                    {{ article.title }}
+                  </h4>
+                </div>
+              </div>
+            </router-link>
+          </div>
         </div>
 
         <div class="text-center mt-6">
@@ -441,7 +472,6 @@ import logger from '@/utils/logger';
 
 // Auto-import insight images so the latest-insights panels resolve the same
 // bundled URLs as the Insights hub page.
-const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
 
 export default {
   name: 'LandingPage',
@@ -459,40 +489,23 @@ export default {
       previewError: '',
       chatInput: '',
       fynDetailsOpen: false,
-      latestInsights: [
-        {
-          slug: '/insights/how-much-to-retire-uk',
-          title: 'How Much Do I Need to Retire in the UK?',
-          date: '14 April 2026',
-          summary: 'Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.',
-          image: 'how-much-to-retire-uk.jpg',
-        },
-        {
-          slug: '/insights/stocks-shares-isa-uk',
-          title: 'What Is a Stocks and Shares ISA?',
-          date: '13 April 2026',
-          summary: 'How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.',
-          image: 'stocks-shares-isa.jpg',
-        },
-        {
-          slug: '/insights/isa-guide-uk',
-          title: 'The Ultimate Guide to ISAs in the UK',
-          date: '8 April 2026',
-          summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and choosing the right one.',
-          image: 'isa-guide-uk.jpg',
-        },
-      ],
     };
   },
 
   computed: {
     ...mapGetters('preview', ['availablePersonas']),
+    ...mapGetters('insights', { insightsFeatured: 'featured', insightsSupporting: 'supporting' }),
   },
 
-  mounted() {
+  async mounted() {
     document.title = 'Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments';
     this.setMetaDescription('Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place.');
     this.checkDemoParam();
+    try {
+      await this.fetchFeatured();
+    } catch (e) {
+      // non-fatal — hero hides if nothing returned
+    }
   },
 
   watch: {
@@ -507,12 +520,7 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
-
-    getInsightImage(filename) {
-      if (!filename) return null;
-      const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));
-      return key ? insightImages[key] : null;
-    },
+    ...mapActions('insights', ['fetchFeatured']),
 
     setMetaDescription(content) {
       let meta = document.querySelector('meta[name="description"]');
