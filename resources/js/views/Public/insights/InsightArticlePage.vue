@@ -7,12 +7,7 @@
     </div>
 
     <div v-else-if="article" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-      <div class="flex items-center gap-2 mb-4 flex-wrap">
-        <span
-          class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-raspberry-100 text-raspberry-700"
-        >
-          {{ categoryLabel }}
-        </span>
+      <div v-if="article.tags && article.tags.length" class="flex items-center gap-2 mb-4 flex-wrap">
         <span
           v-for="tag in article.tags"
           :key="tag"
@@ -22,7 +17,7 @@
         </span>
       </div>
 
-      <!-- Hero with overlaid title/subtitle (when image is uploaded) -->
+      <!-- Hero with overlaid title/subtitle and top-right category chip -->
       <section
         v-if="hasHero"
         class="relative rounded-lg overflow-hidden mb-8 bg-horizon-500"
@@ -35,6 +30,11 @@
         <div
           class="pointer-events-none absolute inset-0 bg-gradient-to-t from-horizon-500/85 via-horizon-500/40 to-transparent"
         ></div>
+        <span
+          class="absolute top-4 right-4 text-xs font-semibold px-2.5 py-1 rounded-md uppercase tracking-wide bg-raspberry-500 text-white shadow-sm"
+        >
+          {{ categoryLabel }}
+        </span>
         <div class="absolute inset-x-0 bottom-0 p-5 sm:p-8 md:p-10 text-white">
           <h1
             class="text-2xl sm:text-3xl md:text-5xl font-black leading-tight drop-shadow-sm"
@@ -51,14 +51,21 @@
         </div>
       </section>
 
-      <!-- Fallback header (no hero image) -->
+      <!-- Fallback header (no hero image): title on left, category chip inline right -->
       <header v-else class="mb-8">
-        <h1
-          class="text-4xl md:text-5xl font-black text-horizon-500 mb-4 leading-tight"
-          style="letter-spacing:-0.02em;"
-        >
-          {{ article.title }}
-        </h1>
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <h1
+            class="flex-1 text-4xl md:text-5xl font-black text-horizon-500 leading-tight"
+            style="letter-spacing:-0.02em;"
+          >
+            {{ article.title }}
+          </h1>
+          <span
+            class="flex-shrink-0 mt-2 text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-raspberry-100 text-raspberry-700"
+          >
+            {{ categoryLabel }}
+          </span>
+        </div>
         <p v-if="article.subtitle" class="text-lg text-neutral-600 leading-relaxed">
           {{ article.subtitle }}
         </p>
