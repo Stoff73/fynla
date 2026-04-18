@@ -1,5 +1,5 @@
 <template>
-  <blockquote class="my-10 px-8 py-6 border-l-4 border-raspberry-500 bg-light-pink-100 rounded-r-lg">
+  <blockquote class="my-10 px-8 py-6">
     <p
       class="text-xl md:text-2xl font-bold text-horizon-500 leading-snug italic"
       style="letter-spacing:-0.01em;"

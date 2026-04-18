@@ -1,5 +1,5 @@
 <template>
-  <aside :class="variantClasses" class="my-6 p-5 rounded-lg border-l-4">
+  <aside class="my-6">
     <div class="flex items-start gap-3">
       <svg class="w-5 h-5 flex-shrink-0 mt-0.5" :class="iconColour" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" :d="iconPath" clip-rule="evenodd" />
@@ -12,11 +12,11 @@
 <script>
 import { sanitiseBlock } from '@/utils/insightsSanitize';
 
-const VARIANT_STYLES = {
-  info: { bg: 'bg-horizon-50 border-horizon-500', icon: 'text-horizon-500' },
-  tip: { bg: 'bg-spring-50 border-spring-500', icon: 'text-spring-500' },
-  success: { bg: 'bg-spring-50 border-spring-500', icon: 'text-spring-500' },
-  warning: { bg: 'bg-violet-50 border-violet-500', icon: 'text-violet-500' },
+const ICON_COLOURS = {
+  info: 'text-horizon-500',
+  tip: 'text-spring-500',
+  success: 'text-spring-500',
+  warning: 'text-violet-500',
 };
 
 const ICONS = {
@@ -30,9 +30,7 @@ export default {
   name: 'CalloutBlock',
   props: { block: { type: Object, required: true } },
   computed: {
-    variantStyle() { return VARIANT_STYLES[this.block.variant] || VARIANT_STYLES.info; },
-    variantClasses() { return this.variantStyle.bg; },
-    iconColour() { return this.variantStyle.icon; },
+    iconColour() { return ICON_COLOURS[this.block.variant] || ICON_COLOURS.info; },
     iconPath() { return ICONS[this.block.variant] || ICONS.info; },
     sanitised() { return sanitiseBlock(this.block.html || ''); },
   },
