@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment;
 
+use App\Exceptions\FinancialCalculationException;
 use App\Jobs\RunMonteCarloSimulation;
 use App\Models\Investment\InvestmentScenario;
 use Illuminate\Support\Str;
@@ -183,7 +184,11 @@ class ScenarioService
             ->get();
 
         if ($scenarios->count() < 2) {
-            throw new \Exception('At least 2 completed scenarios are required for comparison');
+            throw FinancialCalculationException::invalidInput(
+                'scenario_ids',
+                $scenarioIds,
+                'At least 2 completed scenarios are required for comparison'
+            );
         }
 
         $comparison = [
