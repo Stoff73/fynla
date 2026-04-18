@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Models\Insights\InsightArticle;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\File;
 
 class ExistingInsightsMetadataSeeder extends Seeder
 {
@@ -19,6 +20,27 @@ class ExistingInsightsMetadataSeeder extends Seeder
             return;
         }
 
+        // Copy bundled bespoke hero images from the repo into the public disk
+        // the first time the seeder runs on an environment. Idempotent — it
+        // only writes the target if the file is missing.
+        $sourceDir = resource_path('js/assets/insights');
+        $targetDir = storage_path('app/public/insights/bespoke');
+        if (File::isDirectory($sourceDir)) {
+            File::ensureDirectoryExists($targetDir);
+            foreach (File::files($sourceDir) as $file) {
+                $dest = $targetDir.DIRECTORY_SEPARATOR.$file->getFilename();
+                if (! File::exists($dest)) {
+                    File::copy($file->getPathname(), $dest);
+                }
+            }
+        }
+
+        // Hero images live at storage/app/public/insights/bespoke/ — copies of
+        // the bundled-via-Vite originals at resources/js/assets/insights/. The
+        // resource serves them through /storage/insights/bespoke/*.jpg via the
+        // public-disk symlink.
+        $img = fn (string $file): string => "insights/bespoke/{$file}";
+
         $articles = [
             [
                 'slug' => 'how-much-to-retire-uk',
@@ -28,6 +50,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Pensions'],
                 'bespoke_component' => 'HowMuchToRetireUkPage',
                 'published_at' => '2026-04-14 00:00:00',
+                'hero_image_path' => $img('how-much-to-retire-uk.jpg'),
+                'hero_image_card_path' => $img('how-much-to-retire-uk.jpg'),
+                'hero_image_thumb_path' => $img('how-much-to-retire-uk.jpg'),
             ],
             [
                 'slug' => 'stocks-shares-isa-uk',
@@ -37,6 +62,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Savings & ISA'],
                 'bespoke_component' => 'StocksSharesIsaUkPage',
                 'published_at' => '2026-04-13 00:00:00',
+                'hero_image_path' => $img('stocks-shares-isa.jpg'),
+                'hero_image_card_path' => $img('stocks-shares-isa.jpg'),
+                'hero_image_thumb_path' => $img('stocks-shares-isa.jpg'),
             ],
             [
                 'slug' => 'isa-guide-uk',
@@ -46,6 +74,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Savings & ISA'],
                 'bespoke_component' => 'IsaGuideUkPage',
                 'published_at' => '2026-04-08 00:00:00',
+                'hero_image_path' => $img('isa-guide-uk.jpg'),
+                'hero_image_card_path' => $img('isa-guide-uk.jpg'),
+                'hero_image_thumb_path' => $img('isa-guide-uk.jpg'),
             ],
             [
                 'slug' => 'retirement-planning-uk',
@@ -55,6 +86,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Pensions'],
                 'bespoke_component' => 'RetirementPlanningUkPage',
                 'published_at' => '2026-04-08 00:00:00',
+                'hero_image_path' => $img('retirement-planning-uk.jpg'),
+                'hero_image_card_path' => $img('retirement-planning-uk.jpg'),
+                'hero_image_thumb_path' => $img('retirement-planning-uk.jpg'),
             ],
             [
                 'slug' => 'inheritance-tax-uk',
@@ -64,6 +98,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Estate planning'],
                 'bespoke_component' => 'InheritanceTaxExplainedPage',
                 'published_at' => '2026-04-01 00:00:00',
+                'hero_image_path' => $img('inheritance-tax-uk.jpg'),
+                'hero_image_card_path' => $img('inheritance-tax-uk.jpg'),
+                'hero_image_thumb_path' => $img('inheritance-tax-uk.jpg'),
             ],
             [
                 'slug' => 'pension-contribution-limits-uk',
@@ -73,6 +110,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Pensions'],
                 'bespoke_component' => 'PensionContributionLimitsPage',
                 'published_at' => '2026-04-01 00:00:00',
+                'hero_image_path' => $img('pension-contribution-limits.jpg'),
+                'hero_image_card_path' => $img('pension-contribution-limits.jpg'),
+                'hero_image_thumb_path' => $img('pension-contribution-limits.jpg'),
             ],
             [
                 'slug' => 'pension-iht-changes-2027',
@@ -82,6 +122,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Pensions', 'Estate planning'],
                 'bespoke_component' => 'PensionIhtChanges2027Page',
                 'published_at' => '2026-03-01 00:00:00',
+                'hero_image_path' => $img('pension-iht-changes.jpg'),
+                'hero_image_card_path' => $img('pension-iht-changes.jpg'),
+                'hero_image_thumb_path' => $img('pension-iht-changes.jpg'),
             ],
             [
                 'slug' => 'isa-allowance-2025-26',
@@ -91,6 +134,9 @@ class ExistingInsightsMetadataSeeder extends Seeder
                 'tags' => ['Savings & ISA'],
                 'bespoke_component' => 'IsaAllowance202526Page',
                 'published_at' => '2025-04-01 00:00:00',
+                'hero_image_path' => $img('isa-allowance.jpg'),
+                'hero_image_card_path' => $img('isa-allowance.jpg'),
+                'hero_image_thumb_path' => $img('isa-allowance.jpg'),
             ],
         ];
 
