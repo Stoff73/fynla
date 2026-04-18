@@ -7,36 +7,64 @@
     </div>
 
     <div v-else-if="article" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-      <header class="mb-10">
-        <div class="flex items-center gap-2 mb-4 flex-wrap">
-          <span
-            class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-raspberry-100 text-raspberry-700"
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <span
+          class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-raspberry-100 text-raspberry-700"
+        >
+          {{ categoryLabel }}
+        </span>
+        <span
+          v-for="tag in article.tags"
+          :key="tag"
+          class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-light-gray text-neutral-600"
+        >
+          {{ tag }}
+        </span>
+      </div>
+
+      <!-- Hero with overlaid title/subtitle (when image is uploaded) -->
+      <section
+        v-if="hasHero"
+        class="relative rounded-lg overflow-hidden mb-8 bg-horizon-500"
+      >
+        <img
+          :src="article.hero_image.full"
+          :alt="article.title"
+          class="block w-full h-auto"
+        />
+        <div
+          class="pointer-events-none absolute inset-0 bg-gradient-to-t from-horizon-500/85 via-horizon-500/40 to-transparent"
+        ></div>
+        <div class="absolute inset-x-0 bottom-0 p-5 sm:p-8 md:p-10 text-white">
+          <h1
+            class="text-2xl sm:text-3xl md:text-5xl font-black leading-tight drop-shadow-sm"
+            style="letter-spacing:-0.02em;"
           >
-            {{ categoryLabel }}
-          </span>
-          <span
-            v-for="tag in article.tags"
-            :key="tag"
-            class="text-xs font-semibold px-2 py-1 rounded-md uppercase tracking-wide bg-light-gray text-neutral-600"
+            {{ article.title }}
+          </h1>
+          <p
+            v-if="article.subtitle"
+            class="text-sm sm:text-base md:text-lg mt-2 md:mt-3 leading-relaxed drop-shadow-sm opacity-95"
           >
-            {{ tag }}
-          </span>
+            {{ article.subtitle }}
+          </p>
         </div>
+      </section>
+
+      <!-- Fallback header (no hero image) -->
+      <header v-else class="mb-8">
         <h1
           class="text-4xl md:text-5xl font-black text-horizon-500 mb-4 leading-tight"
           style="letter-spacing:-0.02em;"
         >
           {{ article.title }}
         </h1>
-        <p v-if="article.subtitle" class="text-lg text-neutral-600 mb-3 leading-relaxed">
+        <p v-if="article.subtitle" class="text-lg text-neutral-600 leading-relaxed">
           {{ article.subtitle }}
         </p>
-        <p v-if="formattedDate" class="text-sm text-neutral-400">{{ formattedDate }}</p>
       </header>
 
-      <figure v-if="article.hero_image && article.hero_image.full" class="mb-10 rounded-lg overflow-hidden">
-        <img :src="article.hero_image.full" :alt="article.title" class="w-full h-auto" />
-      </figure>
+      <p v-if="formattedDate" class="text-sm text-neutral-400 mb-10">{{ formattedDate }}</p>
 
       <ArticleBlockRenderer :blocks="article.body_blocks || []" />
     </div>
@@ -87,6 +115,9 @@ export default {
     },
     formattedDate() {
       return this.article?.published_at ? formatDateLong(this.article.published_at) : '';
+    },
+    hasHero() {
+      return !!this.article?.hero_image?.full;
     },
   },
   async mounted() {
