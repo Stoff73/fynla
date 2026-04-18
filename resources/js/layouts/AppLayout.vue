@@ -22,7 +22,7 @@
       :class="contentMarginClass"
     >
       <div ref="appHeader">
-        <Navbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
+        <AppNavbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
 
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />
@@ -43,7 +43,7 @@
         </div>
       </main>
 
-      <Footer ref="appFooter" />
+      <AppFooter ref="appFooter" />
     </div>
 
     <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
@@ -104,8 +104,8 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
-import Navbar from '@/components/Navbar.vue';
-import Footer from '@/components/Footer.vue';
+import AppNavbar from '@/components/AppNavbar.vue';
+import AppFooter from '@/components/AppFooter.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
 import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
@@ -129,8 +129,8 @@ export default {
   name: 'AppLayout',
 
   components: {
-    Navbar,
-    Footer,
+    AppNavbar,
+    AppFooter,
     PreviewBanner,
     TrialCountdownBanner,
     DataRetentionOverlay,

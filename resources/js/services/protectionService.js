@@ -55,16 +55,6 @@ const protectionService = {
         return response.data;
     },
 
-    /**
-     * Run a what-if scenario
-     * @param {Object} scenarioData - Scenario parameters
-     * @returns {Promise} Scenario analysis results
-     */
-    async runScenario(scenarioData) {
-        const response = await api.post('/protection/scenarios', scenarioData);
-        return response.data;
-    },
-
     // Life Insurance Policy Methods
     /**
      * Create a new life insurance policy
