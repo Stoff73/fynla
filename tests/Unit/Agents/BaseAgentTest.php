@@ -56,6 +56,10 @@ beforeEach(function () {
     $this->agent = new TestableAgent;
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('getUserCacheKey', function () {
     it('generates cache key with agent name, user id, and suffix', function () {
         $key = $this->agent->publicGetUserCacheKey(123, 'analysis');

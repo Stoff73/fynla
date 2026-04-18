@@ -16,6 +16,10 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
 });
 
+afterEach(function () {
+    Mockery::close();
+});
+
 describe('Profile Completeness API', function () {
     it('requires authentication', function () {
         $response = $this->getJson('/api/user/profile/completeness');
