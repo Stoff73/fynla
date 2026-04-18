@@ -15,6 +15,14 @@ const goalsService = {
     },
 
     /**
+     * Get comprehensive goals analysis.
+     */
+    async getAnalysis() {
+        const response = await api.get('/goals/analysis');
+        return response.data;
+    },
+
+    /**
      * Get dashboard overview for goals card.
      */
     async getDashboardOverview() {
@@ -27,6 +35,14 @@ const goalsService = {
      */
     async getGoalTypes() {
         const response = await api.get('/goals/types');
+        return response.data;
+    },
+
+    /**
+     * Get available risk levels.
+     */
+    async getRiskLevels() {
+        const response = await api.get('/goals/risk-levels');
         return response.data;
     },
 
@@ -67,6 +83,22 @@ const goalsService = {
      */
     async recordContribution(goalId, contributionData) {
         const response = await api.post(`/goals/${goalId}/contribution`, contributionData);
+        return response.data;
+    },
+
+    /**
+     * Get projections for a goal.
+     */
+    async getProjections(goalId) {
+        const response = await api.get(`/goals/${goalId}/projections`);
+        return response.data;
+    },
+
+    /**
+     * Get scenarios for a goal.
+     */
+    async getScenarios(goalId) {
+        const response = await api.get(`/goals/${goalId}/scenarios`);
         return response.data;
     },
 
@@ -113,6 +145,14 @@ const goalsService = {
     },
 
     /**
+     * Get a specific life event by ID.
+     */
+    async getLifeEvent(eventId) {
+        const response = await api.get(`/life-events/${eventId}`);
+        return response.data;
+    },
+
+    /**
      * Update a life event.
      */
     async updateLifeEvent(eventId, eventData) {
@@ -141,6 +181,14 @@ const goalsService = {
 
         const queryString = params.toString();
         const response = await api.get(`/goals/projection${queryString ? `?${queryString}` : ''}`);
+        return response.data;
+    },
+
+    /**
+     * Get household summary data.
+     */
+    async getHouseholdSummary() {
+        const response = await api.get('/goals/household-summary');
         return response.data;
     },
 

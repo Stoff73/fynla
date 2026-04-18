@@ -292,12 +292,126 @@ const actions = {
         return ongoingRequests.fetchRecommendations;
     },
 
+    async fetchProjections({ commit }) {
+        commit('SET_PROJECTIONS_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getProjections();
+            commit('SET_PROJECTIONS', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch projections');
+            throw error;
+        } finally {
+            commit('SET_PROJECTIONS_LOADING', false);
+        }
+    },
+
+    async fetchStrategies({ commit }) {
+        commit('SET_STRATEGIES_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getStrategies();
+            commit('SET_STRATEGIES', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch strategies');
+            throw error;
+        } finally {
+            commit('SET_STRATEGIES_LOADING', false);
+        }
+    },
+
+    async calculateStrategyImpact({ commit }, { strategyType, newValue, priorAdditionalMonthly, priorAdditionalIncome, priorProbability }) {
+        try {
+            const response = await retirementService.calculateStrategyImpact(
+                strategyType,
+                newValue,
+                {
+                    priorAdditionalMonthly: priorAdditionalMonthly || 0,
+                    priorAdditionalIncome: priorAdditionalIncome || 0,
+                    priorProbability: priorProbability,
+                }
+            );
+            commit('SET_STRATEGY_IMPACT', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to calculate strategy impact');
+            throw error;
+        }
+    },
+
+    // Required Capital actions
+    async fetchRequiredCapital({ commit }) {
+        commit('SET_REQUIRED_CAPITAL_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getRequiredCapital();
+            if (response.success) {
+                commit('SET_REQUIRED_CAPITAL', response.data);
+            }
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch required capital');
+            throw error;
+        } finally {
+            commit('SET_REQUIRED_CAPITAL_LOADING', false);
+        }
+    },
+
+    async toggleIncludedInvestment({ commit, dispatch }, id) {
+        try {
+            // Call API to persist the toggle
+            const response = await investmentService.toggleRetirementInclusion(id);
+            if (response.success) {
+                // Update local retirement state
+                commit('TOGGLE_INCLUDED_INVESTMENT', id);
+                // Refresh investment accounts to get updated include_in_retirement flag
+                await dispatch('investment/fetchAccounts', null, { root: true });
+            }
+        } catch (error) {
+            logger.error('Failed to toggle retirement inclusion:', error);
+            throw error;
+        }
+    },
+
+    async toggleIncludedCash({ commit, dispatch }, id) {
+        try {
+            // Call API to persist the toggle
+            const response = await savingsService.toggleRetirementInclusion(id);
+            if (response.success) {
+                // Update local retirement state
+                commit('TOGGLE_INCLUDED_CASH', id);
+                // Refresh savings accounts to get updated include_in_retirement flag
+                await dispatch('savings/fetchSavingsData', null, { root: true });
+            }
+        } catch (error) {
+            logger.error('Failed to toggle retirement inclusion:', error);
+            throw error;
+        }
+    },
+
     setIncludedInvestmentIds({ commit }, ids) {
         commit('SET_INCLUDED_INVESTMENT_IDS', ids);
     },
 
     setIncludedCashIds({ commit }, ids) {
         commit('SET_INCLUDED_CASH_IDS', ids);
+    },
+
+    async runScenario({ commit }, scenarioData) {
+        commit('SET_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.runScenario(scenarioData);
+            commit('SET_SCENARIOS', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to run scenario');
+            throw error;
+        } finally {
+            commit('SET_LOADING', false);
+        }
     },
 
     async fetchAnnualAllowance({ commit }, taxYear) {
@@ -324,6 +438,25 @@ const actions = {
             });
 
         return ongoingRequests[requestKey];
+    },
+
+    async createDCPension({ commit, dispatch }, pensionData) {
+        commit('SET_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.createDCPension(pensionData);
+            commit('ADD_DC_PENSION', response.data);
+            await dispatch('analyseRetirement');
+            // Refresh net worth and recommendations
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to create DC pension');
+            throw error;
+        } finally {
+            commit('SET_LOADING', false);
+        }
     },
 
     async updateDCPension({ commit, dispatch }, { id, data }) {
@@ -357,6 +490,25 @@ const actions = {
             dispatch('recommendations/fetchRecommendations', {}, { root: true });
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to delete DC pension');
+            throw error;
+        } finally {
+            commit('SET_LOADING', false);
+        }
+    },
+
+    async createDBPension({ commit, dispatch }, pensionData) {
+        commit('SET_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.createDBPension(pensionData);
+            commit('ADD_DB_PENSION', response.data);
+            await dispatch('analyseRetirement');
+            // Refresh net worth and recommendations
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            dispatch('recommendations/fetchRecommendations', {}, { root: true });
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to create DB pension');
             throw error;
         } finally {
             commit('SET_LOADING', false);
@@ -418,6 +570,55 @@ const actions = {
         }
     },
 
+    // Portfolio Analysis Actions
+    async fetchPortfolioAnalysis({ commit }, dcPensionId = null) {
+        // If request is already ongoing, return that promise
+        const requestKey = dcPensionId ? `fetchPortfolioAnalysis_${dcPensionId}` : 'fetchPortfolioAnalysis';
+        if (ongoingRequests[requestKey]) {
+            return ongoingRequests[requestKey];
+        }
+
+        // DO NOT set loading - causes infinite loop
+        commit('SET_ERROR', null);
+
+        const apiCall = dcPensionId
+            ? dcPensionHoldingsService.getPensionPortfolioAnalysis(dcPensionId)
+            : dcPensionHoldingsService.getPortfolioAnalysis();
+
+        ongoingRequests[requestKey] = apiCall
+            .then(response => {
+                commit('SET_PORTFOLIO_ANALYSIS', response.data);
+                return response;
+            })
+            .catch(error => {
+                commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch portfolio analysis');
+                throw error;
+            })
+            .finally(() => {
+                ongoingRequests[requestKey] = null;
+            });
+
+        return ongoingRequests[requestKey];
+    },
+
+    // Decumulation Analysis Actions
+    async fetchDecumulationAnalysis({ commit }) {
+        commit('SET_DECUMULATION_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.getDecumulationAnalysis();
+            if (response.success) {
+                commit('SET_DECUMULATION_ANALYSIS', response.data);
+            }
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch decumulation analysis');
+            throw error;
+        } finally {
+            commit('SET_DECUMULATION_LOADING', false);
+        }
+    },
+
     // Retirement Income (Decumulation) Actions
     async fetchRetirementIncome({ commit, state }) {
         commit('SET_RETIREMENT_INCOME_LOADING', true);
@@ -432,6 +633,25 @@ const actions = {
             return response.data;
         } catch (error) {
             commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch retirement income');
+            throw error;
+        } finally {
+            commit('SET_RETIREMENT_INCOME_LOADING', false);
+        }
+    },
+
+    async calculateRetirementIncome({ commit, state }) {
+        commit('SET_RETIREMENT_INCOME_LOADING', true);
+        commit('SET_ERROR', null);
+        try {
+            const response = await retirementService.calculateRetirementIncome(
+                state.incomeAllocations,
+                state.includeSpouseAssets,
+                state.customTargetIncome
+            );
+            commit('SET_RETIREMENT_INCOME', response.data);
+            return response.data;
+        } catch (error) {
+            commit('SET_ERROR', error.response?.data?.message || 'Failed to calculate retirement income');
             throw error;
         } finally {
             commit('SET_RETIREMENT_INCOME_LOADING', false);

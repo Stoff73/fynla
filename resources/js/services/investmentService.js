@@ -24,6 +24,15 @@ const investmentService = {
     },
 
     /**
+     * Get investment recommendations
+     * @returns {Promise} Prioritized recommendations
+     */
+    async getRecommendations() {
+        const response = await api.get('/investment/recommendations');
+        return response.data;
+    },
+
+    /**
      * Build what-if scenarios
      * @param {Object} scenarioData - Scenario parameters (monthly_contribution, etc.)
      * @returns {Promise} Scenario analysis results
@@ -240,6 +249,21 @@ const investmentService = {
      */
     async getTaxRecommendations(params = {}) {
         const response = await api.get('/investment/tax-optimization/recommendations', { params });
+        return response.data;
+    },
+
+    // Asset Location Methods
+    /**
+     * Get comprehensive asset location analysis
+     * @param {Object} params - Optional parameters
+     * @param {Number} params.isa_allowance_used - ISA allowance already used this tax year
+     * @param {Number} params.cgt_allowance_used - CGT allowance already used
+     * @param {Number} params.expected_return - Expected annual return (0-1)
+     * @param {Boolean} params.prefer_pension - Prefer pension over ISA recommendations
+     * @returns {Promise} Complete asset location analysis
+     */
+    async analyzeAssetLocation(params = {}) {
+        const response = await api.get('/investment/asset-location/analyze', { params });
         return response.data;
     },
 
