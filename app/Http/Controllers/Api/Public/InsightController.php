@@ -37,22 +37,23 @@ class InsightController extends Controller
 
     public function featured(): JsonResponse
     {
-        $featured = $this->articles->getFeatured()
-            ?? InsightArticle::published()->orderByDesc('published_at')->first();
-
-        if (! $featured) {
-            return response()->json(['data' => ['featured' => null, 'supporting' => []]]);
-        }
+        // Only surface an article as "featured" when it has been explicitly
+        // flagged is_featured=true from the admin. Previously this fell back
+        // to the most-recently-published article, which made authors think
+        // new articles auto-promoted themselves.
+        $featured = $this->articles->getFeatured();
 
         $supporting = InsightArticle::published()
-            ->where('id', '!=', $featured->id)
+            ->when($featured, fn ($q) => $q->where('id', '!=', $featured->id))
             ->orderByDesc('published_at')
             ->take(2)
             ->get();
 
         return response()->json([
             'data' => [
-                'featured' => (new InsightArticleListResource($featured))->resolve(),
+                'featured' => $featured
+                    ? (new InsightArticleListResource($featured))->resolve()
+                    : null,
                 'supporting' => InsightArticleListResource::collection($supporting)->resolve(),
             ],
         ]);
