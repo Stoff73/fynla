@@ -71,7 +71,7 @@
         </p>
       </header>
 
-      <p v-if="formattedDate" class="text-sm text-neutral-400 mb-10">{{ formattedDate }}</p>
+      <p v-if="byline" class="text-sm text-neutral-400 mb-10">{{ byline }}</p>
 
       <ArticleBlockRenderer :blocks="article.body_blocks || []" />
     </div>
@@ -122,6 +122,16 @@ export default {
     },
     formattedDate() {
       return this.article?.published_at ? formatDateLong(this.article.published_at) : '';
+    },
+    authorByline() {
+      const authors = (this.article?.authors || []).filter(Boolean);
+      if (!authors.length) return '';
+      if (authors.length === 1) return `By ${authors[0]}`;
+      if (authors.length === 2) return `By ${authors[0]} and ${authors[1]}`;
+      return `By ${authors.slice(0, -1).join(', ')} and ${authors[authors.length - 1]}`;
+    },
+    byline() {
+      return [this.authorByline, this.formattedDate].filter(Boolean).join(' · ');
     },
     hasHero() {
       return !!this.article?.hero_image?.full;

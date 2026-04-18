@@ -20,6 +20,7 @@ class InsightArticleListResource extends JsonResource
             'summary' => $this->summary,
             'category' => $this->category,
             'tags' => $this->tags ?? [],
+            'authors' => $this->authors ?? [],
             'image_card' => $this->hero_image_card_path ? $base.$this->hero_image_card_path : null,
             'published_at' => optional($this->published_at)->toIso8601String(),
             'is_featured' => $this->is_featured,

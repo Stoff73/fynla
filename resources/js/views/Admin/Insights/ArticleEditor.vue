@@ -98,6 +98,27 @@
             />
           </div>
           <div>
+            <label class="block text-xs font-semibold text-neutral-500 uppercase mb-1">Authors</label>
+            <div class="space-y-1">
+              <label
+                v-for="name in availableAuthors"
+                :key="name"
+                class="flex items-center gap-2 text-sm text-horizon-500"
+              >
+                <input
+                  type="checkbox"
+                  :value="name"
+                  :checked="(form.authors || []).includes(name)"
+                  @change="toggleAuthor(name)"
+                />
+                {{ name }}
+              </label>
+            </div>
+            <p class="text-xs text-neutral-500 mt-1">
+              Shown inline with the publish date as "By {{ '{name}' }}" on the article page.
+            </p>
+          </div>
+          <div>
             <label class="block text-xs font-semibold text-neutral-500 uppercase mb-1">Hero image</label>
             <div v-if="form.hero_image_card_path" class="relative mb-2">
               <img :src="`/storage/${form.hero_image_card_path}`" class="rounded w-full max-h-40 object-cover" />
@@ -306,6 +327,7 @@ export default {
         summary: '',
         category: 'pensions',
         tags: [],
+        authors: [],
         hero_image_path: null,
         hero_image_card_path: null,
         hero_image_thumb_path: null,
@@ -332,6 +354,9 @@ export default {
   computed: {
     ...mapGetters('insights', ['templates']),
     isNew() { return !this.articleId; },
+    availableAuthors() {
+      return ['Brett Isenberg', 'Azlan Raj', 'Chris Slater-Jones'];
+    },
     statusClass() {
       return {
         'bg-neutral-100 text-neutral-500': this.form.status === 'draft',
@@ -365,6 +390,14 @@ export default {
     addBlock(block) {
       this.form.body_blocks.push(block);
       this.pickerOpen = false;
+    },
+    toggleAuthor(name) {
+      const current = Array.isArray(this.form.authors) ? [...this.form.authors] : [];
+      const idx = current.indexOf(name);
+      if (idx >= 0) current.splice(idx, 1);
+      else current.push(name);
+      // Preserve the canonical order so byline reads consistently.
+      this.form.authors = this.availableAuthors.filter((n) => current.includes(n));
     },
     updateBlock(i, block) { this.form.body_blocks.splice(i, 1, block); },
     moveBlock(i, dir) {
