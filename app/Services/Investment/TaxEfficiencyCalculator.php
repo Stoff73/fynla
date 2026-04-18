@@ -27,15 +27,17 @@ class TaxEfficiencyCalculator
                 return null;
             }
 
-            $gain = $holding->current_value - $holding->cost_basis;
-            $gainPercent = $holding->cost_basis > 0
-                ? ($gain / $holding->cost_basis) * 100
+            $currentValue = (float) $holding->current_value;
+            $costBasis = (float) $holding->cost_basis;
+            $gain = $currentValue - $costBasis;
+            $gainPercent = $costBasis > 0
+                ? ($gain / $costBasis) * 100
                 : 0;
 
             return [
                 'security_name' => $holding->security_name,
-                'cost_basis' => round($holding->cost_basis, 2),
-                'current_value' => round($holding->current_value, 2),
+                'cost_basis' => round($costBasis, 2),
+                'current_value' => round($currentValue, 2),
                 'unrealized_gain' => round($gain, 2),
                 'gain_percent' => round($gainPercent, 2),
             ];

@@ -47,19 +47,19 @@ class ProtectionProfile extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'annual_income' => 'float',
-        'monthly_expenditure' => 'float',
-        'mortgage_balance' => 'float',
-        'other_debts' => 'float',
+        'annual_income' => 'decimal:2',
+        'monthly_expenditure' => 'decimal:2',
+        'mortgage_balance' => 'decimal:2',
+        'other_debts' => 'decimal:2',
         'number_of_dependents' => 'integer',
         'dependents_ages' => 'array',
         'retirement_age' => 'integer',
         'smoker_status' => 'boolean',
         'has_no_policies' => 'boolean',
-        'death_in_service_multiple' => 'float',
-        'group_ip_benefit_percent' => 'float',
+        'death_in_service_multiple' => 'decimal:2',
+        'group_ip_benefit_percent' => 'decimal:2',
         'group_ip_benefit_months' => 'integer',
-        'group_ci_amount' => 'float',
+        'group_ci_amount' => 'decimal:2',
         'has_employer_pmi' => 'boolean',
     ];
 
