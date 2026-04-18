@@ -10,7 +10,12 @@
         Replace
       </button>
     </div>
-    <input v-else type="file" accept="image/jpeg,image/png,image/webp" @change="handleUpload" />
+    <template v-else>
+      <input type="file" accept="image/jpeg,image/png,image/webp" @change="handleUpload" />
+      <p class="text-xs text-violet-500">
+        Upload an image before saving — empty image blocks fail validation.
+      </p>
+    </template>
 
     <input
       :value="block.alt"

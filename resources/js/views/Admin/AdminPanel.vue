@@ -91,7 +91,7 @@
 
       <!-- Tab Content -->
       <div class="space-y-6">
-        <AdminDashboard v-if="activeTab === 'dashboard'" />
+        <AdminDashboard v-if="activeTab === 'dashboard'" @change-tab="activeTab = $event" />
         <UserMetrics v-if="activeTab === 'user-metrics'" />
         <UserManagement v-if="activeTab === 'users'" />
         <DatabaseBackup v-if="activeTab === 'backups'" />
@@ -165,7 +165,7 @@ export default {
         { id: 'backups', label: 'Database', shortLabel: 'Data' },
         // Insights CMS lives on its own route stack, not as an embedded tab — the
         // `path` key tells the sidebar to router-push instead of switching activeTab.
-        { id: 'insights', label: 'Insights', shortLabel: 'Insights', path: '/admin/insights' },
+        { id: 'insights', label: 'CMS', shortLabel: 'CMS', path: '/admin/insights' },
       ],
     };
   },
