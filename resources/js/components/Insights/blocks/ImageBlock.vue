@@ -1,5 +1,5 @@
 <template>
-  <figure :class="alignmentClass" class="my-6">
+  <figure :class="wrapperClass">
     <img :src="imageUrl" :alt="block.alt" class="rounded-lg w-full h-auto" />
     <figcaption v-if="block.caption" class="text-xs text-neutral-500 mt-2 text-center">
       {{ block.caption }}
@@ -17,12 +17,14 @@ export default {
       if (this.block.path.startsWith('http')) return this.block.path;
       return `/storage/${this.block.path}`;
     },
-    alignmentClass() {
-      return {
-        'mx-auto': this.block.alignment === 'full' || !this.block.alignment,
-        'float-left mr-6 max-w-sm': this.block.alignment === 'left',
-        'float-right ml-6 max-w-sm': this.block.alignment === 'right',
-      };
+    wrapperClass() {
+      const align = this.block.alignment;
+      // Floated images get no top margin so the first line of wrapping text
+      // aligns with the image's top edge (rather than with the figure's
+      // margin-top, which is what CSS floats wrap against).
+      if (align === 'left') return 'float-left mr-6 mb-4 max-w-sm';
+      if (align === 'right') return 'float-right ml-6 mb-4 max-w-sm';
+      return 'my-6 mx-auto';
     },
   },
 };
