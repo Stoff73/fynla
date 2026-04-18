@@ -10,19 +10,19 @@
       <option value="success">Success (spring)</option>
       <option value="warning">Warning (violet)</option>
     </select>
-    <textarea
-      :value="block.html"
-      @input="update('html', $event.target.value)"
-      placeholder="Callout HTML"
-      rows="3"
-      class="w-full text-sm px-3 py-2 border border-light-gray rounded font-mono"
+    <RichTextEditor
+      :model-value="block.html || ''"
+      @update:model-value="update('html', $event)"
     />
   </div>
 </template>
 
 <script>
+import RichTextEditor from '../RichTextEditor.vue';
+
 export default {
   name: 'EditCalloutBlock',
+  components: { RichTextEditor },
   props: { block: { type: Object, required: true } },
   emits: ['update'],
   methods: {

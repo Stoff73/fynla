@@ -1,16 +1,16 @@
 <template>
-  <textarea
-    :value="block.html"
-    @input="$emit('update', { ...block, html: $event.target.value })"
-    placeholder="Paragraph HTML (plain text, or with <strong>/<em>/<a>)"
-    rows="4"
-    class="w-full text-sm text-neutral-600 px-3 py-2 border border-light-gray rounded resize-y font-mono"
+  <RichTextEditor
+    :model-value="block.html || ''"
+    @update:model-value="$emit('update', { ...block, html: $event })"
   />
 </template>
 
 <script>
+import RichTextEditor from '../RichTextEditor.vue';
+
 export default {
   name: 'EditParagraphBlock',
+  components: { RichTextEditor },
   props: { block: { type: Object, required: true } },
   emits: ['update'],
 };

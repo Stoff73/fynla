@@ -12,18 +12,20 @@
         <option :value="4">H4</option>
       </select>
     </div>
-    <input
-      :value="block.text"
-      @input="update('text', $event.target.value)"
-      placeholder="Heading text"
-      class="w-full text-lg font-bold text-horizon-500 px-3 py-2 border border-light-gray rounded"
+    <RichTextEditor
+      :model-value="block.text || ''"
+      :tools="['bold', 'italic', 'underline', 'link', 'color']"
+      @update:model-value="update('text', $event)"
     />
   </div>
 </template>
 
 <script>
+import RichTextEditor from '../RichTextEditor.vue';
+
 export default {
   name: 'EditHeadingBlock',
+  components: { RichTextEditor },
   props: { block: { type: Object, required: true } },
   emits: ['update'],
   methods: {

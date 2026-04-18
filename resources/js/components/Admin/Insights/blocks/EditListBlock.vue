@@ -4,21 +4,26 @@
       <input type="checkbox" :checked="block.ordered" @change="update('ordered', $event.target.checked)" />
       Numbered list
     </label>
-    <div v-for="(item, i) in (block.items || [])" :key="i" class="flex items-center gap-2">
-      <input
-        :value="item"
-        @input="updateItem(i, $event.target.value)"
-        class="flex-1 text-sm px-3 py-2 border border-light-gray rounded"
-      />
-      <button type="button" @click="removeItem(i)" class="text-sm text-raspberry-500">Remove</button>
+    <div v-for="(item, i) in (block.items || [])" :key="i" class="flex items-start gap-2">
+      <div class="flex-1">
+        <RichTextEditor
+          :model-value="item"
+          :tools="['bold', 'italic', 'underline', 'link']"
+          @update:model-value="updateItem(i, $event)"
+        />
+      </div>
+      <button type="button" @click="removeItem(i)" class="text-sm text-raspberry-500 mt-2">Remove</button>
     </div>
     <button type="button" @click="addItem" class="text-sm font-semibold text-raspberry-500">+ Add item</button>
   </div>
 </template>
 
 <script>
+import RichTextEditor from '../RichTextEditor.vue';
+
 export default {
   name: 'EditListBlock',
+  components: { RichTextEditor },
   props: { block: { type: Object, required: true } },
   emits: ['update'],
   methods: {

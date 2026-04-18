@@ -12,9 +12,19 @@ use Illuminate\Validation\Rule;
 
 class StoreInsightArticleRequest extends FormRequest
 {
-    private const ALLOWED_INLINE_TAGS = '<strong><em><a><br>';
+    private const ALLOWED_INLINE_TAGS = '<strong><em><u><a><br><span>';
 
-    private const ALLOWED_BLOCK_TAGS = '<p><strong><em><a><br><ul><ol><li>';
+    private const ALLOWED_BLOCK_TAGS = '<p><strong><em><u><a><br><ul><ol><li><span>';
+
+    private const ALLOWED_SPAN_CLASSES = [
+        'text-sm',
+        'text-lg',
+        'text-raspberry-500',
+        'text-horizon-500',
+        'text-spring-500',
+        'text-violet-500',
+        'text-neutral-500',
+    ];
 
     public function authorize(): bool
     {
@@ -59,11 +69,28 @@ class StoreInsightArticleRequest extends FormRequest
                 return $block;
             }
 
-            if ($block['type'] === 'paragraph' && isset($block['html']) && is_string($block['html'])) {
-                $block['html'] = $this->sanitiseHtml($block['html'], self::ALLOWED_INLINE_TAGS);
+            $sanitiseString = fn ($v, $tags) => is_string($v) ? $this->sanitiseHtml($v, $tags) : $v;
+            $sanitiseArray = fn ($arr, $tags) => is_array($arr)
+                ? array_map(fn ($i) => $sanitiseString($i, $tags), $arr)
+                : $arr;
+
+            if ($block['type'] === 'paragraph' && isset($block['html'])) {
+                $block['html'] = $sanitiseString($block['html'], self::ALLOWED_INLINE_TAGS);
             }
-            if ($block['type'] === 'callout' && isset($block['html']) && is_string($block['html'])) {
-                $block['html'] = $this->sanitiseHtml($block['html'], self::ALLOWED_BLOCK_TAGS);
+            if ($block['type'] === 'callout' && isset($block['html'])) {
+                $block['html'] = $sanitiseString($block['html'], self::ALLOWED_BLOCK_TAGS);
+            }
+            if ($block['type'] === 'heading' && isset($block['text'])) {
+                $block['text'] = $sanitiseString($block['text'], self::ALLOWED_INLINE_TAGS);
+            }
+            if ($block['type'] === 'pull_quote' && isset($block['text'])) {
+                $block['text'] = $sanitiseString($block['text'], self::ALLOWED_INLINE_TAGS);
+            }
+            if ($block['type'] === 'list' && isset($block['items'])) {
+                $block['items'] = $sanitiseArray($block['items'], self::ALLOWED_INLINE_TAGS);
+            }
+            if ($block['type'] === 'key_takeaways' && isset($block['bullets'])) {
+                $block['bullets'] = $sanitiseArray($block['bullets'], self::ALLOWED_INLINE_TAGS);
             }
 
             return $block;
@@ -81,7 +108,27 @@ class StoreInsightArticleRequest extends FormRequest
         $stripped = preg_replace('/href\s*=\s*"javascript:[^"]*"/i', 'href="#"', $stripped);
         $stripped = preg_replace('/href\s*=\s*\'javascript:[^\']*\'/i', "href='#'", $stripped);
 
-        return $stripped;
+        // Lock <span> attributes to a class on the palette/size allow-list.
+        // Anything else (style, id, data-*, onclick, …) is stripped.
+        $stripped = preg_replace_callback(
+            '/<span\b([^>]*)>/i',
+            function ($m) {
+                if (preg_match('/class\s*=\s*"([^"]*)"/i', $m[1], $cm)) {
+                    $kept = array_values(array_filter(
+                        preg_split('/\s+/', trim($cm[1])),
+                        fn ($c) => in_array($c, self::ALLOWED_SPAN_CLASSES, true),
+                    ));
+                    if ($kept !== []) {
+                        return '<span class="'.implode(' ', $kept).'">';
+                    }
+                }
+
+                return '<span>';
+            },
+            (string) $stripped
+        );
+
+        return (string) $stripped;
     }
 
     public function withValidator(Validator $validator): void

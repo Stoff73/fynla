@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import DOMPurify from 'dompurify';
+import { sanitiseBlock } from '@/utils/insightsSanitize';
 
 const VARIANT_STYLES = {
   info: { bg: 'bg-horizon-50 border-horizon-500', icon: 'text-horizon-500' },
@@ -34,12 +34,7 @@ export default {
     variantClasses() { return this.variantStyle.bg; },
     iconColour() { return this.variantStyle.icon; },
     iconPath() { return ICONS[this.block.variant] || ICONS.info; },
-    sanitised() {
-      return DOMPurify.sanitize(this.block.html || '', {
-        ALLOWED_TAGS: ['p', 'strong', 'em', 'a', 'br', 'ul', 'ol', 'li'],
-        ALLOWED_ATTR: ['href', 'target', 'rel'],
-      });
-    },
+    sanitised() { return sanitiseBlock(this.block.html || ''); },
   },
 };
 </script>
