@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <header class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-3xl font-black text-horizon-500" style="letter-spacing:-0.02em;">Insights</h1>
+          <h1 class="text-3xl font-black text-horizon-500" style="letter-spacing:-0.02em;">Content Management System</h1>
           <p class="text-sm text-neutral-500 mt-1">Manage published and draft articles.</p>
         </div>
         <div class="flex items-center gap-2">
