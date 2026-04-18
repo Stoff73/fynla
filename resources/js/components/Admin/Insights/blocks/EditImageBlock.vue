@@ -15,29 +15,50 @@
       <p class="text-xs text-violet-500">
         Upload an image before saving — empty image blocks fail validation.
       </p>
+      <p class="text-xs text-neutral-500">
+        Accepted: JPEG, PNG or WebP. Max 10&nbsp;MB. Recommended at least 1200&times;675&nbsp;px for crisp card and thumbnail renditions.
+      </p>
     </template>
 
-    <input
-      :value="block.alt"
-      @input="update('alt', $event.target.value)"
-      placeholder="Alt text (required)"
-      class="w-full text-sm px-3 py-2 border border-light-gray rounded"
-    />
-    <input
-      :value="block.caption"
-      @input="update('caption', $event.target.value)"
-      placeholder="Caption (optional)"
-      class="w-full text-sm px-3 py-2 border border-light-gray rounded"
-    />
-    <select
-      :value="block.alignment || 'full'"
-      @change="update('alignment', $event.target.value)"
-      class="text-sm border border-light-gray rounded px-2 py-1"
-    >
-      <option value="full">Full width</option>
-      <option value="left">Float left</option>
-      <option value="right">Float right</option>
-    </select>
+    <div>
+      <input
+        :value="block.alt"
+        @input="update('alt', $event.target.value)"
+        placeholder="Alt text (required)"
+        class="w-full text-sm px-3 py-2 border border-light-gray rounded"
+      />
+      <p class="text-xs text-neutral-500 mt-1">
+        Describe what the image shows for screen readers and search engines. Keep it short and specific.
+      </p>
+    </div>
+
+    <div>
+      <input
+        :value="block.caption"
+        @input="update('caption', $event.target.value)"
+        placeholder="Caption (optional)"
+        class="w-full text-sm px-3 py-2 border border-light-gray rounded"
+      />
+      <p class="text-xs text-neutral-500 mt-1">
+        Displayed below the image in the article. Leave blank to hide.
+      </p>
+    </div>
+
+    <div>
+      <select
+        :value="block.alignment || 'full'"
+        @change="update('alignment', $event.target.value)"
+        class="text-sm border border-light-gray rounded px-2 py-1"
+      >
+        <option value="full">Full width (stands alone)</option>
+        <option value="left">Float left — text wraps to the right</option>
+        <option value="right">Float right — text wraps to the left</option>
+      </select>
+      <p class="text-xs text-neutral-500 mt-1">
+        For Float left/right, place this block directly before the paragraph(s) you want to wrap around it.
+        Headings, dividers, and callouts will end the wrap.
+      </p>
+    </div>
   </div>
 </template>
 
