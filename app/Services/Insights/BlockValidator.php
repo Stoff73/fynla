@@ -94,7 +94,7 @@ class BlockValidator
     {
         $errors = [];
         foreach (['path', 'alt'] as $req) {
-            if (! isset($b[$req]) || ! is_string($b[$req])) {
+            if (! isset($b[$req]) || ! is_string($b[$req]) || trim($b[$req]) === '') {
                 $errors[] = "image {$req} is required";
             }
         }

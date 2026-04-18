@@ -413,10 +413,20 @@ export default {
           this.form = { ...this.form, ...res.data };
         }
       } catch (e) {
-        alert('Save failed: ' + (e.response?.data?.message || e.message));
+        alert('Save failed: ' + this.formatSaveError(e));
       } finally {
         this.saving = false;
       }
+    },
+    formatSaveError(e) {
+      const res = e.response?.data;
+      const message = res?.message || e.message || 'Unknown error';
+      const errors = res?.errors;
+      if (errors && typeof errors === 'object') {
+        const lines = Object.values(errors).flat();
+        if (lines.length) return `${message}\n\n\u2022 ${lines.join('\n\u2022 ')}`;
+      }
+      return message;
     },
     async publish() {
       await this.saveDraft();
