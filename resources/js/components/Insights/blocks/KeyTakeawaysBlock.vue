@@ -1,6 +1,6 @@
 <template>
-  <aside class="my-8 p-6 bg-light-pink-100 border-l-4 border-raspberry-500 rounded-r-lg">
-    <h4 class="text-sm font-bold text-raspberry-700 uppercase tracking-wide mb-3">Key takeaways</h4>
+  <aside class="my-8">
+    <h4 class="text-sm font-bold text-horizon-500 uppercase tracking-wide mb-3">Key takeaways</h4>
     <ul class="space-y-2">
       <li
         v-for="(bullet, i) in block.bullets"
