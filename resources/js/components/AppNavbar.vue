@@ -294,7 +294,7 @@ import logger from '@/utils/logger';
 export default {
   name: 'AppNavbar',
 
-  emits: ['open-chat', 'open-plan-modal'],
+  emits: ['toggle-chat', 'open-plan-modal'],
 
   props: {
     subscriptionData: {
