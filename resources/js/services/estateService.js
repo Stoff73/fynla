@@ -25,6 +25,25 @@ const estateService = {
     },
 
     /**
+     * Get estate planning recommendations
+     * @returns {Promise} Prioritized recommendations
+     */
+    async getRecommendations() {
+        const response = await api.get('/estate/recommendations');
+        return response.data;
+    },
+
+    /**
+     * Run a what-if scenario
+     * @param {Object} scenarioData - Scenario parameters
+     * @returns {Promise} Scenario analysis results
+     */
+    async runScenario(scenarioData) {
+        const response = await api.post('/estate/scenarios', scenarioData);
+        return response.data;
+    },
+
+    /**
      * Calculate IHT liability
      * @param {Object} data - IHT calculation parameters
      * @returns {Promise} IHT calculation breakdown
@@ -64,6 +83,17 @@ const estateService = {
         const response = await api.get('/estate/cash-flow', {
             params: { taxYear }
         });
+        return response.data;
+    },
+
+    // IHT Profile Methods
+    /**
+     * Create or update IHT profile
+     * @param {Object} profileData - IHT profile data
+     * @returns {Promise} Created/updated profile
+     */
+    async storeOrUpdateProfile(profileData) {
+        const response = await api.post('/estate/profile', profileData);
         return response.data;
     },
 
@@ -247,12 +277,32 @@ const estateService = {
     },
 
     /**
+     * Get trust analysis
+     * @param {Number} id - Trust ID
+     * @returns {Promise} Trust analysis and efficiency metrics
+     */
+    async analyzeTrust(id) {
+        const response = await api.get(`/estate/trusts/${id}/analyze`);
+        return response.data;
+    },
+
+    /**
      * Get trust recommendations
      * @param {Object} params - Parameters (has_children, needs_flexibility)
      * @returns {Promise} Trust recommendations based on estate
      */
     async getTrustRecommendations(params = {}) {
         const response = await api.get('/estate/trust-recommendations', { params });
+        return response.data;
+    },
+
+    /**
+     * Calculate discounted gift trust discount estimate
+     * @param {Object} data - Age, gift value, annual income
+     * @returns {Promise} Discount calculation
+     */
+    async calculateDiscountedGiftDiscount(data) {
+        const response = await api.post('/estate/calculate-discount', data);
         return response.data;
     },
 
@@ -305,6 +355,11 @@ const estateService = {
         return response.data;
     },
 
+    async markLpaRegistered(id, data = {}) {
+        const response = await api.post(`/estate/lpa/${id}/register`, data);
+        return response.data;
+    },
+
     async getLpaDonorDefaults() {
         const response = await api.get('/estate/lpa/donor-defaults');
         return response.data;
@@ -326,6 +381,11 @@ const estateService = {
         return response.data;
     },
 
+    async getWillDocument(id) {
+        const response = await api.get(`/estate/will-builder/${id}`);
+        return response.data;
+    },
+
     async updateWillDocument(id, data) {
         const response = await api.put(`/estate/will-builder/${id}`, data);
         return response.data;
@@ -343,6 +403,11 @@ const estateService = {
 
     async validateWillDocument(id) {
         const response = await api.get(`/estate/will-builder/${id}/validate`);
+        return response.data;
+    },
+
+    async deleteWillDocument(id) {
+        const response = await api.delete(`/estate/will-builder/${id}`);
         return response.data;
     },
 };

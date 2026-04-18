@@ -260,6 +260,259 @@ const actions = {
         }
     },
 
+    // Analyse estate
+    async analyseEstate({ commit }, data) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.analyzeEstate(data);
+            const responseData = response.data?.data || response.data;
+
+            // Guard: handle can_proceed: false
+            if (responseData?.can_proceed === false) {
+                commit('SET_CAN_PROCEED', false);
+                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
+                commit('setAnalysis', null);
+                return response;
+            }
+
+            commit('SET_CAN_PROCEED', true);
+            commit('SET_READINESS_CHECKS', null);
+            commit('setAnalysis', responseData);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Analysis failed';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    // Calculate IHT
+    async calculateIHT({ commit }, data) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.calculateIHT(data);
+            // Response has iht_summary structure - use same state as married users
+            commit('setSecondDeathPlanning', response);
+            // Extract will info from response
+            if (response?.will_info) {
+                commit('setWillInfo', response.will_info);
+            }
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'IHT calculation failed';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    // Fetch net worth
+    async fetchNetWorth({ commit }) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.getNetWorth();
+            commit('setNetWorth', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to fetch net worth';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    // Fetch cash flow
+    async fetchCashFlow({ commit }, taxYear) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.getCashFlow(taxYear);
+            // response is already response.data from the service
+            // which is { success: true, data: {...} }
+            commit('setCashFlow', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch cash flow';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    // Asset actions
+    async createAsset({ commit }, assetData) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.createAsset(assetData);
+            commit('addAsset', response.data.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to create asset';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async updateAsset({ commit }, { id, assetData }) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.updateAsset(id, assetData);
+            commit('updateAsset', response.data.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to update asset';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async deleteAsset({ commit }, id) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.deleteAsset(id);
+            commit('removeAsset', id);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to delete asset';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    // Liability actions
+    async createLiability({ commit, dispatch }, liabilityData) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.createLiability(liabilityData);
+            // Don't use addLiability here — the component re-fetches after save
+            // which gives us clean data from the API with correct resource shape
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to create liability';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async updateLiability({ commit, dispatch }, { id, liabilityData }) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.updateLiability(id, liabilityData);
+            commit('updateLiability', response.data.data);
+            // Refresh net worth after updating liability
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to update liability';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async deleteLiability({ commit, dispatch }, id) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.deleteLiability(id);
+            commit('removeLiability', id);
+            // Refresh net worth after deleting liability
+            await dispatch('netWorth/refreshNetWorth', null, { root: true });
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to delete liability';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    // Gift actions
+    async createGift({ commit }, giftData) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.createGift(giftData);
+            commit('addGift', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to create gift';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async updateGift({ commit }, { id, giftData }) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.updateGift(id, giftData);
+            commit('updateGift', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to update gift';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async deleteGift({ commit }, id) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.deleteGift(id);
+            commit('removeGift', id);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to delete gift';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
     // IHT Planning action (covers single and married couples)
     async calculateIHTPlanning({ commit }) {
         commit('setLoading', true);
@@ -321,6 +574,57 @@ const actions = {
         }
     },
 
+    async createTrust({ commit }, trustData) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.createTrust(trustData);
+            commit('addTrust', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to create trust';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async updateTrust({ commit }, { id, data }) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.updateTrust(id, data);
+            commit('updateTrust', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to update trust';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
+    async removeTrust({ commit }, id) {
+        commit('setLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.deleteTrust(id);
+            commit('removeTrust', id);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to delete trust';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLoading', false);
+        }
+    },
+
     // Lasting Power of Attorney actions
     async fetchLpas({ commit }) {
         commit('setLpaLoading', true);
@@ -339,6 +643,56 @@ const actions = {
         }
     },
 
+    async createLpa({ commit }, data) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.createLpa(data);
+            commit('addLpa', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to create Lasting Power of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
+
+    async updateLpa({ commit }, { id, data }) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.updateLpa(id, data);
+            commit('updateLpa', response.data);
+            return response;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to update Lasting Power of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
+
+    async removeLpa({ commit }, id) {
+        commit('setLpaLoading', true);
+        commit('setError', null);
+
+        try {
+            const response = await estateService.deleteLpa(id);
+            commit('removeLpa', id);
+            return response;
+        } catch (error) {
+            const errorMessage = error.message || 'Failed to delete Lasting Power of Attorney';
+            commit('setError', errorMessage);
+            throw error;
+        } finally {
+            commit('setLpaLoading', false);
+        }
+    },
 };
 
 const mutations = {
