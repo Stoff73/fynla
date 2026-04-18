@@ -45,7 +45,7 @@ export VITE_AWIN_FALLBACK_PIXEL=https://www.awin1.com/sread.img
 #   1. Backend migrations have run on production
 #   2. ExistingInsightsMetadataSeeder has been executed
 #   3. /api/insights and /api/insights/featured have been smoke-tested
-export VITE_INSIGHTS_CMS_ENABLED=false
+export VITE_INSIGHTS_CMS_ENABLED=true
 
 echo "Environment:"
 echo "  NODE_ENV: $NODE_ENV"
