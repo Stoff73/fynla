@@ -70,14 +70,22 @@
           <div>
             <label class="block text-xs font-semibold text-neutral-500 uppercase mb-1">Summary</label>
             <textarea v-model="form.summary" rows="3" class="w-full text-sm px-3 py-2 border border-light-gray rounded"></textarea>
+            <p class="text-xs text-neutral-500 mt-1">
+              Shown on the Insights hub and landing page card preview. Not displayed in the article body.
+            </p>
           </div>
           <div>
             <label class="block text-xs font-semibold text-neutral-500 uppercase mb-1">Category</label>
             <select v-model="form.category" class="w-full text-sm px-3 py-2 border border-light-gray rounded">
-              <option value="tax-changes">Tax changes</option>
+              <option value="tax">Tax</option>
               <option value="pensions">Pensions</option>
               <option value="savings-isa">Savings & ISA</option>
               <option value="estate-planning">Estate planning</option>
+              <option value="financial-planning">Financial planning</option>
+              <option value="ai">Artificial intelligence</option>
+              <option value="fintech">Fintech</option>
+              <option value="developer">Developer</option>
+              <option value="international">International</option>
               <option value="platform-updates">Platform updates</option>
             </select>
           </div>

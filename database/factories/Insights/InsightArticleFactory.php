@@ -23,7 +23,8 @@ class InsightArticleFactory extends Factory
             'subtitle' => fake()->sentence(10),
             'summary' => fake()->paragraph(2),
             'category' => fake()->randomElement([
-                'tax-changes', 'pensions', 'savings-isa', 'estate-planning', 'platform-updates',
+                'tax', 'pensions', 'savings-isa', 'estate-planning',
+                'financial-planning', 'ai', 'fintech', 'developer', 'international', 'platform-updates',
             ]),
             'tags' => [fake()->word(), fake()->word()],
             'body_blocks' => [

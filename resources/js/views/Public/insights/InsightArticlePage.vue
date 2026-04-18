@@ -39,10 +39,6 @@
       </figure>
 
       <ArticleBlockRenderer :blocks="article.body_blocks || []" />
-
-      <footer class="mt-16 pt-8 border-t border-light-gray text-sm text-neutral-500 italic">
-        {{ article.summary }}
-      </footer>
     </div>
 
     <div v-else class="max-w-4xl mx-auto px-4 py-20 text-center">
@@ -67,10 +63,15 @@ import ArticleBlockRenderer from '@/components/Insights/ArticleBlockRenderer.vue
 import { formatDateLong } from '@/utils/dateFormatter';
 
 const CATEGORY_LABELS = {
-  'tax-changes': 'Tax changes',
+  'tax': 'Tax',
   'pensions': 'Pensions',
   'savings-isa': 'Savings & ISA',
   'estate-planning': 'Estate planning',
+  'financial-planning': 'Financial planning',
+  'ai': 'Artificial intelligence',
+  'fintech': 'Fintech',
+  'developer': 'Developer',
+  'international': 'International',
   'platform-updates': 'Platform updates',
 };
 
