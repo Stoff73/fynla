@@ -45,7 +45,9 @@ class ChrisUserSeeder extends Seeder
                 'first_name' => 'Chris',
                 'surname' => 'Jones',
                 'password' => Hash::make(env('CHRIS_SEED_PASSWORD', 'Password1!')),
-                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
+                // User model's saving() hook overrides is_admin based on role_id —
+                // assigning ROLE_ADMIN is what actually grants admin locally.
+                'role_id' => Role::findByName(Role::ROLE_ADMIN)?->id,
                 'is_admin' => true,
                 'is_advisor' => false,
                 'is_preview_user' => false,

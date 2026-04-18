@@ -49,6 +49,7 @@ const IsaGuideUkPage = () => import('@/views/Public/insights/IsaGuideUkPage.vue'
 const RetirementPlanningUkPage = () => import('@/views/Public/insights/RetirementPlanningUkPage.vue');
 const StocksSharesIsaUkPage = () => import('@/views/Public/insights/StocksSharesIsaUkPage.vue');
 const HowMuchToRetireUkPage = () => import('@/views/Public/insights/HowMuchToRetireUkPage.vue');
+const InsightArticlePage = () => import('@/views/Public/insights/InsightArticlePage.vue');
 const WhatIsSalarySacrificePage = () => import('@/views/Public/learn/WhatIsSalarySacrificePage.vue');
 const WhatIsAnLpaPage = () => import('@/views/Public/learn/WhatIsAnLpaPage.vue');
 const WhatIsASippPage = () => import('@/views/Public/learn/WhatIsASippPage.vue');
@@ -118,6 +119,9 @@ const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
+const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
+const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
+const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -317,6 +321,13 @@ const routes = [
   { path: '/insights/retirement-planning-uk', name: 'InsightRetirementPlanning', component: RetirementPlanningUkPage, meta: { public: true } },
   { path: '/insights/stocks-shares-isa-uk', name: 'InsightStocksSharesIsa', component: StocksSharesIsaUkPage, meta: { public: true } },
   { path: '/insights/how-much-to-retire-uk', name: 'InsightHowMuchToRetire', component: HowMuchToRetireUkPage, meta: { public: true } },
+  // IMPORTANT: /insights/:slug catch-all MUST come AFTER all named insight routes
+  // so bespoke Vue articles take precedence. Enforced by an architecture test in Phase 6.
+  // Gated by VITE_INSIGHTS_CMS_ENABLED so production can ship backend-only builds
+  // first and flip the flag after smoke-testing the API.
+  ...(import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true'
+    ? [{ path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } }]
+    : []),
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },
@@ -1009,6 +1020,30 @@ const routes = [
         { label: 'Admin Panel', path: '/admin' },
       ],
     },
+  },
+  {
+    path: '/admin/insights',
+    name: 'AdminInsights',
+    component: InsightsArticleListPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/new',
+    name: 'AdminInsightNew',
+    component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/templates',
+    name: 'AdminInsightTemplates',
+    component: InsightsTemplateListPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/:id/edit',
+    name: 'AdminInsightEdit',
+    component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/version',
