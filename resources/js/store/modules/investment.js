@@ -313,108 +313,6 @@ const actions = {
         }
     },
 
-    // Fetch recommendations (uses analyze endpoint which returns recommendations)
-    async fetchRecommendations({ commit }) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            // Use analyzeInvestment endpoint which returns { success, data: { analysis, recommendations } }
-            // Service already returns response.data, so we access .data.analysis and .data.recommendations
-            const response = await investmentService.analyzeInvestment();
-            const responseData = response.data || response;
-
-            // Guard: handle can_proceed: false
-            if (responseData?.can_proceed === false) {
-                commit('SET_CAN_PROCEED', false);
-                commit('SET_READINESS_CHECKS', responseData?.readiness_checks || null);
-                commit('setAnalysis', null);
-                commit('setRecommendations', null);
-                return response;
-            }
-
-            commit('SET_CAN_PROCEED', true);
-            commit('SET_READINESS_CHECKS', null);
-            commit('setAnalysis', responseData?.analysis);
-            // Store full recommendations object { recommendation_count, recommendations: [] }
-            commit('setRecommendations', responseData?.recommendations);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to fetch recommendations';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Run scenario analysis
-    async runScenario({ commit }, scenarioData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.runScenario(scenarioData);
-            commit('setScenarios', response.data);
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Scenario analysis failed';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Start Monte Carlo simulation
-    async startMonteCarlo({ commit }, params) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.startMonteCarlo(params);
-            const jobId = response.data.job_id;
-            commit('setMonteCarloStatus', { jobId, status: 'queued' });
-            return { jobId, response };
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to start Monte Carlo simulation';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Poll for Monte Carlo results
-    async pollMonteCarloResults({ commit }, jobId) {
-        commit('setMonteCarloStatus', { jobId, status: 'running' });
-        commit('setError', null);
-
-        try {
-            const response = await pollMonteCarloJob(
-                () => investmentService.getMonteCarloResults(jobId),
-                {
-                    onProgress: (attempt, res) => {
-                        const status = res?.data?.data?.status;
-                        if (status) {
-                            commit('setMonteCarloStatus', { jobId, status });
-                        }
-                    }
-                }
-            );
-
-            const results = response.data.data.results;
-            commit('setMonteCarloResults', { jobId, results });
-            commit('setMonteCarloStatus', { jobId, status: 'completed' });
-            return results;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to retrieve Monte Carlo results';
-            commit('setMonteCarloStatus', { jobId, status: 'failed' });
-            commit('setError', errorMessage);
-            throw error;
-        }
-    },
-
     // Fetch accounts only (lightweight alternative to fetchInvestmentData)
     async fetchAccounts({ commit }) {
         commit('setLoading', true);
@@ -426,29 +324,6 @@ const actions = {
             return response.data.accounts;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch accounts';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Account actions
-    async createAccount({ commit, dispatch }, accountData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.createAccount(accountData);
-            commit('addAccount', response.data);
-            // Refresh analysis after adding account
-            await dispatch('analyseInvestment');
-            // Refresh net worth and recommendations
-            await dispatch('netWorth/refreshNetWorth', null, { root: true });
-            dispatch('recommendations/fetchRecommendations', {}, { root: true });
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create account';
             commit('setError', errorMessage);
             throw error;
         } finally {
@@ -477,49 +352,6 @@ const actions = {
         }
     },
 
-    async deleteAccount({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.deleteAccount(id);
-            commit('removeAccount', id);
-            await dispatch('analyseInvestment');
-            // Refresh net worth and recommendations
-            await dispatch('netWorth/refreshNetWorth', null, { root: true });
-            dispatch('recommendations/fetchRecommendations', {}, { root: true });
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete account';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Holdings actions
-    async createHolding({ commit, dispatch }, holdingData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.createHolding(holdingData);
-            commit('addHolding', {
-                accountId: holdingData.investment_account_id,
-                holding: response.data
-            });
-            await dispatch('analyseInvestment');
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to create holding';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     async updateHolding({ commit, dispatch }, { id, holdingData }) {
         commit('setLoading', true);
         commit('setError', null);
@@ -538,43 +370,6 @@ const actions = {
         }
     },
 
-    async deleteHolding({ commit, dispatch }, id) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.deleteHolding(id);
-            commit('removeHolding', id);
-            await dispatch('analyseInvestment');
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to delete holding';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
-    // Risk profile action
-    async saveRiskProfile({ commit, dispatch }, profileData) {
-        commit('setLoading', true);
-        commit('setError', null);
-
-        try {
-            const response = await investmentService.saveRiskProfile(profileData);
-            commit('setRiskProfile', response.data);
-            await dispatch('analyseInvestment');
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to save risk profile';
-            commit('setError', errorMessage);
-            throw error;
-        } finally {
-            commit('setLoading', false);
-        }
-    },
-
     async updateKnowledgeLevel({ commit }, level) {
         try {
             const response = await investmentService.saveRiskProfile({
@@ -584,34 +379,6 @@ const actions = {
             return response;
         } catch (error) {
             throw error;
-        }
-    },
-
-    // Portfolio Projections (Performance tab)
-    async fetchPortfolioProjections({ commit, state }, params = {}) {
-        commit('setProjectionsLoading', true);
-        commit('setProjectionsError', null);
-
-        try {
-            const response = await investmentService.getPortfolioProjections({
-                projection_periods: params.periods || [5, 10, 20, 30],
-                selected_period: params.selectedPeriod || state.selectedProjectionPeriod,
-                contribution_overrides: params.contributionOverrides || null,
-            });
-
-            if (response.success && response.data) {
-                commit('setPortfolioProjections', response.data);
-                if (params.selectedPeriod) {
-                    commit('setSelectedProjectionPeriod', params.selectedPeriod);
-                }
-            }
-            return response;
-        } catch (error) {
-            const errorMessage = error.message || 'Failed to fetch portfolio projections';
-            commit('setProjectionsError', errorMessage);
-            throw error;
-        } finally {
-            commit('setProjectionsLoading', false);
         }
     },
 

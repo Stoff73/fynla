@@ -300,68 +300,14 @@ const actions = {
     /**
      * Fetch goal types.
      */
-    async fetchGoalTypes({ commit, state }) {
-        // Only fetch if not already loaded
-        if (state.goalTypes.length > 0) {
-            return { success: true, data: state.goalTypes };
-        }
-
-        try {
-            const response = await goalsService.getGoalTypes();
-            if (response.success) {
-                commit('SET_GOAL_TYPES', response.data);
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to fetch goal types:', error);
-            throw error;
-        }
-    },
 
     /**
      * Create a new goal.
      */
-    async createGoal({ commit, dispatch }, goalData) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await goalsService.createGoal(goalData);
-            if (response.success) {
-                commit('ADD_GOAL', response.data);
-                // Refresh analysis and projection chart
-                dispatch('fetchDashboardOverview');
-                dispatch('fetchProjection');
-            }
-            return response;
-        } catch (error) {
-            commit('SET_ERROR', error.response?.data?.message || 'Failed to create goal');
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
 
     /**
      * Fetch a specific goal.
      */
-    async fetchGoal({ commit }, goalId) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await goalsService.getGoal(goalId);
-            if (response.success) {
-                commit('SET_SELECTED_GOAL', response.data);
-            }
-            return response;
-        } catch (error) {
-            commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch goal');
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
 
     /**
      * Update a goal.
@@ -390,49 +336,10 @@ const actions = {
     /**
      * Delete a goal.
      */
-    async deleteGoal({ commit, dispatch }, goalId) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await goalsService.deleteGoal(goalId);
-            if (response.success) {
-                commit('REMOVE_GOAL', goalId);
-                // Refresh analysis and projection chart
-                dispatch('fetchDashboardOverview');
-                dispatch('fetchProjection');
-            }
-            return response;
-        } catch (error) {
-            commit('SET_ERROR', error.response?.data?.message || 'Failed to delete goal');
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
 
     /**
      * Record a contribution to a goal.
      */
-    async recordContribution({ commit, dispatch }, { goalId, contributionData }) {
-        commit('SET_LOADING', true);
-        commit('CLEAR_ERROR');
-
-        try {
-            const response = await goalsService.recordContribution(goalId, contributionData);
-            if (response.success) {
-                commit('UPDATE_GOAL', response.data.goal);
-                // Refresh dashboard
-                dispatch('fetchDashboardOverview');
-            }
-            return response;
-        } catch (error) {
-            commit('SET_ERROR', error.response?.data?.message || 'Failed to record contribution');
-            throw error;
-        } finally {
-            commit('SET_LOADING', false);
-        }
-    },
 
     /**
      * Calculate property costs.
@@ -487,47 +394,10 @@ const actions = {
     /**
      * Fetch event types for life events.
      */
-    async fetchEventTypes({ commit, state }) {
-        // Only fetch if not already loaded
-        if (state.eventTypes.length > 0) {
-            return { success: true, data: state.eventTypes };
-        }
-
-        try {
-            const response = await goalsService.getEventTypes();
-            if (response.success) {
-                // API returns { event_types: [...], certainty_levels: [...] }
-                // Extract just the event_types array for the store
-                commit('SET_EVENT_TYPES', response.data.event_types || []);
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to fetch event types:', error);
-            throw error;
-        }
-    },
 
     /**
      * Create a new life event.
      */
-    async createLifeEvent({ commit, dispatch }, eventData) {
-        commit('SET_LIFE_EVENTS_LOADING', true);
-
-        try {
-            const response = await goalsService.createLifeEvent(eventData);
-            if (response.success) {
-                commit('ADD_LIFE_EVENT', response.data);
-                // Refresh projection data
-                dispatch('fetchProjection');
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to create life event:', error);
-            throw error;
-        } finally {
-            commit('SET_LIFE_EVENTS_LOADING', false);
-        }
-    },
 
     /**
      * Update a life event.
@@ -554,24 +424,6 @@ const actions = {
     /**
      * Delete a life event.
      */
-    async deleteLifeEvent({ commit, dispatch }, eventId) {
-        commit('SET_LIFE_EVENTS_LOADING', true);
-
-        try {
-            const response = await goalsService.deleteLifeEvent(eventId);
-            if (response.success) {
-                commit('REMOVE_LIFE_EVENT', eventId);
-                // Refresh projection data
-                dispatch('fetchProjection');
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to delete life event:', error);
-            throw error;
-        } finally {
-            commit('SET_LIFE_EVENTS_LOADING', false);
-        }
-    },
 
     // =========================================
     // Projection Actions
@@ -608,13 +460,6 @@ const actions = {
     /**
      * Set view mode (individual, household) and refresh projection.
      */
-    async setViewMode({ commit, dispatch }, mode) {
-        commit('SET_VIEW_MODE', mode);
-        // Refresh projection with new view mode
-        await dispatch('fetchProjection');
-        // Also refresh life events for household view
-        await dispatch('fetchLifeEvents', { household: mode === 'household' });
-    },
 
     // =========================================
     // Dependency Actions
@@ -679,56 +524,14 @@ const actions = {
     /**
      * Fetch allocations for a life event.
      */
-    async fetchAllocations({ commit }, eventId) {
-        commit('SET_ALLOCATIONS_LOADING', true);
-        try {
-            const response = await goalsService.getAllocations(eventId);
-            if (response.success) {
-                commit('SET_EVENT_ALLOCATIONS', { eventId, allocations: response.data.allocations });
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to fetch allocations:', error);
-            throw error;
-        } finally {
-            commit('SET_ALLOCATIONS_LOADING', false);
-        }
-    },
 
     /**
      * Update a single allocation (amount and/or enabled status).
      */
-    async updateAllocation({ commit }, { eventId, allocationId, amount, enabled }) {
-        try {
-            const response = await goalsService.updateAllocation(eventId, allocationId, { amount, enabled });
-            if (response.success) {
-                commit('UPDATE_EVENT_ALLOCATION', { eventId, allocation: response.data });
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to update allocation:', error);
-            throw error;
-        }
-    },
 
     /**
      * Regenerate allocation suggestions for a life event.
      */
-    async regenerateAllocations({ commit }, eventId) {
-        commit('SET_ALLOCATIONS_LOADING', true);
-        try {
-            const response = await goalsService.regenerateAllocations(eventId);
-            if (response.success) {
-                commit('SET_EVENT_ALLOCATIONS', { eventId, allocations: response.data.allocations });
-            }
-            return response;
-        } catch (error) {
-            logger.error('Failed to regenerate allocations:', error);
-            throw error;
-        } finally {
-            commit('SET_ALLOCATIONS_LOADING', false);
-        }
-    },
 };
 
 export default {
