@@ -19,6 +19,7 @@ class InsightArticleResource extends JsonResource
             'summary' => $this->summary,
             'category' => $this->category,
             'tags' => $this->tags ?? [],
+            'authors' => $this->authors ?? [],
             'hero_image' => $this->heroImageUrls(),
             'body_blocks' => $this->body_blocks ?? [],
             'template_id' => $this->template_id,

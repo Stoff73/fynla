@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin\Insights;
 
+use App\Models\Insights\InsightArticle;
 use App\Services\Insights\BlockValidator;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreInsightArticleRequest extends FormRequest
 {
@@ -29,6 +31,8 @@ class StoreInsightArticleRequest extends FormRequest
             'category' => ['required', 'in:tax,pensions,savings-isa,estate-planning,financial-planning,ai,fintech,developer,international,platform-updates'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
+            'authors' => ['nullable', 'array', 'max:3'],
+            'authors.*' => ['string', Rule::in(InsightArticle::ALLOWED_AUTHORS)],
             'hero_image_path' => ['nullable', 'string'],
             'hero_image_card_path' => ['nullable', 'string'],
             'hero_image_thumb_path' => ['nullable', 'string'],

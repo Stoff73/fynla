@@ -38,6 +38,7 @@ class InsightArticle extends Model
         'published_at',
         'scheduled_at',
         'author_id',
+        'authors',
         'meta_title',
         'meta_description',
         'canonical_url',
@@ -46,10 +47,17 @@ class InsightArticle extends Model
     protected $casts = [
         'tags' => 'array',
         'body_blocks' => 'array',
+        'authors' => 'array',
         'is_featured' => 'boolean',
         'is_bespoke' => 'boolean',
         'published_at' => 'datetime',
         'scheduled_at' => 'datetime',
+    ];
+
+    public const ALLOWED_AUTHORS = [
+        'Brett Isenberg',
+        'Azlan Raj',
+        'Chris Slater-Jones',
     ];
 
     public function author(): BelongsTo
