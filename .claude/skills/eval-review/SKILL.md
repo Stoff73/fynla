@@ -11,7 +11,7 @@ You have been stopped by the eval-gate hook because you attempted to finish your
 
 ## What You Must Do
 
-1. **Dispatch the eval-reviewer agent** using the Agent tool with `subagent_type: "superpowers:code-reviewer"`. The agent will independently review every changed file, run convention checks, and perform browser testing if frontend files changed.
+1. **Dispatch the eval-reviewer agent** using the Agent tool with `subagent_type: "eval-reviewer"` (the project-local Fynla reviewer at `.claude/agents/eval-reviewer.md`). It independently reviews every changed file, runs convention checks, and browser-tests when frontend files changed. Do NOT use `superpowers:code-reviewer` — it has no Fynla context.
 
 2. **Include this context in the agent prompt:**
    - The list of changed files (from `git diff --name-only HEAD` + untracked)

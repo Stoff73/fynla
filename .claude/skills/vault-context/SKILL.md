@@ -59,7 +59,7 @@ Read each file and present a summary of each rule. These apply to ALL work.
 
 ```bash
 # Get the 3 most recent session update folders
-ls -d /Users/CSJ/Desktop/fynlaBrain/March/March*Updates 2>/dev/null | sort -V | tail -3
+ls -d /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates 2>/dev/null | sort -V | tail -3
 ```
 
 For each of the 3 most recent folders:
@@ -73,7 +73,7 @@ Present key items: what was worked on, what was deployed, outstanding issues.
 
 ```bash
 # Most recent CSJTODO in vault
-find /Users/CSJ/Desktop/fynlaBrain/March -name "CSJTODO.md" -type f 2>/dev/null | sort -V | tail -1
+find /Users/CSJ/Desktop/fynlaBrain/$(date +%B) -name "CSJTODO.md" -type f 2>/dev/null | sort -V | tail -1
 ```
 
 Compare with repo `TODO.md`. If different, present both.
@@ -135,13 +135,13 @@ Search deploy and fix files from the last 14 days for mentions of this module:
 
 ```bash
 # Find deploy/fix docs mentioning this module
-grep -ril "[module_name]" /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/deploy*.md /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/*fix*.md /Users/CSJ/Desktop/fynlaBrain/March/March*Updates/*Fix*.md 2>/dev/null | tail -5
+grep -ril "[module_name]" /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates/deploy*.md /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates/*fix*.md /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates/*Fix*.md 2>/dev/null | tail -5
 ```
 
-Also search the repo March updates:
+Also search the repo's current-month updates folder:
 
 ```bash
-grep -ril "[module_name]" March/March*Updates/deploy*.md March/March*Updates/*fix*.md March/March*Updates/*Fix*.md 2>/dev/null | tail -5
+grep -ril "[module_name]" $(date +%B)/$(date +%B)*Updates/deploy*.md $(date +%B)/$(date +%B)*Updates/*fix*.md $(date +%B)/$(date +%B)*Updates/*Fix*.md 2>/dev/null | tail -5
 ```
 
 For each matching file, extract the bug/fix entries related to this module. Present: what broke, why, how it was fixed.
@@ -150,7 +150,7 @@ For each matching file, extract the bug/fix entries related to this module. Pres
 
 ```bash
 # Find session notes mentioning this module in last 5 update folders
-for dir in $(ls -d /Users/CSJ/Desktop/fynlaBrain/March/March*Updates 2>/dev/null | sort -V | tail -5); do
+for dir in $(ls -d /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates 2>/dev/null | sort -V | tail -5); do
   grep -ril "[module_name]" "$dir"/*.md 2>/dev/null
 done
 ```

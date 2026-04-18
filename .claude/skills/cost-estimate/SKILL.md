@@ -7,23 +7,22 @@ description: Estimate development cost of a codebase based on lines of code and 
 
 You are a senior software engineering consultant tasked with estimating the development cost of the current codebase.
 
-## Step 1: Analyze the Codebase
+## Step 1: Analyse the Codebase
 
-Read the entire codebase to understand:
-- Total lines of code (PHP, VUE, Javascript, SQL)
-- Architectural complexity (frameworks, integrations, APIs)
-- Advanced features (Metal rendering, CoreMediaIO, AVFoundation)
-- Testing coverage
-- Documentation quality
+Read the codebase to understand:
+- Total lines of code by language (for Fynla: PHP, Vue, JavaScript, SQL; for other projects, adapt)
+- Architectural complexity (frameworks, integrations, APIs, agents, observers, queues)
+- Advanced features (AI integrations, payment/subscription, compliance/audit, multi-tenant isolation, iOS/mobile)
+- Testing coverage (unit, feature, architecture, integration suites)
+- Documentation quality (CLAUDE.md coverage, README, vault sync state)
 
-Use the Glob and Read tools to systematically review:
-- All VUE files
-- All PHP files
-- All HTML files
-- All test files in Tests/
-- Build scripts and configuration files
-- Laravel files
-- SQL scripts, migrations, seeders, schema
+Use Glob and Read to systematically survey:
+- All source files by language
+- All test files
+- Build scripts, deploy scripts, and configuration files
+- Migrations, seeders, schema documentation
+
+For Fynla specifically, the areas that drive cost are: Agent orchestration layer, per-module Service stacks (Estate, Investment, Retirement, Documents, AI), tax configuration system, preview persona isolation, Revolut payment integration, and iOS Capacitor mobile app.
 
 ## Step 2: Calculate Development Hours
 
@@ -55,17 +54,19 @@ Based on industry standards for a **senior full-stack developer** (5+ years expe
 
 ## Step 3: Research Market Rates
 
-Use WebSearch to find current 2026 hourly rates for:
-- Senior full-stack developers (5-10 years experience)
-- Specialized iOS/macOS developers
-- Contractors vs. employees
-- Geographic variations (US markets: SF Bay Area, NYC, Austin, Remote)
+Use WebSearch to find current hourly rates for the current year. Use `date +%Y` to get the year dynamically — never hardcode.
 
-Search queries to use:
-- "senior full stack developer hourly rate 2025"
-- "macOS Swift developer contractor rate 2025"
-- "senior software engineer hourly rate United States 2025"
-- "iOS developer freelance rate 2025"
+For Fynla's stack specifically, search for:
+- Senior Laravel + Vue.js full-stack developer rates (UK and US)
+- Specialist Laravel engineers (for backend architecture depth)
+- Mobile specialists (Capacitor/iOS) — only if mobile cost is in scope
+- Contractors vs. employees
+- Geographic variations (UK: London / regional; US: SF Bay Area, NYC, remote)
+
+Example queries (replace `{YEAR}`):
+- "senior Laravel Vue full stack developer hourly rate {YEAR} UK"
+- "senior software engineer contract rate {YEAR} London"
+- "Laravel specialist contractor rate {YEAR}"
 
 ## Step 4: Calculate Organizational Overhead
 
@@ -143,25 +144,26 @@ Provide a comprehensive estimate in this format:
 
 ---
 
-## KeyMe MVP - Development Cost Estimate
+## {Project Name} — Development Cost Estimate
 
 **Analysis Date**: [Current Date]
-**Codebase Version**: [From CLAUDE.md phase status]
+**Codebase Version**: [From CLAUDE.md or latest tag]
 
 ### Codebase Metrics
 
 - **Total Lines of Code**: [number]
   - PHP: [number] lines
-  - Javascript: [number] lines
-  - VUE: [number] lines
+  - Vue: [number] lines
+  - JavaScript: [number] lines
+  - SQL (migrations/seeders): [number] lines
   - Tests: [number] lines
   - Documentation: [number] lines
 
 - **Complexity Factors**:
-  - Advanced frameworks: [list key ones]
-  - System-level programming: [Camera Extensions, DAL Plugins, etc.]
-  - GPU programming: [Metal shaders, rendering]
-  - Third-party integrations: [OpenAI, etc.]
+  - Frameworks & core stack (e.g. Laravel 10, Vue 3, MySQL 8, Vite, Sanctum)
+  - Architecture patterns (Agent orchestrators, Service layer, Observers, Traits)
+  - Third-party integrations (e.g. Anthropic API, Revolut, AWIN, Capacitor iOS)
+  - Domain complexity (tax calculations, IHT, pension projections, Monte Carlo, compliance audit)
 
 ### Development Time Estimate
 
@@ -197,14 +199,14 @@ Provide a comprehensive estimate in this format:
 
 ### Market Rate Research
 
-**Senior Full-Stack Developer Rates (2025)**:
-- Low end: $[X]/hour (remote, mid-level market)
-- Average: $[X]/hour (standard US market)
-- High end: $[X]/hour (SF Bay Area, NYC, specialized)
+**Senior Full-Stack Developer Rates ({current year})**:
+- Low end: £[X]/hour or $[X]/hour (remote, mid-level market)
+- Average: [X] (standard regional market)
+- High end: [X] (London / SF Bay Area / NYC, specialist)
 
-**Recommended Rate for This Project**: $[X]/hour
+**Recommended Rate for This Project**: [X]
 
-*Rationale*: This project requires specialized macOS development skills (CoreMediaIO, Metal, system extensions) which command premium rates.
+*Rationale*: {State what makes this project warrant a specific rate tier — e.g. financial domain expertise, multi-tenant isolation, complex tax calculations, or conversely "standard web app complexity".}
 
 ### Total Cost Estimate
 

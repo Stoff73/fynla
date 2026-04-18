@@ -1,3 +1,8 @@
+---
+name: ui-graph
+description: Apply consistent ApexCharts styling across Fynla chart components using the canonical `designSystem.js` constants (`CHART_DEFAULTS`, `CHART_COLORS`, `TEXT_COLORS`, etc.). Use whenever creating a new chart component, modifying chart options in a Vue file, or auditing charts for design system compliance. Triggers on "update this chart", "apply chart styling", "chart isn't matching the design", "fix chart colours", or any work touching ApexCharts config.
+---
+
 # UI Graph Styling — Fynla Chart Conventions
 
 Apply consistent chart styling across all Fynla ApexCharts components. This skill codifies the standard graph configuration so every chart looks unified.
@@ -8,7 +13,7 @@ All charts import from `resources/js/constants/designSystem.js` — never hardco
 
 ## Required Import
 
-Every chart component must import `CHART_DEFAULTS` and spread it as the base config:
+Every chart component imports `CHART_DEFAULTS` and spreads it as the base config:
 
 ```javascript
 import { CHART_DEFAULTS } from '@/constants/designSystem';
@@ -211,7 +216,7 @@ chartOptions: {
 
 ## Rules
 
-1. **Always spread `CHART_DEFAULTS.chart`** as the base chart config — this sets font family, disables toolbar and zoom.
+1. **Always spread `CHART_DEFAULTS.chart`** as the base chart config — sets font family, disables toolbar and zoom.
 2. **Never hardcode `fontFamily`** — it comes from `CHART_DEFAULTS.chart.fontFamily` (`'Segoe UI, Inter, system-ui, sans-serif'`).
 3. **Never hardcode hex colours** in chart options — import from `designSystem.js` constants.
 4. **Use `TEXT_COLORS.muted`** for axis labels and captions, `TEXT_COLORS.primary` for primary values.

@@ -189,22 +189,23 @@ Check ALL files in today's update folder (and any other recently synced folders)
 
 Every `.md` file in the vault should ideally have YAML frontmatter. For update notes, this is optional but recommended. For git history files, it's required.
 
-**Required frontmatter for git history files:**
+**Required frontmatter for git history files** (replace `${MONTH_SHORT_LC}` with the current month short name in lowercase — e.g. `apr` for April, `mar` for March — and `${YEAR}` with the current year):
+
 ```yaml
 ---
 tags:
   - git-history
-  - mar-2026
+  - ${MONTH_SHORT_LC}-${YEAR}
 date: YYYY-MM-DD
 commits: N
 ---
 ```
 
-**Recommended frontmatter for update notes:**
+**Recommended frontmatter for update notes**:
 ```yaml
 ---
 tags:
-  - march-2026
+  - ${MONTH_LC}-${YEAR}       # e.g. april-2026
   - [topic tag: deploy, bug-fix, code-review, feature, etc.]
 date: YYYY-MM-DD
 ---

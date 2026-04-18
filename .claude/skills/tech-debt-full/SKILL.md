@@ -9,7 +9,7 @@ Systematic scan of the entire Fynla codebase. This is a deep audit — it takes 
 
 ## Execution Strategy
 
-The codebase is large (378 Vue components, 174 services, 70 controllers). Scanning everything sequentially would be slow. Use parallel subagents to divide the work by module.
+The codebase is large (697 Vue files, 239 services, 98 controllers — verify with `git ls-files` at run time rather than trusting this line). Scanning everything sequentially would be slow. Use parallel subagents to divide the work by module.
 
 ### Phase 1: Parallel Module Scans
 

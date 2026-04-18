@@ -104,6 +104,14 @@ When writing for UK audiences:
 - Use £ for currency examples
 - Reference UK-specific contexts (NHS, NI number, ISA, PAYE)
 
+## Fynla-Specific Rules
+
+When writing copy for Fynla:
+- **No acronyms in user-facing text** (CLAUDE.md Rule #10): spell out "Annual Allowance", "Defined Benefit", "Money Purchase Annual Allowance", "Stocks & Shares". Only exception is **ISA**.
+- **No numerical scores** (CLAUDE.md Rule #13): never surface "75/100", adequacy scores, health scores, or diversification scores. Use descriptive text, specific metrics (£ amounts, percentages, time periods), and actionable guidance instead.
+- **Preview mode friendly**: where a button is disabled in preview mode, the tooltip copy should explain why ("Editing is disabled in preview mode — sign up to save changes") rather than just "Disabled".
+- **Module names are proper nouns**: Protection, Savings, Investment, Retirement, Estate Planning, Goals & Life Events.
+
 ## Quality Checklist
 
 Before finalizing any copy, verify:
