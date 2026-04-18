@@ -26,7 +26,7 @@ class StoreInsightArticleRequest extends FormRequest
             'subtitle' => ['nullable', 'string', 'max:255'],
             'summary' => ['required', 'string', 'max:2000'],
             'slug' => ['nullable', 'string', 'alpha_dash', 'max:255'],
-            'category' => ['required', 'in:tax-changes,pensions,savings-isa,estate-planning,platform-updates'],
+            'category' => ['required', 'in:tax,pensions,savings-isa,estate-planning,financial-planning,ai,fintech,developer,international,platform-updates'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
             'hero_image_path' => ['nullable', 'string'],

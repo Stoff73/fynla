@@ -31,10 +31,15 @@
         </select>
         <select v-model="filters.category" class="px-3 py-2 text-sm border border-light-gray rounded-lg">
           <option value="">All categories</option>
-          <option value="tax-changes">Tax changes</option>
+          <option value="tax">Tax</option>
           <option value="pensions">Pensions</option>
           <option value="savings-isa">Savings & ISA</option>
           <option value="estate-planning">Estate planning</option>
+          <option value="financial-planning">Financial planning</option>
+          <option value="ai">Artificial intelligence</option>
+          <option value="fintech">Fintech</option>
+          <option value="developer">Developer</option>
+          <option value="international">International</option>
           <option value="platform-updates">Platform updates</option>
         </select>
         <label class="flex items-center gap-2 text-sm text-horizon-500">

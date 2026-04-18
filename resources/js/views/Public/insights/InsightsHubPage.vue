@@ -209,10 +209,15 @@ import { formatDateLong } from '@/utils/dateFormatter';
 // The category filter uses these labels; matching back to the raw value for
 // filtering is done via CATEGORY_VALUE_BY_LABEL.
 const CATEGORY_LABELS = {
-  'tax-changes': 'Tax changes',
+  'tax': 'Tax',
   'pensions': 'Pensions',
   'savings-isa': 'Savings & ISA',
   'estate-planning': 'Estate planning',
+  'financial-planning': 'Financial planning',
+  'ai': 'Artificial intelligence',
+  'fintech': 'Fintech',
+  'developer': 'Developer',
+  'international': 'International',
   'platform-updates': 'Platform updates',
 };
 
@@ -223,7 +228,7 @@ export default {
   data() {
     return {
       activeCategory: 'All',
-      categories: ['All', 'Tax changes', 'Pensions', 'Savings & ISA', 'Estate planning', 'Platform updates'],
+      categories: ['All', 'Tax', 'Pensions', 'Savings & ISA', 'Estate planning', 'Financial planning', 'Artificial intelligence', 'Fintech', 'Developer', 'International', 'Platform updates'],
       loading: true,
       // Resilience fallback: rendered only when the API fetch returns an
       // empty list (e.g. seeder hasn't run on a fresh deploy). Slugs are
