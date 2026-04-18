@@ -14,15 +14,20 @@
             clip-rule="evenodd"
           />
         </svg>
-        <span>{{ bullet }}</span>
+        <span v-html="sanitise(bullet)"></span>
       </li>
     </ul>
   </aside>
 </template>
 
 <script>
+import { sanitiseInline } from '@/utils/insightsSanitize';
+
 export default {
   name: 'KeyTakeawaysBlock',
   props: { block: { type: Object, required: true } },
+  methods: {
+    sanitise(bullet) { return sanitiseInline(bullet || ''); },
+  },
 };
 </script>

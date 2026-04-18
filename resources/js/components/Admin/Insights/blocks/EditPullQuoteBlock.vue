@@ -1,11 +1,9 @@
 <template>
   <div class="space-y-2">
-    <textarea
-      :value="block.text"
-      @input="update('text', $event.target.value)"
-      placeholder="Quote text"
-      rows="3"
-      class="w-full text-sm px-3 py-2 border border-light-gray rounded"
+    <RichTextEditor
+      :model-value="block.text || ''"
+      :tools="['bold', 'italic', 'underline', 'link']"
+      @update:model-value="update('text', $event)"
     />
     <input
       :value="block.attribution"
@@ -17,8 +15,11 @@
 </template>
 
 <script>
+import RichTextEditor from '../RichTextEditor.vue';
+
 export default {
   name: 'EditPullQuoteBlock',
+  components: { RichTextEditor },
   props: { block: { type: Object, required: true } },
   emits: ['update'],
   methods: {

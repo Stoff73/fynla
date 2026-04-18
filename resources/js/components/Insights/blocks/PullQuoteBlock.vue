@@ -4,7 +4,7 @@
       class="text-xl md:text-2xl font-bold text-horizon-500 leading-snug italic"
       style="letter-spacing:-0.01em;"
     >
-      &ldquo;{{ block.text }}&rdquo;
+      <span>&ldquo;</span><span v-html="sanitised"></span><span>&rdquo;</span>
     </p>
     <footer v-if="block.attribution" class="mt-3 text-sm text-neutral-500 not-italic">
       &mdash; {{ block.attribution }}
@@ -13,8 +13,13 @@
 </template>
 
 <script>
+import { sanitiseInline } from '@/utils/insightsSanitize';
+
 export default {
   name: 'PullQuoteBlock',
   props: { block: { type: Object, required: true } },
+  computed: {
+    sanitised() { return sanitiseInline(this.block.text || ''); },
+  },
 };
 </script>

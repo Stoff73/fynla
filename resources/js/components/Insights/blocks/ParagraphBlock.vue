@@ -3,18 +3,15 @@
 </template>
 
 <script>
-import DOMPurify from 'dompurify';
+import { sanitiseBlock } from '@/utils/insightsSanitize';
 
 export default {
   name: 'ParagraphBlock',
   props: { block: { type: Object, required: true } },
   computed: {
-    sanitised() {
-      return DOMPurify.sanitize(this.block.html || '', {
-        ALLOWED_TAGS: ['p', 'strong', 'em', 'a', 'br'],
-        ALLOWED_ATTR: ['href', 'target', 'rel'],
-      });
-    },
+    // Use block-level sanitise: Tiptap wraps content in <p> tags and
+    // multi-paragraph blocks need those preserved.
+    sanitised() { return sanitiseBlock(this.block.html || ''); },
   },
 };
 </script>
