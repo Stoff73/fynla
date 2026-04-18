@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 664 |
-| PHP Services | 234 |
-| Controllers | 94 |
-| Models | 94 |
-| Vuex Stores | 32 |
+| Vue Components | 697 |
+| PHP Services | 239 |
+| Controllers | 98 |
+| Models | 97 |
+| Vuex Stores | 33 |
 | Agents | 9 |
 
 **Production**: https://fynla.org | **Version**: v1.0
@@ -79,10 +79,10 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (443 across 28 module directories)
-- `views/` - Page-level route components (73 views)
-- `store/modules/` - Vuex state management (31 namespaced modules)
-- `services/` - API wrappers (44 services)
+- `components/{Module}/` - Vue components (488 across 29 module directories)
+- `views/` - Page-level route components (138 views)
+- `store/modules/` - Vuex state management (33 namespaced modules)
+- `services/` - API wrappers (45 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
@@ -93,6 +93,32 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 **Database** (`database/`): See `database/CLAUDE.md` for detailed conventions.
 
 **Tests** (`tests/`): See `tests/CLAUDE.md` for detailed conventions.
+
+## Working Style
+
+### Parallel tool calls
+Run independent tool calls in a single response — reading several files, `git status` + `git diff` + `git log`, hitting several endpoints. Sequential only when one call's output feeds the next call's parameter. Don't use placeholders or guess missing parameters.
+
+### Scope discipline
+Only change what was asked for. A bug fix doesn't need surrounding cleanup; a simple feature doesn't need extra configurability. If you notice something else worth fixing, **report it** rather than silently fixing it. Don't add comments, docstrings, error handling, validation, or type hints to code you didn't change. Don't design for hypothetical future requirements. Trust internal code and framework guarantees — only validate at system boundaries (user input, external APIs).
+
+### Investigate before answering
+Never speculate about code you haven't opened. If the user references a file, read it before answering. Ground claims in what's in the codebase right now, not what you remember or assume. If you don't know, say so and go look — don't guess.
+
+### When to spawn subagents
+Spawn subagents for work that can run in parallel, needs isolated context, or involves independent workstreams. Use the `Explore` or `general-purpose` agent for broad codebase research that would otherwise take 3+ queries. For single-file edits, sequential operations, or work that needs to share context across steps, do it directly — don't delegate.
+
+### Context awareness for long sessions
+The conversation compacts automatically as it approaches the context limit — you can keep working indefinitely. Do not wrap up tasks early over token-budget worries. For multi-window work, save progress to a file the next window can pick up from (git log, a progress note, `CSJTODO.md`, a structured task list).
+
+### Code review output
+When reviewing code, report every issue you find — including low-severity and low-confidence ones — tagged with **confidence** and **severity**. Filtering by importance is a separate downstream step. At the finding stage your job is coverage, not judgment. Don't pre-filter for "only important issues".
+
+### Response length
+Calibrates to task complexity. For shorter output, say "under N words" or "one-line summary". For step-by-step walkthroughs or deep analysis, ask for it explicitly.
+
+### Effort level
+Default is `xhigh` for Fynla work. Drop to `high` for routine edits where speed matters. Raise to `max` only for genuinely hard problems — it can over-think.
 
 ## Key Rules
 
@@ -341,10 +367,10 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 |---------|-------|-------|
 | young_family | James & Emily Carter | Mortgage, workplace pensions |
 | peak_earners | David & Sarah Mitchell | Multiple properties, SIPP + NHS pension |
-| widow | Margaret Thompson | Estate planning |
 | entrepreneur | Alex Chen | SIPP, business interests |
 | young_saver | John Morgan | Emergency fund, first-time savings |
-| retired_couple | Robert & Patricia Williams | Decumulation, estate planning |
+| retired_couple | Patricia & Harold Bennett | Decumulation, estate planning |
+| student | Janice Taylor | LISA, student loan, early-career planning |
 
 ## UK Tax Context
 

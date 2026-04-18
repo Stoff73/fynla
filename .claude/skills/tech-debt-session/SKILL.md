@@ -54,10 +54,13 @@ For every changed file, read the full contents and check against the categories 
 - Single-word component names
 - `v-if` and `v-for` on the same element
 - Missing `:key` on `v-for`
-- Hardcoded hex colours in `<style>` blocks (should use Tailwind tokens)
-- Using `amber-*` or `orange-*` colour classes (banned — use `violet-*` for warnings)
-- Acronyms in user-facing text (should be spelled out, except ISA)
-- Scores/ratings in user-facing UI (banned)
+- Hardcoded hex colours in `<style>` blocks (use Tailwind tokens or `designSystem.js` constants)
+- Banned colour classes: `amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*` (for general UI). Use `violet-*` for warnings, `horizon-*` for text/nav, `neutral-*` for muted, `light-gray` for borders
+- Chart options with hardcoded hex or `fontFamily` — should spread `CHART_DEFAULTS` and import colours from `designSystem.js`
+- Local `formatCurrency` methods (use `currencyMixin`)
+- Form modals emitting `submit` instead of `save`
+- Acronyms in user-facing text (spell them out — except ISA)
+- Scores / "X/100" / adequacy ratings in user-facing UI (banned — Key Rule #13)
 
 **CSS:**
 - Custom `@keyframes spin` (use global `animate-spin`)

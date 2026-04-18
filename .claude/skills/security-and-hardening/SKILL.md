@@ -9,6 +9,22 @@ description: Hardens code against vulnerabilities. Use when handling user input,
 
 Security-first development practices for web applications. Treat every external input as hostile, every secret as sacred, and every authorization check as mandatory. Security isn't a phase — it's a constraint on every line of code that touches user data, authentication, or external systems.
 
+**For Fynla (Laravel 10 + Vue 3 + Sanctum + MySQL 8) the canonical patterns are:**
+
+- **Auth:** Laravel Sanctum bearer tokens. Protected routes use `auth:sanctum` middleware. MFA verification via `mfa.verified` middleware. Admin routes use `admin` or `role:rolename`.
+- **Input validation:** Every POST/PUT/PATCH uses a dedicated `FormRequest` class in `app/Http/Requests/`. Use `ValidationLimits::currencyRules()` and `::percentageRules()` for consistent bounds.
+- **Output sanitisation:** Models expose only what `JsonResource` classes transform. Never return raw Eloquent models — always through a Resource.
+- **Ownership checks:** Every query filtered by `user_id` (or `user_id OR joint_owner_id` for jointly owned assets). Use `HasJointOwnership` scope: `Model::query()->forUserOrJoint($userId)`.
+- **Preview user isolation:** All write operations from `is_preview_user = true` accounts pass through `PreviewWriteInterceptor` middleware — which returns fake success responses instead of hitting the DB. New auth-related POST routes must be listed in `PreviewWriteInterceptor::EXCLUDED_ROUTES` to work for preview users (e.g. login, register, password reset).
+- **Rate limiting:** `throttle:5,1` on auth endpoints, `throttle:api` on general, `throttle:export` (3/hour) on exports.
+- **Input sanitisation:** `SanitizeInput` middleware strips HTML tags from all request bodies (except password fields).
+- **Audit trail:** Use the `Auditable` trait on models handling financial data — it auto-logs create/update/delete via observers with `old_values`, `new_values`, and context metadata.
+- **Tax values:** Never hardcode. Always via `TaxConfigService` (backend) or `taxConfig.js` / `getCurrentTaxYear()` (frontend). Hardcoded values are caught by the stop hook.
+- **Frontend token storage:** `sessionStorage` only (never `localStorage` for auth tokens). On mobile, tokens go in iOS Keychain via `@capgo/capacitor-native-biometric`.
+- **Financial values:** Cast as `decimal:2` (currency) or `decimal:4` (rates) on the model — never `float` or `integer`.
+
+The generic patterns below apply to any stack. For Fynla, prefer the Fynla-specific ones above when they conflict.
+
 ## When to Use
 
 - Building anything that accepts user input

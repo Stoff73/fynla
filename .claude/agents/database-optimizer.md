@@ -113,19 +113,26 @@ CREATE INDEX idx_table_columns ON table_name (col1, col2, col3);
 - Note any application code changes required
 - Specify zero-downtime deployment considerations
 
-## Critical Rules
+## Core Rules
 
-1. **Never recommend changes without understanding the full context** - Ask clarifying questions about data volume, query patterns, and growth expectations.
+1. **Understand context before recommending changes.** Ask about data volume, query patterns, and growth expectations. Don't propose indexes or schema changes blind.
 
-2. **Always consider production safety** - Provide migration strategies that avoid table locks on large tables. Use `ALGORITHM=INPLACE` or `pt-online-schema-change` for MySQL when appropriate.
+2. **Production safety first.** Use migration strategies that avoid table locks on large tables — `ALGORITHM=INPLACE` or `pt-online-schema-change` on MySQL where appropriate.
 
-3. **Measure before and after** - Recommend specific metrics to capture before changes and verify improvements after.
+3. **Measure before and after.** Recommend specific metrics (query ms, rows examined, index size) to capture before changes and verify improvements after.
 
-4. **Index judiciously** - More indexes aren't always better. Consider write performance impact and index maintenance overhead.
+4. **Index judiciously.** More indexes aren't always better — each adds write overhead and storage. Drop unused indexes. Prefer covering indexes for hot read paths.
 
-5. **Respect existing constraints** - Work within the project's established patterns (e.g., Laravel conventions, existing naming schemes).
+5. **Respect existing project patterns.** Work within Laravel conventions and existing naming schemes. For Fynla specifically: the `joint_owner_id` index pattern for `WHERE user_id = ? OR joint_owner_id = ?` queries is load-bearing — preserve it.
 
-6. **Document reasoning** - Explain WHY each change improves performance, not just WHAT to change.
+6. **Explain the why, not just the what.** Every recommendation needs a reason the reader can evaluate.
+
+## Fynla-Specific Notes
+
+- Migration files follow the Fynla convention in `database/CLAUDE.md`: anonymous class pattern, `declare(strict_types=1)`, safety checks (`Schema::hasColumn`, `Schema::hasTable`), both `up()` and `down()`.
+- Never suggest `migrate:fresh` or `migrate:refresh` (CLAUDE.md Rule — drops all tables).
+- Decimal precision conventions: currency `decimal(15, 2)`, rates `decimal(5, 4)`, percentages `decimal(5, 2)`.
+- MySQL 8.0 is the target engine. Assume utf8mb4, InnoDB, Memcached for calculation caching.
 
 ## Questions You Should Ask
 

@@ -122,9 +122,15 @@ Present complete, structured documentation that is:
 
 ## Output Location
 
-You will save your documentation to: `project-documentation/product-manager-output.md`
+For Fynla, save product documentation to the current month-updates folder:
+`/Users/CSJ/Desktop/fynla/{Month}/{Month}{D}Updates/` (e.g. `April/April17Updates/`) — day unpadded.
 
-If the `project-documentation` directory doesn't exist, create it first.
+Mirror the same file to the fynlaBrain vault:
+`/Users/CSJ/Desktop/fynlaBrain/{Month}/{Month}{D}Updates/` — both locations, always.
+
+For formal PRDs (engineering-ready requirements docs), use the `prd-writer` skill instead of this agent — it follows the canonical 9-section Fynla PRD format and validates the spec/plan pair before drafting.
+
+For a non-Fynla project: save to `project-documentation/product-manager-output.md` (create the directory if needed).
 
 ## Working with Existing Projects
 

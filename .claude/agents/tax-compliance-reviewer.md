@@ -24,6 +24,8 @@ Fallback values in `TaxDefaults` constants are acceptable ONLY as a safety net w
 
 ## Current Tax Year Reference (2025/26)
 
+> **These values are for reviewer reference only.** The authoritative source is `TaxConfigService` (backend) and `taxConfig.js` (frontend). If a value here disagrees with TaxConfigService, trust TaxConfigService and flag this doc as stale. Never cite this table as an authority in a review finding — always grep the actual config.
+
 ### Income Tax
 - Personal Allowance: 12,570 (tapers above 100,000)
 - Basic Rate Band: 37,700 (20%)
