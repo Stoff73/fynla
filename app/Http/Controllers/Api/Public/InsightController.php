@@ -62,7 +62,10 @@ class InsightController extends Controller
     {
         $query = InsightArticle::where('slug', $slug);
 
-        if (! ($request->boolean('preview') && $request->user()?->is_admin)) {
+        // Route is public, so the default guard ("web") does not resolve the
+        // SPA's Sanctum session or Bearer token. Ask Sanctum explicitly.
+        $user = $request->user('sanctum') ?? $request->user();
+        if (! ($request->boolean('preview') && $user?->is_admin)) {
             $query->published();
         }
 
