@@ -193,9 +193,9 @@ class FeeAnalyzer
         })->map(function ($holding) {
             return [
                 'security_name' => $holding->security_name,
-                'ocf_percent' => round($holding->ocf_percent ?? 0, 4),
-                'current_value' => round($holding->current_value, 2),
-                'annual_cost' => round($holding->current_value * (($holding->ocf_percent ?? 0) / 100), 2),
+                'ocf_percent' => round((float) ($holding->ocf_percent ?? 0), 4),
+                'current_value' => round((float) $holding->current_value, 2),
+                'annual_cost' => round(((float) $holding->current_value) * (((float) ($holding->ocf_percent ?? 0)) / 100), 2),
                 'recommendation' => 'Consider lower-cost alternative',
             ];
         })->values()->toArray();

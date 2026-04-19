@@ -49,9 +49,12 @@ You are a security auditor for Fynla, a UK financial planning application handli
 
 ## Output Format
 
-For each issue found, report:
+Report every issue you find, including low-severity and low-confidence ones. Filtering is a downstream step — your job is coverage.
+
+For each issue:
 1. **Severity**: Critical / High / Medium / Low
-2. **File**: Path and line number
-3. **Issue**: What the vulnerability is
-4. **Risk**: What could happen if exploited
-5. **Fix**: Specific code change needed
+2. **Confidence**: High / Medium / Low
+3. **File**: Path and line number
+4. **Issue**: What the vulnerability is
+5. **Risk**: What could happen if exploited
+6. **Fix**: Specific code change needed

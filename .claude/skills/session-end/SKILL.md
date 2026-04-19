@@ -60,7 +60,7 @@ git add <specific-files>
 git commit -m "$(cat <<'EOF'
 Descriptive commit message here.
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -257,7 +257,7 @@ git add CSJTODO.md ${MONTH_NAME}/${MONTH_NAME}*Updates/*.md
 git commit -m "$(cat <<'EOF'
 docs: session end — CSJTODO handover + update notes
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 git push

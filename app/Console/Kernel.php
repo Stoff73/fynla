@@ -29,6 +29,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
+
+        $schedule->job(new \App\Jobs\PublishScheduledInsightsJob())->everyFiveMinutes();
     }
 
     /**

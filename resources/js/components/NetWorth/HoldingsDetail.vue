@@ -14,19 +14,19 @@
 
     <!-- Content -->
     <div class="content">
-      <Holdings :selected-account-id="null" />
+      <InvestmentHoldings :selected-account-id="null" />
     </div>
   </div>
 </template>
 
 <script>
-import Holdings from '@/components/Investment/Holdings.vue';
+import InvestmentHoldings from '@/components/Investment/InvestmentHoldings.vue';
 
 export default {
   name: 'HoldingsDetail',
 
   components: {
-    Holdings,
+    InvestmentHoldings,
   },
 
   computed: {

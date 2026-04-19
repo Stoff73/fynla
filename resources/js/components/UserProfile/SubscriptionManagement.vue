@@ -309,10 +309,9 @@
             <thead>
               <tr class="border-b border-light-gray">
                 <th class="text-left text-caption font-medium text-neutral-500 pb-3">Date</th>
+                <th class="text-left text-caption font-medium text-neutral-500 pb-3">Invoice</th>
                 <th class="text-left text-caption font-medium text-neutral-500 pb-3">Description</th>
-                <th class="text-left text-caption font-medium text-neutral-500 pb-3">Reference</th>
                 <th class="text-right text-caption font-medium text-neutral-500 pb-3">Amount</th>
-                <th class="text-center text-caption font-medium text-neutral-500 pb-3">Invoice</th>
               </tr>
             </thead>
             <tbody>
@@ -322,23 +321,18 @@
                 class="border-b border-light-gray last:border-0"
               >
                 <td class="py-3 text-body-sm text-horizon-500">{{ formatDate(payment.date) }}</td>
-                <td class="py-3 text-body-sm text-neutral-500">{{ payment.description }}</td>
-                <td class="py-3 text-body-sm text-neutral-500 font-mono">{{ payment.reference }}</td>
-                <td class="py-3 text-body-sm text-horizon-500 text-right">{{ formatCurrencyWithPence(payment.amount / 100) }}</td>
-                <td class="py-3 text-center">
-                  <a
+                <td class="py-3 text-body-sm">
+                  <router-link
                     v-if="payment.has_invoice"
-                    :href="`/api/payment/invoices/${payment.invoice_id}/download`"
-                    target="_blank"
-                    class="inline-flex items-center text-raspberry-500 hover:text-raspberry-700 transition-colors"
-                    title="Download invoice"
+                    :to="`/invoice/${payment.invoice_id}`"
+                    class="text-raspberry-500 hover:text-raspberry-700 transition-colors font-mono"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </a>
-                  <span v-else class="text-neutral-300">—</span>
+                    {{ payment.invoice_number }}
+                  </router-link>
+                  <span v-else class="text-neutral-400">&mdash;</span>
                 </td>
+                <td class="py-3 text-body-sm text-neutral-500">{{ payment.description }}</td>
+                <td class="py-3 text-body-sm text-horizon-500 text-right">{{ formatCurrencyWithPence(payment.amount / 100) }}</td>
               </tr>
             </tbody>
           </table>
@@ -493,7 +487,7 @@ export default {
     const fetchBillingHistory = async () => {
       try {
         const response = await api.get('/payment/billing-history');
-        billingHistory.value = response.data.payments || [];
+        billingHistory.value = response.data.data?.payments || [];
       } catch (err) {
         logger.error('Failed to load billing history', err);
       }

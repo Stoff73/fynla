@@ -15,9 +15,14 @@ use Laravel\Sanctum\Sanctum;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    Carbon::setTestNow(Carbon::create(2025, 6, 15));
     $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create();
     Sanctum::actingAs($this->user);
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 describe('GET /api/estate', function () {

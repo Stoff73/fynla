@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Exceptions\FinancialCalculationException;
 use App\Models\OnboardingProgress;
 use App\Models\User;
 use Carbon\Carbon;
@@ -94,7 +95,7 @@ class OnboardingService
         $user = User::findOrFail($userId);
 
         if (! $user->life_stage) {
-            throw new \Exception('Life stage not set');
+            throw FinancialCalculationException::insufficientData('onboarding', ['life_stage']);
         }
 
         // Process step-specific data to save to actual database tables
@@ -939,7 +940,7 @@ class OnboardingService
         $user = User::findOrFail($userId);
 
         if (! $user->life_stage) {
-            throw new \Exception('Life stage not set');
+            throw FinancialCalculationException::insufficientData('onboarding', ['life_stage']);
         }
 
         // Create or update progress record
@@ -979,7 +980,7 @@ class OnboardingService
         $user = User::findOrFail($userId);
 
         if (! $user->life_stage) {
-            throw new \Exception('Life stage not set');
+            throw FinancialCalculationException::insufficientData('onboarding', ['life_stage']);
         }
 
         $steps = $this->getOnboardingSteps($user->life_stage, $userId);

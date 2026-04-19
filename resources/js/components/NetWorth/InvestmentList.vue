@@ -117,7 +117,7 @@
         <!-- Portfolio Performance (right column) -->
         <div class="chart-column">
           <div class="performance-section module-gradient">
-            <Performance @navigate-to-tab="activePortfolioTab = $event" />
+            <InvestmentPerformance @navigate-to-tab="activePortfolioTab = $event" />
           </div>
         </div>
       </div>
@@ -159,12 +159,12 @@
         </div>
 
         <div class="features-content">
-          <Holdings
+          <InvestmentHoldings
             v-if="activePortfolioTab === 'holdings'"
             :selected-account-id="null"
           />
 
-          <Performance v-else-if="activePortfolioTab === 'performance'" />
+          <InvestmentPerformance v-else-if="activePortfolioTab === 'performance'" />
 
           <div v-else-if="activePortfolioTab === 'optimization'" class="coming-soon-wrapper">
             <div class="coming-soon-banner">
@@ -224,8 +224,8 @@ import { mapState, mapGetters, mapActions } from 'vuex';
 import InvestmentProjections from './InvestmentProjections.vue';
 import AccountForm from '@/components/Investment/AccountForm.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
-import Holdings from '@/components/Investment/Holdings.vue';
-import Performance from '@/components/Investment/Performance.vue';
+import InvestmentHoldings from '@/components/Investment/InvestmentHoldings.vue';
+import InvestmentPerformance from '@/components/Investment/InvestmentPerformance.vue';
 import PortfolioOptimization from '@/components/Investment/PortfolioOptimization.vue';
 import AssetLocationOptimizer from '@/components/Investment/AssetLocationOptimizer.vue';
 import WrapperOptimizer from '@/components/Investment/WrapperOptimizer.vue';
@@ -246,8 +246,8 @@ export default {
     InvestmentProjections,
     AccountForm,
     DocumentUploadModal,
-    Holdings,
-    Performance,
+    InvestmentHoldings,
+    InvestmentPerformance,
     PortfolioOptimization,
     AssetLocationOptimizer,
     WrapperOptimizer,

@@ -7,6 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    {{-- Insight articles push per-article SEO meta tags FIRST so the browser's
+         first-<title>-wins rule picks up their title/description. When the stack
+         is empty (any non-insight page), the static tags below take over. --}}
+    @stack('head')
+
     <title>Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments</title>
     <meta name="description" content="Fynla helps you plan savings, investments, retirement, and estate with confidence. One platform for your complete financial picture, powered by our proprietary Fynla Brain.">
 

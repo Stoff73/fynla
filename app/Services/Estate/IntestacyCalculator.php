@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Exceptions\FinancialCalculationException;
 use App\Models\FamilyMember;
 use App\Models\User;
 
@@ -19,7 +20,7 @@ class IntestacyCalculator
         $user = User::find($userId);
 
         if (! $user) {
-            throw new \Exception('User not found');
+            throw FinancialCalculationException::missingData('user', ['user_id' => $userId]);
         }
 
         // Check if married - either by spouse_id OR by having a spouse in family_members

@@ -144,6 +144,8 @@ class WebhookController extends Controller
                     'plan' => $planSlug,
                     'billing_cycle' => $billingCycle,
                     'amount' => $subscriptionPlan ? $subscriptionPlan->getPriceForCycle($billingCycle) : $payment->amount,
+                    'auto_renew' => true,
+                    'payment_method_saved' => true,
                     'current_period_start' => now(),
                     'current_period_end' => $periodEnd,
                     'revolut_order_id' => $orderId,

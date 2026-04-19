@@ -82,5 +82,6 @@ class Kernel extends HttpKernel
         'advisor' => \App\Http\Middleware\AdvisorMiddleware::class,
         'advisor.impersonate' => \App\Http\Middleware\AdvisorImpersonationMiddleware::class,
         'feature' => \App\Http\Middleware\CheckFeatureAccess::class,
+        'insights.seo' => \App\Http\Middleware\InsightsSeoMetaInjector::class,
     ];
 }

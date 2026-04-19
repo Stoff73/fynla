@@ -6,20 +6,22 @@ This file supplements the root `CLAUDE.md` with testing-specific patterns.
 
 ```
 tests/
-  Unit/           102 tests - Isolated service/agent/model tests
+  Unit/           123 test files - Isolated service/agent/model tests
     Agents/       Agent orchestration tests
     Models/       Model domain logic
     Services/     Service calculations (organised by module)
-  Feature/        63 tests - API endpoint integration tests
+  Feature/        77 test files - API endpoint integration tests
     Api/          General API tests
     Auth/         Authentication flow
     Estate/       Estate module endpoints
     Protection/   Protection module endpoints
     Savings/      Savings module endpoints
     Security/     Security-specific tests
-  Architecture/   7 tests - Code standards enforcement
-  Integration/    3 tests - Multi-step workflow tests
+  Architecture/   8 test files - Code standards enforcement
+  Integration/    3 test files - Multi-step workflow tests
 ```
+
+Total suite: 1,600+ individual `it()` cases.
 
 ## Pest Syntax (Preferred)
 
@@ -111,7 +113,7 @@ arch('controllers do not use DB facade directly')
 
 ## Factories
 
-55 factories in `database/factories/` with state methods:
+64 factories in `database/factories/` with state methods:
 ```php
 // Basic usage
 $user = User::factory()->create();

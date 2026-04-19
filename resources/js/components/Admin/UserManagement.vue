@@ -310,7 +310,7 @@ export default {
       successMessage: null,
       searchQuery: '',
       currentPage: 1,
-      perPage: 15,
+      perPage: 50,
       totalUsers: 0,
       totalPages: 0,
       totalAdmins: 0,
@@ -343,11 +343,15 @@ export default {
       this.error = null;
 
       try {
-        const response = await adminService.getUsers({
+        const params = {
           page: this.currentPage,
           per_page: this.perPage,
           search: this.searchQuery,
-        });
+        };
+        if (this.statusFilter) {
+          params.status = this.statusFilter;
+        }
+        const response = await adminService.getUsers(params);
 
         if (response.data.success) {
           this.users = response.data.data.data;
