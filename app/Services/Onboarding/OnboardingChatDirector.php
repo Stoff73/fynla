@@ -1061,54 +1061,80 @@ PROMPT;
                 persistUserMessage: false, // already saved at top of handleUserMessage
             );
 
-            // FR-M14 — selective content-event filter. Swallow content
-            // events that either (a) contain a question mark (the LLM
-            // has gone off-script and is asking about property/mortgages/
-            // etc. despite the tightened prompt) or (b) arrive in a turn
-            // where zero tool calls were made (empty turn — the director
-            // will advance to add_more below anyway, and the LLM's
-            // acknowledgment text would only confuse the user). Single-
-            // sentence confirmations alongside tool calls (the "Got it —
-            // recording those now." case) are preserved.
+            // FR-M14 — buffered sentence-level content filter.
+            //
+            // The delegated generator streams content as token-sized deltas
+            // (see HasAiChat::chat()), so a per-event sentence split would
+            // fire keyword/question checks on partial words. Instead we
+            // accumulate every content delta into $contentBuffer for the
+            // whole turn, then flush through filterOffScriptContent() just
+            // before forwarding the generator's `done` marker. Tool events
+            // stream in real time so the UI can show tool status as it
+            // happens; only the LLM's prose is held back. Zero-tool-call
+            // turns drop the buffer entirely — the director's subsequent
+            // add_more turn gives the user a clear next step and any LLM
+            // prose in that case is almost always off-script.
             $toolCallsSeen = 0;
-            $pendingContent = [];
+            $contentBuffer = '';
+            $flushed = false;
+
+            $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection) {
+                $flushed = true;
+                if ($toolCallsSeen === 0 || $contentBuffer === '') {
+                    $contentBuffer = '';
+
+                    return null;
+                }
+                $cleaned = $this->filterOffScriptContent($contentBuffer, $selection);
+                $contentBuffer = '';
+                if ($cleaned === '') {
+                    return null;
+                }
+
+                return ['type' => 'content', 'text' => $cleaned];
+            };
+
             foreach ($generator as $event) {
                 $type = $event['type'] ?? '';
 
+                if ($type === 'content') {
+                    $contentBuffer .= (string) ($event['text'] ?? '');
+
+                    continue;
+                }
+
                 if ($type === 'tool_use' || $type === 'tool_success') {
                     $toolCallsSeen++;
-                    // Flush any queued pre-tool content now that we know
-                    // at least one tool call happened this turn.
-                    foreach ($pendingContent as $queued) {
-                        yield $queued;
-                    }
-                    $pendingContent = [];
                     yield $event;
 
                     continue;
                 }
 
-                if ($type === 'content') {
-                    $text = (string) ($event['text'] ?? '');
-                    if (str_contains($text, '?')) {
-                        // Off-script question — drop it outright.
-                        continue;
+                if ($type === 'done') {
+                    // Flush the buffered content just before the delegated
+                    // stream's terminal marker so the frontend sees ack
+                    // text immediately before the done event it uses to
+                    // close out the assistant message.
+                    $flushEvent = $flushBuffer();
+                    if ($flushEvent !== null) {
+                        yield $flushEvent;
                     }
-                    if ($toolCallsSeen === 0) {
-                        // No tool calls yet — queue and decide at the end
-                        // of the turn. If tool calls follow, flush the
-                        // queue; if not, drop it.
-                        $pendingContent[] = $event;
-
-                        continue;
-                    }
-                    // Legitimate post-tool confirmation.
                     yield $event;
 
                     continue;
                 }
 
                 yield $event;
+            }
+
+            // Safety net — generator exited without emitting `done` (e.g.
+            // the model responded but the harness dropped the marker).
+            // Without this, a successful tool-call turn would lose its ack.
+            if (! $flushed) {
+                $flushEvent = $flushBuffer();
+                if ($flushEvent !== null) {
+                    yield $flushEvent;
+                }
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -1147,6 +1173,61 @@ PROMPT;
         if ($nextState !== null) {
             yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_ADD_MORE, $nextState);
         }
+    }
+
+    /**
+     * FR-M14 — strip off-script sentences from an asset_capture content
+     * event. Splits the text on sentence terminators (`.`, `!`, `?`, newline)
+     * and drops any sentence that poses a question (with or without a `?`
+     * — any `?` in the sentence is disqualifying) or mentions a topic
+     * outside the current selection's scope. Protection and estate
+     * selections are permissive because their tool lists legitimately
+     * reference income / property / mortgage concepts; every other
+     * selection (family, savings, investment, retirement, business,
+     * goals, budgeting) is strict.
+     *
+     * Returns the rejoined surviving sentences, or '' when nothing
+     * survived the filter.
+     */
+    private function filterOffScriptContent(string $text, string $selection): string
+    {
+        if ($text === '') {
+            return '';
+        }
+
+        $allowOffScriptTerms = in_array($selection, ['protection', 'estate'], true);
+
+        // Split after sentence-ending punctuation or newlines so each
+        // chunk is a self-contained sentence. Empty chunks (e.g. blank
+        // paragraph separators) are trimmed below.
+        $chunks = preg_split('/(?<=[.!?\n])/u', $text);
+        if ($chunks === false) {
+            return $text;
+        }
+
+        $kept = [];
+        foreach ($chunks as $chunk) {
+            $trimmed = trim($chunk);
+            if ($trimmed === '') {
+                continue;
+            }
+
+            // Questions are never legitimate on an asset_capture turn.
+            if (str_contains($trimmed, '?')) {
+                continue;
+            }
+
+            if (! $allowOffScriptTerms && preg_match(
+                '/\b(propert(?:y|ies)|mortgages?|rents?|incomes?|homes?|address(?:es)?|ownership|valuations?)\b/i',
+                $trimmed
+            ) === 1) {
+                continue;
+            }
+
+            $kept[] = $trimmed;
+        }
+
+        return implode(' ', $kept);
     }
 
     // ─── Terminal state ───────────────────────────────────────────────────

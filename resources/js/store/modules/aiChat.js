@@ -427,7 +427,14 @@ const actions = {
                                 break;
 
                             case 'done':
-                                // Finalise assistant message
+                                // Finalise assistant message and clear the live
+                                // stream buffer so the next event does not
+                                // re-commit the same text. The quick_replies
+                                // branch above also flushes streamingText as a
+                                // fallback — without this clear, a normal
+                                // assistant turn followed by a director-emitted
+                                // quick_replies (e.g. asset_capture → add_more)
+                                // would commit the same message twice.
                                 if (state.streamingText) {
                                     commit('ADD_MESSAGE', {
                                         id: event.message_id || 'msg_' + Date.now(),
@@ -435,6 +442,7 @@ const actions = {
                                         content: state.streamingText,
                                         created_at: new Date().toISOString(),
                                     });
+                                    commit('SET_STREAMING_TEXT', '');
                                 }
                                 break;
                         }
