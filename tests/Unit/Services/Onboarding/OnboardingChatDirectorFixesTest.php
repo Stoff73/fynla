@@ -48,9 +48,9 @@ function invokeCaptureWorkDetails(User $user, array $input): array
 describe('Fix §1: add_more persists the new selection', function () {
     it('writes onboarding_fyn_selection when user picks a focus on add_more', function () {
         $user = User::factory()->create([
-            'onboarding_fyn_selection' => 'family',
+            'onboarding_fyn_selection' => 'protection',
             'onboarding_fyn_step' => OnboardingStateMachine::STATE_ADD_MORE,
-            'onboarding_fyn_context' => ['visited_focuses' => ['family']],
+            'onboarding_fyn_context' => ['visited_focuses' => ['protection']],
         ]);
 
         invokePersistCapture($user, OnboardingStateMachine::STATE_ADD_MORE, 'savings');
@@ -58,13 +58,13 @@ describe('Fix §1: add_more persists the new selection', function () {
         $user->refresh();
         expect($user->onboarding_fyn_selection)->toBe('savings')
             ->and($user->onboarding_fyn_context['visited_focuses'])
-                ->toContain('family')->toContain('savings');
+                ->toContain('protection')->toContain('savings');
     });
 
     it('does not overwrite selection when user picks "done"', function () {
         $user = User::factory()->create([
             'onboarding_fyn_selection' => 'savings',
-            'onboarding_fyn_context' => ['visited_focuses' => ['family', 'savings']],
+            'onboarding_fyn_context' => ['visited_focuses' => ['protection', 'savings']],
         ]);
 
         invokePersistCapture($user, OnboardingStateMachine::STATE_ADD_MORE, 'done');
@@ -77,15 +77,15 @@ describe('Fix §1: add_more persists the new selection', function () {
 
     it('does not duplicate an already-visited focus', function () {
         $user = User::factory()->create([
-            'onboarding_fyn_selection' => 'family',
-            'onboarding_fyn_context' => ['visited_focuses' => ['family', 'savings']],
+            'onboarding_fyn_selection' => 'protection',
+            'onboarding_fyn_context' => ['visited_focuses' => ['protection', 'savings']],
         ]);
 
         invokePersistCapture($user, OnboardingStateMachine::STATE_ADD_MORE, 'savings');
 
         $user->refresh();
         $visited = $user->onboarding_fyn_context['visited_focuses'];
-        expect($visited)->toBe(['family', 'savings']); // no dupes appended
+        expect($visited)->toBe(['protection', 'savings']); // no dupes appended
     });
 });
 

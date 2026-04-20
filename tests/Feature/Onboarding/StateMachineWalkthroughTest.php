@@ -91,7 +91,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
             ->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL)
-            ->and($this->user->onboarding_fyn_selection)->toBe('family');
+            ->and($this->user->onboarding_fyn_selection)->toBe('protection');
 
         // Step 4 — simulate grouped_extract (base_personal). Single route
         // takes us past base_spouse straight to base_dependants.
@@ -138,7 +138,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
 
         // Step 9 — simulate asset_capture delegation advancing to add_more
         jumpTo($this->user->id, OnboardingStateMachine::STATE_ADD_MORE, [
-            'onboarding_fyn_context' => json_encode(['visited_focuses' => ['family']]),
+            'onboarding_fyn_context' => json_encode(['visited_focuses' => ['protection']]),
         ]);
 
         // Step 10 — add_more bubble: "I'm done" → STATE_DONE (terminal)
@@ -159,7 +159,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
 
         jumpTo($this->user->id, OnboardingStateMachine::STATE_BASE_EMPLOYMENT, [
             'onboarding_fyn_path' => 'journey',
-            'onboarding_fyn_selection' => 'family',
+            'onboarding_fyn_selection' => 'protection',
             'date_of_birth' => '1955-01-15',
             'marital_status' => 'single',
         ]);
@@ -182,8 +182,8 @@ describe('state-machine walkthrough — path_choice → done', function () {
 
         jumpTo($this->user->id, OnboardingStateMachine::STATE_ADD_MORE, [
             'onboarding_fyn_path' => 'journey',
-            'onboarding_fyn_selection' => 'family',
-            'onboarding_fyn_context' => json_encode(['visited_focuses' => ['family']]),
+            'onboarding_fyn_selection' => 'protection',
+            'onboarding_fyn_context' => json_encode(['visited_focuses' => ['protection']]),
         ]);
 
         sendOnboardingMessage($this, $this->user, $conversation->id, 'Savings');

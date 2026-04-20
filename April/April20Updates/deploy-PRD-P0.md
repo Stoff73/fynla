@@ -1,34 +1,35 @@
 ---
 tags: [deploy, onboardingFyn, PRD, P0]
 date: 2026-04-20
-session: 2
+session: 4
 status: ready-for-dev
 ---
 
-# Deploy guide — PRD FR-M9 through FR-M15 (all P0)
+# Deploy guide — PRD FR-M9 through FR-M15 (all P0) + FR-M14 follow-up
 
-**Branch:** `onboardingFyn` (HEAD `22a8dbe`)
+**Branch:** `onboardingFyn` (HEAD `fd3ff44`)
 **Source PRD:** `April/April20Updates/PRD-fyn-driven-onboarding.md`
 **Target dev:** `csjones.co/fynla` (Laravel app at `~/www/csjones.co/fynla-app/`, sibling-dir layout)
 **Target prod:** `fynla.org` — NOT YET. Dev needs browser verification first, then dev → main PR.
 
-> **IMPORTANT — dev server branch awareness.** csjones.co/fynla is already running `onboardingFyn` (per CSJTODO session 1). Uploading this build OVERWRITES commit `88018a5` with commit `22a8dbe`. That is the intended behaviour for this deploy.
+> **IMPORTANT — dev server branch awareness.** csjones.co/fynla is already running `onboardingFyn` (per CSJTODO session 1, commit `88018a5`). Uploading this build OVERWRITES that with commit `fd3ff44`. That is the intended behaviour for this deploy.
 
 ## What ships
 
-7 Must-have items from the PRD — all tested, all P0.
+7 Must-have items from the PRD plus the FR-M14 follow-up that closes the Test 6 regression from session 3.
 
 | Item | Summary |
 |------|---------|
 | FR-M9 (C1) | `api/ai-chat/onboarding` added to `PreviewWriteInterceptor::EXCLUDED_ROUTES` |
-| FR-M10 (G2) | Hybrid `base_personal` prompt — pre-confirms the already-captured field |
+| FR-M10 (G2) | Hybrid `base_personal` prompt + session-3 schema fix (`capture_personal_details` accepts partials) |
 | FR-M11 (G1) | Feature tests (endpoint branches + state-machine walkthrough + multi-entity) |
 | FR-M12 (F1) | `handleSetExpenditure` writes `ExpenditureProfile.total_monthly_expenditure` |
 | FR-M13 (F2) | `SpouseCollisionException` + `emitTerminalError` + `onboarding_capture_error` SSE |
-| FR-M14 (F3) | Asset-capture off-script guardrail (prompt + content filter) |
+| FR-M14 (F3) | Asset-capture off-script guardrail — prompt tighten + **buffered sentence-level filter** (session 4) |
+| FR-M14 companion | Frontend `streamingText` clear on `done` stops duplicate assistant message on `quick_replies` flush (session 4) |
 | FR-M15 (F5) | `TrustObserver::created` moves CLT auto-creation out of `handleCreateTrust` |
 
-34 new tests, 0 regressions. Full regression run: 244 passing.
+41 new tests, 0 regressions. Full regression run: 163 passing on `tests/Unit/Services/Onboarding/` + `tests/Feature/Onboarding/`.
 
 ## Files to upload
 
@@ -44,8 +45,9 @@ app/Exceptions/SpouseCollisionException.php          (NEW)
 app/Http/Middleware/PreviewWriteInterceptor.php
 app/Observers/TrustObserver.php                      (NEW)
 app/Providers/EventServiceProvider.php
-app/Services/Onboarding/OnboardingChatDirector.php
-app/Services/Onboarding/OnboardingPromptBuilder.php
+app/Services/AI/AiToolDefinitions.php                (NEW in session 3 — schema tighten for FR-M10)
+app/Services/Onboarding/OnboardingChatDirector.php   (tightened in session 4 — buffered filter)
+app/Services/Onboarding/OnboardingPromptBuilder.php  (tightened in session 4 — question-mark-free guardrail)
 app/Services/Onboarding/OnboardingStateMachine.php
 app/Services/Onboarding/SpouseLinkingService.php
 app/Traits/HasAiChat.php
@@ -61,14 +63,30 @@ tests/Feature/Onboarding/StartOnboardingEndpointTest.php       (NEW)
 tests/Feature/Onboarding/StateMachineWalkthroughTest.php       (NEW)
 tests/Unit/Agents/CoordinatingAgentHandleSetExpenditureTest.php (NEW)
 tests/Unit/Observers/TrustObserverTest.php                     (NEW)
-tests/Unit/Services/Onboarding/AssetCaptureOffScriptFilterTest.php (NEW)
+tests/Unit/Services/Onboarding/AssetCaptureOffScriptFilterTest.php (NEW — 13 tests incl. 7 session-4 additions)
 tests/Unit/Services/Onboarding/OnboardingStateMachineTest.php
 tests/Unit/Services/Onboarding/SpouseCollisionTest.php         (NEW)
 ```
 
-### Frontend
+### Frontend — Vite rebuild REQUIRED (session 4)
 
-**No frontend changes.** No Vite rebuild needed. No `public/build/` upload.
+Session 4's FR-M14 companion fix touched `resources/js/store/modules/aiChat.js`. This requires a full Vite rebuild for `csjones.co/fynla` before deploy.
+
+Local build command:
+
+```bash
+./deploy/csjones-fynla/build.sh
+```
+
+This produces `public/build/` with the correct `VITE_BASE_PATH=/fynla/build/` and `VITE_ROUTER_BASE=/fynla/`.
+
+Upload the entire `public/build/` directory to `~/www/csjones.co/fynla-app/public/build/`, overwriting the existing assets. Also double-check that `public/build/index.html` and the hashed asset filenames match what the `build.sh` output reported — mismatched hashes = blank page.
+
+**Source file changed:**
+
+```
+resources/js/store/modules/aiChat.js
+```
 
 ### Migrations / config / routes
 
@@ -107,7 +125,7 @@ All journeys must be tested in the browser on `https://csjones.co/fynla`. Per `c
 
 ### Test 3 — FR-M11 state-machine walkthrough (happy path)
 1. Fresh user, journey=Protecting and growing, marital=married.
-2. Walk base_personal → base_spouse → base_dependants ("No") → base_employment ("Employed") → base_work (employer/role/income) → base_expenditure (£4000) → asset_capture (family, then Savings) → add_more → "I'm done" → `/net-worth/cash`.
+2. Walk base_personal → base_spouse → base_dependants ("No") → base_employment ("Employed") → base_work (employer/role/income) → base_expenditure (£4000) → asset_capture (**protection**, then Savings) → add_more → "I'm done" → `/net-worth/cash`. **Protection asset_capture is the end of the journey** (was `family` pre-session-4 remap).
 3. Verify each transition in the chat UI.
 
 ### Test 4 — FR-M12 post-onboarding expenditure sync
@@ -122,10 +140,17 @@ All journeys must be tested in the browser on `https://csjones.co/fynla`. Per `c
 3. Fyn emits: *"That email's already registered with another Fynla household. Want to use a different address for your partner, or ask them to link their own account?"* (no generic retry).
 4. State stays on base_spouse — next reply with a different email succeeds.
 
-### Test 6 — FR-M14 off-script suppression (family focus)
-1. Reach asset_capture with selection=family.
-2. Type "My mum is 72".
-3. Fyn records the family member via `create_family_member`. Output does NOT contain property/mortgage/rent/income questions. No `?` in Fyn's acknowledgment (it should be a statement or nothing — director may even suppress all content this turn).
+### Test 6 — FR-M14 off-script suppression (savings focus)
+1. Complete the Protecting-and-growing journey through base_expenditure, then on `add_more` pick **Savings** (or register fresh and pick **Pick a focus** → Savings, which reaches asset_capture(savings) the same way).
+2. Type "I have a savings account with £1000". (Chosen to tempt the LLM into follow-ups about property, mortgage, home, etc.)
+3. Fyn records the savings account via `create_savings_account`. The rendered acknowledgment must NOT contain any of: `property`, `mortgage`, `mortgages`, `rent`, `income`, `home`, `homes`, `address`, `addresses`, `ownership`, `valuation` (case-insensitive word match). No `?` anywhere in the visible acknowledgment. An empty acknowledgment is also acceptable — the director's next turn emits the `add_more` prompt either way.
+
+> Note: session 4 remapped `Protecting and growing` from `selection=family` to `selection=protection` and removed the `family` asset_capture focus entirely, so the original Test 6 setup (`selection=family` + "My mum is 72") is no longer reachable. The off-script filter is now exercised against savings (or any non-protection/estate selection).
+
+### Test 6b — FR-M14 companion (no duplicate assistant message)
+1. At asset_capture for ANY selection (savings is convenient), submit one valid item ("I have a Nationwide cash ISA with £5000").
+2. Fyn emits exactly ONE assistant bubble between the user message and the `add_more` "Anything else you'd like to cover?" prompt. The bubble should not render the same acknowledgment twice in a row.
+3. Corroborate by querying the conversation: `php artisan tinker --execute="\$conv = \App\Models\AiConversation::where('user_id', <id>)->latest('id')->first(); echo \$conv->messages()->where('role','assistant')->orderBy('id','desc')->take(3)->pluck('content');"` — there must NOT be two consecutive assistant rows with identical content.
 
 ### Test 7 — FR-M15 Trust CLT orphan prevention
 1. Completed user, Fyn chat. Type "Add a discretionary trust called Test Trust, initial value £100,000".
@@ -144,12 +169,12 @@ If any smoke test fails:
 cd ~/www/csjones.co/fynla-app
 git fetch origin
 git reset --hard 88018a5   # previous known-good commit
-# Then re-upload public/build/ from the 88018a5 local build if Vite assets drifted.
-# This deploy ships no frontend changes, so no Vite rebuild is needed for rollback either.
+# This deploy ships a Vite rebuild (aiChat.js changed in session 4), so also
+# re-upload the pre-88018a5 public/build/ bundle to avoid mismatched assets.
 php artisan cache:clear && php artisan optimize
 ```
 
-Or simply re-upload the pre-`22a8dbe` versions of the 10 PHP files from local. There are no schema changes to undo.
+Or re-upload the pre-`22a8dbe` versions of the 11 PHP files PLUS the pre-`fd3ff44` `public/build/` assets. There are no schema changes to undo.
 
 ## What's NOT in this deploy
 
@@ -160,9 +185,11 @@ Or simply re-upload the pre-`22a8dbe` versions of the 10 PHP files from local. T
 
 ## Sign-off checklist
 
-- [ ] 10 PHP files uploaded to `~/www/csjones.co/fynla-app/`
+- [ ] `./deploy/csjones-fynla/build.sh` run locally (session 4 adds a Vite rebuild requirement)
+- [ ] 11 PHP files uploaded to `~/www/csjones.co/fynla-app/`
+- [ ] `public/build/` uploaded to `~/www/csjones.co/fynla-app/public/build/` (overwrite existing assets)
 - [ ] SSH cache/config/view/route clears + `optimize` run
 - [ ] `php artisan db:seed --force` run
-- [ ] Smoke tests 1–7 all pass
+- [ ] Smoke tests 1, 2, 3, 4, 5, 6, 6b, 7 all pass on `https://csjones.co/fynla`
 - [ ] Laravel log (`storage/logs/laravel.log`) checked for errors from this session
 - [ ] CSJ notified with results

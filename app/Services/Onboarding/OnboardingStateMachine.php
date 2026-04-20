@@ -98,12 +98,12 @@ final class OnboardingStateMachine
                         'description' => 'Save, invest, and grow your wealth with confidence.',
                     ],
                     [
-                        'id' => 'family',
+                        'id' => 'protection',
                         'label' => 'Protecting and growing',
                         'description' => 'Ensure your family and assets are fully covered.',
                     ],
                     [
-                        'id' => 'business',
+                        'id' => 'retirement',
                         'label' => 'Planning your future',
                         'description' => 'Retirement projections, pension tracking, and estate planning.',
                     ],
@@ -500,7 +500,6 @@ final class OnboardingStateMachine
             'retirement' => "Time to map your pensions, {$firstName}. Walk me through any you have — workplace pensions, personal pensions, Self-Invested Personal Pensions, or Defined Benefit schemes. For each one I need the provider or scheme name, and either the current fund value (for Defined Contribution) or the projected annual income (for Defined Benefit).",
             'protection' => "Let's look at your existing protection cover, {$firstName}. Tell me about any life insurance, critical illness cover, or income protection policies — the type, the provider, and the cover amount. If you don't have any yet, just say so and we'll come back to this once we've looked at the gaps.",
             'estate' => "Right, let's build up your estate picture, {$firstName}. Start with any property you own — address, type (main residence, second home, or buy-to-let), and rough current value. You can also mention valuables, gifts you've made in the last seven years, or business interests in the same message.",
-            'family' => "Let me know about the rest of your family, {$firstName}. Parents, adult children, or anyone else I should factor into your protection and estate planning — their first names, ages, and how they're related to you. List as many as you like in one go.",
             'business' => "Tell me about your business interests, {$firstName}. For each one I need the trading name, the entity type (sole trader, partnership, or limited company), your ownership percentage, and a rough current valuation. List as many as you own.",
             'goals' => "What are you working towards, {$firstName}? A house deposit, early retirement, school fees, a dream holiday — tell me about your financial goals. For each one: a short name, a rough target amount, and when you'd like to hit it by.",
             'budgeting' => "Let's look at your monthly budget, {$firstName}. Share the headline spending categories — housing, bills, food, transport, entertainment — with rough monthly figures. I'll use them to work out your realistic savings capacity.",
