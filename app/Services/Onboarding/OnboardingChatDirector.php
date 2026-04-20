@@ -7,6 +7,7 @@ namespace App\Services\Onboarding;
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
@@ -436,6 +437,28 @@ final class OnboardingChatDirector
             return;
         }
 
+        // add_more: capture_field is null, but the bubble id drives the next
+        // asset_capture turn. Without this branch the user's new focus pick
+        // (e.g. "Savings" after completing the family step) is silently
+        // dropped and asset_capture re-runs with the stale journey selection.
+        if ($stateId === OnboardingStateMachine::STATE_ADD_MORE) {
+            $bubbleId = $capturedValue;
+            if (is_string($bubbleId) && $bubbleId !== '' && $bubbleId !== 'done') {
+                $user->onboarding_fyn_selection = $bubbleId;
+
+                $context = $user->onboarding_fyn_context ?? [];
+                $visited = (array) ($context['visited_focuses'] ?? []);
+                if (! in_array($bubbleId, $visited, true)) {
+                    $visited[] = $bubbleId;
+                }
+                $context['visited_focuses'] = $visited;
+                $user->onboarding_fyn_context = $context;
+                $user->save();
+            }
+
+            return;
+        }
+
         if ($captureField === null) {
             return;
         }
@@ -461,6 +484,19 @@ final class OnboardingChatDirector
         }
 
         $user->save();
+
+        // Mirror monthly_expenditure into the ExpenditureProfile row so the
+        // dashboard and IHTCalculationService (which both read
+        // total_monthly_expenditure off the profile) pick it up without the
+        // user needing a post-onboarding "my expenses aren't showing" turn.
+        // The user can still break it into categories later via the
+        // expenditure form; this write only populates the total.
+        if ($captureField === 'monthly_expenditure' && is_numeric($capturedValue) && (float) $capturedValue > 0) {
+            ExpenditureProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                ['total_monthly_expenditure' => (float) $capturedValue],
+            );
+        }
     }
 
     /**
@@ -710,6 +746,16 @@ final class OnboardingChatDirector
                     continue;
                 }
 
+                // Swallow conversational text from the delegated model. The
+                // restricted system prompt instructs the model to call the
+                // extraction tool silently, but Grok-4.1 and occasionally
+                // Claude emit chatty text alongside the tool call. Letting
+                // that text through stacks two assistant messages (model
+                // text + director retry) on the user on failed captures.
+                if (($event['type'] ?? '') === 'content') {
+                    continue;
+                }
+
                 yield $event;
             }
         } catch (\Throwable $e) {
@@ -735,6 +781,17 @@ final class OnboardingChatDirector
                 'tool' => $toolName,
             ]);
             yield from $this->emitRetry($conversation, $state, $currentStateId);
+
+            return;
+        }
+
+        // Partial capture — tool handler saved what it could but flagged
+        // missing required fields. Ask only for what's still missing and
+        // stay on the current state so the next user reply re-enters this
+        // same grouped_extract path.
+        $missing = (array) ($captureDetails['missing'] ?? []);
+        if (count($missing) > 0) {
+            yield from $this->emitPartialRetry($conversation, $currentStateId, $toolName, $missing);
 
             return;
         }
@@ -803,6 +860,80 @@ final class OnboardingChatDirector
 
         yield ['type' => 'content', 'text' => $retryText];
         yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Emit a targeted retry listing only the fields the tool handler
+     * reported as still missing. Keeps the user on the current state so
+     * the next reply re-enters the grouped_extract flow, this time
+     * carrying the fields we asked for. Previously-saved fields stay
+     * saved — the tool handler only writes non-empty values.
+     *
+     * @param  list<string>  $missing  field names from the handler
+     */
+    private function emitPartialRetry(
+        AiConversation $conversation,
+        string $currentStateId,
+        string $toolName,
+        array $missing
+    ): \Generator {
+        $retryText = $this->composePartialRetryText($toolName, $missing);
+
+        $message = $this->saveMessage($conversation, 'assistant', $retryText, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_partial_retry' => true,
+                'missing_fields' => $missing,
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $retryText];
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Compose a friendly single-sentence retry naming exactly the fields
+     * we still need. Falls back to the generic retry text on unknown
+     * combinations so we never emit a blank prompt.
+     *
+     * @param  list<string>  $missing
+     */
+    private function composePartialRetryText(string $toolName, array $missing): string
+    {
+        $friendlyMap = match ($toolName) {
+            'capture_work_details' => [
+                'employer' => 'the company or trade name',
+                'occupation' => 'your role or position',
+                'annual_income' => 'your gross annual income in GBP',
+            ],
+            'capture_personal_details' => [
+                'date_of_birth' => 'your date of birth',
+                'marital_status' => 'your marital status',
+            ],
+            'capture_spouse_details' => [
+                'first_name' => 'their first name',
+                'date_of_birth' => 'their date of birth',
+                'email' => 'their email address',
+            ],
+            default => [],
+        };
+
+        $friendly = array_values(array_filter(array_map(
+            fn (string $field): ?string => $friendlyMap[$field] ?? null,
+            $missing
+        )));
+
+        if (count($friendly) === 0) {
+            return "I still need a couple of things to move on — could you share them again?";
+        }
+
+        $list = match (count($friendly)) {
+            1 => $friendly[0],
+            2 => $friendly[0].' and '.$friendly[1],
+            default => implode(', ', array_slice($friendly, 0, -1)).', and '.end($friendly),
+        };
+
+        return 'Thanks — I still need '.$list.'. Could you share '.(count($friendly) === 1 ? 'that' : 'those').'?';
     }
 
     /**
