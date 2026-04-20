@@ -8,8 +8,8 @@
       "type": "text",
       "x": 40,
       "y": 20,
-      "width": 342.0,
-      "height": 42.0,
+      "width": 342,
+      "height": 42,
       "angle": 0,
       "strokeColor": "#E83E6D",
       "backgroundColor": "transparent",
@@ -22,11 +22,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 442384619,
-      "version": 1,
-      "versionNonce": 1927814401,
+      "version": 2,
+      "versionNonce": 69978035,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776679061834,
       "link": null,
       "locked": false,
       "text": "Auth & Session Flow",
@@ -37,7 +37,9 @@
       "baseline": 33,
       "containerId": null,
       "originalText": "Auth & Session Flow",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "a0",
+      "autoResize": true
     },
     {
       "id": "label-subtitle",
@@ -58,30 +60,32 @@
       "frameId": null,
       "roundness": null,
       "seed": 1850670807,
-      "version": 1,
-      "versionNonce": 1472261796,
+      "version": 2,
+      "versionNonce": 2065432829,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776679061834,
       "link": null,
       "locked": false,
-      "text": "Registration \u2192 Verification \u2192 Login \u2192 MFA \u2192 Sanctum token \u2192 Logout",
+      "text": "Registration → Verification → Login → MFA → Sanctum token → Logout",
       "fontSize": 14,
       "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "baseline": 15,
       "containerId": null,
-      "originalText": "Registration \u2192 Verification \u2192 Login \u2192 MFA \u2192 Sanctum token \u2192 Logout",
-      "lineHeight": 1.25
+      "originalText": "Registration → Verification → Login → MFA → Sanctum token → Logout",
+      "lineHeight": 1.25,
+      "index": "a1",
+      "autoResize": true
     },
     {
       "id": "node-landing",
       "type": "rectangle",
       "x": 40,
       "y": 140,
-      "width": 220,
-      "height": 70,
+      "width": 220.38250732421872,
+      "height": 74.97259521484374,
       "angle": 0,
       "strokeColor": "#E83E6D",
       "backgroundColor": "#FCE7EF",
@@ -96,8 +100,8 @@
         "type": 3
       },
       "seed": 724430865,
-      "version": 1,
-      "versionNonce": 387137328,
+      "version": 15,
+      "versionNonce": 1013184061,
       "isDeleted": false,
       "boundElements": [
         {
@@ -105,17 +109,18 @@
           "type": "text"
         }
       ],
-      "updated": 1,
+      "updated": 1776679079400,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "a2"
     },
     {
       "id": "text-landing",
       "type": "text",
-      "x": 48,
-      "y": 163.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 48.33534240722655,
+      "y": 147.48629760742188,
+      "width": 203.71182250976562,
+      "height": 60,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -128,14 +133,14 @@
       "frameId": null,
       "roundness": null,
       "seed": 1479200465,
-      "version": 1,
-      "versionNonce": 1803016605,
+      "version": 16,
+      "versionNonce": 1348740765,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776679079400,
       "link": null,
       "locked": false,
-      "text": "Landing Page\nresources/js/views/LandingPage",
+      "text": "Landing Page\nresources/js/views/Landin\ngPage",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "center",
@@ -143,15 +148,17 @@
       "baseline": 17,
       "containerId": "node-landing",
       "originalText": "Landing Page\nresources/js/views/LandingPage",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "a3",
+      "autoResize": true
     },
     {
       "id": "node-register",
       "type": "rectangle",
-      "x": 40,
-      "y": 240,
-      "width": 220,
-      "height": 70,
+      "x": 30.772216796875,
+      "y": 329.60595703125,
+      "width": 221.530029296875,
+      "height": 75.73760986328122,
       "angle": 0,
       "strokeColor": "#E83E6D",
       "backgroundColor": "#FCE7EF",
@@ -166,8 +173,8 @@
         "type": 3
       },
       "seed": 1383821071,
-      "version": 1,
-      "versionNonce": 402436430,
+      "version": 87,
+      "versionNonce": 1194826835,
       "isDeleted": false,
       "boundElements": [
         {
@@ -179,17 +186,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681674283,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "a4"
     },
     {
       "id": "text-register",
       "type": "text",
-      "x": 48,
-      "y": 263.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 43.12931823730469,
+      "y": 347.4747619628906,
+      "width": 196.81582641601562,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -202,11 +210,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1811418404,
-      "version": 1,
-      "versionNonce": 1208358549,
+      "version": 86,
+      "versionNonce": 1028037107,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674283,
       "link": null,
       "locked": false,
       "text": "Register\nPOST /api/auth/register",
@@ -217,15 +225,17 @@
       "baseline": 17,
       "containerId": "node-register",
       "originalText": "Register\nPOST /api/auth/register",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "a5",
+      "autoResize": true
     },
     {
       "id": "node-login",
       "type": "rectangle",
-      "x": 40,
-      "y": 340,
-      "width": 220,
-      "height": 70,
+      "x": 30.772216796875,
+      "y": 429.60595703125,
+      "width": 220.90838623046875,
+      "height": 76.69366455078124,
       "angle": 0,
       "strokeColor": "#E83E6D",
       "backgroundColor": "#FCE7EF",
@@ -240,8 +250,8 @@
         "type": 3
       },
       "seed": 1238200122,
-      "version": 1,
-      "versionNonce": 1366281601,
+      "version": 89,
+      "versionNonce": 1071965075,
       "isDeleted": false,
       "boundElements": [
         {
@@ -253,17 +263,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681674283,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "a6"
     },
     {
       "id": "text-login",
       "type": "text",
-      "x": 48,
-      "y": 363.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 55.80248260498047,
+      "y": 447.9527893066406,
+      "width": 170.8478546142578,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -276,11 +287,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 824366912,
-      "version": 1,
-      "versionNonce": 1093736107,
+      "version": 88,
+      "versionNonce": 390658355,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674283,
       "link": null,
       "locked": false,
       "text": "Login\nPOST /api/auth/login",
@@ -291,13 +302,15 @@
       "baseline": 17,
       "containerId": "node-login",
       "originalText": "Login\nPOST /api/auth/login",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "a7",
+      "autoResize": true
     },
     {
       "id": "node-AuthController",
       "type": "rectangle",
-      "x": 340,
-      "y": 240,
+      "x": 324.6036376953125,
+      "y": 338.7845153808594,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -314,8 +327,8 @@
         "type": 3
       },
       "seed": 19079799,
-      "version": 1,
-      "versionNonce": 741489872,
+      "version": 395,
+      "versionNonce": 1087986387,
       "isDeleted": false,
       "boundElements": [
         {
@@ -351,17 +364,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681674283,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "a8"
     },
     {
       "id": "text-AuthController",
       "type": "text",
-      "x": 348,
-      "y": 258.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 378.0996856689453,
+      "y": 358.7845153808594,
+      "width": 113.00790405273438,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -374,11 +388,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1844661218,
-      "version": 1,
-      "versionNonce": 258609422,
+      "version": 391,
+      "versionNonce": 1227655283,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674283,
       "link": null,
       "locked": false,
       "text": "AuthController",
@@ -389,13 +403,15 @@
       "baseline": 17,
       "containerId": "node-AuthController",
       "originalText": "AuthController",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "a9",
+      "autoResize": true
     },
     {
       "id": "node-PasswordResetController",
       "type": "rectangle",
-      "x": 340,
-      "y": 520,
+      "x": 319.95111083984375,
+      "y": 575.4486083984375,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -412,8 +428,8 @@
         "type": 3
       },
       "seed": 1640317614,
-      "version": 1,
-      "versionNonce": 1102637292,
+      "version": 230,
+      "versionNonce": 1583864147,
       "isDeleted": false,
       "boundElements": [
         {
@@ -425,17 +441,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aA"
     },
     {
       "id": "text-PasswordResetController",
       "type": "text",
-      "x": 348,
-      "y": 538.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 331.91119384765625,
+      "y": 595.4486083984375,
+      "width": 196.079833984375,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -448,11 +465,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 725862447,
-      "version": 1,
-      "versionNonce": 1122993086,
+      "version": 229,
+      "versionNonce": 1567045363,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "PasswordResetController",
@@ -463,13 +480,15 @@
       "baseline": 17,
       "containerId": "node-PasswordResetController",
       "originalText": "PasswordResetController",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aB",
+      "autoResize": true
     },
     {
       "id": "node-MFAController",
       "type": "rectangle",
-      "x": 340,
-      "y": 420,
+      "x": 319.5361328125,
+      "y": 483.40447998046875,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -486,8 +505,8 @@
         "type": 3
       },
       "seed": 1208264155,
-      "version": 1,
-      "versionNonce": 439494951,
+      "version": 246,
+      "versionNonce": 329668147,
       "isDeleted": false,
       "boundElements": [
         {
@@ -495,25 +514,26 @@
           "type": "text"
         },
         {
-          "id": "arrow-AuthController-to-MFAController",
+          "id": "arrow-MFAController-to-MFAService",
           "type": "arrow"
         },
         {
-          "id": "arrow-MFAController-to-MFAService",
+          "id": "arrow-AuthController-to-MFAController",
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aC"
     },
     {
       "id": "text-MFAController",
       "type": "text",
-      "x": 348,
-      "y": 438.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 375.92017364501953,
+      "y": 503.40447998046875,
+      "width": 107.23191833496094,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -526,11 +546,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 46447578,
-      "version": 1,
-      "versionNonce": 1082660477,
+      "version": 246,
+      "versionNonce": 1669535699,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "MFAController",
@@ -541,13 +561,15 @@
       "baseline": 17,
       "containerId": "node-MFAController",
       "originalText": "MFAController",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aD",
+      "autoResize": true
     },
     {
       "id": "node-SessionController",
       "type": "rectangle",
-      "x": 340,
-      "y": 340,
+      "x": 318.3912353515625,
+      "y": 145.24514770507812,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -564,8 +586,8 @@
         "type": 3
       },
       "seed": 84765690,
-      "version": 1,
-      "versionNonce": 887112082,
+      "version": 174,
+      "versionNonce": 2029364179,
       "isDeleted": false,
       "boundElements": [
         {
@@ -573,25 +595,26 @@
           "type": "text"
         },
         {
-          "id": "arrow-SessionController-to-UserSession",
+          "id": "arrow-SessionController-to-SessionService",
           "type": "arrow"
         },
         {
-          "id": "arrow-SessionController-to-SessionService",
+          "id": "arrow-SessionController-to-UserSession",
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681495948,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aE"
     },
     {
       "id": "text-SessionController",
       "type": "text",
-      "x": 348,
-      "y": 358.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 361.7192916870117,
+      "y": 165.24514770507812,
+      "width": 133.34388732910156,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -604,11 +627,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1523815010,
-      "version": 1,
-      "versionNonce": 1665241886,
+      "version": 174,
+      "versionNonce": 685224307,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681495948,
       "link": null,
       "locked": false,
       "text": "SessionController",
@@ -619,13 +642,15 @@
       "baseline": 17,
       "containerId": "node-SessionController",
       "originalText": "SessionController",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aF",
+      "autoResize": true
     },
     {
       "id": "node-AuthService",
       "type": "rectangle",
-      "x": 620,
-      "y": 240,
+      "x": 608.4295043945312,
+      "y": 312.82690429687506,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -642,17 +667,13 @@
         "type": 3
       },
       "seed": 736210763,
-      "version": 1,
-      "versionNonce": 195401831,
+      "version": 249,
+      "versionNonce": 2055039955,
       "isDeleted": false,
       "boundElements": [
         {
           "id": "text-AuthService",
           "type": "text"
-        },
-        {
-          "id": "arrow-AuthController-to-AuthService",
-          "type": "arrow"
         },
         {
           "id": "arrow-AuthService-to-PendingReg",
@@ -675,17 +696,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681691676,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aG"
     },
     {
       "id": "text-AuthService",
       "type": "text",
-      "x": 628,
-      "y": 258.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 665.7175521850586,
+      "y": 322.82690429687506,
+      "width": 105.42390441894531,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -698,11 +720,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 231683911,
-      "version": 1,
-      "versionNonce": 569660859,
+      "version": 244,
+      "versionNonce": 908491123,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681691676,
       "link": null,
       "locked": false,
       "text": "Auth services\n(Auth/*)",
@@ -713,13 +735,15 @@
       "baseline": 17,
       "containerId": "node-AuthService",
       "originalText": "Auth services\n(Auth/*)",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aH",
+      "autoResize": true
     },
     {
       "id": "node-SessionService",
       "type": "rectangle",
-      "x": 620,
-      "y": 340,
+      "x": 608.6785888671875,
+      "y": 228.39706420898438,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -736,8 +760,8 @@
         "type": 3
       },
       "seed": 1133428634,
-      "version": 1,
-      "versionNonce": 1788674334,
+      "version": 182,
+      "versionNonce": 251254963,
       "isDeleted": false,
       "boundElements": [
         {
@@ -749,15 +773,16 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681740480,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aI"
     },
     {
       "id": "text-SessionService",
       "type": "text",
-      "x": 628,
-      "y": 358.8,
+      "x": 616.6785888671875,
+      "y": 247.1970642089844,
       "width": 204,
       "height": 22.4,
       "angle": 0,
@@ -772,11 +797,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1668556670,
-      "version": 1,
-      "versionNonce": 1593416947,
+      "version": 182,
+      "versionNonce": 1581402707,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681740480,
       "link": null,
       "locked": false,
       "text": "SessionLifecycle (JS)",
@@ -787,13 +812,15 @@
       "baseline": 17,
       "containerId": "node-SessionService",
       "originalText": "SessionLifecycle (JS)",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aJ",
+      "autoResize": true
     },
     {
       "id": "node-MFAService",
       "type": "rectangle",
-      "x": 620,
-      "y": 420,
+      "x": 612.2992553710938,
+      "y": 488.31835937500006,
       "width": 220,
       "height": 60,
       "angle": 0,
@@ -810,8 +837,8 @@
         "type": 3
       },
       "seed": 1211300914,
-      "version": 1,
-      "versionNonce": 44052119,
+      "version": 201,
+      "versionNonce": 1895524947,
       "isDeleted": false,
       "boundElements": [
         {
@@ -819,25 +846,22 @@
           "type": "text"
         },
         {
-          "id": "arrow-MFAController-to-MFAService",
-          "type": "arrow"
-        },
-        {
           "id": "arrow-MFAService-to-User",
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aK"
     },
     {
       "id": "text-MFAService",
       "type": "text",
-      "x": 628,
-      "y": 438.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 646.8993072509766,
+      "y": 508.31835937500006,
+      "width": 150.79989624023438,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -850,11 +874,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 997663056,
-      "version": 1,
-      "versionNonce": 1892120832,
+      "version": 199,
+      "versionNonce": 1499506675,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "text": "MFA/TOTP service",
@@ -865,15 +889,17 @@
       "baseline": 17,
       "containerId": "node-MFAService",
       "originalText": "MFA/TOTP service",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aL",
+      "autoResize": true
     },
     {
       "id": "node-PendingReg",
       "type": "ellipse",
-      "x": 900,
-      "y": 160,
+      "x": 961.9396362304688,
+      "y": 220.42092895507812,
       "width": 220,
-      "height": 50,
+      "height": 71,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "#E4E8F0",
@@ -886,8 +912,8 @@
       "frameId": null,
       "roundness": null,
       "seed": 1905753167,
-      "version": 1,
-      "versionNonce": 610699288,
+      "version": 276,
+      "versionNonce": 208292307,
       "isDeleted": false,
       "boundElements": [
         {
@@ -899,17 +925,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681709692,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aM"
     },
     {
       "id": "text-PendingReg",
       "type": "text",
-      "x": 908,
-      "y": 173.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 1003.5659484664525,
+      "y": 235.81863822295568,
+      "width": 137.1838836669922,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -922,14 +949,14 @@
       "frameId": null,
       "roundness": null,
       "seed": 110677992,
-      "version": 1,
-      "versionNonce": 1101172281,
+      "version": 273,
+      "versionNonce": 1925683059,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681709692,
       "link": null,
       "locked": false,
-      "text": "PendingRegistration",
+      "text": "PendingRegistrati\non",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "center",
@@ -937,15 +964,17 @@
       "baseline": 17,
       "containerId": "node-PendingReg",
       "originalText": "PendingRegistration",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aN",
+      "autoResize": true
     },
     {
       "id": "node-EmailCode",
       "type": "ellipse",
-      "x": 900,
-      "y": 220,
+      "x": 956.4237060546875,
+      "y": 308.3289489746094,
       "width": 220,
-      "height": 50,
+      "height": 71,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "#E4E8F0",
@@ -958,30 +987,27 @@
       "frameId": null,
       "roundness": null,
       "seed": 172432073,
-      "version": 1,
-      "versionNonce": 639887277,
+      "version": 262,
+      "versionNonce": 1082660435,
       "isDeleted": false,
       "boundElements": [
         {
           "id": "text-EmailCode",
           "type": "text"
-        },
-        {
-          "id": "arrow-AuthService-to-EmailCode",
-          "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681702141,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aO"
     },
     {
       "id": "text-EmailCode",
       "type": "text",
-      "x": 908,
-      "y": 233.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 998.1380157271947,
+      "y": 323.7266582424869,
+      "width": 137.0078887939453,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -994,14 +1020,14 @@
       "frameId": null,
       "roundness": null,
       "seed": 431155714,
-      "version": 1,
-      "versionNonce": 1075718084,
+      "version": 259,
+      "versionNonce": 1786237939,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681702141,
       "link": null,
       "locked": false,
-      "text": "EmailVerificationCode",
+      "text": "EmailVerificationC\node",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "center",
@@ -1009,13 +1035,15 @@
       "baseline": 17,
       "containerId": "node-EmailCode",
       "originalText": "EmailVerificationCode",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aP",
+      "autoResize": true
     },
     {
       "id": "node-User",
       "type": "ellipse",
-      "x": 900,
-      "y": 280,
+      "x": 953.4097900390625,
+      "y": 395.18820190429693,
       "width": 220,
       "height": 50,
       "angle": 0,
@@ -1030,8 +1058,8 @@
       "frameId": null,
       "roundness": null,
       "seed": 1497508328,
-      "version": 1,
-      "versionNonce": 1323873299,
+      "version": 289,
+      "versionNonce": 697119123,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1039,25 +1067,26 @@
           "type": "text"
         },
         {
-          "id": "arrow-AuthService-to-User",
+          "id": "arrow-MFAService-to-User",
           "type": "arrow"
         },
         {
-          "id": "arrow-MFAService-to-User",
+          "id": "arrow-AuthService-to-User",
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aQ"
     },
     {
       "id": "text-User",
       "type": "text",
-      "x": 908,
-      "y": 293.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 1045.852058390769,
+      "y": 410.0105323746332,
+      "width": 35.551971435546875,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1070,11 +1099,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1502564732,
-      "version": 1,
-      "versionNonce": 424805605,
+      "version": 288,
+      "versionNonce": 45582131,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "text": "User",
@@ -1085,15 +1114,17 @@
       "baseline": 17,
       "containerId": "node-User",
       "originalText": "User",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aR",
+      "autoResize": true
     },
     {
       "id": "node-UserSession",
       "type": "ellipse",
-      "x": 900,
-      "y": 340,
+      "x": 713.4407958984375,
+      "y": 133.5438690185547,
       "width": 300,
-      "height": 50,
+      "height": 71,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "#E4E8F0",
@@ -1106,17 +1137,13 @@
       "frameId": null,
       "roundness": null,
       "seed": 1052570142,
-      "version": 1,
-      "versionNonce": 399197421,
+      "version": 339,
+      "versionNonce": 1944503507,
       "isDeleted": false,
       "boundElements": [
         {
           "id": "text-UserSession",
           "type": "text"
-        },
-        {
-          "id": "arrow-AuthController-to-UserSession",
-          "type": "arrow"
         },
         {
           "id": "arrow-SessionController-to-UserSession",
@@ -1125,19 +1152,24 @@
         {
           "id": "arrow-MobileAuth-to-UserSession",
           "type": "arrow"
+        },
+        {
+          "id": "arrow-AuthController-to-UserSession",
+          "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681748781,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aS"
     },
     {
       "id": "text-UserSession",
       "type": "text",
-      "x": 908,
-      "y": 353.8,
-      "width": 284,
-      "height": 22.4,
+      "x": 765.7988662448695,
+      "y": 148.94157828643228,
+      "width": 195.15182495117188,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1150,14 +1182,14 @@
       "frameId": null,
       "roundness": null,
       "seed": 84472110,
-      "version": 1,
-      "versionNonce": 1543738110,
+      "version": 337,
+      "versionNonce": 1258074739,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681748781,
       "link": null,
       "locked": false,
-      "text": "UserSession (Sanctum personal_access_tokens)",
+      "text": "UserSession (Sanctum\npersonal_access_tokens)",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "center",
@@ -1165,13 +1197,15 @@
       "baseline": 17,
       "containerId": "node-UserSession",
       "originalText": "UserSession (Sanctum personal_access_tokens)",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aT",
+      "autoResize": true
     },
     {
       "id": "node-LoginAttempt",
       "type": "ellipse",
-      "x": 900,
-      "y": 400,
+      "x": 957.7998657226562,
+      "y": 469.80493164062506,
       "width": 220,
       "height": 50,
       "angle": 0,
@@ -1186,8 +1220,8 @@
       "frameId": null,
       "roundness": null,
       "seed": 1699560229,
-      "version": 1,
-      "versionNonce": 679695477,
+      "version": 203,
+      "versionNonce": 457582803,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1199,17 +1233,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aU"
     },
     {
       "id": "text-LoginAttempt",
       "type": "text",
-      "x": 908,
-      "y": 413.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 1015.698165873679,
+      "y": 484.62726211096134,
+      "width": 104.63990783691406,
+      "height": 20,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1222,11 +1257,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 531008065,
-      "version": 1,
-      "versionNonce": 555781746,
+      "version": 202,
+      "versionNonce": 416257651,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "text": "LoginAttempt",
@@ -1237,15 +1272,17 @@
       "baseline": 17,
       "containerId": "node-LoginAttempt",
       "originalText": "LoginAttempt",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aV",
+      "autoResize": true
     },
     {
       "id": "node-PwReset",
       "type": "ellipse",
-      "x": 900,
-      "y": 460,
+      "x": 892.39794921875,
+      "y": 556.4465942382812,
       "width": 220,
-      "height": 50,
+      "height": 71,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "#E4E8F0",
@@ -1258,8 +1295,8 @@
       "frameId": null,
       "roundness": null,
       "seed": 974865311,
-      "version": 1,
-      "versionNonce": 1376939114,
+      "version": 86,
+      "versionNonce": 1629279667,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1271,17 +1308,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aW"
     },
     {
       "id": "text-PwReset",
       "type": "text",
-      "x": 908,
-      "y": 473.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 933.0562591353978,
+      "y": 571.8443035061589,
+      "width": 139.11988830566406,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1294,14 +1332,14 @@
       "frameId": null,
       "roundness": null,
       "seed": 286761602,
-      "version": 1,
-      "versionNonce": 127815747,
+      "version": 84,
+      "versionNonce": 1291691859,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
-      "text": "PasswordResetSession",
+      "text": "PasswordResetSe\nssion",
       "fontSize": 16,
       "fontFamily": 5,
       "textAlign": "center",
@@ -1309,13 +1347,15 @@
       "baseline": 17,
       "containerId": "node-PwReset",
       "originalText": "PasswordResetSession",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aX",
+      "autoResize": true
     },
     {
       "id": "node-Preview",
       "type": "rectangle",
-      "x": 40,
-      "y": 520,
+      "x": 35.6463623046875,
+      "y": 557.2467041015625,
       "width": 220,
       "height": 90,
       "angle": 0,
@@ -1332,8 +1372,8 @@
         "type": 3
       },
       "seed": 157574186,
-      "version": 1,
-      "versionNonce": 131471178,
+      "version": 236,
+      "versionNonce": 1234609523,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1345,17 +1385,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "aY"
     },
     {
       "id": "text-Preview",
       "type": "text",
-      "x": 48,
-      "y": 553.8,
-      "width": 204,
-      "height": 22.4,
+      "x": 43.910438537597656,
+      "y": 572.2467041015625,
+      "width": 203.4718475341797,
+      "height": 60,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1368,11 +1409,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1734190182,
-      "version": 1,
-      "versionNonce": 535191477,
+      "version": 236,
+      "versionNonce": 1831304979,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "Preview user isolation\nis_preview_user = true\n(PreviewWriteInterceptor)",
@@ -1383,15 +1424,17 @@
       "baseline": 17,
       "containerId": "node-Preview",
       "originalText": "Preview user isolation\nis_preview_user = true\n(PreviewWriteInterceptor)",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aZ",
+      "autoResize": true
     },
     {
       "id": "arrow-register-to-AuthController",
       "type": "arrow",
-      "x": 260,
-      "y": 275.0,
-      "width": 80,
-      "height": -5.0,
+      "x": 258.30224609375006,
+      "y": 368.7001668832463,
+      "width": 60.30139160156244,
+      "height": 0.9263024633622763,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1406,11 +1449,11 @@
         "type": 2
       },
       "seed": 2253114,
-      "version": 1,
-      "versionNonce": 1146152572,
+      "version": 397,
+      "versionNonce": 1219241139,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "points": [
@@ -1419,30 +1462,38 @@
           0
         ],
         [
-          80,
-          -5.0
+          60.30139160156244,
+          -0.9263024633622763
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-register",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5381480282940082,
+          0.5381480282940085
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.4559391754705145,
+          0.45593917547051416
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "aa",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-register-to-AuthController",
       "type": "text",
-      "x": 284.0,
-      "y": 262.5,
+      "x": 275.91973876953125,
+      "y": 338.335693359375,
       "width": 32,
       "height": 20,
       "angle": 0,
@@ -1457,11 +1508,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1172590897,
-      "version": 1,
-      "versionNonce": 149192051,
+      "version": 157,
+      "versionNonce": 1137382995,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "POST",
@@ -1472,15 +1523,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "POST",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "ab",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthController-to-AuthService",
       "type": "arrow",
-      "x": 560,
-      "y": 270.0,
-      "width": 60,
-      "height": 0.0,
+      "x": 550.6036376953125,
+      "y": 355.31116233222826,
+      "width": 50.20013427734375,
+      "height": 5.834428365836686,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1495,11 +1548,11 @@
         "type": 2
       },
       "seed": 1994186554,
-      "version": 1,
-      "versionNonce": 808999739,
+      "version": 547,
+      "versionNonce": 224056307,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "points": [
@@ -1508,30 +1561,31 @@
           0
         ],
         [
-          60,
-          0.0
+          50.20013427734375,
+          -5.834428365836686
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0.5001
+        ]
       },
-      "endBinding": {
-        "elementId": "node-AuthService",
-        "focus": 0,
-        "gap": 4
-      },
+      "endBinding": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ac",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthController-to-AuthService",
       "type": "text",
-      "x": 558.0,
-      "y": 260.0,
+      "x": 540.9786987304688,
+      "y": 324.07421875,
       "width": 64,
       "height": 20,
       "angle": 0,
@@ -1546,11 +1600,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 637195605,
-      "version": 1,
-      "versionNonce": 833634384,
+      "version": 186,
+      "versionNonce": 895606163,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "register",
@@ -1561,15 +1615,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "register",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "ad",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthService-to-PendingReg",
       "type": "arrow",
-      "x": 840,
-      "y": 270.0,
-      "width": 60,
-      "height": -85.0,
+      "x": 834.4295043945312,
+      "y": 334.58444030809653,
+      "width": 121.91382763730633,
+      "height": 75.20425269890825,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1584,11 +1640,11 @@
         "type": 2
       },
       "seed": 129086227,
-      "version": 1,
-      "versionNonce": 1657743177,
+      "version": 579,
+      "versionNonce": 1735012627,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681709693,
       "link": null,
       "locked": false,
       "points": [
@@ -1597,30 +1653,38 @@
           0
         ],
         [
-          60,
-          -85.0
+          121.91382763730633,
+          -75.20425269890825
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.8235079179327758,
+          0.8235079179327756
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-PendingReg",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ae",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthService-to-PendingReg",
       "type": "text",
-      "x": 846.0,
-      "y": 217.5,
+      "x": 860.4168395996094,
+      "y": 269.7333526611328,
       "width": 48,
       "height": 20,
       "angle": 0,
@@ -1635,11 +1699,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 883013865,
-      "version": 1,
-      "versionNonce": 793613455,
+      "version": 194,
+      "versionNonce": 1784880509,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681818075,
       "link": null,
       "locked": false,
       "text": "create",
@@ -1650,15 +1714,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "create",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "af",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthService-to-EmailCode",
       "type": "arrow",
-      "x": 840,
-      "y": 270.0,
-      "width": 60,
-      "height": -25.0,
+      "x": 834.4295043945312,
+      "y": 348.70136287281645,
+      "width": 114.70573502097,
+      "height": 6.859326198825556,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1673,11 +1739,11 @@
         "type": 2
       },
       "seed": 1164544883,
-      "version": 1,
-      "versionNonce": 474876244,
+      "version": 396,
+      "versionNonce": 1410548979,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "points": [
@@ -1686,30 +1752,31 @@
           0
         ],
         [
-          60,
-          -25.0
+          114.70573502097,
+          -6.859326198825556
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.6751217498862926,
+          0.6751217498862919
+        ]
       },
-      "endBinding": {
-        "elementId": "node-EmailCode",
-        "focus": 0,
-        "gap": 4
-      },
+      "endBinding": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ag",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthService-to-EmailCode",
       "type": "text",
-      "x": 818.0,
-      "y": 247.5,
+      "x": 849.0784149169922,
+      "y": 352.8231735229493,
       "width": 104,
       "height": 20,
       "angle": 0,
@@ -1724,11 +1791,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 264152504,
-      "version": 1,
-      "versionNonce": 1662289384,
+      "version": 238,
+      "versionNonce": 1390782717,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681821891,
       "link": null,
       "locked": false,
       "text": "issue 6-digit",
@@ -1739,15 +1806,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "issue 6-digit",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "ah",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthService-to-User",
       "type": "arrow",
-      "x": 840,
-      "y": 270.0,
-      "width": 60,
-      "height": 35.0,
+      "x": 834.0447552318715,
+      "y": 362.77475419221696,
+      "width": 113.79716937898104,
+      "height": 54.74011903618998,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1762,11 +1831,11 @@
         "type": 2
       },
       "seed": 1345823125,
-      "version": 1,
-      "versionNonce": 424801588,
+      "version": 445,
+      "versionNonce": 1562829875,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "points": [
@@ -1775,30 +1844,38 @@
           0
         ],
         [
-          60,
-          35.0
+          113.79716937898104,
+          54.74011903618998
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.7150854465485493,
+          0.284914553451452
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-User",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ai",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthService-to-User",
       "type": "text",
-      "x": 802.0,
-      "y": 277.5,
+      "x": 843.2983551025391,
+      "y": 390.49372100830084,
       "width": 136,
       "height": 20,
       "angle": 0,
@@ -1813,11 +1890,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1470765681,
-      "version": 1,
-      "versionNonce": 1050753749,
+      "version": 240,
+      "versionNonce": 851928957,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681825542,
       "link": null,
       "locked": false,
       "text": "upgrade on verify",
@@ -1828,15 +1905,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "upgrade on verify",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aj",
+      "autoResize": true
     },
     {
       "id": "arrow-login-to-AuthController",
       "type": "arrow",
-      "x": 260,
-      "y": 375.0,
-      "width": 80,
-      "height": -105.0,
+      "x": 257.6696889335102,
+      "y": 447.8050836770517,
+      "width": 61.352199039288394,
+      "height": 58.875571847698325,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1851,11 +1930,11 @@
         "type": 2
       },
       "seed": 1816226337,
-      "version": 1,
-      "versionNonce": 1716962861,
+      "version": 399,
+      "versionNonce": 118928179,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "points": [
@@ -1864,30 +1943,38 @@
           0
         ],
         [
-          80,
-          -105.0
+          61.352199039288394,
+          -58.875571847698325
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-login",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.8172876427669306,
+          0.8172876427669304
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.16519720743807847,
+          0.1651972074380789
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ak",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-login-to-AuthController",
       "type": "text",
-      "x": 284.0,
-      "y": 312.5,
+      "x": 247.80618286132812,
+      "y": 406.4569091796875,
       "width": 32,
       "height": 20,
       "angle": 0,
@@ -1902,11 +1989,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1447348383,
-      "version": 1,
-      "versionNonce": 131183564,
+      "version": 258,
+      "versionNonce": 585094355,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "POST",
@@ -1917,15 +2004,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "POST",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "al",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthController-to-LoginAttempt",
       "type": "arrow",
-      "x": 560,
-      "y": 270.0,
-      "width": 340,
-      "height": 155.0,
+      "x": 550.6036376953125,
+      "y": 368.924193348444,
+      "width": 401.3897855997483,
+      "height": 124.09066200822338,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -1940,11 +2029,11 @@
         "type": 2
       },
       "seed": 85832715,
-      "version": 1,
-      "versionNonce": 1879261749,
+      "version": 588,
+      "versionNonce": 706367507,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "points": [
@@ -1953,30 +2042,38 @@
           0
         ],
         [
-          340,
-          155.0
+          401.3897855997483,
+          124.09066200822338
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.7790486857965869,
+          0.22095131420341355
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-LoginAttempt",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "am",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthController-to-LoginAttempt",
       "type": "text",
-      "x": 686.0,
-      "y": 337.5,
+      "x": 718.0338134765625,
+      "y": 410.0407104492188,
       "width": 88,
       "height": 20,
       "angle": 0,
@@ -1991,11 +2088,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1548152351,
-      "version": 1,
-      "versionNonce": 474479666,
+      "version": 253,
+      "versionNonce": 449557363,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "text": "log attempt",
@@ -2006,15 +2103,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "log attempt",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "an",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthController-to-MFAController",
       "type": "arrow",
-      "x": 450.0,
-      "y": 300,
-      "width": 0.0,
-      "height": 120,
+      "x": 433.364402628239,
+      "y": 404.7845153808594,
+      "width": 2.5446142668962466,
+      "height": 72.61996459960938,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2029,11 +2128,11 @@
         "type": 2
       },
       "seed": 1599874198,
-      "version": 1,
-      "versionNonce": 934664316,
+      "version": 557,
+      "versionNonce": 1481884275,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "points": [
@@ -2042,30 +2141,38 @@
           0
         ],
         [
-          0.0,
-          120
+          -2.5446142668962466,
+          72.61996459960938
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0.5001
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-MFAController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ao",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthController-to-MFAController",
       "type": "text",
-      "x": 414.0,
-      "y": 350.0,
+      "x": 444.64320373535156,
+      "y": 427.8303680419922,
       "width": 72,
       "height": 20,
       "angle": 0,
@@ -2080,11 +2187,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 825151993,
-      "version": 1,
-      "versionNonce": 1822302613,
+      "version": 119,
+      "versionNonce": 142468093,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681842811,
       "link": null,
       "locked": false,
       "text": "if MFA on",
@@ -2095,15 +2202,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "if MFA on",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "ap",
+      "autoResize": true
     },
     {
       "id": "arrow-MFAController-to-MFAService",
       "type": "arrow",
-      "x": 560,
-      "y": 450.0,
-      "width": 60,
-      "height": 0.0,
+      "x": 545.5361328125,
+      "y": 512.6429333679462,
+      "width": 59.13739013671875,
+      "height": 0.391373393858089,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2118,11 +2227,11 @@
         "type": 2
       },
       "seed": 571331911,
-      "version": 1,
-      "versionNonce": 1889409080,
+      "version": 361,
+      "versionNonce": 377881011,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "points": [
@@ -2131,30 +2240,31 @@
           0
         ],
         [
-          60,
-          0.0
+          59.13739013671875,
+          -0.391373393858089
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-MFAController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0.5001
+        ]
       },
-      "endBinding": {
-        "elementId": "node-MFAService",
-        "focus": 0,
-        "gap": 4
-      },
+      "endBinding": null,
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "aq",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-MFAController-to-MFAService",
       "type": "text",
-      "x": 566.0,
-      "y": 440.0,
+      "x": 547.3946533203125,
+      "y": 528.807373046875,
       "width": 48,
       "height": 20,
       "angle": 0,
@@ -2169,11 +2279,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 134750876,
-      "version": 1,
-      "versionNonce": 1504420826,
+      "version": 216,
+      "versionNonce": 1415664467,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "verify",
@@ -2184,15 +2294,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "verify",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "ar",
+      "autoResize": true
     },
     {
       "id": "arrow-MFAService-to-User",
       "type": "arrow",
-      "x": 840,
-      "y": 450.0,
-      "width": 60,
-      "height": -145.0,
+      "x": 838.2992553710938,
+      "y": 514.3414211671754,
+      "width": 110.12209146297039,
+      "height": 90.06820133924288,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2207,11 +2319,11 @@
         "type": 2
       },
       "seed": 1085867369,
-      "version": 1,
-      "versionNonce": 966165347,
+      "version": 403,
+      "versionNonce": 814402835,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "points": [
@@ -2220,32 +2332,40 @@
           0
         ],
         [
-          60,
-          -145.0
+          110.12209146297039,
+          -90.06820133924288
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-MFAService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.8788448136375461,
+          0.878844813637546
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-User",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "as",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-AuthController-to-UserSession",
       "type": "arrow",
-      "x": 560,
-      "y": 270.0,
-      "width": 340,
-      "height": 95.0,
+      "x": 509.6078627903401,
+      "y": 332.7845153808594,
+      "width": 198.629031576028,
+      "height": 159.55339137079457,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2260,11 +2380,11 @@
         "type": 2
       },
       "seed": 741522868,
-      "version": 1,
-      "versionNonce": 136264344,
+      "version": 725,
+      "versionNonce": 846218067,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681748782,
       "link": null,
       "locked": false,
       "points": [
@@ -2273,30 +2393,38 @@
           0
         ],
         [
-          340,
-          95.0
+          198.629031576028,
+          -159.55339137079457
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.7077524357443009,
+          0.2922475642556994
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-UserSession",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "at",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-AuthController-to-UserSession",
       "type": "text",
-      "x": 658.0,
-      "y": 307.5,
+      "x": 556.2085571289062,
+      "y": 137.91119384765625,
       "width": 144,
       "height": 20,
       "angle": 0,
@@ -2311,11 +2439,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1107349691,
-      "version": 1,
-      "versionNonce": 46730792,
+      "version": 420,
+      "versionNonce": 1768533907,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681751865,
       "link": null,
       "locked": false,
       "text": "mint Sanctum token",
@@ -2326,15 +2454,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "mint Sanctum token",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "au",
+      "autoResize": true
     },
     {
       "id": "arrow-PasswordResetController-to-AuthService",
       "type": "arrow",
-      "x": 450.0,
-      "y": 520,
-      "width": 280.0,
-      "height": -220,
+      "x": 443.8430911455871,
+      "y": 569.4486083984375,
+      "width": 260.68887985552533,
+      "height": 190.62170410156244,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2349,11 +2479,11 @@
         "type": 2
       },
       "seed": 975672406,
-      "version": 1,
-      "versionNonce": 1424318569,
+      "version": 467,
+      "versionNonce": 1247213747,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "points": [
@@ -2362,30 +2492,38 @@
           0
         ],
         [
-          280.0,
-          -220
+          260.68887985552533,
+          -190.62170410156244
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-PasswordResetController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.382999164345361,
+          0.38299916434536196
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.6169824512533771,
+          0.6169824512533769
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "av",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-PasswordResetController-to-AuthService",
       "type": "text",
-      "x": 542.0,
-      "y": 400.0,
+      "x": 875.2354736328125,
+      "y": 521.9836883544922,
       "width": 96,
       "height": 20,
       "angle": 0,
@@ -2400,11 +2538,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 434450883,
-      "version": 1,
-      "versionNonce": 815184166,
+      "version": 231,
+      "versionNonce": 1369754493,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681838427,
       "link": null,
       "locked": false,
       "text": "forgot/reset",
@@ -2415,15 +2553,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "forgot/reset",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "aw",
+      "autoResize": true
     },
     {
       "id": "arrow-AuthService-to-PwReset",
       "type": "arrow",
-      "x": 840,
-      "y": 270.0,
-      "width": 60,
-      "height": 215.0,
+      "x": 826.3725803416811,
+      "y": 375.40927634893416,
+      "width": 63.11998489768132,
+      "height": 207.01546437222356,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2438,11 +2578,11 @@
         "type": 2
       },
       "seed": 285249462,
-      "version": 1,
-      "versionNonce": 550627956,
+      "version": 243,
+      "versionNonce": 511029939,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681691677,
       "link": null,
       "locked": false,
       "points": [
@@ -2451,32 +2591,40 @@
           0
         ],
         [
-          60,
-          215.0
+          63.11998489768132,
+          207.01546437222356
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.9112966028211769,
+          0.08870339717882321
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-PwReset",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ax",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-SessionController-to-UserSession",
       "type": "arrow",
-      "x": 560,
-      "y": 370.0,
-      "width": 340,
-      "height": -5.0,
+      "x": 544.3912353515625,
+      "y": 173.42628615471656,
+      "width": 163.0507544238136,
+      "height": 4.2200568731843475,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2491,11 +2639,11 @@
         "type": 2
       },
       "seed": 1320383986,
-      "version": 1,
-      "versionNonce": 452379694,
+      "version": 508,
+      "versionNonce": 1346628627,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681748781,
       "link": null,
       "locked": false,
       "points": [
@@ -2504,30 +2652,38 @@
           0
         ],
         [
-          340,
-          -5.0
+          163.0507544238136,
+          -4.2200568731843475
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-SessionController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5180143406544759,
+          0.5180143406544763
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-UserSession",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "ay",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-SessionController-to-UserSession",
       "type": "text",
-      "x": 686.0,
-      "y": 357.5,
+      "x": 714.3988952636719,
+      "y": 441.74145507812506,
       "width": 88,
       "height": 20,
       "angle": 0,
@@ -2542,11 +2698,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 987994644,
-      "version": 1,
-      "versionNonce": 1814111962,
+      "version": 325,
+      "versionNonce": 86713885,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681830509,
       "link": null,
       "locked": false,
       "text": "list/revoke",
@@ -2557,15 +2713,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "list/revoke",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "az",
+      "autoResize": true
     },
     {
       "id": "arrow-SessionController-to-SessionService",
       "type": "arrow",
-      "x": 560,
-      "y": 370.0,
-      "width": 60,
-      "height": 0.0,
+      "x": 537.9296247614842,
+      "y": 206.62018179986998,
+      "width": 71.21109720501192,
+      "height": 20.401401663646652,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2580,11 +2738,11 @@
         "type": 2
       },
       "seed": 7958954,
-      "version": 1,
-      "versionNonce": 66564023,
+      "version": 354,
+      "versionNonce": 986417139,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681740481,
       "link": null,
       "locked": false,
       "points": [
@@ -2593,32 +2751,40 @@
           0
         ],
         [
-          60,
-          0.0
+          71.21109720501192,
+          20.401401663646652
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-SessionController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0.5001
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-SessionService",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "b00",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-Preview-to-AuthController",
       "type": "arrow",
-      "x": 260,
-      "y": 565.0,
-      "width": 80,
-      "height": -295.0,
+      "x": 259.15015617872484,
+      "y": 565.9407296318107,
+      "width": 62.46362841526832,
+      "height": 169.85282012771432,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2633,11 +2799,11 @@
         "type": 2
       },
       "seed": 103590717,
-      "version": 1,
-      "versionNonce": 1337421732,
+      "version": 547,
+      "versionNonce": 169963763,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "points": [
@@ -2646,30 +2812,38 @@
           0
         ],
         [
-          80,
-          -295.0
+          62.46362841526832,
+          -169.85282012771432
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-Preview",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.8957204734693804,
+          0.8957204734693808
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-AuthController",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.07469581521311412,
+          0.07469581521311379
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "b01",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-Preview-to-AuthController",
       "type": "text",
-      "x": 240.0,
-      "y": 407.5,
+      "x": 202.75491333007812,
+      "y": 522.858642578125,
       "width": 120,
       "height": 20,
       "angle": 0,
@@ -2684,11 +2858,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1625701043,
-      "version": 1,
-      "versionNonce": 629685648,
+      "version": 110,
+      "versionNonce": 2035079827,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681674284,
       "link": null,
       "locked": false,
       "text": "EXCLUDED_ROUTES",
@@ -2699,13 +2873,15 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "EXCLUDED_ROUTES",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "b02",
+      "autoResize": true
     },
     {
       "id": "node-MobileAuth",
       "type": "rectangle",
-      "x": 1260,
-      "y": 240,
+      "x": 1077.3375244140625,
+      "y": 113.86325073242188,
       "width": 280,
       "height": 70,
       "angle": 0,
@@ -2722,8 +2898,8 @@
         "type": 3
       },
       "seed": 1690705324,
-      "version": 1,
-      "versionNonce": 676750578,
+      "version": 230,
+      "versionNonce": 942865651,
       "isDeleted": false,
       "boundElements": [
         {
@@ -2731,25 +2907,26 @@
           "type": "text"
         },
         {
-          "id": "arrow-MobileAuth-to-UserSession",
+          "id": "arrow-Biometric-to-MobileAuth",
           "type": "arrow"
         },
         {
-          "id": "arrow-Biometric-to-MobileAuth",
+          "id": "arrow-MobileAuth-to-UserSession",
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681761518,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "b03"
     },
     {
       "id": "text-MobileAuth",
       "type": "text",
-      "x": 1268,
-      "y": 263.8,
-      "width": 264,
-      "height": 22.4,
+      "x": 1090.3296279907227,
+      "y": 128.86325073242188,
+      "width": 254.0157928466797,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2762,11 +2939,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1715526763,
-      "version": 1,
-      "versionNonce": 748821291,
+      "version": 230,
+      "versionNonce": 88925843,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681761518,
       "link": null,
       "locked": false,
       "text": "V1/Auth/TokenRefreshController\n+ Keychain biometric",
@@ -2777,15 +2954,17 @@
       "baseline": 17,
       "containerId": "node-MobileAuth",
       "originalText": "V1/Auth/TokenRefreshController\n+ Keychain biometric",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "b04",
+      "autoResize": true
     },
     {
       "id": "node-Biometric",
       "type": "rectangle",
-      "x": 1260,
-      "y": 340,
-      "width": 280,
-      "height": 60,
+      "x": 1075.8255615234375,
+      "y": 15.590118408203125,
+      "width": 281.1475830078125,
+      "height": 63.442626953124986,
       "angle": 0,
       "strokeColor": "#C9C2B7",
       "backgroundColor": "#FDFAF7",
@@ -2800,8 +2979,8 @@
         "type": 3
       },
       "seed": 1939265147,
-      "version": 1,
-      "versionNonce": 1919551666,
+      "version": 233,
+      "versionNonce": 170297779,
       "isDeleted": false,
       "boundElements": [
         {
@@ -2813,17 +2992,18 @@
           "type": "arrow"
         }
       ],
-      "updated": 1,
+      "updated": 1776681766934,
       "link": null,
-      "locked": false
+      "locked": false,
+      "index": "b05"
     },
     {
       "id": "text-Biometric",
       "type": "text",
-      "x": 1268,
-      "y": 358.8,
-      "width": 264,
-      "height": 22.4,
+      "x": 1082.5354766845703,
+      "y": 27.311431884765625,
+      "width": 267.7277526855469,
+      "height": 40,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2836,11 +3016,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 1119641947,
-      "version": 1,
-      "versionNonce": 845423906,
+      "version": 234,
+      "versionNonce": 313580371,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681766934,
       "link": null,
       "locked": false,
       "text": "@capgo/capacitor-native-biometric\nIOS Keychain",
@@ -2851,15 +3031,17 @@
       "baseline": 17,
       "containerId": "node-Biometric",
       "originalText": "@capgo/capacitor-native-biometric\nIOS Keychain",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "b06",
+      "autoResize": true
     },
     {
       "id": "arrow-MobileAuth-to-UserSession",
       "type": "arrow",
-      "x": 1260,
-      "y": 275.0,
-      "width": -60,
-      "height": 90.0,
+      "x": 1071.3375244140625,
+      "y": 147.84428740084962,
+      "width": 52.09969346640287,
+      "height": 19.083316796109756,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2874,11 +3056,11 @@
         "type": 2
       },
       "seed": 1753365487,
-      "version": 1,
-      "versionNonce": 1001267783,
+      "version": 564,
+      "versionNonce": 408722899,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681761519,
       "link": null,
       "locked": false,
       "points": [
@@ -2887,30 +3069,38 @@
           0
         ],
         [
-          -60,
-          90.0
+          -52.09969346640287,
+          19.083316796109756
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-MobileAuth",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.1841874418849256,
+          0.18418744188492725
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-UserSession",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          1,
+          0.5001
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "b07",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "arrow-label-MobileAuth-to-UserSession",
       "type": "text",
-      "x": 1202.0,
-      "y": 310.0,
+      "x": 1018.9126586914062,
+      "y": 107.68118286132812,
       "width": 56,
       "height": 20,
       "angle": 0,
@@ -2925,11 +3115,11 @@
       "frameId": null,
       "roundness": null,
       "seed": 679539289,
-      "version": 1,
-      "versionNonce": 136730642,
+      "version": 197,
+      "versionNonce": 1982975155,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681757717,
       "link": null,
       "locked": false,
       "text": "refresh",
@@ -2940,15 +3130,17 @@
       "baseline": 14,
       "containerId": null,
       "originalText": "refresh",
-      "lineHeight": 1.25
+      "lineHeight": 1.25,
+      "index": "b08",
+      "autoResize": true
     },
     {
       "id": "arrow-Biometric-to-MobileAuth",
       "type": "arrow",
-      "x": 1400.0,
-      "y": 340,
-      "width": 0.0,
-      "height": -30,
+      "x": 1216.814583159373,
+      "y": 85.03274536132811,
+      "width": 0.12727110143896425,
+      "height": 22.830505371093764,
       "angle": 0,
       "strokeColor": "#1F2A44",
       "backgroundColor": "transparent",
@@ -2963,11 +3155,11 @@
         "type": 2
       },
       "seed": 531458353,
-      "version": 1,
-      "versionNonce": 1593385303,
+      "version": 349,
+      "versionNonce": 1698691315,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1,
+      "updated": 1776681766935,
       "link": null,
       "locked": false,
       "points": [
@@ -2976,30 +3168,38 @@
           0
         ],
         [
-          0.0,
-          -30
+          0.12727110143896425,
+          22.830505371093764
         ]
       ],
       "lastCommittedPoint": null,
       "startBinding": {
+        "mode": "orbit",
         "elementId": "node-Biometric",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          0
+        ]
       },
       "endBinding": {
+        "mode": "orbit",
         "elementId": "node-MobileAuth",
-        "focus": 0,
-        "gap": 4
+        "fixedPoint": [
+          0.5001,
+          1
+        ]
       },
       "startArrowhead": null,
       "endArrowhead": "arrow",
-      "elbowed": false
+      "elbowed": false,
+      "index": "b09",
+      "moveMidPointsWithElement": false
     },
     {
       "id": "label-rules",
       "type": "text",
-      "x": 40,
-      "y": 660,
+      "x": 38.38652038574219,
+      "y": 690.814697265625,
       "width": 1280.3999999999999,
       "height": 15.399999999999999,
       "angle": 0,
@@ -3014,29 +3214,32 @@
       "frameId": null,
       "roundness": null,
       "seed": 1139293944,
-      "version": 1,
-      "versionNonce": 1141976875,
+      "version": 129,
+      "versionNonce": 1482820659,
       "isDeleted": false,
-      "boundElements": null,
-      "updated": 1,
+      "boundElements": [],
+      "updated": 1776681780386,
       "link": null,
       "locked": false,
-      "text": "Rules: throttle 5-10/min on register/login/verify \u00b7 MFA TOTP + recovery codes \u00b7 Sanctum personal_access_tokens \u00b7 Keychain for iOS \u00b7 PreviewWriteInterceptor short-circuits preview users on writes",
+      "text": "Rules: throttle 5-10/min on register/login/verify · MFA TOTP + recovery codes · Sanctum personal_access_tokens · Keychain for iOS · PreviewWriteInterceptor short-circuits preview users on writes",
       "fontSize": 11,
       "fontFamily": 5,
       "textAlign": "left",
       "verticalAlign": "top",
       "baseline": 12,
       "containerId": null,
-      "originalText": "Rules: throttle 5-10/min on register/login/verify \u00b7 MFA TOTP + recovery codes \u00b7 Sanctum personal_access_tokens \u00b7 Keychain for iOS \u00b7 PreviewWriteInterceptor short-circuits preview users on writes",
-      "lineHeight": 1.25
+      "originalText": "Rules: throttle 5-10/min on register/login/verify · MFA TOTP + recovery codes · Sanctum personal_access_tokens · Keychain for iOS · PreviewWriteInterceptor short-circuits preview users on writes",
+      "lineHeight": 1.25,
+      "index": "b0A",
+      "autoResize": true
     }
   ],
   "appState": {
     "gridSize": 20,
     "gridStep": 5,
     "gridModeEnabled": false,
-    "viewBackgroundColor": "#F7F6F4"
+    "viewBackgroundColor": "#F7F6F4",
+    "lockedMultiSelections": {}
   },
   "files": {}
 }
