@@ -37,7 +37,7 @@ final class OnboardingPromptBuilder
      *
      * @param  string  $focus  The user's onboarding_fyn_selection
      *                         (e.g. 'savings', 'investment', 'retirement',
-     *                         'protection', 'estate', 'family', 'business',
+     *                         'protection', 'estate', 'business',
      *                         'goals', 'budgeting')
      */
     public function buildAssetCapturePrompt(User $user, string $focus): string
@@ -72,7 +72,6 @@ final class OnboardingPromptBuilder
             'retirement' => ['create_pension'],
             'protection' => ['create_protection_policy'],
             'estate' => ['create_asset', 'create_liability', 'create_estate_gift', 'create_property', 'create_chattel'],
-            'family' => ['create_family_member'],
             'business' => ['create_business_interest'],
             'goals' => ['create_goal'],
             default => ['create_savings_account'],
@@ -135,7 +134,6 @@ PROMPT;
             'retirement' => 'Retirement',
             'protection' => 'Protection',
             'estate' => 'Estate Planning',
-            'family' => 'Family',
             'business' => 'Business',
             'goals' => 'Goals',
             'budgeting' => 'Budgeting',
