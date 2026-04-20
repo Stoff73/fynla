@@ -130,7 +130,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_BASE_PERSONAL => [
                 'turn_type' => 'grouped_extract',
-                'prompt_text' => "Let me grab a few basics first, {first_name}. What's your date of birth, and are you single, married, in a civil partnership, divorced, or widowed?",
+                'prompt_text' => self::class.'::buildPersonalPrompt',
                 'extraction_tool' => 'capture_personal_details',
                 'retry_text' => "Sorry, I didn't catch both pieces. Could you tell me your date of birth (something like 12 January 1985) and your marital status?",
                 'next' => self::class.'::nextFromPersonal',
@@ -390,6 +390,43 @@ final class OnboardingStateMachine
         }
 
         return self::STATE_BASE_EXPENDITURE;
+    }
+
+    /**
+     * FR-M10 — hybrid base_personal prompt. When neither DOB nor marital
+     * is set, falls back to the full grouped prompt. When exactly one is
+     * already captured, pre-confirms it and asks only for the missing
+     * field. The both-set case is handled upstream by skip_if.
+     */
+    public static function buildPersonalPrompt(string $answer, User $user): string
+    {
+        $hasDob = ! empty($user->date_of_birth);
+        $hasMarital = ! empty($user->marital_status);
+
+        if (! $hasDob && ! $hasMarital) {
+            return "Let me grab a few basics first, {first_name}. What's your date of birth, and are you single, married, in a civil partnership, divorced, or widowed?";
+        }
+
+        if ($hasDob && ! $hasMarital) {
+            $dob = $user->date_of_birth instanceof \DateTimeInterface
+                ? $user->date_of_birth
+                : new \DateTimeImmutable((string) $user->date_of_birth);
+            $formatted = $dob->format('j F Y');
+
+            return "Got it — I have you down as born on {$formatted}. Are you single, married, in a civil partnership, or have you been through a separation as a widow or widower?";
+        }
+
+        // Marital set, DOB missing.
+        $maritalWord = match ($user->marital_status) {
+            'married' => 'married',
+            'civil_partnership' => 'in a civil partnership',
+            'single' => 'single',
+            'divorced' => 'divorced',
+            'widowed' => 'widowed',
+            default => (string) $user->marital_status,
+        };
+
+        return "Thanks — I have you noted as {$maritalWord}. Could you share your date of birth? Something like 12 January 1985 is fine.";
     }
 
     /**

@@ -458,6 +458,19 @@ trait HasAiChat
                         ];
                     }
 
+                    // FR-M13 — structured onboarding capture error (e.g. spouse
+                    // email already bound to another household). The director
+                    // consumes this to render a targeted terminal message and
+                    // stops advancing state.
+                    if (isset($toolResult['onboarding_capture_error']) && $toolResult['onboarding_capture_error'] === true) {
+                        yield [
+                            'type' => 'onboarding_capture_error',
+                            'field_group' => $toolResult['field_group'] ?? 'unknown',
+                            'error_type' => $toolResult['error_type'] ?? 'unknown',
+                            'message' => $toolResult['message'] ?? '',
+                        ];
+                    }
+
                     $toolCallsSummary[] = [
                         'tool' => $functionName,
                         'input' => $this->summariseToolInput($functionArgs),

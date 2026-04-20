@@ -326,3 +326,75 @@ describe('OnboardingStateMachine::interpolate + resolvePromptText', function () 
         expect($text)->toContain('company you work for');
     });
 });
+
+/**
+ * FR-M10 (G2) — hybrid base_personal skip rule.
+ *
+ * When exactly one of {date_of_birth, marital_status} is set, the prompt
+ * adapts to ask for only the missing field, pre-confirming the one already
+ * captured. When both are set, skip_if handles the skip entirely; when
+ * neither is set, the original grouped prompt is used.
+ *
+ * PRD: April/April20Updates/PRD-fyn-driven-onboarding.md §FR-M10
+ */
+describe('OnboardingStateMachine::buildPersonalPrompt (FR-M10)', function () {
+    it('uses the original grouped prompt when neither DOB nor marital is set', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Alex',
+            'date_of_birth' => null,
+            'marital_status' => null,
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Original prompt starts with "Let me grab a few basics first"
+        expect($text)->toContain('grab a few basics')
+            ->and($text)->toContain('Alex');
+    });
+
+    it('asks only for marital status when DOB is already set', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Alex',
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => null,
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Pre-confirms DOB ("I have you as born..."), asks for marital only.
+        expect($text)->toContain('12 January 1985')
+            ->and($text)->not->toContain('grab a few basics')
+            ->and($text)->toContain('single');
+    });
+
+    it('asks only for DOB when marital status is already set', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Alex',
+            'date_of_birth' => null,
+            'marital_status' => 'married',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Pre-confirms marital, asks for DOB only. Should NOT enumerate
+        // the full marital list again (i.e. no "single, married, civil
+        // partnership, divorced, or widowed" phrasing).
+        expect($text)->toContain('married')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->not->toContain('grab a few basics')
+            ->and($text)->not->toContain('divorced');
+    });
+
+    it('uses civil-partnership phrasing when that is the already-captured value', function () {
+        $user = User::factory()->create([
+            'date_of_birth' => null,
+            'marital_status' => 'civil_partnership',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->toContain('civil partnership')
+            ->and($text)->not->toContain('grab a few basics')
+            ->and($text)->not->toContain('divorced');
+    });
+});
