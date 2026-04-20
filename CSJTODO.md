@@ -1,171 +1,115 @@
 # CSJTODO — Fynla
 
-*Last updated: 16 April 2026 — session 58*
-*Previous session: 16 April 2026 — session 57*
+*Last updated: 20 April 2026 — session 1 (context-clear)*
+*Previous session: 19 April 2026 — session 2 (end-of-day, PM skill run)*
 
 ---
 
-## Session 58 (16 April) — Fyn Chat Fix: Tool Metadata, Paths, Navigation
+## Session 1 (20 April, context-clear) — Fyn onboarding reconciliation + PRD
 
 ### Completed This Session
 
-- [x] **Fixed Fyn chat leaking tool call metadata** — removed `buildToolCallContext()` from `HasAiChat.php` that poisoned conversation history, teaching the model to echo `- get_module_analysis: module: estate` lines. Added backend regex stripping in `StructuredResponseValidator` + frontend stripping in `AiMessageContent.vue`.
-- [x] **Fixed raw route paths in Fyn responses** — added compliance rule in `ComplianceRules.php` forbidding paths in text. Added frontend conversion of leaked paths to clickable links with human labels (`/estate` becomes "Estate Planning"). Links navigate via Vue Router.
-- [x] **Fixed savings queries wrongly navigating to expenditure** — `SAVINGS_ACCOUNTS` and `SAVINGS_DEBT` in `QuerySchemas.php` required `get_module_analysis(savings)` which blocks on missing expenditure. Changed to `list_records(savings_account)` + `get_tax_information(savings_config)` — both ungated.
-- [x] **Clarified AI tool descriptions** — `list_records` now mentions balances/rates, `get_module_analysis` says analysis-only, `get_tax_information` mentions Personal Savings Allowance under `savings_config`.
-- [x] **Auto-navigate on blocked tools** — when prerequisite gate blocks a tool with a suggested route, auto-emit navigation event instead of relying on the model to call `navigate_to_page`.
-- [x] **Merged to `onboardingFyn`**, built for dev (`./deploy/csjones-fynla/build.sh`), deployed to dev for testing.
-- [x] **Full vault sync** — git history, April Index, Home.md updated. CLAUDE.md metrics bumped (Vue 663→664, PHP 234→240).
+- [x] **Shipped commit `88018a5`** — 4 bug fixes from the 16 April Fyn onboarding test. Each traced in `April/April20Updates/fynChatAnalysis.md`:
+  - Bug §1 — add_more Savings→family loop. `persistCapture` now handles `STATE_ADD_MORE`, writing `onboarding_fyn_selection` + `visited_focuses`.
+  - Bug §2 — LLM text leak on grouped_extract turns. Director now swallows `content` events so chatty Grok/Claude text doesn't stack with retry_text.
+  - Bug §3 — `handleCaptureWorkDetails` all-or-nothing. Now saves partial payloads, computes `missing[]`, director emits `emitPartialRetry` with targeted copy.
+  - Bug §4 — onboarding expenditure now writes to `ExpenditureProfile.total_monthly_expenditure` in addition to `users.monthly_expenditure`.
+- [x] **11 new unit tests** in `tests/Unit/Services/Onboarding/OnboardingChatDirectorFixesTest.php` (132/132 onboarding suite passing).
+- [x] **Browser-tested end-to-end** on localhost:8000 AND https://csjones.co/fynla — fresh user registration → journey pick → family asset_capture → add_more Savings pick correctly fires the savings intro + terminal message "Your savings module is ready".
+- [x] **Deployed 88018a5 to csjones.co/fynla** via SSH scp + artisan cache clear (sibling-dir layout at `~/www/csjones.co/fynla-app/`).
+- [x] **Wrote `April/April20Updates/fynChatAnalysis.md`** — root-cause trace of the 4 bugs with file:line and fix plan.
+- [x] **Wrote `April/April20Updates/fynComprehensiveCheck.md`** — broader audit via 4 parallel subagents covering remaining CoordinatingAgent handlers, asset_capture focus logic, SystemPromptBuilder gaps, navigation/router mismatches. Found 13 items (F1–F13) where the same bug patterns recur + 3 deferred items + 8 additional T-findings, prioritised P0/P1/P2 with file:line and effort estimates.
+- [x] **Rewrote `.claude/skills/prd-writer/SKILL.md`** for Fynla UK (was targeting fynlaInternational with pack/core/contracts architecture — wholesale rewrite for single-country UK). Shipped as commit `b736d6e`.
+- [x] **Invoked the prd-writer skill** against the onboarding spec+plan as a reconciliation exercise. Validation dispatched to `feature-dev:code-explorer` + `feature-dev:code-architect` in parallel. 6 conflicts (C1–C6), 2 gaps (G1–G2), 13 F-items verified still present.
+- [x] **Amended `April/April15Updates/fynOnboardFix.md`** (9 targeted edits: status, §3.3 $fillable→$guarded, §4.1 preview precondition, §5.1 turn types, §5.2 canonical 14-state table, §5.3 hybrid skip, §6.2 SSE events, §10.3 cleanup, new §20 delta register).
+- [x] **Amended `April/April15Updates/fynOnboarding.md`** (3 edits: status, implementation status table, resolved-20-April open questions).
+- [x] **Produced `April/April20Updates/PRD-fyn-driven-onboarding.md`** — canonical contract for the rest of this release. 7 Must-have (C1, G1, G2, F1, F2, F3, F5), 4 Should-have (F4, F6, 2 cleanup items), 7 Nice-to-have (F7–F13).
+- [x] **Committed 32 excalidraw canvases** (`docs/diagrams/*`) from prior skill runs — commit `8cf7e3d`. Cleanup of long-untracked files.
+- [x] **Vault-synced** — April20Updates artefacts mirrored to fynlaBrain, Apr20.md daily log created, Apr2026 Commits.md updated (405→408, added Apr20 row), Home.md updated (2,605→2,608 commits, April 14→15 days), April Index updated with session 1 entry + April20Updates file list.
 
-### NOT Done — Outstanding from Session 58
+### Source of truth for next session
 
-- [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — deployed but not yet browser-tested on the dev server. Test plan in `deployFynFix.md`.
+**`/Users/CSJ/Desktop/fynla/April/April20Updates/PRD-fyn-driven-onboarding.md`** — this is the canonical contract. Read it first.
+
+Also relevant:
+- `April/April15Updates/fynOnboardFix.md` §20 — delta register (what's shipped vs what's in scope)
+- `April/April20Updates/fynComprehensiveCheck.md` — detailed F1–F13 ledger with file:line
+
+### NOT Done — Outstanding (from PRD)
+
+**Must-have (P0, in scope for this release):**
+- [ ] **FR-M9 (C1)** — add `'api/ai-chat/onboarding'` to `PreviewWriteInterceptor::EXCLUDED_ROUTES` so the controller-level 403 check actually runs for preview users on `/onboarding/start`.
+- [ ] **FR-M10 (G2)** — hybrid `base_personal` skip rule. If only DOB or only marital is already set, adapt the prompt to ask for only the missing field.
+- [ ] **FR-M11 (G1)** — feature tests in `tests/Feature/Onboarding/` covering `POST /ai-chat/onboarding/start` (200/409/403/503), state-machine walkthrough, multi-entity asset_capture.
+- [ ] **FR-M12 (F1)** — `handleSetExpenditure` must sync to `ExpenditureProfile.total_monthly_expenditure` alongside the existing `users.*` write (same bug pattern as onboarding fix §4, different layer).
+- [ ] **FR-M13 (F2)** — new `SpouseCollisionException`, caught by `handleCaptureSpouseDetails`, surfaced to user via new `emitTerminalError` with copy: *"That email's already registered with another Fynla household. Want to use a different address for your partner, or ask them to link their own account?"*
+- [ ] **FR-M14 (F3)** — tighten `OnboardingPromptBuilder::assetCaptureInstructions` with explicit "do not ask about property, mortgages, or anything outside the listed tools" + selective content-event filter in `handleAssetCaptureTurn` (swallow if `?` in content OR zero tool calls; preserve single-sentence confirmations). Prompt-only, `tool_choice='auto'` retained.
+- [ ] **FR-M15 (F5)** — move CLT auto-creation from `handleCreateTrust` to a new `TrustObserver` listening on `created`. Eliminates the orphan-CLT risk when user cancels the trust form.
+
+**Should-have (P1, in scope, next iteration):**
+- [ ] **FR-S1 (F4)** — `handleUpdateRecord` per-entity field allowlist. `private const ALLOWED_UPDATE_FIELDS` on `CoordinatingAgent` keyed by the 12 entity types in `resolveModel()`.
+- [ ] **FR-S2 (F6)** — apply `handleCaptureWorkDetails` partial-capture template to `handleCapturePersonalDetails` and `handleCaptureSpouseDetails`. Director's `composePartialRetryText` already has friendly-map entries for both.
+- [ ] **FR-S3** — extract `educationStatusForAge` to `OnboardingValueInterpreter::educationStatusForAge` (duplicated between `CoordinatingAgent:1075` and `OnboardingChatDirector:582`).
+- [ ] **FR-S4** — selective content-event filter in `handleAssetCaptureTurn` (refinement of FR-M14).
+
+**Nice-to-have (P2, if time permits):**
+- [ ] **FR-N1 (F7)** — surface `users.employer` + `users.occupation` in `SystemPromptBuilder::buildUserProfile`.
+- [ ] **FR-N2 (F8)** — `SystemPromptBuilder::calculateTotalExpenditure` fallback to `ExpenditureProfile.total_monthly_expenditure`.
+- [ ] **FR-N3 (F9)** — duplicate-name checks on 7 create handlers (`create_trust`, `create_family_member`, `create_business_interest`, `create_asset`, `create_liability`, `create_estate_gift`, `create_chattel`).
+- [ ] **FR-N4 (F10)** — `handleUpdateProfile` spouse-linked-user sync.
+- [ ] **FR-N5 (F11)** — `handleSetExpenditure` spouse sync for household budget.
+- [ ] **FR-N6 (F12)** — add missing routes to `navigate_to_page` allow-list (`/estate/inheritance-tax`, `/settings/privacy`, risk sub-routes, etc).
+- [ ] **FR-N7 (F13)** — `handleCreateEstateAsset` + `handleCreateEstateGift` partial-payload tolerance.
+
+### Carried from earlier sessions
+
+- [ ] **Open PR `onboardingFyn` → `dev`** — branch is 77 commits behind origin/dev; merge-back needs cross-reference check per `feedback_merge_branch_conflicts`. Do this AFTER the Must-have items land.
+- [ ] **Deploy dev → production (`main`)** — PR #220 tech-debt is in `dev`, not in `main` yet.
+- [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — carried from session 58, partially addressed by this session's browser test but deeper scenarios still open.
 - [ ] **Re-enable branch protection on `dev`** — carried from session 57.
+- [ ] **Add `Current State/Insights.md`** to the vault — flagged session 62.
+- [ ] **`AutoRiskCalculatorTest` enum truncation** — pre-existing.
 
 ### Context for Next Session
 
-Currently on `onboardingFyn` branch. Dev server is running the `onboardingFyn` build with Fyn chat fixes. Production is on `main` (does NOT have these fixes yet). The fixes need testing on dev before merging to `dev` → `main`.
+Branch: `onboardingFyn` at HEAD `8cf7e3d`, clean working tree, pushed to origin. 77 commits behind origin/dev.
 
-The 6 changed files: `HasAiChat.php`, `StructuredResponseValidator.php`, `ComplianceRules.php`, `XaiToolDefinitions.php`, `QuerySchemas.php`, `AiMessageContent.vue`.
+**Start here:**
+1. Read `April/April20Updates/PRD-fyn-driven-onboarding.md` in full (it's the contract).
+2. Then read the amended `April/April15Updates/fynOnboardFix.md §20` for the delta register.
+3. Implementation order (from PRD §Sequencing):
+   - **FR-M9 (C1 preview) + FR-M11 (G1 feature tests)** as one PR — the feature tests catch C1 properly.
+   - **FR-M12 (F1 expenditure sync)** standalone — small, blocks post-onboarding UX parity.
+   - **FR-M10 (G2) + FR-M13 (F2) + FR-M14 (F3)** as a UX-quality batch.
+   - **FR-M15 (F5 trust observer)** standalone — independent module, small diff.
+   - Should-have batch after.
+   - Nice-to-have batch last.
 
----
+**Branch queue awareness:** still 77 commits behind origin/dev. The `dev` branch moved forward significantly with PR #220 (tech-debt: decimal:2 casts, strict_types, component renames, exception factories). When merging onboardingFyn back, cross-reference `CoordinatingAgent.php` and `AiToolDefinitions.php` — both were touched on both branches.
 
-## Session 57 (16 April) — Awin Tracking Fix + Email Consolidation
-
-### Completed This Session
-
-- [x] **Full Awin installation guide audit** — compared all 5 pages of the Awin Tracking Installation Guide against our implementation. Found 3 issues, all fixed.
-- [x] **CRITICAL: `voucherCode` → `voucher`** — `AWIN.Tracking.Sale.voucherCode` renamed to `AWIN.Tracking.Sale.voucher`. Root cause of the "Parameter Values not matching across Tracking Tags" warning on FYN-PAY-33.
-- [x] **MasterTag compliance** — removed `async` attribute (guide says `defer` only), moved from `<head>` to `<body>` (guide says before `</body>`).
-- [x] **Payment email consolidation** — merged InvoiceEmail into PaymentConfirmation. Users now get one email (not two) with invoice PDF attached. Removed early email from WebhookController (invoice doesn't exist at webhook time). CRITICAL log warnings if invoice or PDF is missing.
-- [x] **Affiliate Reference conditional** — only shown when `awin_cks` (AWC cookie) is present, not just when `awin_order_ref` exists. Non-affiliate payments show invoice reference only.
-- [x] **Email notification reference** — created comprehensive `emails.md` documenting all 21 email types (3 scheduled, 5 lifecycle, 3 webhook, 9 user-action, 1 internal) + full daily timeline.
-- [x] **PRs #215, #216, #217 merged to main.** Production build completed. Dev build from `onboardingFyn` branch restored after accidental overwrite.
-- [x] **Vault sync** — git history, April Index, Home.md, AwinIntegration current state doc all updated.
-
-### NOT Done — Outstanding from Session 57
-
-- [ ] **Re-test Awin tracking diagnosis** — the voucher fix is deployed but needs a discount-code transaction to verify the warning is resolved in Awin's dashboard.
-- [ ] **Dev server Awin env vars** — `AWIN_ENABLED`, `AWIN_MERCHANT_ID`, `AWIN_COOKIE_DOMAIN=csjones.co` need adding to csjones.co `.env` when dev is next deployed from a branch that includes Awin code.
-- [ ] **Re-enable branch protection** — review requirement on `dev` branch was disabled for PR merges this session. Needs re-enabling.
-
-### Context for Next Session
-
-Production is running the Awin tracking fix + email consolidation as of 16 April. The `onboardingFyn` branch build was restored on the dev server after the `dev` branch build accidentally overwrote it. **CRITICAL lesson recorded in memory: the dev server may be running a different branch than `dev` — always ask which branch is deployed before building/uploading.**
-
-The Awin voucher code mismatch warning should be resolved for future transactions. The next real payment with a discount code will confirm. Monitor the Awin Tracking Diagnosis page.
+**Dev server state:** csjones.co/fynla is running the onboardingFyn build post-88018a5. Next deploy to dev should be AFTER onboardingFyn is merged to `dev`, NOT before (per `feedback_dev_server_is_separate`).
 
 ---
 
-## Session 56 (15 April) — Awin Affiliate Integration Live on Production
+## Outstanding — Tech Debt Deferred
 
-### Completed This Session
-
-- [x] **Full Awin affiliate attribution integration built, bundled with dev branch, and deployed to production.** Merchant ID 126105. Dual-track attribution (browser pixel + server-to-server). Phase 1 scaffold (`config/awin.php`, `CaptureAwcCookie` middleware, `EncryptCookies` exception, CSP extension, 4 new `payments.awin_*` columns via nullable/backfill-safe migration). Phase 2 backend (`AwinTrackingService`, `FireAwinConversionJob` with `tries=3` + backoff `[30s, 5min, 30min]` + idempotent via `awin_fired_at`, wired into `PaymentController::createOrder`/`confirmPayment` + `WebhookController::handleOrderCompleted`, response payload threading). Phase 3 frontend (`resources/js/utils/awinTracking.js`, `cookieConsent` hooks, `router.afterEach` hook, `CheckoutPage.vue` fires browser pixel after GA4 event). 32 new tests (16 unit + 7 job + 9 integration) all green.
-- [x] **Merged `origin/dev` into `awinPlusDev`** to bundle PR #210 (Stocks & Shares ISA + How Much To Retire insight pages) and PR #211 (10 email template redesigns + review carousel + Meta Pixel tracking + persona modal mobile fix + `email:test` artisan command) with the Awin ship. Resolved 3-way merge conflict in `CheckoutPage.vue` (both branches inserted blocks at the same post-GA4 location — kept both, Meta Pixel first then Awin) + clean auto-merges in 2 `.env.production` templates.
-- [x] **Meta Pixel CSP fix** — PR #211 shipped `fbq('track','Subscribe')` but never updated `SecurityHeaders.php`. Added `connect.facebook.net` + `www.facebook.com` to `script-src` / `img-src` / `connect-src`. **Resolves CSJTODO session 51 outstanding item "Meta Pixel CSP — connect.facebook.net and www.facebook.com not in SecurityHeaders.php whitelist."**
-- [x] **PR #197 cleanup** — moved 9 content blueprints from repo root to `Articles/` via `git mv` (history preserved): `faq.md`, `how-it-works.md`, `ice-letters.md`, `iht-planning.md`, `monte-carlo.md`, `net-worth-dashboard.md`, `pension-tracker.md`, `protection-gap.md`, `when-can-i-retire.md`. `SITE_ARCHITECTURE.md` moved to `fynlaBrain/Architecture/`. **Resolves CSJTODO carry-over "PR #197 cleanup — 9 markdown files in repo root should be moved to Articles/"** (was actually 10 files, not 9).
-- [x] **LifeStageService `current_value` typo fix** — diagnosed the "missing migration" CSJTODO item as a **code typo, not a missing migration**. `hasPensionValueAbove()` at line 194 summed `current_value` but the `dc_pensions` table column has always been `current_fund_value`. 57 production errors logged since 8 April (all silently caught in a try/catch). Fixed in commit `1ce51d4`, verified post-deploy against 5 real users with DC pensions returning correct sums (£12k-£844k range). **Resolves CSJTODO carry-over "Fyn Quick Start flow — `dc_pensions.current_value` column missing on prod" and "Run pending migration on production — `dc_pensions.current_value`."** Also confirmed during the investigation that the other two fynQuickStartBugs items (`employment_status` enum missing `full_time`, `users.plan` enum missing `family`) are already resolved on production.
-- [x] **Committed remaining untracked sources** — `awin/` onboarding materials (6 PNGs + integration.md), 4 research `.docx` files, `.claude/skills/security-and-hardening/SKILL.md`. Extended `.gitignore` with `.claude/scheduled_tasks.lock` runtime state file.
-- [x] **Deployed to production in-session.** 23 PHP/Blade files uploaded via SSH with 17-file rollback backup at `~/www/fynla.org/backup/2026-04-15-awin-deploy/`. Migration `2026_04_15_153100_add_awin_tracking_to_payments_table` run on prod. `AWIN_ENABLED=true` added to live `.env`. All Laravel caches cleared + rebuilt. Local production build run via `./deploy/fynla-org/build.sh` with `VITE_AWIN_ENABLED=true` baked in, `public/build/` uploaded by CSJ.
-- [x] **Post-deploy smoke tests all clean.** Playwright verification on `https://fynla.org/`:
-  - 0 console errors (previously 1: Meta Pixel CSP — now fixed)
-  - `window.fbq === 'function'`, PageView queue flushed
-  - `window.AWIN` initialised, `#awin-master-tag` script with `src=https://www.dwin1.com/126105.js` present in DOM
-  - `awc=DEPLOY-SMOKE-2026-04-15` Set-Cookie captured with all 6 attributes: 365d TTL, Secure, HttpOnly, SameSite=Lax, domain=fynla.org, path=/
-  - Both new insight pages render with correct titles: `/insights/stocks-shares-isa-uk`, `/insights/how-much-to-retire-uk`
-  - CSP headers contain all 4 whitelisted domains: `dwin1.com`, `awin1.com`, `connect.facebook.net`, `facebook.com`
-- [x] **Pushed `awinPlusDev` and `awinIntegrate` to origin.** `awinPlusDev` is 8 commits ahead of `main`, tracking `origin/awinPlusDev`.
-- [x] **Full vault sync** — 6 new update notes copied to vault, `Apr15.md` git history file created, April Index updated with Session 56 summary + 11 wikilinks, Home.md updated with new totals (2,219 commits / 279 for April / 11 days) and `AwinIntegration` added to Current State section, CLAUDE.md metrics bumped (Vue 660→663, PHP services 233→234).
-- [x] **Tech debt audit** — clean bill of health across the 14 in-scope files I authored this session. Report at `tech-debt-report.md`. Zero issues found (strict_types ✓, type hints ✓, no hardcoded tax values ✓, no banned colours ✓, no TODO markers ✓, no dead code ✓, all file sizes well under thresholds, security invariants correct).
-
-### NOT Done — Outstanding from Session 56
-
-- [x] **🔴 First real Awin conversion validation** — `awinPlusDev` merged to `main` via PRs #216 + #217 on 16 April. Voucher code mismatch fixed. Awaiting next discount-code transaction to confirm tracking diagnosis is clean. Success criteria: `payments.awin_fired_at` populated, `[awin] s2s fired` entry in `storage/logs/laravel.log` with status 200, sale visible in Awin merchant dashboard within 2h. When validated, merge to main:
-  ```bash
-  git checkout main
-  git merge awinPlusDev --no-ff -m "merge: awinPlusDev → main — Awin live validated"
-  git push origin main
-  ```
-  Then delete `awinIntegrate` (subset of `awinPlusDev`).
-- [ ] **Clean up `public/build/` cruft on production** — directory is currently 207MB with stale hashed files from multiple prior builds. Not a blocker (older files are unreachable from the current `manifest.json`), but future housekeeping task.
-
-### Context for Next Session
-
-Production is running the full Awin stack as of ~20:00 BST on 15 April. Backend cookie capture, S2S job, and admin/preview exclusions are all live. First Meta Pixel `Subscribe` event will fire on next real subscription checkout (CSP fix is live). First Awin S2S will fire when a user with an `awc` cookie completes a payment.
-
-The `awinPlusDev` branch is 8 commits ahead of main, all pushed to origin. Main has received no changes this session — the user explicitly asked to hold the merge until first-conversion validation. If a real Awin conversion lands overnight, tomorrow's session should:
-1. Run the verification tinker command (below) to confirm `awin_fired_at` populated
-2. Grep `storage/logs/laravel.log` for `[awin] s2s fired` entries
-3. If both confirm, merge `awinPlusDev` → `main` and delete the feature branches
-
-Verification command:
-```bash
-ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
-cd ~/www/fynla.org/public_html
-php artisan tinker --execute="\$p = \App\Models\Payment::where('status','completed')->whereNotNull('awin_fired_at')->latest()->first(); echo \$p ? json_encode(['id'=>\$p->id,'cks'=>\$p->awin_cks,'ref'=>\$p->awin_order_ref,'acq'=>\$p->awin_customer_acquisition,'fired'=>\$p->awin_fired_at?->toIso8601String()], JSON_PRETTY_PRINT) : 'no conversion yet';"
-grep '\[awin\]' storage/logs/laravel.log | tail -20
-```
-
----
-
-## Carry-Over From Sessions 51 & 50 — Still Outstanding
-
-- [ ] **Jessica Cracknell (user 301)** — ghost trial cleanup side effect from session 51; she was the only real user in the batch of 11 expired trialing subs. Never received a reminder email. Worth flagging if she gets in touch, and/or a goodwill gesture (trial reset, one-off discount).
-- [ ] **Update `fynlaBrain/Architecture/v083/11-CONFIGURATION-DEPLOYMENT.md`** to document the SiteGround cron setup as a deploy step (so this can never recur on a future server migration).
-- [ ] **Verify cron is still firing on production** — should be running daily per session 51 setup. Check trial_reminder_log + pending_registrations cleanup (hourly) + laravel.log for any scheduler errors.
-- [ ] **Generate missing invoice for payment #17** (user 542, chris@fynla.org) — from session 47.
-- [ ] **`fynNew` branch** (25 Fyn Response Architecture commits) still unmerged.
-- [ ] **Add `.claude/settings.json` to `.gitignore`** — tax-hook path keeps reverting. Note: this is a different file from `.claude/settings.local.json` (already ignored) and `.claude/scheduled_tasks.lock` (ignored by session 56).
-- [ ] **Fyn Quick Start flow "empty user" issue** — the `dc_pensions.current_value` typo blocker is now resolved, but the original fynQuickStartBugs.md report also flagged that `CoordinatingAgent::buildFinancialContext()` runs full module analyses against users with zero data, causing the AI to hallucinate numbers and module agents to error on empty data. Fix options documented in `April/April9Updates/fynQuickStartBugs.md` section 2. The "Quick start with Fyn" CTA is still hidden on the landing page until this is addressed.
-- [ ] **Lifecycle email engine (PR #212)** still not deployed. Still targeted at main. Requires conflict resolution in `trial-expiration-reminder.blade.php` (PR #211 redesigned it, PR #212 palette-fixed it) when it comes time to ship.
-
----
-
-## Outstanding — Tech Debt (Deferred from Code Review)
-
-### Duplicate Code Consolidation (from 9 April audit)
-- [ ] DUP-01: Consolidate `determineTaxBand` — 7 implementations across services → UKTaxCalculator
-- [ ] DUP-02: Consolidate DC pension annual contribution — 5 duplicates
-- [ ] DUP-03: Consolidate pension tax relief — 3 duplicates
-- [ ] DUP-04: Consolidate `calculateFutureValue` — 5 duplicates (shared service exists but not injected)
-- [ ] CONV-03: Migrate 22 Vue components from direct currency import to currencyMixin
-
-### God Class Refactors (multi-session each)
-- [ ] RetirementIncomeService.php (2,292L) → extract ProjectionEngine, PCLSCalculatorService, AllocationStrategyService
-- [ ] IHTCalculationService.php (1,641L) → extract CharitableRateCalculator, RNRBCalculator, ProjectedEstateService
-- [ ] UserProfileService::getFinancialCommitments (421-line method)
-- [ ] User.php (713L, 59 methods) → extract HasSubscription trait, DomicileService
-- [ ] InvestmentAccount.php (492L, ~164 fillable) → polymorphic sub-type tables
-- [ ] TaxSettings.vue (3,068L), ExpenditureForm.vue (2,574L), CalculatorsPage.vue (2,471L), Dashboard.vue (2,215L), RetirementIncomeTab.vue (2,107L)
-
-### Architectural Debt
-- [ ] Float-to-decimal cast sweep across 9 models (65 columns)
-- [ ] FormRequest migration across 26 controllers (~78 new classes)
-- [ ] API Resource extraction for 92 controllers returning raw JSON
-- [ ] Split InvestmentController (1,070L) + AdminController (794L) + GoalsController (792L)
-- [ ] Nonce-based CSP to replace `unsafe-inline` (MEDIUM-01 from security audit)
-- [ ] npm audit fix (14 vulnerabilities, 11 high — breaking changes need testing)
-
-### Test Coverage Gaps
-- [ ] ~85 services with zero tests (IHTCalculationService most critical)
-- [ ] Investment Analytics/Rebalancing/Performance/Tax subdirectories entirely untested (~35 services)
-- [ ] AutoRiskCalculatorTest — `risk_level` column enum doesn't accept `medium_low` (2 pre-existing failures)
+- [ ] `handleSetExpenditure` spouse sync (F11 — in release scope as Nice-to-have)
+- [ ] `handleUpdateProfile` spouse sync (F10 — in release scope as Nice-to-have)
+- [ ] 7 entity types missing duplicate-name checks (F9 — in release scope as Nice-to-have)
+- [ ] NPM `--force` audit (vite 8 + @capacitor/cli 8 major bumps) — deferred pending iOS regression window
+- [ ] `AutoRiskCalculatorTest` enum truncation — pre-existing since 16 April, not related to this work
 
 ## Known Issues
 
-- [ ] Retirement "Other Assets" cards overflow at 1118px
-- [ ] DB pension field mapping mismatch
-- [ ] Expenditure form fill doesn't animate
-- [ ] property_sale life event creates property record (double navigation)
-- [ ] 3 flaky WillBuilder tests (`tests/Feature/Estate/WillBuilderApiTest.php`) — "James Serenity Carter" persona middle name pollution only surfaces under full-suite ordering. Pass 14/14 in isolation. Pre-existing on main, not introduced by this session's work.
+- **Spouse email collision loops user with no diagnostic** — tracked as F2/FR-M13 in PRD, Must-have.
+- **Post-onboarding Fyn "my rent is £X" doesn't surface on dashboard** — tracked as F1/FR-M12 in PRD, Must-have. Same bug pattern as the onboarding fix in 88018a5, different handler.
+- **Family asset_capture occasionally emits off-script property/mortgage questions** — tracked as F3/FR-M14 in PRD, Must-have.
+- **`handleUpdateRecord` allows LLM to update any fillable field** — tracked as F4/FR-S1 in PRD. Includes `Trust.settlor`, `Mortgage.start_date`, `FamilyMember.relationship`. Security-adjacent.
 
 ## Deploy Status
 
-- **PR #208 (claudeReview):** DEPLOYED 9 April 2026 — spouse toggle, dashboard refresh, markdown, enum, tier gating
-- **Trial reminder migration (notifications table):** DEPLOYED 14 April 2026
-- **Production cron entry:** ADDED 14 April 2026 via SiteGround Site Tools — verified firing on 15 April
-- **`awinPlusDev` bundle:** DEPLOYED 15 April 2026 — Awin integration (phases 1-3) + PR #210 insight pages + PR #211 email redesigns + review carousel + Meta Pixel tracking + Meta Pixel CSP fix + LifeStageService typo fix. Branch not yet merged to main (holding for first real conversion validation).
-- **Awin tracking fix + email consolidation:** DEPLOYED 16 April 2026 — `voucher` property name fix (was `voucherCode`), MasterTag defer-only, payment email consolidation (single email with invoice PDF), Affiliate Reference conditional on AWC cookie. PR #216 (awinPlusDev → dev).
-- **Fyn chat fix (fynChatFix):** DEPLOYED TO DEV 16 April 2026 — tool metadata stripping, path→link conversion, savings query tool routing fix. On `onboardingFyn` branch. Not yet on production.
-- **Lifecycle email engine (PR #212):** NOT DEPLOYED. Still targeted at main. Requires merge conflict resolution with PR #211's `trial-expiration-reminder.blade.php` redesign.
+**Production (fynla.org):** Running commit `a14f17a` (PR #219 Admin Insights CMS) + `062c7c7` (tooling audit). Full Admin Insights CMS live.
+
+**Dev (csjones.co/fynla):** Running onboardingFyn + `88018a5` post-deploy. The 4 bug fixes are live on dev; the remaining P0/P1/P2 work from the PRD is not yet deployed.
+
+**Pending deploy path:** `onboardingFyn → dev` (after all Must-have P0 items land and pass browser verification) → `dev → main` (after dev stability for ≥ 48 hours).
