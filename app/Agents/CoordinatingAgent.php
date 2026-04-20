@@ -1003,43 +1003,66 @@ class CoordinatingAgent extends BaseAgent
      * capture_work_details — writes employer + occupation + income to
      * users. For self-employed users, income lands on
      * annual_self_employment_income instead of annual_employment_income.
+     *
+     * Accepts partial payloads: whichever non-empty fields are present get
+     * written, and the return value reports any still-missing fields so the
+     * director can emit a targeted retry instead of re-asking for all three.
+     * Fields already populated on the user row count as present — this lets
+     * multi-turn extraction accumulate without re-asking.
      */
     private function handleCaptureWorkDetails(array $input, User $user): array
     {
         $employer = trim((string) ($input['employer'] ?? ''));
         $occupation = trim((string) ($input['occupation'] ?? ''));
-        $income = isset($input['annual_income']) ? (float) $input['annual_income'] : null;
+        $incomeRaw = $input['annual_income'] ?? null;
+        $income = ($incomeRaw === null || $incomeRaw === '') ? null : (float) $incomeRaw;
 
-        if ($employer === '' || $occupation === '' || $income === null || $income < 0) {
-            return ['error' => true, 'message' => 'employer, occupation, and annual_income are required'];
-        }
-
-        if ($income > 99_999_999) {
+        if ($income !== null && $income > 99_999_999) {
             return ['error' => true, 'message' => 'annual_income exceeds permitted range'];
         }
+        if ($income !== null && $income < 0) {
+            $income = null;
+        }
 
-        $user->employer = $employer;
-        $user->occupation = $occupation;
+        $incomeField = $user->employment_status === 'self_employed'
+            ? 'annual_self_employment_income'
+            : 'annual_employment_income';
 
-        if ($user->employment_status === 'self_employed') {
-            $user->annual_self_employment_income = $income;
-        } else {
-            $user->annual_employment_income = $income;
+        if ($employer !== '') {
+            $user->employer = $employer;
+        }
+        if ($occupation !== '') {
+            $user->occupation = $occupation;
+        }
+        if ($income !== null) {
+            $user->{$incomeField} = $income;
         }
 
         $user->save();
 
+        $missing = [];
+        if (trim((string) ($user->employer ?? '')) === '') {
+            $missing[] = 'employer';
+        }
+        if (trim((string) ($user->occupation ?? '')) === '') {
+            $missing[] = 'occupation';
+        }
+        if ((float) ($user->{$incomeField} ?? 0) <= 0) {
+            $missing[] = 'annual_income';
+        }
+
         return [
             'onboarding_capture' => true,
             'field_group' => 'work',
-            'summary' => 'Work details saved',
+            'summary' => count($missing) === 0
+                ? 'Work details saved'
+                : 'Partial work details saved — still need: '.implode(', ', $missing),
             'details' => [
-                'employer' => $employer,
-                'occupation' => $occupation,
-                'annual_income' => $income,
-                'income_field' => $user->employment_status === 'self_employed'
-                    ? 'annual_self_employment_income'
-                    : 'annual_employment_income',
+                'employer' => $user->employer,
+                'occupation' => $user->occupation,
+                'annual_income' => (float) ($user->{$incomeField} ?? 0),
+                'income_field' => $incomeField,
+                'missing' => $missing,
             ],
         ];
     }
