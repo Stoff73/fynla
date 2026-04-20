@@ -102,33 +102,66 @@ describe('OnboardingStateMachine::nextFromPathChoice', function () {
 
 describe('OnboardingStateMachine::nextFromPersonal (post base_personal branch)', function () {
     it('routes married users to base_spouse', function () {
-        $user = User::factory()->create(['marital_status' => 'married']);
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => 'married',
+        ]);
         expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
     });
 
     it('routes civil partnership users to base_spouse', function () {
-        $user = User::factory()->create(['marital_status' => 'civil_partnership']);
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => 'civil_partnership',
+        ]);
         expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_SPOUSE);
     });
 
     it('routes single users straight to dependants', function () {
-        $user = User::factory()->create(['marital_status' => 'single']);
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => 'single',
+        ]);
         expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
     });
 
     it('routes divorced users straight to dependants', function () {
-        $user = User::factory()->create(['marital_status' => 'divorced']);
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => 'divorced',
+        ]);
         expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
     });
 
     it('routes widowed users straight to dependants', function () {
-        $user = User::factory()->create(['marital_status' => 'widowed']);
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => 'widowed',
+        ]);
         expect(OnboardingStateMachine::nextFromPersonal('', $user))
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS);
+    });
+
+    it('stays on base_personal when DOB is captured but marital is still null (FR-M10 partial)', function () {
+        $user = User::factory()->create([
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => null,
+        ]);
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
+            ->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
+    });
+
+    it('stays on base_personal when marital is captured but DOB is still null (FR-M10 partial)', function () {
+        $user = User::factory()->create([
+            'date_of_birth' => null,
+            'marital_status' => 'married',
+        ]);
+        expect(OnboardingStateMachine::nextFromPersonal('', $user))
+            ->toBe(OnboardingStateMachine::STATE_BASE_PERSONAL);
     });
 });
 

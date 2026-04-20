@@ -796,72 +796,85 @@ class CoordinatingAgent extends BaseAgent
             'raw_marital' => $marital,
         ]);
 
-        if ($dob === '' || $marital === '') {
-            Log::warning('[CoordinatingAgent] handleCapturePersonalDetails rejected: missing field', [
+        // FR-M10 — accept partial captures. If the LLM provided neither
+        // field the tool call captured nothing, so surface the generic
+        // retry. Any one field is enough: the state machine will stay on
+        // base_personal and the next prompt (via buildPersonalPrompt) will
+        // pre-confirm the field we have and ask for the missing one.
+        if ($dob === '' && $marital === '') {
+            Log::warning('[CoordinatingAgent] handleCapturePersonalDetails rejected: both fields empty', [
                 'user_id' => $user->id,
-                'dob_empty' => $dob === '',
-                'marital_empty' => $marital === '',
             ]);
 
-            return ['error' => true, 'message' => 'date_of_birth and marital_status are both required'];
+            return ['error' => true, 'message' => 'date_of_birth or marital_status is required'];
         }
 
-        // Parse DOB — accept YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY and
-        // natural-language forms. Slashed DD/MM/YYYY is UK-ambiguous with
-        // MDY, so handle it explicitly so "10/04/1985" is parsed as the
-        // 10th of April rather than October 4.
-        $carbonDob = null;
-        try {
-            if (preg_match('#^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$#', $dob, $m)) {
-                $d = (int) $m[1];
-                $mo = (int) $m[2];
-                $y = (int) $m[3];
-                if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                    $carbonDob = \Carbon\Carbon::create($y, $mo, $d, 0, 0, 0);
+        if ($dob !== '') {
+            // Parse DOB — accept YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY and
+            // natural-language forms. Slashed DD/MM/YYYY is UK-ambiguous
+            // with MDY, so handle it explicitly so "10/04/1985" parses as
+            // the 10th of April rather than October 4.
+            $carbonDob = null;
+            try {
+                if (preg_match('#^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$#', $dob, $m)) {
+                    $d = (int) $m[1];
+                    $mo = (int) $m[2];
+                    $y = (int) $m[3];
+                    if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
+                        $carbonDob = \Carbon\Carbon::create($y, $mo, $d, 0, 0, 0);
+                    }
                 }
+                if ($carbonDob === null) {
+                    $carbonDob = \Carbon\Carbon::parse($dob);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[CoordinatingAgent] DOB parse failed', [
+                    'user_id' => $user->id,
+                    'raw_dob' => $dob,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return ['error' => true, 'message' => 'Invalid date_of_birth — use YYYY-MM-DD, DD/MM/YYYY, or a natural-language date'];
             }
-            if ($carbonDob === null) {
-                $carbonDob = \Carbon\Carbon::parse($dob);
+
+            $age = (int) $carbonDob->diffInYears(\Carbon\Carbon::now());
+            if ($age < 18 || $age > 105) {
+                Log::warning('[CoordinatingAgent] DOB outside age bounds', [
+                    'user_id' => $user->id,
+                    'parsed_dob' => $carbonDob->format('Y-m-d'),
+                    'age' => $age,
+                ]);
+
+                return ['error' => true, 'message' => 'date_of_birth gives an age outside 18–105'];
             }
-        } catch (\Throwable $e) {
-            Log::warning('[CoordinatingAgent] DOB parse failed', [
-                'user_id' => $user->id,
-                'raw_dob' => $dob,
-                'error' => $e->getMessage(),
-            ]);
 
-            return ['error' => true, 'message' => 'Invalid date_of_birth — use YYYY-MM-DD, DD/MM/YYYY, or a natural-language date'];
+            $user->date_of_birth = $carbonDob->format('Y-m-d');
         }
 
-        $age = (int) $carbonDob->diffInYears(\Carbon\Carbon::now());
-        if ($age < 18 || $age > 105) {
-            Log::warning('[CoordinatingAgent] DOB outside age bounds', [
-                'user_id' => $user->id,
-                'parsed_dob' => $carbonDob->format('Y-m-d'),
-                'age' => $age,
-            ]);
+        if ($marital !== '') {
+            $allowedMarital = ['single', 'married', 'civil_partnership', 'divorced', 'widowed'];
+            if (! in_array($marital, $allowedMarital, true)) {
+                Log::warning('[CoordinatingAgent] marital_status not in allowed enum', [
+                    'user_id' => $user->id,
+                    'raw_marital' => $marital,
+                ]);
 
-            return ['error' => true, 'message' => 'date_of_birth gives an age outside 18–105'];
+                return ['error' => true, 'message' => 'Invalid marital_status'];
+            }
+
+            $user->marital_status = $marital;
         }
 
-        $allowedMarital = ['single', 'married', 'civil_partnership', 'divorced', 'widowed'];
-        if (! in_array($marital, $allowedMarital, true)) {
-            Log::warning('[CoordinatingAgent] marital_status not in allowed enum', [
-                'user_id' => $user->id,
-                'raw_marital' => $marital,
-            ]);
-
-            return ['error' => true, 'message' => 'Invalid marital_status'];
-        }
-
-        $user->date_of_birth = $carbonDob->format('Y-m-d');
-        $user->marital_status = $marital;
         $user->save();
 
         Log::info('[CoordinatingAgent] handleCapturePersonalDetails saved', [
             'user_id' => $user->id,
             'dob' => $user->date_of_birth?->format('Y-m-d'),
             'marital_status' => $user->marital_status,
+            'captured_this_turn' => [
+                'date_of_birth' => $dob !== '',
+                'marital_status' => $marital !== '',
+            ],
         ]);
 
         return [
