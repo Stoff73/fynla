@@ -74,6 +74,7 @@ class EventServiceProvider extends ServiceProvider
         IncomeProtectionPolicy::class => [RecommendationCacheObserver::class],
         DisabilityPolicy::class => [RecommendationCacheObserver::class],
         SicknessIllnessPolicy::class => [RecommendationCacheObserver::class],
+        \App\Models\Estate\Trust::class => [\App\Observers\TrustObserver::class],
     ];
 
     /**

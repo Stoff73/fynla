@@ -13,6 +13,7 @@ use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
+use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -911,6 +912,16 @@ class CoordinatingAgent extends BaseAgent
                 'email' => $email,
                 'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ]);
+        } catch (\App\Exceptions\SpouseCollisionException $e) {
+            // FR-M13 — distinguish the "email belongs to another household"
+            // case so the director can emit a targeted terminal error
+            // instead of the generic grouped_extract retry copy.
+            return [
+                'onboarding_capture_error' => true,
+                'field_group' => 'spouse',
+                'error_type' => 'spouse_collision',
+                'message' => "That email's already registered with another Fynla household. Want to use a different address for your partner, or ask them to link their own account?",
+            ];
         } catch (\InvalidArgumentException $e) {
             return ['error' => true, 'message' => $e->getMessage()];
         } catch (\Throwable $e) {
@@ -2614,29 +2625,12 @@ class CoordinatingAgent extends BaseAgent
             'purpose' => $input['purpose'] ?? null,
         ];
 
-        // Automatically record a CLT gift when a trust is created with an initial value.
-        // A trust settlement is a Chargeable Lifetime Transfer for IHT purposes — the 7-year
-        // rule and taper relief must be tracked. We save directly to DB since only one form
-        // can be filled at a time.
-        $cltMessage = '';
-        if ($initialValue > 0) {
-            try {
-                \App\Models\Estate\Gift::create([
-                    'user_id' => $user->id,
-                    'gift_date' => substr($creationDate, 0, 10),
-                    'recipient' => $input['trust_name'],
-                    'gift_type' => 'clt',
-                    'gift_value' => $initialValue,
-                    'notes' => 'Chargeable Lifetime Transfer — settlement into trust. Auto-recorded.',
-                ]);
-                $cltMessage = " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.';
-            } catch (\Exception $e) {
-                Log::warning('[CoordinatingAgent] Failed to auto-create CLT gift for trust', [
-                    'trust_name' => $input['trust_name'],
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        // FR-M15 — CLT Gift creation moved to TrustObserver::created. The
+        // observer writes the Gift if and only if the Trust row is saved,
+        // which prevents orphan CLT rows when the user cancels the form.
+        $cltMessage = $initialValue > 0
+            ? " Once you save it, I'll also record a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.'
+            : '';
 
         return [
             'action' => 'fill_form',
@@ -2778,6 +2772,17 @@ class CoordinatingAgent extends BaseAgent
         $updateData['annual_expenditure'] = $total * 12;
         $updateData['use_simple_entry'] = false;
         $user->update($updateData);
+
+        // FR-M12 — mirror the monthly total into ExpenditureProfile so the
+        // dashboard expenditure widget (which reads total_monthly_expenditure
+        // off the profile, not users.monthly_expenditure) reflects the change
+        // immediately. Without this, Fyn confirms "captured" but the
+        // dashboard stays blank. Same pattern as the onboarding fix in
+        // OnboardingChatDirector::persistCapture (commit 88018a5).
+        ExpenditureProfile::updateOrCreate(
+            ['user_id' => $user->id],
+            ['total_monthly_expenditure' => $total],
+        );
 
         $formatted = collect($updateData)
             ->except(['monthly_expenditure', 'annual_expenditure', 'use_simple_entry'])

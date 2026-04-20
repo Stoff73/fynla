@@ -699,6 +699,7 @@ final class OnboardingChatDirector
 
         $captureReceived = false;
         $captureDetails = [];
+        $captureError = null;
 
         try {
             $generator = $this->coordinatingAgent->chatWithPromptOverride(
@@ -729,6 +730,18 @@ final class OnboardingChatDirector
                     // communicate termination — the max-tool-calls limit
                     // catches it but wastes latency. We have everything we
                     // need; abandon the rest of the delegation.
+                    break;
+                }
+
+                // FR-M13 — structured onboarding capture error (e.g. the
+                // spouse email is already bound to another household).
+                // Halt the delegation and hand off to emitTerminalError
+                // below with the handler's friendly copy.
+                if (($event['type'] ?? '') === 'onboarding_capture_error') {
+                    $captureError = [
+                        'error_type' => (string) ($event['error_type'] ?? 'unknown'),
+                        'message' => (string) ($event['message'] ?? ''),
+                    ];
                     break;
                 }
 
@@ -768,6 +781,16 @@ final class OnboardingChatDirector
             ]);
 
             yield from $this->emitRetry($conversation, $state, $currentStateId);
+
+            return;
+        }
+
+        // FR-M13 — emit a targeted terminal error instead of the generic
+        // retry when the handler surfaced a distinct error_type. State is
+        // left on the current grouped_extract so the user's next message
+        // re-enters this same handler.
+        if ($captureError !== null) {
+            yield from $this->emitTerminalError($conversation, $currentStateId, $captureError);
 
             return;
         }
@@ -859,6 +882,35 @@ final class OnboardingChatDirector
         ]);
 
         yield ['type' => 'content', 'text' => $retryText];
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * FR-M13 — emit a targeted terminal error that replaces the generic
+     * retry_text with the handler's own copy (e.g. the spouse-collision
+     * message). State is left unchanged so the next user reply routes
+     * back through the same grouped_extract handler.
+     *
+     * @param  array{error_type: string, message: string}  $captureError
+     */
+    private function emitTerminalError(
+        AiConversation $conversation,
+        string $currentStateId,
+        array $captureError
+    ): \Generator {
+        $text = $captureError['message'] !== ''
+            ? $captureError['message']
+            : "Something went wrong. Could you try again?";
+
+        $message = $this->saveMessage($conversation, 'assistant', $text, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_terminal_error' => true,
+                'error_type' => $captureError['error_type'] ?? 'unknown',
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $text];
         yield ['type' => 'done', 'message_id' => $message->id];
     }
 
@@ -1009,7 +1061,53 @@ PROMPT;
                 persistUserMessage: false, // already saved at top of handleUserMessage
             );
 
+            // FR-M14 — selective content-event filter. Swallow content
+            // events that either (a) contain a question mark (the LLM
+            // has gone off-script and is asking about property/mortgages/
+            // etc. despite the tightened prompt) or (b) arrive in a turn
+            // where zero tool calls were made (empty turn — the director
+            // will advance to add_more below anyway, and the LLM's
+            // acknowledgment text would only confuse the user). Single-
+            // sentence confirmations alongside tool calls (the "Got it —
+            // recording those now." case) are preserved.
+            $toolCallsSeen = 0;
+            $pendingContent = [];
             foreach ($generator as $event) {
+                $type = $event['type'] ?? '';
+
+                if ($type === 'tool_use' || $type === 'tool_success') {
+                    $toolCallsSeen++;
+                    // Flush any queued pre-tool content now that we know
+                    // at least one tool call happened this turn.
+                    foreach ($pendingContent as $queued) {
+                        yield $queued;
+                    }
+                    $pendingContent = [];
+                    yield $event;
+
+                    continue;
+                }
+
+                if ($type === 'content') {
+                    $text = (string) ($event['text'] ?? '');
+                    if (str_contains($text, '?')) {
+                        // Off-script question — drop it outright.
+                        continue;
+                    }
+                    if ($toolCallsSeen === 0) {
+                        // No tool calls yet — queue and decide at the end
+                        // of the turn. If tool calls follow, flush the
+                        // queue; if not, drop it.
+                        $pendingContent[] = $event;
+
+                        continue;
+                    }
+                    // Legitimate post-tool confirmation.
+                    yield $event;
+
+                    continue;
+                }
+
                 yield $event;
             }
         } catch (\Throwable $e) {

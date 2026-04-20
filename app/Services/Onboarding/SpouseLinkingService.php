@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Exceptions\SpouseCollisionException;
 use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
@@ -115,7 +116,7 @@ final class SpouseLinkingService
         }
 
         if ($spouseUser->spouse_id && $spouseUser->spouse_id !== $currentUser->id) {
-            throw new \InvalidArgumentException('This user is already linked to another spouse.');
+            throw new SpouseCollisionException('This email is already linked to another Fynla household.');
         }
 
         // Already linked to current user — make sure the FamilyMember
@@ -153,7 +154,7 @@ final class SpouseLinkingService
         $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data, $maritalStatus) {
             $lockedSpouse = User::lockForUpdate()->find($spouseUser->id);
             if ($lockedSpouse->spouse_id && $lockedSpouse->spouse_id !== $currentUser->id) {
-                throw new \RuntimeException('Spouse was linked to another user during transaction.');
+                throw new SpouseCollisionException('Spouse was linked to another user during transaction.');
             }
 
             $currentUser->spouse_id = $lockedSpouse->id;
