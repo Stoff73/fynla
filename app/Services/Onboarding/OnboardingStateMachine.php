@@ -348,11 +348,22 @@ final class OnboardingStateMachine
 
     /**
      * After base_personal (grouped DOB + marital_status), branch:
+     *  - partial capture (either field still null) → stay on base_personal
+     *    so buildPersonalPrompt (FR-M10) can pre-confirm the captured
+     *    field and ask for the missing one
      *  - married or civil_partnership → base_spouse
      *  - single / divorced / widowed → base_dependants
      */
     public static function nextFromPersonal(string $answer, User $user): string
     {
+        // FR-M10 — stay on base_personal until both fields are captured.
+        // Needed because capture_personal_details now accepts partial
+        // payloads; without this guard a DOB-only reply would branch
+        // straight to base_dependants with marital_status still null.
+        if (empty($user->date_of_birth) || empty($user->marital_status)) {
+            return self::STATE_BASE_PERSONAL;
+        }
+
         $marital = $user->marital_status ?? '';
         if (in_array($marital, ['married', 'civil_partnership'], true)) {
             return self::STATE_BASE_SPOUSE;

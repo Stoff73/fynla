@@ -968,21 +968,21 @@ class AiToolDefinitions
         $tools = [
             [
                 'name' => 'capture_personal_details',
-                'description' => 'Capture the user\'s date of birth and marital status from a free-text reply during onboarding. Call this once per turn. Do not call any other tool.',
+                'description' => 'Capture the user\'s date of birth and/or marital status from a free-text reply during onboarding. Call this once per turn. Do not call any other tool. CRITICAL: only include a field in the arguments when the user has EXPLICITLY stated it in their reply. Do not guess, infer, or default any field. If the user only gave their date of birth, include only date_of_birth. If they only gave their marital status, include only marital_status. Omit a field entirely rather than inventing a value — the onboarding flow will re-ask for anything missing.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'date_of_birth' => [
                             'type' => 'string',
-                            'description' => 'Date of birth in YYYY-MM-DD format. Parse natural language dates like "12 January 1985" into ISO format.',
+                            'description' => 'Date of birth in YYYY-MM-DD format, parsed from natural language like "12 January 1985". Only include this field if the user explicitly stated a date of birth.',
                         ],
                         'marital_status' => [
                             'type' => 'string',
                             'enum' => ['single', 'married', 'civil_partnership', 'divorced', 'widowed'],
-                            'description' => 'The user\'s marital status. Map phrases: "married" → married, "civil partnership" or "civil partner" → civil_partnership, "single" or "unmarried" → single, "divorced" or "separated" → divorced, "widowed" or "widow" → widowed.',
+                            'description' => 'The user\'s marital status. Only include this field if the user explicitly stated their marital status. Map phrases: "married" → married, "civil partnership" or "civil partner" → civil_partnership, "single" or "unmarried" → single, "divorced" or "separated" → divorced, "widowed" or "widow" → widowed.',
                         ],
                     ],
-                    'required' => ['date_of_birth', 'marital_status'],
+                    'required' => [],
                     'additionalProperties' => false,
                 ],
             ],
