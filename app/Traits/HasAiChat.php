@@ -68,6 +68,14 @@ trait HasAiChat
     private ?array $toolsListOverride = null;
 
     /**
+     * Persona tag applied to the assistant AiMessage row persisted by this
+     * chat() call. Used by FynPersonaInvoker so the orchestrator can group
+     * history by persona. Null outside persona-split turns (existing flows
+     * leave ai_messages.persona null for backwards compatibility).
+     */
+    private ?string $personaOverride = null;
+
+    /**
      * Send a message and yield SSE chunks.
      *
      * @return \Generator yields SSE event arrays
@@ -434,6 +442,18 @@ trait HasAiChat
                         ];
                     }
 
+                    // Persona-split handoff — intercepted by FynPersonaInvoker.
+                    // The invoker strips this event from the outbound SSE and
+                    // hands the payload back to FynPersonaOrchestrator for
+                    // state-transition evaluation. Never shown to the user.
+                    if (isset($toolResult['action']) && $toolResult['action'] === 'handoff') {
+                        yield [
+                            'type' => 'handoff',
+                            'handoff_type' => $toolResult['handoff_type'] ?? 'unknown',
+                            'payload' => $toolResult['payload'] ?? [],
+                        ];
+                    }
+
                     // Handle entity creation results
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
                         yield [
@@ -553,12 +573,18 @@ trait HasAiChat
                 : 0;
         }
 
-        $assistantMessage = $this->saveMessage($conversation, 'assistant', $fullResponse, array_merge([
+        $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
             'system_prompt' => $systemPrompt,
-        ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []));
+        ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
+
+        if ($this->personaOverride !== null) {
+            $assistantExtra['persona'] = $this->personaOverride;
+        }
+
+        $assistantMessage = $this->saveMessage($conversation, 'assistant', $fullResponse, $assistantExtra);
 
         // Update conversation token usage
         $conversation->incrementTokenUsage($totalInputTokens, $totalOutputTokens);
@@ -768,12 +794,14 @@ trait HasAiChat
         ?string $systemPrompt,
         ?array $allowedTools,
         bool $skipUserMessagePersistence = false,
-        ?array $toolsListOverride = null
+        ?array $toolsListOverride = null,
+        ?string $personaOverride = null,
     ): void {
         $this->systemPromptOverride = $systemPrompt;
         $this->allowedToolsOverride = $allowedTools;
         $this->skipUserMessagePersistence = $skipUserMessagePersistence;
         $this->toolsListOverride = $toolsListOverride;
+        $this->personaOverride = $personaOverride;
     }
 
     public function clearChatOverrides(): void
@@ -782,5 +810,6 @@ trait HasAiChat
         $this->allowedToolsOverride = null;
         $this->skipUserMessagePersistence = false;
         $this->toolsListOverride = null;
+        $this->personaOverride = null;
     }
 }

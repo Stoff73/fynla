@@ -691,6 +691,56 @@ final class QuerySchemas
     }
 
     /**
+     * Detect advice-shaped phrasing in a user message. Used by
+     * FynPersonaOrchestrator's classifier fast-path: even if the primary
+     * classification is DATA_ENTRY, the presence of any of these phrases
+     * indicates the user is also asking for analysis, so the orchestrator
+     * falls through to advice Fyn rather than bypassing it.
+     *
+     * Case-insensitive, word-boundary-aware. Intentionally permissive —
+     * false positives are preferable to misrouting a genuine advice query.
+     */
+    public static function isAdviceShaped(string $message): bool
+    {
+        $patterns = [
+            '/\bshould\s+i\b/i',
+            '/\bwhat\s+(about|if)\b/i',
+            '/\bhow\s+(much|should|can|do|would)\b/i',
+            '/\bam\s+i\b/i',
+            '/\bcan\s+you\s+(explain|help|tell)\b/i',
+            '/\bwhy\b/i',
+            '/\brecommend/i',
+            '/\badvice\b/i',
+            '/\bcompare\b/i',
+            '/\bprojection\b/i',
+            '/\bforecast\b/i',
+            '/\bthoughts\?/i',
+            '/\bis\s+that\s+enough\b/i',
+            '/\bis\s+this\s+enough\b/i',
+            '/\bwhat\s+do\s+you\s+think\b/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        // Belt-and-braces: if the message contains a question mark AND has
+        // more than one sentence/clause, fall through to advice. This
+        // catches "Add my ISA £5k, thoughts?" style mixed-intent messages.
+        if (str_contains($message, '?')) {
+            // Count rough clause separators (comma, period, question, newline)
+            $clauseSeparators = preg_match_all('/[,.?!\n]/', $message);
+            if ($clauseSeparators !== false && $clauseSeparators >= 2) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get merged relevant triggers for a classification (primary + related).
      * For holistic_health, returns ALL triggers from all types.
      */

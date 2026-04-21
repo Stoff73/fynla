@@ -104,12 +104,14 @@ class CoordinatingAgent extends BaseAgent
         ?array $allowedTools,
         bool $persistUserMessage = true,
         ?array $toolsListOverride = null,
+        ?string $personaOverride = null,
     ): \Generator {
         $this->setChatOverrides(
             systemPrompt: $systemPromptOverride,
             allowedTools: $allowedTools,
             skipUserMessagePersistence: ! $persistUserMessage,
             toolsListOverride: $toolsListOverride,
+            personaOverride: $personaOverride,
         );
 
         try {
@@ -710,6 +712,19 @@ class CoordinatingAgent extends BaseAgent
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
+                // Handoff tools — stubbed so HasAiChat doesn't error, intercepted
+                // by FynPersonaInvoker via the synthetic 'handoff' SSE event
+                // yielded downstream from this result.
+                'delegate_to_capture' => [
+                    'action' => 'handoff',
+                    'handoff_type' => 'delegate_to_capture',
+                    'payload' => $input,
+                ],
+                'capture_complete' => [
+                    'action' => 'handoff',
+                    'handoff_type' => 'capture_complete',
+                    'payload' => $input,
+                ],
                 'capture_personal_details' => $this->handleCapturePersonalDetails($input, $user),
                 'capture_spouse_details' => $this->handleCaptureSpouseDetails($input, $user),
                 'capture_dependants' => $this->handleCaptureDependants($input, $user),
