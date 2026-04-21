@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AiConversation extends Model
 {
+    use HasFactory;
     use SoftDeletes;
 
     protected $fillable = [
@@ -24,6 +26,8 @@ class AiConversation extends Model
         'message_count',
         'last_message_at',
         'metadata',
+        'persona_state',
+        'onboarding_parked_facts',
     ];
 
     protected $casts = [
@@ -32,6 +36,8 @@ class AiConversation extends Model
         'message_count' => 'integer',
         'last_message_at' => 'datetime',
         'metadata' => 'array',
+        'persona_state' => 'array',
+        'onboarding_parked_facts' => 'array',
     ];
 
     public function user(): BelongsTo
