@@ -22,6 +22,7 @@ const AdvisorsPage = () => import('@/views/Public/AdvisorsPage.vue');
 const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
+const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
 const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
@@ -214,6 +215,36 @@ const routes = [
     path: '/quickstart',
     name: 'QuickStart',
     component: QuickStartPage,
+    meta: { public: true },
+  },
+  {
+    path: '/savetax',
+    name: 'CampaignSaveTax',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/biggerpension',
+    name: 'CampaignBiggerPension',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/paymortgage',
+    name: 'CampaignPayMortgage',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/managedebt',
+    name: 'CampaignManageDebt',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/wealth',
+    name: 'CampaignWealth',
+    component: CampaignPage,
     meta: { public: true },
   },
   {

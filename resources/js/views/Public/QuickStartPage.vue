@@ -9,12 +9,6 @@
         <p class="text-lg text-white/70 max-w-2xl mb-6">
           Your complete UK financial planning platform. See your full financial picture, get clear recommendations, and take control of your future.
         </p>
-        <router-link
-          to="/register"
-          class="inline-block px-10 py-3 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-all"
-        >
-          Start your free trial
-        </router-link>
       </div>
     </div>
 
@@ -62,7 +56,7 @@
 
             <router-link
               to="/register?from=fyn"
-              class="inline-block px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap"
+              class="inline-block px-12 py-3 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-colors whitespace-nowrap"
             >
               Quick start with Fyn
             </router-link>
@@ -190,7 +184,7 @@
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
           Start your free 7-day trial today. No credit card required.
         </p>
-        <router-link to="/register" class="inline-block px-8 py-3 bg-raspberry-500 text-white text-lg font-semibold rounded-lg hover:bg-raspberry-600 transition-colors">
+        <router-link to="/register?from=fyn" class="inline-block px-8 py-3 bg-spring-500 text-white text-lg font-semibold rounded-lg hover:bg-spring-600 transition-colors">
           Get started for free
         </router-link>
       </div>
