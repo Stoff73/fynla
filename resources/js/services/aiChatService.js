@@ -148,6 +148,51 @@ const aiChatService = {
 
         return response.body.getReader();
     },
+
+    /**
+     * Post a routed action (resume / continue / restart / skip) against
+     * an existing conversation. Replaces the old sentinel-string user-
+     * message path. Returns a ReadableStream reader; the caller consumes
+     * the SSE stream exactly like sendMessageStream.
+     *
+     * @param {number} conversationId
+     * @param {'resume'|'continue'|'restart'|'skip'} action
+     */
+    async postActionStream(conversationId, action, { signal } = {}) {
+        const token = await getToken();
+        const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+
+        const response = await fetch(`${apiBaseURL}/api/ai-chat/conversations/${conversationId}/action`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ action }),
+            credentials: isCapacitor ? 'omit' : 'same-origin',
+            signal,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Action ${action} failed: ${response.status} ${errorText}`);
+        }
+
+        if (!response.body) {
+            const text = await response.text();
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(encoder.encode(text));
+                    controller.close();
+                },
+            });
+            return stream.getReader();
+        }
+
+        return response.body.getReader();
+    },
 };
 
 export default aiChatService;

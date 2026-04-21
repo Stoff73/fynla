@@ -51,7 +51,17 @@
       </div>
 
       <!-- Content area -->
-      <main class="flex-grow bg-eggshell-500">
+      <!--
+        Phase 13 — when the user is mid-onboarding AND the chat is in
+        wide layout (data-capture or path-choice states, not the
+        profile-review pauses), blur the main dashboard content so the
+        focus is the chat. Switched back on entry to a pause state
+        via the onboarding_layout_change SSE event → store.onboardingLayout.
+      -->
+      <main
+        class="flex-grow bg-eggshell-500 transition-all duration-300"
+        :class="dashboardBlurClass"
+      >
         <div class="py-2 sm:py-3 px-4 sm:px-6 lg:px-8">
           <slot />
         </div>
@@ -185,6 +195,7 @@ export default {
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('auth', ['isAuthenticated', 'currentUser']),
+    ...mapGetters('aiChat', { onboardingLayout: 'onboardingLayout' }),
 
     isImpersonating() {
       return this.$store.state.advisor?.impersonating === true;
@@ -201,6 +212,23 @@ export default {
         && !this.isPreviewMode
         && this.currentUser
         && !this.currentUser.is_preview_user;
+    },
+
+    /**
+     * Dashboard blur class — active when the user is mid-onboarding and
+     * the director has signalled the wide chat layout (data-capture or
+     * path-choice turns). Profile-review pauses use layout='standard'
+     * which un-blurs so the user can see both the chat and the
+     * ProfileReviewPanel at once.
+     */
+    isOnboardingRoute() {
+      const path = this.$route?.path || '';
+      return path.startsWith('/onboarding');
+    },
+
+    dashboardBlurClass() {
+      if (!this.isOnboardingRoute) return '';
+      return this.onboardingLayout === 'standard' ? '' : 'filter blur-[4px] pointer-events-none';
     },
 
     // Only set for active paid subscribers — trial users see all plans

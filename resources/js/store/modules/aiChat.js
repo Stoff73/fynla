@@ -25,6 +25,11 @@ const state = {
     pendingNavigation: null,
     prefilledPrompt: null,
     abortController: null,
+    // Persona split (Phase 13):
+    personaMode: 'advice',       // 'advice' | 'capturing' — driven by persona_state_change SSE
+    onboardingLayout: 'wide',    // 'wide' | 'standard' — driven by onboarding_layout_change SSE
+    skipLink: null,              // { label, color } when a state exposes a skip link
+    previewCta: null,            // { label, route } when advice emits a signup CTA
 };
 
 const getters = {
@@ -44,6 +49,10 @@ const getters = {
     pendingNavigation: (state) => state.pendingNavigation,
     prefilledPrompt: (state) => state.prefilledPrompt,
     hasConversation: (state) => state.currentConversation !== null,
+    personaMode: (state) => state.personaMode,
+    onboardingLayout: (state) => state.onboardingLayout,
+    skipLink: (state) => state.skipLink,
+    previewCta: (state) => state.previewCta,
 };
 
 const mutations = {
@@ -113,6 +122,22 @@ const mutations = {
         state.abortController = controller;
     },
 
+    SET_PERSONA_MODE(state, mode) {
+        state.personaMode = mode === 'capturing' ? 'capturing' : 'advice';
+    },
+
+    SET_ONBOARDING_LAYOUT(state, mode) {
+        state.onboardingLayout = mode === 'standard' ? 'standard' : 'wide';
+    },
+
+    SET_SKIP_LINK(state, skipLink) {
+        state.skipLink = skipLink || null;
+    },
+
+    SET_PREVIEW_CTA(state, cta) {
+        state.previewCta = cta || null;
+    },
+
     UPDATE_CONVERSATION_TITLE(state, { conversationId, title }) {
         if (state.currentConversation && state.currentConversation.id === conversationId) {
             state.currentConversation.title = title;
@@ -148,6 +173,10 @@ const mutations = {
         state.pendingNavigation = null;
         state.prefilledPrompt = null;
         state.abortController = null;
+        state.personaMode = 'advice';
+        state.onboardingLayout = 'wide';
+        state.skipLink = null;
+        state.previewCta = null;
     },
 };
 
@@ -395,15 +424,75 @@ const actions = {
                                     content: event.prompt_text || '',
                                     metadata: {
                                         bubbles: event.bubbles || [],
+                                        skip_link: event.skip_link || null,
+                                        action_bubbles: Boolean(event.action_bubbles),
                                     },
                                     created_at: new Date().toISOString(),
                                 });
+                                // Phase 10 — propagate skip-link metadata to the
+                                // global getter so persistent affordances (e.g.
+                                // the spouse skip) can be rendered outside the
+                                // bubble list too.
+                                commit('SET_SKIP_LINK', event.skip_link || null);
                                 break;
 
                             case 'onboarding_advance':
                                 // Informational — the director transitioned from one
                                 // state to another. No UI change yet; logged for debug.
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'onboarding_layout_change':
+                                // Phase 13 — director signals layout switch (wide/standard)
+                                // for pause states. FynOnboardingChat.vue watches this
+                                // getter to shrink the chat container and unblur the
+                                // dashboard while in standard mode.
+                                commit('SET_ONBOARDING_LAYOUT', event.mode);
+                                break;
+
+                            case 'persona_state_change':
+                                // Phase 13 — orchestrator signals advice <-> capturing.
+                                // AiChatPanel.vue swaps input placeholder and surfaces
+                                // the capturing pill based on this getter.
+                                commit('SET_PERSONA_MODE', event.current);
+                                break;
+
+                            case 'capture_complete':
+                                // Phase 13 — orchestrator fires this after data-capture
+                                // Fyn emits capture_complete. Records are added to the
+                                // message stream as a record-card bubble for the UI.
+                                commit('ADD_MESSAGE', {
+                                    id: 'capture_' + Date.now(),
+                                    role: 'capture_complete',
+                                    content: event.summary || '',
+                                    metadata: {
+                                        records_created: event.records_created || [],
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+
+                            case 'handoff':
+                                // Should never reach here — FynPersonaInvoker strips
+                                // handoff events from the outbound SSE. Log only.
+                                logger.debug('[chat] handoff leaked', event);
+                                break;
+
+                            case 'skip_link':
+                                // Phase 10 — director-emitted skip link affordance for
+                                // grouped_extract states (e.g. base_spouse). The bubbles
+                                // path bundles skip_link into the quick_replies event;
+                                // this separate type carries it for non-bubble turns.
+                                commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'preview_cta':
+                                // Phase 13 — orchestrator surfaces a signup CTA after
+                                // short-circuiting a preview user.
+                                commit('SET_PREVIEW_CTA', {
+                                    label: event.label || 'Sign up',
+                                    route: event.route || '/register',
+                                });
                                 break;
 
                             case 'onboarding_complete':
@@ -467,6 +556,139 @@ const actions = {
             if (state.streaming && !state.streamingText && !producedNewMessages && !state.error) {
                 commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
             }
+            commit('SET_STREAMING', false);
+            commit('SET_STREAMING_TEXT', '');
+            commit('SET_ABORT_CONTROLLER', null);
+        }
+    },
+
+    /**
+     * Post a routed action (resume / continue / restart / skip) against
+     * the current conversation. Streams the director's response via SSE
+     * and commits events using the same mutations as sendMessage.
+     * Phase 12 — replaces the old sentinel-string resume/skip/restart
+     * hack.
+     */
+    async postAction({ commit, dispatch, state }, action) {
+        if (!state.currentConversation) {
+            logger.warn('[chat] postAction called without a current conversation');
+            return;
+        }
+
+        const validActions = ['resume', 'continue', 'restart', 'skip'];
+        if (!validActions.includes(action)) {
+            logger.warn('[chat] invalid action', action);
+            return;
+        }
+
+        commit('SET_STREAMING', true);
+        commit('SET_STREAMING_TEXT', '');
+        commit('SET_ERROR', null);
+
+        const abortController = new AbortController();
+        commit('SET_ABORT_CONTROLLER', abortController);
+
+        let reader;
+        try {
+            reader = await aiChatService.postActionStream(
+                state.currentConversation.id,
+                action,
+                { signal: abortController.signal },
+            );
+        } catch (error) {
+            logger.error('[chat] postAction failed', error);
+            commit('SET_ERROR', 'Could not complete that action. Please try again.');
+            commit('SET_STREAMING', false);
+            commit('SET_ABORT_CONTROLLER', null);
+            return;
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+
+                    try {
+                        const event = JSON.parse(line.slice(6));
+
+                        switch (event.type) {
+                            case 'content':
+                                commit('APPEND_STREAMING_TEXT', event.text);
+                                break;
+
+                            case 'quick_replies':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'qr_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                commit('ADD_MESSAGE', {
+                                    id: 'qr_' + Date.now(),
+                                    role: 'quick_replies',
+                                    content: event.prompt_text || '',
+                                    metadata: {
+                                        bubbles: event.bubbles || [],
+                                        skip_link: event.skip_link || null,
+                                        action_bubbles: Boolean(event.action_bubbles),
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'onboarding_advance':
+                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'onboarding_layout_change':
+                                commit('SET_ONBOARDING_LAYOUT', event.mode);
+                                break;
+
+                            case 'skip_link':
+                                commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'done':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: event.message_id || 'msg_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                break;
+
+                            case 'error':
+                                commit('SET_ERROR', event.message);
+                                break;
+                        }
+                    } catch {
+                        // Skip malformed SSE lines
+                    }
+                }
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                logger.error('postAction streaming error:', error);
+                commit('SET_ERROR', 'Connection lost. Please try again.');
+            }
+        } finally {
             commit('SET_STREAMING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
