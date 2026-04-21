@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Log;
  *  9. KYC Check Result (DYNAMIC/query) — KYC gate status (Phase 2)
  * 10. Context & Tools (DYNAMIC/msg)   — current page context
  */
-class SystemPromptBuilder
+class AdvicePromptBuilder
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig,
@@ -290,7 +290,7 @@ class SystemPromptBuilder
             try {
                 $analysis = $orchestrateAnalysis($user->id);
             } catch (\Exception $e) {
-                Log::warning('[SystemPromptBuilder] Failed to build financial context', [
+                Log::warning('[AdvicePromptBuilder] Failed to build financial context', [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
                 ]);

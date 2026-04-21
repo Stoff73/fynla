@@ -20,7 +20,7 @@ use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\KycGateChecker;
 use App\Services\AI\QueryClassifier;
-use App\Services\AI\SystemPromptBuilder;
+use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\PrerequisiteGateService;
@@ -608,7 +608,7 @@ trait HasAiChat
 
     /**
      * Build the complete system prompt for the AI assistant.
-     * Delegates to SystemPromptBuilder for 10-layer assembly.
+     * Delegates to AdvicePromptBuilder for 10-layer assembly.
      */
     protected function buildSystemPrompt(
         User $user,
@@ -616,7 +616,7 @@ trait HasAiChat
         ?array $classification = null,
         ?array $kycResult = null,
     ): string {
-        $builder = app(SystemPromptBuilder::class);
+        $builder = app(AdvicePromptBuilder::class);
 
         return $builder->build(
             user: $user,

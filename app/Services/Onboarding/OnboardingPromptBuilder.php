@@ -13,7 +13,7 @@ use App\Services\TaxConfigService;
  * Short-form system prompt builder for asset_capture turns during the
  * Fyn-driven onboarding flow.
  *
- * Unlike `SystemPromptBuilder::build()`, this does NOT include:
+ * Unlike `AdvicePromptBuilder::build()`, this does NOT include:
  *   - FcaProcessInstructions (the 6-step process biases Claude toward
  *     single-tool-per-turn emission, which breaks multi-entity capture)
  *   - UserProfile / FinancialContext / ExistingRecords / DataCompleteness

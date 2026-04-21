@@ -8,7 +8,7 @@ namespace App\Constants;
  * Defines all AI query types, their classifications, KYC requirements,
  * mandatory tool sequences, and decision tree trigger mappings.
  *
- * Used by QueryClassifier, KycGateChecker, SystemPromptBuilder, and QueryKnowledge.
+ * Used by QueryClassifier, KycGateChecker, AdvicePromptBuilder, and QueryKnowledge.
  */
 final class QuerySchemas
 {
