@@ -35,7 +35,7 @@ use InvalidArgumentException;
  * turn. For a KYC-gate round-trip (advice → data-capture → advice), the
  * orchestrator calls invoke() three times with three different personas.
  */
-final class FynPersonaInvoker
+class FynPersonaInvoker
 {
     private ?array $lastHandoff = null;
 
