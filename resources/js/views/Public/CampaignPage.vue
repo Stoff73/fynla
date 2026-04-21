@@ -1,8 +1,9 @@
 <template>
   <PublicLayout>
+    <div class="campaign-body">
     <!-- Hero -->
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left w-full">
+      <div class="campaign-inner relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4" v-html="campaign.heroTitle"></h1>
         <p class="text-lg text-white/70 max-w-2xl">{{ campaign.heroSubtitle }}</p>
       </div>
@@ -10,7 +11,7 @@
 
     <!-- Meet Fyn -->
     <div class="bg-light-pink-100 pt-6 pb-8 lg:pt-[10px]" :class="fynDetailsOpen ? 'lg:pb-14' : 'lg:pb-0'">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:items-center lg:gap-10">
           <div class="flex-1 lg:self-start lg:pt-10">
             <div class="flex items-end justify-between lg:hidden mb-1">
@@ -46,7 +47,7 @@
 
     <!-- Did You Know? -->
     <div class="bg-horizon-500 py-14">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center mb-10">Did you know?</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div v-for="fact in campaign.facts" :key="fact.stat" class="bg-white/10 border border-white/20 rounded-2xl p-6">
@@ -59,7 +60,7 @@
 
     <!-- Why Fynla -->
     <div class="bg-eggshell-500 py-12">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-10">Why Fynla?</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div class="flex flex-col items-center">
@@ -88,11 +89,11 @@
     </div>
 
     <!-- Reviews -->
-    <ReviewCarousel />
+    <ReviewCarousel :per-page="2" inner-class="campaign-inner" />
 
     <!-- Video -->
     <div class="bg-eggshell-500 py-10">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-8">Your Fynla dashboard</h2>
         <div class="card-lg overflow-hidden p-0">
           <div class="flex items-center gap-2 px-4 py-2.5 bg-savannah-100 border-b border-light-gray">
@@ -108,7 +109,7 @@
 
     <!-- Features -->
     <div class="bg-gradient-to-r from-horizon-600 to-horizon-700 py-10 lg:py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center mb-4">How Fyn can help you</h2>
         <p class="text-center text-white/70 text-sm max-w-2xl mx-auto mb-10 leading-relaxed">We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -131,8 +132,8 @@
 
     <!-- Latest insights -->
     <div class="bg-light-pink-100 py-12">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6">Latest insights</h2>
+      <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6">Latest {{ campaign.insightLabel }} insights</h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <router-link
             v-for="article in filteredInsights"
@@ -158,7 +159,7 @@
 
     <!-- Journey -->
     <div class="bg-eggshell-500 pt-10 lg:pt-12 pb-14">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-12">Your personal journey</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <router-link v-for="s in stages" :key="s.slug" :to="'/stage/' + s.slug" class="lg:aspect-square bg-gradient-to-br from-horizon-600 to-horizon-700 rounded-card border border-white/10 shadow-sm p-5 flex flex-col items-start justify-center cursor-pointer hover:border-white/30 hover:-translate-y-0.5 transition-all duration-200 no-underline">
@@ -171,18 +172,21 @@
 
     <!-- Final CTA -->
     <div class="bg-light-pink-100 py-14">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="campaign-inner max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Ready to take control?</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">Start your free 7-day trial today. No credit card required.</p>
         <router-link to="/register?from=fyn" class="inline-block px-8 py-3 bg-spring-500 text-white text-lg font-semibold rounded-lg hover:bg-spring-600 transition-colors">Get started for free</router-link>
       </div>
     </div>
+    </div>
+    <StaticFynChat />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
+import StaticFynChat from '@/components/Public/StaticFynChat.vue';
 
 const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
 
@@ -198,6 +202,7 @@ const CAMPAIGNS = {
       { stat: '2.4m', text: 'eligible couples don\u2019t claim the Marriage Allowance \u2014 worth \u00A3252 per year, and you can backdate it up to 4 years.' },
     ],
     insightTags: ['Savings & ISA', 'Pensions', 'Tax changes'],
+    insightLabel: 'tax',
   },
   '/biggerpension': {
     heroTitle: 'Grow a bigger <span class="text-raspberry-300">pension</span>',
@@ -210,6 +215,7 @@ const CAMPAIGNS = {
       { stat: '35 years', text: 'of National Insurance contributions are needed for the full State Pension of \u00A311,973 per year. Check your record \u2014 you may be able to buy missing years at a significant return.' },
     ],
     insightTags: ['Pensions'],
+    insightLabel: 'pension',
   },
   '/paymortgage': {
     heroTitle: 'Pay off your <span class="text-raspberry-300">mortgage</span> smarter',
@@ -222,6 +228,7 @@ const CAMPAIGNS = {
       { stat: '1 in 3', text: 'UK homeowners regularly check how much equity they have in their property \u2014 a key input for remortgage decisions and understanding your net worth.' },
     ],
     insightTags: ['Savings & ISA', 'Pensions'],
+    insightLabel: 'mortgage',
   },
   '/managedebt': {
     heroTitle: 'Take control of your <span class="text-raspberry-300">debt</span>',
@@ -234,6 +241,7 @@ const CAMPAIGNS = {
       { stat: '60%', text: 'of balance transfer card users don\u2019t clear the balance before the promotional 0% period ends \u2014 reverting to rates as high as 25%.' },
     ],
     insightTags: ['Savings & ISA'],
+    insightLabel: 'debt',
   },
   '/wealth': {
     heroTitle: 'Build your <span class="text-raspberry-300">wealth</span>',
@@ -246,6 +254,7 @@ const CAMPAIGNS = {
       { stat: '40%', text: 'less portfolio volatility is possible by diversifying across equities, bonds, property, and cash \u2014 yet the average UK investor holds just 2 asset classes.' },
     ],
     insightTags: ['Estate planning', 'Savings & ISA'],
+    insightLabel: 'wealth',
   },
 };
 
@@ -262,7 +271,7 @@ const ALL_INSIGHTS = [
 
 export default {
   name: 'CampaignPage',
-  components: { PublicLayout, ReviewCarousel },
+  components: { PublicLayout, ReviewCarousel, StaticFynChat },
 
   data() {
     return {
@@ -320,3 +329,23 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Push content right of chat panel on desktop */
+.campaign-body {
+  margin-right: 0;
+}
+@media (min-width: 1024px) {
+  .campaign-body {
+    margin-right: 356px;
+  }
+  /* Align inner containers with nav logo: same left offset as max-w-7xl mx-auto on full viewport */
+  .campaign-body :deep(.campaign-inner) {
+    max-width: none;
+    margin-left: max(1rem, calc((100vw - 80rem) / 2));
+    margin-right: 0;
+    padding-left: 1rem;
+    padding-right: 2rem;
+  }
+}
+</style>

@@ -1,8 +1,9 @@
 <template>
   <PublicLayout>
+    <div class="campaign-body">
     <!-- Hero -->
     <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left w-full">
+      <div class="campaign-inner relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left w-full">
         <h1 class="text-4xl md:text-6xl font-black text-white mb-4">
           Get started with <span class="text-raspberry-300">Fynla</span>
         </h1>
@@ -14,7 +15,7 @@
 
     <!-- Meet Fyn -->
     <div class="bg-light-pink-100 pt-6 pb-8 lg:pt-[10px]" :class="fynDetailsOpen ? 'lg:pb-14' : 'lg:pb-0'">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col lg:flex-row lg:items-center lg:gap-10">
           <div class="flex-1 lg:self-start lg:pt-10">
             <div class="flex items-end justify-between lg:hidden mb-1">
@@ -71,7 +72,7 @@
 
     <!-- Why Fynla? -->
     <div class="bg-eggshell-500 py-12">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-10">Why Fynla?</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div class="flex flex-col items-center">
@@ -106,11 +107,12 @@
     </div>
 
     <!-- Reviews -->
-    <ReviewCarousel />
+    <!-- Reviews -->
+    <ReviewCarousel :per-page="2" inner-class="campaign-inner" />
 
     <!-- Features -->
     <div class="bg-gradient-to-r from-horizon-600 to-horizon-700 py-10 lg:py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-4 text-white">How Fyn can help you</h2>
         <p class="text-center text-white/70 text-sm max-w-2xl mx-auto mb-10 leading-relaxed">
           We leverage tools designed for individuals and families to plan savings, investments, retirement and estate with confidence and within local regulations.
@@ -141,7 +143,7 @@
 
     <!-- Your Personal Journey -->
     <div class="bg-eggshell-500 pt-10 lg:pt-12 pb-14">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your personal journey</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
@@ -155,7 +157,7 @@
 
     <!-- FAQs -->
     <div class="bg-horizon-500 py-16">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="campaign-inner max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
           <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3">Frequently asked questions</h2>
           <p class="text-white/70">Everything you need to know about getting started</p>
@@ -179,7 +181,7 @@
 
     <!-- Final CTA -->
     <div class="bg-light-pink-100 py-14">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="campaign-inner max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">Ready to take control?</h2>
         <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
           Start your free 7-day trial today. No credit card required.
@@ -189,17 +191,20 @@
         </router-link>
       </div>
     </div>
+    </div>
+    <StaticFynChat />
   </PublicLayout>
 </template>
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
+import StaticFynChat from '@/components/Public/StaticFynChat.vue';
 import { getPricingFaqs } from '@/constants/faqData';
 
 export default {
   name: 'QuickStartPage',
-  components: { PublicLayout, ReviewCarousel },
+  components: { PublicLayout, ReviewCarousel, StaticFynChat },
 
   data() {
     return {
@@ -237,3 +242,21 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.campaign-body {
+  margin-right: 0;
+}
+@media (min-width: 1024px) {
+  .campaign-body {
+    margin-right: 356px;
+  }
+  .campaign-body :deep(.campaign-inner) {
+    max-width: none;
+    margin-left: max(1rem, calc((100vw - 80rem) / 2));
+    margin-right: 0;
+    padding-left: 1rem;
+    padding-right: 2rem;
+  }
+}
+</style>
