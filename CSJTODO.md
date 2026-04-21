@@ -1,7 +1,70 @@
 # CSJTODO — Fynla
 
-*Last updated: 20 April 2026 — session 4 (end-of-session, context-clear)*
-*Previous sessions: 20 April 2026 — session 1 (morning), session 2 (afternoon), session 3 (evening)*
+*Last updated: 21 April 2026 — session 2 (context-clear)*
+*Previous sessions: 21 April 2026 — session 1 (morning, EOD for 20 Apr); 20 April 2026 — sessions 1–4*
+
+---
+
+## Session 2 (21 April, afternoon — context-clear) — Fyn persona split spec + plan + PRD
+
+### Completed this session
+
+- [x] **Brainstormed Fyn persona split** via `superpowers:brainstorming`. Wide-scope decision: two personas (`advice`, `data_capture`), intent-driven, structured tool-call handoffs, new `FynPersonaOrchestrator` handling post-onboarding turns only.
+- [x] **Design spec written** at `docs/superpowers/specs/2026-04-21-fyn-persona-split-design.md`. Committed as `48a30e7`, revised to `11d82e5`, amended post-audit to `455cba3`.
+- [x] **40-task implementation plan** produced via `superpowers:writing-plans` at `April/April21Updates/plan-fyn-persona-split.md` (6,037 lines). Has AMENDMENTS block at top post-audit.
+- [x] **Extended scope via user feedback** — wide-chat layout + dashboard blur, profile review pauses at dependants + expenditure, spouse skip (raspberry inline link), multi-job capture loop, Full-time bubble rename + Other removal, conversational retraction, journey-tagged handover, prompt clearing at pause boundaries, onboarding memory, resume-from-where-left-off, fact parking with gap-filling follow-ups.
+- [x] **Codebase audit** via `feature-dev:code-explorer` + `feature-dev:code-architect` in parallel. 19 conflicts / architectural concerns surfaced.
+- [x] **Nine decisions resolved** through rolling user interview: keep director + prompt builder (don't absorb/delete), use existing `LastingPowerOfAttorney` (not new `PowerOfAttorney`), add 3 columns to `wills` table, new `FynOnboardingChat.vue` (separate from post-onboarding `AiChatPanel.vue`), action endpoint replaces sentinel strings, promote existing `QueryClassifier` (no new `FynIntentClassifier`), parking column is the single source of memory (drop `OnboardingMemoryExtractor`), two feature flags only, silent code-correctness fixes applied.
+- [x] **Spec + plan amended** against audit. Plan has AMENDMENTS block at the top overriding any conflicting original task body.
+- [x] **PRD written** at `April/April21Updates/PRD-fyn-persona-split.md` (404 lines, 9 canonical sections fully populated).
+- [x] **All three mirrored to fynlaBrain vault** at `fynlaBrain/April/April21Updates/`.
+- [x] **Side tasks:** deleted local DB users `c.jones@csjones.co` (id 134) and `slaterjoneschris@gmail.com` (id 138) plus orphaned subscriptions/conversations/family_members; reverted accidental edit to `deploy/deployRevolut.md` test-results table; fetched verification codes for `test@fynla.org` during user testing.
+
+### Not done — outstanding
+
+**Ready for implementation but NOT started:**
+- [ ] **Review PRD + amended plan** one more time with user before implementation kickoff — optional pass; everything material is captured.
+- [ ] **Branch for implementation:** `git checkout -b feature/fyn-persona-split` off current `onboardingFyn`. Do NOT execute on `onboardingFyn` directly.
+- [ ] **Phase 1 foundation (Tasks 1–3):** `config/fyn.php` flags, `CaptureContext` value object, `HandoffContract` constants. Low-risk, no external dependencies.
+- [ ] **Phase 2 persistence (Tasks 4–5 + new Task 4a):** migrations for `ai_messages.persona`, `ai_conversations.persona_state`, factory creation (`AiConversationFactory`, `AiMessageFactory`) as prerequisite.
+- [ ] **Phases 3–14:** the remaining 34+ amended tasks — prompt builders, handoff tools, estate tools (Will + LPA), orchestrator + invoker + registry, classifier promotion, controller wiring, onboarding UX overhaul (within director), chat UI, preview mode, rollout.
+
+**Carried from earlier branches (still outstanding — not in this release's scope):**
+- [ ] **Gate 1 — onboardingFyn branch to csjones.co/fynla.** Build + upload + SSH cache clear + smoke tests 1/2A/2B/3/4/5/6/6b/7. Must precede merge-back PR `onboardingFyn → dev`. See `April/April20Updates/deploy-PRD-P0.md` (regenerated in 20 April session 4).
+- [ ] **Test 5 (FR-M13 spouse collision)** — still pending browser verification on commit `039b258`. xAI API was returning `Connection refused` during attempted verification last session.
+- [ ] **Test 1 (FR-M9 preview block)** — still pending post-remap browser re-verification.
+- [ ] **DB persistence gap in `HasAiChat::chat()`** — off-script filter operates on SSE stream only; `AiMessage::create` writes raw unfiltered LLM text. Not in persona-split scope, but related. Flag before the next persona-split test cycle.
+- [ ] **Family-member `fill_form` load race** — logged session 3 of 20 April. Exists for module-page usage; removed from onboarding after journey remap.
+
+### Known issues
+
+- **Resume-from-where-left-off in production is broken.** Fixed by this release (FR-M20). Until the release ships, returning mid-onboarding users see a fresh first turn.
+- **`describeStep()` $user scope bug** in the original plan text — AMENDMENTS §F mandates passing `?User $user` as a parameter. Next Claude must apply this at implementation time; the original task body has the bug.
+- **`conversation_id` vs `ai_conversation_id`** — original plan text has the wrong column name throughout. AMENDMENTS §F documents the correct name. Apply at implementation time; pre-existing `AiMessage::$fillable` is authoritative.
+- **`CoordinatingAgent::chatWithPromptOverride()` signature** — 8 params, not 5. Tools in `toolsListOverride`, not `allowedTools`. AMENDMENTS §F documents the correct call.
+- **`OnboardingStateMachine::getState()` is not public today** — Task 24 test calls it. Either add the method or rewrite the test at implementation time.
+
+### Deploy status
+
+**Production (fynla.org):** Still running `a14f17a` + `062c7c7`. Full Admin Insights CMS live. NO onboardingFyn or persona-split changes on production.
+
+**Dev (csjones.co/fynla):** Still on `88018a5` from 16 April. Sessions 2–4 of 20 April NOT deployed. Session 1 of 21 April (EOD for 20 April) NOT deployed. Session 2 of 21 April (this session) — DOCUMENTATION ONLY, no deployable code produced.
+
+**This session deployed nothing** — all outputs are docs (spec + plan + PRD) and vault mirrors.
+
+### Pending deploy path
+
+```
+onboardingFyn @ 455cba3
+    → csjones.co/fynla (Gate 1 — still pending from 20 April)
+    → merge-back PR `onboardingFyn → dev` (Gate 2 — conflict cross-ref on 6 files)
+    → ≥48h dev stability (Gate 3)
+    → `dev → main` PR
+    → production deploy to fynla.org
+
+feature/fyn-persona-split @ TBD   (NEW — to be branched off onboardingFyn when implementation begins)
+    → same gates once implementation is complete
+```
 
 ---
 
