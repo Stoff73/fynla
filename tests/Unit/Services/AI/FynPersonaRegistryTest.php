@@ -44,7 +44,7 @@ it('lists only handoff tools defined in HandoffContract', function () {
     }
 });
 
-it('integrity: every allowed tool exists in at least one provider tool set', function () {
+it('integrity: every allowed tool exists in both provider tool sets', function () {
     $registry = app(FynPersonaRegistry::class);
     $anthropic = app(AiToolDefinitions::class);
     $xai = app(XaiToolDefinitions::class);
@@ -53,18 +53,23 @@ it('integrity: every allowed tool exists in at least one provider tool set', fun
         return $tool['name'] ?? ($tool['function']['name'] ?? null);
     };
 
-    // Tool universe is the union across both providers — registry is provider-agnostic.
-    $universe = array_values(array_unique(array_filter(array_merge(
+    $anthropicUniverse = array_values(array_unique(array_filter(array_merge(
         array_column($anthropic->getTools(false), 'name'),
         array_column($anthropic->handoffTools(), 'name'),
+    ))));
+
+    $xaiUniverse = array_values(array_unique(array_filter(array_merge(
         array_map($extractName, $xai->getTools(false)),
         array_map($extractName, $xai->handoffTools()),
     ))));
 
     foreach ($registry->personaNames() as $persona) {
         foreach ($registry->allowedTools($persona) as $toolName) {
-            expect(in_array($toolName, $universe, true))->toBeTrue(
-                "Persona {$persona} lists allowed tool '{$toolName}' which does not exist in either AiToolDefinitions or XaiToolDefinitions"
+            expect(in_array($toolName, $anthropicUniverse, true))->toBeTrue(
+                "Persona {$persona} references '{$toolName}' which is missing from AiToolDefinitions (Anthropic provider)"
+            );
+            expect(in_array($toolName, $xaiUniverse, true))->toBeTrue(
+                "Persona {$persona} references '{$toolName}' which is missing from XaiToolDefinitions (xAI provider)"
             );
         }
     }

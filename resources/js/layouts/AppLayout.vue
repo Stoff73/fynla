@@ -78,7 +78,11 @@
       style="box-shadow: -6px 0 18px rgba(0, 0, 0, 0.12), 0 -4px 14px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.06);"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
-      <AiChatPanel :docked="true" @collapse="toggleChat" />
+      <component
+        :is="isOnboardingRoute ? 'FynOnboardingChat' : 'AiChatPanel'"
+        :docked="true"
+        @collapse="toggleChat"
+      />
     </aside>
 
     <!-- Collapsed chat strip -->
@@ -142,6 +146,7 @@ import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue'
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 import AiChatButton from '@/components/Shared/AiChatButton.vue';
 import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
+import FynOnboardingChat from '@/components/Fyn/FynOnboardingChat.vue';
 import ToastNotification from '@/components/Shared/ToastNotification.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
@@ -167,6 +172,7 @@ export default {
     InfoGuidePanel,
     AiChatButton,
     AiChatPanel,
+    FynOnboardingChat,
     SideMenu,
     SideMenuMobileToggle,
     OfflineBanner,

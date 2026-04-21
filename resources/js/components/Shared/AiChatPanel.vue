@@ -177,6 +177,34 @@
                 :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
                 @select="handleQuickReplySelect"
               />
+              <!-- Phase 13 — capture_complete record-card row -->
+              <div
+                v-else-if="msg.role === 'capture_complete'"
+                class="flex justify-start"
+              >
+                <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-horizon-200 px-3 py-2 space-y-2">
+                  <p class="text-sm font-semibold text-horizon-500">{{ msg.content }}</p>
+                  <div
+                    v-if="Array.isArray(msg.metadata?.records_created) && msg.metadata.records_created.length"
+                    class="space-y-1"
+                  >
+                    <div
+                      v-for="rec in msg.metadata.records_created"
+                      :key="`${rec.type}-${rec.id}`"
+                      class="flex items-center justify-between rounded bg-white border border-light-gray px-2 py-1 text-xs"
+                    >
+                      <span class="font-semibold text-horizon-500">{{ formatEntityType(rec.type) }}</span>
+                      <button
+                        type="button"
+                        @click="handleRecordView(rec)"
+                        class="text-raspberry-500 underline hover:text-raspberry-600"
+                      >
+                        View
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div
                 v-else
                 class="flex"
@@ -256,12 +284,38 @@
           'border-t border-light-gray bg-savannah-100',
           isMobile ? 'px-4 py-3' : 'px-6 py-4 rounded-b-lg'
         ]">
+          <!-- Phase 13 — capturing pill when orchestrator is in capturing state. -->
+          <div
+            v-if="isCapturing"
+            class="mb-2 inline-flex items-center px-3 py-1 text-xs font-semibold text-horizon-500 bg-savannah-100 border border-horizon-200 rounded-full"
+          >
+            Updating your records
+          </div>
+          <!-- Phase 13 — preview signup CTA after an advice short-circuit. -->
+          <div v-if="previewCta" class="mb-2">
+            <router-link
+              :to="previewCta.route"
+              class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-raspberry-500 rounded-lg hover:bg-raspberry-600 transition-colors"
+            >
+              {{ previewCta.label }}
+            </router-link>
+          </div>
+          <!-- Phase 10 — inline skip link for grouped_extract states (spouse). -->
+          <div v-if="skipLink" class="mb-2">
+            <button
+              @click="handleSkipLink"
+              type="button"
+              class="text-sm font-semibold text-raspberry-500 underline hover:text-raspberry-600"
+            >
+              {{ skipLink.label }}
+            </button>
+          </div>
           <div class="flex gap-2">
             <textarea
               ref="inputField"
               v-model="inputMessage"
               @keydown.enter.exact.prevent="send"
-              :placeholder="tokenLimitReached ? 'Daily limit reached — resets at midnight' : 'Ask about your finances...'"
+              :placeholder="inputPlaceholder"
               rows="1"
               :disabled="streaming || loading || tokenLimitReached"
               class="flex-1 resize-none rounded-lg border border-horizon-300 px-3 py-2 text-sm
@@ -391,6 +445,34 @@
             :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
             @select="handleQuickReplySelect"
           />
+          <!-- Phase 13 — capture_complete record card (docked) -->
+          <div
+            v-else-if="msg.role === 'capture_complete'"
+            class="flex justify-start"
+          >
+            <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-horizon-200 px-3 py-2 space-y-2 text-sm">
+              <p class="font-semibold text-horizon-500">{{ msg.content }}</p>
+              <div
+                v-if="Array.isArray(msg.metadata?.records_created) && msg.metadata.records_created.length"
+                class="space-y-1"
+              >
+                <div
+                  v-for="rec in msg.metadata.records_created"
+                  :key="`${rec.type}-${rec.id}`"
+                  class="flex items-center justify-between rounded bg-white border border-light-gray px-2 py-1 text-xs"
+                >
+                  <span class="font-semibold text-horizon-500">{{ formatEntityType(rec.type) }}</span>
+                  <button
+                    type="button"
+                    @click="handleRecordView(rec)"
+                    class="text-raspberry-500 underline hover:text-raspberry-600"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div
             v-else
             :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
@@ -486,12 +568,38 @@
           <div class="w-10 h-1 rounded-full bg-neutral-300 group-hover:bg-neutral-400 transition-colors"></div>
         </div>
         <div class="flex flex-col h-[calc(100%-12px)] px-4 pb-4">
+          <!-- Phase 13 — capturing pill in docked panel. -->
+          <div
+            v-if="isCapturing"
+            class="mb-2 inline-flex items-center px-3 py-1 text-xs font-semibold text-horizon-500 bg-savannah-100 border border-horizon-200 rounded-full self-start"
+          >
+            Updating your records
+          </div>
+          <!-- Phase 13 — preview signup CTA. -->
+          <div v-if="previewCta" class="mb-2">
+            <router-link
+              :to="previewCta.route"
+              class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-raspberry-500 rounded-lg hover:bg-raspberry-600 transition-colors"
+            >
+              {{ previewCta.label }}
+            </router-link>
+          </div>
+          <!-- Phase 10 — docked panel skip link. -->
+          <div v-if="skipLink" class="mb-2">
+            <button
+              @click="handleSkipLink"
+              type="button"
+              class="text-sm font-semibold text-raspberry-500 underline hover:text-raspberry-600"
+            >
+              {{ skipLink.label }}
+            </button>
+          </div>
           <div class="flex items-end gap-2 flex-1 min-h-0">
             <textarea
               ref="dockedInputField"
               v-model="inputMessage"
               @keydown.enter.exact.prevent="send"
-              :placeholder="tokenLimitReached ? 'Daily limit reached' : 'Ask Fyn...'"
+              :placeholder="dockedInputPlaceholder"
               :disabled="streaming || loading || tokenLimitReached"
               class="flex-1 min-w-0 h-full resize-none rounded-lg border border-light-gray px-3 py-2.5 text-sm text-horizon-500 placeholder-neutral-500
                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
@@ -578,7 +686,26 @@ export default {
             'secondsUntilReset',
             'showHistory',
             'pendingNavigation',
+            'personaMode',
+            'skipLink',
+            'previewCta',
         ]),
+
+        isCapturing() {
+            return this.personaMode === 'capturing';
+        },
+
+        inputPlaceholder() {
+            if (this.tokenLimitReached) return 'Daily limit reached — resets at midnight';
+            if (this.isCapturing) return 'Tell Fyn the details...';
+            return 'Ask about your finances...';
+        },
+
+        dockedInputPlaceholder() {
+            if (this.tokenLimitReached) return 'Daily limit reached';
+            if (this.isCapturing) return 'Tell Fyn the details...';
+            return 'Ask Fyn...';
+        },
 
         resetCountdown() {
             if (!this.countdownSeconds || this.countdownSeconds <= 0) return 'shortly';
@@ -818,7 +945,72 @@ export default {
             'deleteConversation',
             'sendMessage',
             'abortStreaming',
+            'postAction',
         ]),
+
+        /**
+         * Phase 10 — skip-link click handler. Posts {action: 'skip'} to the
+         * new action endpoint, which the director routes through handleSkipAction.
+         */
+        async handleSkipLink() {
+            if (this.streaming) return;
+            await this.postAction('skip');
+        },
+
+        /**
+         * Phase 13 — record-card "View" button. Navigates to the relevant
+         * module page for the captured record.
+         */
+        handleRecordView(record) {
+            const routeMap = {
+                savings_account: '/net-worth/cash',
+                investment_account: '/net-worth/investments',
+                dc_pension: '/net-worth/retirement',
+                db_pension: '/net-worth/retirement',
+                property: '/net-worth/property',
+                mortgage: '/net-worth/property',
+                life_insurance: '/protection',
+                critical_illness: '/protection',
+                income_protection: '/protection',
+                trust: '/trusts',
+                business_interest: '/net-worth/business',
+                chattel: '/net-worth/chattels',
+                estate_liability: '/net-worth/liabilities',
+                estate_gift: '/estate',
+                family_member: '/profile',
+                will: '/estate/will-builder',
+                lasting_power_of_attorney: '/estate/power-of-attorney',
+                goal: '/goals',
+                life_event: '/goals?tab=events',
+            };
+            const route = routeMap[record.type] || '/dashboard';
+            this.$router.push(route);
+        },
+
+        formatEntityType(type) {
+            const labels = {
+                savings_account: 'Savings account',
+                investment_account: 'Investment account',
+                dc_pension: 'Pension',
+                db_pension: 'Pension',
+                property: 'Property',
+                mortgage: 'Mortgage',
+                life_insurance: 'Life insurance',
+                critical_illness: 'Critical illness',
+                income_protection: 'Income protection',
+                trust: 'Trust',
+                business_interest: 'Business interest',
+                chattel: 'Valuable',
+                estate_liability: 'Liability',
+                estate_gift: 'Gift',
+                family_member: 'Family member',
+                will: 'Will',
+                lasting_power_of_attorney: 'LPA',
+                goal: 'Goal',
+                life_event: 'Life event',
+            };
+            return labels[type] || type;
+        },
 
         startInputResize(e) {
             this._resizing = true;

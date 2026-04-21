@@ -26,6 +26,7 @@ class AiToolDefinitions
                 $this->additionalCreationTools(),
                 $this->dataModificationTools(),
                 $this->profileTools(),
+                $this->expenditureTools(),
             );
         }
 
@@ -85,6 +86,22 @@ class AiToolDefinitions
     private function analysisTools(): array
     {
         return [
+            [
+                'name' => 'list_records',
+                'description' => 'List existing records of a given type with IDs, key details, balances, interest rates, and values. Use this BEFORE calling update_record to find the correct entity_id. Use this for factual questions about the user\'s accounts — balances, interest rates, providers, policy details. For example: "how much interest will I earn?" → list_records(savings_account). "What pensions do I have?" → list_records(dc_pension). Returns raw data; for full module analysis use get_module_analysis instead.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'entity_type' => [
+                            'type' => 'string',
+                            'enum' => ['savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'trust', 'business_interest', 'chattel', 'estate_liability', 'estate_gift', 'family_member'],
+                            'description' => 'The type of record to list.',
+                        ],
+                    ],
+                    'required' => ['entity_type'],
+                    'additionalProperties' => false,
+                ],
+            ],
             [
                 'name' => 'list_goals',
                 'description' => 'List all of the user\'s financial goals with their current progress, status, and IDs. Use this when the user asks about their goals, wants to see progress, or before updating/deleting a specific goal. This is a lightweight call — use it instead of get_module_analysis(goals) when you just need the goal list.',
@@ -513,6 +530,46 @@ class AiToolDefinitions
                         ],
                     ],
                     'required' => ['account_name', 'current_value'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'create_holding',
+                'description' => 'Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'account_name' => [
+                            'type' => 'string',
+                            'description' => 'Name or provider of the existing investment account to add the holding to.',
+                        ],
+                        'security_name' => [
+                            'type' => 'string',
+                            'description' => 'Name of the fund, ETF, or share (e.g. "Vanguard FTSE All-World").',
+                        ],
+                        'ticker' => [
+                            'type' => 'string',
+                            'description' => 'Ticker symbol (e.g. "VWRL", "SWDA").',
+                        ],
+                        'asset_type' => [
+                            'type' => 'string',
+                            'enum' => ['uk_equity', 'us_equity', 'international_equity', 'fund', 'etf', 'bond', 'cash', 'alternative', 'property'],
+                            'description' => '"fund" for OEICs/unit trusts, "etf" for ETFs, "uk_equity" / "us_equity" / "international_equity" for shares, "bond" for fixed income, "cash", "alternative" for commodities/crypto, "property" for property funds.',
+                        ],
+                        'allocation_percent' => [
+                            'type' => 'number',
+                            'description' => 'Percentage of the account this holding represents (0-100).',
+                        ],
+                        'current_price' => [
+                            'type' => 'number',
+                            'description' => 'Current price per unit in pounds.',
+                        ],
+                        'ocf_percent' => [
+                            'type' => 'number',
+                            'description' => 'Ongoing Charge Figure as percentage (e.g. 0.22 for 0.22%).',
+                        ],
+                    ],
+                    'required' => ['account_name', 'security_name', 'asset_type'],
                     'additionalProperties' => false,
                 ],
             ],
@@ -1289,6 +1346,45 @@ class AiToolDefinitions
             'description' => $tool['description'],
             'input_schema' => $tool['parameters'],
         ], $tools);
+    }
+
+    private function expenditureTools(): array
+    {
+        return [
+            [
+                'name' => 'set_expenditure',
+                'description' => 'Set the user\'s monthly expenditure by category. Call this IMMEDIATELY when the user mentions their spending, bills, or monthly outgoings. Fill in every category the user mentions and omit anything not mentioned. The form will be opened, filled, and saved. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'rent' => ['type' => 'number', 'description' => 'Monthly rent in pounds.'],
+                        'utilities' => ['type' => 'number', 'description' => 'Monthly utilities (gas, electricity, water) in pounds.'],
+                        'food_groceries' => ['type' => 'number', 'description' => 'Monthly food and groceries in pounds.'],
+                        'transport_fuel' => ['type' => 'number', 'description' => 'Monthly transport/fuel costs in pounds.'],
+                        'healthcare_medical' => ['type' => 'number', 'description' => 'Monthly healthcare costs in pounds.'],
+                        'insurance' => ['type' => 'number', 'description' => 'Monthly non-property insurance in pounds.'],
+                        'mobile_phones' => ['type' => 'number', 'description' => 'Monthly mobile phone costs in pounds.'],
+                        'internet_tv' => ['type' => 'number', 'description' => 'Monthly broadband/TV costs in pounds.'],
+                        'subscriptions' => ['type' => 'number', 'description' => 'Monthly subscriptions in pounds.'],
+                        'clothing_personal_care' => ['type' => 'number', 'description' => 'Monthly clothing and personal care in pounds.'],
+                        'entertainment_dining' => ['type' => 'number', 'description' => 'Monthly entertainment and dining in pounds.'],
+                        'holidays_travel' => ['type' => 'number', 'description' => 'Monthly holidays/travel in pounds.'],
+                        'pets' => ['type' => 'number', 'description' => 'Monthly pet costs in pounds.'],
+                        'childcare' => ['type' => 'number', 'description' => 'Monthly childcare costs in pounds.'],
+                        'school_fees' => ['type' => 'number', 'description' => 'Monthly school fees in pounds.'],
+                        'school_lunches' => ['type' => 'number', 'description' => 'Monthly school lunches in pounds.'],
+                        'school_extras' => ['type' => 'number', 'description' => 'Monthly school extras in pounds.'],
+                        'university_fees' => ['type' => 'number', 'description' => 'Monthly university costs in pounds.'],
+                        'children_activities' => ['type' => 'number', 'description' => 'Monthly children activities in pounds.'],
+                        'gifts_charity' => ['type' => 'number', 'description' => 'Monthly gifts in pounds.'],
+                        'charitable_donations' => ['type' => 'number', 'description' => 'Monthly charitable donations in pounds.'],
+                        'other_expenditure' => ['type' => 'number', 'description' => 'Other monthly expenses in pounds.'],
+                    ],
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
     }
 
     private function profileTools(): array

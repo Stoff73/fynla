@@ -128,7 +128,21 @@ final class OnboardingChatDirector
         // base_dependants_detail, base_work) delegate to Claude with a
         // narrow extraction tool, which writes the fields to the DB and
         // returns a capture receipt via SSE.
+        //
+        // Phase 11 Item 4 — before handing to the LLM, see if parking
+        // already has everything the extraction tool would gather. If
+        // it does we can apply the parked values synchronously, emit
+        // the capture event the state handler expects, and advance —
+        // saving an LLM round-trip whenever the user volunteered the
+        // facts earlier in the conversation.
         if (($state['turn_type'] ?? '') === 'grouped_extract') {
+            $hydrated = $this->hydrateFromParking($user, $conversation, $currentStateId, $state);
+            if ($hydrated !== null) {
+                yield from $hydrated;
+
+                return;
+            }
+
             yield from $this->handleGroupedExtractTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
@@ -876,6 +890,146 @@ final class OnboardingChatDirector
         }
 
         return null;
+    }
+
+    // ─── Parking-driven hydration (Phase 11 Item 4) ──────────────────────
+
+    /**
+     * For the current grouped_extract state, check whether the conversation's
+     * onboarding_parked_facts already carry every required field. If so,
+     * call the capture tool handler directly with the parked values, yield
+     * the capture SSE event the normal flow would emit, and advance state.
+     *
+     * Returns null when parking is insufficient — callers then fall through
+     * to the standard LLM-backed handleGroupedExtractTurn. This is strictly
+     * an optimisation; wrong answers (the user contradicting parked facts
+     * in-chat) are still handled by the retraction block in
+     * OnboardingPromptBuilder because parking only fires when the user
+     * has NOT typed anything new for the state.
+     *
+     * Only capture_personal_details is hydrated for now — other buckets
+     * need more careful field mapping (DOB from age_hint, relationship
+     * normalisation) and are deferred to a follow-up.
+     *
+     * @return \Generator<array<string, mixed>>|null
+     */
+    private function hydrateFromParking(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+    ): ?\Generator {
+        $extractionTool = (string) ($state['extraction_tool'] ?? '');
+        $parked = $conversation->onboarding_parked_facts ?? [];
+
+        if (! is_array($parked) || $parked === []) {
+            return null;
+        }
+
+        $input = match ($extractionTool) {
+            'capture_personal_details' => $this->buildPersonalInputFromParking($parked, $user),
+            default => null,
+        };
+
+        if ($input === null || $input === []) {
+            return null;
+        }
+
+        Log::info('[OnboardingChatDirector] Parking hydration fires', [
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'state' => $currentStateId,
+            'tool' => $extractionTool,
+            'parked_fields' => array_keys($input),
+        ]);
+
+        $result = $this->coordinatingAgent->executeTool($extractionTool, $input, $user);
+
+        if (($result['error'] ?? false) === true) {
+            Log::info('[OnboardingChatDirector] Parking hydration rejected — falling through to LLM', [
+                'user_id' => $user->id,
+                'state' => $currentStateId,
+                'reason' => $result['message'] ?? 'unknown',
+            ]);
+
+            return null;
+        }
+
+        // Emit the same shape handleGroupedExtractTurn produces on a
+        // successful capture so downstream consumers (frontend store) see
+        // no difference.
+        return (function () use ($user, $conversation, $currentStateId, $state, $result) {
+            if (($result['onboarding_capture'] ?? false) === true) {
+                yield [
+                    'type' => 'onboarding_field_captured',
+                    'field_group' => $result['field_group'] ?? 'unknown',
+                    'summary' => $result['summary'] ?? 'Captured.',
+                    'details' => $result['details'] ?? [],
+                    'hydrated_from_parking' => true,
+                ];
+            }
+
+            $this->recordProgress($user, $currentStateId, ['hydrated_from_parking' => true]);
+
+            $user->refresh();
+
+            $nextStateId = OnboardingStateMachine::getNextStateId(
+                $currentStateId,
+                '',
+                $user,
+            );
+
+            if ($nextStateId === null) {
+                return;
+            }
+
+            $user->onboarding_fyn_step = $nextStateId;
+
+            if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
+                yield from $this->emitDoneTurn($user, $conversation);
+
+                return;
+            }
+
+            $user->save();
+
+            $nextState = OnboardingStateMachine::getState($nextStateId);
+            if ($nextState === null) {
+                return;
+            }
+
+            yield [
+                'type' => 'onboarding_advance',
+                'from_step' => $currentStateId,
+                'to_step' => $nextStateId,
+                'hydrated_from_parking' => true,
+            ];
+
+            yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+        })();
+    }
+
+    /**
+     * @param  array<string, mixed>  $parked
+     * @return array<string, mixed>
+     */
+    private function buildPersonalInputFromParking(array $parked, User $user): array
+    {
+        $personal = is_array($parked['personal'] ?? null) ? $parked['personal'] : [];
+        $input = [];
+
+        // Only provide fields the user has NOT already got in the DB; the
+        // tool handler rejects empty payloads which gracefully falls
+        // through when the state would have been skipped anyway.
+        if (empty($user->date_of_birth) && ! empty($personal['date_of_birth'])) {
+            $input['date_of_birth'] = $personal['date_of_birth'];
+        }
+
+        if (empty($user->marital_status) && ! empty($personal['marital_status'])) {
+            $input['marital_status'] = $personal['marital_status'];
+        }
+
+        return $input;
     }
 
     // ─── Grouped-extract delegation ───────────────────────────────────────

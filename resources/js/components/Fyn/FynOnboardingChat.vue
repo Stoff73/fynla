@@ -21,12 +21,25 @@ import ProfileReviewPanel from '@/components/Onboarding/ProfileReviewPanel.vue';
 export default {
     name: 'FynOnboardingChat',
     components: { AiChatPanel, ProfileReviewPanel },
+    props: {
+        /**
+         * When true, the parent container fixes the width (e.g. the 356px
+         * docked <aside> in AppLayout). Wide/standard sizing collapses to
+         * the available width; we stack ProfileReviewPanel below the chat
+         * instead of beside it.
+         */
+        docked: {
+            type: Boolean,
+            default: false,
+        },
+    },
     computed: {
         ...mapGetters('aiChat', ['onboardingLayout']),
         isStandardLayout() {
             return this.onboardingLayout === 'standard';
         },
         chatContainerClasses() {
+            if (this.docked) return 'w-full h-full';
             return this.isStandardLayout
                 ? 'w-[525px] max-w-full'
                 : 'w-full max-w-4xl';
@@ -36,26 +49,27 @@ export default {
 </script>
 
 <template>
-    <div class="flex flex-col items-center gap-6 mx-auto transition-all duration-300" :class="chatContainerClasses">
-        <!--
-            Standard (pause) layout: chat on the left, profile review
-            panel on the right when the viewport allows. On narrow
-            viewports the panel stacks below the chat.
-        -->
-        <template v-if="isStandardLayout">
-            <div class="flex flex-col lg:flex-row gap-6 w-full">
-                <div class="flex-1 min-w-0">
-                    <AiChatPanel />
-                </div>
-                <aside class="w-full lg:w-[300px] flex-shrink-0">
-                    <ProfileReviewPanel />
-                </aside>
-            </div>
-        </template>
+    <div
+        class="flex flex-col gap-4 transition-all duration-300"
+        :class="[chatContainerClasses, docked ? 'overflow-hidden' : 'items-center mx-auto']"
+    >
+        <!-- Chat is always rendered; in docked mode it takes full height. -->
+        <div :class="docked ? 'flex-1 min-h-0' : 'w-full'">
+            <AiChatPanel v-bind="$attrs" v-on="$listeners" :docked="docked" />
+        </div>
 
-        <!-- Wide layout: just the chat, dashboard blurred behind. -->
-        <template v-else>
-            <AiChatPanel />
-        </template>
+        <!--
+            Standard (pause) layout: render the profile review panel.
+            In docked mode it stacks below the chat; in wide free-form
+            mode it sits beside the chat on large viewports.
+        -->
+        <aside
+            v-if="isStandardLayout"
+            :class="docked
+                ? 'border-t border-light-gray bg-savannah-100 max-h-[40%] overflow-y-auto'
+                : 'w-full lg:w-[300px] flex-shrink-0'"
+        >
+            <ProfileReviewPanel />
+        </aside>
     </div>
 </template>
