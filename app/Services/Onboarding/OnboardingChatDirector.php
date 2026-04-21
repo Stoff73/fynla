@@ -179,6 +179,193 @@ final class OnboardingChatDirector
     }
 
     /**
+     * Handle a routed action from the new POST /action endpoint.
+     * Replaces the old sentinel-string user-message path. Actions are NOT
+     * persisted as AiMessage rows.
+     *
+     * Supported actions:
+     *   - resume:   emit welcome-back greeting referencing the saved step
+     *   - continue: resume at the saved step (re-emit the current state)
+     *   - restart:  hard-delete prior AiMessage rows, reset step to path_choice
+     *   - skip:     advance past the current state (used for the spouse skip)
+     *
+     * @return \Generator<array{type: string}>
+     */
+    public function handleAction(User $user, AiConversation $conversation, string $action): \Generator
+    {
+        $currentStateId = $user->onboarding_fyn_step;
+
+        switch ($action) {
+            case 'resume':
+                yield from $this->handleResumeAction($user, $conversation, $currentStateId);
+
+                return;
+
+            case 'continue':
+                // Re-emit the current state so the user picks up where they left off.
+                if ($currentStateId === null) {
+                    yield $this->errorEvent('No onboarding step to continue from.');
+
+                    return;
+                }
+
+                $state = OnboardingStateMachine::getState($currentStateId);
+                if ($state === null) {
+                    yield $this->errorEvent('Unknown onboarding step.');
+
+                    return;
+                }
+
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+                return;
+
+            case 'restart':
+                yield from $this->handleRestartAction($user, $conversation);
+
+                return;
+
+            case 'skip':
+                yield from $this->handleSkipAction($user, $conversation, $currentStateId);
+
+                return;
+
+            default:
+                yield $this->errorEvent("Unknown action: {$action}");
+        }
+    }
+
+    /**
+     * Emit a welcome-back greeting referencing the saved step and surface
+     * Continue / Start over action bubbles. Used by the resume flow on
+     * conversation mount (Phase 12).
+     */
+    private function handleResumeAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
+    {
+        if ($currentStateId === null) {
+            yield $this->errorEvent('No onboarding in progress to resume.');
+
+            return;
+        }
+
+        $nameParts = explode(' ', (string) $user->name);
+        $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+
+        $stateLabel = $this->describeStep($currentStateId, $user);
+        $greeting = "Welcome back, {$firstName}. Last time we were {$stateLabel}. Would you like to continue from where we left off, or start over?";
+
+        $message = $this->saveMessage($conversation, 'assistant', $greeting, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_resume_greeting' => true,
+            ],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $greeting,
+            'bubbles' => [
+                ['id' => 'continue', 'label' => 'Continue'],
+                ['id' => 'restart', 'label' => 'Start over'],
+            ],
+            'action_bubbles' => true,
+        ];
+
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Hard-delete prior assistant messages in this conversation and reset
+     * the user's onboarding_fyn_step to path_choice so they start fresh.
+     */
+    private function handleRestartAction(User $user, AiConversation $conversation): \Generator
+    {
+        $conversation->messages()->delete();
+
+        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_PATH_CHOICE;
+        $user->onboarding_fyn_path = null;
+        $user->onboarding_fyn_selection = null;
+        $user->onboarding_fyn_context = null;
+        $user->save();
+
+        yield ['type' => 'content', 'text' => "No problem — let's start fresh."];
+
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
+        if ($state !== null) {
+            yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_PATH_CHOICE, $state);
+        }
+    }
+
+    /**
+     * Skip the current state (primary use: the spouse block). Advances to
+     * the state's configured next without persisting any captured value.
+     * Phase 10 wires this to the actual state-machine skip_next hooks.
+     */
+    private function handleSkipAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
+    {
+        if ($currentStateId === null) {
+            yield $this->errorEvent('No onboarding step to skip.');
+
+            return;
+        }
+
+        // Supported skip targets (Phase 10 extension point). For now, the
+        // only sanctioned skip is from base_spouse to base_dependants.
+        $skipTargets = [
+            OnboardingStateMachine::STATE_BASE_SPOUSE => OnboardingStateMachine::STATE_BASE_DEPENDANTS,
+        ];
+
+        if (! isset($skipTargets[$currentStateId])) {
+            yield $this->errorEvent('This step cannot be skipped.');
+
+            return;
+        }
+
+        $nextStateId = $skipTargets[$currentStateId];
+
+        $this->recordProgress($user, $currentStateId, ['skipped' => true]);
+
+        $user->onboarding_fyn_step = $nextStateId;
+        $user->save();
+
+        yield [
+            'type' => 'onboarding_advance',
+            'from_step' => $currentStateId,
+            'to_step' => $nextStateId,
+            'skipped' => true,
+        ];
+
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState !== null) {
+            yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+        }
+    }
+
+    /**
+     * Human-readable label for a state id, used in the resume greeting.
+     * Pass the user so we can interpolate name / selection where relevant.
+     */
+    private function describeStep(string $stateId, ?User $user = null): string
+    {
+        return match ($stateId) {
+            OnboardingStateMachine::STATE_PATH_CHOICE => 'choosing how to get started',
+            OnboardingStateMachine::STATE_JOURNEY_SELECTION => 'picking a life-stage journey',
+            OnboardingStateMachine::STATE_FOCUS_SELECTION => 'picking a module to focus on first',
+            OnboardingStateMachine::STATE_BASE_PERSONAL => 'capturing your date of birth and marital status',
+            OnboardingStateMachine::STATE_BASE_SPOUSE => 'capturing your partner\'s details',
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS => 'noting whether you have dependants',
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => 'noting your dependants',
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'noting your employment situation',
+            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your employer and role',
+            OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
+            OnboardingStateMachine::STATE_ASSET_CAPTURE => 'mapping your '.($user?->onboarding_fyn_selection ?? 'financial').' records',
+            OnboardingStateMachine::STATE_ADD_MORE => 'choosing whether to add another module',
+            default => 'mid-onboarding',
+        };
+    }
+
+    /**
      * Return the onboarding status for the authenticated user. Used by the
      * frontend on chat open to decide whether to call /start or resume an
      * existing conversation.

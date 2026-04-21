@@ -8,6 +8,7 @@ use App\Agents\CoordinatingAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
+use App\Services\AI\FynPersonaOrchestrator;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,7 @@ class AiChatController extends Controller
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingChatDirector $onboardingDirector,
+        private readonly FynPersonaOrchestrator $orchestrator,
     ) {}
 
     /**
@@ -146,20 +148,24 @@ class AiChatController extends Controller
         $message = $request->input('message');
         $currentRoute = $request->input('current_route');
 
-        // Delegate to OnboardingChatDirector when the user is mid-flow in
-        // the Fyn-driven onboarding state machine. This lets turns 2+ of
-        // onboarding be handled deterministically (bubble matches, DOB
-        // parsing, etc.) with asset_capture delegating back to
-        // CoordinatingAgent via chatWithPromptOverride().
+        // Three-way dispatch:
+        //   1. Onboarding (mid-flow users) → OnboardingChatDirector — the
+        //      deterministic state machine.
+        //   2. Persona split (post-onboarding + flag on) → FynPersonaOrchestrator.
+        //   3. Default (flag off) → CoordinatingAgent::chat (pre-split behaviour).
         $inOnboarding = $user->onboarding_completed === false
             && $user->onboarding_fyn_step !== null
             && (bool) config('onboarding.fyn_flow_enabled', true);
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding) {
+        $splitEnabled = (bool) config('fyn.persona_split_enabled', false);
+
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $splitEnabled) {
             try {
-                $generator = $inOnboarding
-                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute)
-                    : $this->coordinatingAgent->chat($user, $conversation, $message, $currentRoute);
+                $generator = match (true) {
+                    $inOnboarding => $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute),
+                    $splitEnabled => $this->orchestrator->dispatch($user, $conversation, $message, $currentRoute),
+                    default => $this->coordinatingAgent->chat($user, $conversation, $message, $currentRoute),
+                };
 
                 foreach ($generator as $event) {
                     echo 'data: '.json_encode($event)."\n\n";
@@ -174,6 +180,7 @@ class AiChatController extends Controller
                     'user_id' => $user->id,
                     'conversation_id' => $conversation->id,
                     'in_onboarding' => $inOnboarding,
+                    'split_enabled' => $splitEnabled,
                     'error' => $e->getMessage(),
                 ]);
 
@@ -337,6 +344,82 @@ class AiChatController extends Controller
         return response()->json([
             'success' => true,
             'data' => $this->onboardingDirector->getOnboardingStatus($request->user()),
+        ]);
+    }
+
+    /**
+     * Routed actions against a conversation — replaces the old sentinel-string
+     * user-message path (__resume__ / __continue__ / __restart__ / __skip__).
+     *
+     * POST /api/ai-chat/conversations/{id}/action
+     *
+     * Body: { action: 'resume' | 'continue' | 'restart' | 'skip' }
+     *
+     * Actions are NOT persisted as AiMessage rows. Streams director or
+     * orchestrator events back to the client via SSE. Covered by the
+     * existing api/ai-chat/conversations/* prefix match in
+     * PreviewWriteInterceptor::EXCLUDED_ROUTES.
+     */
+    public function action(Request $request, int $id): StreamedResponse|JsonResponse
+    {
+        $request->validate([
+            'action' => 'required|string|in:resume,continue,restart,skip',
+        ]);
+
+        $user = $request->user();
+        $conversation = AiConversation::forUser($user->id)->findOrFail($id);
+        $action = $request->input('action');
+
+        $inOnboarding = $user->onboarding_completed === false
+            && $user->onboarding_fyn_step !== null
+            && (bool) config('onboarding.fyn_flow_enabled', true);
+
+        return new StreamedResponse(function () use ($user, $conversation, $action, $inOnboarding) {
+            try {
+                $generator = $inOnboarding
+                    ? $this->onboardingDirector->handleAction($user, $conversation, $action)
+                    : (function () use ($action) {
+                        // Post-onboarding currently has no action semantics beyond
+                        // the director's onboarding-specific ones. Emit a no-op
+                        // acknowledgement so the client gets a clean response.
+                        yield [
+                            'type' => 'content',
+                            'text' => "I'm not sure what to do with that right now.",
+                        ];
+                        yield ['type' => 'done'];
+                    })();
+
+                foreach ($generator as $event) {
+                    echo 'data: '.json_encode($event)."\n\n";
+
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+            } catch (\Exception $e) {
+                Log::error('[AiChatController] Action streaming error', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'action' => $action,
+                    'error' => $e->getMessage(),
+                ]);
+
+                echo 'data: '.json_encode([
+                    'type' => 'error',
+                    'message' => 'The action could not be completed. Please try again.',
+                ])."\n\n";
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
         ]);
     }
 }
