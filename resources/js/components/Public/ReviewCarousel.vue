@@ -1,6 +1,6 @@
 <template>
   <div class="bg-horizon-500 py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div :class="['max-w-7xl mx-auto px-4 sm:px-6 lg:px-8', innerClass]">
       <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center mb-8">What our customers say</h2>
 
       <div class="overflow-hidden">
@@ -87,6 +87,11 @@
 export default {
   name: 'ReviewCarousel',
 
+  props: {
+    perPage: { type: Number, default: 3 },
+    innerClass: { type: String, default: '' },
+  },
+
   data() {
     return {
       desktopPage: 0,
@@ -131,8 +136,8 @@ export default {
   computed: {
     desktopPages() {
       const pages = [];
-      for (let i = 0; i < this.reviews.length; i += 3) {
-        pages.push(this.reviews.slice(i, i + 3));
+      for (let i = 0; i < this.reviews.length; i += this.perPage) {
+        pages.push(this.reviews.slice(i, i + this.perPage));
       }
       return pages;
     },

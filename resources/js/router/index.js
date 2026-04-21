@@ -23,6 +23,7 @@ const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
 const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
+const NotFoundPage = () => import('@/views/Public/NotFoundPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
 const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
@@ -1265,6 +1266,12 @@ const routes = [
       { path: 'module/goals', name: 'MobileGoalsDetail', component: GoalsDetail, meta: { title: 'Goals' } },
       { path: 'module/coordination', name: 'MobileCoordinationDetail', component: CoordinationDetail, meta: { title: 'Coordination' } },
     ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFoundPage,
+    meta: { public: true },
   },
 ];
 
