@@ -734,6 +734,10 @@ class CoordinatingAgent extends BaseAgent
                 'create_asset' => $this->handleCreateEstateAsset($input, $user, $isPreviewUser),
                 'create_liability' => $this->handleCreateEstateLiability($input, $user, $isPreviewUser),
                 'create_estate_gift' => $this->handleCreateEstateGift($input, $user, $isPreviewUser),
+                'create_will' => $this->handleCreateWill($input, $user, $isPreviewUser),
+                'update_will' => $this->handleUpdateWill($input, $user, $isPreviewUser),
+                'create_power_of_attorney' => $this->handleCreatePowerOfAttorney($input, $user, $isPreviewUser),
+                'update_power_of_attorney' => $this->handleUpdatePowerOfAttorney($input, $user, $isPreviewUser),
                 'create_family_member' => $this->handleCreateFamilyMember($input, $user, $isPreviewUser),
                 'create_trust' => $this->handleCreateTrust($input, $user, $isPreviewUser),
                 'create_business_interest' => $this->handleCreateBusinessInterest($input, $user, $isPreviewUser),
@@ -2227,6 +2231,261 @@ class CoordinatingAgent extends BaseAgent
             'route' => '/estate',
             'fields' => $fields,
             'message' => "I'll record your gift of £".number_format((float) $input['gift_value'])." to {$recipient} now.",
+        ];
+    }
+
+    // ─── Estate planning documents (Will + LPA) ──────────────────────
+
+    private function handleCreateWill(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('will');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'executor_name' => 'required|string|max:255',
+            'residuary_beneficiary' => 'nullable|string|max:255',
+            'guardian_for_minors' => 'nullable|string|max:255',
+            'specific_gifts' => 'nullable|string|max:2000',
+            'spouse_primary_beneficiary' => 'nullable|boolean',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        // Default spouse_primary_beneficiary true for married users when not specified.
+        $spousePrimary = array_key_exists('spouse_primary_beneficiary', $input)
+            ? (bool) $input['spouse_primary_beneficiary']
+            : in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
+
+        $will = \App\Models\Estate\Will::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'has_will' => true,
+                'executor_name' => $input['executor_name'],
+                'residuary_beneficiary' => $input['residuary_beneficiary'] ?? null,
+                'guardian_for_minors' => $input['guardian_for_minors'] ?? null,
+                'specific_gifts' => $input['specific_gifts'] ?? null,
+                'spouse_primary_beneficiary' => $spousePrimary,
+                'will_last_updated' => now()->toDateString(),
+            ],
+        );
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'will',
+            'id' => $will->id,
+            'message' => 'Recorded your will details.',
+        ];
+    }
+
+    private function handleUpdateWill(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('will');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'executor_name' => 'nullable|string|max:255',
+            'residuary_beneficiary' => 'nullable|string|max:255',
+            'guardian_for_minors' => 'nullable|string|max:255',
+            'specific_gifts' => 'nullable|string|max:2000',
+            'spouse_primary_beneficiary' => 'nullable|boolean',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $will = \App\Models\Estate\Will::where('user_id', $user->id)->first();
+
+        if ($will === null) {
+            // No existing will to update — fall through to create semantics.
+            return $this->handleCreateWill($input, $user, $isPreview);
+        }
+
+        $updates = array_filter(
+            [
+                'executor_name' => $input['executor_name'] ?? null,
+                'residuary_beneficiary' => $input['residuary_beneficiary'] ?? null,
+                'guardian_for_minors' => $input['guardian_for_minors'] ?? null,
+                'specific_gifts' => $input['specific_gifts'] ?? null,
+                'spouse_primary_beneficiary' => array_key_exists('spouse_primary_beneficiary', $input)
+                    ? (bool) $input['spouse_primary_beneficiary']
+                    : null,
+            ],
+            fn ($v) => $v !== null,
+        );
+
+        if ($updates === []) {
+            return [
+                'error' => true,
+                'error_type' => 'nothing_to_update',
+                'message' => 'No will fields were provided for update.',
+            ];
+        }
+
+        $updates['will_last_updated'] = now()->toDateString();
+
+        $will->update($updates);
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'will',
+            'id' => $will->id,
+            'message' => 'Updated your will details.',
+        ];
+    }
+
+    private function handleCreatePowerOfAttorney(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('lasting power of attorney');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'lpa_type' => ['required', Rule::in(['property_financial', 'health_welfare'])],
+            'primary_attorney_name' => 'required|string|max:255',
+            'replacement_attorney_name' => 'nullable|string|max:255',
+            'status' => ['nullable', Rule::in(['draft', 'registered'])],
+            'opg_reference' => 'nullable|string|max:50',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $donorName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? '');
+
+        $lpa = \Illuminate\Support\Facades\DB::transaction(function () use ($input, $user, $donorName) {
+            $lpa = \App\Models\Estate\LastingPowerOfAttorney::create([
+                'user_id' => $user->id,
+                'lpa_type' => $input['lpa_type'],
+                'status' => $input['status'] ?? 'draft',
+                'source' => 'created',
+                'donor_full_name' => $donorName,
+                'donor_date_of_birth' => $user->date_of_birth,
+                'opg_reference' => $input['opg_reference'] ?? null,
+                'is_registered_with_opg' => ($input['status'] ?? 'draft') === 'registered',
+                'registration_date' => ($input['status'] ?? 'draft') === 'registered' ? now()->toDateString() : null,
+            ]);
+
+            \App\Models\Estate\LpaAttorney::create([
+                'lasting_power_of_attorney_id' => $lpa->id,
+                'attorney_type' => 'primary',
+                'full_name' => $input['primary_attorney_name'],
+                'sort_order' => 1,
+            ]);
+
+            if (! empty($input['replacement_attorney_name'])) {
+                \App\Models\Estate\LpaAttorney::create([
+                    'lasting_power_of_attorney_id' => $lpa->id,
+                    'attorney_type' => 'replacement',
+                    'full_name' => $input['replacement_attorney_name'],
+                    'sort_order' => 2,
+                ]);
+            }
+
+            return $lpa;
+        });
+
+        $this->invalidateUserCache($user->id);
+
+        $typeLabel = $lpa->lpa_type === 'property_financial' ? 'Property & Financial Affairs' : 'Health & Welfare';
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'lasting_power_of_attorney',
+            'id' => $lpa->id,
+            'message' => "Recorded your {$typeLabel} LPA.",
+        ];
+    }
+
+    private function handleUpdatePowerOfAttorney(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('lasting power of attorney');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'lpa_id' => 'required|integer|exists:lasting_powers_of_attorney,id',
+            'status' => ['nullable', Rule::in(['draft', 'registered'])],
+            'opg_reference' => 'nullable|string|max:50',
+            'primary_attorney_name' => 'nullable|string|max:255',
+            'replacement_attorney_name' => 'nullable|string|max:255',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $lpa = \App\Models\Estate\LastingPowerOfAttorney::where('user_id', $user->id)
+            ->find($input['lpa_id']);
+
+        if ($lpa === null) {
+            return [
+                'error' => true,
+                'error_type' => 'not_found',
+                'message' => 'No LPA with that ID found for this user.',
+            ];
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($input, $lpa) {
+            $updates = [];
+
+            if (array_key_exists('status', $input) && $input['status'] !== null) {
+                $updates['status'] = $input['status'];
+                $updates['is_registered_with_opg'] = $input['status'] === 'registered';
+                if ($input['status'] === 'registered' && $lpa->registration_date === null) {
+                    $updates['registration_date'] = now()->toDateString();
+                }
+            }
+
+            if (array_key_exists('opg_reference', $input) && $input['opg_reference'] !== null) {
+                $updates['opg_reference'] = $input['opg_reference'];
+            }
+
+            if ($updates !== []) {
+                $lpa->update($updates);
+            }
+
+            if (! empty($input['primary_attorney_name'])) {
+                $primary = $lpa->attorneys()->where('attorney_type', 'primary')->first();
+                if ($primary !== null) {
+                    $primary->update(['full_name' => $input['primary_attorney_name']]);
+                } else {
+                    \App\Models\Estate\LpaAttorney::create([
+                        'lasting_power_of_attorney_id' => $lpa->id,
+                        'attorney_type' => 'primary',
+                        'full_name' => $input['primary_attorney_name'],
+                        'sort_order' => 1,
+                    ]);
+                }
+            }
+
+            if (! empty($input['replacement_attorney_name'])) {
+                $replacement = $lpa->attorneys()->where('attorney_type', 'replacement')->first();
+                if ($replacement !== null) {
+                    $replacement->update(['full_name' => $input['replacement_attorney_name']]);
+                } else {
+                    \App\Models\Estate\LpaAttorney::create([
+                        'lasting_power_of_attorney_id' => $lpa->id,
+                        'attorney_type' => 'replacement',
+                        'full_name' => $input['replacement_attorney_name'],
+                        'sort_order' => 2,
+                    ]);
+                }
+            }
+        });
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'lasting_power_of_attorney',
+            'id' => $lpa->id,
+            'message' => 'Updated your LPA.',
         ];
     }
 

@@ -826,6 +826,102 @@ class AiToolDefinitions
                     'additionalProperties' => false,
                 ],
             ],
+            [
+                'name' => 'create_will',
+                'description' => 'Record the user\'s will details. Use when the user tells you they have a will and shares executor, beneficiaries, guardians, or specific gifts information. For existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'executor_name' => [
+                            'type' => 'string',
+                            'description' => 'Full name of the primary executor.',
+                        ],
+                        'residuary_beneficiary' => [
+                            'type' => 'string',
+                            'description' => 'Named primary residuary beneficiary — who receives the bulk of the estate after specific gifts and debts.',
+                        ],
+                        'guardian_for_minors' => [
+                            'type' => 'string',
+                            'description' => 'Named guardian for any minor children, if the user has minor dependants.',
+                        ],
+                        'specific_gifts' => [
+                            'type' => 'string',
+                            'description' => 'Free-text description of specific gifts (item, recipient). Leave blank if the user mentions no specific gifts.',
+                        ],
+                        'spouse_primary_beneficiary' => [
+                            'type' => 'boolean',
+                            'description' => 'Whether the user\'s spouse is the primary beneficiary. Defaults true if the user is married and did not specify otherwise.',
+                        ],
+                    ],
+                    'required' => ['executor_name'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'update_will',
+                'description' => 'Update an existing will record. Use when the user amends their will details (new executor, new beneficiary, updated specific gifts).',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'executor_name' => ['type' => 'string', 'description' => 'New executor name.'],
+                        'residuary_beneficiary' => ['type' => 'string', 'description' => 'New residuary beneficiary.'],
+                        'guardian_for_minors' => ['type' => 'string', 'description' => 'New guardian for minors.'],
+                        'specific_gifts' => ['type' => 'string', 'description' => 'New specific gifts description.'],
+                        'spouse_primary_beneficiary' => ['type' => 'boolean', 'description' => 'Spouse as primary beneficiary flag.'],
+                    ],
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'create_power_of_attorney',
+                'description' => 'Record a Lasting Power of Attorney (LPA) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name and whether it is registered with the Office of the Public Guardian. Replacement attorneys are optional.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'lpa_type' => [
+                            'type' => 'string',
+                            'enum' => ['property_financial', 'health_welfare'],
+                            'description' => 'Which LPA type. property_financial covers money/property decisions. health_welfare covers medical/care decisions.',
+                        ],
+                        'primary_attorney_name' => [
+                            'type' => 'string',
+                            'description' => 'Full name of the primary attorney (the person empowered to act for the donor).',
+                        ],
+                        'replacement_attorney_name' => [
+                            'type' => 'string',
+                            'description' => 'Optional. Full name of a replacement attorney who steps in if the primary is unable or unwilling to act.',
+                        ],
+                        'status' => [
+                            'type' => 'string',
+                            'enum' => ['draft', 'registered'],
+                            'description' => 'LPA status. draft = signed but not yet registered with OPG. registered = in force and registered with the Office of the Public Guardian.',
+                        ],
+                        'opg_reference' => [
+                            'type' => 'string',
+                            'description' => 'Office of the Public Guardian registration reference, if the LPA is registered.',
+                        ],
+                    ],
+                    'required' => ['lpa_type', 'primary_attorney_name'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'update_power_of_attorney',
+                'description' => 'Update an existing LPA record (e.g. status change from draft to registered, OPG reference added, replacement attorney added).',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'lpa_id' => ['type' => 'integer', 'description' => 'ID of the LPA to update.'],
+                        'status' => ['type' => 'string', 'enum' => ['draft', 'registered']],
+                        'opg_reference' => ['type' => 'string'],
+                        'primary_attorney_name' => ['type' => 'string'],
+                        'replacement_attorney_name' => ['type' => 'string'],
+                    ],
+                    'required' => ['lpa_id'],
+                    'additionalProperties' => false,
+                ],
+            ],
         ];
     }
 
@@ -943,6 +1039,94 @@ class AiToolDefinitions
                 ],
             ],
         ];
+    }
+
+    /**
+     * Handoff tools — used ONLY by FynPersonaInvoker when the active
+     * persona is advice or data_capture. Not included in getTools() so
+     * they never leak into the default Fyn chat turn. The invoker adds
+     * the persona's specific handoff tools via toolsListOverride.
+     *
+     * Tool names are defined as constants on HandoffContract so a typo
+     * fails at parse time rather than silently mis-routing at runtime.
+     *
+     * @param  string  $provider  'anthropic' or 'xai' — picks output format.
+     * @return list<array<string, mixed>>
+     */
+    public function handoffTools(string $provider = 'anthropic'): array
+    {
+        $tools = [
+            [
+                'name' => \App\Services\AI\HandoffContract::DELEGATE_TO_CAPTURE,
+                'description' => 'Internal. Emit this when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture mid-conversation. Never shown to the user. The orchestrator will hand off to data-capture Fyn and re-invoke you once capture is complete.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'reason' => [
+                            'type' => 'string',
+                            'description' => 'Why capture is needed (e.g. "retirement advice blocked on missing pension data").',
+                        ],
+                        'entity_types' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'string'],
+                            'description' => 'Record types to capture (dc_pension, savings_account, property, etc.). Drawn from data_capture persona allowed_tools.',
+                        ],
+                        'fields_needed' => [
+                            'type' => 'array',
+                            'items' => ['type' => 'string'],
+                            'description' => 'Optional. Specific fields required to unblock the advice answer.',
+                        ],
+                    ],
+                    'required' => ['reason', 'entity_types'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => \App\Services\AI\HandoffContract::CAPTURE_COMPLETE,
+                'description' => 'Internal. Emit this when you (data-capture Fyn) have finished capturing the records the user described. The orchestrator will return control to advice Fyn.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'summary' => [
+                            'type' => 'string',
+                            'description' => 'Short user-facing recap (e.g. "Added Scottish Widows SIPP £50k").',
+                        ],
+                        'records_created' => [
+                            'type' => 'array',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'type' => ['type' => 'string'],
+                                    'id' => ['type' => ['integer', 'string']],
+                                ],
+                                'required' => ['type', 'id'],
+                                'additionalProperties' => false,
+                            ],
+                            'description' => 'Structured list of records created or updated this sub-conversation.',
+                        ],
+                    ],
+                    'required' => ['summary', 'records_created'],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+
+        if ($provider === 'xai') {
+            return array_map(fn (array $tool) => [
+                'type' => 'function',
+                'function' => [
+                    'name' => $tool['name'],
+                    'description' => $tool['description'],
+                    'parameters' => $tool['parameters'],
+                ],
+            ], $tools);
+        }
+
+        return array_map(fn (array $tool) => [
+            'name' => $tool['name'],
+            'description' => $tool['description'],
+            'input_schema' => $tool['parameters'],
+        ], $tools);
     }
 
     /**

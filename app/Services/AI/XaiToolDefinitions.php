@@ -691,6 +691,97 @@ class XaiToolDefinitions
                 ],
                 ['gift_date', 'recipient', 'gift_type', 'gift_value', 'notes']
             ),
+            $this->wrapTool(
+                'create_will',
+                'Record the user\'s will details. Use for existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch.',
+                [
+                    'executor_name' => ['type' => 'string', 'description' => 'Full name of the primary executor.'],
+                    'residuary_beneficiary' => ['type' => ['string', 'null'], 'description' => 'Named primary residuary beneficiary.'],
+                    'guardian_for_minors' => ['type' => ['string', 'null'], 'description' => 'Named guardian for minor children, if any.'],
+                    'specific_gifts' => ['type' => ['string', 'null'], 'description' => 'Free-text description of specific gifts (item, recipient).'],
+                    'spouse_primary_beneficiary' => ['type' => ['boolean', 'null'], 'description' => 'Whether the spouse is the primary beneficiary.'],
+                ],
+                ['executor_name', 'residuary_beneficiary', 'guardian_for_minors', 'specific_gifts', 'spouse_primary_beneficiary']
+            ),
+            $this->wrapTool(
+                'update_will',
+                'Update an existing will record. Use when the user amends their will details.',
+                [
+                    'executor_name' => ['type' => ['string', 'null']],
+                    'residuary_beneficiary' => ['type' => ['string', 'null']],
+                    'guardian_for_minors' => ['type' => ['string', 'null']],
+                    'specific_gifts' => ['type' => ['string', 'null']],
+                    'spouse_primary_beneficiary' => ['type' => ['boolean', 'null']],
+                ],
+                ['executor_name', 'residuary_beneficiary', 'guardian_for_minors', 'specific_gifts', 'spouse_primary_beneficiary']
+            ),
+            $this->wrapTool(
+                'create_power_of_attorney',
+                'Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare.',
+                [
+                    'lpa_type' => ['type' => 'string', 'enum' => ['property_financial', 'health_welfare'], 'description' => 'LPA type.'],
+                    'primary_attorney_name' => ['type' => 'string', 'description' => 'Full name of the primary attorney.'],
+                    'replacement_attorney_name' => ['type' => ['string', 'null'], 'description' => 'Optional replacement attorney.'],
+                    'status' => ['type' => ['string', 'null'], 'enum' => ['draft', 'registered', null], 'description' => 'LPA status. Default draft. draft = signed but not yet registered with the Office of the Public Guardian. registered = in force.'],
+                    'opg_reference' => ['type' => ['string', 'null'], 'description' => 'Office of the Public Guardian reference, if registered.'],
+                ],
+                ['lpa_type', 'primary_attorney_name', 'replacement_attorney_name', 'status', 'opg_reference']
+            ),
+            $this->wrapTool(
+                'update_power_of_attorney',
+                'Update an existing LPA record — status change, OPG reference, attorney amendments.',
+                [
+                    'lpa_id' => ['type' => 'integer', 'description' => 'ID of the LPA.'],
+                    'status' => ['type' => ['string', 'null'], 'enum' => ['draft', 'registered', null]],
+                    'opg_reference' => ['type' => ['string', 'null']],
+                    'primary_attorney_name' => ['type' => ['string', 'null']],
+                    'replacement_attorney_name' => ['type' => ['string', 'null']],
+                ],
+                ['lpa_id', 'status', 'opg_reference', 'primary_attorney_name', 'replacement_attorney_name']
+            ),
+        ];
+    }
+
+    /**
+     * Handoff tools for FynPersonaInvoker. See AiToolDefinitions::handoffTools.
+     * Uses the wrapTool helper for consistency with other xAI tool shapes.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function handoffTools(): array
+    {
+        return [
+            $this->wrapTool(
+                \App\Services\AI\HandoffContract::DELEGATE_TO_CAPTURE,
+                'Internal. Emit when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture. Never shown to the user.',
+                [
+                    'reason' => ['type' => 'string', 'description' => 'Why capture is needed.'],
+                    'entity_types' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Record types to capture.'],
+                    'fields_needed' => ['type' => ['array', 'null'], 'items' => ['type' => 'string'], 'description' => 'Optional specific fields required.'],
+                ],
+                ['reason', 'entity_types', 'fields_needed']
+            ),
+            $this->wrapTool(
+                \App\Services\AI\HandoffContract::CAPTURE_COMPLETE,
+                'Internal. Emit when you (data-capture Fyn) have finished capturing. Orchestrator returns control to advice Fyn.',
+                [
+                    'summary' => ['type' => 'string', 'description' => 'Short user-facing recap.'],
+                    'records_created' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'type' => ['type' => 'string'],
+                                'id' => ['type' => ['integer', 'string']],
+                            ],
+                            'required' => ['type', 'id'],
+                            'additionalProperties' => false,
+                        ],
+                        'description' => 'Records created or updated.',
+                    ],
+                ],
+                ['summary', 'records_created']
+            ),
         ];
     }
 
