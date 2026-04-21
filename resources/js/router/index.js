@@ -21,6 +21,7 @@ const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
 const AdvisorsPage = () => import('@/views/Public/AdvisorsPage.vue');
 const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
+const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
 const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
@@ -212,6 +213,12 @@ const routes = [
     path: '/how-it-works',
     name: 'HowItWorks',
     component: HowItWorksPage,
+    meta: { public: true },
+  },
+  {
+    path: '/quickstart',
+    name: 'QuickStart',
+    component: QuickStartPage,
     meta: { public: true },
   },
   {
