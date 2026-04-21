@@ -38,8 +38,15 @@
             </div>
             <router-link to="/register?from=fyn" class="inline-block px-12 py-3 text-lg bg-spring-500 text-white rounded-button font-medium hover:bg-spring-600 transition-colors whitespace-nowrap">Quick start with Fyn</router-link>
           </div>
-          <div class="hidden lg:flex lg:w-auto lg:flex-shrink-0 items-center justify-end" :class="fynDetailsOpen ? 'lg:self-end' : ''">
+          <div class="hidden lg:flex lg:w-auto lg:flex-shrink-0 items-center gap-3" :class="fynDetailsOpen ? 'lg:self-end' : ''">
             <img src="/images/Fyn/Design Character 001a.webp" alt="Fyn — your AI financial companion" loading="lazy" width="324" height="427" :class="fynDetailsOpen ? 'h-[427px] w-auto lg:-mb-[6em]' : 'h-[427px] w-auto lg:-mb-[3em]'" />
+            <div class="flex flex-col items-start -mt-4">
+              <span class="hand-drawn text-base text-raspberry-500 -rotate-3 whitespace-nowrap mb-1 ml-1">Ask me anything!</span>
+              <svg width="80" height="40" viewBox="0 0 80 40" fill="none" class="text-raspberry-500">
+                <path d="M4 6 C 15 20, 35 32, 55 28 C 60 27, 64 25, 66 23" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+                <polygon points="76,23 66,17 66,29" fill="currentColor" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -330,7 +337,12 @@ export default {
 };
 </script>
 
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&display=swap');
+</style>
+
 <style scoped>
+.hand-drawn { font-family: 'Caveat', cursive; }
 /* Push content right of chat panel on desktop */
 .campaign-body {
   margin-right: 0;
