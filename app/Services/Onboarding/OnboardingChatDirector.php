@@ -402,6 +402,12 @@ final class OnboardingChatDirector
      * if applicable), persists a corresponding assistant AiMessage row so
      * the conversation history reflects Fyn's output, then yields a `done`
      * marker.
+     *
+     * Phase 10 — also emits `onboarding_layout_change` with the state's
+     * declared layout ('wide' default, 'standard' for profile-review
+     * pauses). Bubble states may include a `skip_link` metadata object
+     * that the frontend renders as a raspberry-500 inline link calling
+     * POST /api/ai-chat/conversations/{id}/action {action:'skip'}.
      */
     private function emitTurnForState(
         User $user,
@@ -412,6 +418,15 @@ final class OnboardingChatDirector
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
         $promptText = OnboardingStateMachine::resolvePromptText($state, $user);
+        $layoutMode = (string) ($state['layout'] ?? 'wide');
+        $skipLink = $state['skip_link'] ?? null;
+
+        // Emit the layout mode up-front so the frontend can shrink / expand
+        // the chat container and blur / un-blur the dashboard in one pass.
+        yield [
+            'type' => 'onboarding_layout_change',
+            'mode' => $layoutMode,
+        ];
 
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
@@ -421,24 +436,49 @@ final class OnboardingChatDirector
                 'prompt_text' => $promptText,
                 'bubbles' => $bubbles,
             ];
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                $event['skip_link'] = $skipLink;
+            }
             yield $event;
 
-            $assistantMessage = $this->saveMessage(
-                $conversation,
-                'assistant',
-                $promptText,
-                ['metadata' => ['bubbles' => $bubbles, 'onboarding_step' => $stateId]]
-            );
-        } else {
-            // free_text / terminal — plain content event
-            yield ['type' => 'content', 'text' => $promptText];
+            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId];
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                $metadata['skip_link'] = $skipLink;
+            }
 
             $assistantMessage = $this->saveMessage(
                 $conversation,
                 'assistant',
                 $promptText,
-                ['metadata' => ['onboarding_step' => $stateId]]
+                ['metadata' => $metadata]
             );
+        } else {
+            // free_text / grouped_extract / terminal — plain content event.
+            // Grouped_extract turns emit a prompt too so the user knows what
+            // to type; the tool call happens on their next user message.
+            yield ['type' => 'content', 'text' => $promptText];
+
+            $metadata = ['onboarding_step' => $stateId];
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                $metadata['skip_link'] = $skipLink;
+            }
+
+            $assistantMessage = $this->saveMessage(
+                $conversation,
+                'assistant',
+                $promptText,
+                ['metadata' => $metadata]
+            );
+
+            // For grouped_extract states, the frontend needs the skip_link
+            // (and any other action affordances) out-of-band — emit a
+            // separate event so the UI can render it alongside the content.
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                yield [
+                    'type' => 'skip_link',
+                    'skip_link' => $skipLink,
+                ];
+            }
         }
 
         yield [

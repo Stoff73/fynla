@@ -60,6 +60,13 @@ final class OnboardingStateMachine
 
     public const STATE_BASE_EXPENDITURE = 'base_expenditure';
 
+    // Phase 10 additions — multi-job loop + profile-review pauses.
+    public const STATE_BASE_EMPLOYMENT_MORE = 'base_employment_more';
+
+    public const STATE_PROFILE_REVIEW_FAMILY = 'profile_review_family';
+
+    public const STATE_PROFILE_REVIEW_EXPENDITURE = 'profile_review_expenditure';
+
     public const STATE_ASSET_CAPTURE = 'asset_capture';
 
     public const STATE_ADD_MORE = 'add_more';
@@ -142,6 +149,13 @@ final class OnboardingStateMachine
                 'extraction_tool' => 'capture_spouse_details',
                 'retry_text' => "I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?",
                 'next' => self::STATE_BASE_DEPENDANTS,
+                // Phase 10 — surface a raspberry-500 inline skip link alongside
+                // the prompt. Frontend posts {action: 'skip'} to the action
+                // endpoint; director's handleSkipAction advances to base_dependants.
+                'skip_link' => [
+                    'label' => 'Skip this for now',
+                    'color' => 'raspberry',
+                ],
             ],
             self::STATE_BASE_DEPENDANTS => [
                 'turn_type' => 'bubbles',
@@ -158,18 +172,31 @@ final class OnboardingStateMachine
                 'prompt_text' => 'Lovely. Tell me their first names, ages, and how they are related to you (child, parent, or other dependant). You can list several in one go.',
                 'extraction_tool' => 'capture_dependants',
                 'retry_text' => 'Could you list them again with ages and how they are related? Something like "Alice 7 child, Bob 4 child".',
+                'next' => self::STATE_PROFILE_REVIEW_FAMILY,
+            ],
+            // Phase 10 — profile-review pause after family details. Frontend
+            // shrinks the chat to w-[525px] and un-blurs the dashboard while
+            // this state is active.
+            self::STATE_PROFILE_REVIEW_FAMILY => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => 'Does your family and personal information look right? Tap the bubble to confirm — or just tell me what needs changing.',
+                'bubbles' => [
+                    ['id' => 'looks_correct', 'label' => 'Looks correct'],
+                ],
+                'capture_field' => null,
+                'layout' => 'standard',
                 'next' => self::STATE_BASE_EMPLOYMENT,
             ],
             self::STATE_BASE_EMPLOYMENT => [
                 'turn_type' => 'bubbles',
                 'prompt_text' => "And what's your employment situation at the moment?",
+                // Phase 10 — rename Employed → Full-time, drop Other (FR-M15).
                 'bubbles' => [
-                    ['id' => 'employed', 'label' => 'Employed'],
+                    ['id' => 'employed', 'label' => 'Full-time'],
                     ['id' => 'self_employed', 'label' => 'Self-employed'],
                     ['id' => 'part_time', 'label' => 'Part-time'],
                     ['id' => 'retired', 'label' => 'Retired'],
                     ['id' => 'unemployed', 'label' => 'Not working'],
-                    ['id' => 'other', 'label' => 'Other'],
                 ],
                 'capture_field' => 'employment_status',
                 'value_parser' => 'parseEmploymentFromText',
@@ -181,7 +208,20 @@ final class OnboardingStateMachine
                 'prompt_text' => self::class.'::buildWorkPrompt',
                 'extraction_tool' => 'capture_work_details',
                 'retry_text' => 'I need three things: the company or trade name, your position, and your gross annual income in GBP. Could you share all three?',
-                'next' => self::STATE_BASE_EXPENDITURE,
+                'next' => self::STATE_BASE_EMPLOYMENT_MORE,
+            ],
+            // Phase 10 — multi-job loop. After the first job is captured,
+            // ask if the user has another.  Yes loops back to base_employment;
+            // No advances to expenditure.
+            self::STATE_BASE_EMPLOYMENT_MORE => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => 'Do you have any other roles or sources of earned income to add?',
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => 'Yes, add another'],
+                    ['id' => 'no', 'label' => "No, that's everything"],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromEmploymentMore',
             ],
             self::STATE_BASE_RETIREMENT_DATE => [
                 'turn_type' => 'free_text',
@@ -195,8 +235,20 @@ final class OnboardingStateMachine
                 'prompt_text' => JourneyFieldResolver::getFynPrompt('monthly_expenditure'),
                 'capture_field' => 'monthly_expenditure',
                 'value_parser' => 'parseExpenditureAmount',
-                'next' => self::STATE_ASSET_CAPTURE,
+                'next' => self::STATE_PROFILE_REVIEW_EXPENDITURE,
                 'skip_if' => [self::class, 'skipIfExpenditureSet'],
+            ],
+            // Phase 10 — profile-review pause after expenditure. Shows the
+            // ProfileReviewPanel with expenditure alongside the earlier fields.
+            self::STATE_PROFILE_REVIEW_EXPENDITURE => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => 'Your expenditure is noted. Confirm the full profile looks right — or tell me what to change.',
+                'bubbles' => [
+                    ['id' => 'looks_correct', 'label' => 'Looks correct'],
+                ],
+                'capture_field' => null,
+                'layout' => 'standard',
+                'next' => self::STATE_ASSET_CAPTURE,
             ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',
@@ -379,7 +431,18 @@ final class OnboardingStateMachine
             return self::STATE_BASE_DEPENDANTS_DETAIL;
         }
 
-        return self::STATE_BASE_EMPLOYMENT;
+        // No dependants — skip _detail and go straight to profile review.
+        return self::STATE_PROFILE_REVIEW_FAMILY;
+    }
+
+    public static function nextFromEmploymentMore(string $answer): string
+    {
+        $normalised = mb_strtolower(trim($answer));
+        if (str_starts_with($normalised, 'yes')) {
+            return self::STATE_BASE_EMPLOYMENT;
+        }
+
+        return self::STATE_BASE_EXPENDITURE;
     }
 
     /**

@@ -20,10 +20,13 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_BASE_SPOUSE,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL,
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY,
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT,
             OnboardingStateMachine::STATE_BASE_WORK,
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE,
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE,
             OnboardingStateMachine::STATE_BASE_EXPENDITURE,
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE,
             OnboardingStateMachine::STATE_ASSET_CAPTURE,
             OnboardingStateMachine::STATE_ADD_MORE,
             OnboardingStateMachine::STATE_DONE,
@@ -43,13 +46,15 @@ describe('OnboardingStateMachine::states', function () {
         }
     });
 
-    it('every bubble state defines between 2 and 6 bubbles', function () {
+    it('every bubble state defines between 1 and 6 bubbles', function () {
+        // Profile-review pauses have a single confirmation bubble, otherwise
+        // bubble states carry 2-6 options.
         foreach (OnboardingStateMachine::states() as $id => $state) {
             if ($state['turn_type'] !== 'bubbles') {
                 continue;
             }
             $bubbles = $state['bubbles'] ?? [];
-            expect(count($bubbles))->toBeGreaterThanOrEqual(2)
+            expect(count($bubbles))->toBeGreaterThanOrEqual(1)
                 ->and(count($bubbles))->toBeLessThanOrEqual(6);
             foreach ($bubbles as $bubble) {
                 expect($bubble)->toHaveKeys(['id', 'label']);
@@ -76,6 +81,25 @@ describe('OnboardingStateMachine::getState', function () {
         expect($state)->not->toBeNull()
             ->and($state['turn_type'])->toBe('bubbles')
             ->and(count($state['bubbles']))->toBe(2);
+    });
+
+    it('declares the standard layout on profile review states', function () {
+        expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY)['layout'])->toBe('standard')
+            ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE)['layout'])->toBe('standard');
+    });
+
+    it('surfaces skip_link metadata on base_spouse', function () {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        expect($state)->toHaveKey('skip_link')
+            ->and($state['skip_link']['color'])->toBe('raspberry');
+    });
+
+    it('removes the Other employment bubble and renames Employed to Full-time', function () {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_EMPLOYMENT);
+        $labels = array_column($state['bubbles'], 'label');
+        expect($labels)->not->toContain('Other')
+            ->and($labels)->not->toContain('Employed')
+            ->and($labels)->toContain('Full-time');
     });
 
     it('returns null for an unknown id', function () {
@@ -171,10 +195,11 @@ describe('OnboardingStateMachine::nextFromDependants', function () {
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
     });
 
-    it('routes no to employment', function () {
+    it('routes no to profile_review_family (new Phase 10 path)', function () {
         expect(OnboardingStateMachine::nextFromDependants('No'))
-            ->toBe(OnboardingStateMachine::STATE_BASE_EMPLOYMENT);
+            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY);
     });
+
 });
 
 describe('OnboardingStateMachine::nextFromEmployment', function () {

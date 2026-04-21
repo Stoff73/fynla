@@ -100,36 +100,61 @@ describe('state-machine walkthrough — path_choice → done', function () {
             'marital_status' => 'single',
         ]);
 
-        // Step 5 — base_dependants bubble: "No" → base_employment
+        // Step 5 — base_dependants bubble: "No" → profile_review_family (Phase 10)
         sendOnboardingMessage($this, $this->user, $conversation->id, 'No');
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
-            ->toBe(OnboardingStateMachine::STATE_BASE_EMPLOYMENT)
+            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY)
             ->and($this->user->onboarding_fyn_context['has_dependants'] ?? null)->toBeFalse();
 
-        // Step 6 — base_employment bubble: "Employed" → base_work
-        sendOnboardingMessage($this, $this->user, $conversation->id, 'Employed');
+        // Step 5b — profile_review_family bubble: "Looks correct" → base_employment
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Looks correct');
+
+        $this->user->refresh();
+        expect($this->user->onboarding_fyn_step)
+            ->toBe(OnboardingStateMachine::STATE_BASE_EMPLOYMENT);
+
+        // Step 6 — base_employment bubble: "Full-time" → base_work.
+        // parseEmploymentFromText canonicalises "Full-time" to 'full_time'
+        // (the user column value); the bubble id 'employed' is only used
+        // when the parser returns null.
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Full-time');
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
             ->toBe(OnboardingStateMachine::STATE_BASE_WORK)
-            ->and($this->user->employment_status)->toBe('employed');
+            ->and($this->user->employment_status)->toBe('full_time');
 
-        // Step 7 — simulate grouped_extract work capture
-        jumpTo($this->user->id, OnboardingStateMachine::STATE_BASE_EXPENDITURE, [
+        // Step 7 — simulate grouped_extract work capture; advance into the
+        // new multi-job loop state (Phase 10).
+        jumpTo($this->user->id, OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE, [
             'employer' => 'Dentsu',
             'occupation' => 'Chief Marketing Officer',
             'annual_employment_income' => 50000,
         ]);
 
-        // Step 8 — base_expenditure free_text: "4000" → asset_capture
+        // Step 7b — base_employment_more bubble: "No, that's everything" → base_expenditure
+        sendOnboardingMessage($this, $this->user, $conversation->id, "No, that's everything");
+
+        $this->user->refresh();
+        expect($this->user->onboarding_fyn_step)
+            ->toBe(OnboardingStateMachine::STATE_BASE_EXPENDITURE);
+
+        // Step 8 — base_expenditure free_text: "4000" → profile_review_expenditure (Phase 10)
         sendOnboardingMessage($this, $this->user, $conversation->id, '4000');
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)
-            ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE)
+            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE)
             ->and((float) $this->user->monthly_expenditure)->toBe(4000.0);
+
+        // Step 8a — profile_review_expenditure bubble: "Looks correct" → asset_capture
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Looks correct');
+
+        $this->user->refresh();
+        expect($this->user->onboarding_fyn_step)
+            ->toBe(OnboardingStateMachine::STATE_ASSET_CAPTURE);
 
         // Step 8b — ExpenditureProfile sync (covers bug §4 from 88018a5)
         $profile = ExpenditureProfile::where('user_id', $this->user->id)->first();
@@ -162,6 +187,7 @@ describe('state-machine walkthrough — path_choice → done', function () {
             'onboarding_fyn_selection' => 'protection',
             'date_of_birth' => '1955-01-15',
             'marital_status' => 'single',
+            'onboarding_fyn_context' => json_encode([]),
         ]);
 
         sendOnboardingMessage($this, $this->user, $conversation->id, 'Retired');
