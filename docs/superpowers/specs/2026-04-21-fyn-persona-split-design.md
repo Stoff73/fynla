@@ -2,8 +2,8 @@
 
 **Date:** 2026-04-21
 **Author:** CSJ (brainstormed with Claude)
-**Stage:** Spec — awaiting implementation plan
-**Status:** Draft, not yet scheduled for a branch
+**Stage:** Spec — amended after codebase audit
+**Status:** Amended 2026-04-21 — conflicts resolved against live code. Target branch `feature/fyn-persona-split` off `onboardingFyn`.
 
 ---
 
@@ -31,11 +31,15 @@ The consequences:
 
 ## Decisions made during brainstorming
 
-- **Mode fork:** wide scope. Two persistent personas (`advice`, `data_capture`), intent-driven. Lifecycle flag (`users.onboarding_completed`) is irrelevant to persona selection.
-- **Routing:** the orchestrator is the single dispatcher for all post-registration Fyn turns. It covers three modes: `onboarding` (driven by the state machine absorbed from the director), `advice` (default post-onboarding), `capturing` (mid-handoff). The old `$inOnboarding` branch in `AiChatController` is removed.
+**Status:** Amended 2026-04-21 after codebase audit. Changes summarised in the "Amendments after codebase audit" section below.
+
+- **Mode fork:** wide scope for post-onboarding. Two persistent personas (`advice`, `data_capture`), intent-driven.
+- **Routing:** the new `FynPersonaOrchestrator` handles **post-onboarding turns only**. `OnboardingChatDirector` remains the single entry point for the initial onboarding flow — unchanged in its role, but extended with new states and features (see "Onboarding UX overhaul" below). `AiChatController` keeps the existing `$inOnboarding` branch and adds a third branch for the post-onboarding orchestrator.
 - **Tool ownership:** option A. All write tools (create / update / delete / capture / profile) live exclusively on data-capture Fyn. Advice Fyn has none of them and instead emits `delegate_to_capture` when a write is needed.
-- **Handoff mechanism:** structured tool calls primary. Advice → data-capture via `delegate_to_capture`. Data-capture → advice via `capture_complete`. A lightweight rule-based classifier runs as an **optional fast-path** for unambiguous intent (see "Routing with classifier fast-path" below). The classifier never overrides an emitted handoff tool call; it only pre-selects a persona when the signal is strong enough, and falls through to advice Fyn when unsure.
-- **UX:** the user sees one Fyn. Handoff tool calls are stripped from the SSE stream. The chat UI renders subtle status cues during handoffs (see "Chat UI changes" below).
+- **Handoff mechanism:** structured tool calls primary. Advice → data-capture via `delegate_to_capture`. Data-capture → advice via `capture_complete`.
+- **Classifier fast-path:** the existing `QueryClassifier` is promoted to run at the orchestrator level. A confident `DATA_ENTRY` classification (with a length cap and advice-phrase absence check) preselects data-capture and skips the advice invocation. No new `FynIntentClassifier` class.
+- **Action endpoint:** onboarding resume / continue / restart / skip are sent via `POST /api/ai-chat/conversations/{id}/action` with body `{action: 'resume' | 'continue' | 'restart' | 'skip'}`. Actions are **not** persisted as `AiMessage` rows. Added to `PreviewWriteInterceptor::EXCLUDED_ROUTES`.
+- **UX:** the user sees one Fyn. Handoff tool calls are stripped from the SSE stream. The chat UI renders subtle status cues during handoffs.
 
 ---
 
@@ -44,28 +48,32 @@ The consequences:
 ```
 AiChatController
     │
-    └── FynPersonaOrchestrator  (single dispatcher for all post-registration Fyn turns)
-            │
-            ├── reads AiConversation.persona_state
-            ├── if persona_state.current == "onboarding":
-            │       → delegate to OnboardingStateMachine (absorbed from the old director)
-            │         └── for asset_capture steps, drive data_capture persona via FynPersonaInvoker
-            │
-            ├── else runs classifier fast-path on the user message
-            │       ├── unambiguous "add/update/delete X" → preselect data_capture
-            │       ├── unambiguous advice/question       → preselect advice
-            │       └── anything else / unsure            → fall through to advice (default)
-            │
-            ├── dispatches to FynPersonaInvoker
-            │       │
-            │       ├── persona=advice        → AdvicePromptBuilder (renamed SystemPromptBuilder)
-            │       └── persona=data_capture  → DataCapturePromptBuilder
-            │
-            ├── parses tool calls from response
-            ├── intercepts handoff tool calls (delegate_to_capture / capture_complete)
-            ├── updates persona_state
-            └── loops or returns per transition rules
+    ├── if ($inOnboarding)       → OnboardingChatDirector    (UNCHANGED role — still drives the onboarding state machine)
+    │                               │                          Extended with new states/features (Phase: Onboarding UX overhaul)
+    │                               ├── non-capture states → deterministic handlers (bubble matching, DOB parsing, …)
+    │                               └── asset_capture      → delegates to CoordinatingAgent::chatWithPromptOverride
+    │                                                        with OnboardingPromptBuilder + focus-filtered create_* tools
+    │
+    ├── elseif ($splitEnabled)   → FynPersonaOrchestrator    (NEW — post-onboarding only)
+    │                               │
+    │                               ├── reads AiConversation.persona_state
+    │                               ├── runs QueryClassifier fast-path (extended) on the user message
+    │                               │     ├── confident DATA_ENTRY → preselect data_capture
+    │                               │     └── anything else        → default advice
+    │                               │
+    │                               ├── dispatches to FynPersonaInvoker
+    │                               │     ├── persona=advice       → AdvicePromptBuilder (renamed SystemPromptBuilder)
+    │                               │     └── persona=data_capture → DataCapturePromptBuilder (NEW, post-onboarding only)
+    │                               │
+    │                               ├── parses tool calls from response
+    │                               ├── intercepts handoff tool calls (delegate_to_capture / capture_complete)
+    │                               ├── updates persona_state
+    │                               └── loops or returns per transition rules
+    │
+    └── default                  → CoordinatingAgent::chat() (today's fallback — preserved behind the flag)
 ```
+
+**Key separation:** the onboarding director and the persona-split orchestrator are **independent subsystems** that coexist. The director keeps owning the deterministic state machine for initial onboarding; the orchestrator handles intent-driven advice/capture for everything else. They share the `CoordinatingAgent` / `HasAiChat` LLM primitives but do not depend on each other.
 
 ---
 
@@ -83,14 +91,14 @@ AiChatController
 
 - **`App\Services\AI\SystemPromptBuilder` → `App\Services\AI\AdvicePromptBuilder`.** No behaviour change. All references updated (searches: `SystemPromptBuilder`, bindings in `AppServiceProvider`, `CoordinatingAgent`, `HasAiChat`, test classes). The rename is part of this change; without it the naming lies.
 
-### Migrated / consolidated
+### Extended (not replaced)
 
-- **`App\Services\Onboarding\OnboardingChatDirector` is absorbed into the orchestrator.** The state machine (`OnboardingStateMachine`) moves under the orchestrator as the `onboarding` mode's state driver. The director class itself is deleted. Its FR-M14 buffered off-script filter moves to the orchestrator's handoff wrapper where it keeps protecting data-capture turns. See "Onboarding migration" below for the step-by-step consolidation plan.
-- **`App\Services\Onboarding\OnboardingPromptBuilder` is consolidated into `DataCapturePromptBuilder`.** Asset-capture turns during initial onboarding use the same builder as post-onboarding captures, with an onboarding-focus `CaptureContext`. The old class is deleted once all callers migrate.
+- **`App\Services\Onboarding\OnboardingChatDirector`** — stays. Still owns the initial onboarding flow. Extended with new state transitions (`profile_review_family`, `profile_review_expenditure`), spouse-skip handling, multi-job loop, conversational retraction, and fact parking. The FR-M14 buffered off-script filter stays where it is today.
+- **`App\Services\Onboarding\OnboardingPromptBuilder`** — stays. Still builds the asset-capture prompt for onboarding. Not consolidated with `DataCapturePromptBuilder` — they target different phases and have different responsibilities.
 
 ### Unchanged
 
-- `App\Traits\HasAiChat` and `App\Agents\CoordinatingAgent` — still used internally by `FynPersonaInvoker` for prompt building, streaming, and tool-call parsing primitives. The orchestrator is a layer above, not a replacement.
+- `App\Traits\HasAiChat` and `App\Agents\CoordinatingAgent` — still used internally by `FynPersonaInvoker` for prompt building, streaming, and tool-call parsing primitives. The orchestrator is a layer above, not a replacement. The director continues to call `CoordinatingAgent::chatWithPromptOverride()` for its asset-capture turns as it does today.
 
 ### New tools (in `AiToolDefinitions` and `XaiToolDefinitions`)
 
@@ -210,12 +218,12 @@ Adding a future persona is one new array entry plus a prompt builder class. No c
 
 ### New tools required (not in `AiToolDefinitions` today)
 
-The audit of write tools surfaced two estate-planning gaps. Both are in scope for this change because they belong to data-capture Fyn's responsibility and their absence would block the "user can give Fyn anything and Fyn captures it" promise:
+The audit of write tools surfaced two estate-planning gaps. Both are in scope for this change because they belong to data-capture Fyn's responsibility.
 
-- **`create_will` / `update_will`** — `App\Models\Estate\Will` exists as a model; the Will Builder lives at `/estate/will-builder`. There is no AI tool for creating or updating wills today. New tool definitions needed in `AiToolDefinitions` and `XaiToolDefinitions`, with handler methods on `CoordinatingAgent`. Scope: core fields (executor, beneficiaries, residuary estate, guardian for minors, specific gifts). Wrap the existing will-builder service so the handler does not reimplement validation.
-- **`create_power_of_attorney` / `update_power_of_attorney`** — no model, no controller, no tool. Need to scope in this work: a `PowerOfAttorney` model (fields: `type` [property_and_finance | health_and_welfare], `attorney_name`, `replacement_attorney_name?`, `status` [draft | registered], `registered_date?`, `restrictions_notes?`), migration, controller, validation, and the two tools. LPA is part of the Estate Planning module in the navigation already (`/estate/power-of-attorney`). Surface behind the same `fyn.persona_split_enabled` flag so the new model only becomes active when the persona split rolls out.
+- **`create_will` / `update_will`** — `App\Models\Estate\Will` exists as a model; the Will Builder lives at `/estate/will-builder`. There is no AI tool for creating or updating wills today. New tool definitions needed in `AiToolDefinitions` and `XaiToolDefinitions`, with handler methods on `CoordinatingAgent`. Scope: `executor_name`, `residuary_beneficiary`, `guardian_for_minors`, `specific_gifts`. **Schema change required**: `executor_name` already exists on the `wills` table; the other three columns do NOT exist and must be added by a new unconditional migration. The existing `will_documents` table has a `specific_gifts` column but is a separate model — the new `specific_gifts` column on `wills` is distinct and lives alongside the Will model directly.
+- **`create_power_of_attorney` / `update_power_of_attorney`** — the `App\Models\Estate\LastingPowerOfAttorney` model and `lasting_powers_of_attorney` table **already exist**. Use the existing model. Tool schema aligns to the existing columns: `lpa_type` (not `type`) with values `property_financial` / `health_welfare` (not `property_and_finance` / `health_and_welfare`); primary attorney is captured via the existing `LpaAttorney` related table (the tool creates a minimal `LpaAttorney` record rather than storing a flat `attorney_name` string). No new model, no new migration, no new controller — only the two AI tool definitions and two `CoordinatingAgent` handlers.
 
-The persona registry lists these four tool names above. They must ship in the same release or the registry will throw the integrity test introduced in the Testing section.
+The persona registry lists these four tool names. They must ship in the same release or the registry will throw the integrity test introduced in the Testing section.
 
 ---
 
@@ -335,13 +343,13 @@ Both tools are tagged `internal: true` in the orchestrator's handoff registry. W
 
 ---
 
-## Onboarding migration
+## Onboarding UX overhaul (within `OnboardingChatDirector`)
 
-The orchestrator absorbs `OnboardingChatDirector`'s responsibilities so all Fyn turns post-registration flow through a single entry point. The migration is staged to protect the in-flight FR-M9..FR-M15 work and to keep smoke tests passing the whole way.
+The director stays. The onboarding UX improvements land as extensions to the director and its state machine. None of this work depends on the persona-split orchestrator — it can ship independently gated behind the existing `onboarding.fyn_flow_enabled` flag.
 
-### Step 1 — wire the orchestrator for post-onboarding only (flag off by default)
+### Controller wiring
 
-`AiChatController::chat()` keeps its existing branch (`app/Http/Controllers/Api/AiChatController.php:149-162`) and gains one more:
+`AiChatController::chat()` keeps its existing branch (`app/Http/Controllers/Api/AiChatController.php:149-162`) and adds one more:
 
 ```php
 $inOnboarding = $user->onboarding_completed === false
@@ -351,46 +359,48 @@ $inOnboarding = $user->onboarding_completed === false
 $splitEnabled = (bool) config('fyn.persona_split_enabled', false);
 
 $generator = match (true) {
-    $inOnboarding && $splitEnabled
-        => $this->orchestrator->dispatch($user, $conversation, $message, $currentRoute, mode: 'onboarding'),
-    $inOnboarding
-        => $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute),
-    $splitEnabled
-        => $this->orchestrator->dispatch($user, $conversation, $message, $currentRoute),
-    default
-        => $this->coordinatingAgent->chat($user, $conversation, $message, $currentRoute),
+    $inOnboarding          => $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute),
+    $splitEnabled          => $this->orchestrator->dispatch($user, $conversation, $message, $currentRoute),
+    default                => $this->coordinatingAgent->chat($user, $conversation, $message, $currentRoute),
 };
 ```
 
-Rollout with the flag off is behaviourally identical to today.
+Three branches. Director is invoked for onboarding regardless of the persona-split flag. Orchestrator is invoked for post-onboarding when the flag is on. CoordinatingAgent is the fallback when the flag is off. Rollback from persona-split bugs is a flag flip.
 
-### Step 2 — `onboarding` mode inside the orchestrator
+### Director extensions
 
-When dispatched with `mode: 'onboarding'`, the orchestrator:
+The following land as code changes in `OnboardingChatDirector`, `OnboardingStateMachine`, and their direct collaborators. None of them touches the orchestrator.
 
-1. Loads `OnboardingStateMachine` (unchanged — still owns state transitions, bubble matching, journey remap).
-2. For non-capture states (`intro`, `base_personal`, `base_spouse`, `base_dependants`, `expenditure`, `journey_selection`, `add_more`), drives the state machine directly as the current director does.
-3. For `asset_capture` state, invokes the `data_capture` persona via `FynPersonaInvoker` with a `CaptureContext` whose `originating_focus` matches the user's `onboarding_fyn_selection`. This is the consolidation point where `OnboardingPromptBuilder` is replaced by `DataCapturePromptBuilder`.
-4. Applies the FR-M14 buffered sentence-level off-script filter to data-capture SSE output regardless of whether the call originated from onboarding or post-onboarding. The filter moves out of `OnboardingChatDirector::handleAssetCaptureTurn` and into the orchestrator's invoker-side wrapper, so it protects every data-capture turn, not just onboarding ones.
+1. **New state machine states** — `STATE_PROFILE_REVIEW_FAMILY` after `base_dependants`, `STATE_PROFILE_REVIEW_EXPENDITURE` after `expenditure`. Each pause state emits a `layout: 'standard'` SSE event, renders a confirmation prompt, and on confirm emits a `layout: 'wide'` event before advancing.
+2. **Spouse skip link** — `STATE_BASE_SPOUSE` now emits a `skip_link` metadata object alongside the bubble question. Frontend renders as a raspberry-coloured inline text link. Click posts an `action: 'skip'` via the action endpoint (see Actions below), which the director interprets as a jump to `STATE_BASE_DEPENDANTS`.
+3. **Multi-job capture loop** — new `STATE_BASE_EMPLOYMENT_MORE` state. After the first job is captured, director asks "Any other jobs to add?" with yes/no bubbles. Yes → loops back to `STATE_BASE_EMPLOYMENT`. No → advances to `STATE_EXPENDITURE`.
+4. **Employment bubbles** — rename `Employed` → `Full-time`, remove `Other`.
+5. **Conversational retraction** — the asset-capture prompt layer (`OnboardingPromptBuilder::assetCaptureInstructions`) gains a retraction block. When the user contradicts a prior answer ("actually I'm married"), the LLM emits an `update_profile` or `update_record` tool call. Director confirms in-chat with a brief before→after acknowledgment.
+6. **Fact parking** — new `ai_conversations.onboarding_parked_facts` JSON column. Every user message passes through a new `OnboardingFactExtractor` service that regex-extracts structured facts (personal, spouse, dependants, employment, expenditure buckets) and merges them into the parking column. Each state handler consults parking before emitting its question:
+    - All fields present → silently apply to backing record, advance with a brief ack.
+    - Some fields present → targeted follow-up asking only for gaps ("Thanks for letting me know about Angela — could I get her email?").
+    - Nothing parked → full question as today.
+   No separate `OnboardingMemoryExtractor` — the parking column IS the memory. History-scan behaviour (for the resume greeting) queries the parking column directly.
+7. **Resume-from-where-left-off** — fixes the broken "welcome back" flow. New `POST /api/ai-chat/conversations/{id}/action` endpoint with body `{action: 'resume' | 'continue' | 'restart' | 'skip'}`. Action payloads are NOT persisted as `AiMessage` rows. The action route is added to `PreviewWriteInterceptor::EXCLUDED_ROUTES`. On `resume`, director emits a welcome-back greeting referencing the saved `onboarding_fyn_step` and the last assistant message, with `continue` and `restart` action bubbles. Frontend triggers a `resume` action on mount of the onboarding view when `users.onboarding_completed === false` and `onboarding_fyn_step !== null`.
+8. **Wide chat layout + dashboard blur** — new Vue component `FynOnboardingChat.vue` wraps the chat UI for the onboarding flow. Defaults to wide mode (Tailwind `max-w-4xl`, ≈ 56rem). Pause states (layout: 'standard') shrink it to `w-[525px]` to match the existing `AiChatPanel.vue` width. `AppLayout.vue` applies `filter: blur(4px)` to the dashboard content while onboarding chat is wide. No icons on the pill (per CLAUDE.md §14).
+9. **`ProfileReviewPanel.vue`** — new read-only component showing the captured profile fields (personal, family, employment, expenditure). Rendered when onboarding layout is standard. Edits happen via chat (the user tells Fyn "my DOB is wrong, it's…" and the retraction handler amends the record).
+10. **Prompt token budget** — director resets the prompt accumulator at each pause state so the subsequent LLM call starts fresh.
 
-### Step 3 — cutover and delete the director
+### Post-expenditure journey handover
 
-Once the smoke tests pass on dev with both `onboarding.fyn_flow_enabled = true` and `fyn.persona_split_enabled = true`:
+When `STATE_PROFILE_REVIEW_EXPENDITURE` is confirmed, the director advances to `STATE_ASSET_CAPTURE` with `onboarding_fyn_selection` already set. The existing `OnboardingPromptBuilder::buildAssetCapturePrompt($user, $focus)` call receives the correct focus — retirement users get pension-focused prompts, protection users get protection-focused, etc. No new "journey handover" machinery is required; the existing delegation is already focus-tagged.
 
-1. Delete `App\Services\Onboarding\OnboardingChatDirector`.
-2. Delete `App\Services\Onboarding\OnboardingPromptBuilder`.
-3. Remove the `$this->onboardingDirector` injection from `AiChatController`.
-4. Remove the two-flag match in `AiChatController::chat()`; replace with a single call to `$this->orchestrator->dispatch(...)` which picks `onboarding` vs `advice` internally from `$user->onboarding_completed` and `persona_state`.
-5. Move `OnboardingStateMachine` into the `App\Services\AI\Onboarding` namespace to reflect its new home under the orchestrator umbrella (code move only; no logic change).
+### Test coverage for onboarding UX
 
-This is the last commit in the release. Revert is a git revert, not a config flip.
-
-### Test coverage during migration
-
-- `StateMachineWalkthroughTest` must pass on every commit.
-- `AssetCaptureOffScriptFilterTest` must pass on every commit — moving the filter from director to orchestrator includes a test update to call the new wrapper, but the behavioural assertions are unchanged.
-- `AssetCaptureMultiEntityTest` must pass on every commit.
-- `SpouseCollisionTest`, `OnboardingChatDirectorFixesTest` — port assertions to the new orchestrator-based equivalents before deleting the director. No drop in coverage.
+- `StateMachineWalkthroughTest` — fixtures updated to walk through the new pause states and the multi-job loop. Assertions unchanged.
+- `AssetCaptureOffScriptFilterTest` (FR-M14) — passes unchanged. Filter stays in the director.
+- `AssetCaptureMultiEntityTest` — passes unchanged.
+- `OnboardingFactParkingTest` — new. Covers the extract-and-park logic, gap-filling follow-ups, and silent-advance-when-complete behaviour.
+- `OnboardingResumeTest` — new. Covers welcome-back greeting, continue action, restart action (clears messages and resets step).
+- `SpouseSkipTest` — new. Covers skip action advancing past the spouse block.
+- `MultiJobCaptureTest` — new. Covers the employment loop and the bubble config changes.
+- `ProfileReviewPauseTest` — new. Covers the two pause states and layout events.
+- `RetractionTest` — new. Covers the retract-and-confirm flow.
 
 ---
 
@@ -398,76 +408,80 @@ This is the last commit in the release. Revert is a git revert, not a config fli
 
 Tool-call handoff remains the **primary** routing mechanism. Advice Fyn is the default front door; it reasons about its context and emits `delegate_to_capture` when it needs a write. This is never bypassed for ambiguous or advice-shaped messages.
 
-A lightweight rule-based classifier sits in front of the invoker as an **optional fast-path** for obviously one-shot data-entry messages. Its job is to avoid paying the 1,600-token advice tax when the user clearly isn't asking for advice.
+The fast-path uses the **existing `App\Services\AI\QueryClassifier`** (not a new class). `QueryClassifier` already classifies user messages against `QuerySchemas::KEYWORD_PATTERNS` and produces a `classification` array with a `primary` type. The `DATA_ENTRY` primary type already matches structural verbs like add / create / update.
 
-### Signals (rule-based, no LLM)
+### Integration point
 
-1. **Structural verb detection** at the start of the message (after normalising whitespace and punctuation): matches against `/^(add|create|record|save|log|put in|note (down )?|enter|update|change|edit|delete|remove)\b/i`.
-2. **Entity-keyword co-occurrence**: the message contains at least one keyword from a known entity vocabulary — `isa`, `sipp`, `pension`, `mortgage`, `property`, `house`, `flat`, `goal`, `life event`, `trust`, `will`, `power of attorney`, `lpa`, `income`, `expenditure`, `salary`, `savings account`, `investment account`, plus the 23 known `create_*` / `update_*` / `capture_*` tool names mapped to their natural-language synonyms.
-3. **Absence of advice-shaped phrases**: the message does NOT contain `should I`, `what about`, `how much`, `am I`, `can you explain`, `why`, `recommend`, `advice`, `compare`, `projection`, `forecast`.
-4. **Length**: message is ≤ 40 words. Longer messages route to advice Fyn so reasoning isn't skipped for nuanced requests that happen to start with "add".
+The orchestrator calls `QueryClassifier::classify($message)` once at the top of `dispatch()` (for non-capturing states). When:
 
-A message that satisfies (1) AND (2) AND (3) AND (4) is a "confident data-entry" match. Anything else falls through to advice Fyn as default.
+1. `classification['primary'] === QuerySchemas::DATA_ENTRY` AND
+2. `str_word_count($message) <= 40` AND
+3. The message contains no advice-shaped phrases (see below)
 
-### What the fast-path does
+…then preselect the `data_capture` persona, bypassing the advice invocation.
 
-When a confident match is detected, the orchestrator:
+Otherwise fall through to `advice`. The classifier's existing result is then also passed into `AdvicePromptBuilder::build()` as today, so the advice prompt's query-knowledge and required-tools layers continue to benefit from the classification.
 
-1. Skips the initial advice Fyn invocation.
-2. Invokes data-capture Fyn directly with a `CaptureContext` where `reason = "classifier fast-path"`, `entity_types` is inferred from the matched keywords, `pending_advice_question = null`.
-3. After `capture_complete`, returns to `advice` state without re-invocation (same as the inline-capture case in Example 2).
+### Advice-phrase absence rule
+
+Even when `primary === DATA_ENTRY`, the message must NOT contain any of: `should I`, `what about`, `how much`, `am I`, `can you explain`, `why`, `recommend`, `advice`, `compare`, `projection`, `forecast`. This rule is encoded in `QuerySchemas::isAdviceShaped($message): bool` (new method on the existing class).
 
 ### What the fast-path never does
 
-- Never runs when `persona_state.current = capturing` or `onboarding`. Those paths are already deterministic.
+- Never runs when `persona_state.current = capturing`. That path is already deterministic.
 - Never overrides an advice Fyn `delegate_to_capture`. That tool call is authoritative.
-- Never runs an LLM classifier. Rule-based only — no pre-inspection cost, no silent misclassification from a probabilistic model. If the rules aren't confident, we default to advice.
-- Never reads anything beyond the current user message. Conversation history is not inspected by the classifier; that's the invoker's job.
-
-### Why not a pure LLM classifier
-
-LLM-based routing was explicitly considered and rejected during brainstorming. The core objection: misclassification is silent. A rule-based fast-path has a deterministic failure mode (falls through to advice Fyn), so the worst case is a wasted advice-prompt tax on a message that could have fast-pathed — not a broken conversation.
+- Never runs an LLM classifier for routing. The existing `QueryClassifier` is rule-based (regex + keyword matching). If the rules aren't confident, we default to advice.
+- Never reads anything beyond the current user message. Conversation history is not inspected by the classifier.
 
 ### Observability
 
-Every fast-path decision is logged at `info` level with the matched rules and the chosen persona. A weekly audit job compares fast-path decisions against the handoff signals that advice Fyn would have emitted on the same messages (re-run against a sample) to catch drift between the rules and the advice-side reasoning. Drift above a threshold triggers a rule update, not a code change — the classifier stays rule-based.
+Every fast-path decision is logged at `info` level with the `classification` output and the chosen persona. A weekly audit job compares fast-path decisions against the handoff signals that advice Fyn would have emitted on the same messages (re-run against a sample) to catch drift. Drift above a threshold triggers an update to `QuerySchemas::KEYWORD_PATTERNS`, not a code change in the orchestrator.
 
 ---
 
 ## Chat UI changes
 
-The persona split creates three new user-visible moments. The chat UI needs to render them with enough signal that the user understands what's happening, but not so much that the "one Fyn" illusion breaks.
+The chat UI work splits by location.
 
-### 1. Delegate acknowledgment
+### Post-onboarding chat (`resources/js/components/Shared/AiChatPanel.vue` — modify)
 
-When advice Fyn emits `delegate_to_capture` with acknowledgment text (e.g. *"Let me note your pension details first — then I can answer properly."*), the acknowledgment streams as a normal assistant bubble. No special chrome. It's written by advice Fyn; it should look like an advice Fyn message.
+1. **Delegate acknowledgment** — when advice Fyn emits `delegate_to_capture` with acknowledgment text (e.g. *"Let me note your pension details first — then I can answer properly."*), the acknowledgment streams as a normal assistant bubble. No special chrome.
+2. **Capturing state indicator** — while `persona_state.current = capturing`, the input placeholder changes from *"Ask Fyn anything…"* to *"Tell Fyn the details…"* and a subtle pill appears above the input: horizon-500 text on a savannah-100 background reading *"Updating your records"*. No spinner, no icon (CLAUDE.md §14). The pill disappears the moment `capture_complete` fires.
+3. **Capture summary** — when `capture_complete` fires AND `pending_advice_question` is null, the summary text becomes a normal assistant bubble (e.g. *"Added Scottish Widows SIPP £50k."*). When `pending_advice_question` is set, the summary is suppressed — the advice Fyn answer that follows confirms the capture implicitly.
+4. **Record cards** — when `capture_complete.records_created` is non-empty, render a thin record-card row beneath the bubble: the record's display name, captured value, and a "View" link routing to the relevant module page. Uses the existing `card-sm` class. No icons.
+5. **Preview-mode CTA** — when the user is in preview mode, advice Fyn's prompt instructs it not to emit `delegate_to_capture`; it replies with *"I can't save data in preview mode — but if you sign up, I'll capture this straight away."* The chat UI renders a single "Sign up" primary button beneath the bubble, styled per the design guide's CTA pattern.
 
-### 2. Capturing state indicator
+### Onboarding chat (`resources/js/components/Fyn/FynOnboardingChat.vue` — new)
 
-While `persona_state.current = capturing`, the chat input placeholder changes from *"Ask Fyn anything…"* to *"Tell Fyn the details…"* and a subtle pill appears above the input: a horizon-500 text label *"Updating your records"* on a savannah-100 background. No spinner, no icon (icons are banned on the chat surface per CLAUDE.md §14). The pill disappears the moment `capture_complete` fires.
+Wraps or composes with `AiChatPanel.vue`, but is a dedicated onboarding component so the post-onboarding panel stays unaffected.
 
-### 3. Capture summary
+1. **Wide layout by default** — chat container uses `max-w-4xl` (≈ 56rem). Dashboard behind is blurred (see AppLayout below).
+2. **Standard layout at pause states** — when SSE receives `layout: 'standard'` event (emitted by director on entry to `STATE_PROFILE_REVIEW_FAMILY` or `STATE_PROFILE_REVIEW_EXPENDITURE`), chat container shrinks to `w-[525px]` to match the existing `AiChatPanel.vue` width. Dashboard un-blurs. `ProfileReviewPanel.vue` renders alongside.
+3. **Skip link** — message metadata `skip_link: {label, color: 'raspberry'}` renders an inline text link (`<button>` styled `text-raspberry-500 underline`) after the message content. Click calls `POST /api/ai-chat/conversations/{id}/action` with `{action: 'skip'}`.
+4. **Resume bubbles** — when director's welcome-back greeting arrives, two action bubbles render: `Continue` and `Start over`. Clicks call the action endpoint with the respective action.
 
-When `capture_complete` fires AND `pending_advice_question` is null, the summary text becomes a normal assistant bubble (e.g. *"Added Scottish Widows SIPP £50k."*). When `pending_advice_question` is set, the summary is **suppressed** — the advice Fyn answer that follows implicitly confirms the capture (*"Now that I have your SIPP on record, here's what I'd suggest…"*), which reads more naturally than two acknowledgments back to back.
+### New profile review panel (`resources/js/components/Onboarding/ProfileReviewPanel.vue` — new)
 
-### 4. Record cards (optional polish, keep in scope)
+Read-only summary of captured profile fields (name, DOB, marital, spouse, dependants, employment, expenditure). Renders while onboarding layout is `standard`. No editing UI — edits happen via the chat using conversational retraction.
 
-When `capture_complete.records_created` is non-empty, the frontend optionally renders a thin record-card row beneath the assistant bubble: the record's display name, the captured value, and a "View" link that routes to the relevant module page. Uses the existing `card-sm` class from `fynlaDesignGuide.md`. No icons.
+### Vuex store (`resources/js/store/modules/aiChat.js` — modify)
 
-### 5. Preview-mode messaging
+- New state: `personaMode` (`advice` | `capturing`), derived from SSE `persona_state_change` events emitted by the orchestrator.
+- New state: `onboardingLayout` (`standard` | `wide`), derived from SSE `onboarding_layout_change` events emitted by the director.
+- Existing `streamingText` and `done` handlers unchanged.
 
-When the user is in preview mode, advice Fyn is prompted (in its system prompt layer) not to emit `delegate_to_capture`. Instead it responds with *"I can't save data in preview mode — but if you sign up, I'll capture this straight away."* The chat UI renders this as a normal assistant bubble followed by a single "Sign up" primary button, styled per the design guide's CTA pattern.
+### App layout (`resources/js/layouts/AppLayout.vue` — modify)
 
-### Frontend components touched
+Conditional class binding: when the current route is an onboarding route AND `onboardingLayout === 'wide'`, apply `filter: blur(4px); pointer-events: none;` to the dashboard content container via a `:deep()` selector. Smooth 0.3s transition.
 
-- `resources/js/components/AiChat/ChatWindow.vue` — the state pill and the input placeholder swap.
-- `resources/js/components/AiChat/MessageBubble.vue` — render path for `capture_complete` summaries and optional record cards.
-- `resources/js/store/modules/aiChat.js` — new state: `personaMode` (`advice` | `capturing` | `onboarding`), derived from incoming SSE events. The existing `streamingText` and `done` handlers stay.
-- `resources/js/services/aiChatService.js` — reads and ignores the stripped internal tool calls. Schema must accept the new SSE event types without breaking on them.
+### Action endpoint client (`resources/js/services/aiChatService.js` — modify)
+
+- Add `postAction(conversationId, action)` method calling `POST /api/ai-chat/conversations/{id}/action`.
+- Schema accepts the new SSE event types (`persona_state_change`, `onboarding_layout_change`, `capture_complete`, `tool_use` with `internal: true`) and strips internal tool-use events before UI consumption.
 
 ### Mobile parity
 
-The iOS `ChatWindow` components reuse the same Vuex store and SSE event schema, so mobile inherits these changes without dedicated iOS work — consistent with the "Mobile app changes" non-goal.
+The iOS mobile app uses `resources/js/mobile/views/MobileFynChat.vue` (separate component from desktop). The mobile store path shares `resources/js/store/modules/aiChat.js`, so `personaMode` and `onboardingLayout` state are inherited. However, the MOBILE equivalent of the wide/standard layout and skip-link UX must be implemented as a separate task if iOS onboarding parity is required. Default assumption: mobile inherits the backend behaviour but uses its existing mobile chat layout; onboarding wide-layout visual treatment is NOT in scope for mobile in this release.
 
 ---
 
@@ -547,10 +561,19 @@ The iOS `ChatWindow` components reuse the same Vuex store and SSE event schema, 
 
 ## Open questions (resolve during implementation planning)
 
-- Does the persona registry need runtime mutability (hot-reload from DB or config cache), or is file-based config sufficient? Leaning: file-based for v1. Add runtime mutability only when a second non-Fyn persona (e.g. advisor product) needs it.
-- Should the LPA model live in `App\Models\Estate\PowerOfAttorney` or `App\Models\Estate\LastingPowerOfAttorney`? Leaning: `PowerOfAttorney` (shorter, navigation already uses `/estate/power-of-attorney`).
+- Does the persona registry need runtime mutability (hot-reload from DB or config cache), or is file-based config sufficient? File-based for v1. Add runtime mutability only when a second non-Fyn persona (e.g. advisor product) needs it.
 - For `create_will`, should Fyn be allowed to capture beneficiary shares conversationally, or should the tool force a redirect to the Will Builder for share allocation? Leaning: capture conversationally for straightforward cases (single residuary beneficiary, no specific gifts); redirect to Will Builder when the user mentions multiple beneficiaries with percentage splits.
-- Does the classifier fast-path get its own kill switch (`fyn.classifier_fast_path_enabled`), or does it ride on `fyn.persona_split_enabled`? Leaning: separate flag so we can disable the fast-path without disabling the whole split in an incident.
+
+## Resolved decisions (post-audit amendment, 2026-04-21)
+
+- **LPA model** — use existing `App\Models\Estate\LastingPowerOfAttorney`. No new model. Tool schema uses existing column names (`lpa_type`, values `property_financial` / `health_welfare`) with primary attorney captured via the existing `LpaAttorney` related table.
+- **Will column addition** — add `residuary_beneficiary`, `guardian_for_minors`, `specific_gifts` as new unconditional migration on the `wills` table.
+- **Onboarding component** — new `FynOnboardingChat.vue` component wraps the Fyn flow; existing `AiChatPanel.vue` stays for post-onboarding chat.
+- **Action endpoint** — `POST /api/ai-chat/conversations/{id}/action` with `{action: 'resume' | 'continue' | 'restart' | 'skip'}`. Actions not persisted as `AiMessage`. Added to `PreviewWriteInterceptor::EXCLUDED_ROUTES`.
+- **Director retention** — `OnboardingChatDirector` and `OnboardingPromptBuilder` stay. Not absorbed, not deleted. Onboarding UX overhaul lands as extensions to the director.
+- **Classifier** — reuse existing `QueryClassifier` promoted to the orchestrator level. No new `FynIntentClassifier`.
+- **Memory vs parking** — single source of truth: `ai_conversations.onboarding_parked_facts` JSON column populated per-turn by `OnboardingFactExtractor`. No separate `OnboardingMemoryExtractor`.
+- **Feature flags** — two flags only: `FYN_PERSONA_SPLIT` (master for post-onboarding orchestrator) and `FYN_CLASSIFIER_FAST_PATH` (classifier kill switch). No third flag — the onboarding UX work ships under the existing `onboarding.fyn_flow_enabled` flag.
 
 ---
 
