@@ -1,35 +1,44 @@
 # CSJTODO — Fynla
 
-*Last updated: 17 April 2026 — session 57*
-*Previous session: 15 April 2026 — session 56*
+*Last updated: 21 April 2026 — session 58*
+*Previous session: 17 April 2026 — session 57*
+
+---
+
+## Session 58 (17–21 April) — Quick Start Campaign Page + Session 57 Continued
+
+### Completed This Session
+
+- [x] **`/quickstart` campaign landing page** — New `QuickStartPage.vue` assembling key homepage sections into a conversion-focused page: hero with CTA, Meet Fyn (with Quick start CTA enabled), Why Fynla trust indicators, ReviewCarousel, 6-module features grid (data-driven), 5 life-stage journey cards, FAQ accordion (from `faqData.js`), and final CTA. Route added at `/quickstart` with `meta: { public: true }`.
+- [x] All session 57 items completed (see below).
+
+### NOT Done — Outstanding from Session 58
+
+- [ ] **PR for `email-onboarding-reviews` branch** — 3 commits pushed (testimonials + ReviewCarousel reuse + pricing banner + quickstart page). No PR opened yet.
+- [ ] **Quick start Fyn flow bugs** — the "Quick start with Fyn" CTA on `/quickstart` links to `/register?from=fyn` but the underlying new-user Fyn flow has known bugs (see `fynQuickStartBugs.md`). The CTA is enabled on the campaign page as requested; verify the flow works before driving traffic to `/quickstart`.
+
+### Context for Next Session
+
+Branch `email-onboarding-reviews` has 3 commits ahead of dev, all pushed to origin. Ready for PR → dev when the user decides.
+
+The quickstart page reuses `ReviewCarousel` (component), `getPricingFaqs()` (data), and data-drives the features/stages grids from local arrays. If homepage sections change, the quickstart page's inline copies (Meet Fyn, Why Fynla) would need manual sync — only ReviewCarousel auto-updates.
+
+Local build uses `VITE_BASE_PATH=/build/`. Pending local migration (`create_notifications_table`) still not applied.
 
 ---
 
 ## Session 57 (15–17 April) — Insights Hub Redesign, Landing Page Updates, Reviews & Testimonials
 
-### Completed This Session
+### Completed
 
-- [x] **Insights hub editorial redesign (PR #215, merged to dev)** — `InsightsHubPage.vue` rebuilt with bento layout: 1 hero feature card + 2 stacked side cards on light-pink "Latest articles" section, followed by masonry "Browse all insights" grid with tall-card rhythm and per-category filter counts. 4 Unsplash images downloaded for previously missing article cards (how-much-to-retire, stocks-shares-isa, isa-guide, retirement-planning).
-- [x] **Landing page "Latest insights" section** — New light-pink section below "Your personal journey" (switched to eggshell bg) with 3 compact article panels linking to the insights hub. Stats bar made horizontal on all viewports with responsive type scaling. Footer padding bumped (`pt-28` → `pt-40` in `PublicLayout.vue`) to eliminate white gap behind the straddling stats card.
-- [x] **Header CTA reorder** — "Ask Fyn" renamed to "Meet Fyn", links reordered to: Meet Fyn | View the video | See our demo.
-- [x] **Analytics gating for preview/admin users** — `CheckoutPage.vue` and `Dashboard.vue` skip GA4 purchase, Meta Pixel Subscribe, and Meta Pixel StartTrial events for `is_preview_user` or `is_admin` users.
-- [x] **PR #215 (insights-page) merged to dev** — 3 commits, 11 files.
-- [x] **Real customer testimonials** — Reviews 3–5 in `ReviewCarousel.vue` replaced with Anne L., Neil S., and Ron B. (real users). Anne L. and Ron B. shortened to ~5 lines.
-- [x] **ReviewCarousel made reusable** — Added to `HowItWorksPage`, `FeaturesPage`, `OnePlatformPage`. Update once, updates everywhere.
-- [x] **Pricing page tweaks** — Removed "prices will increase when this offer expires" from limited-time banner. ReviewCarousel initially added then removed per user direction.
-- [x] **Design mockups** — `public/mockup-insights.html` (v1 classic list) and `public/mockup-insights-v2.html` (v2 editorial bento) created for design review before implementation.
-
-### NOT Done — Outstanding from Session 57
-
-- [ ] **PR for `email-onboarding-reviews` branch** — 1 commit pushed to origin, no PR opened yet. Contains: testimonial updates, ReviewCarousel on 3 pages, pricing banner trim.
-
-### Context for Next Session
-
-Two branches were worked on this session:
-1. `insights-page` — **merged to dev** via PR #215 (insights hub + landing page + analytics gating). Already in dev.
-2. `email-onboarding-reviews` — **1 commit pushed, PR not yet opened**. Contains testimonials + ReviewCarousel reuse + pricing tweak. Open PR → dev when ready.
-
-The `public/build/` directory on localhost has a production-style build (with `VITE_BASE_PATH=/build/`). If you need HMR for the next session, kill the vite process on port 5174 and restart `npm run dev` so the hot file gets created. There's a pending migration locally (`2026_04_14_094042_create_notifications_table`) — already applied on production but not on this Windows dev machine.
+- [x] Insights hub editorial redesign (PR #215, merged to dev)
+- [x] Landing page Latest insights section + stats bar mobile fix + footer padding
+- [x] Header CTA reorder (Meet Fyn | View the video | See our demo)
+- [x] Analytics gating for preview/admin users
+- [x] Real customer testimonials (Anne L., Neil S., Ron B.)
+- [x] ReviewCarousel made reusable on 3 pages
+- [x] Pricing banner trimmed
+- [x] Design mockups (v1 + v2)
 
 ---
 
