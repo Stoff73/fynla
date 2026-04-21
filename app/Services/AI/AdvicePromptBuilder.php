@@ -126,6 +126,29 @@ class AdvicePromptBuilder
             $layers[] = "<current_context>\n{$moduleContext}\n</current_context>";
         }
 
+        // Layer 11 (persona-split): preview-mode instruction. When the user
+        // is previewing the app without an account, data-capture is not
+        // available — the write tools are filtered out of the tool list at
+        // the transport layer (AiToolDefinitions::getTools($isPreview) drops
+        // every create_* / update_* / delete_* tool). But the advice
+        // persona still has `delegate_to_capture` via the registry's handoff
+        // tools, and without guidance the model can still emit it and
+        // strand the orchestrator. This block tells advice Fyn to skip the
+        // handoff and surface a signup CTA instead.
+        if ($isPreview) {
+            $layers[] = <<<'PROMPT'
+<preview_mode>
+The user is previewing Fynla without a real account. You are NOT able to save data for them — every write tool (create_*, update_*, delete_*) is unavailable on this turn.
+
+Rules for this turn:
+- NEVER emit the internal `delegate_to_capture` tool. That handoff leads to data capture, which cannot persist anything in preview mode.
+- If the user asks you to add / record / save anything, answer with one short sentence: "I can't save data in preview mode — but if you sign up, I'll capture this straight away." Then let the frontend surface the sign-up CTA.
+- If the user asks an advice question that would normally need data you do not yet have, answer in general terms based on the preview persona's seeded context, and mention that a real account would let you personalise the answer.
+- Keep responses tight — preview users are evaluating, not onboarding.
+</preview_mode>
+PROMPT;
+        }
+
         return implode("\n\n", $layers);
     }
 

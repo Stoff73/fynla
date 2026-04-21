@@ -66,7 +66,10 @@ final class OnboardingPromptBuilder
      */
     public static function toolsForFocus(string $focus): array
     {
-        return match ($focus) {
+        // Phase 12 — update_profile and update_record are appended to every
+        // focus so the retraction block in assetCaptureInstructions can act
+        // on contradictions without leaving the focused capture window.
+        $focusTools = match ($focus) {
             'savings', 'budgeting' => ['create_savings_account'],
             'investment' => ['create_investment_account', 'create_holding'],
             'retirement' => ['create_pension'],
@@ -76,6 +79,8 @@ final class OnboardingPromptBuilder
             'goals' => ['create_goal'],
             default => ['create_savings_account'],
         };
+
+        return array_merge($focusTools, ['update_profile', 'update_record']);
     }
 
     private function assetCaptureInstructions(string $focus): string
@@ -116,6 +121,18 @@ mention property, mortgages, rent, home, address, ownership, or valuation
 list shown below, IGNORE it silently — do not acknowledge it and do not try
 to capture it. If nothing needs acknowledging, return EMPTY text content
 and call only the relevant create_ tool(s).
+
+Retraction (Phase 12): if the user's message CONTRADICTS something they
+said earlier (e.g. "actually my DOB is 12 March 1985, not 1986",
+"actually I'm married not single", "sorry I meant the Halifax ISA, not
+Nationwide"), call `update_profile` for personal facts (date_of_birth,
+marital_status, employment_status, names) or `update_record` for
+financial records (use the record_type + record_id from existing_records
+context). Acknowledge with a SHORT before-then-after sentence such as
+"Got it — updated your DOB from 1 Jan 1986 to 12 March 1985." Still
+obey the one-sentence limit. If the user's retraction is ambiguous
+(missing values or unclear target), ask ONE concise clarifying question
+instead of guessing.
 
 Tools available to you in this turn:
 {$toolList}
