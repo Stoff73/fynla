@@ -41,6 +41,7 @@ final class OnboardingChatDirector
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingPromptBuilder $promptBuilder,
+        private readonly OnboardingFactExtractor $factExtractor,
     ) {}
 
     /**
@@ -81,6 +82,24 @@ final class OnboardingChatDirector
         // reflects the real interaction even if the rest of this generator
         // fails.
         $this->saveMessage($conversation, 'user', $message);
+
+        // Phase 11 — OnboardingFactExtractor runs speculatively on every
+        // user message and parks structured facts into
+        // ai_conversations.onboarding_parked_facts. Writes to users.* and
+        // family_members remain the responsibility of the existing
+        // grouped_extract tool handlers; parking is consulted downstream
+        // by state handlers for gap-filling follow-ups and pause-state
+        // confirmations. Extraction is best-effort — swallow any failure
+        // rather than blocking the turn.
+        try {
+            $this->factExtractor->extractAndPark($conversation, $message);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Fact extractor failed', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         $currentStateId = $user->onboarding_fyn_step;
         if ($currentStateId === null) {
