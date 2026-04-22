@@ -4,6 +4,7 @@
 **Author:** CSJ (brainstormed with Claude)
 **Stage:** Spec — amended after codebase audit
 **Status:** Amended 2026-04-21 — conflicts resolved against live code. Target branch `feature/fyn-persona-split` off `onboardingFyn`.
+**Status:** Amended 2026-04-22 (session 3) — profile-review pause now routes the main `<slot/>` view to `/profile` (existing `UserProfile.vue`) so the user cross-references the director's summary with the real profile surface. Chat widths normalised to two states: **712px wide** (path_choice / asset_capture / etc.) and **356px standard** (profile-review pause AND post-onboarding default). The earlier `w-[525px]` / `max-w-4xl` literals are dropped — they were a spec artefact, not a design decision. See the "Profile-review pause — route push" section below.
 
 ---
 
@@ -371,7 +372,7 @@ Three branches. Director is invoked for onboarding regardless of the persona-spl
 
 The following land as code changes in `OnboardingChatDirector`, `OnboardingStateMachine`, and their direct collaborators. None of them touches the orchestrator.
 
-1. **New state machine states** — `STATE_PROFILE_REVIEW_FAMILY` after `base_dependants`, `STATE_PROFILE_REVIEW_EXPENDITURE` after `expenditure`. Each pause state emits a `layout: 'standard'` SSE event, renders a confirmation prompt, and on confirm emits a `layout: 'wide'` event before advancing.
+1. **New state machine states** — `STATE_PROFILE_REVIEW_FAMILY` after `base_dependants`, `STATE_PROFILE_REVIEW_EXPENDITURE` after `expenditure`. Each pause state emits a `layout: 'standard'` SSE event, renders a confirmation prompt, and on confirm emits a `layout: 'wide'` event before advancing. The frontend handler for `layout: 'standard'` ALSO pushes the Vue Router to `/profile` (see Chat UI changes below); on `layout: 'wide'` the handler returns to the stored pre-pause route.
 2. **Spouse skip link** — `STATE_BASE_SPOUSE` now emits a `skip_link` metadata object alongside the bubble question. Frontend renders as a raspberry-coloured inline text link. Click posts an `action: 'skip'` via the action endpoint (see Actions below), which the director interprets as a jump to `STATE_BASE_DEPENDANTS`.
 3. **Multi-job capture loop** — new `STATE_BASE_EMPLOYMENT_MORE` state. After the first job is captured, director asks "Any other jobs to add?" with yes/no bubbles. Yes → loops back to `STATE_BASE_EMPLOYMENT`. No → advances to `STATE_EXPENDITURE`.
 4. **Employment bubbles** — rename `Employed` → `Full-time`, remove `Other`.
@@ -382,8 +383,8 @@ The following land as code changes in `OnboardingChatDirector`, `OnboardingState
     - Nothing parked → full question as today.
    No separate `OnboardingMemoryExtractor` — the parking column IS the memory. History-scan behaviour (for the resume greeting) queries the parking column directly.
 7. **Resume-from-where-left-off** — fixes the broken "welcome back" flow. New `POST /api/ai-chat/conversations/{id}/action` endpoint with body `{action: 'resume' | 'continue' | 'restart' | 'skip'}`. Action payloads are NOT persisted as `AiMessage` rows. The action route is added to `PreviewWriteInterceptor::EXCLUDED_ROUTES`. On `resume`, director emits a welcome-back greeting referencing the saved `onboarding_fyn_step` and the last assistant message, with `continue` and `restart` action bubbles. Frontend triggers a `resume` action on mount of the onboarding view when `users.onboarding_completed === false` and `onboarding_fyn_step !== null`.
-8. **Wide chat layout + dashboard blur** — new Vue component `FynOnboardingChat.vue` wraps the chat UI for the onboarding flow. Defaults to wide mode (Tailwind `max-w-4xl`, ≈ 56rem). Pause states (layout: 'standard') shrink it to `w-[525px]` to match the existing `AiChatPanel.vue` width. `AppLayout.vue` applies `filter: blur(4px)` to the dashboard content while onboarding chat is wide. No icons on the pill (per CLAUDE.md §14).
-9. **`ProfileReviewPanel.vue`** — new read-only component showing the captured profile fields (personal, family, employment, expenditure). Rendered when onboarding layout is standard. Edits happen via chat (the user tells Fyn "my DOB is wrong, it's…" and the retraction handler amends the record).
+8. **Wide chat layout + dashboard blur + profile-review route push** — new Vue component `FynOnboardingChat.vue` wraps the chat UI for the onboarding flow. The docked chat `<aside>` in `AppLayout.vue` sizes the chat to **712px (wide)** when onboarding is active and `onboardingLayout !== 'standard'`, and **356px (standard)** at profile-review pauses AND for non-onboarding post-registration chat. `AppLayout.vue` applies `filter: blur(4px)` to the dashboard content while onboarding is active and the layout is wide. On `layout: 'standard'`, `AppLayout.vue`'s `onboardingLayout` watcher ALSO calls `this.$router.push('/profile')` (after storing the current `fullPath` in `preProfileRoute`) so the main `<slot/>` renders `UserProfile.vue` behind the shrunken chat. On `layout: 'wide'` the watcher pushes `preProfileRoute` back. No icons on the pill (per CLAUDE.md §14).
+9. **`ProfileReviewPanel.vue`** — new read-only component showing the captured profile fields (personal, family, employment, expenditure). Rendered inside the 356px chat aside when onboarding layout is standard. The larger canvas behind the chat is the real `UserProfile.vue` page (driven by the route push in item 8), not a bespoke panel. Edits to fields happen via chat retraction only (the user tells Fyn "my DOB is wrong, it's…" and the retraction handler amends the record); `UserProfile.vue` is there for cross-reference, not editing mid-pause.
 10. **Prompt token budget** — director resets the prompt accumulator at each pause state so the subsequent LLM call starts fresh.
 
 ### Post-expenditure journey handover
@@ -455,8 +456,8 @@ The chat UI work splits by location.
 
 Wraps or composes with `AiChatPanel.vue`, but is a dedicated onboarding component so the post-onboarding panel stays unaffected.
 
-1. **Wide layout by default** — chat container uses `max-w-4xl` (≈ 56rem). Dashboard behind is blurred (see AppLayout below).
-2. **Standard layout at pause states** — when SSE receives `layout: 'standard'` event (emitted by director on entry to `STATE_PROFILE_REVIEW_FAMILY` or `STATE_PROFILE_REVIEW_EXPENDITURE`), chat container shrinks to `w-[525px]` to match the existing `AiChatPanel.vue` width. Dashboard un-blurs. `ProfileReviewPanel.vue` renders alongside.
+1. **Wide layout by default** — the docked chat aside in `AppLayout.vue` sizes to **712px** during onboarding (`onboardingLayout === 'wide'`). Dashboard behind is blurred (see AppLayout below).
+2. **Standard layout at pause states** — when SSE receives `layout: 'standard'` event (emitted by director on entry to `STATE_PROFILE_REVIEW_FAMILY` or `STATE_PROFILE_REVIEW_EXPENDITURE`), the chat aside shrinks to **356px** (the same width as post-onboarding chat). Dashboard un-blurs. `AppLayout.vue` watcher pushes the Vue Router to `/profile` so `UserProfile.vue` renders behind the chat. `ProfileReviewPanel.vue` renders inside the chat aside.
 3. **Skip link** — message metadata `skip_link: {label, color: 'raspberry'}` renders an inline text link (`<button>` styled `text-raspberry-500 underline`) after the message content. Click calls `POST /api/ai-chat/conversations/{id}/action` with `{action: 'skip'}`.
 4. **Resume bubbles** — when director's welcome-back greeting arrives, two action bubbles render: `Continue` and `Start over`. Clicks call the action endpoint with the respective action.
 
@@ -472,7 +473,17 @@ Read-only summary of captured profile fields (name, DOB, marital, spouse, depend
 
 ### App layout (`resources/js/layouts/AppLayout.vue` — modify)
 
-Conditional class binding: when the current route is an onboarding route AND `onboardingLayout === 'wide'`, apply `filter: blur(4px); pointer-events: none;` to the dashboard content container via a `:deep()` selector. Smooth 0.3s transition.
+Three pieces live here:
+
+1. **Aside width** — `asideWidthClass` computed returns `w-[712px] max-w-[calc(100vw-15rem)]` when onboarding is active AND `onboardingLayout !== 'standard'`, otherwise `w-[356px]`. Only those two widths.
+2. **Dashboard blur** — `dashboardBlurClass` computed applies `filter blur-[4px] pointer-events-none` to the `<main>` content when onboarding is active AND the layout is wide. Profile-review pauses un-blur.
+3. **Profile-review route push** — a watcher on `onboardingLayout` runs `this.$router.push('/profile')` when the layout flips to `'standard'` (storing the current `fullPath` in `preProfileRoute`), and pushes back to `preProfileRoute` when the layout flips back to `'wide'`. The chat itself lives in a fixed `<aside>` outside `<router-view>`, so the route change doesn't unmount it and Vuex `aiChat` state persists intact.
+
+Smooth 0.3s transitions on width and blur.
+
+### Profile-review pause — route push
+
+The first two director pauses (`STATE_PROFILE_REVIEW_FAMILY`, `STATE_PROFILE_REVIEW_EXPENDITURE`) are the only states that set `onboardingLayout = 'standard'`. On that event the AppLayout watcher pushes `/profile` (existing route at `router/index.js:512` → `UserProfile.vue`). The user sees their real profile page behind the shrunken 356px chat, which carries the `ProfileReviewPanel` summary + the director's "Is this correct?" prompt. When the user confirms, the director emits `layout: 'wide'` before advancing and the watcher navigates back to the stored `preProfileRoute` (typically `/dashboard`). The ProfileReviewPanel is the in-chat summary; `UserProfile.vue` is the cross-reference canvas.
 
 ### Action endpoint client (`resources/js/services/aiChatService.js` — modify)
 

@@ -4,19 +4,19 @@ import AiChatPanel from '@/components/Shared/AiChatPanel.vue';
 import ProfileReviewPanel from '@/components/Onboarding/ProfileReviewPanel.vue';
 
 /**
- * Onboarding-specific chat wrapper. Renders the existing AiChatPanel
- * at wide (max-w-4xl) width by default, shrinks to w-[525px] at profile-
- * review pause states (layout=standard), and renders ProfileReviewPanel
- * alongside during those pauses.
+ * Onboarding-specific chat wrapper. When the parent container owns the
+ * width (docked: true in AppLayout) this component just fills available
+ * space — AppLayout's asideWidthClass swings between 712px (wide) and
+ * 356px (standard / profile-review pause). When rendered undocked it
+ * mirrors those widths itself so free-form mounts stay aligned.
  *
- * The blur on the dashboard behind the chat is handled in AppLayout.vue
- * by reading the same onboardingLayout getter — this component only
- * owns its own sizing.
+ * Renders ProfileReviewPanel alongside during profile-review pauses
+ * (layout === 'standard'). Dashboard blur and the /profile route push
+ * that accompany the pause are handled in AppLayout.vue by watching the
+ * same `onboardingLayout` getter — this component only owns its sizing.
  *
- * Mount target: the Onboarding view imports this instead of dropping in
- * AiChatPanel directly so the wide/standard layout switch is scoped to
- * the onboarding surface. Post-onboarding chat continues to use the
- * panel directly.
+ * Mount target: AppLayout's docked aside uses this component for
+ * onboarding routes; the post-onboarding chat uses AiChatPanel directly.
  */
 export default {
     name: 'FynOnboardingChat',
@@ -41,8 +41,8 @@ export default {
         chatContainerClasses() {
             if (this.docked) return 'w-full h-full';
             return this.isStandardLayout
-                ? 'w-[525px] max-w-full'
-                : 'w-full max-w-4xl';
+                ? 'w-[356px] max-w-full'
+                : 'w-[712px] max-w-full';
         },
     },
 };

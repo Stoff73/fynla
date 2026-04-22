@@ -270,9 +270,12 @@
           </div>
 
           <!-- Bottom scroll spacer — reserves room so the latest user bubble
-               can always be scrolled to the TOP of the visible area. -->
+               can always be scrolled to the TOP of the visible area. Only
+               rendered once at least one user bubble exists; on the first
+               assistant-only turn the spacer would otherwise push the
+               greeting off the top of the viewport. -->
           <div
-            v-if="messages && messages.length > 0"
+            v-if="hasUserMessage"
             class="flex-shrink-0"
             :style="{ height: scrollSpacerHeight + 'px' }"
             aria-hidden="true"
@@ -515,9 +518,12 @@
         <!-- Bottom scroll spacer — reserves room so the latest user bubble
              can always be scrolled to the TOP of the visible area (without
              this, short conversations can't scroll enough and the user's
-             reply anchors mid-panel instead of at the top). -->
+             reply anchors mid-panel instead of at the top). Only rendered
+             once at least one user bubble exists; on the first assistant-
+             only turn it would otherwise push the greeting off the top
+             of the viewport. -->
         <div
-          v-if="messages && messages.length > 0"
+          v-if="hasUserMessage"
           class="flex-shrink-0"
           :style="{ height: scrollSpacerHeight + 'px' }"
           aria-hidden="true"
@@ -693,6 +699,14 @@ export default {
 
         isCapturing() {
             return this.personaMode === 'capturing';
+        },
+
+        // True once the user has sent at least one message in this
+        // conversation. Gates the bottom scroll spacer — on the very
+        // first turn (assistant-only welcome) the spacer would otherwise
+        // push the greeting off the top of the viewport.
+        hasUserMessage() {
+            return Array.isArray(this.messages) && this.messages.some((m) => m && m.role === 'user');
         },
 
         inputPlaceholder() {

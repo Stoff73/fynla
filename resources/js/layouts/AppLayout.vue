@@ -72,10 +72,13 @@
 
     <!--
       Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer.
-      Width is conditional per FR-M21:
-        • normal post-onboarding: 356px
-        • Fyn onboarding + wide layout: max-w-4xl (896px), capped by viewport minus sidebar
-        • Fyn onboarding + standard (profile-review pause): 525px
+      Two widths only:
+        • normal post-onboarding AND Fyn onboarding profile-review pause: 356px
+        • Fyn onboarding wide (path_choice / asset_capture / etc.): 712px = double 356px,
+          capped by viewport minus sidebar.
+      On entering a profile-review pause the main <slot/> view is routed to /profile
+      (UserProfile.vue) so the user can cross-reference the director's summary with the
+      real profile surface; on resume we navigate back to wherever they were before.
       Stays right-anchored in all cases so the sidebar and chat never overlap.
     -->
     <aside
@@ -202,6 +205,9 @@ export default {
       planModalDismissable: false,
       subscriptionData: null,
       isMobileView: window.innerWidth < 1024,
+      // Route the user was on before the director pushed us to /profile for a
+      // profile-review pause. Null when we are not currently displacing a route.
+      preProfileRoute: null,
     };
   },
 
@@ -303,6 +309,37 @@ export default {
         if (!this._lastTrialCheck || now - this._lastTrialCheck > 300000) {
           this._lastTrialCheck = now;
           this.checkTrialStatus();
+        }
+      }
+    },
+
+    // Profile-review pause routing. When the onboarding director emits
+    // `onboarding_layout_change { mode: 'standard' }` (entering
+    // profile_review_family or profile_review_expenditure), route the main
+    // <slot/> view to /profile (UserProfile.vue) so the user can see their
+    // actual captured profile behind the shrunken chat. When the director
+    // emits `{ mode: 'wide' }` on confirmation, return to whichever route
+    // they were on before the pause (typically /dashboard).
+    //
+    // The chat itself lives in a fixed <aside> and is unaffected by the
+    // <router-view> change; Vuex state (`aiChat`) persists across routes.
+    onboardingLayout(newLayout) {
+      if (!this.isOnboardingRoute) return;
+      if (newLayout === 'standard') {
+        if (this.$route.path !== '/profile') {
+          this.preProfileRoute = this.$route.fullPath;
+          this.$router.push('/profile').catch(() => {});
+        }
+      } else if (newLayout === 'wide') {
+        // Returning from a profile-review pause. Prefer the stored pre-pause
+        // route; fall back to /dashboard (where onboarding is always driven
+        // from) if nothing was stored. Only navigate if we're currently on
+        // /profile — on the very first wide event of a session we'd already
+        // be on /dashboard and a spurious push would no-op-or-worse.
+        if (this.$route.path === '/profile') {
+          const target = this.preProfileRoute || '/dashboard';
+          this.preProfileRoute = null;
+          this.$router.push(target).catch(() => {});
         }
       }
     },
