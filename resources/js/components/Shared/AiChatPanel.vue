@@ -695,6 +695,7 @@ export default {
             'personaMode',
             'skipLink',
             'previewCta',
+            'onboardingLayout',
         ]),
 
         isCapturing() {
@@ -832,6 +833,20 @@ export default {
         };
         window.addEventListener('resize', this.handleResize);
 
+        // Every route change (/dashboard ↔ /profile during a profile-review
+        // pause, for example) destroys AppLayout and therefore destroys
+        // this AiChatPanel instance — AppLayout is mounted inside each view
+        // rather than above the router-view. When we mount fresh we start
+        // at scrollTop=0, which from the user's POV looks like the chat
+        // rewound to the welcome message. If Vuex state tells us there IS
+        // an active conversation with user turns, anchor the scroll to the
+        // latest user bubble so the current prompt stays visible.
+        this.$nextTick(() => {
+            if (this.hasUserMessage) {
+                this.scrollToLastUserMessage();
+            }
+        });
+
         // In docked mode, auto-open and load conversations immediately
         // dispatch('open') sets isOpen=true which triggers the watcher to call onOpen()
         // Skip on mobile — docked panel is CSS-hidden, floating panel handles chat instead
@@ -949,6 +964,34 @@ export default {
                 this.handleNavigation(routePath);
                 this.$store.commit('aiChat/SET_PENDING_NAVIGATION', null);
             }
+        },
+
+        // Re-anchor the chat to the latest turn whenever the onboarding
+        // layout flips. Entering a profile-review pause shrinks the
+        // aside (712→356) and leaving restores it; both transitions also
+        // push the Vue Router, which causes the underlying <router-view>
+        // to swap and re-render. Without a delayed scroll the container
+        // ends up at scrollTop=0 (visible = welcome) because the
+        // router-view swap races our initial scroll call.
+        //
+        // Two-phase scroll: one on the next tick (in case nothing races
+        // us), and one on a 200 ms timeout to outlast the router-view
+        // re-render and any streamed follow-up. Both call the same
+        // helper — if the first already anchored correctly the second
+        // is a no-op.
+        // Re-anchor the chat when the layout flips WITHOUT a route change.
+        // Route-change-driven transitions (entering and leaving a profile-
+        // review pause) destroy and remount AppLayout / AiChatPanel, so
+        // the scroll re-anchor happens in mounted() rather than here.
+        // This watcher still runs for same-route layout flips (defensive).
+        onboardingLayout() {
+            this.$nextTick(() => {
+                const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+                if (!container) return;
+                if (this.hasUserMessage) {
+                    this.scrollToLastUserMessage();
+                }
+            });
         },
     },
 
