@@ -42,6 +42,8 @@ final class OnboardingChatDirector
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingPromptBuilder $promptBuilder,
         private readonly OnboardingFactExtractor $factExtractor,
+        private readonly AssetCaptureEntityExtractor $entityExtractor,
+        private readonly HouseholdProvisioner $householdProvisioner,
     ) {}
 
     /**
@@ -168,6 +170,14 @@ final class OnboardingChatDirector
 
         // Record the completed step in onboarding_progress for audit/resume.
         $this->recordProgress($user, $currentStateId, $interpretation['captured_value'] ?? null);
+
+        // Emit a short acknowledgment so the UX doesn't feel abrupt when
+        // the state machine jumps straight to the next prompt. One-sentence
+        // acks per completed capture — addresses the terse-transition bug.
+        $ack = $this->buildCaptureAck($user, $currentStateId, $interpretation);
+        if ($ack !== null) {
+            yield ['type' => 'content', 'text' => $ack];
+        }
 
         // Decide the next state id (applies skip_if transitively).
         $nextStateId = OnboardingStateMachine::getNextStateId(
@@ -771,6 +781,11 @@ final class OnboardingChatDirector
      */
     private function createSpouseFamilyMember(User $user, string $rawText): void
     {
+        // B-2 — create a Household and persist household_id on the user
+        // BEFORE the FamilyMember insert so the spouse row inherits the
+        // real id, not NULL.
+        $householdId = $this->householdProvisioner->ensureFor($user);
+
         $firstName = $this->extractFirstName($rawText);
         $dob = $this->extractDate($rawText);
         $income = OnboardingValueInterpreter::parseIncomeAmount(
@@ -779,7 +794,7 @@ final class OnboardingChatDirector
 
         FamilyMember::create([
             'user_id' => $user->id,
-            'household_id' => $user->household_id,
+            'household_id' => $householdId,
             'relationship' => 'spouse',
             'first_name' => $firstName ?: 'Spouse',
             'date_of_birth' => $dob,
@@ -797,6 +812,9 @@ final class OnboardingChatDirector
      */
     private function createDependantFamilyMembers(User $user, string $rawText): void
     {
+        // B-2 — ensure household exists before any dependant insert.
+        $householdId = $this->householdProvisioner->ensureFor($user);
+
         // Ages are the most reliable signal. Pull every integer between 0
         // and 25 from the message; treat each as one dependant's age.
         if (preg_match_all('/\b(\d{1,2})\b/', $rawText, $matches) === false) {
@@ -813,7 +831,7 @@ final class OnboardingChatDirector
             // the intent is not lost.
             FamilyMember::create([
                 'user_id' => $user->id,
-                'household_id' => $user->household_id,
+                'household_id' => $householdId,
                 'relationship' => 'child',
                 'first_name' => 'Dependant',
                 'is_dependent' => true,
@@ -827,7 +845,7 @@ final class OnboardingChatDirector
         foreach ($ages as $age) {
             FamilyMember::create([
                 'user_id' => $user->id,
-                'household_id' => $user->household_id,
+                'household_id' => $householdId,
                 'relationship' => $age < 18 ? 'child' : 'other_dependent',
                 'first_name' => 'Dependant',
                 'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
@@ -1254,6 +1272,15 @@ final class OnboardingChatDirector
             return;
         }
 
+        // Emit a capture ack for the just-completed grouped_extract state
+        // (spouse, dependants, employment, expenditure). Fires between the
+        // handler's persistence and the next state's prompt so transitions
+        // don't feel abrupt.
+        $ack = $this->buildCaptureAck($user, $currentStateId, []);
+        if ($ack !== null) {
+            yield ['type' => 'content', 'text' => $ack];
+        }
+
         yield [
             'type' => 'onboarding_advance',
             'from_step' => $currentStateId,
@@ -1478,6 +1505,14 @@ PROMPT;
             $contentBuffer = '';
             $flushed = false;
 
+            // B-1 gap-check — track the fields dict of every fill_form the
+            // LLM emitted so we can compare it to the deterministic entity
+            // extractor's view of the user message and fill in any gaps
+            // after the stream is done. fill_form is the single canonical
+            // source of the "what entity was just captured" data; tool_use
+            // status events don't carry the input payload.
+            $llmEmittedFills = [];
+
             $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection) {
                 $flushed = true;
                 if ($toolCallsSeen === 0 || $contentBuffer === '') {
@@ -1510,6 +1545,13 @@ PROMPT;
                     continue;
                 }
 
+                if ($type === 'fill_form') {
+                    $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+                    yield $event;
+
+                    continue;
+                }
+
                 if ($type === 'done') {
                     // Flush the buffered content just before the delegated
                     // stream's terminal marker so the frontend sees ack
@@ -1519,6 +1561,12 @@ PROMPT;
                     if ($flushEvent !== null) {
                         yield $flushEvent;
                     }
+
+                    // B-1 — synthesize tool calls for entities the LLM
+                    // dropped BEFORE the done marker so the frontend's
+                    // aiFormFill queue sees them in a single turn.
+                    yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
+
                     yield $event;
 
                     continue;
@@ -1535,6 +1583,7 @@ PROMPT;
                 if ($flushEvent !== null) {
                     yield $flushEvent;
                 }
+                yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -1572,6 +1621,175 @@ PROMPT;
         $nextState = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_ADD_MORE);
         if ($nextState !== null) {
             yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_ADD_MORE, $nextState);
+        }
+    }
+
+    /**
+     * Generate a one-sentence acknowledgment for a just-completed capture.
+     *
+     * The state machine previously advanced silently between capture and
+     * the next prompt, which felt abrupt ("My wife is Jane, born 1983" →
+     * immediately "Any children or dependants to add?"). A brief "Got it"
+     * line between the two lands the previous answer before the next ask.
+     *
+     * Returns null for states that don't merit an ack (bubble confirmations,
+     * terminal states) so we don't double up on noise.
+     *
+     * @param  array<string, mixed>  $interpretation
+     */
+    private function buildCaptureAck(User $user, string $stateId, array $interpretation): ?string
+    {
+        return match ($stateId) {
+            OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
+            default => null,
+        };
+    }
+
+    private function spouseAck(User $user): string
+    {
+        $spouse = FamilyMember::where('user_id', $user->id)
+            ->where('relationship', 'spouse')
+            ->latest()
+            ->first();
+
+        if ($spouse === null || $spouse->first_name === null) {
+            return 'Got it — your spouse is now on file.';
+        }
+
+        return "Got it — I've added {$spouse->first_name} and linked the two of you.";
+    }
+
+    private function dependantsAck(User $user): string
+    {
+        $count = FamilyMember::where('user_id', $user->id)
+            ->whereIn('relationship', ['child', 'other_dependent'])
+            ->count();
+
+        if ($count === 0) {
+            return 'Got it.';
+        }
+        if ($count === 1) {
+            return "Got it — 1 dependant added.";
+        }
+
+        return "Got it — {$count} dependants added.";
+    }
+
+    /**
+     * B-1 — synthesize tool calls for multi-entity messages the LLM dropped.
+     *
+     * Runs AFTER the LLM's asset_capture stream has finished. Feeds the
+     * user's original message to AssetCaptureEntityExtractor, compares the
+     * extracted entity set to the fill_form payloads the LLM actually
+     * emitted, and yields synthetic tool_use / fill_form / tool_use events
+     * for every entity the LLM missed. Those synthetic events flow into
+     * the aiFormFill Vuex queue exactly the same way as LLM-emitted ones,
+     * so each missing entity still drives a form navigation + auto-save
+     * on the frontend.
+     *
+     * The extractor is conservative — it only fires when it's confident
+     * about both the entity type and its identity, so a completely
+     * unrecognised phrasing degrades gracefully to "the LLM's single
+     * tool call wins" rather than misclassifying.
+     *
+     * @param  list<array<string, mixed>>  $llmEmittedFills  fields[] from each
+     *                                                       LLM-emitted fill_form
+     * @return \Generator<array{type: string}>
+     */
+    private function emitGapFillToolCalls(
+        User $user,
+        string $selection,
+        string $message,
+        array $llmEmittedFills
+    ): \Generator {
+        $tool = $this->entityExtractor->toolNameForFocus($selection);
+        if ($tool === null) {
+            return;
+        }
+
+        try {
+            $extracted = $this->entityExtractor->extractForFocus($selection, $message);
+            $missing = $this->entityExtractor->findMissing($selection, $extracted, $llmEmittedFills);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Gap-fill extraction failed', [
+                'user_id' => $user->id,
+                'selection' => $selection,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        Log::info('[OnboardingChatDirector] Gap-fill firing for dropped entities', [
+            'user_id' => $user->id,
+            'selection' => $selection,
+            'llm_emitted' => count($llmEmittedFills),
+            'extractor_found' => count($extracted),
+            'gap_filling' => count($missing),
+        ]);
+
+        foreach ($missing as $input) {
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'running',
+            ];
+
+            try {
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+            } catch (\Throwable $e) {
+                Log::error('[OnboardingChatDirector] Gap-fill tool execution failed', [
+                    'user_id' => $user->id,
+                    'tool' => $tool,
+                    'input' => $input,
+                    'error' => $e->getMessage(),
+                ]);
+
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (! empty($result['error']) || ! empty($result['blocked'])) {
+                // Handler refused. Don't propagate a bad fill_form to the
+                // frontend — just close out the tool_use status so the UI
+                // doesn't think it's still running.
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (($result['action'] ?? null) === 'fill_form') {
+                yield [
+                    'type' => 'fill_form',
+                    'entity_type' => $result['entity_type'] ?? '',
+                    'route' => $result['route'] ?? '',
+                    'fields' => $result['fields'] ?? [],
+                    'mode' => $result['mode'] ?? 'create',
+                    'entity_id' => $result['entity_id'] ?? null,
+                ];
+            }
+
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'complete',
+            ];
         }
     }
 

@@ -45,6 +45,7 @@ final class SpouseLinkingService
 {
     public function __construct(
         private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly HouseholdProvisioner $householdProvisioner,
     ) {}
 
     /**
@@ -68,6 +69,12 @@ final class SpouseLinkingService
         if ($spouseEmail === '') {
             throw new \InvalidArgumentException('Spouse email is required for linking.');
         }
+
+        // B-2 — make sure the current user has a household_id before we
+        // propagate it to the newly-linked spouse and the FamilyMember row.
+        // Without this, both records inherit NULL and the "plan together"
+        // queries silently return nothing.
+        $this->householdProvisioner->ensureFor($currentUser);
 
         Log::info('[SpouseLinkingService] linkOrCreateSpouse called', [
             'current_user_id' => $currentUser->id,
