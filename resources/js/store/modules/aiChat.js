@@ -30,6 +30,12 @@ const state = {
     onboardingLayout: 'wide',    // 'wide' | 'standard' — driven by onboarding_layout_change SSE
     skipLink: null,              // { label, color } when a state exposes a skip link
     previewCta: null,            // { label, route } when advice emits a signup CTA
+    // True while the current conversation is a Fyn-driven onboarding
+    // conversation (started via startOnboardingConversation, i.e. the
+    // "Quick start with Fyn" CTA). AppLayout reads this to activate the
+    // wide-chat wrapper + dashboard blur on /dashboard routes — the
+    // onboarding surface is not tied to a specific URL path.
+    isOnboardingActive: false,
 };
 
 const getters = {
@@ -53,6 +59,7 @@ const getters = {
     onboardingLayout: (state) => state.onboardingLayout,
     skipLink: (state) => state.skipLink,
     previewCta: (state) => state.previewCta,
+    isOnboardingActive: (state) => state.isOnboardingActive,
 };
 
 const mutations = {
@@ -138,6 +145,10 @@ const mutations = {
         state.previewCta = cta || null;
     },
 
+    SET_IS_ONBOARDING_ACTIVE(state, value) {
+        state.isOnboardingActive = !!value;
+    },
+
     UPDATE_CONVERSATION_TITLE(state, { conversationId, title }) {
         if (state.currentConversation && state.currentConversation.id === conversationId) {
             state.currentConversation.title = title;
@@ -177,6 +188,7 @@ const mutations = {
         state.onboardingLayout = 'wide';
         state.skipLink = null;
         state.previewCta = null;
+        state.isOnboardingActive = false;
     },
 };
 
@@ -246,6 +258,9 @@ const actions = {
         commit('SET_ERROR', null);
         commit('SET_MESSAGES', []);
         commit('SET_STREAMING_TEXT', '');
+        // Starting a fresh non-onboarding conversation clears the onboarding
+        // active flag so the wide-chat/blur drops back to normal.
+        commit('SET_IS_ONBOARDING_ACTIVE', false);
 
         try {
             const currentRoute = rootState.route?.path || window.location.pathname;
@@ -261,6 +276,13 @@ const actions = {
 
     /**
      * Load an existing conversation.
+     *
+     * Normalises the persisted message shape to match the streamed shape:
+     * assistant rows with `metadata.bubbles` are split into a plain
+     * `assistant` row (text only) plus a `quick_replies` row (bubbles),
+     * mirroring what the SSE path produces. Without this split, AiChatPanel
+     * (which only renders bubbles when `msg.role === 'quick_replies'`) shows
+     * a resumed onboarding turn with no bubbles.
      */
     async loadConversation({ commit }, conversationId) {
         commit('SET_LOADING', true);
@@ -274,7 +296,32 @@ const actions = {
         try {
             const response = await aiChatService.getConversation(conversationId);
             commit('SET_CURRENT_CONVERSATION', response.data.conversation);
-            commit('SET_MESSAGES', response.data.messages || []);
+
+            const raw = response.data.messages || [];
+            const normalised = [];
+            for (const m of raw) {
+                const bubbles = m?.metadata?.bubbles;
+                const skipLink = m?.metadata?.skip_link || null;
+                const actionBubbles = Boolean(m?.metadata?.action_bubbles);
+                const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
+
+                if (m.role === 'assistant' && hasBubbles) {
+                    // Split into text + quick_replies so AiChatPanel renders both.
+                    if (m.content) {
+                        normalised.push({ ...m, metadata: { ...m.metadata, bubbles: undefined } });
+                    }
+                    normalised.push({
+                        id: `qr_${m.id}`,
+                        role: 'quick_replies',
+                        content: '',
+                        metadata: { bubbles, skip_link: skipLink, action_bubbles: actionBubbles },
+                        created_at: m.created_at,
+                    });
+                } else {
+                    normalised.push(m);
+                }
+            }
+            commit('SET_MESSAGES', normalised);
         } catch (error) {
             logger.error('Failed to load conversation:', error);
             commit('SET_ERROR', 'Failed to load conversation.');
@@ -448,6 +495,17 @@ const actions = {
                                 // getter to shrink the chat container and unblur the
                                 // dashboard while in standard mode.
                                 commit('SET_ONBOARDING_LAYOUT', event.mode);
+                                // Entering a profile-review pause — refresh the auth
+                                // user + family members so ProfileReviewPanel has the
+                                // data the director just wrote (FR-M22: "renders
+                                // captured personal / family / employment / expenditure
+                                // fields"). Without this refresh the panel reads stale
+                                // Vuex state from page load and shows only fields that
+                                // existed then.
+                                if (event.mode === 'standard') {
+                                    dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                                    dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
+                                }
                                 break;
 
                             case 'persona_state_change':
@@ -499,7 +557,10 @@ const actions = {
                                 // Terminal state — the director marked the user as
                                 // onboarded and told us where to navigate next.
                                 // SET_PENDING_NAVIGATION is picked up by AiChatPanel's
-                                // existing navigation handler.
+                                // existing navigation handler. Also clear the Fyn
+                                // onboarding flag so the wide-chat/blur layout
+                                // returns to normal.
+                                commit('SET_IS_ONBOARDING_ACTIVE', false);
                                 commit('SET_PENDING_NAVIGATION', event.nextRoute || '/dashboard');
                                 break;
 
@@ -656,6 +717,13 @@ const actions = {
 
                             case 'onboarding_layout_change':
                                 commit('SET_ONBOARDING_LAYOUT', event.mode);
+                                // See sendMessage handler — refresh auth/family when
+                                // entering a profile-review pause so ProfileReviewPanel
+                                // shows the director's latest writes.
+                                if (event.mode === 'standard') {
+                                    dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                                    dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
+                                }
                                 break;
 
                             case 'skip_link':
@@ -750,6 +818,10 @@ const actions = {
         commit('SET_ERROR', null);
         commit('SET_MESSAGES', []);
         commit('SET_STREAMING_TEXT', '');
+        // Phase 13 — Fyn-driven onboarding is active. Unlocks the wide-chat
+        // wrapper + dashboard blur in AppLayout regardless of URL path.
+        commit('SET_IS_ONBOARDING_ACTIVE', true);
+        commit('SET_ONBOARDING_LAYOUT', 'wide');
 
         // Check status first — if already in progress, resume instead of starting
         try {

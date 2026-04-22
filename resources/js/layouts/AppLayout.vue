@@ -70,11 +70,18 @@
       <AppFooter ref="appFooter" />
     </div>
 
-    <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
-    <!-- Expanded chat panel -->
+    <!--
+      Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer.
+      Width is conditional per FR-M21:
+        • normal post-onboarding: 356px
+        • Fyn onboarding + wide layout: max-w-4xl (896px), capped by viewport minus sidebar
+        • Fyn onboarding + standard (profile-review pause): 525px
+      Stays right-anchored in all cases so the sidebar and chat never overlap.
+    -->
     <aside
       v-if="showDockedChat && !chatCollapsed"
-      class="hidden lg:flex lg:flex-col fixed right-0 w-[356px] border-l border-light-gray bg-white z-40 transition-all duration-300"
+      class="hidden lg:flex lg:flex-col fixed right-0 border-l border-light-gray bg-white z-40 transition-all duration-300"
+      :class="asideWidthClass"
       style="box-shadow: -6px 0 18px rgba(0, 0, 0, 0.12), 0 -4px 14px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.06);"
       :style="{ top: headerOffset + 'px', bottom: footerOffset + 'px' }"
     >
@@ -201,7 +208,7 @@ export default {
   computed: {
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('auth', ['isAuthenticated', 'currentUser']),
-    ...mapGetters('aiChat', { onboardingLayout: 'onboardingLayout' }),
+    ...mapGetters('aiChat', { onboardingLayout: 'onboardingLayout', isOnboardingActive: 'isOnboardingActive' }),
 
     isImpersonating() {
       return this.$store.state.advisor?.impersonating === true;
@@ -229,12 +236,33 @@ export default {
      */
     isOnboardingRoute() {
       const path = this.$route?.path || '';
-      return path.startsWith('/onboarding');
+      if (path.startsWith('/onboarding')) return true;
+      // Phase 13 — the "Quick start with Fyn" CTA launches the Fyn-driven
+      // onboarding from /dashboard?openFyn=journey. Dashboard.vue strips
+      // the query param immediately, leaving the app at /dashboard while
+      // the onboarding director is still driving the conversation. In
+      // that case the wide-chat wrapper + dashboard blur must activate
+      // here even though the URL no longer says /onboarding.
+      return this.isOnboardingActive;
     },
 
     dashboardBlurClass() {
       if (!this.isOnboardingRoute) return '';
       return this.onboardingLayout === 'standard' ? '' : 'filter blur-[4px] pointer-events-none';
+    },
+
+    /**
+     * Aside width class. Right-anchored always. Two sizes only:
+     *   • onboarding wide state (path_choice / asset_capture, etc):
+     *     712px = double the normal 356px docked width.
+     *   • everything else (non-onboarding chat AND onboarding profile-
+     *     review pauses): normal 356px docked width.
+     */
+    asideWidthClass() {
+      if (this.isOnboardingRoute && this.onboardingLayout !== 'standard') {
+        return 'w-[712px] max-w-[calc(100vw-15rem)]';
+      }
+      return 'w-[356px]';
     },
 
     // Only set for active paid subscribers — trial users see all plans

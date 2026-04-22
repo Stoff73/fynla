@@ -902,7 +902,11 @@ export default {
                     if (userBubbles.length > 0) {
                         this.scrollToLastUserMessage();
                     } else {
-                        this.scrollToBottom();
+                        // No user bubble yet (first turn / resumed onboarding).
+                        // Scroll to TOP so the welcome + bubbles are visible.
+                        // scrollToBottom() here hides the top of the welcome
+                        // when combined content exceeds the container height.
+                        container.scrollTop = 0;
                     }
                 });
             }
