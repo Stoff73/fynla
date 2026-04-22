@@ -248,7 +248,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_goal',
-                'description' => 'Create a new financial goal for the user. Use this when the user says they want to save for something specific.',
+                'description' => 'Create a new financial goal for the user. Use this when the user says they want to save for something specific. You MAY call this tool multiple times in the same turn when the user mentions multiple goals.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -286,7 +286,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_life_event',
-                'description' => 'Create a future life event that may impact the user\'s financial plan.',
+                'description' => 'Create a future life event that may impact the user\'s financial plan. You MAY call this tool multiple times in the same turn when the user mentions multiple events.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -320,7 +320,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_savings_account',
-                'description' => 'Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit.',
+                'description' => 'Create a savings account for the user. Use this when the user mentions a savings account, Cash Individual Savings Account, or cash deposit. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -364,7 +364,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_investment_account',
-                'description' => 'Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments.',
+                'description' => 'Create an investment account for the user. Use this when the user mentions any investment: ISA, GIA, bond, VCT, EIS, private company shares, crowdfunding, employee share schemes (SAYE, CSOP, EMI, share options, RSUs), or other investments. You MAY call this tool multiple times in the same turn when the user mentions multiple accounts.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -535,7 +535,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_holding',
-                'description' => 'Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead.',
+                'description' => 'Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists. If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -575,7 +575,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_pension',
-                'description' => 'Create a pension for the user. Handles both Defined Contribution (workplace, Self-Invested Personal Pension, personal) and Defined Benefit (final salary, career average) pensions.',
+                'description' => 'Create a pension for the user. Handles both Defined Contribution (workplace, Self-Invested Personal Pension, personal) and Defined Benefit (final salary, career average) pensions. You MAY call this tool multiple times in the same turn when the user mentions multiple pensions.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -633,7 +633,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_property',
-                'description' => 'Create a property for the user. If they also mention a mortgage, include the outstanding mortgage amount and it will be created automatically.',
+                'description' => 'Create a property for the user. If they also mention a mortgage, include the outstanding mortgage amount and it will be created automatically. You MAY call this tool multiple times in the same turn when the user mentions multiple properties — the frontend queue saves them in order. Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -686,7 +686,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_mortgage',
-                'description' => 'Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property.',
+                'description' => 'Create a standalone mortgage linked to an existing property. Use this when the user mentions a mortgage separately from a property, or wants to add a mortgage to an existing property. You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -737,7 +737,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_protection_policy',
-                'description' => 'Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies.',
+                'description' => 'Create a protection insurance policy for the user. Handles life insurance, critical illness cover, and income protection policies. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. life insurance AND critical illness).',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -788,7 +788,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_asset',
-                'description' => 'Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track.',
+                'description' => 'Create an asset. Use this for assets not covered by other tools — such as collectibles, artwork, or other valuable items the user wants to track. You MAY call this tool multiple times in the same turn when the user mentions multiple assets.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -820,7 +820,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_liability',
-                'description' => 'Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed.',
+                'description' => 'Create a liability. Use this when the user mentions any debt: credit cards, personal loans, student loans, car finance, or any other outstanding balance owed. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -852,7 +852,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_estate_gift',
-                'description' => 'Record a gift for Inheritance Tax planning. Use this when the user mentions gifts they have made or plan to make, as these affect their Inheritance Tax position under the 7-year rule.',
+                'description' => 'Record a gift for Inheritance Tax planning. Use this when the user mentions gifts they have made or plan to make, as these affect their Inheritance Tax position under the 7-year rule. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -932,7 +932,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_power_of_attorney',
-                'description' => 'Record a Lasting Power of Attorney (LPA) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name and whether it is registered with the Office of the Public Guardian. Replacement attorneys are optional.',
+                'description' => 'Record a Lasting Power of Attorney (LPA) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name and whether it is registered with the Office of the Public Guardian. Replacement attorneys are optional. You MAY call this tool multiple times in the same turn — for example if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -987,7 +987,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'create_family_member',
-                'description' => 'Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning.',
+                'description' => 'Add a family member (spouse, child, dependent). Use when the user mentions family members who affect their financial planning. You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1004,7 +1004,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_trust',
-                'description' => 'Record a trust for estate planning. Use when the user mentions trusts they have set up or want to document.',
+                'description' => 'Record a trust for estate planning. Use when the user mentions trusts they have set up or want to document. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1020,7 +1020,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_business_interest',
-                'description' => 'Record a business interest or ownership. Use when the user mentions business ownership, partnerships, or self-employment assets.',
+                'description' => 'Record a business interest or ownership. Use when the user mentions business ownership, partnerships, or self-employment assets. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1036,7 +1036,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_chattel',
-                'description' => 'Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions.',
+                'description' => 'Record a personal valuable item (jewellery, art, collectibles, vehicles). Use when the user mentions valuable personal possessions. You MAY call this tool multiple times in the same turn when the user mentions multiple items.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1058,7 +1058,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'update_record',
-                'description' => 'Update an existing record. Use when the user wants to change details of an existing goal, account, property, pension, policy, or other financial record. Ask the user to confirm the changes before calling this tool.',
+                'description' => 'Update an existing record. Use when the user wants to change details of an existing goal, account, property, pension, policy, or other financial record. Ask the user to confirm the changes before calling this tool. You MAY call this tool multiple times in the same turn when the user retracts or amends multiple records in one message.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1353,7 +1353,7 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'set_expenditure',
-                'description' => 'Set the user\'s monthly expenditure by category. Call this IMMEDIATELY when the user mentions their spending, bills, or monthly outgoings. Fill in every category the user mentions and omit anything not mentioned. The form will be opened, filled, and saved. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                'description' => 'Set the user\'s monthly expenditure by category. Call this IMMEDIATELY when the user mentions their spending, bills, or monthly outgoings. Fill in every category the user mentions and omit anything not mentioned. The form will be opened, filled, and saved. This tool captures all categories in a SINGLE call — do NOT call it multiple times per turn.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [

@@ -77,9 +77,23 @@ final class DataCapturePromptBuilder
 Capture reason: {$reason}
 Expected entity types: {$entityList}{$fieldHint}
 
-YOUR SINGLE JOB: call the appropriate create_* / update_* tool for EACH record the user describes. If they mention 3 items in one message, call 3 tools in your first response. If they provide nothing usable, acknowledge briefly and ask ONE short follow-up question naming the missing field(s).
+MULTI-ENTITY RULE (highest priority — overrides everything else below):
+When the user mentions multiple records in a single message, you MUST emit ONE
+tool_use block PER record in your very first response. This applies BOTH when the
+records are the same type (e.g. two savings accounts → create_savings_account × 2)
+AND when they span types (e.g. an ISA and a life insurance → create_savings_account
++ create_protection_policy in the same assistant turn). Never "summarise the rest
+in text and come back next turn". Emit them all at once.
 
-Multi-entity rule: when the user mentions multiple records in a single message, you MUST emit one tool_use block per record in your very first response. Do not summarise the rest in text and come back for them on the next turn — emit them all at once.
+Worked examples:
+  - within-tool: "I have an HL SIPP £50k and a Vanguard ISA £15k"
+    → first response: create_investment_account × 2.
+  - cross-tool: "I have a Halifax ISA £10k and Aviva life insurance £300k"
+    → first response: create_savings_account + create_protection_policy (two tool calls, one turn).
+  - retraction + create: "actually my ISA balance is £12k not £10k, and add a SIPP £50k"
+    → first response: update_record (ISA) + create_investment_account (SIPP).
+
+YOUR SINGLE JOB: call the appropriate create_* / update_* tool for EACH record the user describes. If they mention 3 items in one message, call 3 tools in your first response. If they provide nothing usable, acknowledge briefly and ask ONE short follow-up question naming the missing field(s).
 
 Retraction: if the user contradicts a prior answer ("actually that's £50k not £40k"), call the matching `update_*` tool and acknowledge the change briefly. Never silently overwrite.
 

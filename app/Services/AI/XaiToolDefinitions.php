@@ -281,7 +281,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_goal',
                 'Create a new financial goal. Use when the user wants to save for something specific. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple goals.',
                 [
                     'name' => ['type' => 'string', 'description' => 'Name of the goal (e.g. "Holiday Fund", "House Deposit", "Emergency Fund")'],
                     'target_amount' => ['type' => 'number', 'description' => 'Target amount in pounds (£)'],
@@ -295,7 +295,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_life_event',
                 'Create a future life event that impacts the user\'s financial plan. Use for expected income (inheritance, bonus, property sale) or expenses (large purchase, wedding, home improvement). '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple life events.',
                 [
                     'event_name' => ['type' => 'string', 'description' => 'Short name for the event (e.g. "Parents\' Estate", "Kitchen Renovation", "Work Bonus")'],
                     'event_type' => [
@@ -320,7 +320,7 @@ class XaiToolDefinitions
                 'create_savings_account',
                 'Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. '
                 .'Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. '
-                .'IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. "I have a Halifax ISA and a Nationwide saver" → two tool calls).',
                 [
                     'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Nationwide Cash ISA", "HSBC Current Account", "Marcus Savings")'],
                     'account_type' => $this->nullableEnum(
@@ -434,7 +434,7 @@ class XaiToolDefinitions
                 'create_holding',
                 'Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. '
                 .'If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings (e.g. "in my SIPP I hold Apple and Microsoft" → two tool calls).',
                 [
                     'account_name' => ['type' => 'string', 'description' => 'Name or provider of the investment account to add the holding to (e.g. "Vanguard ISA", "Hargreaves Lansdown"). Must match an existing account.'],
                     'security_name' => ['type' => 'string', 'description' => 'Name of the fund, ETF, or share (e.g. "Vanguard FTSE All-World", "iShares Core MSCI World")'],
@@ -455,7 +455,7 @@ class XaiToolDefinitions
                 'create_pension',
                 'Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). '
                 .'Call this tool IMMEDIATELY when the user mentions a pension. Fill in every field you can. '
-                .'IMPORTANT: Do NOT call any other creation tools in the same turn as create_pension. '
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple pensions (e.g. "I have a workplace DC and a SIPP" → two tool calls). '
                 .'If the user mentions a pension without specifying DC or DB, ask: "Is this a workplace pension where your employer contributes, or a final salary/career average scheme?"',
                 [
                     'pension_category' => ['type' => 'string', 'enum' => ['dc', 'db'], 'description' => '"dc" for Defined Contribution (workplace, SIPP, personal). "db" for Defined Benefit (final salary, career average).'],
@@ -501,8 +501,8 @@ class XaiToolDefinitions
                 .'The form will be opened, filled, and saved automatically. After saving, confirm what was added '
                 .'and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. '
                 .'Infer sensible values: if they say "my house" assume main_residence, if they say "our house" assume joint ownership. '
-                .'IMPORTANT: Do NOT call any other creation tools (create_family_member, navigate_to_page, etc.) in the same turn as create_property. '
-                .'The property form fill needs the page to stay on /net-worth/property until saved. Add family members in a follow-up message.',
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple properties (e.g. "main residence and a buy-to-let" → two tool calls) — the frontend queue saves them in order. '
+                .'Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill.',
                 [
                     // ── Basic (truly required) ──
                     'property_type' => [
@@ -588,7 +588,8 @@ class XaiToolDefinitions
                 'create_mortgage',
                 'Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. '
                 .'Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. '
-                .'The form will be filled in front of the user. After filling, ask if they want to add more details before saving.',
+                .'The form will be filled in front of the user. After filling, ask if they want to add more details before saving. '
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.',
                 [
                     'property_address_hint' => ['type' => ['string', 'null'], 'description' => 'A hint to match the property — address, postcode, or "my main home". System fuzzy-matches.'],
                     'lender_name' => ['type' => ['string', 'null'], 'description' => 'Mortgage lender name (e.g. "Halifax").'],
@@ -620,7 +621,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_protection_policy',
                 'Create a protection insurance policy. Handles life insurance, critical illness, and income protection. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. "Aviva life insurance £300k and Vitality critical illness £100k" → two tool calls).',
                 [
                     'policy_type' => [
                         'type' => 'string',
@@ -660,7 +661,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_liability',
                 'Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities.',
                 [
                     'liability_name' => ['type' => 'string', 'description' => 'Name of the liability (e.g. "Barclays Visa", "Halifax Personal Loan", "BMW Car Finance")'],
                     'liability_type' => ['type' => 'string', 'enum' => ['personal_loan', 'credit_card', 'student_loan', 'hire_purchase', 'secured_loan', 'overdraft', 'business_loan', 'other'], 'description' => 'Type. "hire_purchase" for car finance/HP. "personal_loan" for bank loans. "credit_card" for credit cards. "student_loan" for student loans. "overdraft" for bank overdrafts.'],
@@ -673,7 +674,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_estate_gift',
                 'Record a gift for Inheritance Tax planning (7-year rule). Use when the user mentions gifts they have made to family, friends, trusts, or charities. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts.',
                 [
                     'gift_date' => ['type' => 'string', 'description' => 'Date the gift was made (YYYY-MM-DD). Must be in the past. If user says "last Christmas" calculate the date. If user says "3 years ago" calculate from today.'],
                     'recipient' => ['type' => 'string', 'description' => 'Full name of the recipient (e.g. "Emma Smith", "Oxfam", "Smith Family Trust"). Use the person\'s actual name, not "my daughter" or "my son".'],
@@ -717,7 +718,7 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_power_of_attorney',
-                'Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare.',
+                'Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare. You MAY call this tool multiple times in the same turn — if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.',
                 [
                     'lpa_type' => ['type' => 'string', 'enum' => ['property_financial', 'health_welfare'], 'description' => 'LPA type.'],
                     'primary_attorney_name' => ['type' => 'string', 'description' => 'Full name of the primary attorney.'],
@@ -795,7 +796,7 @@ class XaiToolDefinitions
                 'Set the user\'s monthly expenditure by category. Call this IMMEDIATELY when the user mentions their spending, bills, or monthly outgoings. '
                 .'Fill in every category the user mentions and set null for anything not mentioned. '
                 .'The form will be opened, filled, and saved automatically. '
-                .'IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'This tool captures all categories in a SINGLE call — do NOT call it multiple times per turn.',
                 [
                     // Essential Living
                     'rent' => ['type' => ['number', 'null'], 'description' => 'Monthly rent in pounds. Null if homeowner.'],
@@ -845,8 +846,8 @@ class XaiToolDefinitions
                 'create_family_member',
                 'Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. '
                 .'For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn. '
-                .'For multiple children, call this tool ONCE per child in separate turns.',
+                .'Call this tool IMMEDIATELY. '
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. "I have a daughter Emily age 8 and a son James age 5" → two tool calls).',
                 [
                     'first_name' => ['type' => 'string', 'description' => 'First name of the family member'],
                     'surname' => ['type' => ['string', 'null'], 'description' => 'Surname/last name. If not mentioned, assume same as user.'],
@@ -870,7 +871,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_trust',
                 'Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts.',
                 [
                     'trust_name' => ['type' => 'string', 'description' => 'Name of the trust (e.g. "Smith Family Discretionary Trust")'],
                     'trust_type' => ['type' => 'string', 'enum' => ['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance', 'mixed', 'settlor_interested'], 'description' => 'Type of trust. "discretionary" for family discretionary trusts. "bare" for bare/absolute trusts. "interest_in_possession" for life interest trusts. "life_insurance" for trusts holding life policies. "loan" for loan trusts. "discounted_gift" for DGTs. "accumulation_maintenance" for A&M trusts. "mixed" for combined trust types. "settlor_interested" when settlor/spouse can benefit.'],
@@ -886,7 +887,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_business_interest',
                 'Record a business interest or ownership. Handles sole trader, partnership, limited company, LLP. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses.',
                 [
                     'business_name' => ['type' => 'string', 'description' => 'Name of the business (e.g. "Acme Technologies Ltd", "Smith Consulting")'],
                     'business_type' => ['type' => 'string', 'enum' => ['sole_trader', 'partnership', 'limited_company', 'llp', 'other'], 'description' => '"sole_trader" for self-employed. "partnership" for partnerships. "limited_company" for Ltd companies. "llp" for Limited Liability Partnerships. "other" for anything else.'],
@@ -902,7 +903,7 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_chattel',
-                'Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type "other" instead.',
+                'Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type "other" instead. You MAY call this tool multiple times in the same turn when the user mentions multiple items.',
                 [
                     'description' => ['type' => 'string', 'description' => 'Description of the item'],
                     'category' => ['type' => 'string', 'enum' => ['jewellery', 'art', 'antiques', 'collectibles', 'vehicles', 'other'], 'description' => 'Category of item'],
@@ -922,7 +923,7 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'update_record',
-                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling.',
+                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling. You MAY call this tool multiple times in the same turn when the user retracts or amends multiple records in one message.',
                 [
                     'entity_type' => [
                         'type' => 'string',

@@ -108,14 +108,18 @@ PROMPT;
     {
         return <<<'PROMPT'
 <data_creation_guidance>
-CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate tool IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
+CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate tool(s) IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
+
+Multi-entity: when the user mentions multiple items in a single message, call the tool once PER item in the same response — both within one tool (e.g. two savings accounts → create_savings_account × 2) and across tools (e.g. an ISA and a life insurance → create_savings_account + create_protection_policy in the same assistant turn). Do NOT "capture the first one and come back for the rest".
 
 The tool will open a form on screen and fill in the fields visually. After the form is filled, you can then ask the user if they want to add more details before saving.
 
-Flow: User says "I have X" → YOU CALL THE TOOL → form fills → you ask "anything to add before saving?"
+Flow: User says "I have X" → YOU CALL THE TOOL(S) → form(s) fill → you ask "anything to add before saving?"
 
 WRONG: User says "I have a house" → you reply "Great! What's the address?" (NO! Call the tool first!)
 RIGHT: User says "I have a house" → you call create_property → form fills → "I've filled in what I know. Want to add more details?"
+RIGHT (multi-entity): User says "two houses, main residence £400k and a BTL £250k" → you call create_property TWICE in the same response → both forms queue and save in order → "Both properties recorded. Anything to add?"
+RIGHT (cross-tool): User says "I have an ISA £10k and life insurance £300k" → you call create_savings_account AND create_protection_policy in the same response.
 
 - Individual Savings Accounts must always have ownership_type set to "individual" — UK legal requirement
 - Default ownership to "individual" unless the user specifically mentions joint ownership

@@ -91,18 +91,31 @@ final class OnboardingPromptBuilder
         return <<<PROMPT
 <asset_capture_turn>
 The user is onboarding. They just selected the {$focusLabel} module and you asked them
-to tell you about their existing holdings in this module. Their next message will
-describe one or more holdings in plain language.
+to tell you about their existing records in this module. Their next message will
+describe one or more records in plain language.
 
-YOUR SINGLE JOB: call the appropriate create_ tool for EACH holding mentioned in
+MULTI-ENTITY RULE (highest priority — overrides everything else below):
+When the user mentions multiple records in a single message, you MUST emit ONE
+tool_use block PER record in your very first response. Never "summarise the rest
+in text and come back next turn". Never "ask which one to add first". Emit them
+all at once as separate tool_use blocks in the same assistant turn.
+
+Worked examples:
+  - protection: "Aviva life insurance £300k and Vitality critical illness £100k"
+    → first response: create_protection_policy × 2 (life_term + standalone_ci).
+  - savings: "Halifax ISA £10k and Nationwide saver £5k"
+    → first response: create_savings_account × 2.
+  - retirement: "a workplace DC pension with Aviva and a SIPP with Hargreaves Lansdown"
+    → first response: create_pension × 2.
+  - family: "my daughter Emily aged 8 and my son James aged 5"
+    → first response: create_family_member × 2.
+  - goals: "£50k house deposit by 2030 and a £30k emergency fund"
+    → first response: create_goal × 2.
+
+YOUR SINGLE JOB: call the appropriate create_ tool for EACH record mentioned in
 the user's message. If they mention 3 items, call 3 tools in your first response.
 If they mention 0 items (e.g. they say "I don't have any" or "nothing yet"), reply
 with one short sentence acknowledging and call no tools.
-
-Multi-entity rule: when the user mentions multiple holdings in a single message,
-you MUST emit one tool_use block per holding in your very first response. Do not
-summarise the rest in text and come back for them on the next turn — emit them
-all at once.
 
 Do NOT greet, do NOT summarise, do NOT ask follow-up questions, do NOT navigate,
 do NOT analyse, do NOT reference any financial figures beyond what the user just
