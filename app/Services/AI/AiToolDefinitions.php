@@ -932,7 +932,18 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'create_power_of_attorney',
-                'description' => 'Record a Lasting Power of Attorney (LPA) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name and whether it is registered with the Office of the Public Guardian. Replacement attorneys are optional. You MAY call this tool multiple times in the same turn — for example if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.',
+                'description' => <<<'DESC'
+                Record a Lasting Power of Attorney (LPA) the user already has in place. UK has two types: Property & Financial Affairs (lpa_type=property_financial) and Health & Welfare (lpa_type=health_welfare). For each, capture the primary attorney name. Replacement attorneys are optional. You MAY call this tool multiple times in the same turn — for example if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.
+
+                STATUS IS MANDATORY — extract it from the user's wording:
+                  • "registered", "in force", "active with OPG", "already registered with the Office of the Public Guardian" → status = "registered"
+                  • "draft", "signed but not registered", "not yet registered", "in the pipeline", "sent off for registration", "being registered", "pending registration" → status = "draft"
+                  • If the user gives no signal at all, default to "draft".
+
+                NEVER drop status=registered when the user said so. Worked example:
+                  User: "I have a registered property and financial LPA with my brother Tom"
+                  Required: create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered').
+                DESC,
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -952,7 +963,7 @@ class AiToolDefinitions
                         'status' => [
                             'type' => 'string',
                             'enum' => ['draft', 'registered'],
-                            'description' => 'LPA status. draft = signed but not yet registered with OPG. registered = in force and registered with the Office of the Public Guardian.',
+                            'description' => 'LPA status. If user says "registered" / "in force" / "active with OPG" → "registered". If user says "draft" / "not registered" / "pending" / "being registered" → "draft". Default "draft" if not stated.',
                         ],
                         'opg_reference' => [
                             'type' => 'string',

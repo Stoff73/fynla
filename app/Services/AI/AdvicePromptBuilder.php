@@ -126,6 +126,37 @@ class AdvicePromptBuilder
             $layers[] = "<current_context>\n{$moduleContext}\n</current_context>";
         }
 
+        // Layer 10b (persona-split): bias advice Fyn toward delegate_to_capture
+        // for inline data capture instead of navigate_to_page + fill_form.
+        //
+        // B-8 — session 3 found advice Fyn preferring navigate+fill for
+        // "add my SIPP" style messages, sidestepping the whole persona-split
+        // mechanism. The handoff tools live in the registry so advice Fyn
+        // already has delegate_to_capture available, but without explicit
+        // guidance it falls through to the generic navigation pattern.
+        // This block only renders when the split is enabled AND the user
+        // is not previewing (preview has its own block below).
+        if (! $isPreview && (bool) config('fyn.persona_split_enabled', false)) {
+            $layers[] = <<<'PROMPT'
+<persona_split_handoff>
+The persona split is active. You are advice Fyn. A separate data-capture Fyn handles record writes inline. To delegate, emit the internal `delegate_to_capture` tool — the orchestrator hands off, data-capture Fyn persists the records, then advice Fyn (you) resumes with the fresh data to answer the original question.
+
+WHEN to use delegate_to_capture (preferred over navigate_to_page + fill_form):
+- User asks to add, record, or save a single record inline: "add my SIPP", "record my life insurance", "save a savings account for my Nationwide saver £5k"
+- KYC gate: the user asked an advice question that you cannot answer without data they have not supplied ("is my retirement on track?" when they have zero pensions)
+- Quick corrections: "actually my ISA balance is £12k not £10k"
+
+WHEN to use navigate_to_page (still appropriate):
+- User explicitly asks to GO somewhere: "show me my estate planning", "take me to the protection page"
+- Module-level overviews where the user wants to see the dashboard, not add a record
+
+Rule of thumb: if the user's sentence is an imperative describing a RECORD they want captured, emit `delegate_to_capture`. If it is a request to SEE a page, emit `navigate_to_page`. If they ask BOTH, delegate first, then navigate after capture_complete returns.
+
+Never leave the user hanging because data is missing. If you emit delegate_to_capture, include every relevant entity_type and the pending_advice_question so data-capture Fyn knows what to ask for and advice Fyn knows what to answer when control returns.
+</persona_split_handoff>
+PROMPT;
+        }
+
         // Layer 11 (persona-split): preview-mode instruction. When the user
         // is previewing the app without an account, data-capture is not
         // available — the write tools are filtered out of the tool list at

@@ -46,16 +46,18 @@ describe('OnboardingStateMachine::states', function () {
         }
     });
 
-    it('every bubble state defines between 1 and 6 bubbles', function () {
-        // Profile-review pauses have a single confirmation bubble, otherwise
-        // bubble states carry 2-6 options.
+    it('every bubble state defines between 1 and 8 bubbles', function () {
+        // Profile-review pauses have a single confirmation bubble. Focus
+        // selection has 8 options (savings / investment / retirement /
+        // protection / estate / goals / budgeting / business). Other
+        // bubble states carry 2-5 options.
         foreach (OnboardingStateMachine::states() as $id => $state) {
             if ($state['turn_type'] !== 'bubbles') {
                 continue;
             }
             $bubbles = $state['bubbles'] ?? [];
             expect(count($bubbles))->toBeGreaterThanOrEqual(1)
-                ->and(count($bubbles))->toBeLessThanOrEqual(6);
+                ->and(count($bubbles))->toBeLessThanOrEqual(8);
             foreach ($bubbles as $bubble) {
                 expect($bubble)->toHaveKeys(['id', 'label']);
             }

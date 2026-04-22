@@ -85,8 +85,9 @@ describe('state-machine walkthrough — path_choice → done', function () {
             ->toBe(OnboardingStateMachine::STATE_JOURNEY_SELECTION)
             ->and($this->user->onboarding_fyn_path)->toBe('journey');
 
-        // Step 3 — journey_selection bubble: "Protecting and growing" → base_personal
-        sendOnboardingMessage($this, $this->user, $conversation->id, 'Protecting and growing');
+        // Step 3 — journey_selection bubble: "Protecting What Matters" → base_personal
+        // (Canonical label to match /onboarding/welcome and lifeStageConfig.js)
+        sendOnboardingMessage($this, $this->user, $conversation->id, 'Protecting What Matters');
 
         $this->user->refresh();
         expect($this->user->onboarding_fyn_step)

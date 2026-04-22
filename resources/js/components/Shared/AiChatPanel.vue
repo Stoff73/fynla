@@ -537,8 +537,11 @@
         </button>
       </div>
 
-      <!-- Suggestions panel (collapsible, above input) -->
-      <div v-if="suggestedPrompts.length > 0" class="flex-shrink-0 border-t border-light-gray">
+      <!-- Suggestions panel (collapsible, above input) —
+           hidden during onboarding because the director drives turns with
+           state-specific bubbles; a generic "suggestions" list is chrome
+           leakage that confuses the flow. -->
+      <div v-if="suggestedPrompts.length > 0 && !isOnboardingActive" class="flex-shrink-0 border-t border-light-gray">
         <button
           @click="suggestionsCollapsed = !suggestionsCollapsed"
           class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider hover:bg-savannah-100 transition-colors"
@@ -696,6 +699,7 @@ export default {
             'skipLink',
             'previewCta',
             'onboardingLayout',
+            'isOnboardingActive',
         ]),
 
         isCapturing() {

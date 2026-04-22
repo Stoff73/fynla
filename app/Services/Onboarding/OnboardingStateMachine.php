@@ -94,30 +94,34 @@ final class OnboardingStateMachine
                 'turn_type' => 'bubbles',
                 'prompt_text' => 'Which journey fits your situation best?',
                 'bubbles' => [
+                    // Labels and descriptions match the canonical life-stage
+                    // names in resources/js/constants/lifeStageConfig.js and
+                    // the /onboarding/welcome landing page so users see the
+                    // same wording everywhere.
                     [
                         'id' => 'budgeting',
-                        'label' => 'Starting out',
-                        'description' => 'Build strong financial habits for your future.',
+                        'label' => 'Starting Out',
+                        'description' => 'Build smart money habits from day one.',
                     ],
                     [
                         'id' => 'goals',
-                        'label' => 'Building foundations',
-                        'description' => 'Save, invest, and grow your wealth with confidence.',
+                        'label' => 'Building Foundations',
+                        'description' => 'Save for your first home and grow your career.',
                     ],
                     [
                         'id' => 'protection',
-                        'label' => 'Protecting and growing',
-                        'description' => 'Ensure your family and assets are fully covered.',
+                        'label' => 'Protecting What Matters',
+                        'description' => 'Secure your family and grow your wealth.',
                     ],
                     [
                         'id' => 'retirement',
-                        'label' => 'Planning your future',
-                        'description' => 'Retirement projections, pension tracking, and estate planning.',
+                        'label' => 'Planning Your Future',
+                        'description' => 'Maximise your wealth and prepare for retirement.',
                     ],
                     [
                         'id' => 'estate',
-                        'label' => 'Enjoying your wealth',
-                        'description' => 'Make the most of your financial success.',
+                        'label' => 'Enjoying Your Wealth',
+                        'description' => 'Make your money last and leave a legacy.',
                     ],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
@@ -131,6 +135,10 @@ final class OnboardingStateMachine
                     ['id' => 'investment', 'label' => 'Investment'],
                     ['id' => 'retirement', 'label' => 'Retirement'],
                     ['id' => 'protection', 'label' => 'Protection'],
+                    ['id' => 'estate', 'label' => 'Estate Planning'],
+                    ['id' => 'goals', 'label' => 'Goals & Life Events'],
+                    ['id' => 'budgeting', 'label' => 'Budgeting'],
+                    ['id' => 'business', 'label' => 'Business'],
                 ],
                 'capture_field' => 'onboarding_fyn_selection',
                 'next' => self::STATE_BASE_PERSONAL,
