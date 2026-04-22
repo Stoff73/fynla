@@ -86,6 +86,30 @@
       </div>
     </section>
 
+    <!-- Your Fynla Dashboard -->
+    <div class="bg-eggshell-500 py-10 lg:py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-8">Your Fynla dashboard</h2>
+        <div class="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" @click="toggleVideo">
+          <video
+            ref="productVideo"
+            src="/images/Homepage-Fynla-ProductVideo.mp4"
+            playsinline
+            class="w-full h-auto block"
+          >
+            Your browser does not support the video tag.
+          </video>
+          <div v-if="!videoPlaying" class="absolute inset-0 bg-horizon-500/30 flex items-center justify-center transition-opacity group-hover:bg-horizon-500/20">
+            <div class="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-raspberry-500 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Try it yourself -->
     <section class="py-14 bg-light-pink-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -112,6 +136,26 @@ export default {
 
   components: {
     PublicLayout,
+  },
+
+  data() {
+    return {
+      videoPlaying: false,
+    };
+  },
+
+  methods: {
+    toggleVideo() {
+      const video = this.$refs.productVideo;
+      if (!video) return;
+      if (video.paused) {
+        video.play();
+        this.videoPlaying = true;
+      } else {
+        video.pause();
+        this.videoPlaying = false;
+      }
+    },
   },
 
   mounted() {

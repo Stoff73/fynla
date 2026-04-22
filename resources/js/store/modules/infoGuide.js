@@ -117,7 +117,11 @@ const actions = {
     /**
      * Fetch requirements for a specific module
      */
-    async fetchRequirements({ commit, state }, module) {
+    async fetchRequirements({ commit, state, rootGetters }, module) {
+        if (!rootGetters['auth/isAuthenticated'] && !rootGetters['preview/isPreviewMode']) {
+            return;
+        }
+
         // Skip if same module and already loaded (with valid requirements)
         if (state.currentModule === module && state.requirements && state.requirements.module === module) {
             return;

@@ -1446,17 +1446,8 @@ router.beforeEach(async (to, from, next) => {
 
 // After each navigation, update info guide module context
 router.afterEach((to) => {
-  // Only fetch for authenticated users or preview mode
-  const isAuthenticated = store.getters['auth/isAuthenticated'];
-  const isPreviewMode = store.getters['preview/isPreviewMode'];
-
-  if (!isAuthenticated && !isPreviewMode) {
-    return;
-  }
-
-  // Skip for public/auth pages
-  const publicRoutes = ['/login', '/register', '/', '/calculators', '/learn', '/about', '/pricing'];
-  if (publicRoutes.some(route => to.path === route || to.path.startsWith('/forgot') || to.path.startsWith('/reset'))) {
+  // Only fetch for routes that explicitly require auth
+  if (!to.matched.some(r => r.meta.requiresAuth)) {
     return;
   }
 
