@@ -58,4 +58,9 @@ return [
     ],
 
     'test_recipient_override' => env('LIFECYCLE_TEST_RECIPIENT', null),
+
+    // Milliseconds to sleep between sends so we stay below SMTP provider rate
+    // limits. SiteGround caps shared mail at ~10 messages/sec; 150 ms (≈6.6/s)
+    // gives headroom. Set to 0 to disable pacing (tests, self-hosted SMTP).
+    'throttle_ms' => (int) env('LIFECYCLE_THROTTLE_MS', 150),
 ];
