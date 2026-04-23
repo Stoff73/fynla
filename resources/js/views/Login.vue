@@ -198,6 +198,21 @@ export default {
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
 
+    // Post-login redirect target from ?redirect= query param (used by
+    // lifecycle magic links to route users back to checkout, profile,
+    // dashboard etc. after authentication). Captured once on mount so
+    // the verification-code / MFA modal flow can resolve to the same
+    // destination as the direct login path.
+    const redirectTarget = ref(null);
+
+    const resolveRedirect = () => {
+      if (redirectTarget.value) {
+        router.push(redirectTarget.value);
+      } else {
+        router.push({ name: 'Dashboard' });
+      }
+    };
+
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
     // Check for inactivity logout reason on mount
@@ -206,10 +221,16 @@ export default {
       const meta = document.querySelector('meta[name="description"]');
       if (meta) meta.setAttribute('content', 'Sign in to your Fynla account to manage your financial plan, track investments, and monitor your net worth.');
 
+      // Capture ?redirect= before any router.replace cleans it up.
+      if (route.query.redirect && typeof route.query.redirect === 'string') {
+        redirectTarget.value = route.query.redirect;
+      }
+
       if (route.query.reason === 'inactivity') {
         inactivityMessage.value = 'Your session has expired due to inactivity. Please sign in again.';
-        // Clean up the URL parameter
-        router.replace({ path: route.path, query: {} });
+        // Clean up the URL parameter but preserve the redirect target if present
+        const preservedQuery = redirectTarget.value ? { redirect: redirectTarget.value } : {};
+        router.replace({ path: route.path, query: preservedQuery });
       }
     });
 
@@ -267,7 +288,7 @@ export default {
           if (response.data.data.must_change_password) {
             showPasswordModal.value = true;
           } else {
-            router.push({ name: 'Dashboard' });
+            resolveRedirect();
           }
         }
       } catch (error) {
@@ -301,7 +322,7 @@ export default {
       if (data.must_change_password) {
         showPasswordModal.value = true;
       } else {
-        router.push({ name: 'Dashboard' });
+        resolveRedirect();
       }
     };
 
@@ -328,7 +349,7 @@ export default {
       if (data.must_change_password) {
         showPasswordModal.value = true;
       } else {
-        router.push({ name: 'Dashboard' });
+        resolveRedirect();
       }
     };
 
@@ -344,8 +365,8 @@ export default {
       // Update user data to reflect password change
       authService.getUser();
 
-      // Redirect to dashboard
-      router.push({ name: 'Dashboard' });
+      // Honour redirect target if set (lifecycle magic links), else dashboard
+      resolveRedirect();
     };
 
     const handlePasswordResetSuccess = () => {

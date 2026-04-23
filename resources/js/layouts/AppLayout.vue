@@ -96,6 +96,7 @@
     <PlanSelectionModal
       v-if="showTrialExpiredModal && !isOnCheckoutRoute"
       :dismissable="planModalDismissable"
+      :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
       @close="handleTrialModalClose"
     />
@@ -104,6 +105,7 @@
     <PlanSelectionModal
       v-if="showPlanModal && !showTrialExpiredModal"
       :current-plan="activePlanSlug"
+      :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
       @close="showPlanModal = false"
     />
@@ -201,6 +203,15 @@ export default {
     // and grace-period overlays so the user can actually reach the Revolut widget.
     isOnCheckoutRoute() {
       return this.$route.path === '/checkout' || this.$route.name === 'Checkout';
+    },
+
+    // When a user arrives from a lifecycle email magic link, the controller
+    // redirects them to /dashboard with ?lifecycle_discount=CODE. This
+    // computed reads the query param so PlanSelectionModal can pre-populate
+    // its discount field (via the prefill-discount-code prop).
+    lifecycleDiscountCode() {
+      const value = this.$route.query.lifecycle_discount;
+      return typeof value === 'string' ? value : '';
     },
   },
 
@@ -350,11 +361,15 @@ export default {
       this.showTrialExpiredModal = false;
     },
 
-    handlePlanSelect({ plan, billingCycle, isUpgrade }) {
+    handlePlanSelect({ plan, billingCycle, isUpgrade, discountCode }) {
       this.showTrialExpiredModal = false;
       this.showPlanModal = false;
       const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}`);
+      // Thread the discount code through to the checkout page — its
+      // prefilledDiscountCode computed reads $route.query.discount and
+      // auto-validates + applies before creating the Revolut order.
+      const discountParam = discountCode ? `&discount=${encodeURIComponent(discountCode)}` : '';
+      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}${discountParam}`);
     },
   },
 };

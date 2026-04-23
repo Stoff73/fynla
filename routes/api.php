@@ -292,6 +292,13 @@ Route::middleware('auth:sanctum')->prefix('joint-account-logs')->group(function 
     Route::get('/', [\App\Http\Controllers\Api\JointAccountLogController::class, 'index']);
 });
 
+// Notification preferences (web) — mobile has its own controller at
+// /api/v1/mobile/notifications/preferences in routes/api_v1.php
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/preferences', [\App\Http\Controllers\Api\NotificationPreferenceController::class, 'show']);
+    Route::put('/preferences', [\App\Http\Controllers\Api\NotificationPreferenceController::class, 'update']);
+});
+
 // Property routes (Phase 4)
 Route::middleware(['auth:sanctum', 'feature:standard'])->prefix('properties')->group(function () {
     // Property CRUD

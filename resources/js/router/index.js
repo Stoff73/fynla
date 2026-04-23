@@ -585,6 +585,19 @@ const routes = [
     },
   },
   {
+    path: '/profile/notifications',
+    name: 'NotificationPreferences',
+    component: () => import('@/components/UserProfile/NotificationPreferences.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Profile', path: '/profile' },
+        { label: 'Notifications', path: '/profile/notifications' },
+      ],
+    },
+  },
+  {
     path: '/net-worth',
     component: NetWorthDashboard,
     meta: {
