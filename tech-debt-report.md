@@ -1,52 +1,56 @@
-# Tech Debt Report — Session 2026-04-23
+# Tech Debt Report — Session 66, 23 April 2026
 
-**Files analysed:** 6
-**Issues found:** 3 (all suggestions)
-**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
-
-The session shipped five coordinated production hotfixes (R1–R5) on the subscription/checkout path. Code is clean overall: strict types declared on both PHP files, type hints on all new methods, no hardcoded tax values, no banned colour tokens, no `v-if`/`v-for` collisions, no local `formatCurrency` duplications, no security-sensitive input paths introduced, no dead imports.
+**Scope:** session 66 commits (`a6cfa5a` … `eaea285`)
+**Files analysed:** 17 (1 PHP service, 15 frontend Vue/JS, 1 router)
+**Issues found:** 3 (0 critical, 1 warning, 2 suggestions)
 
 ## Critical Issues
 
-None.
+None. All 17 changed files are clean against the design system, no hardcoded tax values, no banned colour tokens, no duplicated mixin methods, no dead code introduced, no security surface added. Backend MC cache key change is self-invalidating by content. The unified pension form branches to the correct `createDCPension` / `createDBPension` / `updateStatePension` dispatch based on `_pensionType` — backend records stay 1:1 shape-identical to legacy form output, verified via live DB inspection on local dev.
 
 ## Warnings
 
-None.
+### 1. `DCPensionForm.vue` grew from 839 → ~1080 lines
+
+- **File:** `resources/js/components/Retirement/DCPensionForm.vue`
+- **Category:** Complexity & Maintainability
+- **What's wrong:** The form was already over the project's 500-line threshold before session 66. Adding the Final Salary and State Pension conditional field groups pushed it further. The file now carries three unrelated form shapes (DC, DB, State) behind branched `handleSubmit` logic.
+- **Why it's a warning not critical:** The structure is intentionally flat — each conditional block is independently readable and the three `submit*` methods are short (≈30 lines each). Splitting prematurely would introduce cross-component prop/event plumbing for no clear benefit. Flag for future refactor when a fourth pension type or a third form variant lands.
+- **Suggested fix:** If this form continues to grow, extract `DBFieldsFragment.vue` and `StateFieldsFragment.vue` sub-components that DCPensionForm composes, keeping the header / dropdown / save logic in the shell. Not urgent.
 
 ## Suggestions
 
-### S1. `PlanSelectionModal.vue` — naming collision between module helper and computed property
+### S1. Inline CTA row markup repeated across 7 pages
 
-**File:** `resources/js/components/Payment/PlanSelectionModal.vue:177` (module helper) and `:216` (computed property)
-**Category:** Complexity & Maintainability
+- **Files:**
+  - `resources/js/components/NetWorth/BusinessInterestsList.vue` (lines ~41–51)
+  - `resources/js/components/NetWorth/ChattelsList.vue` (lines ~52–75)
+  - `resources/js/components/NetWorth/InvestmentList.vue` (lines ~116–139)
+  - `resources/js/components/NetWorth/LiabilitiesList.vue` (lines ~62–76)
+  - `resources/js/components/NetWorth/PensionList.vue` (lines ~313–344)
+  - `resources/js/components/NetWorth/PropertyList.vue` (lines ~36–49)
+  - `resources/js/views/Trusts/TrustsDashboard.vue` (lines ~17–39)
+- **Category:** Duplicate Code / Consistency
+- **What's wrong:** Each page carries the same `<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold …">` markup for the Add / Upload primary + secondary buttons. 14 button instances total. If button style ever changes (new design system revision, different icon set), we'd need to edit 7 files.
+- **Why it's a suggestion not a warning:** Per CLAUDE.md "three similar lines is better than a premature abstraction" — and each page's handlers are unique (`addProperty` vs `addLiability` vs `openAddModal` etc.), so a fully generic component would need slots or heavy prop-drilling. Current duplication is readable and local.
+- **Suggested fix (optional):** A simple `<InlineCtaRow :buttons="[{label, icon, style, onClick}]" />` component in `components/Shared/` would reduce each row from ~10 lines to ~3. Defer until the design system actually changes.
 
-The module-level helper `function isEligibleForStudentPlan(email)` shares a name with a computed property `isEligibleForStudentPlan` on the component. Both exist deliberately (the helper is a pure function the computed wraps with `this.currentUser.email`), but the identical name means inside the computed body `isEligibleForStudentPlan(this.currentUser?.email)` resolves to the module-level function while `this.isEligibleForStudentPlan` refers to the computed. It works in JS but is a readability hazard for future contributors.
+### S2. Minor spacing inconsistency between CTA rows
 
-**Suggested fix:** Rename the module helper to `emailIsStudentEligible(email)` (or `hasStudentEligibleDomain`) so the two don't shadow each other.
-
-### S2. `PlanSelectionModal.vue` — `discountCode: null` in emit payload is semi-dead
-
-**File:** `resources/js/components/Payment/PlanSelectionModal.vue:361, :371`
-**Category:** Dead & Redundant Code
-
-After R4 removed the discount-code input from the modal, the emit payload still carries `discountCode: null` for "backwards-compatibility with parents that may still reference it (e.g. SubscriptionManagement's upgrade handler)". Downstream, `SubscriptionManagement.vue:560` still computes `${discountParam}` from `discountCode`, which is now guaranteed empty — a latent dead branch in an unchanged file.
-
-**Suggested fix:** Either drop the `discountCode` key from the emit entirely (destructuring in consumers yields `undefined` instead of `null` — same effective behaviour), or follow up with a PR that strips the now-unreachable `discountParam` logic from `SubscriptionManagement.vue`. Low priority — no user-visible impact.
-
-### S3. `PricingPage.vue` — bullet SVG pattern repeated across plan cards
-
-**File:** `resources/js/views/Public/PricingPage.vue:232–244` (new bullets) and throughout the file
-**Category:** Duplicate Code (pre-existing, amplified by this session)
-
-The checkmark `<svg>` + `<span>` markup is inlined for every plan-card bullet across all four plans (Student, Standard, Family, Pro). This session added two more occurrences to the Family card, matching the existing file-local convention rather than introducing a new one. Still, the page now has ~18 near-identical bullet blocks.
-
-**Suggested fix:** Extract a local `<BulletItem :text="..." />` component (or a `v-for` over a feature array per plan). Out of scope for a hotfix; worth tackling next time the page is revisited.
+- **Files:**
+  - `resources/js/components/NetWorth/PensionList.vue` — `mt-1` (under pension cards, next to projection chart)
+  - `resources/js/components/NetWorth/InvestmentList.vue` — `mt-1` (under account cards)
+  - Property-type pages (Property / Liabilities / Chattels / Business / Trusts) — `mb-4` (above list grid)
+- **Category:** Consistency
+- **What's wrong:** Retirement/Investments use `mt-1` (4px above the buttons); property-type pages use `mb-4` (16px below the buttons). The semantics differ (below cards vs above list) so the values aren't wrong, just slightly inconsistent visually.
+- **Suggested fix:** When the extraction in S1 lands, pick one convention. Not worth touching on its own.
 
 ## Notes
 
-- Frontend `.ac.uk` check and backend `User::isEligibleForStudentPlan()` intentionally duplicate the eligibility rule. The frontend version is for UX (hide the card); backend is the authoritative gate. Comments on both sides document this explicitly. **Not flagged as duplication** — the duplication is load-bearing.
-- `str_ends_with('.ac.uk')` correctly rejects malformed-domain attempts like `user@ac.uk` (no leading dot), `user+.ac.uk@example.com` (substring but not suffix), and case-variants (`strtolower` applied first). Security check passed.
+- `RetirementProjectionService.php` — the new cache-key change intentionally keeps the Monte Carlo DB cache table schema untouched; new-format rows coexist with legacy-format rows. Legacy rows age out via the existing 24h TTL, or can be purged immediately via the optional SQL in `deployPensionFix.md`. No migration needed.
+- `UnifiedPensionForm.vue` went from a 3-tile router to a near-empty thin router. It still serves a purpose for the EDIT flow (routes `initialPensionType='db'` and `'state'` to the legacy per-type forms). If those legacy forms are ever folded into DCPensionForm too, this wrapper can be deleted entirely.
+- `SubNavBar.vue` and `subNavConfig.js` are kept alive despite being unreferenced from the render tree — intentional per the user's "hide, don't delete" instruction. One-char revert (`v-if="false"` → `v-if="true"`) brings them back.
 
 ---
-*Generated by tech-debt-session skill*
+
+*Generated by tech-debt-session skill — session 66 audit*
