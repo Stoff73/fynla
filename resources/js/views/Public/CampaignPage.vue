@@ -105,7 +105,7 @@
         <div class="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" @click="toggleVideo">
           <video
             ref="productVideo"
-            src="/images/Homepage-Fynla-ProductVideo.mp4"
+            src="/images/Homepage-Fynla-ProductVideov2.mp4"
             playsinline
             class="w-full h-auto block"
           >
