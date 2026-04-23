@@ -44,12 +44,12 @@
 
         <!-- Action buttons -->
         <div class="space-y-3">
-          <router-link
-            to="/checkout"
+          <button
+            @click="$emit('subscribe')"
             class="btn-primary w-full text-center block py-3 text-base font-semibold"
           >
             Subscribe Now
-          </router-link>
+          </button>
 
           <button
             v-if="!showDeleteConfirmation"
@@ -128,6 +128,8 @@ import logger from '@/utils/logger';
 
 export default {
   name: 'DataRetentionOverlay',
+
+  emits: ['subscribe'],
 
   setup() {
     const subscriptionData = ref(null);
