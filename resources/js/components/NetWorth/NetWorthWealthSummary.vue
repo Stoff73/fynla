@@ -139,24 +139,7 @@ export default {
     },
 
     spouseUserName() {
-      // Source of truth: userProfile/spouse getter (built from family members /
-      // linked spouse account), NOT the auth user's spouse relation which is
-      // unreliably populated across login paths.
-      const spouse = this.$store.getters['userProfile/spouse'];
-      if (spouse) {
-        const name = [spouse.first_name, spouse.last_name].filter(Boolean).join(' ').trim();
-        if (name) return name;
-      }
-      // Fall back to the auth user's inline spouse object if userProfile hasn't
-      // loaded yet.
-      const user = this.$store.getters['auth/currentUser'];
-      const inline = user?.spouse;
-      if (inline) {
-        const name = [inline.first_name, inline.last_name || inline.surname, inline.name]
-          .filter(Boolean).join(' ').trim();
-        if (name) return name;
-      }
-      return 'Partner';
+      return this.$store.getters['userProfile/spouse']?.name || 'Partner';
     },
 
     /**

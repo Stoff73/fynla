@@ -142,7 +142,7 @@ export default {
 
   methods: {
     gradientId(idx) {
-      return `nw-alloc-grad-${this._uid}-${idx}`;
+      return `nw-alloc-grad-${this.$.uid}-${idx}`;
     },
 
     lightenColor(hex, amount) {

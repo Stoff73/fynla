@@ -18,7 +18,14 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ASSET_COLORS, TEXT_COLORS, CHART_DEFAULTS } from '@/constants/designSystem';
+import {
+  ASSET_COLORS,
+  TEXT_COLORS,
+  CHART_DEFAULTS,
+  PRIMARY_COLORS,
+  SUCCESS_COLORS,
+  WARNING_COLORS,
+} from '@/constants/designSystem';
 
 export default {
   name: 'AssetBreakdownBar',
@@ -191,17 +198,17 @@ export default {
               const totalDisplay = vm.formatCurrency(Math.abs(total));
               const userDisplay = vm.formatCurrency(split.user);
               const spouseDisplay = vm.formatCurrency(split.spouse);
-              const color = isLiability ? '#E83E6D' : '#1F2A44';
+              const color = isLiability ? PRIMARY_COLORS[500] : TEXT_COLORS.primary;
               return `
                 <div style="padding: 8px 12px; background: #ffffff; border: 1px solid #E5E5E5; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-family: 'Segoe UI', Inter, system-ui, sans-serif;">
                   <div style="font-weight: 700; color: ${color}; margin-bottom: 6px; font-size: 13px;">${label}: ${totalDisplay}</div>
-                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1F2A44;">
-                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5854E6;"></span>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: ${TEXT_COLORS.primary};">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${WARNING_COLORS[500]};"></span>
                     <span style="flex: 1;">${vm.userName || 'You'}:</span>
                     <span style="font-weight: 600;">${userDisplay}</span>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1F2A44; margin-top: 2px;">
-                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #20B486;"></span>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: ${TEXT_COLORS.primary}; margin-top: 2px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${SUCCESS_COLORS[500]};"></span>
                     <span style="flex: 1;">${vm.spouseName || 'Partner'}:</span>
                     <span style="font-weight: 600;">${spouseDisplay}</span>
                   </div>
