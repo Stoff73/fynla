@@ -79,26 +79,6 @@
           <button @click="fetchPlans" class="btn-secondary text-sm">Try Again</button>
         </div>
 
-        <!-- Discount Code -->
-        <div v-if="!loading && !error" class="mb-4">
-          <div v-if="!showDiscountField" class="text-center">
-            <button
-              @click="showDiscountField = true"
-              class="text-body-sm text-violet-500 hover:text-violet-700 transition-colors"
-            >
-              Have a discount code?
-            </button>
-          </div>
-          <div v-else class="flex gap-2 max-w-sm mx-auto">
-            <input
-              v-model="discountCode"
-              type="text"
-              placeholder="Enter discount code"
-              class="flex-1 px-3 py-1.5 border border-light-gray rounded-lg text-body-sm uppercase focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-            />
-          </div>
-        </div>
-
         <!-- Plan Cards -->
         <div v-if="!loading && !error" :class="gridClass">
           <div
@@ -150,10 +130,10 @@
               </div>
             </div>
 
-            <!-- Features -->
-            <ul v-if="plan.features && plan.features.length" class="space-y-2">
+            <!-- Features (adjusted for Student eligibility + Family add-ons) -->
+            <ul v-if="displayFeatures(plan).length" class="space-y-2">
               <li
-                v-for="(feature, index) in plan.features"
+                v-for="(feature, index) in displayFeatures(plan)"
                 :key="index"
                 class="flex items-start gap-2 text-body-sm text-neutral-500"
               >
@@ -190,10 +170,18 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import api from '@/services/api';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
+
+// Student plan is gated to UK university students. Backend (PaymentController +
+// User::isEligibleForStudentPlan) is the authoritative gate; this mirrors that
+// check for the UI so ineligible users never see the Student card.
+function isEligibleForStudentPlan(email) {
+  return typeof email === 'string' && email.toLowerCase().trim().endsWith('.ac.uk');
+}
 
 export default {
   name: 'PlanSelectionModal',
@@ -224,18 +212,34 @@ export default {
       error: null,
       billingCycle: 'yearly',
       selectedPlan: null,
-      showDiscountField: false,
-      discountCode: '',
     };
   },
 
   computed: {
+    ...mapGetters('auth', ['currentUser']),
+
+    isEligibleForStudentPlan() {
+      return isEligibleForStudentPlan(this.currentUser?.email);
+    },
+
+    // Plans filtered by both the upgrade-tier rule AND the Student eligibility rule.
     filteredPlans() {
-      if (!this.currentPlan) return this.plans;
-      if (this.showAllPlans) return this.plans;
-      const currentIndex = PLAN_ORDER.indexOf(this.currentPlan);
-      if (currentIndex === -1) return this.plans;
-      return this.plans.filter(p => PLAN_ORDER.indexOf(p.slug) > currentIndex);
+      let plans = this.plans;
+
+      // Upgrade flow: hide tiers at or below the user's current plan.
+      if (this.currentPlan && !this.showAllPlans) {
+        const currentIndex = PLAN_ORDER.indexOf(this.currentPlan);
+        if (currentIndex !== -1) {
+          plans = plans.filter(p => PLAN_ORDER.indexOf(p.slug) > currentIndex);
+        }
+      }
+
+      // Student plan: only visible to UK university students (.ac.uk email).
+      if (!this.isEligibleForStudentPlan) {
+        plans = plans.filter(p => p.slug !== 'student');
+      }
+
+      return plans;
     },
 
     gridClass() {
@@ -322,12 +326,39 @@ export default {
       return this.showAllPlans && plan.slug === this.currentPlan;
     },
 
+    // Render features with two adjustments vs the raw DB list:
+    //   1. Standard plan: when the Student card is hidden (user not eligible),
+    //      "Everything in Student" is meaningless — inline the Student feature
+    //      bullets so the Standard card stands on its own.
+    //   2. Family plan: always append "Parents included" + "Children for free"
+    //      as commercial add-ons, regardless of Student visibility.
+    displayFeatures(plan) {
+      const features = Array.isArray(plan.features) ? [...plan.features] : [];
+
+      if (plan.slug === 'standard' && !this.isEligibleForStudentPlan) {
+        const studentPlan = this.plans.find(p => p.slug === 'student');
+        const studentFeatures = Array.isArray(studentPlan?.features) ? studentPlan.features : [];
+        return features.flatMap(f =>
+          f === 'Everything in Student' ? [...studentFeatures] : [f]
+        );
+      }
+
+      if (plan.slug === 'family') {
+        return [...features, 'Parents included', 'Children for free'];
+      }
+
+      return features;
+    },
+
     selectAndContinue(slug) {
+      // discountCode stays in the emit payload for backwards-compatibility with
+      // parents that may still reference it (e.g. SubscriptionManagement's
+      // upgrade handler). Always null now — entry moved to CheckoutPage.
       this.$emit('select', {
         plan: slug,
         billingCycle: this.billingCycle,
         isUpgrade: !!this.currentPlan,
-        discountCode: this.discountCode.trim() || null,
+        discountCode: null,
       });
     },
 
@@ -337,7 +368,7 @@ export default {
         plan: this.selectedPlan,
         billingCycle: this.billingCycle,
         isUpgrade: !!this.currentPlan,
-        discountCode: this.discountCode.trim() || null,
+        discountCode: null,
       });
     },
   },
