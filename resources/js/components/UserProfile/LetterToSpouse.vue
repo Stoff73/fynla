@@ -860,15 +860,8 @@ export default {
     },
 
     spouseNameForLetter() {
-      // For married users, use spouse's first name. Source of truth is the
-      // userProfile/spouse getter; auth user.spouse.name is unreliable.
       if (this.isExpressionOfWishes) return null;
-      const spouse = this.$store.getters['userProfile/spouse'];
-      if (spouse?.first_name) return spouse.first_name;
-      const inline = this.currentUser?.spouse;
-      if (inline?.first_name) return inline.first_name;
-      if (inline?.name) return inline.name.split(' ')[0];
-      return null;
+      return this.$store.getters['userProfile/spouse']?.first_name || null;
     },
 
     currentDate() {
