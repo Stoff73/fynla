@@ -1,76 +1,88 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 64 (subscription/checkout hotfix day)*
-*Previous session: 18 April 2026 — session 63 (full codebase tech debt audit + remediation)*
+*Last updated: 23 April 2026 — session 65 (PR triage + dev server redeploy + intervention/image downgrade)*
+*Previous session: 23 April 2026 — session 64 (subscription/checkout hotfix to production)*
 
 ---
 
-## Session 64 (23 April) — Subscription/checkout hotfix: R1–R5 shipped to production and merged
+## Session 65 (23 April afternoon) — PR triage + dev deploy + intervention/image v3 downgrade
 
 ### Completed This Session
 
-- [x] **R1 — expired-trial checkout loop fixed** — `PlanSelectionModal` + `DataRetentionOverlay` no longer stack on `/checkout`. New `isOnCheckoutRoute` computed in `AppLayout` gates both overlays. `DataRetentionOverlay` "Subscribe Now" is now an `@subscribe` event emitter (was a `<router-link>` that dropped plan/cycle query params). `checkTrialStatus` only auto-shows the non-dismissable plan modal for non-grace expired users.
-- [x] **R2 — Student plan gated to `.ac.uk` emails** — `User::isEligibleForStudentPlan()` helper (case-insensitive `str_ends_with('.ac.uk')`) + `PaymentController::createOrder` 422 gate. Frontend hides the Student card in `PlanSelectionModal.filteredPlans`. Public `/pricing` unchanged (all 4 plans for marketing).
-- [x] **R3 — plan-card feature copy polish** — new `displayFeatures(plan)` computed. Standard card inlines Student bullets when Student is hidden. Family card always shows "Parents included" + "Children for free".
-- [x] **R4 — "Have a discount code?" link removed** from `PlanSelectionModal`. CheckoutPage discount field remains the single entry point.
-- [x] **R5 — /pricing Family card bullets** match plan modal (Parents included + Children for free).
-- [x] **Production smoke-tested end-to-end** across all five releases with test user `bugrepro_expired_2026_04_23@fynla.org` (non-`.ac.uk`) and temporary `bugrepro_student_r3_2026_04_23@kent.ac.uk` (deleted post-test). `POST /api/payment/create-order` confirmed 200 for eligible users, 422 with correct message for ineligible.
-- [x] **PR #222 admin-merged to main** as squashed commit `ad73bd0` (6 files, +140/-41). `prodHotFix` branch deleted (local + remote).
-- [x] **Deploy guide + findings + fix plan + patch notes** all written to `April/April23Updates/production/` (repo) + mirrored to `fynlaBrain/April/April23Updates/production/` (vault).
-- [x] **User-facing patch notes** written at `April/April23Updates/subscribePatch.md` — ready for you to publish (blog / email / in-app). Also mirrored to vault.
-- [x] **Tech debt audit** on changed files — 0 critical, 0 warnings, 3 suggestions (minor). Report at `tech-debt-report.md` + mirrored to vault.
-- [x] **Vault sync done** — April Index updated with April 23 session summary, `Git History/Apr2026/Apr23.md` written, all deploy docs + findings + patch notes mirrored.
+#### Repository + branch protection
+- [x] **Re-enabled branch protection on `dev`** — 1 required PR review, code-owner review required (CODEOWNERS pins `@Stoff73`), dismiss stale reviews, required conversation resolution, no force pushes, no deletions. `enforce_admins: false` retained so CSJ can admin-bypass when needed.
+- [x] **Re-enabled branch protection on `main`** — identical settings to dev. Previously unprotected, which contradicted CLAUDE.md's documented workflow.
+- [x] **Saved new durable rule** in memory (`feedback_main_via_dev_only.md`): nothing merges to main without first being committed to dev, deployed to csjones.co/fynla, and browser-tested. Only CSJ overrides with explicit words in the current turn. MEMORY.md index updated.
 
-### Outstanding from this session
+#### PR triage (5 PRs processed)
+- [x] **PR #213 closed** — stale session 52 CSJTODO doc, superseded by later handovers.
+- [x] **PR #212 re-targeted** from `main` → `dev` (violated the new rule by targeting main directly).
+- [x] **PR #221 rebased** onto the refreshed `dev` — CSJTODO conflict resolved by taking dev's newer version; force-pushed; admin-merged via `gh pr merge 221 --merge --admin`. Campaign pages + ReviewCarousel + StaticFynChat + 404 page now on dev.
+- [x] **PR #223 opened + admin-merged** (`main → dev` back-merge) — brought session 64's subscription hotfix + session 63/64 handover docs onto dev. Dev was missing 3 commits (`ad73bd0`, `5cd5d62`, `bd9042e`) that had been admin-merged directly to main. Clean merge — only `AppLayout.vue` overlapped and auto-merged.
+- [x] **PR #212 rebased** onto new `dev` through 40+ commits, 6 conflict points resolved manually (CSJTODO, CLAUDE.md, trial-expiration-reminder.blade.php, routes/web.php twice, AppLayout.vue three times, router/index.js, Settings.vue deletion). Force-pushed and admin-merged. Full lifecycle email engine (5 campaigns + engine + E2E test commands + magic-link routes + NotificationPreferences page + 14 toggles) now on dev.
+- [x] **PR #224 opened + admin-merged** — downgraded `intervention/image ^4.0 → ^3.0` to keep PHP 8.2 compatibility, ported `InsightImageService` to the 3.11 API (`ImageManager::gd()`, `->read()`, `->toWebp(quality:)`). 9/9 existing tests still pass.
 
-- [ ] **Publish `subscribePatch.md`** wherever you communicate updates to users (blog, email, in-app notification). The markdown is plain-English and ready to post as-is.
-- [ ] **Delete the prod test user** when you're finished with it: `bugrepro_expired_2026_04_23@fynla.org` (currently `status=expired` + in grace period, left in place per your earlier instruction). Tinker snippet is in `deploy-fix-2026-04-23.md` §"Tear down test user".
-- [ ] **Optional — address the 3 tech-debt suggestions** (all low priority, none block anything): (S1) rename module-level `isEligibleForStudentPlan` helper in `PlanSelectionModal.vue` to avoid shadowing the computed of the same name; (S2) drop the semi-dead `discountCode: null` from the emit payload and clean up the downstream `discountParam` branch in `SubscriptionManagement.vue`; (S3) extract a `<BulletItem>` component in `PricingPage.vue` to stop duplicating the checkmark SVG (~18 occurrences).
+#### Dev server redeploy (csjones.co/fynla) — 167 files uploaded, 7 deleted, 12 migrations ran
+- [x] **Server state probed via SSH** — confirmed server was at approximately `origin/onboardingFyn` state (last migration `2026_04_15_153100`), not main. Real delta was 173 files not the 153 my original guide assumed.
+- [x] **`filesUploaded.md` comprehensive checklist** generated and mirrored to repo + vault. 215 line items across §A upload / §B delete / §C exclusions / §D server commands / §E smoke tests / §F rollback.
+- [x] **167 files uploaded** via tar-pipe in 0.3s; hash-verified byte-for-byte match against `origin/dev`.
+- [x] **7 superseded files deleted** on server (OnboardingChatDirector, OnboardingPromptBuilder, OnboardingStateMachine, OnboardingValueInterpreter, SpouseLinkingService, EmptyDataGuard, config/onboarding.php). 2 items in delete list were already absent.
+- [x] **composer install** — resolved to `intervention/image 3.11.7` + `intervention/gif 4.2.4`, both PHP 8.2 compatible. Platform-check re-enabled and passing.
+- [x] **Appended `.env` vars**: `LIFECYCLE_ENGINE_ENABLED=true` + `LIFECYCLE_TEST_RECIPIENT=chris@fynla.org`. Deduped after a session confusion created doubles. `.env.backup-2026-04-23-post-lifecycle` preserved.
+- [x] **12 pending migrations ran** — 7 lifecycle + 5 insights, all `DONE`.
+- [x] **Cache clears + optimize** — config + routes cached.
+- [x] **Insights seeder** — 8 bespoke articles seeded.
+- [x] **Full `php artisan db:seed --force`** — 22 seeders all green, including **OccupationCode (406 codes)**, Preview users (6 personas), ChrisUser, AdvisorClient, etc.
+- [x] **Lifecycle engine smoke test** — `php artisan lifecycle:run-daily` ran all 5 campaigns cleanly (0 eligible users, as expected).
+- [x] **Endpoint smoke tests** — `/fynla/`, `/fynla/pricing`, `/fynla/quickstart`, `/fynla/insights`, `/fynla/how-it-works`, `/fynla/features`, bad-URL SPA fallthrough → all HTTP 200.
+
+#### Landing page CTA
+- [x] **Unhid "Quick start with Fyn" CTA** on the landing page hero — commit `97edb5d` admin-pushed to dev. The HTML comment markers were removed; the `<router-link to="/register?from=fyn">` now renders live on both localhost:8000 and csjones.co/fynla. Known caveat: new-user Fyn flow has bugs (per `April/April9Updates/fynQuickStartBugs.md`) — CTA-to-flow fixes deferred to a future session.
+
+#### Supporting docs (all mirrored to repo + vault)
+- [x] `April/April23Updates/devUpdateDeploy.md` — initial deploy guide (subsequently superseded by filesUploaded.md when server state turned out to be further behind than main).
+- [x] `April/April23Updates/filesUploaded.md` — authoritative 215-item upload + server-command checklist; all §A/§B/§D items (except optional §B4 renames + cron verification) ticked.
+- [x] MEMORY.md index updated with new project memory for PR #214 coupling with `feature/fyn-persona-split`, and new feedback rule for main-via-dev-only workflow.
+
+### NOT Done — Outstanding from Session 65
+
+- [ ] **Browser smoke-test PR #221 features** end-to-end on csjones.co/fynla dev — 14 items listed in `filesUploaded.md` §E. This is the next-session opening task. Tech stack to exercise: `/quickstart`, QuickStart CTA (newly unhidden), ReviewCarousel on pricing/features/how-it-works, NotFoundPage fall-through, `/profile/notifications` toggles, lifecycle magic-link → discount prefill, admin insights image upload (tests intervention/image 3.11.7 port).
+- [ ] **Fix Fyn quickstart bugs** — see `April/April9Updates/fynQuickStartBugs.md`. CTA is now live on dev but clicks route to `/register?from=fyn` which hits the known-buggy new-user Fyn flow. User explicitly deferred this to a later session.
+- [ ] **Verify SG Site Tools crontab** — `crontab -l` via SSH returns empty, yet existing daily jobs (`trials:send-reminders`, `trials:expire`, etc.) clearly run on dev. SiteGround manages cron via their Site Tools web UI. Check that `* * * * * php artisan schedule:run` is configured for csjones.co; if not, the 08:30 UTC daily lifecycle job will silently never fire.
+- [ ] **Test lifecycle engine end-to-end** with real emails — `php artisan lifecycle:e2e-test` seeds 5 test users and runs all campaigns against them, sending to `chris@fynla.org` (the LIFECYCLE_TEST_RECIPIENT override). Then `php artisan lifecycle:e2e-cleanup` removes them. Verifies magic-link routes, WebP hero rendering, discount code generation, restart-trial handler, feedback capture.
+- [ ] **Optional §B4 cleanup** on server — delete the 7 stale Vue source files on the server (`Navbar.vue`, `Footer.vue`, `Holdings.vue`, `Performance.vue`, `Recommendations.vue`, dead `Goals.vue`, dead `UserProfile/Settings.vue`). Purely cosmetic — build output doesn't reference them.
 
 ### Context for Next Session
 
-On `main`, clean working tree, in sync with `origin/main`. The subscription hotfix is fully merged and live. No rollback needed, no pending deployments from today's work.
-
-The **session 63 tech-debt branch** (`feature/csj/tech-debt-session-63`) remains unmerged and is still the top priority carried forward — browser testing + PR to `dev` → `main` hasn't been done yet. See the "Outstanding — session 63 carryover" block below for the full state.
-
-If next session is another fire-fighting day, today's test user (`bugrepro_expired_2026_04_23@fynla.org`) is still on production with `status=expired` + grace period — useful as a ready-made expired-trial account for any subscription-path investigation.
+Dev branch is fully in sync with csjones.co/fynla server. Working tree is clean. Local dev server was running at end of session on Laravel :8000 + Vite :5173 — may still be up or may have been shut down. The big next-session task is browser-testing all the deployed PR #221/#212 features on the dev server, specifically the ones newly visible via the unhidden QuickStart CTA. After dev is stable and browser-tested, the next PR pipeline is `dev → main` for production rollout — but that must include #224's intervention/image downgrade or production will 500 on first composer install.
 
 ---
 
-## Outstanding — session 63 carryover (tech debt remediation branch)
+## Outstanding — Tech Debt Deferred (from earlier sessions)
 
-Branch `feature/csj/tech-debt-session-63` (3 commits, +729/-2,160 net, 84 files) is pushed to origin and **ready for PR**. All work is isolated on the feature branch — `main` is untouched. PR gate blockers:
-
-- [ ] **Browser-test the feature branch end-to-end** before opening PR to dev. Per `April/April18Updates/handover-tech-debt.md` §4a, 8 flows must be verified: Estate/IHT dashboard, Investment dashboard (holdings/fees/tax/rebalance), Protection dashboard, Expenditure form (penny-level totals), Estate CRUD (asset/liability/gift/LPA/trust — Vuex actions removed, components call service directly), Net worth dashboard (NetWorthAnalyzer patched), Savings dashboard (renamed component), Investment detail (renamed components).
-- [ ] **PR `feature/csj/tech-debt-session-63` → `dev`** — follow feature → dev → main workflow per CLAUDE.md. Do NOT PR straight to main. CODEOWNERS requires @Stoff73 review.
-- [ ] **After dev green, PR `dev` → `main` + deploy** — standard two-environment flow.
-
-### Why this matters
-
-The tech-debt branch closes **7 critical items** from the full codebase audit: 70 float→decimal:2 casts across 12 models, 17 dead API methods removed, 54 orphaned Vuex actions removed (store size −31%), 2 dead Vue components deleted, 5 single-word components renamed, strict_types added to 38 files, 6 generic exception throws converted to `FinancialCalculationException` factories, architecture test added to prevent regression. Sitting unmerged, none of it is benefitting production.
-
----
-
-## Outstanding — other carryovers
-
-- [ ] **NPM `--force` fix** — schedule a 2-4h window for vite 8 + @capacitor/cli 8 major upgrades with full PWA + iOS + web regression. 6 high-severity vulnerabilities remain until this is done. Carried from session 63.
+- [ ] **Session 63 tech-debt branch** — already merged to dev (via PR #220) but still needs browser-test matrix before `dev → main`. 8 flows in `April/April18Updates/handover-tech-debt.md §4a`: Estate/IHT dashboard, Investment (holdings/fees/tax/rebalance), Protection, Expenditure form penny-level totals, Estate CRUD, Net worth, Savings, Investment detail.
+- [ ] **28 Vue god components** (>800 lines) — prioritise `Admin/TaxSettings.vue` (3,068 lines) and `UserProfile/ExpenditureForm.vue` (2,574 lines). Multi-week effort.
+- [ ] **13 backend god files** — `SavingsActionDefinitionService.php` (3,686 lines), `RetirementActionDefinitionService.php` (2,701), `ProtectionActionDefinitionService.php` (2,349), `RetirementIncomeService.php` (2,292), `IHTCalculationService.php` (1,641).
+- [ ] **54 controllers using inline `$request->validate()`** — convert to Form Request classes (~60-80h total).
+- [ ] **npm `--force` fix** — schedule a 2-4h window for vite 8 + `@capacitor/cli` 8 major upgrades with full PWA + iOS + web regression. 6 high-severity vulnerabilities remain until done. Carried from session 63.
 - [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — deployed in session 58 but not browser-tested. Carried from session 58.
-- [ ] **Re-enable branch protection on `dev`** — carried from session 57.
 - [ ] **Add `Current State/Insights.md`** to the vault — carried from session 62.
-- [ ] **`AutoRiskCalculatorTest` pre-existing failure** — `risk_level` enum truncation. Pre-existing since 16 April. Surfaces in every full-suite run but not blocking.
+- [ ] **`AutoRiskCalculatorTest` pre-existing failure** — `risk_level` enum truncation. Pre-existing since 16 April.
 
----
+## Known Issues
 
-## Outstanding — long-running tech debt (session 63 deferred, still valid)
-
-- [ ] **28 Vue god components** (>800 lines) — prioritise `Admin/TaxSettings.vue` (3,068 lines) and `UserProfile/ExpenditureForm.vue` (2,574 lines). Multi-week.
-- [ ] **13 backend god files** — decompose `SavingsActionDefinitionService.php` (3,686 lines), `RetirementActionDefinitionService.php` (2,701), `ProtectionActionDefinitionService.php` (2,349), `RetirementIncomeService.php` (2,292), `IHTCalculationService.php` (1,641).
-- [ ] **54 controllers using inline `$request->validate()`** — convert to Form Request classes (~60-80h total). Top 10 first: Admin, Payment, Retirement, Auth, UserProfile, Investment, Property, TaxSettings, Onboarding, Recommendations.
-
----
+- **CLAUDE.md stale tax-year claim** — says `active: 2025/26` but the seeded `TaxConfiguration` table correctly has `2026/27` active (which is right — 2026/27 started 6 April 2026). `TaxConfigService` reads from DB so behaviour is correct; the line in CLAUDE.md just wants a one-character update.
+- **Build script deploy-path echo** is outdated — `./deploy/csjones-fynla/build.sh` prints `~/www/csjones.co/public_html/fynla/public/build/` but the actual sibling-dir path is `~/www/csjones.co/fynla-app/public/build/`. Cosmetic.
+- **Dev server user crontab empty** — see "Outstanding — verify SG Site Tools crontab" above.
 
 ## Deploy Status
 
-- **fynla.org (production)** — subscription hotfix R1–R5 live (commit `ad73bd0` on main). Test user `bugrepro_expired_2026_04_23@fynla.org` still on prod for follow-up testing.
-- **csjones.co/fynla (dev)** — deployed state unknown; last known state was the `onboardingFyn` branch from earlier April work. If you need dev for another test, verify which branch is currently deployed before building (`feedback_dev_server_is_separate.md`).
-- **Tech debt branch (session 63)** — not deployed anywhere; sitting on `feature/csj/tech-debt-session-63` awaiting browser tests + PR.
+- **fynla.org (production)** — unchanged from session 64. `ad73bd0` subscription hotfix live. Test user `bugrepro_expired_2026_04_23@fynla.org` still in grace-period state.
+- **csjones.co/fynla (dev)** — fully in sync with dev branch tip `97edb5d`. All four merged PRs (#212, #220, #221, #223) plus session 65's CTA unhide deployed. composer, .env, migrations, seeds, caches all current.
+- **Pending production deploy** — `dev → main` PR not opened. Must include PR #224 (intervention/image v3) or production will 500 on first composer install due to PHP 8.3 requirement. Don't open the `dev → main` PR until session 65's browser testing is complete and any uncovered issues are fixed.
+- **Open PRs remaining:** #214 (`onboardingFyn` → `dev`) — still CONFLICTING, coupled with `feature/fyn-persona-split` per memory. Do NOT rebase/merge in isolation.
+
+## Active Work Not Carried by PR
+
+- **Local dev server:** running at `http://localhost:8000/` + Vite `:5173` as of end of session. Check with `lsof -i :8000` before relying on it next session.
+- **SSH key:** `~/.ssh/fynlaDev` was loaded into the agent this session (`ssh-add`). It'll remain loaded until the agent cache expires or the machine is rebooted.
