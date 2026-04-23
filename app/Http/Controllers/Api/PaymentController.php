@@ -93,6 +93,15 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
         }
 
+        // Student plan is restricted to UK university students (.ac.uk email).
+        // Frontend hides the plan for ineligible users; this is the authoritative gate.
+        if ($plan->slug === 'student' && ! $user->isEligibleForStudentPlan()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The Student plan is only available to UK university students. Please use your .ac.uk email address or choose a different plan.',
+            ], 422);
+        }
+
         $billingCycle = $request->input('billing_cycle');
         $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
         $description = "{$plan->name} — ".ucfirst($billingCycle);

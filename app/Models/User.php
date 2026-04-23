@@ -228,6 +228,23 @@ class User extends Authenticatable
     }
 
     /**
+     * Eligibility for the Student subscription plan.
+     *
+     * UK university students have institutional emails ending in `.ac.uk`
+     * (e.g. `@manchester.ac.uk`, `@student.ox.ac.uk`). We use the email
+     * suffix as a first-pass gate — matches how most UK student-discount
+     * services (Railcard, Spotify Student, etc.) verify domain. Backend
+     * write-path only; frontend UI also hides the Student plan for
+     * ineligible users but this method is the source of truth.
+     */
+    public function isEligibleForStudentPlan(): bool
+    {
+        $email = strtolower(trim((string) $this->email));
+
+        return str_ends_with($email, '.ac.uk');
+    }
+
+    /**
      * Get the user's full name (backwards compatibility accessor).
      *
      * If the new name fields exist (first_name, surname), combines them.

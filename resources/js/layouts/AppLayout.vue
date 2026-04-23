@@ -32,8 +32,12 @@
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
 
-        <!-- Data Retention Overlay (non-dismissable modal for grace period users) -->
-        <DataRetentionOverlay v-if="isAuthenticated && !isPreviewMode" />
+        <!-- Data Retention Overlay (non-dismissable modal for grace period users).
+             Suppressed on /checkout because the user is already in the subscribe flow. -->
+        <DataRetentionOverlay
+          v-if="isAuthenticated && !isPreviewMode && !isOnCheckoutRoute"
+          @subscribe="handleSubscribeFromOverlay"
+        />
       </div>
 
       <!-- Content area -->
@@ -85,11 +89,15 @@
     <!-- Global toast notifications -->
     <ToastNotification />
 
-    <!-- Trial Expired — non-dismissable plan selection -->
+    <!-- Trial Expired — plan selection.
+         Suppressed on /checkout because the user is already in the subscribe flow.
+         Dismissable when opened from DataRetentionOverlay (grace-period flow) so the user
+         can back out and choose Delete All Data instead. -->
     <PlanSelectionModal
-      v-if="showTrialExpiredModal"
-      :dismissable="false"
+      v-if="showTrialExpiredModal && !isOnCheckoutRoute"
+      :dismissable="planModalDismissable"
       @select="handlePlanSelect"
+      @close="handleTrialModalClose"
     />
 
     <!-- Plan selection modal (from navbar/sidebar "Choose a Plan" / "Upgrade Now") -->
@@ -156,6 +164,7 @@ export default {
       footerOffset: 0,
       showTrialExpiredModal: false,
       showPlanModal: false,
+      planModalDismissable: false,
       subscriptionData: null,
       isMobileView: window.innerWidth < 1024,
     };
@@ -186,6 +195,12 @@ export default {
     activePlanSlug() {
       if (!this.subscriptionData || this.subscriptionData.status !== 'active') return null;
       return this.subscriptionData.plan;
+    },
+
+    // True when the current route is /checkout. Used to suppress the expired-trial
+    // and grace-period overlays so the user can actually reach the Revolut widget.
+    isOnCheckoutRoute() {
+      return this.$route.path === '/checkout' || this.$route.name === 'Checkout';
     },
   },
 
@@ -314,12 +329,25 @@ export default {
         this.subscriptionData = response.data;
         if (!response.data.has_subscription) return;
         const status = response.data.status;
-        if (status !== 'trialing' && status !== 'active') {
+        // For grace-period users, DataRetentionOverlay is the primary surface.
+        // PlanSelectionModal opens from its "Subscribe Now" button via handleSubscribeFromOverlay.
+        // Only auto-show the non-dismissable plan modal for non-grace expired users.
+        if (status !== 'trialing' && status !== 'active' && !response.data.is_in_grace_period) {
+          this.planModalDismissable = false;
           this.showTrialExpiredModal = true;
         }
       } catch {
         // Silently fail
       }
+    },
+
+    handleSubscribeFromOverlay() {
+      this.planModalDismissable = true;
+      this.showTrialExpiredModal = true;
+    },
+
+    handleTrialModalClose() {
+      this.showTrialExpiredModal = false;
     },
 
     handlePlanSelect({ plan, billingCycle, isUpgrade }) {

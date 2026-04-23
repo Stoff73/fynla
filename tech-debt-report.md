@@ -1,99 +1,52 @@
-# Tech Debt Report — Session 15 April 2026
+# Tech Debt Report — Session 2026-04-23
 
-**Files analysed:** 14 files I authored or meaningfully modified this session (Awin integration + related fixes)
-**Issues found:** 0
-**Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
+**Files analysed:** 6
+**Issues found:** 3 (all suggestions)
+**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
 
-## Scope
+The session shipped five coordinated production hotfixes (R1–R5) on the subscription/checkout path. Code is clean overall: strict types declared on both PHP files, type hints on all new methods, no hardcoded tax values, no banned colour tokens, no `v-if`/`v-for` collisions, no local `formatCurrency` duplications, no security-sensitive input paths introduced, no dead imports.
 
-Audited only files I authored or modified with substantive content this session. Files merged in from `origin/dev` (PR #210 insight pages, PR #211 email templates + review carousel + LandingPage tweaks, persona modal mobile fix, onboarding tweaks) were already reviewed in their own branches before the merge and are out of scope for this session audit.
+## Critical Issues
 
-**In-scope files:**
+None.
 
-Backend (7):
-- `app/Services/Marketing/AwinTrackingService.php` — 161 lines, new
-- `app/Jobs/FireAwinConversionJob.php` — 116 lines, new
-- `app/Http/Middleware/CaptureAwcCookie.php` — 51 lines, new
-- `app/Http/Middleware/SecurityHeaders.php` — modified (Meta Pixel CSP + conditional Awin CSP)
-- `app/Http/Middleware/EncryptCookies.php` — modified (`awc` in `$except`)
-- `app/Http/Kernel.php` — modified (register CaptureAwcCookie)
-- `app/Http/Controllers/Api/PaymentController.php` — modified (Awin capture + dispatch + response)
-- `app/Http/Controllers/Api/WebhookController.php` — modified (Awin dispatch)
-- `app/Models/Payment.php` — modified (4 awin_* fillables + datetime cast)
-- `app/Services/LifeStage/LifeStageService.php` — 1-line typo fix (`current_value` → `current_fund_value`)
+## Warnings
 
-Config + migration (2):
-- `config/awin.php` — 108 lines, new
-- `database/migrations/2026_04_15_153100_add_awin_tracking_to_payments_table.php` — 60 lines, new
+None.
 
-Frontend (4):
-- `resources/js/utils/awinTracking.js` — 184 lines, new
-- `resources/js/utils/cookieConsent.js` — modified (accept/decline/init hooks)
-- `resources/js/router/index.js` — modified (afterEach hook)
-- `resources/js/views/Auth/CheckoutPage.vue` — modified (fireAwinConversion after GA4)
+## Suggestions
 
-## Audit Results
+### S1. `PlanSelectionModal.vue` — naming collision between module helper and computed property
 
-### Category 1: Duplicate Code
-**✅ No findings.**
-- `AwinTrackingService` methods (`buildSaleParams`, `isCustomerAcquisition`, `commissionGroupFor`, `orderRefFor`, `fireServerToServer`) have no name collisions with existing services
-- No local `formatCurrency()`, `spinner`, or `scrollbar` reimplementations in the frontend utils
-- HTTP call uses the `Http` facade, not a re-invented cURL wrapper
+**File:** `resources/js/components/Payment/PlanSelectionModal.vue:177` (module helper) and `:216` (computed property)
+**Category:** Complexity & Maintainability
 
-### Category 2: Dead & Redundant Code
-**✅ No findings.**
-- `grep -n "TODO|FIXME|HACK|XXX"` across all in-scope files: 0 matches
-- `grep -n "console.log|dd(|dump("`: 0 matches
-- All new imports are used; no unused computed properties or variables
-- One catch block in `AwinTrackingService::fireServerToServer` catches `\Throwable` — not empty, logs via `logError` and returns false per the documented "never throw" contract
+The module-level helper `function isEligibleForStudentPlan(email)` shares a name with a computed property `isEligibleForStudentPlan` on the component. Both exist deliberately (the helper is a pure function the computed wraps with `this.currentUser.email`), but the identical name means inside the computed body `isEligibleForStudentPlan(this.currentUser?.email)` resolves to the module-level function while `this.isEligibleForStudentPlan` refers to the computed. It works in JS but is a readability hazard for future contributors.
 
-### Category 3: Convention Violations
-**✅ No findings.**
-- **strict_types**: All 5 new PHP files start with `declare(strict_types=1);` ✓
-- **Hardcoded tax values**: grep for `'2025/26'|'2026/27'|12570|20000|60000|325000|175000`: 0 matches ✓
-- **Banned colours**: grep for `amber-|orange-` in `awinTracking.js` + `cookieConsent.js`: 0 matches ✓
-- **DB facade in controllers**: `PaymentController` already uses `DB::transaction()` for payment activation (pre-existing, out of scope for this audit) — Awin additions don't introduce new DB facade uses
-- **Type hints**: all new methods on `AwinTrackingService` and `FireAwinConversionJob` have full parameter and return type hints
-- **`sole` vs `individual`**: no ownership types touched
+**Suggested fix:** Rename the module helper to `emailIsStudentEligible(email)` (or `hasStudentEligibleDomain`) so the two don't shadow each other.
 
-### Category 4: Complexity & Maintainability
-**✅ No findings.**
-- File sizes (all well under 500 lines):
-  - `AwinTrackingService.php` — 161 lines
-  - `FireAwinConversionJob.php` — 116 lines
-  - `CaptureAwcCookie.php` — 51 lines
-  - `awinTracking.js` — 184 lines
-  - `config/awin.php` — 108 lines
-- Longest method in new code is `fireServerToServer` at ~50 lines — at the complexity threshold but justified (query building + try/catch + success/error logging paths). No extraction warranted.
-- No nesting beyond 2 levels
-- All magic values (`tt=ss`, `tv=2`, `ch=aw`) are documented inline and come from the Awin spec — not "magic numbers" in the code-smell sense
+### S2. `PlanSelectionModal.vue` — `discountCode: null` in emit payload is semi-dead
 
-### Category 5: Security Concerns
-**✅ No findings.**
-- `CaptureAwcCookie` validates input: `is_string($awc) && $awc !== '' && strlen($awc) <= 255` prevents cookie bombing and type confusion
-- Cookie attributes are correct: `HttpOnly`, `Secure`, `SameSite=Lax`, domain-scoped
-- `awc` exempted from Laravel's `EncryptCookies` so Awin receives the raw click reference — intentional, documented in the middleware docblock
-- CSP extensions to `SecurityHeaders` are gated on `config('awin.enabled')` for the Awin domains (no unnecessary widening when disabled); Meta Pixel domains are unconditional since `app.blade.php` loads the pixel on every page
-- No user input interpolated into SQL
-- `fireServerToServer` uses Laravel's `Http` facade which encodes query params correctly (explicitly avoids the Awin sample's 3 bugs: URL encoding, `parts` format, response ignore)
-- Payment data (amount, voucher, customer acquisition) is never logged to `laravel.log` as PII; only the `order_ref` identifier and HTTP status are logged
+**File:** `resources/js/components/Payment/PlanSelectionModal.vue:361, :371`
+**Category:** Dead & Redundant Code
 
-### Category 6: Inconsistency with Existing Patterns
-**✅ No findings.**
-- `AwinTrackingService` follows the constructor-free pure-service pattern (it uses `StructuredLogging` trait like other services)
-- `FireAwinConversionJob` uses `Dispatchable`, `InteractsWithQueue`, `Queueable`, `SerializesModels` — the same trait stack as `RunMonteCarloSimulation`
-- `CaptureAwcCookie` follows the same short-circuit-on-disabled pattern used by other conditional middleware
-- Controller wiring uses the same `DB::transaction()` + post-transaction pattern already in place for payment confirmation
-- Frontend util mirrors `analyticsService.js` and the GA loader inside `cookieConsent.js`
-- All `[awin]` log entries use the structured-logging prefix convention
+After R4 removed the discount-code input from the modal, the emit payload still carries `discountCode: null` for "backwards-compatibility with parents that may still reference it (e.g. SubscriptionManagement's upgrade handler)". Downstream, `SubscriptionManagement.vue:560` still computes `${discountParam}` from `discountCode`, which is now guaranteed empty — a latent dead branch in an unchanged file.
 
-## Verdict
+**Suggested fix:** Either drop the `discountCode` key from the emit entirely (destructuring in consumers yields `undefined` instead of `null` — same effective behaviour), or follow up with a PR that strips the now-unreachable `discountParam` logic from `SubscriptionManagement.vue`. Low priority — no user-visible impact.
 
-**Nothing to fix. Commit the one outstanding file (CLAUDE.md metrics update) and move on to session wrap-up.**
+### S3. `PricingPage.vue` — bullet SVG pattern repeated across plan cards
 
-Notes for future reference:
-- The Awin integration is well-isolated in its own `App\Services\Marketing` namespace — future tracking integrations (Google Ads, TikTok Pixel, etc.) should follow the same pattern
-- The dual-track (browser + S2S) with idempotency via `payments.awin_fired_at` is a reusable pattern for any attribution integration — worth extracting into a generic `AttributionJob` base class if a second network gets added
+**File:** `resources/js/views/Public/PricingPage.vue:232–244` (new bullets) and throughout the file
+**Category:** Duplicate Code (pre-existing, amplified by this session)
+
+The checkmark `<svg>` + `<span>` markup is inlined for every plan-card bullet across all four plans (Student, Standard, Family, Pro). This session added two more occurrences to the Family card, matching the existing file-local convention rather than introducing a new one. Still, the page now has ~18 near-identical bullet blocks.
+
+**Suggested fix:** Extract a local `<BulletItem :text="..." />` component (or a `v-for` over a feature array per plan). Out of scope for a hotfix; worth tackling next time the page is revisited.
+
+## Notes
+
+- Frontend `.ac.uk` check and backend `User::isEligibleForStudentPlan()` intentionally duplicate the eligibility rule. The frontend version is for UX (hide the card); backend is the authoritative gate. Comments on both sides document this explicitly. **Not flagged as duplication** — the duplication is load-bearing.
+- `str_ends_with('.ac.uk')` correctly rejects malformed-domain attempts like `user@ac.uk` (no leading dot), `user+.ac.uk@example.com` (substring but not suffix), and case-variants (`strtolower` applied first). Security check passed.
 
 ---
-*Generated by tech-debt-session skill — 2026-04-15 21:29 BST*
+*Generated by tech-debt-session skill*
