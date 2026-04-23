@@ -27,7 +27,10 @@
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />
 
-        <SubNavBar />
+        <!-- SubNavBar hidden globally — sibling tabs now live in the left sidebar and
+             per-page CTAs live inline on each page. The component and subNavConfig.js
+             are kept intact for easy re-enable (set v-if="true"). -->
+        <SubNavBar v-if="false" />
 
         <!-- Offline Indicator Banner -->
         <OfflineBanner />

@@ -50,8 +50,8 @@
 
         <!-- Main Content -->
         <div v-else-if="!loading && !error" class="bg-white rounded-lg border border-light-gray">
-          <!-- Tab Navigation -->
-          <div class="border-b border-light-gray">
+          <!-- Tab Navigation + inline CTA (replaces the global SubNavBar action) -->
+          <div class="border-b border-light-gray flex items-center justify-between pr-4">
             <nav class="-mb-px flex overflow-x-auto scrollbar-hide" aria-label="Tabs">
               <button
                 v-for="tab in tabs"
@@ -67,6 +67,18 @@
                 {{ tab.label }}
               </button>
             </nav>
+            <button
+              v-if="activeTab === 'overview'"
+              v-preview-disabled="'add'"
+              type="button"
+              @click="openCreateModal"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Goal
+            </button>
           </div>
 
           <!-- Tab Content -->
