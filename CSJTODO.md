@@ -1,7 +1,50 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 66 (pension projection fix + unified add pension form + nav refresh)*
-*Previous session: 23 April 2026 — session 65b (CSP fix + Revolut pk alignment + .env syntax fix)*
+*Last updated: 23 April 2026 — session 67 (UI fixes bundle: logout redirect, progress hero for all users, form field collapse, joint net-worth layout, spouse name regression)*
+*Previous session: 23 April 2026 — session 66 (pension projection fix + unified add pension form + nav refresh)*
+
+---
+
+## Session 67 (23 April night) — UI fixes bundle
+
+PR [#226](https://github.com/Stoff73/fynla/pull/226) merged to `dev` as merge commit `416e770`, deployed + browser-tested on `csjones.co/fynla` (per CSJ).
+
+### Completed
+
+#### Six independent UI fixes, one branch (`genUIFixes`)
+
+- [x] **Logout redirects straight to `/login`** — the success modal used to hold the user on the dashboard until they dismissed it. `AppNavbar.vue` now mirrors what `SideMenu.vue` already did: dispatch `auth/logout`, then `router.push('/login')`. Orphan `LogoutSuccessModal.vue` deleted. Commit `acc6086`.
+- [x] **Dashboard progress hero now renders for every user**, not only journey users. Skip-to-dashboard and Fyn-onboarded users previously saw a blank top of page. The Scenario Completeness column is hidden when there's no active journey; its column width is split evenly into narrow left + right margins so Profile Completeness and Recommended Actions keep their original `w-1/3` positions. Ring restored to full 140px; labels like "Cash Management" fit on one line without overflowing into the percentage column. Collapsed bar shows overall profile % + "Profile complete" when no journey. Mobile carousel skips the Scenario slide and re-counts pagination dots. Commit `d3756ae`.
+- [x] **Pension + Investment Add/Edit forms** — advanced fields now collapse behind a single "Additional information" toggle per form. Auto-expands in edit mode when any hidden field has a user-provided value. Collapsed-on-save nulls the hidden fields in the outgoing payload. Commit `c515aa3`.
+  - Pension form (DCPensionForm for Money Purchase types): Lump Sum Contribution, Expected Return %, Platform Fee, Advisor Fee, Beneficiary section, Holdings editor. DB / State branches unchanged.
+  - Investment form (AccountForm + StandardInvestmentFields for ISA / GIA / Bonds / VCT / NS&I / Other): Country, Platform/Product Name, Planned Lump Sum (amount + date, both non-ISA and ISA variants), Platform Fee, Holdings editor. Private Investment and Employee Share Scheme sub-forms explicitly left untouched.
+  - `expected_return_percent` default changed from `5.0` to `null` so users who never expand the section don't persist a synthetic return assumption.
+- [x] **Joint Net Worth Wealth Summary redesigned** — married users previously saw three donuts stacked in the left column (user, spouse, combined) and a right-hand bar chart showing only the current user's figures. Joint users now see two per-person donuts inline, then a full-width Assets-vs-Liabilities bar chart underneath. Hovering a bar opens a custom tooltip: "Category: £TOTAL" with the per-person split below it ("David Mitchell: £755,500 / Sarah Mitchell: £637,500"). Single users keep the original layout untouched. Commit `eaf4552`.
+- [x] **Root-cause fix for the recurring "Partner" / "Spouse" regression** — the `userProfile/spouse` getter returned inconsistent shapes across its code paths. `spouseInFamily` paths returned FamilyMember records (which carry a `name` column from the DB), but the `currentUser.spouse` fallback paths built synthetic objects with only `first_name` / `last_name`. Every consumer reading `spouse.name` through those fallback paths silently rendered empty and was masked by `|| 'Partner'` / `|| 'Spouse'` fallbacks in callers. Getter now normalises every return path through a `withName` helper so `name` is always resolved. `NetWorthWealthSummary.spouseUserName`, `PortfolioOverview.getSpouseName`, and `LetterToSpouse.spouseNameForLetter` all updated to read from `userProfile/spouse` first, falling back to the auth inline spouse object, and only then to the string literal. Admin / Estate IHT / Protection analysis / Preview persona spouse-name reads are fed by different data sources (admin users list API, IHT calc response, preview persona JSON) and intentionally not touched. Commits `2a0d7b2` + `7e1739d`.
+- [x] **csjones build script output updated** — the post-build echoed instructions pointed at the legacy `public_html/fynla/` layout and omitted the sibling-dir reality (Laravel app at `~/www/csjones.co/fynla-app/`, `public_html/fynla` is a symlink). Script now echoes the correct upload target, the preserve-old-chunks `mv`+`cp -rn` pattern, the full SSH command, and the full cache-clear sequence. No logic change — only the trailing echo. Commit `677f146`.
+
+#### Deploy + docs
+
+- [x] **PR #226 opened, 7 commits, admin-merged to `dev`** as merge commit `416e770`.
+- [x] **`April/April23Updates/deployUIFix.md`** — full deploy guide with sibling-dir upload path, preserve-old-chunks pattern, smoke-test steps per fix, rollback, and the promote-to-main handoff. Mirrored to vault.
+- [x] **Deployed to csjones.co/fynla dev + browser-tested.** Per CSJ: all six fixes working on the live dev site.
+- [x] **Local browser-tested during the session:** pension Add form (collapse/expand, SIPP variant), investment Add form (collapse/expand, GIA + ISA variants), joint net-worth layout (David & Sarah Mitchell preview persona — tooltip split, spouse name on donut + wealth summary + bar chart props), logout redirect.
+
+### Outstanding from session 67
+
+- [ ] **Cut `dev → main` PR when ready.** This deploy passes dev smoke tests. When the next production cut happens, #226 rides along. Production build uses `./deploy/fynla-org/build.sh` (NOT the csjones script — base paths differ).
+- [ ] **Exercise the edit-mode auto-expand** on an existing pension or investment account that already has hidden-field values populated. Logic is reviewed in diff only; not browser-tested end-to-end.
+- [ ] **Exercise collapsed-form submit → DB verification** for both forms — confirm the null-on-save code path actually writes nulls on a real save.
+- [ ] **Exercise the onboarding path** for both forms. Both accept `isOnboarding` prop but only the standalone modal path was browser-tested this session.
+
+### Outstanding from session 66 (carried forward)
+
+- [ ] **Cut `dev → main` PR when ready.** Pension projection fix + nav refresh (PR #225) still pending production cut.
+- [ ] **Optional SQL purge on production after dev→main cut** to age out legacy MC cache keys immediately (otherwise 24h wait):
+  ```sql
+  DELETE FROM monte_carlo_cache WHERE cache_key LIKE '%pension_pot_%' AND cache_key NOT LIKE '%_i%';
+  ```
+- [ ] **Before the next `dev → main` PR**, verify `deploy/fynla-org/build.sh` and production `.env` have the LIVE Revolut pk (not sandbox) baked in / present, so a future production rebuild from a developer's laptop doesn't accidentally ship a sandbox-pk build to prod.
 
 ---
 
