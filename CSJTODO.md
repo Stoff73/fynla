@@ -1,7 +1,27 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 65 (PR triage + dev server redeploy + intervention/image downgrade)*
-*Previous session: 23 April 2026 — session 64 (subscription/checkout hotfix to production)*
+*Last updated: 23 April 2026 — session 65b (CSP fix + Revolut pk alignment + .env syntax fix)*
+*Previous session: 23 April 2026 — session 65 (PR triage + dev server redeploy + intervention/image downgrade)*
+
+---
+
+## Session 65b (23 April late-afternoon) — CSP / Revolut / .env cascade
+
+### Completed
+
+- [x] **Removed HSTS + CSP + Permissions-Policy `Header set` from both `.htaccess` templates** (`deploy/csjones-fynla/.htaccess`, `deploy/fynla-org/.htaccess`). Apache's `Header set` was overwriting `SecurityHeaders` middleware's richer CSP and blocking Revolut widget on dev. Commit `f0770bb`.
+- [x] **Uploaded new csjones `.htaccess` to dev server**, cleared Laravel caches.
+- [x] **Fixed dotenv syntax on server `.env` line 62** — `ADMIN_EMAILS` now quoted (was unquoted comma-separated value with whitespace, invalid dotenv syntax that was hidden by config cache until `config:clear` exposed it). Backup at `.env.backup-2026-04-23-csp-fix`.
+- [x] **Pinned `VITE_REVOLUT_SANDBOX=true` + `VITE_REVOLUT_PUBLIC_KEY=pk_D2JdE2srRipv0jdHerivLw1hMoWSrjqDa4lEozJxTwchuG04`** into `deploy/csjones-fynla/build.sh`. Builds now reproducible regardless of builder's local `.env`. Commits `921bb3d` + follow-up.
+- [x] **Rebuilt + uploaded** new `public/build/`. New `CheckoutPage-CAePoYgl.js` has correct sandbox SDK URL + correct merchant pk, Revolut widget 403s are gone.
+- [x] **Preserved old build chunks** alongside new ones (`cp -rn public/build.old/. public/build/`) so CSJ's in-flight incognito session survived the rebuild without a forced refresh — every route except `/checkout` continued to work mid-session.
+- [x] **Incident log written** at `April/April23Updates/revolutCSPIncident.md` + mirrored to vault. Documents timeline, root causes, fixes, and 5 rules for next session (chief rule: warn CSJ before rebuilding during active browser testing).
+
+### Outstanding from 65b
+
+- [ ] **Complete the in-flight checkout test** — CSJ's original session has the pre-fix `CheckoutPage-Dq2ZEZzV.js` in memory with the wrong pk. Needs a fresh incognito window to exercise the correct `CheckoutPage-CAePoYgl.js` chunk and confirm the full sandbox checkout flow works end-to-end.
+- [ ] **Clean up `public/build.old/` and `public/build.old2/`** on the dev server once ~24h have passed and no one is on a pre-rebuild session. `rm -rf` both.
+- [ ] **Before the next `dev → main` PR**, verify `deploy/fynla-org/build.sh` and production `.env` have the LIVE Revolut pk (not sandbox) baked in / present, so a future production rebuild from a developer's laptop doesn't accidentally ship a sandbox-pk build to prod.
 
 ---
 

@@ -54,6 +54,16 @@ export VITE_INSIGHTS_CMS_ENABLED=true
 # sandbox tokens don't resolve against live Revolut.
 export VITE_REVOLUT_SANDBOX=true
 
+# Revolut sandbox public key for the csjones.co/fynla merchant account.
+# pk_ values are considered public by Revolut (they are safe to expose in
+# client-side bundles) but must match the merchant that REVOLUT_API_KEY on
+# the dev server belongs to, otherwise the widget gets 403 on
+# /api/public/checkout-widget-appearance and /api/public/available-payment-methods.
+# If left unset here, Vite inherits VITE_REVOLUT_PUBLIC_KEY from the builder's
+# local .env — which may point at a different merchant and break the widget
+# on the dev server. Hardcoding here keeps dev builds reproducible.
+export VITE_REVOLUT_PUBLIC_KEY=pk_D2JdE2srRipv0jdHerivLw1hMoWSrjqDa4lEozJxTwchuG04
+
 echo "Environment:"
 echo "  NODE_ENV: $NODE_ENV"
 echo "  VITE_BASE_PATH: $VITE_BASE_PATH"
