@@ -37,18 +37,31 @@
 
     <tr>
         <td bgcolor="#fce4ec" style="background:#fce4ec;padding:28px 36px;">
-            @include('emails.modules.top-tips', [
-                'heading' => 'Top tips',
-                'outerBg' => '#fce4ec',
-                'padding' => '0',
-                'tips' => [
-                    ['title' => 'Review quarterly',      'description' => 'Tax allowances change every year &mdash; a 10-minute check keeps you ahead.'],
-                    ['title' => 'Invite your partner',   'description' => 'Joint modelling unlocks household-level tax savings most single-user plans miss.'],
-                    ['title' => 'Keep details current',  'description' => 'Salary, pension contributions and property values feed every projection you see.'],
-                ],
-            ])
+            <h3 style="margin:0 0 14px;font-size:20px;font-weight:700;color:#1F2A44;">Top tips</h3>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;border-collapse:separate;border-spacing:8px 0;">
+                <tr>
+                    <td width="33.33%" height="150" style="vertical-align:top;height:150px;">
+                        <div style="background:#ffffff;border-radius:12px;padding:16px;min-height:118px;box-sizing:border-box;">
+                            <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1F2A44;line-height:1.3;">Review quarterly</p>
+                            <p style="margin:0;font-size:12px;color:#555;line-height:1.5;">Tax allowances change every year &mdash; a 10-minute check keeps you ahead.</p>
+                        </div>
+                    </td>
+                    <td width="33.33%" height="150" style="vertical-align:top;height:150px;">
+                        <div style="background:#ffffff;border-radius:12px;padding:16px;min-height:118px;box-sizing:border-box;">
+                            <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1F2A44;line-height:1.3;">Invite your partner</p>
+                            <p style="margin:0;font-size:12px;color:#555;line-height:1.5;">Joint modelling unlocks household-level tax savings most single-user plans miss.</p>
+                        </div>
+                    </td>
+                    <td width="33.33%" height="150" style="vertical-align:top;height:150px;">
+                        <div style="background:#ffffff;border-radius:12px;padding:16px;min-height:118px;box-sizing:border-box;">
+                            <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1F2A44;line-height:1.3;">Keep details current</p>
+                            <p style="margin:0;font-size:12px;color:#555;line-height:1.5;">Salary, pension contributions and property values feed every projection you see.</p>
+                        </div>
+                    </td>
+                </tr>
+            </table>
 
-            <h3 style="margin:28px 0 14px;font-size:20px;font-weight:700;color:#1F2A44;">Next steps</h3>
+            <h3 style="margin:0 0 14px;font-size:20px;font-weight:700;color:#1F2A44;">Next steps</h3>
             @foreach([
                 ['title' => 'Complete your Estate module', 'description' => 'Model your Inheritance Tax position and protect what you pass on from a 40% liability.'],
                 ['title' => 'Set up your Goals',           'description' => 'Connect your plan to the life events you want to fund &mdash; retirement, a property, a wedding, school fees.'],
