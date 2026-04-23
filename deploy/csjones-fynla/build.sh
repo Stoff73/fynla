@@ -44,6 +44,16 @@ export VITE_AWIN_FALLBACK_PIXEL=https://www.awin1.com/sread.img
 # layouts and the /insights/:slug catch-all route are always testable here.
 export VITE_INSIGHTS_CMS_ENABLED=true
 
+# Revolut environment — dev always targets the sandbox SDK + API so we can
+# smoke-test the subscribe flow with test cards without billing real money.
+# CheckoutPage.vue reads this at build time and dead-code-eliminates the
+# branch that loads https://merchant.revolut.com/embed.js, leaving only the
+# sandbox URL (https://sandbox-merchant.revolut.com/embed.js) in the bundle.
+# Must be kept in sync with REVOLUT_SANDBOX=true in the dev server's .env —
+# a mismatch produces a 404 'Order not found' from the widget because
+# sandbox tokens don't resolve against live Revolut.
+export VITE_REVOLUT_SANDBOX=true
+
 echo "Environment:"
 echo "  NODE_ENV: $NODE_ENV"
 echo "  VITE_BASE_PATH: $VITE_BASE_PATH"
@@ -51,6 +61,7 @@ echo "  VITE_ROUTER_BASE: $VITE_ROUTER_BASE"
 echo "  VITE_API_BASE_URL: $VITE_API_BASE_URL"
 echo "  VITE_AWIN_ENABLED: $VITE_AWIN_ENABLED"
 echo "  VITE_INSIGHTS_CMS_ENABLED: $VITE_INSIGHTS_CMS_ENABLED"
+echo "  VITE_REVOLUT_SANDBOX: $VITE_REVOLUT_SANDBOX"
 echo ""
 
 # Build frontend assets
