@@ -1,7 +1,89 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 67 (UI fixes bundle: logout redirect, progress hero for all users, form field collapse, joint net-worth layout, spouse name regression)*
-*Previous session: 23 April 2026 — session 66 (pension projection fix + unified add pension form + nav refresh)*
+*Last updated: 23 April 2026 — session 68 (first `dev → main` release since session 64 + investment 500 fix + lifecycle rate-limit hotfix)*
+*Previous session: 23 April 2026 — session 67 (UI fixes bundle: logout redirect, progress hero for all users, form field collapse, joint net-worth layout, spouse name regression)*
+
+---
+
+## Session 68 (23 April late night) — `dev → main` release + investment 500 fix + lifecycle hotfix
+
+Three PRs shipped to **production** (`fynla.org`). Git dev ↔ main now fully in sync at tip `21ecf67` (lifecycle hotfix) with back-merge `bcf9509` on dev. All 7 production smoke tests PASSED.
+
+### Completed
+
+#### PR #227 — Investment `/api/analyze` 500 fix + session 67 tech-debt bundle (→ dev)
+
+- [x] **`/api/investment/analyze` 500 → 200.** `Holding::$casts[cost_basis, current_value]` are `decimal:2` which Laravel returns as strings; PHP 8's strict `round()` rejected them in `TaxEfficiencyCalculator.php:107` via the `opportunities[]` payload from `CGTHarvestingCalculator`. Fixed at the source with `(float)` casts on lines 154-155 so every downstream consumer gets floats. Commit `0236006`.
+- [x] **Vue `_uid` warning flood silenced.** `AssetAllocationDonut.vue:145` used `this._uid` (Vue 2 internal) — replaced with `this.$.uid` (Vue 3 options-API equivalent). Became visible once session 67's joint-donut layout started rendering two instances per page. Confirmed live: gradient ID resolves to `nw-alloc-grad-423-0` (not `-undefined-0`).
+- [x] **Session 67 tech-debt report remediation** — `AssetBreakdownBar` tooltip hex (`#E83E6D`, `#1F2A44`, `#5854E6`, `#20B486`) replaced with `PRIMARY_COLORS[500]`, `TEXT_COLORS.primary`, `WARNING_COLORS[500]`, `SUCCESS_COLORS[500]` imports from `designSystem.js`. Spouse-name fallback chain collapsed from 8-18 lines to one-line getter reads across `NetWorthWealthSummary.vue`, `PortfolioOverview.vue`, `LetterToSpouse.vue` (the `userProfile/spouse` getter's `withName` helper already normalises every return path). Net −32 LOC.
+- [x] **PR #227 opened + admin-merged to `dev`** as merge commit `2f9c308`. Deploy guide at `April/April23Updates/fixDeployInvest.md` (mirrored to vault).
+
+#### PR #228 — First `dev → main` release since session 64 (99 commits / 188 files / +6,677/−1,545)
+
+- [x] **Git verification pass.** Counted commits/files; confirmed `origin/main..origin/dev` was 97 commits ahead + my new 2 commits = 99. Confirmed `onboardingFyn` (PR #214) and `feature/fyn-persona-split` branches stayed unmerged.
+- [x] **Local production build.** `./deploy/fynla-org/build.sh` → bundle `app-B31kpBbU.js` (1,195,754 bytes). Verified the built `CheckoutPage-CbzaPZdL.js` has live pk `pk_sY0uq1Q2d2lo0EO` + `merchant.revolut` URL (0 sandbox refs).
+- [x] **PR #228 opened + admin-merged to `main`** as `27bb188`. Back-merge PR #229 (`34b77a3`) brought the merge commit to dev.
+- [x] **Production upload.** rsync'd 113 PHP/config/database/routes/views files to `~/www/fynla.org/public_html/` in a single pass using the production SSH key (loaded into agent). User uploaded `public/build/` separately. Verified the active manifest on prod now points at `app-B31kpBbU.js`.
+- [x] **Production SSH finalisation.** `composer install --no-dev --optimize-autoloader` ran (downgraded `intervention/image` 4.0.1 → 3.11.7 per PR #224; prod is PHP 8.3.30 so either works but the 3.11 API port in `InsightImageService` requires 3.x). `php artisan migrate --force` — 7 April 14 migrations ran (lifecycle_email_log, feedback_responses, discount_codes user_id+metadata+type enum, users is_lifecycle_test_user, notification_preferences lifecycle columns, subscriptions indexes). `cache:clear` + `config:clear` + `view:clear` + `route:clear` + `optimize` + `config:cache`.
+- [x] **Production deploy guide.** `April/April23Updates/devMainDeploy.md` — scope, pre-flight (Revolut pk verification commands), 113-file upload buckets, preserve-old-chunks tar-pipe, SSH finalisation, 7 smoke tests, rollback procedure. Mirrored to vault.
+
+#### Lifecycle engine SMTP rate-limit bug (found during smoke tests, hotfixed as PR #230 + #231)
+
+- [x] **Bug surfaced.** Smoke-test trigger `php artisan lifecycle:run-daily` fired against real prod users; SiteGround SMTP capped at ~10 msg/sec, deferring 11 of 22 engaged_trialer sends with `451-gukm1022.siteground.biz received more than 10.7 messages for 1s`. 10 empty_trialer + 2 engaged_trialer delivered successfully. **The daily cron is scheduled for 08:30 UTC** and would have hit the same wall every day regardless — not a smoke-test artifact, a real production bug in PR #212.
+- [x] **Engine disabled on prod** immediately — `LIFECYCLE_ENGINE_ENABLED=false` appended to prod `.env` + `config:cache`. Verified `config("lifecycle.enabled") === FALSE` via Tinker. `.env.backup-2026-04-23-lifecycle-disable` preserved.
+- [x] **PR #230 hotfix** — added `throttle_ms` config key to `config/lifecycle.php` (default 150 ms = ~6.6 sends/sec, well below SG's cap; env override `LIFECYCLE_THROTTLE_MS`, `0` disables for tests and self-hosted SMTP). `LifecycleEngine::run()` now calls `usleep()` between iterations on both success and error paths. 3 new unit tests cover default config, pacing active (3 sends at 50 ms → elapsed ≥ 150 ms), pacing disabled (5 sends at throttle=0 → elapsed < 1 s, all 5 logged). **47/47 lifecycle tests pass**. Admin-merged to dev as `c8b0f05`.
+- [x] **PR #231 (dev → main)** admin-merged as `21ecf67`. PR #232 back-merge main → dev as `bcf9509`. Three files rsync'd to prod.
+- [x] **Engine re-enabled on prod** — `LIFECYCLE_ENGINE_ENABLED=false` line removed from `.env`, `config:cache` regenerated, verified `config.enabled === TRUE | throttle: 150ms`.
+- [x] **Re-ran `lifecycle:run-daily` against the 11 deferred users.** All 11 engaged_trialer delivered, 0 errored, total runtime 2.245s (1.65s throttle overhead + ~0.6s send/query overhead — exactly on-spec for 150ms pacing across 11 sends). `lifecycle_email_log` went from 12 → 23 rows. `empty_trialer: 0 sent` confirms the 10 already-sent users are correctly dedup'd via log lookup.
+
+#### Orphan PSR-4 cleanup on prod
+
+- [x] **`app/Http/UserResource.php` removed from prod.** Byte-identical duplicate sitting at the PSR-4-violating path since 20 March (never tracked in git). Composer dump-autoload warned on every `composer install`. Removed via SSH, `composer dump-autoload -o` regenerated 7,325 classes with zero PSR-4 warnings. `composer install --dry-run` confirms no regression. The correct file at `app/Http/Resources/UserResource.php` still resolves cleanly. Dev server (csjones.co) was already clean.
+
+#### All 7 production smoke tests PASSED
+
+- [x] **A. Homepage + auth** — fynla.org landing + sign-in as `chris@fynla.org` / `Password1!` + email 2FA code `971539` → landed on `/dashboard` as Chris Jones. 0 console errors.
+- [x] **B. `/api/investment/analyze` × 3 → 200**, Vanguard account detail renders with £788,539 Account Projection at 10yr/80% probability (validates PR #225's `getAccountProjections` restore + PR #227's `(float)` cast).
+- [x] **C. Net Worth `_uid` fix live.** `document.querySelector('svg defs linearGradient[id^="nw-alloc-grad-"]')` returned id `nw-alloc-grad-423-0` with `hasUndefined: false`. Zero `_uid` warnings across full console dump.
+- [x] **D. Pension projection chart renders non-zero** — £200K–£1M percentile bands over 2026–2056 timeline (validates session 66's content-addressed Monte Carlo cache fix).
+- [x] **E. Revolut live pk baked into active chunk.** Prod's active `CheckoutPage-BT54db5H.js` has `pk_sY0uq1Q2d2lo0EO` + `merchant.revolut` + 0 sandbox refs. `/pricing` loads clean, 0 errors / 0 warnings.
+- [x] **F. Lifecycle engine dry-run clean under pacing.** 11 deferred users delivered, 0 errored, 150 ms pacing verified on-spec.
+- [x] **G. Admin insights image pipeline (intervention/image 3.11.7).** Via Tinker on prod: `ImageManager::gd()->read($logoPath)->cover(1200,630)->toWebp(quality: 85)` → 10,848 bytes valid WebP. Same pipeline for thumb → 3,384 bytes. Exact API used by `InsightImageService::upload()`.
+
+### Outstanding from session 68
+
+- [ ] **Prod hygiene sweep ~24h post-deploy** (i.e. 24 April night-ish): `rm -rf ~/www/fynla.org/public_html/public/build.old` + `rm ~/www/fynla.org/public_html/.env.backup-2026-04-23-*` (two backup files from the lifecycle disable/re-enable). Also purge the **19 historical sandbox-pk CheckoutPage chunks** that have accumulated in `public/build/assets/` from past preserve-old-chunks merges — one of the past csjones-configured builds was uploaded to fynla.org in error. Unreachable via the current manifest (customers only load what the manifest points to) but shouldn't live on a production server. One-liner:
+  ```bash
+  for f in $(ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org "cd ~/www/fynla.org/public_html && grep -l pk_D2JdE2srRipv0jd public/build/assets/CheckoutPage-*.js"); do ssh … "rm $f"; done
+  ```
+- [ ] **Consider architectural follow-up for lifecycle engine.** 150 ms pacing is a pragmatic fix; for larger send batches (>100 users) we should consider `ShouldQueue` on the Mailables + a rate-limited queue worker. Not urgent — current daily batches are ~20 users and the cron has plenty of runway.
+- [ ] **The 11 failed engaged_trialer sends from the buggy first run are now logged + delivered.** If any of them did NOT reach their inbox (SiteGround's 451 is typically a deferral, so they should eventually arrive even from the failed first attempt), check `lifecycle_email_log` + user support queue.
+- [ ] **Exercise the edit-mode auto-expand** on an existing pension or investment account that already has hidden-field values populated. Logic reviewed in diff only; not browser-tested end-to-end. Carried from session 67.
+- [ ] **Exercise collapsed-form submit → DB null verification** for both pension + investment forms. Carried from session 67.
+- [ ] **Exercise the onboarding path** for the field-collapse toggle. Carried from session 67.
+
+### Context for Next Session
+
+**fynla.org is live on main tip `21ecf67`** (dev tip `bcf9509`) with lifecycle engine paced at 150 ms/send. All 7 smoke tests passed, so prod is stable. Only outstanding item strictly needed before the next session is the 24h cleanup sweep above. The big open next-session task is the ongoing **Fyn AI onboarding** work on `feature/fyn-persona-split` (also coupled with PR #214 / `onboardingFyn`) — see `memory/project_pr214_with_persona_split.md`.
+
+### Outstanding from session 67 (resolved)
+
+- [x] **Cut `dev → main` PR when ready.** PR #228 admin-merged as `27bb188`.
+- [ ] Exercise edit-mode auto-expand — still carried (see above).
+- [ ] Exercise collapsed-form submit → DB — still carried.
+- [ ] Exercise onboarding path for field-collapse — still carried.
+
+### Outstanding from session 66 (resolved)
+
+- [x] **Cut `dev → main` PR when ready** — done as PR #228.
+- [ ] **Optional SQL purge on production after dev→main cut** to age out legacy MC cache keys immediately. Still available; not yet run. Safe to defer 24h or skip entirely (cache keys age out naturally):
+  ```sql
+  DELETE FROM monte_carlo_cache WHERE cache_key LIKE '%pension_pot_%' AND cache_key NOT LIKE '%_i%';
+  ```
+
+### Outstanding from session 65b (resolved)
+
+- [x] **Verify `deploy/fynla-org/build.sh` and production `.env` have the LIVE Revolut pk.** Verified via bundle grep: `CheckoutPage-CbzaPZdL.js` (local build) has `pk_sY0uq1Q2d2lo0EO` + `merchant.revolut` — matches prod's active `CheckoutPage-BT54db5H.js`.
 
 ---
 
