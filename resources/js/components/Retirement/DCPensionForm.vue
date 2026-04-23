@@ -189,8 +189,8 @@
             <p class="text-xs text-neutral-500 mt-1">Fixed monthly contribution amount</p>
           </div>
 
-          <!-- Personal/SIPP: Lump Sum Contribution (Carry Forward) -->
-          <div v-if="isPersonalPension">
+          <!-- Personal/SIPP: Lump Sum Contribution (Carry Forward) — collapsed by default, see "Additional information" -->
+          <div v-if="isPersonalPension && showAdditionalInfo">
             <label for="lump_sum_contribution" class="block text-sm font-medium text-neutral-500 mb-2">
               Lump Sum Contribution (£) <span class="text-neutral-500 text-xs">(Optional)</span>
             </label>
@@ -208,8 +208,8 @@
             </p>
           </div>
 
-          <!-- Expected Return (DC only; hidden during onboarding — advanced detail) -->
-          <div v-if="isDCType && !isOnboarding">
+          <!-- Expected Return (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo">
             <label for="expected_return_percent" class="block text-sm font-medium text-neutral-500 mb-2">
               Expected Return (% p.a.)
             </label>
@@ -226,8 +226,8 @@
             <p class="text-xs text-neutral-500 mt-1">Typical: 4-6% for balanced funds</p>
           </div>
 
-          <!-- Platform Fee (DC only) -->
-          <div v-if="isDCType">
+          <!-- Platform Fee (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo">
             <label class="block text-sm font-medium text-neutral-500 mb-2">
               Platform Fee
             </label>
@@ -265,8 +265,8 @@
             <p class="text-xs text-neutral-500 mt-1">{{ feeHelpText }}</p>
           </div>
 
-          <!-- Advisor Fee (DC only) -->
-          <div v-if="isDCType">
+          <!-- Advisor Fee (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo">
             <label for="advisor_fee_percent" class="block text-sm font-medium text-neutral-500 mb-2">
               Advisor Fee (% p.a.)
             </label>
@@ -363,8 +363,8 @@
             </label>
           </div>
 
-          <!-- Beneficiary Section (DC only; DB/State don't capture beneficiaries here) -->
-          <div v-if="isDCType" class="space-y-4 p-4 bg-violet-50 border border-violet-200 rounded-lg">
+          <!-- Beneficiary Section (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo" class="space-y-4 p-4 bg-violet-50 border border-violet-200 rounded-lg">
             <p class="text-sm text-violet-800 font-medium">Beneficiary Details</p>
 
             <!-- Beneficiary Selection -->
@@ -644,6 +644,23 @@
             </div>
           </template>
 
+          <!-- Additional information toggle (DC only; DB/State forms have no hidden fields) -->
+          <div v-if="isDCType" class="pt-2">
+            <button
+              type="button"
+              @click="showAdditionalInfo = !showAdditionalInfo"
+              class="inline-flex items-center gap-1 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+            >
+              {{ showAdditionalInfo ? 'Hide' : 'Show' }} additional information
+              <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdditionalInfo }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <p v-if="!showAdditionalInfo" class="mt-1 text-xs text-neutral-500">
+              Fees, expected return, lump sum contribution, beneficiary and holdings
+            </p>
+          </div>
+
           <!-- Notes (all types) -->
           <div>
             <label for="notes" class="block text-sm font-medium text-neutral-500 mb-2">
@@ -658,9 +675,9 @@
             ></textarea>
           </div>
 
-          <!-- Inline Holdings Editor (DC only) -->
+          <!-- Inline Holdings Editor (DC only) — collapsed by default, see "Additional information" -->
           <InlineHoldingsEditor
-            v-if="isDCType && parseFloat(formData.current_fund_value) > 0"
+            v-if="isDCType && showAdditionalInfo && parseFloat(formData.current_fund_value) > 0"
             :account-value="parseFloat(formData.current_fund_value) || 0"
             :holdings="formData.holdings"
             :account-id="pension?.id || null"
@@ -744,7 +761,7 @@ export default {
         employer_contribution_percent: null,
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
-        expected_return_percent: 5.0,
+        expected_return_percent: null,
         platform_fee_type: 'percentage',
         platform_fee_amount: null,
         platform_fee_frequency: 'annually',
@@ -784,6 +801,9 @@ export default {
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
       // Beneficiary state
       beneficiarySelection: '',
+      // Collapsed "Additional information" section (fees, expected return, lump sum,
+      // beneficiary, holdings). Auto-expands in edit mode when any hidden field has a value.
+      showAdditionalInfo: false,
     };
   },
 
@@ -922,6 +942,9 @@ export default {
                 cost_basis: h.cost_basis,
               }));
           }
+          // Auto-expand "Additional information" if any of the collapsed-by-default
+          // fields already have a value, so editors see their own data on open.
+          this.showAdditionalInfo = this.hasAdditionalInfoData();
           this.$nextTick(() => {
             this.initializeBeneficiarySelection();
           });
@@ -1039,6 +1062,22 @@ export default {
         // the DC validator below doesn't trip when the user is on a non-DC branch
         this.formData.scheme_type = '';
       }
+    },
+
+    // Returns true if any of the "Additional information" fields have a
+    // user-provided value, so the section should auto-expand on open.
+    hasAdditionalInfoData() {
+      const f = this.formData;
+      return !!(
+        (f.lump_sum_contribution !== null && f.lump_sum_contribution !== '' && f.lump_sum_contribution !== 0)
+        || (f.expected_return_percent !== null && f.expected_return_percent !== '')
+        || (f.platform_fee_percent !== null && f.platform_fee_percent !== '')
+        || (f.platform_fee_amount !== null && f.platform_fee_amount !== '')
+        || (f.advisor_fee_percent !== null && f.advisor_fee_percent !== '')
+        || f.beneficiary_id
+        || (f.beneficiary_name && f.beneficiary_name.trim() !== '')
+        || (f.holdings && f.holdings.length > 0)
+      );
     },
 
     handleBeneficiarySelection() {
@@ -1165,6 +1204,21 @@ export default {
       if (policy_number !== undefined && policy_number !== null && policy_number !== '') {
         payload.member_number = policy_number;
       }
+
+      // If the "Additional information" section is collapsed, clear its values
+      // so the backend never stores fees/returns/lump sum/beneficiary/holdings the
+      // user can't see on the form.
+      if (!this.showAdditionalInfo) {
+        payload.lump_sum_contribution = null;
+        payload.expected_return_percent = null;
+        payload.platform_fee_percent = null;
+        payload.platform_fee_amount = null;
+        payload.advisor_fee_percent = null;
+        payload.beneficiary_id = null;
+        payload.beneficiary_name = '';
+        payload.holdings = [];
+      }
+
       return payload;
     },
 
