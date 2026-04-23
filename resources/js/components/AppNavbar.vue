@@ -1,10 +1,4 @@
 <template>
-  <!-- Logout Success Modal -->
-  <LogoutSuccessModal
-    :show="showLogoutModal"
-    @close="handleLogoutModalClose"
-  />
-
   <!-- Referral Modal -->
   <ReferralModal
     :show="showReferralModal"
@@ -283,7 +277,6 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
-import LogoutSuccessModal from './Auth/LogoutSuccessModal.vue';
 import BugReportModal from './BugReportModal.vue';
 import ReferralModal from './Payment/ReferralModal.vue';
 import { findCategoryConfig } from '@/constants/subNavConfig';
@@ -304,7 +297,6 @@ export default {
   },
 
   components: {
-    LogoutSuccessModal,
     BugReportModal,
     ReferralModal,
   },
@@ -367,7 +359,6 @@ export default {
 
       return '';
     });
-    const showLogoutModal = ref(false);
     const userName = computed(() => {
       const user = store.getters['auth/currentUser'];
       return user?.name || 'User';
@@ -421,25 +412,16 @@ export default {
       userDropdownOpen.value = false;
 
       try {
-        // Stop inactivity timer before logout
         stopInactivityTimer();
         await store.dispatch('auth/logout');
-        // Show success modal
-        showLogoutModal.value = true;
-      } catch (error) {
-        logger.error('Logout error:', error);
-        // Even on error, redirect to login
         if (!router.currentRoute.value.meta?.public) {
           router.push('/login');
         }
-      }
-    };
-
-    const handleLogoutModalClose = () => {
-      showLogoutModal.value = false;
-      // Stay on current page if it's public, otherwise go to login
-      if (!router.currentRoute.value.meta?.public) {
-        router.push('/login');
+      } catch (error) {
+        logger.error('Logout error:', error);
+        if (!router.currentRoute.value.meta?.public) {
+          router.push('/login');
+        }
       }
     };
 
@@ -484,7 +466,6 @@ export default {
       countdown,
       pageTitle,
       userDropdownOpen,
-      showLogoutModal,
       userName,
       isAdmin,
       isAdvisor,
@@ -499,7 +480,6 @@ export default {
       showBugReportModal,
       openBugReport,
       handleLogout,
-      handleLogoutModalClose,
     };
   },
 };

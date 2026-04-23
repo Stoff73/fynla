@@ -16,8 +16,8 @@
       <p v-if="errors.provider" class="mt-1 text-sm text-raspberry-600">{{ errors.provider }}</p>
     </div>
 
-    <!-- Country Selector -->
-    <div>
+    <!-- Country Selector — collapsed by default, see "Additional information" -->
+    <div v-if="showAdditionalInfo">
       <CountrySelector
         v-model="localData.country"
         label="Country"
@@ -26,8 +26,8 @@
       />
     </div>
 
-    <!-- Platform -->
-    <div>
+    <!-- Platform — collapsed by default, see "Additional information" -->
+    <div v-if="showAdditionalInfo">
       <label for="platform" class="block text-sm font-medium text-neutral-500 mb-1">
         Platform/Product Name
       </label>
@@ -154,8 +154,8 @@
         </p>
       </div>
 
-      <!-- Planned Lump Sum -->
-      <div>
+      <!-- Planned Lump Sum — collapsed by default, see "Additional information" -->
+      <div v-if="showAdditionalInfo">
         <label for="planned_lump_sum_amount" class="block text-sm font-medium text-neutral-500 mb-1">
           Planned Lump Sum (£)
         </label>
@@ -186,8 +186,8 @@
       </div>
     </div>
 
-    <!-- Platform Fee Section (not shown for NS&I) -->
-    <div v-if="!isNSIType" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'platform_fee_percent' }">
+    <!-- Platform Fee Section (not shown for NS&I) — collapsed by default, see "Additional information" -->
+    <div v-if="!isNSIType && showAdditionalInfo" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'platform_fee_percent' }">
       <label class="block text-sm font-medium text-neutral-500 mb-1">
         Platform Fee
       </label>
@@ -350,8 +350,8 @@
         </p>
       </div>
 
-      <!-- ISA Planned Lump Sum -->
-      <div>
+      <!-- ISA Planned Lump Sum — collapsed by default, see "Additional information" -->
+      <div v-if="showAdditionalInfo">
         <label for="isa_planned_lump_sum_amount" class="block text-sm font-medium text-violet-900 mb-1">
           Planned Lump Sum (£)
         </label>
@@ -542,6 +542,10 @@ export default {
       required: true,
     },
     isOnboarding: {
+      type: Boolean,
+      default: false,
+    },
+    showAdditionalInfo: {
       type: Boolean,
       default: false,
     },

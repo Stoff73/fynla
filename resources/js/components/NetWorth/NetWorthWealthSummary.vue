@@ -1,9 +1,38 @@
 <template>
   <div class="net-worth-wealth-summary module-gradient">
     <ModuleStatusBar />
-    <!-- Charts Row: Pie Chart + Bar Chart side by side -->
-    <div class="charts-row">
-      <!-- Left: Asset Allocation Donut -->
+    <!-- Joint users: two per-person donuts inline, then a combined-household bar chart below with a per-user tooltip breakdown. Single users keep the original side-by-side donut + bar layout. -->
+    <template v-if="filteredSpouseOverview">
+      <div class="donut-row">
+        <AssetAllocationDonut
+          :breakdown="overview.breakdown"
+          :title="`${currentUserName}'s Asset Allocation`"
+          @highlight="onChartHighlight('user', $event)"
+          @clear-highlight="onChartClearHighlight"
+        />
+        <AssetAllocationDonut
+          :breakdown="filteredSpouseOverview.breakdown || {}"
+          :title="`${filteredSpouseName}'s Asset Allocation`"
+          @highlight="onChartHighlight('spouse', $event)"
+          @clear-highlight="onChartClearHighlight"
+        />
+      </div>
+
+      <AssetBreakdownBar
+        :breakdown="combinedBreakdown"
+        :liabilities-breakdown="combinedLiabilitiesBreakdown"
+        :total-assets="combinedTotalAssets"
+        :total-liabilities="combinedTotalLiabilities"
+        :user-breakdown="overview.breakdown"
+        :spouse-breakdown="filteredSpouseOverview.breakdown || {}"
+        :user-liabilities="overview.liabilitiesBreakdown"
+        :spouse-liabilities="filteredSpouseOverview.liabilitiesBreakdown || {}"
+        :user-name="currentUserName"
+        :spouse-name="filteredSpouseName"
+      />
+    </template>
+
+    <div v-else class="charts-row">
       <div class="chart-column">
         <AssetAllocationDonut
           :breakdown="overview.breakdown"
@@ -11,23 +40,7 @@
           @highlight="onChartHighlight('user', $event)"
           @clear-highlight="onChartClearHighlight"
         />
-        <div v-if="filteredSpouseOverview" class="mt-4 grid grid-cols-2 gap-4">
-          <AssetAllocationDonut
-            :breakdown="filteredSpouseOverview.breakdown || {}"
-            :title="`${filteredSpouseName}'s Asset Allocation`"
-            @highlight="onChartHighlight('spouse', $event)"
-            @clear-highlight="onChartClearHighlight"
-          />
-          <AssetAllocationDonut
-            :breakdown="combinedBreakdown"
-            title="Combined Asset Allocation"
-            @highlight="onChartHighlight('total', $event)"
-            @clear-highlight="onChartClearHighlight"
-          />
-        </div>
       </div>
-
-      <!-- Right: Assets vs Liabilities Bar Chart -->
       <div class="bar-chart-column">
         <AssetBreakdownBar
           :breakdown="overview.breakdown"
@@ -126,9 +139,24 @@ export default {
     },
 
     spouseUserName() {
+      // Source of truth: userProfile/spouse getter (built from family members /
+      // linked spouse account), NOT the auth user's spouse relation which is
+      // unreliably populated across login paths.
+      const spouse = this.$store.getters['userProfile/spouse'];
+      if (spouse) {
+        const name = [spouse.first_name, spouse.last_name].filter(Boolean).join(' ').trim();
+        if (name) return name;
+      }
+      // Fall back to the auth user's inline spouse object if userProfile hasn't
+      // loaded yet.
       const user = this.$store.getters['auth/currentUser'];
-      const spouseName = user?.spouse?.name;
-      return spouseName || 'Partner';
+      const inline = user?.spouse;
+      if (inline) {
+        const name = [inline.first_name, inline.last_name || inline.surname, inline.name]
+          .filter(Boolean).join(' ').trim();
+        if (name) return name;
+      }
+      return 'Partner';
     },
 
     /**
@@ -146,6 +174,32 @@ export default {
         business: (userBreakdown.business || 0) + (spouseBreakdown.business || 0),
         chattels: (userBreakdown.chattels || 0) + (spouseBreakdown.chattels || 0),
       };
+    },
+
+    /**
+     * Combined liabilities breakdown across both household members. The bar
+     * chart draws one bar per liability category from this, and uses the
+     * per-user liabilities props for the tooltip split.
+     */
+    combinedLiabilitiesBreakdown() {
+      const u = this.overview.liabilitiesBreakdown || {};
+      const s = this.filteredSpouseOverview?.liabilitiesBreakdown || {};
+      return {
+        mortgages: (u.mortgages || 0) + (s.mortgages || 0),
+        loans: (u.loans || 0) + (s.loans || 0),
+        credit_cards: (u.credit_cards || 0) + (s.credit_cards || 0),
+        other: (u.other || 0) + (s.other || 0),
+      };
+    },
+
+    combinedTotalAssets() {
+      return (this.overview.totalAssets || 0)
+        + (this.filteredSpouseOverview?.totalAssets || 0);
+    },
+
+    combinedTotalLiabilities() {
+      return (this.overview.totalLiabilities || 0)
+        + (this.filteredSpouseOverview?.totalLiabilities || 0);
     },
   },
 
@@ -193,6 +247,19 @@ export default {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: stretch;
+}
+
+.donut-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .donut-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .chart-column {

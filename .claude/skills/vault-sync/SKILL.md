@@ -1,7 +1,7 @@
 ---
 name: vault-sync
 description: Sync project documentation to the fynlaBrain Obsidian vault, update version numbers, git history, ${MONTH_NAME} Index, Home.md, and audit all vault formatting/connections. Use when the user says "sync vault", "update vault", "update fynlaBrain", "sync docs", or at session end after significant work.
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Vault Sync — Full Documentation & Integrity Check

@@ -98,6 +98,7 @@
               :errors="errors"
               :account-type="formData.account_type"
               :is-onboarding="isOnboarding"
+              :show-additional-info="showAdditionalInfo"
               :risk-levels="allowedRiskLevels"
               :main-risk-level="mainRiskLevel"
               :fee-percentage-warning="feePercentageWarning"
@@ -109,17 +110,35 @@
               @switch-fee-to-fixed="switchFeeToFixed"
             />
 
-            <!-- Inline Holdings Editor (for eligible account types with value entered) -->
+            <!-- Inline Holdings Editor (for eligible account types with value entered) — collapsed by default, see "Additional information" -->
             <!-- Placed outside field component conditionals because VCT/EIS are
                  classified as isPrivateInvestmentType but still support holdings -->
             <InlineHoldingsEditor
-              v-if="showHoldingsEditor"
+              v-if="showHoldingsEditor && showAdditionalInfo"
               :account-value="parseFloat(formData.current_value) || 0"
               :holdings="formData.holdings"
               :account-id="account?.id || null"
               @update:holdings="formData.holdings = $event"
               @open-holding-details="openHoldingDetails"
             />
+
+            <!-- Additional information toggle (only for the Standard Investment path;
+                 Private Investment and Employee Share Scheme forms are left untouched). -->
+            <div v-if="!isPrivateInvestmentType && !isEmployeeShareScheme" class="pt-2">
+              <button
+                type="button"
+                @click="showAdditionalInfo = !showAdditionalInfo"
+                class="inline-flex items-center gap-1 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+              >
+                {{ showAdditionalInfo ? 'Hide' : 'Show' }} additional information
+                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdditionalInfo }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <p v-if="!showAdditionalInfo" class="mt-1 text-xs text-neutral-500">
+                Country, platform, planned lump sum, platform fee and holdings
+              </p>
+            </div>
 
           </div>
 
@@ -369,6 +388,10 @@ export default {
       // Risk profile state
       mainRiskLevel: null,
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
+      // Collapsed "Additional information" section (country, platform, planned
+      // lump sum, platform fee, holdings). Auto-expands in edit mode when any
+      // hidden field already has a user-provided value.
+      showAdditionalInfo: false,
     };
   },
 
@@ -698,6 +721,9 @@ export default {
           } else {
             this.formData.holdings = [];
           }
+          // Auto-expand "Additional information" when editing a record that already
+          // has a value in any of the collapsed-by-default fields.
+          this.showAdditionalInfo = this.hasAdditionalInfoData();
         } else {
           this.resetForm();
         }
@@ -738,6 +764,9 @@ export default {
           } else {
             this.formData.holdings = [];
           }
+          // Auto-expand "Additional information" when editing a record that already
+          // has a value in any of the collapsed-by-default fields.
+          this.showAdditionalInfo = this.hasAdditionalInfoData();
         } else {
           // Reset form when opening in "add" mode (no account)
           this.resetForm();
@@ -884,6 +913,22 @@ export default {
       }
     },
 
+    // True when any "Additional information" field has a user-provided value.
+    // "United Kingdom" is the default country, so we only consider it set if
+    // the user has picked a different country.
+    hasAdditionalInfoData() {
+      const f = this.formData;
+      return !!(
+        (f.country && f.country !== 'United Kingdom')
+        || (f.platform && f.platform.trim() !== '')
+        || (f.planned_lump_sum_amount !== null && f.planned_lump_sum_amount !== '' && f.planned_lump_sum_amount !== 0)
+        || f.planned_lump_sum_date
+        || (f.platform_fee_percent !== null && f.platform_fee_percent !== '')
+        || (f.platform_fee_amount !== null && f.platform_fee_amount !== '')
+        || (f.holdings && f.holdings.length > 0)
+      );
+    },
+
     formatDate(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
@@ -913,6 +958,20 @@ export default {
 
       // Clean up data before submission
       const submitData = { ...this.formData };
+
+      // If "Additional information" is collapsed, clear the hidden-by-default
+      // fields so they are not persisted with stale values the user can't see.
+      // Only applies to the Standard Investment path — Private / Employee Share
+      // Scheme forms have their own field set and no toggle.
+      if (!this.showAdditionalInfo && !this.isPrivateInvestmentType && !this.isEmployeeShareScheme) {
+        submitData.country = null;
+        submitData.platform = null;
+        submitData.planned_lump_sum_amount = null;
+        submitData.planned_lump_sum_date = null;
+        submitData.platform_fee_percent = null;
+        submitData.platform_fee_amount = null;
+        submitData.holdings = [];
+      }
 
       // For ISA accounts, keep isa_subscription_current_year (backend expects this field)
       if (submitData.account_type === 'isa') {
@@ -1268,6 +1327,7 @@ export default {
       };
       this.errors = {};
       this.feePercentageWarning = false;
+      this.showAdditionalInfo = false;
     },
   },
 };
