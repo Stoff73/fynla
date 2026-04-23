@@ -46,6 +46,7 @@ class LifecycleEngine
     {
         $stats = [];
         $emailedToday = collect();
+        $throttleMicros = max(0, (int) config('lifecycle.throttle_ms', 150)) * 1000;
 
         $campaigns = collect(config('lifecycle.campaigns', []))
             ->map(fn ($class) => app($class))
@@ -72,6 +73,13 @@ class LifecycleEngine
                             'message' => $e->getMessage(),
                         ]);
                         $stats[$name]['errored']++;
+                    }
+
+                    // Pace sends — SiteGround SMTP deferrals (451) kick in above
+                    // ~10 msg/sec. Sleep on both success and error paths so a
+                    // failing send doesn't race the next attempt.
+                    if ($throttleMicros > 0) {
+                        usleep($throttleMicros);
                     }
                 }
             } catch (Throwable $e) {
