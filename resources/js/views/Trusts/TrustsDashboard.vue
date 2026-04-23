@@ -15,6 +15,32 @@
 
       <!-- Content -->
       <div v-else>
+        <!-- Inline CTA row (top-right) — replaces the global SubNavBar actions. -->
+        <div v-if="safeTrusts.length > 0" class="flex justify-end items-center gap-2 mb-4">
+          <button
+            v-preview-disabled="'add'"
+            type="button"
+            @click="openCreateTrustModal"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Trust
+          </button>
+          <button
+            v-preview-disabled
+            type="button"
+            @click="showUploadModal = true"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-white text-horizon-500 border border-light-gray hover:bg-savannah-100"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            Upload Document
+          </button>
+        </div>
+
         <!-- Trusts List -->
         <div v-if="safeTrusts.length > 0" class="trusts-grid">
           <TrustCard

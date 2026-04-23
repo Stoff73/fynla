@@ -141,6 +141,8 @@ class User extends Authenticatable
         'dashboard_widget_order' => 'array',
         // Subscription fields
         'trial_ends_at' => 'datetime',
+        // Lifecycle email e2e testing
+        'is_lifecycle_test_user' => 'boolean',
     ];
 
     /**
@@ -164,6 +166,32 @@ class User extends Authenticatable
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class);
+    }
+
+    /**
+     * Get all of the user's subscriptions over their lifetime.
+     * Used by the lifecycle email engine for eligibility queries that
+     * need to match against any past/present subscription record.
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Get the user's notification preferences (single row per user).
+     */
+    public function notificationPreference(): HasOne
+    {
+        return $this->hasOne(NotificationPreference::class);
+    }
+
+    /**
+     * Get the user's lifecycle email log entries (dedup + click tracking).
+     */
+    public function lifecycleEmails(): HasMany
+    {
+        return $this->hasMany(LifecycleEmailLog::class);
     }
 
     /**

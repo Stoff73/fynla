@@ -6,8 +6,6 @@ namespace App\Services\Insights;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 use InvalidArgumentException;
 
@@ -21,7 +19,7 @@ class InsightImageService
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver());
+        $this->manager = ImageManager::gd();
     }
 
     public function upload(UploadedFile $file, string $slug): array
@@ -39,14 +37,14 @@ class InsightImageService
         $cardPath = "{$directory}/{$timestamp}-{$basename}-card.webp";
         $thumbPath = "{$directory}/{$timestamp}-{$basename}-thumb.webp";
 
-        $card = $this->manager->decodePath($file->getRealPath())
+        $card = $this->manager->read($file->getRealPath())
             ->cover(800, 450)
-            ->encode(new WebpEncoder(quality: 85));
+            ->toWebp(quality: 85);
         Storage::disk('public')->put($cardPath, (string) $card);
 
-        $thumb = $this->manager->decodePath($file->getRealPath())
+        $thumb = $this->manager->read($file->getRealPath())
             ->cover(200, 200)
-            ->encode(new WebpEncoder(quality: 80));
+            ->toWebp(quality: 80);
         Storage::disk('public')->put($thumbPath, (string) $thumb);
 
         return [

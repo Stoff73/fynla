@@ -1,10 +1,16 @@
-# Tech Debt Report — Session 2026-04-23
+# Tech Debt Report — Session 67 (23 April 2026)
 
-**Files analysed:** 6
-**Issues found:** 3 (all suggestions)
-**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
+**Scope:** session 67 commits (`b361889` → `533b16b`) on `dev`
+**Files analysed:** 12 (11 modified Vue/JS + 1 Vuex store + 1 deleted Vue + 1 build script)
+**Issues found:** 3 (0 critical, 1 warning, 2 suggestions)
 
-The session shipped five coordinated production hotfixes (R1–R5) on the subscription/checkout path. Code is clean overall: strict types declared on both PHP files, type hints on all new methods, no hardcoded tax values, no banned colour tokens, no `v-if`/`v-for` collisions, no local `formatCurrency` duplications, no security-sensitive input paths introduced, no dead imports.
+Grep-based scans that came back clean:
+- Banned colour classes (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*` for general UI): none added
+- Hardcoded tax values (year strings, ISA/pension/IHT literals): none added
+- `console.log` / `debugger` / `dd(` leftovers: none added
+- Local `formatCurrency(...)` method redefinitions: none added
+- Scores / "X/100" / adequacy ratings in user-facing UI: none added
+- Missing `:key` on `v-for`: no new `v-for` loops added
 
 ## Critical Issues
 
@@ -12,41 +18,57 @@ None.
 
 ## Warnings
 
-None.
+### 1. Hardcoded hex in `AssetBreakdownBar` custom tooltip
+
+- **File:** `resources/js/components/NetWorth/AssetBreakdownBar.vue`
+- **Lines:** 194, 196, 197–198, 199, 203–204
+- **Category:** Convention Violation (CSS Governance, Key Rule #12)
+
+The per-user tooltip added for the joint bar chart renders inline styles into an ApexCharts `custom` tooltip string. The palette hex values are hardcoded rather than imported from `designSystem.js`:
+
+- `#E83E6D` raspberry-500 (liability label colour)
+- `#1F2A44` horizon-500 (asset label + body text)
+- `#5854E6` violet-500 (user dot)
+- `#20B486` spring-500 (spouse dot)
+- `#E5E5E5` light-gray (border — also used elsewhere pre-existing)
+
+Key Rule #12: "For dynamic chart colours, import from `designSystem.js`."
+
+**Suggested fix:**
+
+```js
+import { PRIMARY_COLORS, TEXT_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
+
+// inside the custom tooltip function:
+const color = isLiability ? PRIMARY_COLORS[500] : TEXT_COLORS.strong;
+// replace `#5854E6` with WARNING_COLORS[500], `#20B486` with SUCCESS_COLORS[500]
+```
+
+Non-blocking — values are correct palette colours, just not referenced symbolically so a future palette swap won't update the tooltip automatically.
 
 ## Suggestions
 
-### S1. `PlanSelectionModal.vue` — naming collision between module helper and computed property
+### 2. Spouse-name fallback chain duplicated across three components
 
-**File:** `resources/js/components/Payment/PlanSelectionModal.vue:177` (module helper) and `:216` (computed property)
-**Category:** Complexity & Maintainability
+- **Files:**
+  - `resources/js/components/NetWorth/NetWorthWealthSummary.vue` — `spouseUserName` computed
+  - `resources/js/components/Investment/PortfolioOverview.vue` — `getSpouseName` method
+  - `resources/js/components/UserProfile/LetterToSpouse.vue` — `spouseNameForLetter` computed
+- **Category:** Duplicate Code (cross-file)
 
-The module-level helper `function isEligibleForStudentPlan(email)` shares a name with a computed property `isEligibleForStudentPlan` on the component. Both exist deliberately (the helper is a pure function the computed wraps with `this.currentUser.email`), but the identical name means inside the computed body `isEligibleForStudentPlan(this.currentUser?.email)` resolves to the module-level function while `this.isEligibleForStudentPlan` refers to the computed. It works in JS but is a readability hazard for future contributors.
+All three implement the same pattern: read `userProfile/spouse` → build name from `first_name` + `last_name` → fall back to `auth user.spouse` inline object → fall back to a string literal. After the getter fix in `7e1739d` (the `userProfile/spouse` getter now always returns `name`), the fallback chains in each of these callers are largely redundant defensive code — `store.getters['userProfile/spouse']?.name` would suffice.
 
-**Suggested fix:** Rename the module helper to `emailIsStudentEligible(email)` (or `hasStudentEligibleDomain`) so the two don't shadow each other.
+**Suggested fix (low priority):** collapse the three call sites to `store.getters['userProfile/spouse']?.name || 'Partner'` (or the component-specific fallback) now that the getter guarantees `name`. Kept the defensive chains this session to minimise blast radius while the root-cause fix landed.
 
-### S2. `PlanSelectionModal.vue` — `discountCode: null` in emit payload is semi-dead
+### 3. `DCPensionForm.hasAdditionalInfoData` may auto-expand on legacy `5.0` default
 
-**File:** `resources/js/components/Payment/PlanSelectionModal.vue:361, :371`
-**Category:** Dead & Redundant Code
+- **File:** `resources/js/components/Retirement/DCPensionForm.vue` — `hasAdditionalInfoData` method
+- **Category:** Inconsistency (potential surprise behaviour)
 
-After R4 removed the discount-code input from the modal, the emit payload still carries `discountCode: null` for "backwards-compatibility with parents that may still reference it (e.g. SubscriptionManagement's upgrade handler)". Downstream, `SubscriptionManagement.vue:560` still computes `${discountParam}` from `discountCode`, which is now guaranteed empty — a latent dead branch in an unchanged file.
+The auto-expand logic checks `formData.expected_return_percent !== null && formData.expected_return_percent !== ''`. The initial default was changed from `5.0` to `null` in the same commit. Existing `dc_pensions` rows that have `expected_return_percent = 5.0` stored (from before this change) will auto-expand the "Additional information" section on edit — which is arguably correct (the row *does* have a stored return assumption) but wasn't the intent ("section only auto-expands when a user-provided value exists"). The legacy 5.0 came from the old default, not the user.
 
-**Suggested fix:** Either drop the `discountCode` key from the emit entirely (destructuring in consumers yields `undefined` instead of `null` — same effective behaviour), or follow up with a PR that strips the now-unreachable `discountParam` logic from `SubscriptionManagement.vue`. Low priority — no user-visible impact.
-
-### S3. `PricingPage.vue` — bullet SVG pattern repeated across plan cards
-
-**File:** `resources/js/views/Public/PricingPage.vue:232–244` (new bullets) and throughout the file
-**Category:** Duplicate Code (pre-existing, amplified by this session)
-
-The checkmark `<svg>` + `<span>` markup is inlined for every plan-card bullet across all four plans (Student, Standard, Family, Pro). This session added two more occurrences to the Family card, matching the existing file-local convention rather than introducing a new one. Still, the page now has ~18 near-identical bullet blocks.
-
-**Suggested fix:** Extract a local `<BulletItem :text="..." />` component (or a `v-for` over a feature array per plan). Out of scope for a hotfix; worth tackling next time the page is revisited.
-
-## Notes
-
-- Frontend `.ac.uk` check and backend `User::isEligibleForStudentPlan()` intentionally duplicate the eligibility rule. The frontend version is for UX (hide the card); backend is the authoritative gate. Comments on both sides document this explicitly. **Not flagged as duplication** — the duplication is load-bearing.
-- `str_ends_with('.ac.uk')` correctly rejects malformed-domain attempts like `user@ac.uk` (no leading dot), `user+.ac.uk@example.com` (substring but not suffix), and case-variants (`strtolower` applied first). Security check passed.
+**Suggested fix (optional):** if auto-expanding on 5.0 is a problem, either migrate existing 5.0 rows to null (one-off DB update) or treat 5.0 as the "default sentinel" in `hasAdditionalInfoData`. Likely not worth fixing unless users flag it. Noted for awareness.
 
 ---
-*Generated by tech-debt-session skill*
+
+*Generated by tech-debt-session skill — 23 April 2026, session 67 scope*

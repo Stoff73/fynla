@@ -30,6 +30,10 @@ class DiscountCodeService
             return $this->invalid('Discount code not found.');
         }
 
+        if ($discount->user_id !== null && $discount->user_id !== $userId) {
+            return $this->invalid('This discount code is not valid for your account.');
+        }
+
         if (! $discount->is_active) {
             return $this->invalid('This discount code is no longer active.');
         }
@@ -58,7 +62,7 @@ class DiscountCodeService
             return $this->invalid('This discount code is not valid for the selected billing cycle.');
         }
 
-        $discountAmount = $this->calculateDiscount($discount, $amountPence);
+        $discountAmount = $this->calculateDiscount($discount, $amountPence, $planSlug, $billingCycle);
         $finalAmount = max(0, $amountPence - $discountAmount);
 
         $description = match ($discount->type) {
@@ -111,15 +115,39 @@ class DiscountCodeService
 
     /**
      * Calculate the discount amount in pence.
+     *
+     * $planSlug and $billingCycle are required for 'lifecycle_welcome' type
+     * (which stores per-plan-per-cycle amounts in metadata->plan_amounts).
      */
-    public function calculateDiscount(DiscountCode $discount, int $amountPence): int
-    {
+    public function calculateDiscount(
+        DiscountCode $discount,
+        int $amountPence,
+        ?string $planSlug = null,
+        ?string $billingCycle = null
+    ): int {
         return match ($discount->type) {
             'percentage' => (int) round($amountPence * $discount->value / 100),
             'fixed_amount' => min($discount->value, $amountPence),
+            'lifecycle_welcome' => $this->calculateLifecycleWelcomeDiscount($discount, $amountPence, $planSlug, $billingCycle),
             'trial_extension' => 0,
             default => 0,
         };
+    }
+
+    private function calculateLifecycleWelcomeDiscount(
+        DiscountCode $discount,
+        int $amountPence,
+        ?string $planSlug,
+        ?string $billingCycle
+    ): int {
+        if ($planSlug === null || $billingCycle === null) {
+            return 0;
+        }
+
+        $key = "{$planSlug}.{$billingCycle}";
+        $amount = $discount->metadata['plan_amounts'][$key] ?? 0;
+
+        return min((int) $amount, $amountPence);
     }
 
     private function invalid(string $message): array

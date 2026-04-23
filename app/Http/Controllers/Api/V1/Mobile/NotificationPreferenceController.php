@@ -31,6 +31,12 @@ class NotificationPreferenceController extends Controller
                     'security_alerts' => $prefs->security_alerts,
                     'payment_alerts' => $prefs->payment_alerts,
                     'mortgage_rate_alerts' => $prefs->mortgage_rate_alerts,
+                    'estate_alerts' => $prefs->estate_alerts,
+                    'lifecycle_empty_trialer' => $prefs->lifecycle_empty_trialer,
+                    'lifecycle_engaged_trialer' => $prefs->lifecycle_engaged_trialer,
+                    'lifecycle_cancelled_trialer' => $prefs->lifecycle_cancelled_trialer,
+                    'lifecycle_churned_subscriber' => $prefs->lifecycle_churned_subscriber,
+                    'lifecycle_lapsed_subscriber' => $prefs->lifecycle_lapsed_subscriber,
                 ],
             ]);
         } catch (\Exception $e) {

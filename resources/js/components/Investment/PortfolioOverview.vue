@@ -409,8 +409,7 @@ export default {
     },
 
     getSpouseName() {
-      const user = this.$store.getters['auth/currentUser'];
-      return user?.spouse?.name || 'Spouse';
+      return this.$store.getters['userProfile/spouse']?.name || 'Spouse';
     },
 
     getIsaContributions(account) {

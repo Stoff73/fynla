@@ -21,13 +21,23 @@
       class="flex flex-col min-h-screen transition-all duration-300 ease-out"
       :class="contentMarginClass"
     >
-      <div ref="appHeader">
-        <Navbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
+      <!-- Header is sticky so the top nav stays visible while dashboards scroll under it.
+           Offset by 44px when the AdvisorBanner (fixed, z-50) is present so they don't overlap.
+           z-30 keeps it below modals (typically z-50) and the SideMenu (z-60). -->
+      <div
+        ref="appHeader"
+        class="sticky z-30 bg-eggshell-500"
+        :class="isImpersonating ? 'top-[44px]' : 'top-0'"
+      >
+        <AppNavbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
 
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />
 
-        <SubNavBar />
+        <!-- SubNavBar hidden globally — sibling tabs now live in the left sidebar and
+             per-page CTAs live inline on each page. The component and subNavConfig.js
+             are kept intact for easy re-enable (set v-if="true"). -->
+        <SubNavBar v-if="false" />
 
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
@@ -47,7 +57,7 @@
         </div>
       </main>
 
-      <Footer ref="appFooter" />
+      <AppFooter ref="appFooter" />
     </div>
 
     <!-- Docked Fyn Chat (real users, desktop) — fixed to right edge, below navbar, stops at footer -->
@@ -96,6 +106,7 @@
     <PlanSelectionModal
       v-if="showTrialExpiredModal && !isOnCheckoutRoute"
       :dismissable="planModalDismissable"
+      :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
       @close="handleTrialModalClose"
     />
@@ -104,6 +115,7 @@
     <PlanSelectionModal
       v-if="showPlanModal && !showTrialExpiredModal"
       :current-plan="activePlanSlug"
+      :prefill-discount-code="lifecycleDiscountCode"
       @select="handlePlanSelect"
       @close="showPlanModal = false"
     />
@@ -112,8 +124,8 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
-import Navbar from '@/components/Navbar.vue';
-import Footer from '@/components/Footer.vue';
+import AppNavbar from '@/components/AppNavbar.vue';
+import AppFooter from '@/components/AppFooter.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
 import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
@@ -137,8 +149,8 @@ export default {
   name: 'AppLayout',
 
   components: {
-    Navbar,
-    Footer,
+    AppNavbar,
+    AppFooter,
     PreviewBanner,
     TrialCountdownBanner,
     DataRetentionOverlay,
@@ -201,6 +213,15 @@ export default {
     // and grace-period overlays so the user can actually reach the Revolut widget.
     isOnCheckoutRoute() {
       return this.$route.path === '/checkout' || this.$route.name === 'Checkout';
+    },
+
+    // When a user arrives from a lifecycle email magic link, the controller
+    // redirects them to /dashboard with ?lifecycle_discount=CODE. This
+    // computed reads the query param so PlanSelectionModal can pre-populate
+    // its discount field (via the prefill-discount-code prop).
+    lifecycleDiscountCode() {
+      const value = this.$route.query.lifecycle_discount;
+      return typeof value === 'string' ? value : '';
     },
   },
 
@@ -350,11 +371,15 @@ export default {
       this.showTrialExpiredModal = false;
     },
 
-    handlePlanSelect({ plan, billingCycle, isUpgrade }) {
+    handlePlanSelect({ plan, billingCycle, isUpgrade, discountCode }) {
       this.showTrialExpiredModal = false;
       this.showPlanModal = false;
       const upgradeParam = isUpgrade ? '&upgrade=true' : '';
-      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}`);
+      // Thread the discount code through to the checkout page — its
+      // prefilledDiscountCode computed reads $route.query.discount and
+      // auto-validates + applies before creating the Revolut order.
+      const discountParam = discountCode ? `&discount=${encodeURIComponent(discountCode)}` : '';
+      this.$router.push(`/checkout?plan=${plan}&cycle=${billingCycle}${upgradeParam}${discountParam}`);
     },
   },
 };

@@ -21,6 +21,9 @@ const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
 const AdvisorsPage = () => import('@/views/Public/AdvisorsPage.vue');
 const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
+const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
+const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
+const NotFoundPage = () => import('@/views/Public/NotFoundPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
 const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
@@ -212,6 +215,42 @@ const routes = [
     path: '/how-it-works',
     name: 'HowItWorks',
     component: HowItWorksPage,
+    meta: { public: true },
+  },
+  {
+    path: '/quickstart',
+    name: 'QuickStart',
+    component: QuickStartPage,
+    meta: { public: true },
+  },
+  {
+    path: '/savetax',
+    name: 'CampaignSaveTax',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/biggerpension',
+    name: 'CampaignBiggerPension',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/paymortgage',
+    name: 'CampaignPayMortgage',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/managedebt',
+    name: 'CampaignManageDebt',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/wealth',
+    name: 'CampaignWealth',
+    component: CampaignPage,
     meta: { public: true },
   },
   {
@@ -542,6 +581,19 @@ const routes = [
         { label: 'Home', path: '/dashboard' },
         { label: 'Profile', path: '/profile' },
         { label: 'Invoice', path: '' },
+      ],
+    },
+  },
+  {
+    path: '/profile/notifications',
+    name: 'NotificationPreferences',
+    component: () => import('@/components/UserProfile/NotificationPreferences.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Profile', path: '/profile' },
+        { label: 'Notifications', path: '/profile/notifications' },
       ],
     },
   },
@@ -1277,6 +1329,12 @@ const routes = [
       { path: 'module/coordination', name: 'MobileCoordinationDetail', component: CoordinationDetail, meta: { title: 'Coordination' } },
     ],
   },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFoundPage,
+    meta: { public: true },
+  },
 ];
 
 // Router base path is configurable via environment variable
@@ -1444,6 +1502,14 @@ router.afterEach((to) => {
 
   // Fetch requirements for this module
   store.dispatch('infoGuide/fetchRequirements', module);
+});
+
+// Keep the browser tab title as a simple "Fynla" on every SPA navigation.
+// The base blade template still ships the long marketing title for SEO
+// crawlers that don't execute JS — this hook only overrides what users see
+// in their tab once Vue has hydrated.
+router.afterEach(() => {
+  document.title = 'Fynla';
 });
 
 // Analytics: track page views on every route change

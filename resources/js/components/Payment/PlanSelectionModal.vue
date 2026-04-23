@@ -203,6 +203,13 @@ export default {
       type: Boolean,
       default: false,
     },
+    // When set (e.g. from a lifecycle magic link), pre-populates the
+    // discount code field and auto-opens the "Have a discount code?"
+    // section so the user can review it before picking a plan.
+    prefillDiscountCode: {
+      type: String,
+      default: '',
+    },
   },
 
   data() {
@@ -271,6 +278,10 @@ export default {
   },
 
   mounted() {
+    if (this.prefillDiscountCode) {
+      this.discountCode = this.prefillDiscountCode;
+      this.showDiscountField = true;
+    }
     this.fetchPlans();
   },
 

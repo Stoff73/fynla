@@ -49,14 +49,14 @@ describe('storeAccount with inline holdings', function () {
 
         $etf = $holdings->where('asset_type', 'etf')->first();
         expect($etf->security_name)->toBe('Vanguard FTSE All-World');
-        expect($etf->allocation_percent)->toBe(60.0);
-        expect($etf->current_value)->toBe(30000.0);
-        expect($etf->cost_basis)->toBe(25000.0);
+        expect((float) $etf->allocation_percent)->toBe(60.0);
+        expect((float) $etf->current_value)->toBe(30000.0);
+        expect((float) $etf->cost_basis)->toBe(25000.0);
 
         $cash = $holdings->where('asset_type', 'cash')->first();
         expect($cash->security_name)->toBe('Cash');
-        expect($cash->allocation_percent)->toBe(15.0);
-        expect($cash->current_value)->toBe(7500.0);
+        expect((float) $cash->allocation_percent)->toBe(15.0);
+        expect((float) $cash->current_value)->toBe(7500.0);
     });
 
     it('creates account without holdings when none provided', function () {
@@ -142,6 +142,6 @@ describe('storeAccount with inline holdings', function () {
 
         $account = InvestmentAccount::where('user_id', $this->user->id)->first();
         expect($account->holdings)->toHaveCount(1);
-        expect($account->holdings->first()->allocation_percent)->toBe(100.0);
+        expect((float) $account->holdings->first()->allocation_percent)->toBe(100.0);
     });
 });

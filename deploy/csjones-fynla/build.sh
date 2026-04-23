@@ -44,6 +44,26 @@ export VITE_AWIN_FALLBACK_PIXEL=https://www.awin1.com/sread.img
 # layouts and the /insights/:slug catch-all route are always testable here.
 export VITE_INSIGHTS_CMS_ENABLED=true
 
+# Revolut environment — dev always targets the sandbox SDK + API so we can
+# smoke-test the subscribe flow with test cards without billing real money.
+# CheckoutPage.vue reads this at build time and dead-code-eliminates the
+# branch that loads https://merchant.revolut.com/embed.js, leaving only the
+# sandbox URL (https://sandbox-merchant.revolut.com/embed.js) in the bundle.
+# Must be kept in sync with REVOLUT_SANDBOX=true in the dev server's .env —
+# a mismatch produces a 404 'Order not found' from the widget because
+# sandbox tokens don't resolve against live Revolut.
+export VITE_REVOLUT_SANDBOX=true
+
+# Revolut sandbox public key for the csjones.co/fynla merchant account.
+# pk_ values are considered public by Revolut (they are safe to expose in
+# client-side bundles) but must match the merchant that REVOLUT_API_KEY on
+# the dev server belongs to, otherwise the widget gets 403 on
+# /api/public/checkout-widget-appearance and /api/public/available-payment-methods.
+# If left unset here, Vite inherits VITE_REVOLUT_PUBLIC_KEY from the builder's
+# local .env — which may point at a different merchant and break the widget
+# on the dev server. Hardcoding here keeps dev builds reproducible.
+export VITE_REVOLUT_PUBLIC_KEY=pk_D2JdE2srRipv0jdHerivLw1hMoWSrjqDa4lEozJxTwchuG04
+
 echo "Environment:"
 echo "  NODE_ENV: $NODE_ENV"
 echo "  VITE_BASE_PATH: $VITE_BASE_PATH"
@@ -51,6 +71,7 @@ echo "  VITE_ROUTER_BASE: $VITE_ROUTER_BASE"
 echo "  VITE_API_BASE_URL: $VITE_API_BASE_URL"
 echo "  VITE_AWIN_ENABLED: $VITE_AWIN_ENABLED"
 echo "  VITE_INSIGHTS_CMS_ENABLED: $VITE_INSIGHTS_CMS_ENABLED"
+echo "  VITE_REVOLUT_SANDBOX: $VITE_REVOLUT_SANDBOX"
 echo ""
 
 # Build frontend assets
@@ -76,14 +97,26 @@ echo "============================================="
 echo "Manual Upload via SiteGround File Manager:"
 echo "============================================="
 echo ""
+echo "csjones.co uses the sibling-dir layout — the Laravel app lives at"
+echo "~/www/csjones.co/fynla-app/ and public_html/fynla is a SYMLINK to"
+echo "fynla-app/public (not the app root). Upload / cd targets below."
+echo ""
 echo "1. Upload public/build/ directory to:"
-echo "   ~/www/csjones.co/public_html/fynla/public/build/"
+echo "   ~/www/csjones.co/fynla-app/public/build/"
+echo ""
+echo "   Preserve-old-chunks pattern (keeps in-flight sessions alive):"
+echo "     cd ~/www/csjones.co/fynla-app"
+echo "     rm -rf public/build.old"
+echo "     mv public/build public/build.old"
+echo "     # upload new public/build/ here via File Manager or rsync"
+echo "     cp -rn public/build.old/. public/build/"
 echo ""
 echo "2. Upload any changed PHP files (check deployment notes)"
 echo ""
 echo "3. SSH to server and clear caches:"
-echo "   cd ~/www/csjones.co/public_html/fynla"
-echo "   php artisan cache:clear && php artisan route:clear && php artisan config:clear"
+echo "   ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co"
+echo "   cd ~/www/csjones.co/fynla-app"
+echo "   php artisan cache:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan optimize"
 echo ""
 echo "DO NOT run 'npm install' or 'npm run build' on the server!"
 echo ""

@@ -65,6 +65,11 @@ export default {
         { key: 'security_alerts', label: 'Security Alerts', description: 'Login attempts and security changes' },
         { key: 'payment_alerts', label: 'Payment Alerts', description: 'Subscription payment confirmations' },
         { key: 'mortgage_rate_alerts', label: 'Mortgage Rate Alerts', description: 'Warnings when fixed rates are expiring' },
+        { key: 'lifecycle_empty_trialer', label: 'Trial Re-engagement', description: 'Invitations to come back if your trial expires unused' },
+        { key: 'lifecycle_engaged_trialer', label: 'Trial Discount Offers', description: 'Discount offers if your trial expires after using the app' },
+        { key: 'lifecycle_cancelled_trialer', label: 'Trial Cancellation Feedback', description: 'Brief feedback request after cancelling a trial' },
+        { key: 'lifecycle_churned_subscriber', label: 'Subscription Cancellation Feedback', description: 'Brief feedback request after cancelling a subscription' },
+        { key: 'lifecycle_lapsed_subscriber', label: 'Payment Recovery', description: 'Help with renewing your subscription if a payment fails' },
       ],
     };
   },

@@ -36,42 +36,54 @@ const getters = {
     const currentUser = rootGetters['auth/user'];
     if (!currentUser) return null;
 
+    // Ensures every return path below has a resolved `name` field — callers
+    // across the app read `spouse.name` (donut titles, tooltip breakdowns,
+    // beneficiary dropdowns, joint-ownership labels). Missing `name` is the
+    // "Partner" / "Spouse" regression that keeps coming back.
+    const withName = (s) => {
+      if (!s) return s;
+      const name = s.name
+        || [s.first_name, s.last_name].filter(Boolean).join(' ').trim();
+      return { ...s, name: name || s.name || '' };
+    };
+
     // Try to find spouse in family members (has details like date_of_birth, name)
     const spouseInFamily = state.familyMembers.find(member => member.relationship === 'spouse');
 
     // If spouse_id is set (account linking completed), use it as the canonical ID
     if (currentUser.spouse_id) {
       if (spouseInFamily) {
-        return {
+        return withName({
           ...spouseInFamily,
           id: currentUser.spouse_id,
-        };
+        });
       }
 
       if (currentUser.spouse) {
-        return {
+        return withName({
           id: currentUser.spouse_id,
           first_name: currentUser.spouse.first_name || '',
           last_name: currentUser.spouse.last_name || currentUser.spouse.surname || '',
+          name: currentUser.spouse.name || '',
           email: currentUser.spouse.email,
           relationship: 'spouse',
-        };
+        });
       }
 
-      return {
+      return withName({
         id: currentUser.spouse_id,
         first_name: '',
         last_name: '',
         relationship: 'spouse',
-      };
+      });
     }
 
     // No spouse_id but spouse exists as family member (entered during onboarding without account linking)
     if (spouseInFamily) {
-      return {
+      return withName({
         ...spouseInFamily,
         id: spouseInFamily.linked_user_id || null,
-      };
+      });
     }
 
     return null;
