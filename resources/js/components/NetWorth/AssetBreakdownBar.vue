@@ -42,11 +42,65 @@ export default {
       type: Number,
       default: 0,
     },
+    // Joint-user props. When all four are provided the chart renders a custom
+    // tooltip that breaks each category total down by person.
+    userBreakdown: {
+      type: Object,
+      default: null,
+    },
+    spouseBreakdown: {
+      type: Object,
+      default: null,
+    },
+    userLiabilities: {
+      type: Object,
+      default: null,
+    },
+    spouseLiabilities: {
+      type: Object,
+      default: null,
+    },
+    userName: {
+      type: String,
+      default: '',
+    },
+    spouseName: {
+      type: String,
+      default: '',
+    },
   },
 
   computed: {
     chartKey() {
-      return `bar-${this.totalAssets}-${this.totalLiabilities}`;
+      return `bar-${this.totalAssets}-${this.totalLiabilities}-${this.isJoint ? 'j' : 's'}`;
+    },
+
+    // True when the parent has passed per-user breakdowns alongside the combined
+    // ones. In that case the default tooltip is swapped for a per-user split.
+    isJoint() {
+      return this.userBreakdown !== null && this.spouseBreakdown !== null;
+    },
+
+    // Map from the human-readable category label (which ApexCharts shows on the
+    // x-axis) to the user/spouse values for that same category. Used by the
+    // custom tooltip.
+    categoryLookup() {
+      const u = this.userBreakdown || {};
+      const s = this.spouseBreakdown || {};
+      const uL = this.userLiabilities || {};
+      const sL = this.spouseLiabilities || {};
+      return {
+        'Pensions': { user: u.pensions || 0, spouse: s.pensions || 0 },
+        'Property': { user: u.property || 0, spouse: s.property || 0 },
+        'Investments': { user: u.investments || 0, spouse: s.investments || 0 },
+        'Cash': { user: u.cash || 0, spouse: s.cash || 0 },
+        'Business': { user: u.business || 0, spouse: s.business || 0 },
+        'Valuables': { user: u.chattels || 0, spouse: s.chattels || 0 },
+        'Mortgages': { user: uL.mortgages || 0, spouse: sL.mortgages || 0 },
+        'Loans': { user: uL.loans || 0, spouse: sL.loans || 0 },
+        'Credit Cards': { user: uL.credit_cards || 0, spouse: sL.credit_cards || 0 },
+        'Other Debt': { user: uL.other || 0, spouse: sL.other || 0 },
+      };
     },
 
     hasData() {
@@ -127,11 +181,39 @@ export default {
           strokeDashArray: 3,
         },
         dataLabels: { enabled: false },
-        tooltip: {
-          y: {
-            formatter: (val) => vm.formatCurrency(val),
+        tooltip: this.isJoint
+          ? {
+            custom: ({ dataPointIndex, w }) => {
+              const label = w.globals.labels[dataPointIndex];
+              const total = w.globals.series[0][dataPointIndex];
+              const split = vm.categoryLookup[label] || { user: 0, spouse: 0 };
+              const isLiability = total < 0;
+              const totalDisplay = vm.formatCurrency(Math.abs(total));
+              const userDisplay = vm.formatCurrency(split.user);
+              const spouseDisplay = vm.formatCurrency(split.spouse);
+              const color = isLiability ? '#E83E6D' : '#1F2A44';
+              return `
+                <div style="padding: 8px 12px; background: #ffffff; border: 1px solid #E5E5E5; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-family: 'Segoe UI', Inter, system-ui, sans-serif;">
+                  <div style="font-weight: 700; color: ${color}; margin-bottom: 6px; font-size: 13px;">${label}: ${totalDisplay}</div>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1F2A44;">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5854E6;"></span>
+                    <span style="flex: 1;">${vm.userName || 'You'}:</span>
+                    <span style="font-weight: 600;">${userDisplay}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1F2A44; margin-top: 2px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #20B486;"></span>
+                    <span style="flex: 1;">${vm.spouseName || 'Partner'}:</span>
+                    <span style="font-weight: 600;">${spouseDisplay}</span>
+                  </div>
+                </div>
+              `;
+            },
+          }
+          : {
+            y: {
+              formatter: (val) => vm.formatCurrency(val),
+            },
           },
-        },
         legend: { show: false },
       };
     },
