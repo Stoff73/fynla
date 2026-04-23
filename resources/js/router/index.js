@@ -1504,6 +1504,14 @@ router.afterEach((to) => {
   store.dispatch('infoGuide/fetchRequirements', module);
 });
 
+// Keep the browser tab title as a simple "Fynla" on every SPA navigation.
+// The base blade template still ships the long marketing title for SEO
+// crawlers that don't execute JS — this hook only overrides what users see
+// in their tab once Vue has hydrated.
+router.afterEach(() => {
+  document.title = 'Fynla';
+});
+
 // Analytics: track page views on every route change
 router.afterEach((to) => {
   analyticsService.trackPageView(to.name, to.path);

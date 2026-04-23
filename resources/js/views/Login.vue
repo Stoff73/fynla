@@ -217,7 +217,7 @@ export default {
 
     // Check for inactivity logout reason on mount
     onMounted(() => {
-      document.title = 'Sign In — Fynla';
+      document.title = 'Fynla';
       const meta = document.querySelector('meta[name="description"]');
       if (meta) meta.setAttribute('content', 'Sign in to your Fynla account to manage your financial plan, track investments, and monitor your net worth.');
 
