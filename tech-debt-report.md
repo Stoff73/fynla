@@ -1,56 +1,74 @@
-# Tech Debt Report — Session 66, 23 April 2026
+# Tech Debt Report — Session 67 (23 April 2026)
 
-**Scope:** session 66 commits (`a6cfa5a` … `eaea285`)
-**Files analysed:** 17 (1 PHP service, 15 frontend Vue/JS, 1 router)
+**Scope:** session 67 commits (`b361889` → `533b16b`) on `dev`
+**Files analysed:** 12 (11 modified Vue/JS + 1 Vuex store + 1 deleted Vue + 1 build script)
 **Issues found:** 3 (0 critical, 1 warning, 2 suggestions)
+
+Grep-based scans that came back clean:
+- Banned colour classes (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*` for general UI): none added
+- Hardcoded tax values (year strings, ISA/pension/IHT literals): none added
+- `console.log` / `debugger` / `dd(` leftovers: none added
+- Local `formatCurrency(...)` method redefinitions: none added
+- Scores / "X/100" / adequacy ratings in user-facing UI: none added
+- Missing `:key` on `v-for`: no new `v-for` loops added
 
 ## Critical Issues
 
-None. All 17 changed files are clean against the design system, no hardcoded tax values, no banned colour tokens, no duplicated mixin methods, no dead code introduced, no security surface added. Backend MC cache key change is self-invalidating by content. The unified pension form branches to the correct `createDCPension` / `createDBPension` / `updateStatePension` dispatch based on `_pensionType` — backend records stay 1:1 shape-identical to legacy form output, verified via live DB inspection on local dev.
+None.
 
 ## Warnings
 
-### 1. `DCPensionForm.vue` grew from 839 → ~1080 lines
+### 1. Hardcoded hex in `AssetBreakdownBar` custom tooltip
 
-- **File:** `resources/js/components/Retirement/DCPensionForm.vue`
-- **Category:** Complexity & Maintainability
-- **What's wrong:** The form was already over the project's 500-line threshold before session 66. Adding the Final Salary and State Pension conditional field groups pushed it further. The file now carries three unrelated form shapes (DC, DB, State) behind branched `handleSubmit` logic.
-- **Why it's a warning not critical:** The structure is intentionally flat — each conditional block is independently readable and the three `submit*` methods are short (≈30 lines each). Splitting prematurely would introduce cross-component prop/event plumbing for no clear benefit. Flag for future refactor when a fourth pension type or a third form variant lands.
-- **Suggested fix:** If this form continues to grow, extract `DBFieldsFragment.vue` and `StateFieldsFragment.vue` sub-components that DCPensionForm composes, keeping the header / dropdown / save logic in the shell. Not urgent.
+- **File:** `resources/js/components/NetWorth/AssetBreakdownBar.vue`
+- **Lines:** 194, 196, 197–198, 199, 203–204
+- **Category:** Convention Violation (CSS Governance, Key Rule #12)
+
+The per-user tooltip added for the joint bar chart renders inline styles into an ApexCharts `custom` tooltip string. The palette hex values are hardcoded rather than imported from `designSystem.js`:
+
+- `#E83E6D` raspberry-500 (liability label colour)
+- `#1F2A44` horizon-500 (asset label + body text)
+- `#5854E6` violet-500 (user dot)
+- `#20B486` spring-500 (spouse dot)
+- `#E5E5E5` light-gray (border — also used elsewhere pre-existing)
+
+Key Rule #12: "For dynamic chart colours, import from `designSystem.js`."
+
+**Suggested fix:**
+
+```js
+import { PRIMARY_COLORS, TEXT_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
+
+// inside the custom tooltip function:
+const color = isLiability ? PRIMARY_COLORS[500] : TEXT_COLORS.strong;
+// replace `#5854E6` with WARNING_COLORS[500], `#20B486` with SUCCESS_COLORS[500]
+```
+
+Non-blocking — values are correct palette colours, just not referenced symbolically so a future palette swap won't update the tooltip automatically.
 
 ## Suggestions
 
-### S1. Inline CTA row markup repeated across 7 pages
+### 2. Spouse-name fallback chain duplicated across three components
 
 - **Files:**
-  - `resources/js/components/NetWorth/BusinessInterestsList.vue` (lines ~41–51)
-  - `resources/js/components/NetWorth/ChattelsList.vue` (lines ~52–75)
-  - `resources/js/components/NetWorth/InvestmentList.vue` (lines ~116–139)
-  - `resources/js/components/NetWorth/LiabilitiesList.vue` (lines ~62–76)
-  - `resources/js/components/NetWorth/PensionList.vue` (lines ~313–344)
-  - `resources/js/components/NetWorth/PropertyList.vue` (lines ~36–49)
-  - `resources/js/views/Trusts/TrustsDashboard.vue` (lines ~17–39)
-- **Category:** Duplicate Code / Consistency
-- **What's wrong:** Each page carries the same `<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold …">` markup for the Add / Upload primary + secondary buttons. 14 button instances total. If button style ever changes (new design system revision, different icon set), we'd need to edit 7 files.
-- **Why it's a suggestion not a warning:** Per CLAUDE.md "three similar lines is better than a premature abstraction" — and each page's handlers are unique (`addProperty` vs `addLiability` vs `openAddModal` etc.), so a fully generic component would need slots or heavy prop-drilling. Current duplication is readable and local.
-- **Suggested fix (optional):** A simple `<InlineCtaRow :buttons="[{label, icon, style, onClick}]" />` component in `components/Shared/` would reduce each row from ~10 lines to ~3. Defer until the design system actually changes.
+  - `resources/js/components/NetWorth/NetWorthWealthSummary.vue` — `spouseUserName` computed
+  - `resources/js/components/Investment/PortfolioOverview.vue` — `getSpouseName` method
+  - `resources/js/components/UserProfile/LetterToSpouse.vue` — `spouseNameForLetter` computed
+- **Category:** Duplicate Code (cross-file)
 
-### S2. Minor spacing inconsistency between CTA rows
+All three implement the same pattern: read `userProfile/spouse` → build name from `first_name` + `last_name` → fall back to `auth user.spouse` inline object → fall back to a string literal. After the getter fix in `7e1739d` (the `userProfile/spouse` getter now always returns `name`), the fallback chains in each of these callers are largely redundant defensive code — `store.getters['userProfile/spouse']?.name` would suffice.
 
-- **Files:**
-  - `resources/js/components/NetWorth/PensionList.vue` — `mt-1` (under pension cards, next to projection chart)
-  - `resources/js/components/NetWorth/InvestmentList.vue` — `mt-1` (under account cards)
-  - Property-type pages (Property / Liabilities / Chattels / Business / Trusts) — `mb-4` (above list grid)
-- **Category:** Consistency
-- **What's wrong:** Retirement/Investments use `mt-1` (4px above the buttons); property-type pages use `mb-4` (16px below the buttons). The semantics differ (below cards vs above list) so the values aren't wrong, just slightly inconsistent visually.
-- **Suggested fix:** When the extraction in S1 lands, pick one convention. Not worth touching on its own.
+**Suggested fix (low priority):** collapse the three call sites to `store.getters['userProfile/spouse']?.name || 'Partner'` (or the component-specific fallback) now that the getter guarantees `name`. Kept the defensive chains this session to minimise blast radius while the root-cause fix landed.
 
-## Notes
+### 3. `DCPensionForm.hasAdditionalInfoData` may auto-expand on legacy `5.0` default
 
-- `RetirementProjectionService.php` — the new cache-key change intentionally keeps the Monte Carlo DB cache table schema untouched; new-format rows coexist with legacy-format rows. Legacy rows age out via the existing 24h TTL, or can be purged immediately via the optional SQL in `deployPensionFix.md`. No migration needed.
-- `UnifiedPensionForm.vue` went from a 3-tile router to a near-empty thin router. It still serves a purpose for the EDIT flow (routes `initialPensionType='db'` and `'state'` to the legacy per-type forms). If those legacy forms are ever folded into DCPensionForm too, this wrapper can be deleted entirely.
-- `SubNavBar.vue` and `subNavConfig.js` are kept alive despite being unreferenced from the render tree — intentional per the user's "hide, don't delete" instruction. One-char revert (`v-if="false"` → `v-if="true"`) brings them back.
+- **File:** `resources/js/components/Retirement/DCPensionForm.vue` — `hasAdditionalInfoData` method
+- **Category:** Inconsistency (potential surprise behaviour)
+
+The auto-expand logic checks `formData.expected_return_percent !== null && formData.expected_return_percent !== ''`. The initial default was changed from `5.0` to `null` in the same commit. Existing `dc_pensions` rows that have `expected_return_percent = 5.0` stored (from before this change) will auto-expand the "Additional information" section on edit — which is arguably correct (the row *does* have a stored return assumption) but wasn't the intent ("section only auto-expands when a user-provided value exists"). The legacy 5.0 came from the old default, not the user.
+
+**Suggested fix (optional):** if auto-expanding on 5.0 is a problem, either migrate existing 5.0 rows to null (one-off DB update) or treat 5.0 as the "default sentinel" in `hasAdditionalInfoData`. Likely not worth fixing unless users flag it. Noted for awareness.
 
 ---
 
-*Generated by tech-debt-session skill — session 66 audit*
+*Generated by tech-debt-session skill — 23 April 2026, session 67 scope*
