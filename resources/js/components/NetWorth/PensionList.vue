@@ -309,6 +309,33 @@
                   </svg>
                   <span>Defined Contribution fund depletes at age {{ fundDepletionAge }}</span>
                 </div>
+
+                <!-- Inline CTAs — moved out of the global SubNavBar. Same format and colours
+                     as the retired SubNavBar CTAs (raspberry primary + bordered secondary). -->
+                <div class="pension-cta-row">
+                  <button
+                    v-preview-disabled="'add'"
+                    type="button"
+                    @click="editingPension = null; initialPensionType = null; showPensionForm = true;"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Pension
+                  </button>
+                  <button
+                    v-preview-disabled
+                    type="button"
+                    @click="showUploadModal = true;"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-white text-horizon-500 border border-light-gray hover:bg-savannah-100"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Upload Statement
+                  </button>
+                </div>
               </div>
 
               <!-- Monte Carlo Chart (right column) -->
@@ -961,6 +988,17 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Inline CTA row at the bottom of the pension-cards column — replaces the
+   top-bar retirement CTAs. Right-aligned so the buttons sit on the edge
+   closest to the projection card. */
+.pension-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 /* Standalone Pension Cards */

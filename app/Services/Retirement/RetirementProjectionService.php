@@ -100,8 +100,11 @@ class RetirementProjectionService
         );
         $eventHash = $this->lifeEventCashFlowService->getEventHash($user->id, 'retirement');
 
-        // Cache key includes event hash so changes to life events invalidate cache
-        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y_e{$eventHash}";
+        // Cache key includes event hash AND simulation inputs so cache is self-invalidating:
+        // any change to pension value, contribution, or risk-derived return/volatility produces
+        // a new key. Prevents stale zero-results being served after a user adds their first pension.
+        $inputHash = md5("{$totalCurrentValue}:{$totalMonthlyContribution}:{$expectedReturn}:{$volatility}");
+        $cacheKey = "user_{$user->id}_pension_pot_{$yearsToRetirement}y_e{$eventHash}_i{$inputHash}";
 
         // Run Monte Carlo simulation (cached) with life event injections
         $simulation = $this->simulator->simulate(
@@ -172,8 +175,9 @@ class RetirementProjectionService
         $expectedReturn = $riskParams['expected_return_typical'] / 100;
         $volatility = $riskParams['volatility'] / 100;
 
-        // Cache key for individual pension projection
-        $cacheKey = "user_{$userId}_pension_{$pensionId}_{$yearsToRetirement}y";
+        // Cache key includes simulation inputs so edits to this pension produce a new key.
+        $inputHash = md5("{$currentValue}:{$monthlyContribution}:{$expectedReturn}:{$volatility}");
+        $cacheKey = "user_{$userId}_pension_{$pensionId}_{$yearsToRetirement}y_i{$inputHash}";
 
         // Run Monte Carlo simulation (cached)
         $simulation = $this->simulator->simulate(

@@ -21,13 +21,23 @@
       class="flex flex-col min-h-screen transition-all duration-300 ease-out"
       :class="contentMarginClass"
     >
-      <div ref="appHeader">
+      <!-- Header is sticky so the top nav stays visible while dashboards scroll under it.
+           Offset by 44px when the AdvisorBanner (fixed, z-50) is present so they don't overlap.
+           z-30 keeps it below modals (typically z-50) and the SideMenu (z-60). -->
+      <div
+        ref="appHeader"
+        class="sticky z-30 bg-eggshell-500"
+        :class="isImpersonating ? 'top-[44px]' : 'top-0'"
+      >
         <AppNavbar :subscription-data="subscriptionData" @toggle-chat="toggleChat" @open-plan-modal="showPlanModal = true" />
 
         <!-- Preview Mode Banner — always directly below nav -->
         <PreviewBanner v-if="isPreviewMode" />
 
-        <SubNavBar />
+        <!-- SubNavBar hidden globally — sibling tabs now live in the left sidebar and
+             per-page CTAs live inline on each page. The component and subNavConfig.js
+             are kept intact for easy re-enable (set v-if="true"). -->
+        <SubNavBar v-if="false" />
 
         <!-- Offline Indicator Banner -->
         <OfflineBanner />

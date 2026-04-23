@@ -19,7 +19,7 @@
 
 ### Outstanding from 65b
 
-- [ ] **Complete the in-flight checkout test** — CSJ's original session has the pre-fix `CheckoutPage-Dq2ZEZzV.js` in memory with the wrong pk. Needs a fresh incognito window to exercise the correct `CheckoutPage-CAePoYgl.js` chunk and confirm the full sandbox checkout flow works end-to-end.
+- [x] **Complete the in-flight checkout test** — CSJ's original session has the pre-fix `CheckoutPage-Dq2ZEZzV.js` in memory with the wrong pk. Needs a fresh incognito window to exercise the correct `CheckoutPage-CAePoYgl.js` chunk and confirm the full sandbox checkout flow works end-to-end.
 - [ ] **Clean up `public/build.old/` and `public/build.old2/`** on the dev server once ~24h have passed and no one is on a pre-rebuild session. `rm -rf` both.
 - [ ] **Before the next `dev → main` PR**, verify `deploy/fynla-org/build.sh` and production `.env` have the LIVE Revolut pk (not sandbox) baked in / present, so a future production rebuild from a developer's laptop doesn't accidentally ship a sandbox-pk build to prod.
 
