@@ -409,8 +409,22 @@ export default {
     },
 
     getSpouseName() {
+      // Source of truth: userProfile/spouse getter (built from family members /
+      // linked spouse account), NOT the auth user's spouse relation which is
+      // unreliably populated across login paths.
+      const spouse = this.$store.getters['userProfile/spouse'];
+      if (spouse) {
+        const name = [spouse.first_name, spouse.last_name].filter(Boolean).join(' ').trim();
+        if (name) return name;
+      }
       const user = this.$store.getters['auth/currentUser'];
-      return user?.spouse?.name || 'Spouse';
+      const inline = user?.spouse;
+      if (inline) {
+        const name = [inline.first_name, inline.last_name || inline.surname, inline.name]
+          .filter(Boolean).join(' ').trim();
+        if (name) return name;
+      }
+      return 'Spouse';
     },
 
     getIsaContributions(account) {
