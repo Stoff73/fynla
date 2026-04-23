@@ -16,7 +16,7 @@
     $links       = $links   ?? [
         ['label' => 'Privacy Policy',   'url' => 'https://fynla.org/privacy'],
         ['label' => 'Terms of Service', 'url' => 'https://fynla.org/terms'],
-        ['label' => 'Unsubscribe',      'url' => '#'],
+        ['label' => 'Unsubscribe',      'url' => 'https://fynla.org/unsubscribe'],
     ];
     $year        = $year        ?? date('Y');
     $addressLine = $addressLine ?? 'Registered in England &amp; Wales.';

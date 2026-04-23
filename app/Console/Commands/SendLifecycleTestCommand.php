@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Mail\Lifecycle\CountdownMail;
 use App\Mail\Lifecycle\DontMissOutMail;
+use App\Mail\Lifecycle\EndOfTrialMail;
 use App\Mail\Lifecycle\GetStartedMail;
 use App\Mail\Lifecycle\GreatJobMail;
 use App\Mail\Lifecycle\InsightsMail;
@@ -73,6 +75,17 @@ class SendLifecycleTestCommand extends Command
                 firstName: $demo['firstName'],
                 daysRemaining: $demo['daysRemaining'],
                 trialEndDate: $demo['trialEndDate'],
+            ),
+            'countdown'             => fn () => new CountdownMail(
+                firstName: $demo['firstName'],
+                daysRemaining: $demo['daysRemaining'],
+                trialEndDate: $demo['trialEndDate'],
+                discountCode: 'FYNLA15',
+                discountPercent: '15%',
+            ),
+            'end-of-trial'          => fn () => new EndOfTrialMail(
+                firstName: $demo['firstName'],
+                discountPercent: '15%',
             ),
             'we-havent-seen-you'    => fn () => new WeHaventSeenYouMail(firstName: $demo['firstName']),
         ];
