@@ -1,7 +1,63 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 65b (CSP fix + Revolut pk alignment + .env syntax fix)*
-*Previous session: 23 April 2026 — session 65 (PR triage + dev server redeploy + intervention/image downgrade)*
+*Last updated: 23 April 2026 — session 66 (pension projection fix + unified add pension form + nav refresh)*
+*Previous session: 23 April 2026 — session 65b (CSP fix + Revolut pk alignment + .env syntax fix)*
+
+---
+
+## Session 66 (23 April evening) — pension projection + unified add pension + nav refresh
+
+PR [#225](https://github.com/Stoff73/fynla/pull/225) merged to `dev` as commit `6b7306d`, deployed + browser-tested on `csjones.co/fynla`, old builds cleaned up.
+
+### Completed
+
+#### The long-standing pension projection regression, fixed at the root
+- [x] **Reproduced the "pension added but projection shows £0" bug** live on `sarah@example.com` — the pension's fund value rendered correctly on the dashboard but `pension_pot_projection.percentile_20_at_retirement` and the year-by-year Monte Carlo array were all zeros. No console errors. The API returned structurally-valid data that happened to all be zero.
+- [x] **Traced the root cause to the Monte Carlo DB cache.** Cache key for `projectPensionPot` was `user_{id}_pension_pot_{years}y_e{eventHash}` — user, years-to-retirement, and life-event hash, but **not** the actual simulation inputs (start value, monthly contribution, return, volatility). When a brand-new user loaded the dashboard with zero pensions, `simulate(0, 0, …)` produced all zeros and cached them under that key. When the user added a pension, `simulate(50000, 500, …)` hit the same key and got the stale zeros back.
+- [x] **Fix: content-addressed cache key.** Hashed the four numeric inputs into the key (`md5("{startValue}:{monthly}:{return}:{vol}")`). Input changes → new key → fresh simulation. No observer wiring, no write-path coupling — which is why the previous attempts to fix this at the write side (observers, central `CacheInvalidationService`) kept regressing. Commit `a6cfa5a`. Same fix applied to `projectIndividualDCPension`.
+
+#### Unified Add Pension form (no more three-tile picker)
+- [x] **Replaced the tile picker** that had Money Purchase / Final Salary / State Pension with a single "Add Pension" form. Pension type dropdown now carries Occupational, SIPP, Personal, Stakeholder, **Final Salary (Defined Benefit)**, **State Pension** — all six in one place.
+- [x] **Conditional field groups** inside `DCPensionForm`: picking Final Salary swaps body to DB fields (scheme status, annual income, service years, accrual rate, revaluation rate, PCLS). Picking State Pension swaps to State fields (forecast weekly, qualifying years, NI gaps). Backend payload shapes mirror the legacy `DBPensionForm` / `StatePensionForm` outputs exactly — verified `db_pensions` and `state_pensions` records are identical whether captured via this unified form or edited via the legacy forms. Commit `5a7ecec`.
+- [x] **Onboarding scoped** — when `isOnboarding=true`, the two new dropdown options are hidden via `v-if="!isOnboarding"` so the onboarding DC pension step keeps its original 4-option dropdown and its `dc_pension` AI-fill wiring.
+- [x] **Edit flows untouched** — existing DB and State pension edits still render the legacy `DBPensionForm` / `StatePensionForm` via `initialPensionType` routing.
+
+#### SubNavBar hidden globally, CTAs moved inline
+- [x] **SubNavBar suppressed** (`v-if="false"` in `AppLayout.vue`). Component + `subNavConfig.js` kept intact — one-char revert to re-enable. Commit `88af49a`.
+- [x] **Retirement CTAs inline** under the pension list, right-aligned next to the projection chart (same raspberry / bordered styling as the old SubNavBar). Commit `618e0ba`.
+- [x] **Investments CTAs inline** at the bottom of the accounts column (same convention as retirement).
+- [x] **Property-type pages CTAs** top-right of the list on Property, Liabilities, Personal Valuables, Business, Trusts, Goals.
+- [x] **Duplicate CTAs resolved** — Cash and Protection already had inline buttons (hiding the SubNavBar removes the duplicates). `GoalsOverview` had its own quick-add row that would have doubled with the new tab-header Add Goal — removed.
+- [x] **Life Events** uses `EventsTab`'s own internal Add button — not duplicated in the tab header.
+
+#### Sticky top nav
+- [x] **AppNavbar wrapper** is now `sticky top-0 z-30 bg-eggshell-500` in `AppLayout.vue`. Dashboards scroll under it; nav always visible. Offsets to `top-[44px]` when the AdvisorBanner is active during advisor impersonation. Docked-chat `headerOffset` calculation continues to work — as a bonus, the chat no longer jumps upward as the user scrolls since the header bottom edge stops moving. Commit `2901b30`.
+
+#### Investment account detail projection fix (same session, different shape)
+- [x] **Found and fixed a matching-but-different projection bug** — clicking into an investment account card showed "Failed to load projection data" with `TypeError: investmentService.getAccountProjections is not a function` in console. Not a cache bug — the frontend service method itself was missing (likely removed by commit `d635d36`'s dead-code sweep and never restored by the `b0ad5ad` revert). Backend route + controller were fine. Added the method back with optional `risk_level` param for the what-if feature the backend already supports. Commit `f2ba360`.
+
+#### Small UX polish
+- [x] **Browser tab always reads "Fynla"** — `Login.vue` was setting `document.title = 'Sign In — Fynla'` on mount and nothing reset it post-login, so the tab label stuck as "Sign In — Fynla" across the whole authenticated session. Login.vue now sets `'Fynla'`, and a `router.afterEach` hook keeps the tab title as `'Fynla'` on every SPA navigation. Blade template's long marketing title untouched for SEO crawlers. Commit `e653180`.
+
+#### Deploy + docs
+- [x] **PR #225 opened, pushed through 8 commits, admin-merged to `dev`** as merge commit `6b7306d`.
+- [x] **`April/April23Updates/deployPensionFix.md`** — upload checklist, SSH command sequence, 7-part smoke-test plan, rollback, optional SQL purge for legacy MC cache rows. Mirrored to vault.
+- [x] **`April/April23Updates/patchPensionInvest.md`** — end-user patch notes (plain English, no tech jargon). Mirrored to vault.
+- [x] **Dev server deployed + browser-tested by CSJ.** All 7 smoke-test sections passed. Old `public/build.old` and `public/build.old2` directories removed from `~/www/csjones.co/fynla-app/public/` — freed ~23MB.
+
+### Outstanding from session 66
+
+- [ ] **Cut `dev → main` PR when ready.** This deploy passes all smoke tests on dev. Production cut-over guidance is in `deployPensionFix.md` §Production cut-over. Must include PR #224 (intervention/image v3 downgrade) carried through — verified by running `composer show intervention/image` on dev reporting `3.11.7`.
+- [ ] **Optional SQL purge on production after the dev→main cut** to age out legacy MC cache keys immediately (otherwise 24h wait):
+  ```sql
+  DELETE FROM monte_carlo_cache WHERE cache_key LIKE '%pension_pot_%' AND cache_key NOT LIKE '%_i%';
+  ```
+
+### Outstanding from 65b (carried forward)
+
+- [x] **Complete the in-flight checkout test** — ticked at session 66 start after CSJ confirmed it was done.
+- [x] **Clean up `public/build.old/` and `public/build.old2/`** on the dev server — done at end of session 66.
+- [ ] **Before the next `dev → main` PR**, verify `deploy/fynla-org/build.sh` and production `.env` have the LIVE Revolut pk (not sandbox) baked in / present, so a future production rebuild from a developer's laptop doesn't accidentally ship a sandbox-pk build to prod.
 
 ---
 
@@ -20,7 +76,7 @@
 ### Outstanding from 65b
 
 - [x] **Complete the in-flight checkout test** — CSJ's original session has the pre-fix `CheckoutPage-Dq2ZEZzV.js` in memory with the wrong pk. Needs a fresh incognito window to exercise the correct `CheckoutPage-CAePoYgl.js` chunk and confirm the full sandbox checkout flow works end-to-end.
-- [ ] **Clean up `public/build.old/` and `public/build.old2/`** on the dev server once ~24h have passed and no one is on a pre-rebuild session. `rm -rf` both.
+- [x] **Clean up `public/build.old/` and `public/build.old2/`** on the dev server once ~24h have passed and no one is on a pre-rebuild session. `rm -rf` both. *Done end of session 66 — freed ~23MB.*
 - [ ] **Before the next `dev → main` PR**, verify `deploy/fynla-org/build.sh` and production `.env` have the LIVE Revolut pk (not sandbox) baked in / present, so a future production rebuild from a developer's laptop doesn't accidentally ship a sandbox-pk build to prod.
 
 ---
