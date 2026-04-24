@@ -1,58 +1,75 @@
 # CSJTODO — Fynla
 
-*Last updated: 18 April 2026 — session 62*
-*Previous session: 17 April 2026 — sessions 60-61*
+*Last updated: 23 April 2026 — session 63*
+*Previous session: 18 April 2026 — session 62*
 
 ---
 
-## Session 62 (18 April) — Admin Insights CMS rollout + production recovery
+## Session 63 (23 April) — Lifecycle email system: foundation, 11 emails, test sends
 
 ### Completed This Session
 
-- [x] **Admin dashboard redesign** — two sections (Users / AI), 6 clickable summary cards with deltas since previous admin login (`user_sessions` driven), right padding clears the Fyn chat panel. Icons removed per request.
-- [x] **Category expansion** — 10 categories total. Added `ai`, `fintech`, `developer`, `financial-planning`, `international`; renamed `tax-changes` → `tax`. Migration widens-then-narrows the enum and rewrites legacy rows. Validation + factory + admin dropdowns + public hub filters + article page label map all updated.
-- [x] **CMS rename** — AdminPanel sidebar "Insights" → "CMS"; admin article list heading "Content Management System".
-- [x] **Summary UX** — stopped rendering as article footer; helper copy beneath the Summary field.
-- [x] **Image block UX** — inline helper copy for upload formats/size/alt purpose/alignment semantics. Save-fail alert now surfaces field-level errors. `BlockValidator` rejects empty/whitespace `path` or `alt`.
-- [x] **Public article layout** — hero image full-width with title + subtitle overlaid bottom-left (gradient for legibility, category chip top-right). Fallback header with category inline right of title when no hero. `flow-root` contains floated images; wrapping paragraph tops align with image top.
-- [x] **Preview auth fix** — `InsightController::show` resolves admin via the Sanctum guard so `?preview=true` returns drafts. Public draft requests still 404.
-- [x] **Featured endpoint** — no longer falls back to latest published. Returns `featured: null` when nothing flagged.
-- [x] **Multi-author byline** — new nullable `authors` JSON column (Brett Isenberg, Azlan Raj, Chris Slater-Jones allow-list). Admin editor has checkbox group; public article renders "By X" / "By X and Y" / "By X, Y and Z" inline with the publish date.
-- [x] **Rich-text toolbar** — new Tiptap-based `RichTextEditor.vue` shared across heading / paragraph / list / pull quote / callout / key takeaways. Bold, italic, underline, inline link + preset font-size and text-colour marks emitting Tailwind classes on a 7-value allow-list. Backend + DOMPurify scrub `<span>` attributes to the same allow-list.
-- [x] **Block chrome stripped** — quote / callout / takeaways no longer render tinted backgrounds, left accents, or rounded card corners (icon tints kept).
-- [x] **Self-healing seeder** — `ExistingInsightsMetadataSeeder` now copies `resources/js/assets/insights/*.jpg` into `storage/app/public/insights/bespoke/` on every run and sets `hero_image_*_path` on all 8 bespoke articles. Idempotent — existing files in target are not overwritten, so CMS-uploaded replacements survive.
-- [x] **Production deploy** — PR #219 merged to `main` (admin override, branch deleted). 62 commits. Deployed: 85 PHP/Vue/config files via SSH, 5 migrations run, `storage:link` created, 8 bespoke hero images copied into storage, DB paths populated, `how-much-to-retire-uk` flagged featured, caches cleared. Verified end-to-end on fynla.org — landing, hub, bespoke article pages all render with images and no errors.
-- [x] **Session 61 tooling audit committed** — `.claude/` agents + skills + CLAUDE.md edits carried over from yesterday landed as commit `062c7c7` on main.
-- [x] **Deploy guide** — `April/April18Updates/deployCMS.md` written and iterated with accurate post-incident guidance (flag=true as default, self-healing seeder, storage:link requirement). Mirrored to vault.
-- [x] **Vault sync** — `Apr18.md` (14 commits) created, `Apr2026 Commits.md` bumped, `Home.md` commit counts updated, `April Index.md` session 62 entry added.
+- [x] **Email template foundation committed** (`9ee42f95`) — `resources/views/emails/layouts/master.blade.php` (slot-based 600px container, eggshell inside / white outside) + 19 module partials (`logo-bar`, `hero-header`, `gradient-header`, `body`, `code-box`, `notice`, `summary-table`, `stats-panel`, `numbered-steps`, `discount-panels`, `top-tips`, `badge`, `bullet-list`, `counter`, `feature-grid`, `cta`, `divider`, `description-box`, `console-box`, `signoff`, `footer`) + `.claude/skills/email-template/SKILL.md` codifying 7 design rules.
+- [x] **9 lifecycle Mailables + Blades committed** (`92da2fe6`) — Welcome, GetStarted, DontMissOut, Insights, GreatJob, WellDone, SubscribeInProgress, SubscribeMaxDiscount, WeHaventSeenYou. All extend `LifecycleMail` base with the `utm()` helper so every CTA URL carries `utm_source=email&utm_medium=lifecycle&utm_campaign={slug}&utm_content={cta-id}`.
+- [x] **2 more lifecycle emails** (`af546f1e`) — Countdown ("Time's running out" with discount code panel) + EndOfTrial ("Your free trial has ended"), bringing total to **11 lifecycle emails**.
+- [x] **Test-send artisan command** (`php artisan mail:send-lifecycle-test {email} [--only=slug,slug]`) — auto-registered, demo data (James / Save Tax / 3 days / trial ends 26 April / 50% / 75% / 20%), supports `--only` for subset sends.
+- [x] **11 emails test-sent to azlan@fynla.org** via local mail.fynla.org SMTP — all delivered, 2 follow-up bugs found and fixed:
+  - Footer logo 404 (`LogoHiResWhite.png` → `LogoHiResFynlaLight.png`) — one-line module fix cascades to all 11.
+  - Great-job "Top tips" layout broke mid-email — root cause was `@include`-ing the `top-tips` module (which is itself a `<tr>`) inside another `<td>`, producing invalid `<tr>` nested in `<td>`. Fixed by unrolling the top-tips markup inline.
+  - Unsubscribe link rendered with Gmail's default blue/underline (ignoring inline `color:#b3b9c5; text-decoration:none;`) because `href="#"` was a placeholder. Fixed to `https://fynla.org/unsubscribe` (matches every existing Fynla email).
+- [x] **11 HTML mockups** at `public/mockups/emails/` (gitignored) for visual review — `index.html` lists all 11 with descriptions. URLs: `http://localhost:8000/mockups/emails/index.html`.
+- [x] **Product video v2** (`c2e790da`) — `/images/Homepage-Fynla-ProductVideo.mp4` → `/images/Homepage-Fynla-ProductVideov2.mp4` in 3 Vue files (LandingPage / CampaignPage / why-fynla/IndependentPage) + new 14 MB mp4 committed.
+- [x] **Customer bucketing categorisation** agreed with user — Registered (skipped, <10%), In-progress (11–99%), Completed (100%). % is journey-scoped (already shown on homepage). Implementation deferred until user shares the email scheduling flow.
 
 ### NOT Done — Outstanding
 
-- [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — deployed in session 58 but not browser-tested. Carried from session 58.
+- [ ] **Await Azlan's review feedback** on the 11 test emails — he'll flag any final visual/copy tweaks.
+- [ ] **Await email scheduling flow from user** — they're working out how to share the interwoven journey logic (flowchart/photo/per-bucket lists/spreadsheet all agreed as acceptable formats). Session 64 task.
+- [ ] **Implement customer bucket enum + observer** — once scheduling flow arrives: add `onboarding_bucket` enum column on `users`, observer to recompute on module-complete events, use in the scheduler to decide which track a user is on.
+- [ ] **Wire the 11 emails into Laravel Scheduler** — driven by the flowchart once received. Will need per-bucket triggers, delays, skip-if conditions.
+- [ ] **Dev deploy of lifecycle emails + product video v2** — `email-onboarding-video` branch is 5 commits ahead of `dev`/`main` with no deploy yet. Dev build was run this session (`./deploy/csjones-fynla/build.sh` produced 8.2 MB `public/build/`) but nothing uploaded to csjones.co.
+- [ ] **Upload `public/images/Homepage-Fynla-ProductVideov2.mp4`** to the server(s) alongside the Vue build — without this the page will 404 on the video source even after build uploads land.
+- [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — carried from session 58.
 - [ ] **Re-enable branch protection on `dev`** — carried from session 57.
-- [ ] **Add `Current State/Insights.md` to the vault** — mirrors the pattern of `Investment.md` / `EstatePlanning.md`. Should document block schema, image pipeline, feature-flag rollout history, and the seeder self-healing behaviour. Flagged during vault-sync; not auto-created.
-- [ ] **`AutoRiskCalculatorTest` pre-existing failure** — `risk_level` enum truncation. Not Insights-related. Carried from April 16.
+- [ ] **Add `Current State/Insights.md` to the vault** — carried from session 62.
+- [ ] **`AutoRiskCalculatorTest` enum truncation** — pre-existing, carried from April 16.
 
 ### Context for Next Session
 
-On `main` branch, clean working tree. Production is running the full Admin Insights CMS as of `062c7c7`. 8 bespoke articles published with hero images rendering correctly; one flagged featured. `/admin/insights` CMS ready for authors to use — hero image replacement via the CMS editor survives reseeds (seeder doesn't overwrite existing files).
+On `email-onboarding-video`, clean working tree, 5 commits ahead of `origin/email-onboarding-video` (now pushed). Azlan should have all 11 test emails in his inbox. Awaiting his review + the scheduling flow to wire the sequence up in the Laravel Scheduler.
 
-Next session start point: likely the "Insights current-state doc" write-up or another CMS-related follow-up (e.g. more authors added to the allow-list, additional bespoke hero image refinements, or replacing the `stocks-shares-isa-uk` placeholder).
+Next session start point: whatever Azlan comes back with on the 11 emails, then the scheduling flow itself (format TBD — user offered flowchart image, per-bucket numbered lists, spreadsheet, or Mermaid).
 
 ---
 
 ## Outstanding — Tech Debt Deferred
 
-- [ ] `AutoRiskCalculatorTest` enum truncation (pre-existing, not Insights-related).
+- [ ] **`LifecycleMail::utm()` hardcodes `https://fynla.org`** in concrete Mailables. For dev/prod URL isolation, switch to `config('app.url')` + a `utm_medium` override so csjones.co test sends don't leak to fynla.org links. Minor — only matters once emails fire from dev.
+- [ ] **No Pest tests for the 9+2 Mailables or `SendLifecycleTestCommand`** — scope was QA by inbox review, not automated tests. Add before scheduling work lands.
+- [ ] **Unsubscribe URL is static `/unsubscribe`** — real List-Unsubscribe implementation needs signed per-recipient tokens (RFC 8058) and a proper route/controller. For now all emails point at the same page.
+- [ ] **Email copy references hardcoded tax figures** (£60k AA, £20k ISA, £325k NRB, £3k gift exempt, 40% IHT) — marketing copy, will need a tax-year sweep when 2026/27 lands or values change. Not a `TaxConfigService` candidate because the copy itself is contextual not computational.
+- [ ] `AutoRiskCalculatorTest` enum truncation (pre-existing, not email-related).
 
 ## Known Issues
 
-None discovered this session that aren't already resolved or documented above.
+None discovered this session that aren't already fixed or documented above.
 
 ## Deploy Status
 
-**Production (fynla.org):** Running commit `a14f17a` (PR #219 merged) + `062c7c7` (tooling audit). Full Admin Insights CMS live with 8 bespoke articles. `VITE_INSIGHTS_CMS_ENABLED=true`. All images serving from `/storage/insights/bespoke/*.jpg`.
+**Production (fynla.org):** Unchanged since session 62 (commit `a14f17a` + tooling audit `062c7c7`). Full Admin Insights CMS live.
 
-**Dev (csjones.co/fynla):** Last deployed from `onboardingFyn` for Fyn chat testing — unchanged today. Not yet updated with the CMS merged to main; any future dev deploy should pick up main's state (ASK which branch the dev server is running before building per `feedback_dev_server_is_separate`).
+**Dev (csjones.co/fynla):** Last deployed from `onboardingFyn` (pre-CMS-merge state). Not updated this session.
 
-**Pending deploy:** none. Everything committed to main is in production.
+**Pending deploy (`email-onboarding-video`, 5 commits ahead):**
+- `9ee42f95` — email master layout + 19 modules + skill (PHP/blade only; no deploy impact on pages)
+- `92da2fe6` — 9 Mailables + 9 blade templates + UTM helper + test-send command (PHP only; deploy enables `php artisan mail:send-lifecycle-test` on server and the 9 Mailables become usable)
+- `c2e790da` — product video v2 (3 Vue files + 14 MB mp4) — **needs Vite build + `public/build/` upload + `public/images/Homepage-Fynla-ProductVideov2.mp4` upload**
+- `c1577071` — footer logo + great-job top-tips fix (blade only)
+- `af546f1e` — countdown + end-of-trial Mailables/Blades + unsubscribe URL fix (PHP only)
+
+Dev build already run this session — `public/build/` is at 8.2 MB targeting `csjones.co/fynla` base paths. Upload when ready.
+
+## Session 64+ Limitations Noted
+
+- **Vault sync skipped** — the `fynlaBrain` vault at `/Users/CSJ/Desktop/fynlaBrain/` does not exist on this Windows machine (session work is happening on `C:\Users\phail\...`). Session index + git history + update notes should be synced from the Mac when the user switches back. This session's five commits + CSJTODO should be carried over manually.
+- **Email mockups** under `public/mockups/emails/` are gitignored (per project `.gitignore`) and only exist locally on the Windows machine. They're review-only artefacts; the canonical source of truth is the Blade templates + module partials (which ARE committed).
