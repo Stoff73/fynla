@@ -24,7 +24,7 @@
     </source>
     <php>
         <ini name="error_reporting" value="22527"/>
-        <ini name="memory_limit" value="1G"/>
+        <ini name="memory_limit" value="4G"/>
         <env name="APP_ENV" value="testing"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
