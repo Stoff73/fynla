@@ -78,7 +78,6 @@ class Kernel extends HttpKernel
         'permission' => \App\Http\Middleware\HasPermission::class,
         'identify.mobile' => \App\Http\Middleware\IdentifyMobileClient::class,
         'etag' => \App\Http\Middleware\ETagResponse::class,
-        'agent.token' => \App\Http\Middleware\AgentTokenAuth::class,
         'advisor' => \App\Http\Middleware\AdvisorMiddleware::class,
         'advisor.impersonate' => \App\Http\Middleware\AdvisorImpersonationMiddleware::class,
         'feature' => \App\Http\Middleware\CheckFeatureAccess::class,
