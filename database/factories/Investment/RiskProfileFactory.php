@@ -22,7 +22,7 @@ class RiskProfileFactory extends Factory
         return [
             'user_id' => User::factory(),
             'risk_tolerance' => $riskTolerance,
-            'risk_level' => fake()->randomElement(['low', 'medium_low', 'medium', 'medium_high', 'high']),
+            'risk_level' => fake()->randomElement(['low', 'lower_medium', 'medium', 'upper_medium', 'high']),
             'capacity_for_loss_percent' => fake()->randomFloat(2, 10, 50),
             'time_horizon_years' => fake()->numberBetween(5, 40),
             'knowledge_level' => fake()->randomElement(['novice', 'intermediate', 'experienced']),
