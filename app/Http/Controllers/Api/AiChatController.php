@@ -8,9 +8,7 @@ use App\Agents\CoordinatingAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
-use App\Models\User;
-use App\Services\AI\FynPersonaOrchestrator;
-use App\Services\Onboarding\AssetCaptureEntityExtractor;
+use App\Services\AI\AdviceFyn;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Http\JsonResponse;
@@ -25,8 +23,7 @@ class AiChatController extends Controller
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingChatDirector $onboardingDirector,
-        private readonly FynPersonaOrchestrator $orchestrator,
-        private readonly AssetCaptureEntityExtractor $entityExtractor,
+        private readonly AdviceFyn $adviceFyn,
     ) {}
 
     /**
@@ -151,36 +148,22 @@ class AiChatController extends Controller
         $message = $request->input('message');
         $currentRoute = $request->input('current_route');
 
-        // Three-way dispatch:
+        // Two-way dispatch after the Sprint 0 two-Fyn collapse:
         //   1. Onboarding (mid-flow users) → OnboardingChatDirector — the
-        //      deterministic state machine.
-        //   2. Persona split (post-onboarding + flag on) → FynPersonaOrchestrator.
-        //   3. Default (flag off) → CoordinatingAgent::chat (pre-split behaviour).
+        //      deterministic state machine (handleInlineCapture handles any
+        //      mid-flow capture intent).
+        //   2. Post-onboarding → AdviceFyn — read-only tools only. Write
+        //      intents surface from onboarding, not from chat.
         $inOnboarding = $user->onboarding_completed === false
-            && $user->onboarding_fyn_step !== null
             && (bool) config('onboarding.fyn_flow_enabled', true);
 
-        $splitEnabled = (bool) config('fyn.persona_split_enabled', false);
-
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $splitEnabled) {
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding) {
             try {
-                $generator = match (true) {
-                    $inOnboarding => $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute),
-                    $splitEnabled => $this->orchestrator->dispatch($user, $conversation, $message, $currentRoute),
-                    default => $this->coordinatingAgent->chat($user, $conversation, $message, $currentRoute),
-                };
+                $generator = $inOnboarding
+                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute)
+                    : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute);
 
-                // B-1 — multi-entity gap-fill runs on EVERY chat turn regardless
-                // of which dispatch branch was taken. The director and invoker
-                // paths also gap-fill internally; the extractor's identity-key
-                // dedupe ensures we don't double-emit entities those paths
-                // already covered. This wrapper exists to cover the default
-                // CoordinatingAgent::chat path (flag off) which otherwise has
-                // no gap-fill layer — i.e. the normal Fyn Quick Chat on the
-                // dashboard today.
-                $wrapped = $this->wrapWithMultiEntityGapFill($generator, $user, $message);
-
-                foreach ($wrapped as $event) {
+                foreach ($generator as $event) {
                     echo 'data: '.json_encode($event)."\n\n";
 
                     if (ob_get_level() > 0) {
@@ -193,7 +176,6 @@ class AiChatController extends Controller
                     'user_id' => $user->id,
                     'conversation_id' => $conversation->id,
                     'in_onboarding' => $inOnboarding,
-                    'split_enabled' => $splitEnabled,
                     'error' => $e->getMessage(),
                 ]);
 
@@ -368,9 +350,9 @@ class AiChatController extends Controller
      *
      * Body: { action: 'resume' | 'continue' | 'restart' | 'skip' }
      *
-     * Actions are NOT persisted as AiMessage rows. Streams director or
-     * orchestrator events back to the client via SSE. Covered by the
-     * existing api/ai-chat/conversations/* prefix match in
+     * Actions are NOT persisted as AiMessage rows. Streams director
+     * events back to the client via SSE. Covered by the existing
+     * api/ai-chat/conversations/* prefix match in
      * PreviewWriteInterceptor::EXCLUDED_ROUTES.
      */
     public function action(Request $request, int $id): StreamedResponse|JsonResponse
@@ -436,175 +418,4 @@ class AiChatController extends Controller
         ]);
     }
 
-    /**
-     * B-1 — multi-entity gap-fill decorator.
-     *
-     * Wraps any chat generator so that after the LLM's stream completes, we
-     * parse the user's message deterministically, compare against the
-     * fill_form events the LLM actually emitted, and synthesise extra
-     * fill_form events (plus flanking tool_use markers) for every entity
-     * the LLM dropped.
-     *
-     * Focus is inferred from the entity_type on emitted fill_form events:
-     *   protection_policy → protection, savings_account → savings,
-     *   investment_account/holding → investment, pension → retirement.
-     * If no fill_form events were emitted (no LLM tool calls this turn),
-     * the wrapper is a no-op — we do NOT speculatively extract from
-     * arbitrary messages, only backstop tool calls the LLM already started.
-     *
-     * Idempotent with respect to upstream gap-fills — director and invoker
-     * paths also run their own gap-fill; extractor identity keys dedupe so
-     * their synthetic fills look "already emitted" to this wrapper.
-     *
-     * @param  \Generator<array<string, mixed>>  $generator
-     * @return \Generator<array<string, mixed>>
-     */
-    private function wrapWithMultiEntityGapFill(
-        \Generator $generator,
-        User $user,
-        string $message,
-    ): \Generator {
-        $emittedFills = []; // list of [focus, fields] tuples
-        $doneSeen = false;
-        $lastEvent = null;
-
-        foreach ($generator as $event) {
-            $type = $event['type'] ?? '';
-
-            if ($type === 'fill_form') {
-                $focus = $this->focusFromEntityType((string) ($event['entity_type'] ?? ''));
-                if ($focus !== null) {
-                    $emittedFills[] = ['focus' => $focus, 'fields' => (array) ($event['fields'] ?? [])];
-                }
-            }
-
-            if ($type === 'done') {
-                // Run gap-fill BEFORE forwarding done so the frontend queues
-                // synthetic fills in the same turn.
-                yield from $this->runControllerGapFill($user, $message, $emittedFills);
-                $doneSeen = true;
-            }
-
-            yield $event;
-            $lastEvent = $event;
-        }
-
-        // Safety net — generator exited without done (e.g. error path).
-        if (! $doneSeen && $emittedFills !== []) {
-            yield from $this->runControllerGapFill($user, $message, $emittedFills);
-        }
-    }
-
-    /**
-     * Group emitted fills by focus and fire the extractor once per focus,
-     * comparing against only that focus's emissions.
-     *
-     * @param  list<array{focus: string, fields: array<string, mixed>}>  $emittedFills
-     * @return \Generator<array<string, mixed>>
-     */
-    private function runControllerGapFill(User $user, string $message, array $emittedFills): \Generator
-    {
-        // Group by focus.
-        $byFocus = [];
-        foreach ($emittedFills as $f) {
-            $byFocus[$f['focus']][] = $f['fields'];
-        }
-
-        foreach ($byFocus as $focus => $llmEmittedFieldsList) {
-            $tool = $this->entityExtractor->toolNameForFocus($focus);
-            if ($tool === null) {
-                continue;
-            }
-
-            try {
-                $extracted = $this->entityExtractor->extractForFocus($focus, $message);
-                $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFieldsList);
-            } catch (\Throwable $e) {
-                Log::warning('[AiChatController] Gap-fill extraction failed', [
-                    'user_id' => $user->id,
-                    'focus' => $focus,
-                    'error' => $e->getMessage(),
-                ]);
-
-                continue;
-            }
-
-            if ($missing === []) {
-                continue;
-            }
-
-            Log::info('[AiChatController] Gap-fill firing for dropped entities', [
-                'user_id' => $user->id,
-                'focus' => $focus,
-                'llm_emitted' => count($llmEmittedFieldsList),
-                'extractor_found' => count($extracted),
-                'gap_filling' => count($missing),
-            ]);
-
-            foreach ($missing as $input) {
-                yield [
-                    'type' => 'tool_use',
-                    'tool' => $tool,
-                    'status' => 'running',
-                ];
-
-                try {
-                    $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
-                } catch (\Throwable $e) {
-                    Log::error('[AiChatController] Gap-fill tool execution failed', [
-                        'user_id' => $user->id,
-                        'tool' => $tool,
-                        'input' => $input,
-                        'error' => $e->getMessage(),
-                    ]);
-
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $tool,
-                        'status' => 'complete',
-                    ];
-
-                    continue;
-                }
-
-                if (! empty($result['error']) || ! empty($result['blocked'])) {
-                    yield [
-                        'type' => 'tool_use',
-                        'tool' => $tool,
-                        'status' => 'complete',
-                    ];
-
-                    continue;
-                }
-
-                if (($result['action'] ?? null) === 'fill_form') {
-                    yield [
-                        'type' => 'fill_form',
-                        'entity_type' => $result['entity_type'] ?? '',
-                        'route' => $result['route'] ?? '',
-                        'fields' => $result['fields'] ?? [],
-                        'mode' => $result['mode'] ?? 'create',
-                        'entity_id' => $result['entity_id'] ?? null,
-                    ];
-                }
-
-                yield [
-                    'type' => 'tool_use',
-                    'tool' => $tool,
-                    'status' => 'complete',
-                ];
-            }
-        }
-    }
-
-    private function focusFromEntityType(string $entityType): ?string
-    {
-        return match ($entityType) {
-            'protection_policy', 'life_insurance_policy', 'critical_illness_policy', 'income_protection_policy' => 'protection',
-            'savings_account', 'cash_account' => 'savings',
-            'pension', 'dc_pension', 'db_pension' => 'retirement',
-            'investment_account', 'holding' => 'investment',
-            default => null,
-        };
-    }
 }

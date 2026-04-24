@@ -1110,10 +1110,10 @@ class AiToolDefinitions
     }
 
     /**
-     * Handoff tools — used ONLY by FynPersonaInvoker when the active
-     * persona is advice or data_capture. Not included in getTools() so
-     * they never leak into the default Fyn chat turn. The invoker adds
-     * the persona's specific handoff tools via toolsListOverride.
+     * Handoff tools — surfaced to the LLM only during the onboarding
+     * inline-capture turn. Not included in getTools() so they never leak
+     * into AdviceFyn's chat turn. OnboardingChatDirector::handleInlineCapture
+     * opts into them via toolsListOverride.
      *
      * Tool names are defined as constants on HandoffContract so a typo
      * fails at parse time rather than silently mis-routing at runtime.

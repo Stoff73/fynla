@@ -691,11 +691,10 @@ final class QuerySchemas
     }
 
     /**
-     * Detect advice-shaped phrasing in a user message. Used by
-     * FynPersonaOrchestrator's classifier fast-path: even if the primary
-     * classification is DATA_ENTRY, the presence of any of these phrases
-     * indicates the user is also asking for analysis, so the orchestrator
-     * falls through to advice Fyn rather than bypassing it.
+     * Detect advice-shaped phrasing in a user message. Used by classifier
+     * callers that want to decide whether a user turn is asking for
+     * analysis as well as volunteering data — the presence of any of these
+     * phrases indicates the user expects advice, not just capture.
      *
      * Case-insensitive, word-boundary-aware. Intentionally permissive —
      * false positives are preferable to misrouting a genuine advice query.

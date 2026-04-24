@@ -11,6 +11,7 @@ use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
+use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -1981,5 +1982,240 @@ PROMPT;
         }
 
         return '';
+    }
+
+    /**
+     * Two-Fyn inline capture: handle a mid-onboarding turn where the user
+     * volunteered data that needs to be persisted via create_/update_ tools.
+     *
+     * Strips layout/quick_reply events from the stream so the handoff is
+     * invisible to the frontend (INV-2.4.1, INV-2.4.2). Tracks fill_form
+     * events emitted by the LLM so the extractor-driven gap-fill below
+     * can dedup against them. After the LLM stream completes, runs the
+     * multi-entity gap-fill on every focus inferred from the CaptureContext.
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    public function handleInlineCapture(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        CaptureContext $context,
+        ?string $currentRoute = null,
+    ): \Generator {
+        $allowedTools = $this->captureToolSet($context);
+
+        $generator = $this->coordinatingAgent->chatWithPromptOverride(
+            user: $user,
+            conversation: $conversation,
+            message: $message,
+            currentRoute: $currentRoute,
+            systemPromptOverride: null,
+            allowedTools: $allowedTools,
+            persistUserMessage: true,
+            toolsListOverride: null,
+            personaOverride: 'onboarding_inline',
+        );
+
+        /** @var list<array<string, mixed>> $llmEmittedFills */
+        $llmEmittedFills = [];
+
+        foreach ($generator as $event) {
+            $type = $event['type'] ?? '';
+
+            if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
+                continue;
+            }
+
+            if ($type === 'fill_form') {
+                $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+            }
+
+            yield $event;
+        }
+
+        yield from $this->emitGapFillFromCaptureContext(
+            $user,
+            $conversation,
+            $context,
+            $message,
+            $llmEmittedFills,
+        );
+    }
+
+    /**
+     * Tool whitelist for an inline-capture turn. Matches the post-collapse
+     * data_capture scope — every create_/update_ write the user can trigger
+     * mid-onboarding plus a handful of update helpers.
+     *
+     * @return list<string>
+     */
+    private function captureToolSet(CaptureContext $context): array
+    {
+        return [
+            'create_savings_account', 'create_investment_account', 'create_holding',
+            'create_pension', 'create_property', 'create_mortgage',
+            'create_protection_policy', 'create_family_member',
+            'create_goal', 'create_life_event', 'create_trust',
+            'create_will', 'update_will',
+            'create_power_of_attorney', 'update_power_of_attorney',
+            'create_asset', 'create_liability', 'create_estate_gift',
+            'create_chattel', 'create_business_interest',
+            'update_record', 'update_profile', 'set_expenditure',
+        ];
+    }
+
+    /**
+     * Deterministic multi-entity gap-fill — ported from the retired persona
+     * invoker. Runs AssetCaptureEntityExtractor on the user's message once
+     * per focus inferred from the CaptureContext, compares against the
+     * fill_form events the LLM already emitted this turn, and synthesises
+     * tool_use + fill_form + tool_use events for every entity the LLM
+     * dropped.
+     *
+     * Silently drops entity types the extractor does not cover (goals,
+     * life events, property). Per-focus extractor failures are logged and
+     * skipped rather than aborting the turn.
+     *
+     * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @return \Generator<array<string, mixed>>
+     */
+    private function emitGapFillFromCaptureContext(
+        User $user,
+        AiConversation $conversation,
+        CaptureContext $context,
+        string $message,
+        array $llmEmittedFills,
+    ): \Generator {
+        $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
+
+        foreach ($focuses as $focus) {
+            yield from $this->runExtractorForFocus($user, $focus, $message, $llmEmittedFills);
+        }
+    }
+
+    /**
+     * Run the extractor for a single focus and emit gap-fill events for any
+     * entities the LLM dropped.
+     *
+     * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @return \Generator<array<string, mixed>>
+     */
+    private function runExtractorForFocus(
+        User $user,
+        string $focus,
+        string $message,
+        array $llmEmittedFills,
+    ): \Generator {
+        $tool = $this->entityExtractor->toolNameForFocus($focus);
+        if ($tool === null) {
+            return;
+        }
+
+        try {
+            $extracted = $this->entityExtractor->extractForFocus($focus, $message);
+            $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Inline-capture gap-fill extraction failed', [
+                'user_id' => $user->id,
+                'focus' => $focus,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        Log::info('[OnboardingChatDirector] Inline-capture gap-fill firing for dropped entities', [
+            'user_id' => $user->id,
+            'focus' => $focus,
+            'llm_emitted' => count($llmEmittedFills),
+            'extractor_found' => count($extracted),
+            'gap_filling' => count($missing),
+        ]);
+
+        foreach ($missing as $input) {
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'running',
+            ];
+
+            try {
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+            } catch (\Throwable $e) {
+                Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
+                    'user_id' => $user->id,
+                    'tool' => $tool,
+                    'input' => $input,
+                    'error' => $e->getMessage(),
+                ]);
+
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (! empty($result['error']) || ! empty($result['blocked'])) {
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (($result['action'] ?? null) === 'fill_form') {
+                yield [
+                    'type' => 'fill_form',
+                    'entity_type' => $result['entity_type'] ?? '',
+                    'route' => $result['route'] ?? '',
+                    'fields' => $result['fields'] ?? [],
+                    'mode' => $result['mode'] ?? 'create',
+                    'entity_id' => $result['entity_id'] ?? null,
+                ];
+            }
+
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'complete',
+            ];
+        }
+    }
+
+    /**
+     * Translate CaptureContext::entityTypes into extractor focus strings.
+     * Silently drops entity types the extractor does not cover (goal,
+     * life_event, property).
+     *
+     * @param  list<string>  $entityTypes
+     * @return list<string>
+     */
+    private function inferFocusesFromEntityTypes(array $entityTypes): array
+    {
+        $focuses = [];
+        foreach ($entityTypes as $entity) {
+            $focus = match ($entity) {
+                'protection_policy', 'life_insurance_policy', 'critical_illness_policy', 'income_protection_policy' => 'protection',
+                'savings_account', 'cash_account' => 'savings',
+                'dc_pension', 'db_pension', 'pension' => 'retirement',
+                'investment_account', 'holding' => 'investment',
+                default => null,
+            };
+            if ($focus !== null && ! in_array($focus, $focuses, true)) {
+                $focuses[] = $focus;
+            }
+        }
+
+        return $focuses;
     }
 }

@@ -69,9 +69,10 @@ trait HasAiChat
 
     /**
      * Persona tag applied to the assistant AiMessage row persisted by this
-     * chat() call. Used by FynPersonaInvoker so the orchestrator can group
-     * history by persona. Null outside persona-split turns (existing flows
-     * leave ai_messages.persona null for backwards compatibility).
+     * chat() call. Set to 'advice' by AdviceFyn::handle and
+     * 'onboarding_inline' by OnboardingChatDirector::handleInlineCapture so
+     * history can be grouped by persona. Null outside those paths (legacy
+     * flows leave ai_messages.persona null for backwards compatibility).
      */
     private ?string $personaOverride = null;
 
@@ -442,10 +443,10 @@ trait HasAiChat
                         ];
                     }
 
-                    // Persona-split handoff — intercepted by FynPersonaInvoker.
-                    // The invoker strips this event from the outbound SSE and
-                    // hands the payload back to FynPersonaOrchestrator for
-                    // state-transition evaluation. Never shown to the user.
+                    // Onboarding inline-capture handoff — consumed by
+                    // OnboardingChatDirector::handleInlineCapture via the
+                    // synthetic `handoff` SSE event. Never forwarded to the
+                    // frontend; invisible to the user per INV-2.4.1.
                     if (isset($toolResult['action']) && $toolResult['action'] === 'handoff') {
                         yield [
                             'type' => 'handoff',

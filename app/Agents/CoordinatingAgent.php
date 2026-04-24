@@ -712,9 +712,9 @@ class CoordinatingAgent extends BaseAgent
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
-                // Handoff tools — stubbed so HasAiChat doesn't error, intercepted
-                // by FynPersonaInvoker via the synthetic 'handoff' SSE event
-                // yielded downstream from this result.
+                // Handoff tools — stubbed so HasAiChat doesn't error. The
+                // synthetic 'handoff' SSE event yielded downstream from this
+                // result is consumed by OnboardingChatDirector::handleInlineCapture.
                 'delegate_to_capture' => [
                     'action' => 'handoff',
                     'handoff_type' => 'delegate_to_capture',

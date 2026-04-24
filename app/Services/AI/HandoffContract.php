@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 /**
- * Centralises the two internal handoff tool names used by FynPersonaOrchestrator.
+ * Centralises the two internal handoff tool names used by the Fyn onboarding
+ * inline-capture flow.
  *
- * Advice Fyn emits `delegate_to_capture` when it cannot answer without data
- * the user hasn't supplied. Data-capture Fyn emits `capture_complete` when
- * the capture sub-conversation is done. Neither tool reaches the user — the
- * invoker strips them from the SSE stream and the orchestrator interprets
- * them as persona-state transitions.
+ * During onboarding, the LLM may emit `delegate_to_capture` when the user
+ * volunteers data that belongs in create_/update_ tools, and
+ * `capture_complete` when the mini-capture turn is done. Neither tool name
+ * reaches the user — HasAiChat emits a synthetic `handoff` SSE event that
+ * OnboardingChatDirector::handleInlineCapture consumes internally.
  *
  * Constants (not string literals) so a typo fails at parse time rather than
- * silently mis-routing at runtime. Registry integrity is enforced via the
- * FynPersonaRegistryTest downstream (Task 9).
+ * silently mis-routing at runtime.
  */
 final class HandoffContract
 {

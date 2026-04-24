@@ -755,8 +755,9 @@ class XaiToolDefinitions
     }
 
     /**
-     * Handoff tools for FynPersonaInvoker. See AiToolDefinitions::handoffTools.
-     * Uses the wrapTool helper for consistency with other xAI tool shapes.
+     * Handoff tools for the onboarding inline-capture turn. See
+     * AiToolDefinitions::handoffTools. Uses the wrapTool helper for
+     * consistency with other xAI tool shapes.
      *
      * @return list<array<string, mixed>>
      */

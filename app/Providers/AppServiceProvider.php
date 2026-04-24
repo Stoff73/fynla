@@ -24,6 +24,12 @@ class AppServiceProvider extends ServiceProvider
         // in HasAiChat/HasAiGuardrails via cache check (admin toggle)
         $this->app->singleton(\App\Services\AI\XaiClient::class);
 
+        // Two-Fyn architecture — AdviceFyn is a stateless post-onboarding
+        // dispatcher with a read-only tool list. Singleton-scoped so its
+        // constructor dependencies (AiToolDefinitions + XaiToolDefinitions)
+        // resolve once per request.
+        $this->app->singleton(\App\Services\AI\AdviceFyn::class);
+
         if (class_exists(\Anthropic\Client::class)) {
             $this->app->singleton(\Anthropic\Client::class, function () {
                 $apiKey = config('services.anthropic.api_key');
