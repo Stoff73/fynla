@@ -37,15 +37,15 @@ class Holding extends Model
     ];
 
     protected $casts = [
-        'allocation_percent' => 'decimal:2',
-        'quantity' => 'decimal:2',
-        'purchase_price' => 'decimal:2',
+        'allocation_percent' => 'float',
+        'quantity' => 'float',
+        'purchase_price' => 'float',
         'purchase_date' => 'date',
-        'current_price' => 'decimal:2',
-        'current_value' => 'decimal:2',
-        'cost_basis' => 'decimal:2',
-        'dividend_yield' => 'decimal:2',
-        'ocf_percent' => 'decimal:2',
+        'current_price' => 'float',
+        'current_value' => 'float',
+        'cost_basis' => 'float',
+        'dividend_yield' => 'float',
+        'ocf_percent' => 'float',
     ];
 
     /**

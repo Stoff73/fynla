@@ -28,7 +28,7 @@ class Gift extends Model
 
     protected $casts = [
         'gift_date' => 'date',
-        'gift_value' => 'decimal:2',
+        'gift_value' => 'float',
         'taper_relief_applicable' => 'boolean',
     ];
 
