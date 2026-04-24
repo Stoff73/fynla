@@ -1,7 +1,286 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 68 (first `dev → main` release since session 64 + investment 500 fix + lifecycle rate-limit hotfix)*
-*Previous session: 23 April 2026 — session 67 (UI fixes bundle: logout redirect, progress hero for all users, form field collapse, joint net-worth layout, spouse name regression)*
+*Last updated: 24 April 2026 — session 70 (Fyn v2 spec directory: 10 files, 4,644 lines, dual-layer test strategy with 24 Playwright scenarios)*
+*Previous session: 24 April 2026 — session 69 (audit + rubrics)*
+
+---
+
+## Session 70 (24 April PM → evening) — Fyn v2 spec directory + test strategy
+
+**No code changes.** Working tree clean. All deliverables in `.gitignored` `/April/April24Updates/` (mirrored to `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/` throughout session). Session built on session 69's audit correction pass.
+
+### Completed
+
+#### Audit doc corrections + three-pass review
+- [x] `code-vs-review-report.md` (105 lines) — first-pass compare of `feature/fyn-persona-split` code vs morning audit claims; surfaced the invoker-gap-fill FICTION that the audit carried.
+- [x] `docs-three-pass-review.md` (464 lines) — Pass 1 VERIFIED/STALE/FICTION/UNCLEAR per claim; Pass 2 eight mental-model contradictions (error paths / concurrency / data ownership); Pass 3 forward traceability for every Sprint 0 task.
+- [x] `audit-evidence.md` v2 — canonical §0 at top; §3.2 retracted ("orchestrator has no gap-fill" is FICTION — invoker has extractor wired at lines 48/175/200/251-300); §4 tool counts corrected (37 Anthropic / 33 xAI, direction inverted from audit claim); stale line anchors refreshed throughout; §14 processor framing refined; §18-23 new addenda (audit-truthfulness, handoff-contract failure mode, persona_state / onboarding_fyn_* reconciliation, visible-handoff leak, missing billing tools, memory model 3+1); **inline code citations on every implementation claim**.
+- [x] `audit-synthesis.md` v2 — canonical §0 at top; §2 #4 FICTION retracted; §2 #5 tool counts corrected + direction inverted; §5.7 six canonical gaps enumerated with file:line anchors; §8.2 rewritten with full two-Fyn behavioural contract + corrected LOC scope (1,238 prod + ~1,000 test delete; ~1,000-1,200 prod + ~400-500 test new; net ~500-800 LOC reduction); §9.9 25-item ambiguity-resolution list; **inline code citations**.
+- [x] `fyn-rubrics.md` v2 — canonical §0; D4 current-level nuance (0-1, scoring choice explained); D8 CoordinatingAgent LOC corrected to ~3,500; handoff-invisibility sub-criteria rolled into D5; memory-coherence sub-criteria into D9; scenario catalogue 65 → 75 with new `09-canonical-behaviour` (10 scenarios); **inline citations on D1-D10 evidence**.
+- [x] Memory model correction per CSJ: 3 stores + 1 index (not 4). `MemoryRetrieverService` retrieval order DB → parked facts → current conversation → index. Conversation index = new JSON columns on `ai_conversations` + `ConversationSummariserJob` + `search_conversation_index` tool.
+
+#### Spec directory `April/April24Updates/spec/` — 10 files, 4,644 lines total
+
+- [x] `README.md` (132 lines) — navigation + branch mandate (`feature/fyn-persona-split` in every file) + decision register (16 CSJ decisions) + verification summary.
+- [x] `00-canonical.md` (48 lines) — two-Fyn canonical verbatim. Source of truth.
+- [x] `01-invariants.md` (500 lines) — 13 invariant groups, ~35 falsifiable invariants, each with Property / Falsifiability test / Acceptance criterion. §verification section lists per-sprint Browser matrix requirements (20 → 24 → 38 → 44 → 39 scenarios across sprints 0-4).
+- [x] `02-current-system.md` (285 lines) — code-grounded description of branch today, anchored to file:line.
+- [x] `03-test-strategy.md` (647 lines) — **dual-layer test strategy**: Pest (unit / feature / architecture) + Playwright BS-NN browser scenarios. Click-through discipline ("no URL make up crap" — only `http://localhost:8000` typed; everything else clicked). 24 fully-specified scenarios with seed + script + assertions + pass criterion. Per-invariant → test mapping table. Non-negotiable "report-finished" gate.
+- [x] `10-sprint-0-plan.md` (1,665 lines) — 16 TDD tasks including Browser harness + 20 Playwright scenarios.
+- [x] `11-sprint-1-plan.md` (691 lines) — 9 TDD tasks: eval harness + memory model + advice_response SSE + 4 new Playwright scenarios (24 total).
+- [x] `12-sprint-2-plan.md` (345 lines) — 19 tasks: 14 batch-shaped capture tools + BS-17 parameterised over 14 variants (38 runs).
+- [x] `13-sprint-3-plan.md` (159 lines) — 5 tasks: full local matrix + dev deploy to `csjones.co/fynla` + canonical subset on dev.
+- [x] `14-sprint-4-plan.md` (172 lines) — external calendar (legal / DPIA / DPA / privacy-policy) + 6 code tasks + production matrix (39 runs on `fynla.org`).
+
+### Project-wide non-negotiables (carried forward into every subsequent session)
+
+- **Every doc in this workstream starts with canonical §0 verbatim.** Spec, plan, PRD, task list.
+- **Branch: `feature/fyn-persona-split`.** Everything builds here. DO NOT start from `main` or `dev`.
+- **Two test layers per invariant** — Pest + Playwright BS-NN. Sprint not done without both green + screenshot evidence in `docs/sprint-<n>-verification/BS-NN/`.
+- **No fabricated URLs in Playwright scenarios.** Start at `http://localhost:8000`; click through the UI for everything else.
+
+### NOT Done — Outstanding for Session 71
+
+#### Top priority (user requested, not yet written)
+
+- [ ] **Plan directory `April/April24Updates/plan/`** — user invoked `/planning-with-files` skill at end of session with plan-slice template (Objective / Spec reference / Files affected / Acceptance test / Out of scope). Invocation arrived at the same moment as `/session-end`. Resume by re-invoking `/planning-with-files` with the original args. Target structure: one file per invariant group (§2.1 through §2.13) under `plan/slices/` plus a `plan/README.md` + `plan/template.md`.
+
+#### Sprint 0 execution (when ready to start coding)
+
+- [ ] **Check out `feature/fyn-persona-split`** — currently on `main`. Switch before ANY code work: `git checkout feature/fyn-persona-split`.
+- [ ] **Sprint 0 Task 0.1** — rebase onto `origin/main` (179-commit drift). Expect conflicts in `AppLayout.vue`, `CoordinatingAgent.php`, `routes/api.php`, `HasAiChat.php`, `Prompts/*`, `AiToolDefinitions.php`, `StructuredResponseValidator.php`, `aiChat.js`, `AiChatPanel.vue`.
+- [ ] **Sprint 0 Task 0.16** — build Browser test harness (`tests/Browser/TestCase.php` + Login helper + SSE capture helper + 20 scenario files).
+- [ ] Sprint 0 Tasks 0.2 through 0.15 — per `spec/10-sprint-0-plan.md`.
+
+#### Execution mode decision (pending user choice)
+
+Two options offered at session end; not chosen before `/session-end`:
+
+1. **Subagent-driven** (recommended) — `superpowers:subagent-driven-development` with fresh subagent per task + two-stage review. Best isolation; keeps session context fresh; good for 16-task sprint.
+2. **Inline execution** — `superpowers:executing-plans` with batch commits + checkpoints. Faster but session context fills with 16 tasks × 7-16 steps each.
+
+### Context for Session 71
+
+- **Start by reading `April/April24Updates/spec/README.md`** (132 lines) — entire workstream navigation.
+- **Then `00-canonical.md` + `01-invariants.md`** — source of truth.
+- **For Sprint 0 execution**: read `03-test-strategy.md` + `10-sprint-0-plan.md`.
+- **For the plan-slice deliverable**: re-invoke `/planning-with-files`, build `April/April24Updates/plan/`.
+- **Branch reality check**: `git log -1 feature/fyn-persona-split` — confirm tip; `git rev-list --count origin/feature/fyn-persona-split..origin/main` should still be 179.
+- **Vault parity**: `diff -r April/April24Updates/ /Users/CSJ/Desktop/fynlaBrain/April/April24Updates/` — expect zero diff.
+
+### Deploy Status
+
+Nothing deployed this session. Nothing to deploy (no code changed). Sprint 0 is the next deploy-adjacent work; Sprint 3 is when dev-deploy gates open.
+
+### Decision register snapshot (all locked)
+
+1. Two Fyns, no Orchestrator class. Delete orchestrator/invoker/registry/data_capture prompt builder.
+2. All 17 fill_form handlers → direct-write (Q1=a).
+3. Provider parity. 40 tools post-Sprint-0 (+14 batch = 54 post-Sprint-2).
+4. FCA: guidance-only. Signposting: *"For regulated advice personal to your circumstances, speak to a qualified financial adviser."*
+5. Out-of-remit: *"I'm able to help you with your finances. {context} is out of scope."*
+6. Advice response: new `advice_response` SSE event + `AdviceResponsePanel.vue`.
+7. SSE abort: keep partial writes; instrument + monitor.
+8. Document extraction: UI-only CTA (not an Advice Fyn tool).
+9. Entry-source → journey mapping: config-driven + extensible (4 initial, `path_choice` fallback).
+10. Memory: 3 stores + 1 index; retrieval order DB → parked → current → index.
+11. Eval floors: 95% baseline recall/precision; 100% hard-fail on validity/value/consistency/fabrication; mortgage → 100%/100% + protection + savings → 98%/98% by Sprint 2.
+12. Local-first deploy gate.
+
+---
+
+## Session 69 (24 April full day) — Fyn AI audit + adversarial review + rubrics
+
+**No code changes this session.** Full working tree clean. Two passes:
+
+- **Morning:** produced 4 planning docs for the Fyn AI rework (fyn-system-map.md, verdictFyn.md (superseded), enterprise-verdict.md, fyn-integrated-plan.md).
+- **Afternoon:** audited those 4 docs with 5 parallel reviewers (web-researcher, best-practices-researcher, reliability-reviewer, cli-agent-readiness-reviewer, adversarial-document-reviewer) + independent code reconnaissance on `main` and `feature/fyn-persona-split`. Produced 3 correction artefacts. CSJ answered the 7 decision-gate questions.
+
+### Completed
+
+#### Four audit documents produced in `April/April24Updates/` (mirrored to fynlaBrain vault)
+
+- [x] **`fyn-system-map.md`** (126KB, 2038 lines) — exhaustive map of the Fyn AI system. §1-§21 cover AI chat (routes, 10-layer prompt verbatim, 29 tools, data model, frontend web + mobile, admin surfaces, observability). §22 cross-doc enterprise addendum. §23 documents the Document Extraction AI surface (`AIExtractionService`, 965 LOC, Anthropic Vision + xAI Vision paths, stale `claude-3-5-haiku-20241022` model). §24 documents the Python Agent SDK Sidecar (`scripts/fynla_agent/` + `AgentInternalController`). §25 consolidated touchpoint inventory across 3 AI systems. §26 architecture correction — intended vs built (two Fyns, not three).
+- [x] **`verdictFyn.md`** (69KB) — v1 verdict against Anthropic's *Building Effective Agents* + xAI docs. Graded B+ (72/100). **Superseded** by enterprise-verdict. Kept for accountability.
+- [x] **`enterprise-verdict.md`** (141KB, 2021 lines) — v3 verdict, **7 passes** (Parts C/D framework + E adversarial + J cross-doc + K exhaustive Loop 3 + L CSJ resolutions + M scope correction + N architecture correction). Grade **D+ (45/100)** for the Fyn AI system specifically. **13 Fyn-AI Critical gaps**, **16 Fyn-AI High risks**. Key findings: C1 xAI undisclosed, C2 no FCA analysis, C3 `update_record` over-exposure, C5 no runtime consent check, C6 Article 9 health data LLM flow, C7 audit logs not tamper-evident, C8 no DPIA, C10 read tools not audited, C11 `AIExtractionService` gaps, C14 "no health data to third parties" policy contradiction.
+- [x] **`fyn-integrated-plan.md`** (119KB, 1678 lines) — integrated 6-sprint roadmap. 25-touchpoint dependency index (T1–T25) to prevent compound-change bugs. §12 architecture correction with Sprint 0.19 "collapse three-persona → two-persona" task. Reconciles current Fyn + verdict + in-flight persona-split work.
+
+#### Key architectural finding
+
+**`feature/fyn-persona-split` built the wrong architecture.** It introduced a three-persona model (onboarding + advice + `data_capture`) duplicating capture machinery. **CSJ's intended architecture is two Fyns**: Onboarding Fyn handles ALL data capture (during onboarding AND post-onboarding inline captures); Advice Fyn handles post-onboarding non-capture. Handoff via `delegate_to_capture` / `capture_complete` routes the capture state to the **same Onboarding Fyn stack**, not to a separate persona.
+
+#### Scope corrections made during the audit
+
+- LPA creation rate KPI — dropped (inherited from PRD without scrutiny)
+- Model currency (grok-4-1-fast-reasoning) — withdrawn (CSJ: deliberate unit-economics choice, not a gap)
+- App-wide findings (Meta Pixel, AWIN, FCM, Google DPA, Plausible general) — removed from Fyn AI scope; would belong in a separate app-wide compliance audit if CSJ wants one
+- Three-persona architecture — corrected to two-persona
+
+#### Discoveries from exhaustive sweep (Part K)
+
+- **Three AI systems** not one: Chat, Document Extraction, Python Agent Sidecar
+- **Python Agent Sidecar appears to be dead code** — zero PHP invocations, no cron/Procfile/systemd references, last modified Mar 16. Recommendation: remove entirely (1 hour)
+- **Stale OpenAI config block** in `config/services.php` — leftover from abandoned March OpenAI migration. Remove (5 min)
+- **`update_record` over-exposure** — 2-field blocklist (user_id, id). LLM can change `Trust.settlor`, `Mortgage.start_date`, `FamilyMember.relationship`
+- **Plausible tracks `chat_opened`/`chat_message_sent`** events (narrow Fyn-AI-specific concern)
+
+### NOT Done — Outstanding for next session
+
+The four docs are decision input; the next session should execute Sprint 0 per the integrated plan. Priority order per CSJ's stated "get it working" direction:
+
+#### Sprint 0 (1–2 days) — unblock persona-split shipping
+
+- [ ] **0.1** Rebase `feature/fyn-persona-split` onto current `main` (72 commits drift; expect conflicts in `AppLayout.vue`, `CoordinatingAgent.php`, `router/index.js`)
+- [ ] **0.2** Full Pest run post-rebase (should stay 2,448 passing + 1 flake)
+- [ ] **0.3** Close PR #214 (`onboardingFyn`) as superseded by persona-split
+- [ ] **0.5** Tighten `update_record` per-entity field whitelist — replace 2-field blocklist with per-entity allowlist (1 day)
+- [ ] **0.6** Add `delete_record` confirmation pattern (4 hrs)
+- [ ] **0.7** Add `ConsentService::hasConsent` runtime check in `AiChatController::sendMessage` (2 hrs)
+- [ ] **0.8** Sanitise user-controlled prompt fields (`first_name`, `surname`, `employer`, `occupation`, family member names, goal names) — strip to `[A-Za-z0-9\s'.-]` (4 hrs)
+- [ ] **0.16** Delete Python Agent SDK sidecar — `scripts/fynla_agent/`, `scripts/run_agent.py`, `scripts/requirements.txt`, `AgentInternalController`, `AgentTokenAuth`, `/api/internal/agent/*` routes, `AGENT_INTERNAL_TOKEN` env+config. **Unless** CSJ confirms an external caller (none found in repo) (1 hr)
+- [ ] **0.17** Remove stale OpenAI config block from `config/services.php` + `.env.example` (5 min)
+- [ ] **0.18** Begin AI DB audit migration — create `ai_tool_executions` table, migrate `[AI-AUDIT]` file log writes in `CoordinatingAgent::executeTool` to DB inserts with `operation: read|write` column (1 day)
+- [ ] **0.19** **Collapse three-persona architecture to two-persona** — delete `DataCapturePromptBuilder` + test, update `config/fyn_personas.php` so `data_capture` registry entry routes to `OnboardingChatDirector::handleInlineCaptureTurn` (new method wrapping existing capture machinery), update `FynPersonaOrchestrator::runCaptureTurn` to invoke director instead of a separate persona (1–2 days incl tests)
+
+#### Verifications needed (quick SSH/console checks — not audit work)
+
+- [ ] Python agent external caller — CSJ direct confirmation: is there any external Python worker/cron running `run_agent.py`?
+- [ ] Plausible chat-event tracking on production — SSH + `grep ANALYTICS_ENABLED .env` — only if the `chat_opened`/`chat_message_sent` signal matters
+- [ ] Full health-data trace through `orchestrateAnalysis` — 1-day code audit to walk every numerical field in layer 5 back to source; decide per-field: strip or disclose (Sprint 4)
+
+#### Sprint 1+ deferred until Sprint 0 completes
+
+See `April/April24Updates/fyn-integrated-plan.md` §8 for full sprint breakdown. Sprint 1 = verdict quick wins (temperature → 0.3, Anthropic cache metrics, reasoning tokens tracking, sanitise-order fix, eval harness MVP). Sprint 2 = B-X bug fixes + 11 missing Feature tests + 12 remaining browser matrix rows. Sprint 3 = ship to dev. Sprint 4 = production hardening (Privacy Policy update, DPIA, tamper-evident audit, provider failover, Sentry).
+
+### Afternoon — 5-reviewer audit of the morning's 4 docs
+
+Five review agents dispatched in parallel, each seeded with an evidence bundle I built from direct code reads on `main` and `feature/fyn-persona-split`. Reviewers:
+
+1. `ce-web-researcher` — prior-art scan (UK fintech, OpenAI Agents SDK, LangGraph supervisor, SEC 17a-4, AuditableLLM)
+2. `ce-best-practices-researcher` — Anthropic / xAI / FCA / ICO / OWASP / NIST best-practice comparison
+3. `ce-reliability-reviewer` — SSE abort, token-budget race, provider cache coherence, audit durability, gap-fill retry
+4. `ce-cli-agent-readiness-reviewer` — tool catalogue divergence, tool-result schema, parity gaps
+5. `ce-adversarial-document-reviewer` — premise challenge, contradiction hunt, scope creep, grade-rubric defensibility
+
+### Correction artefacts produced (afternoon — ALL in vault, not git)
+
+- [x] **`April/April24Updates/audit-evidence.md`** — code-grounded ground truth with file:line anchors, §1-17. Separates claims the four docs get RIGHT from what they get WRONG. Addenda 14-17 add the Privacy-Policy contradiction, stale-extraction-model, stale OpenAI config block, and `ai_advice_logs.user_data_snapshot` GDPR concern.
+- [x] **`April/April24Updates/audit-synthesis.md`** — consolidated verdict across all 5 reviewers + my own code reads. 10 sections: Headline, Correctly Planned, Invalidated by Code, Assumptions Stated as Fact, Scope Creep, Real Gaps Missed, Sprint 0 Honest Re-estimate, Multi-Entity Deep Dive, CSJ Decisions, Recommendations. §8 now contains CSJ's answers to all 7 decision questions.
+- [x] **`April/April24Updates/fyn-rubrics.md`** — two rubrics replacing the undisclosed D+(45/100). Rubric A: Enterprise Assessment, 10 dims × 5 levels = /40 score, Fyn currently **4/40 — 🔴 Pre-launch**, projected Sprint 0+1 → **~17/40 — 🟠 Limited beta**. Rubric B: Eval Harness, 65 golden conversations, Mode 1 (CI-gated, mocked) + Mode 2 (weekly, real providers), per-tool scorecard with tunable thresholds.
+
+### Load-bearing findings from the afternoon audit (overturns / extends the morning docs)
+
+- **`main` has NONE of `OnboardingChatDirector`, `DataCapturePromptBuilder`, `FynPersonaOrchestrator/Invoker/Registry`, `HandoffContract`, `AssetCaptureEntityExtractor`, `CaptureContext`** — all live ONLY on `feature/fyn-persona-split`. The morning system-map §1-26 conflates the two branches.
+- **Persona-split is 178 commits behind main, not 72.** CSJTODO morning entry and integrated-plan §0 both had 72. Every rebase-effort estimate understated by ~2.5×.
+- **Anthropic cache metrics ARE persisted** at `HasAiChat.php:467-469` (`cached_tokens` + `cache_hit_rate` into `ai_messages.metadata`). Morning's system-map §21 Q3 + integrated-plan Sprint 1.2 fix is a no-op — delete the task.
+- **Admin UI for AiAuditController EXISTS** (`resources/js/components/Admin/AiAudit.vue`, mounted in AdminPanel). Morning's §21 Q2 + verdict G20 + Sprint 5.3 "missing" is wrong.
+- **Tool catalogue is 23 on Anthropic vs 29 on xAI.** `list_records`, `create_holding`, `set_expenditure` exist only on xAI. Morning's "29 tools" count is correct on only ONE provider.
+- **All 13 `create_*` tools are FORM PRE-FILLERS, not DB writers.** Every `handleCreate*` in `CoordinatingAgent.php` returns `['action' => 'fill_form', ...]`; the frontend POSTs to the standard module API. Tool descriptions lie to the model; `[AI-AUDIT]` logs "Tool executed" for things that didn't execute. Narrows verdict C3 exposure but breaks the model's own truth story.
+- **Multi-entity STILL BROKEN on `feature/fyn-persona-split` post-onboarding.** `AssetCaptureEntityExtractor` is wired into `OnboardingChatDirector` only (lines 1708/1714/1715). `FynPersonaOrchestrator::runCaptureTurn` invokes the standard LLM loop without the extractor. Integrated-plan §5.1 "persona-split fixes multi-entity" is FALSE for the path persona-split exists to serve. 4 of 18 entity types covered even in the onboarding path.
+- **`OnboardingChatDirector::handleInlineCaptureTurn` does NOT exist on persona-split** — it's proposed NEW code in integrated-plan §12.2, not a refactor target. Sprint 0.19 "1-2 day collapse" under-scopes: it's deletion + 300-500 LOC new + extractor rewiring + tests = **2-3 days**.
+- **FCA PS25/22 "targeted support" went LIVE 6 April 2026** — new regulated category between guidance and full advice, explicitly for AI-assisted consumer guidance. Not mentioned anywhere in the morning docs. CSJ's decision: guidance-only posture (see §8.1 below) — no targeted-support authorisation pursued.
+- **Privacy Policy §5/§7 factually contradict the code.** §5 line 111: *"We do not share health data with any third party."* §7 line 132: *"**We do not use third-party analytics or tracking services.**"* Both falsified by Meta Pixel (unconditional `app.blade.php:81-91`), AWIN (full integration), Plausible (conditional), and health-data flow to LLMs. **5 third-party processors**, not 3 as verdict K3 claims.
+- **No SSE abort detection anywhere** — no `connection_aborted()`, no `ignore_user_abort(true)`, no idempotency keys. Users billed for turns they never received. Biggest reliability gap; nowhere in the 4 docs.
+- **Token-budget race** via `Cache::remember($key, 300, …)` — two concurrent SSE requests both read stale budget, both pass, both run. Pro user can overshoot £2M/day cap by ~50%.
+- **Provider cache coherence race** — `Cache::forever('ai_provider', …)` admin toggle can flip mid-conversation, mixing Anthropic `cache_control: ephemeral` markers with xAI request shape.
+- **Python sidecar is dead code.** Uses regular `anthropic` Messages SDK, NOT `claude-agent-sdk`. Zero PHP callers in any path (grep across `app/`, `routes/`, `config/`, `database/`, `resources/`, `Kernel.php`, no Procfile/systemd/supervisor). Three patterns worth harvesting (Pydantic output validation, task-type-specific prompts, externalised PreToolUse hook) — none require keeping the Python code. CSJ confirmed deletion (§8.4 below).
+
+### CSJ decisions — all 7 §8 questions answered
+
+1. **FCA posture: GUIDANCE ONLY.** No targeted-support authorisation. External legal opinion needed for the guidance posture (Sprint 4). `CoreIdentity.php` "you think like a qualified financial planner" rewritten in Sprint 1 (not Sprint 4). Every advice-type response signposts to regulated advice.
+2. **Two Fyns (Onboarding + Advice), NO orchestrator class.** Routing collapses into `AiChatController`. DELETE on persona-split: `FynPersonaOrchestrator`, `FynPersonaInvoker`, `FynPersonaRegistry`, `DataCapturePromptBuilder`. KEEP: `HandoffContract` (constants), `CaptureContext` VO, `OnboardingChatDirector` (promoted to Onboarding Fyn; new `handleInlineCapture` method). NEW: `AdviceFyn` class wrapping advice-side chat loop + prompt. Net ~800 LOC deletion, ~300-400 LOC new.
+3. **Multi-entity thresholds: 95% baseline recall + precision per focus, tunable up.** Non-tunable 100% hard-fail floors on entity validity (FormRequest passes), monetary value accuracy (no £ drift), cross-entity consistency (no field-bleed), 0% fabrication. Per-tool scorecard published every eval run. Sprint 2 ratchet: mortgage → 100/100, protection + savings → 98/98, add 12 remaining entity types at 90 baseline.
+4. **Python sidecar: DELETE.** Sprint 0.16 unblocked (1 hr).
+5. **Local-first UNAMBIGUOUS.** Nothing deploys anywhere until 100% verified on `localhost:8000`. Per-sprint local verification is the dev-deploy gate.
+6. **Terminology irrelevant.** Spec will use "routing workflow → orchestrator-workers pattern" for literature refs; "Fyn / Onboarding Fyn / Advice Fyn" internally.
+7. **Rubric: BUILD BOTH.** Rubric A (enterprise) + Rubric B (eval) — see `fyn-rubrics.md`.
+
+### NOT Done — Outstanding for next session
+
+The four original planning docs need a **correction pass** before they seed a spec. Three artefacts already produced are inputs to that pass:
+
+#### Correction pass on the four original planning docs (Sprint 0 precursor, ~1 day)
+
+- [ ] **Canonical-facts pass.** Apply `audit-evidence.md` §2-§5 corrections to `fyn-system-map.md`, `fyn-integrated-plan.md`, `enterprise-verdict.md`. Every contradicting sentence retracted.
+- [ ] **Scope pass.** Prune T18/T24/T25 from touch-point index. Prune Sprint 4.22 Privacy Policy if app-wide. Pick one Critical count (Part M's 13) and enforce.
+- [ ] **Effort honesty pass.** Rewrite Sprint 0 envelope from "1-2 days" to **3-4 weeks**. Move 0.5 (allowlist), 0.8 (sanitise + structural separation), 0.18 (DB audit + hash chain), 0.19 (two-Fyn collapse) into Sprint 1 if smaller sprints preferred, or size Sprint 0 honestly.
+- [ ] **Add new Sprint 0 tasks from reviewers:** 0.20 SSE abort detection + idempotency key, 0.21 atomic token-budget check-and-increment, 0.22 provider-swap write lock, 0.23 gap-fill dedup key, 0.24 `generateTitle` sanitation, 0.25 rebase-conflict strategy doc.
+- [ ] **Grade rubric pass.** Replace "D+ (45/100)" in verdict + INDEX with the Rubric-A 4/40 🔴 Pre-launch score (reproducible from `fyn-rubrics.md`).
+
+#### Sprint 0 (corrected scope, ~3-4 weeks engineering) — unblock persona-split shipping
+
+- [ ] **0.1** Rebase `feature/fyn-persona-split` onto `main` (**178 commits** drift, not 72 — 0.5-1 day minimum). Expect conflicts in `AppLayout.vue`, `CoordinatingAgent.php`, `routes/api.php`, `HasAiChat.php`, `Prompts/*`, `AiToolDefinitions.php`.
+- [ ] **0.2** Full Pest run post-rebase (probable test failures from rebase — +0.5 day for triage).
+- [ ] **0.3** Close PR #214 (`onboardingFyn`) as superseded.
+- [ ] **0.5** `update_record` per-entity allowlist + `additionalProperties: false` in schema (**2 days**, 15+ entities × ~10 fields).
+- [ ] **0.6** `delete_record` confirmation pattern + cover `update_record` when fields touch tax/legal state (Trust.settlor, FamilyMember.relationship, Mortgage.start_date) — 4 hrs.
+- [ ] **0.7** `ConsentService::hasConsent` runtime check in `AiChatController::sendMessage` + "consent-withdrawn mid-conversation" UX (0.5 day — check is 2 hrs but UX design matters).
+- [ ] **0.8** Sanitise user-controlled prompt fields + wrap user content in `<user_provided>...</user_provided>` structural markers per OWASP Cheat Sheet (1 day).
+- [ ] **0.16** Delete Python sidecar — `scripts/fynla_agent/`, `scripts/run_agent.py`, `scripts/requirements.txt`, `AgentInternalController`, `AgentTokenAuth`, `/api/internal/agent/*` routes, `AGENT_INTERNAL_TOKEN` env+config (1 hr — CSJ confirmed delete).
+- [ ] **0.17** Remove stale OpenAI config block from `config/services.php:34-38` + `.env.example` (5 min).
+- [ ] **0.18** AI DB audit migration — **5-7 days** (not 1): hash-chain append-only `ai_audit_events` table + HMAC signing + retention policy (7yr advice / 2yr general) + erasure-compatible pseudonymisation + weekly integrity-verification job. Per SEC 17a-4 / AuditableLLM precedent.
+- [ ] **0.19** Two-Fyn architecture rewrite (**2-3 days**): DELETE `FynPersonaOrchestrator` + `FynPersonaInvoker` + `FynPersonaRegistry` + `DataCapturePromptBuilder`. CREATE `AdviceFyn` class + `OnboardingChatDirector::handleInlineCapture`. WIRE routing into `AiChatController`. **CRITICAL:** rewire `AssetCaptureEntityExtractor` into the new inline-capture path — otherwise post-onboarding multi-entity stays broken.
+- [ ] **0.20** SSE abort detection + idempotency key on `POST /conversations/{id}/messages` (2-3 days).
+- [ ] **0.21** Atomic token-budget check-and-increment — replace `Cache::remember($key, 300, …)` with DB atomic INSERT + row-level `FOR UPDATE` on `ai_daily_usage` (1-2 days).
+- [ ] **0.22** Provider-swap write lock — version counter on `ai_provider` cache key, per-request snapshot + abort on mid-loop drift (1 day).
+- [ ] **0.23** Gap-fill dedup key against existing records — `(user_id, entity_fingerprint, 24h window)` — closes retry double-insert vector (0.5 day).
+- [ ] **0.24** `generateTitle` sanitation — `strip_tags` + length-clamp before persist (2 hrs).
+
+#### Sprint 1 (after Sprint 0 — eval harness first, then quick wins)
+
+- [ ] **Eval harness MVP** (`fyn-rubrics.md` Rubric B) — `tests/Feature/Fyn/Eval/` with `EvalRunner`, `MockedProviderClient`, first **10 scenarios** (6 query types + 4 multi-entity). CI gate: Mode 1 must be 100%.
+- [ ] Expand to **30 scenarios** (all 22 query types + 6 handoff/cancel + 2 injection).
+- [ ] Rewrite `CoreIdentity.php` — drop "you think like a qualified financial planner" language; align with guidance-only posture.
+- [ ] `config/fyn_eval.php` with tunable thresholds per tool (`recall_floor`, `precision_floor`, `reason`, `reviewed_by`, `next_review`).
+- [ ] Structural separation: Layers 4-6 wrap user-controlled content in `<user_provided>...</user_provided>` markers.
+- [ ] Canary instruction + output drift-detection test.
+- [ ] First per-tool scorecard run — CSJ reviews → raises thresholds where needed.
+
+#### Sprint 2 (after Sprint 1 eval harness is in place)
+
+- [ ] Expand eval harness to **65 scenarios**, enable weekly Mode 2 real-provider cron.
+- [ ] Add the 12 missing entity types to eval at 90% baseline (goal, family, life-event, property+mortgage, trust, will, POA, business, chattel, liability, gift, holding).
+- [ ] **Batch-shaped extractor tools** (Alternative A per best-practices reviewer): `capture_protection_policies(policies: [...])`, `capture_savings_accounts`, `capture_pensions`, `capture_investment_accounts` with strict JSON schema. Retire regex `AssetCaptureEntityExtractor` when fire rate < 2%.
+- [ ] Split tool budget: 5 reads + 10 writes when classifier type = `data_entry`.
+- [ ] Move multi-entity instruction from `ComplianceRules.php` into each `create_*` tool's `description` field (per-decision salience).
+- [ ] Close remaining parity gaps: `upload_document` tool (expose `AIExtractionService`), `link_spouse`, `configure_assumption`, `run_projection`, `submit_risk_questionnaire`, `delete_record` covers `investment_holding` enum, `create_will` / `create_power_of_attorney` registered in both tool-definition classes.
+
+#### Sprint 3 — ship to dev (`csjones.co/fynla`), local-first gate enforced
+
+Every task above must be 100% verified on `localhost:8000` first. Dev deploy is only after local verification passes.
+
+#### Sprint 4 — production hardening + external work (parallel calendar tracks)
+
+- [ ] External legal opinion on the guidance-only posture (commissioned by CSJ; 4-8 week calendar).
+- [ ] DPIA drafting (external DPO or retained counsel; 2-4 weeks).
+- [ ] Privacy Policy rewrite to honestly disclose Anthropic + xAI + (if retained) Meta Pixel + AWIN + Plausible — OR remove those trackers to match the current policy text. **Commercial decision pending.**
+- [ ] Article 28 DPA verification with Anthropic + xAI (commercial/legal).
+- [ ] UK IDTA + Transfer Risk Assessment for both Anthropic + xAI (US processors).
+- [ ] Provider failover (Anthropic ↔ xAI) with state preservation.
+- [ ] Sentry / structured error reporting.
+
+#### Verifications still needed (quick SSH/console checks)
+
+- [ ] Full health-data trace through `orchestrateAnalysis` — 1-day code audit to walk every numerical field in Layer 5 back to source; decide per-field: strip or capture specific consent (Sprint 4).
+- [ ] Plausible chat-event tracking on production — SSH + `grep ANALYTICS_ENABLED .env` — only if retained as in-scope tracker.
+
+### Context for Next Session
+
+**Start with:** read `April/April24Updates/audit-synthesis.md` (the consolidated verdict — reviewer synthesis + CSJ decisions), then `audit-evidence.md` (ground-truth anchors), then `fyn-rubrics.md` (grading + eval-harness shape). Do NOT read the morning's 4 docs without reading the audit first — they contain load-bearing errors the afternoon audit overturns.
+
+**Before starting Sprint 0:** run the **correction pass** on the morning's 4 docs (8 items above) so the spec isn't drafted on inherited errors. This is ~1 day of editing.
+
+**Critical context:**
+- CSJ decisions locked: guidance-only FCA posture, two-Fyn architecture with no orchestrator class, local-first deploy gate, both rubrics to be built, Python sidecar deletion confirmed.
+- The afternoon audit overturned several morning claims — read `audit-synthesis.md` §2 (Invalidated by Code) before trusting anything in the morning docs.
+- Multi-entity is the user's top-priority pain point and is **NOT** fixed by persona-split as the morning docs imply. Sprint 1's batch-tools pattern is the structural fix.
+- 178-commit rebase drift (not 72) means Sprint 0.1 alone is 0.5-1 day, not 2-4 hrs.
+
+**Branch state:** `main` unchanged. `feature/fyn-persona-split` 68 commits ahead / **178 behind** `origin/main`. PR #214 (`onboardingFyn`) still open, to be closed in Sprint 0.3 as superseded.
+
+**Working tree:** clean. CSJTODO.md updated (this file). The 3 afternoon correction artefacts + the 4 morning docs are in `.gitignore`d `April/April24Updates/` — vault is the source of truth (mirrored via `/vault-sync`).
+
+**Current Enterprise Rubric score:** **4/40 — 🔴 Pre-launch.** Projected after Sprint 0+1: ~17/40 🟠 Limited beta.
 
 ---
 

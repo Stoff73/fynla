@@ -130,6 +130,7 @@ arch('services are organized by module')
     ->toBeClasses()
     ->ignoring([
         'App\Services\Documents\FieldMappers\FieldMapperInterface',
+        'App\Services\Lifecycle\Contracts\LifecycleCampaign',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()
