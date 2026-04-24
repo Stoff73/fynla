@@ -287,13 +287,6 @@
           'border-t border-light-gray bg-savannah-100',
           isMobile ? 'px-4 py-3' : 'px-6 py-4 rounded-b-lg'
         ]">
-          <!-- Phase 13 — capturing pill when orchestrator is in capturing state. -->
-          <div
-            v-if="isCapturing"
-            class="mb-2 inline-flex items-center px-3 py-1 text-xs font-semibold text-horizon-500 bg-savannah-100 border border-horizon-200 rounded-full"
-          >
-            Updating your records
-          </div>
           <!-- Phase 13 — preview signup CTA after an advice short-circuit. -->
           <div v-if="previewCta" class="mb-2">
             <router-link
@@ -577,13 +570,6 @@
           <div class="w-10 h-1 rounded-full bg-neutral-300 group-hover:bg-neutral-400 transition-colors"></div>
         </div>
         <div class="flex flex-col h-[calc(100%-12px)] px-4 pb-4">
-          <!-- Phase 13 — capturing pill in docked panel. -->
-          <div
-            v-if="isCapturing"
-            class="mb-2 inline-flex items-center px-3 py-1 text-xs font-semibold text-horizon-500 bg-savannah-100 border border-horizon-200 rounded-full self-start"
-          >
-            Updating your records
-          </div>
           <!-- Phase 13 — preview signup CTA. -->
           <div v-if="previewCta" class="mb-2">
             <router-link
@@ -695,16 +681,11 @@ export default {
             'secondsUntilReset',
             'showHistory',
             'pendingNavigation',
-            'personaMode',
             'skipLink',
             'previewCta',
             'onboardingLayout',
             'isOnboardingActive',
         ]),
-
-        isCapturing() {
-            return this.personaMode === 'capturing';
-        },
 
         // True once the user has sent at least one message in this
         // conversation. Gates the bottom scroll spacer — on the very
@@ -716,13 +697,11 @@ export default {
 
         inputPlaceholder() {
             if (this.tokenLimitReached) return 'Daily limit reached — resets at midnight';
-            if (this.isCapturing) return 'Tell Fyn the details...';
             return 'Ask about your finances...';
         },
 
         dockedInputPlaceholder() {
             if (this.tokenLimitReached) return 'Daily limit reached';
-            if (this.isCapturing) return 'Tell Fyn the details...';
             return 'Ask Fyn...';
         },
 

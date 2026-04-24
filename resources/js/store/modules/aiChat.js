@@ -25,8 +25,6 @@ const state = {
     pendingNavigation: null,
     prefilledPrompt: null,
     abortController: null,
-    // Persona split (Phase 13):
-    personaMode: 'advice',       // 'advice' | 'capturing' — driven by persona_state_change SSE
     onboardingLayout: 'wide',    // 'wide' | 'standard' — driven by onboarding_layout_change SSE
     skipLink: null,              // { label, color } when a state exposes a skip link
     previewCta: null,            // { label, route } when advice emits a signup CTA
@@ -55,7 +53,6 @@ const getters = {
     pendingNavigation: (state) => state.pendingNavigation,
     prefilledPrompt: (state) => state.prefilledPrompt,
     hasConversation: (state) => state.currentConversation !== null,
-    personaMode: (state) => state.personaMode,
     onboardingLayout: (state) => state.onboardingLayout,
     skipLink: (state) => state.skipLink,
     previewCta: (state) => state.previewCta,
@@ -129,10 +126,6 @@ const mutations = {
         state.abortController = controller;
     },
 
-    SET_PERSONA_MODE(state, mode) {
-        state.personaMode = mode === 'capturing' ? 'capturing' : 'advice';
-    },
-
     SET_ONBOARDING_LAYOUT(state, mode) {
         state.onboardingLayout = mode === 'standard' ? 'standard' : 'wide';
     },
@@ -184,7 +177,6 @@ const mutations = {
         state.pendingNavigation = null;
         state.prefilledPrompt = null;
         state.abortController = null;
-        state.personaMode = 'advice';
         state.onboardingLayout = 'wide';
         state.skipLink = null;
         state.previewCta = null;
@@ -506,13 +498,6 @@ const actions = {
                                     dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
                                     dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
                                 }
-                                break;
-
-                            case 'persona_state_change':
-                                // Phase 13 — orchestrator signals advice <-> capturing.
-                                // AiChatPanel.vue swaps input placeholder and surfaces
-                                // the capturing pill based on this getter.
-                                commit('SET_PERSONA_MODE', event.current);
                                 break;
 
                             case 'capture_complete':
