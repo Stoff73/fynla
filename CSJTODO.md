@@ -1,7 +1,91 @@
 # CSJTODO — Fynla
 
-*Last updated: 24 April 2026 — session 69 (Fyn AI audit — morning: 4 planning docs; afternoon: 5-reviewer audit of those docs, 7 CSJ decisions, 3 correction artefacts, enterprise + eval rubrics)*
-*Previous session: 23 April 2026 — session 68 (dev → main release + investment 500 fix + lifecycle rate-limit hotfix)*
+*Last updated: 24 April 2026 — session 70 (Fyn v2 spec directory: 10 files, 4,644 lines, dual-layer test strategy with 24 Playwright scenarios)*
+*Previous session: 24 April 2026 — session 69 (audit + rubrics)*
+
+---
+
+## Session 70 (24 April PM → evening) — Fyn v2 spec directory + test strategy
+
+**No code changes.** Working tree clean. All deliverables in `.gitignored` `/April/April24Updates/` (mirrored to `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/` throughout session). Session built on session 69's audit correction pass.
+
+### Completed
+
+#### Audit doc corrections + three-pass review
+- [x] `code-vs-review-report.md` (105 lines) — first-pass compare of `feature/fyn-persona-split` code vs morning audit claims; surfaced the invoker-gap-fill FICTION that the audit carried.
+- [x] `docs-three-pass-review.md` (464 lines) — Pass 1 VERIFIED/STALE/FICTION/UNCLEAR per claim; Pass 2 eight mental-model contradictions (error paths / concurrency / data ownership); Pass 3 forward traceability for every Sprint 0 task.
+- [x] `audit-evidence.md` v2 — canonical §0 at top; §3.2 retracted ("orchestrator has no gap-fill" is FICTION — invoker has extractor wired at lines 48/175/200/251-300); §4 tool counts corrected (37 Anthropic / 33 xAI, direction inverted from audit claim); stale line anchors refreshed throughout; §14 processor framing refined; §18-23 new addenda (audit-truthfulness, handoff-contract failure mode, persona_state / onboarding_fyn_* reconciliation, visible-handoff leak, missing billing tools, memory model 3+1); **inline code citations on every implementation claim**.
+- [x] `audit-synthesis.md` v2 — canonical §0 at top; §2 #4 FICTION retracted; §2 #5 tool counts corrected + direction inverted; §5.7 six canonical gaps enumerated with file:line anchors; §8.2 rewritten with full two-Fyn behavioural contract + corrected LOC scope (1,238 prod + ~1,000 test delete; ~1,000-1,200 prod + ~400-500 test new; net ~500-800 LOC reduction); §9.9 25-item ambiguity-resolution list; **inline code citations**.
+- [x] `fyn-rubrics.md` v2 — canonical §0; D4 current-level nuance (0-1, scoring choice explained); D8 CoordinatingAgent LOC corrected to ~3,500; handoff-invisibility sub-criteria rolled into D5; memory-coherence sub-criteria into D9; scenario catalogue 65 → 75 with new `09-canonical-behaviour` (10 scenarios); **inline citations on D1-D10 evidence**.
+- [x] Memory model correction per CSJ: 3 stores + 1 index (not 4). `MemoryRetrieverService` retrieval order DB → parked facts → current conversation → index. Conversation index = new JSON columns on `ai_conversations` + `ConversationSummariserJob` + `search_conversation_index` tool.
+
+#### Spec directory `April/April24Updates/spec/` — 10 files, 4,644 lines total
+
+- [x] `README.md` (132 lines) — navigation + branch mandate (`feature/fyn-persona-split` in every file) + decision register (16 CSJ decisions) + verification summary.
+- [x] `00-canonical.md` (48 lines) — two-Fyn canonical verbatim. Source of truth.
+- [x] `01-invariants.md` (500 lines) — 13 invariant groups, ~35 falsifiable invariants, each with Property / Falsifiability test / Acceptance criterion. §verification section lists per-sprint Browser matrix requirements (20 → 24 → 38 → 44 → 39 scenarios across sprints 0-4).
+- [x] `02-current-system.md` (285 lines) — code-grounded description of branch today, anchored to file:line.
+- [x] `03-test-strategy.md` (647 lines) — **dual-layer test strategy**: Pest (unit / feature / architecture) + Playwright BS-NN browser scenarios. Click-through discipline ("no URL make up crap" — only `http://localhost:8000` typed; everything else clicked). 24 fully-specified scenarios with seed + script + assertions + pass criterion. Per-invariant → test mapping table. Non-negotiable "report-finished" gate.
+- [x] `10-sprint-0-plan.md` (1,665 lines) — 16 TDD tasks including Browser harness + 20 Playwright scenarios.
+- [x] `11-sprint-1-plan.md` (691 lines) — 9 TDD tasks: eval harness + memory model + advice_response SSE + 4 new Playwright scenarios (24 total).
+- [x] `12-sprint-2-plan.md` (345 lines) — 19 tasks: 14 batch-shaped capture tools + BS-17 parameterised over 14 variants (38 runs).
+- [x] `13-sprint-3-plan.md` (159 lines) — 5 tasks: full local matrix + dev deploy to `csjones.co/fynla` + canonical subset on dev.
+- [x] `14-sprint-4-plan.md` (172 lines) — external calendar (legal / DPIA / DPA / privacy-policy) + 6 code tasks + production matrix (39 runs on `fynla.org`).
+
+### Project-wide non-negotiables (carried forward into every subsequent session)
+
+- **Every doc in this workstream starts with canonical §0 verbatim.** Spec, plan, PRD, task list.
+- **Branch: `feature/fyn-persona-split`.** Everything builds here. DO NOT start from `main` or `dev`.
+- **Two test layers per invariant** — Pest + Playwright BS-NN. Sprint not done without both green + screenshot evidence in `docs/sprint-<n>-verification/BS-NN/`.
+- **No fabricated URLs in Playwright scenarios.** Start at `http://localhost:8000`; click through the UI for everything else.
+
+### NOT Done — Outstanding for Session 71
+
+#### Top priority (user requested, not yet written)
+
+- [ ] **Plan directory `April/April24Updates/plan/`** — user invoked `/planning-with-files` skill at end of session with plan-slice template (Objective / Spec reference / Files affected / Acceptance test / Out of scope). Invocation arrived at the same moment as `/session-end`. Resume by re-invoking `/planning-with-files` with the original args. Target structure: one file per invariant group (§2.1 through §2.13) under `plan/slices/` plus a `plan/README.md` + `plan/template.md`.
+
+#### Sprint 0 execution (when ready to start coding)
+
+- [ ] **Check out `feature/fyn-persona-split`** — currently on `main`. Switch before ANY code work: `git checkout feature/fyn-persona-split`.
+- [ ] **Sprint 0 Task 0.1** — rebase onto `origin/main` (179-commit drift). Expect conflicts in `AppLayout.vue`, `CoordinatingAgent.php`, `routes/api.php`, `HasAiChat.php`, `Prompts/*`, `AiToolDefinitions.php`, `StructuredResponseValidator.php`, `aiChat.js`, `AiChatPanel.vue`.
+- [ ] **Sprint 0 Task 0.16** — build Browser test harness (`tests/Browser/TestCase.php` + Login helper + SSE capture helper + 20 scenario files).
+- [ ] Sprint 0 Tasks 0.2 through 0.15 — per `spec/10-sprint-0-plan.md`.
+
+#### Execution mode decision (pending user choice)
+
+Two options offered at session end; not chosen before `/session-end`:
+
+1. **Subagent-driven** (recommended) — `superpowers:subagent-driven-development` with fresh subagent per task + two-stage review. Best isolation; keeps session context fresh; good for 16-task sprint.
+2. **Inline execution** — `superpowers:executing-plans` with batch commits + checkpoints. Faster but session context fills with 16 tasks × 7-16 steps each.
+
+### Context for Session 71
+
+- **Start by reading `April/April24Updates/spec/README.md`** (132 lines) — entire workstream navigation.
+- **Then `00-canonical.md` + `01-invariants.md`** — source of truth.
+- **For Sprint 0 execution**: read `03-test-strategy.md` + `10-sprint-0-plan.md`.
+- **For the plan-slice deliverable**: re-invoke `/planning-with-files`, build `April/April24Updates/plan/`.
+- **Branch reality check**: `git log -1 feature/fyn-persona-split` — confirm tip; `git rev-list --count origin/feature/fyn-persona-split..origin/main` should still be 179.
+- **Vault parity**: `diff -r April/April24Updates/ /Users/CSJ/Desktop/fynlaBrain/April/April24Updates/` — expect zero diff.
+
+### Deploy Status
+
+Nothing deployed this session. Nothing to deploy (no code changed). Sprint 0 is the next deploy-adjacent work; Sprint 3 is when dev-deploy gates open.
+
+### Decision register snapshot (all locked)
+
+1. Two Fyns, no Orchestrator class. Delete orchestrator/invoker/registry/data_capture prompt builder.
+2. All 17 fill_form handlers → direct-write (Q1=a).
+3. Provider parity. 40 tools post-Sprint-0 (+14 batch = 54 post-Sprint-2).
+4. FCA: guidance-only. Signposting: *"For regulated advice personal to your circumstances, speak to a qualified financial adviser."*
+5. Out-of-remit: *"I'm able to help you with your finances. {context} is out of scope."*
+6. Advice response: new `advice_response` SSE event + `AdviceResponsePanel.vue`.
+7. SSE abort: keep partial writes; instrument + monitor.
+8. Document extraction: UI-only CTA (not an Advice Fyn tool).
+9. Entry-source → journey mapping: config-driven + extensible (4 initial, `path_choice` fallback).
+10. Memory: 3 stores + 1 index; retrieval order DB → parked → current → index.
+11. Eval floors: 95% baseline recall/precision; 100% hard-fail on validity/value/consistency/fabrication; mortgage → 100%/100% + protection + savings → 98%/98% by Sprint 2.
+12. Local-first deploy gate.
 
 ---
 
