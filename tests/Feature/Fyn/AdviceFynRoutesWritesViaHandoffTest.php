@@ -81,7 +81,7 @@ function fynBindMocks(string $adviceStub, string $inlineStub): void
             $persona = $args[8] ?? null;
             $stream = match ($persona) {
                 'advice' => fynStubChatStream($adviceStub),
-                'onboarding_inline' => fynStubChatStream($inlineStub),
+                'data_capture' => fynStubChatStream($inlineStub),
                 default => function () { yield ['type' => 'done']; },
             };
             return $stream();

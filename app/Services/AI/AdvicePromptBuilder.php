@@ -73,6 +73,16 @@ class AdvicePromptBuilder
         // Layer 3: FCA Process Instructions (STATIC)
         $layers[] = FcaProcessInstructions::get($isPreview);
 
+        // Layer 3b (S0.5.t): handoff_guidance moved up from Layer 10b. Grok
+        // shows recency-bias and was burying the rule when it sat near the
+        // end of the prompt — promoting it to immediately after the FCA
+        // process layer makes BS-14's "Add a Cash ISA" intent route through
+        // delegate_to_capture instead of navigate_to_page. Suppressed in
+        // preview mode (Layer 11 below substitutes a signup CTA instead).
+        if (! $isPreview) {
+            $layers[] = $this->getHandoffGuidance();
+        }
+
         // Layer 4: User Profile (DYNAMIC/user)
         $profile = $this->buildUserProfile($user);
         $layers[] = "<user_profile>\n{$profile}\n</user_profile>";
@@ -137,21 +147,7 @@ class AdvicePromptBuilder
             $layers[] = $signpostingBlock;
         }
 
-        // Layer 10b (persona-split, S0.5.r): bias advice Fyn toward
-        // delegate_to_capture. Advice Fyn is read-only — every write intent
-        // must route through Onboarding Fyn via the handoff. Suppressed in
-        // preview mode (Layer 11 below substitutes a signup CTA instead).
-        if (! $isPreview) {
-            $layers[] = <<<'PROMPT'
-<handoff_guidance>
-When the user asks you to add / save / record / create / update / delete / remove any account, policy, pension, property, mortgage, asset, liability, gift, trust, will, power of attorney, family member, business interest, chattel, goal, life event, what-if scenario, or any other persistent record, you MUST emit the `delegate_to_capture` tool. Pass `entity_types` (e.g. `['savings_account']`, `['what_if_scenario']`) and `fields_needed` listing what the user provided.
-
-Do NOT attempt a `create_*`, `update_*`, or `delete_*` tool yourself — Advice Fyn is read-only.
-
-The handoff will run through Onboarding Fyn, persist the record, and continue the conversation seamlessly. The user will not see the handoff.
-</handoff_guidance>
-PROMPT;
-        }
+        // Layer 10b — moved to Layer 3b above (S0.5.t).
 
         // Layer 11 (persona-split): preview-mode instruction. When the user
         // is previewing the app without an account, data-capture is not
@@ -191,6 +187,40 @@ PROMPT;
      * registered user with a linked spouse who already has data is not
      * considered "new" for prompt purposes.
      */
+    /**
+     * S0.5.t — handoff_guidance block. Extracted from inline Layer 10b so it
+     * can be promoted to Layer 3b. Tells advice Fyn that ALL write intents
+     * route through `delegate_to_capture` and lists the required arguments
+     * + the navigate_to_page anti-pattern that BS-14 caught.
+     */
+    private function getHandoffGuidance(): string
+    {
+        return <<<'PROMPT'
+<handoff_guidance>
+**TOP-PRIORITY RULE — READ FIRST.** This rule overrides every other instruction in this prompt.
+
+When the user asks you to add / save / record / create / update / delete / remove any account, policy, pension, property, mortgage, asset, liability, gift, trust, will, power of attorney, family member, business interest, chattel, goal, life event, what-if scenario, or any other persistent record, your FIRST AND ONLY action is to emit the `delegate_to_capture` tool.
+
+You MUST pass these arguments:
+- `reason` (string, REQUIRED): a one-sentence why, e.g. "User wants to add a Cash ISA at Nationwide."
+- `entity_types` (array of strings, REQUIRED): record types, e.g. `["savings_account"]`, `["protection_policy"]`.
+- `fields_needed` (array of strings, optional): field names the user provided, e.g. `["provider","current_balance","interest_rate"]`.
+
+OMITTING `reason` BREAKS THE HANDOFF. Always include it. Always include `entity_types`.
+
+**ANTI-PATTERNS — these are FORBIDDEN for write intents:**
+- Calling `navigate_to_page` to send the user to the relevant page so they fill the form themselves. The user asked YOU to add the record. Use `delegate_to_capture`.
+- Calling `create_*`, `update_*`, or `delete_*` tools directly. Those tools are not in your tool list — Advice Fyn is read-only.
+- Replying with text like "I've added", "I've recorded", "I've noted", "I'll take you to..." without first calling `delegate_to_capture`. That fabricates success.
+- Asking the user follow-up questions ("what's the start date?") before calling `delegate_to_capture`. Call the tool first with whatever the user gave you; the handoff captures the rest.
+
+**REQUIRED PATTERN.** User: "Add a Cash ISA with Nationwide, balance £5,000, interest 4.5%" → IMMEDIATELY emit `delegate_to_capture({reason: "User wants to add a Cash ISA at Nationwide.", entity_types: ["savings_account"], fields_needed: ["provider","account_type","current_balance","interest_rate"]})`. Do NOT navigate. Do NOT reply with text first. Do NOT ask follow-up questions.
+
+The handoff runs through Onboarding Fyn, persists the record, and continues the conversation seamlessly. The user does not see the handoff. After the handoff completes, you may add a brief confirmation only if the underlying tool actually persisted the record.
+</handoff_guidance>
+PROMPT;
+    }
+
     private function isNewUserWithNoData(User $user): bool
     {
         $totalIncome = (float) ($user->annual_employment_income ?? 0)

@@ -53,6 +53,15 @@ final class AdviceFyn
         // create_what_if_scenario persists a WhatIfScenario row and must
         // therefore be written by Onboarding Fyn like every other create_*.
         'create_goal', 'create_life_event', 'create_what_if_scenario',
+        // S0.5.t — strip navigate_to_page from advice mode. BS-14 caught the
+        // LLM repeatedly choosing navigate_to_page as an escape hatch for
+        // write intents (sending the user to a page so they fill the form
+        // themselves), then fabricating "I've added X" success text. The
+        // hardened <handoff_guidance> prompt did not deter it. Removing the
+        // tool entirely eliminates the escape hatch — write intents now
+        // only have one viable path: delegate_to_capture. Page navigation
+        // remains user-initiated via the menu.
+        'navigate_to_page',
     ];
 
     public function __construct(
@@ -159,6 +168,20 @@ final class AdviceFyn
                     continue;
                 }
 
+                // S0.5.t — observability: log when the LLM omitted `reason`
+                // and CaptureContext::fromArray synthesised one from
+                // entity_types. Tracking how often this fires tells us
+                // whether the prompt-side fix to require `reason` has
+                // landed with the model.
+                if (! isset($payload['reason']) || trim((string) ($payload['reason'] ?? '')) === '') {
+                    Log::notice('[AdviceFyn] delegate_to_capture payload missing reason — auto-synthesised', [
+                        'user_id' => $user->id,
+                        'conversation_id' => $conversation->id,
+                        'synthesised_reason' => $context->reason,
+                        'entity_types' => $context->entityTypes,
+                    ]);
+                }
+
                 yield from $this->onboardingChatDirector->handleInlineCapture(
                     $user,
                     $conversation,
@@ -167,7 +190,18 @@ final class AdviceFyn
                     $currentRoute,
                 );
 
-                continue;
+                // S0.5.t — terminate the outer Advice Fyn turn after the
+                // inline-capture handoff completes. Without this `return`,
+                // the upstream Advice Fyn generator continues with the
+                // delegate_to_capture tool_result and generates a second
+                // assistant message echoing the inline-capture's
+                // confirmation. BS-14 caught the duplicate-response
+                // regression: the user saw two near-identical "I've added
+                // your Cash ISA" messages because both Advice Fyn (advice
+                // persona) and Onboarding Fyn (data_capture persona)
+                // streamed text. The inline-capture turn IS the final
+                // response — the user must never feel the switch.
+                return;
             }
 
             yield $event;

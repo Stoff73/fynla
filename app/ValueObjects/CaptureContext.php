@@ -55,19 +55,34 @@ final class CaptureContext
     /**
      * @param  array<string, mixed>  $payload
      */
+    /**
+     * Hydrate from a delegate_to_capture payload.
+     *
+     * S0.5.t — `reason` is now resilient. BS-14 caught Grok emitting the
+     * tool without a `reason` field; the strict-required check threw and
+     * AdviceFyn dropped the handoff silently. We now synthesise a reason
+     * from `entity_types` when the LLM omits it. `entity_types` remains
+     * strictly required because it determines which inline-capture tools
+     * to whitelist downstream.
+     */
     public static function fromArray(array $payload): self
     {
-        if (! array_key_exists('reason', $payload)) {
-            throw new InvalidArgumentException('CaptureContext payload missing required key: reason.');
-        }
-
         if (! array_key_exists('entity_types', $payload)) {
             throw new InvalidArgumentException('CaptureContext payload missing required key: entity_types.');
         }
 
+        $entityTypes = array_values((array) $payload['entity_types']);
+
+        $reason = isset($payload['reason']) ? trim((string) $payload['reason']) : '';
+        if ($reason === '') {
+            $reason = $entityTypes !== []
+                ? 'Inline capture for: '.implode(', ', $entityTypes)
+                : 'Inline capture (reason omitted by LLM)';
+        }
+
         return new self(
-            reason: (string) $payload['reason'],
-            entityTypes: array_values((array) $payload['entity_types']),
+            reason: $reason,
+            entityTypes: $entityTypes,
             fieldsNeeded: array_values((array) ($payload['fields_needed'] ?? [])),
             pendingAdviceQuestion: isset($payload['pending_advice_question'])
                 ? (string) $payload['pending_advice_question']

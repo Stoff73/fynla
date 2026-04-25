@@ -2070,6 +2070,10 @@ PROMPT;
     ): \Generator {
         $allowedTools = $this->captureToolSet($context);
 
+        // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
+        // chat() turn that emitted delegate_to_capture already saved the
+        // user message. Re-saving from inside the inline-capture turn would
+        // produce a duplicate row in ai_messages.
         $generator = $this->coordinatingAgent->chatWithPromptOverride(
             user: $user,
             conversation: $conversation,
@@ -2077,9 +2081,9 @@ PROMPT;
             currentRoute: $currentRoute,
             systemPromptOverride: null,
             allowedTools: $allowedTools,
-            persistUserMessage: true,
+            persistUserMessage: false,
             toolsListOverride: null,
-            personaOverride: 'onboarding_inline',
+            personaOverride: 'data_capture',
         );
 
         /** @var list<array<string, mixed>> $llmEmittedFills */

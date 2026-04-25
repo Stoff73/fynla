@@ -70,10 +70,11 @@ trait HasAiChat
 
     /**
      * Persona tag applied to the assistant AiMessage row persisted by this
-     * chat() call. Set to 'advice' by AdviceFyn::handle and
-     * 'onboarding_inline' by OnboardingChatDirector::handleInlineCapture so
-     * history can be grouped by persona. Null outside those paths (legacy
-     * flows leave ai_messages.persona null for backwards compatibility).
+     * chat() call. Set to 'advice' by AdviceFyn::handle and 'data_capture'
+     * by OnboardingChatDirector::handleInlineCapture so history can be
+     * grouped by persona. Null outside those paths (legacy flows leave
+     * ai_messages.persona null for backwards compatibility). Must match the
+     * `ai_messages.persona` enum (['advice', 'data_capture']).
      */
     private ?string $personaOverride = null;
 
@@ -452,15 +453,17 @@ trait HasAiChat
                         ];
                     }
 
-                    // Auto-navigate when a tool is blocked and has a suggested route
-                    if (isset($toolResult['blocked']) && $toolResult['blocked'] === true
-                        && isset($toolResult['suggested_action']['route'])) {
-                        yield [
-                            'type' => 'navigation',
-                            'route_path' => $toolResult['suggested_action']['route'],
-                            'description' => $toolResult['suggested_action']['label'] ?? '',
-                        ];
-                    }
+                    // S0.5.t — auto-navigation on blocked results removed.
+                    // BS-14 caught the regression: "Add a Cash ISA" caused
+                    // Advice Fyn to call get_module_analysis(savings), which
+                    // the prerequisite gate blocked on missing expenditure
+                    // and suggested /profile. The frontend obeyed the
+                    // redirect, force-navigating the user to /profile
+                    // despite the inline-capture having already persisted
+                    // the ISA. The blocked reason still reaches the LLM via
+                    // the tool_result so it can surface the gap as text and
+                    // recommend (in words) where to add the missing data;
+                    // we no longer hijack the user's route.
 
                     // Handle form fill results
                     if (isset($toolResult['action']) && $toolResult['action'] === 'fill_form') {

@@ -19,9 +19,17 @@ final class FcaProcessInstructions
 
         if ($isPreview) {
             $prompt .= "\n\n".self::getPreviewMode();
-        } else {
-            $prompt .= "\n\n".self::getDataCreationGuidance();
         }
+
+        // S0.5.t (2026-04-25): the legacy <data_creation_guidance> block told
+        // the model to call create_* tools directly with form-fill semantics
+        // ("the tool will open a form on screen", "ask 'anything to add
+        // before saving?'"). That contract was eliminated by S0.5
+        // (direct-write conversion) and S0.5.r (advice→capture handoff). The
+        // block survived as dead weight and actively contradicted both
+        // <available_actions> and <handoff_guidance>, which is what BS-14
+        // tripped over. The advice path's record-creation flow lives entirely
+        // in <handoff_guidance> (AdvicePromptBuilder Layer 10b) now.
 
         return $prompt;
     }

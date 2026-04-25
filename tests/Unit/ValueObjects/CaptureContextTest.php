@@ -84,9 +84,25 @@ it('hydrates from a minimal array with only the required keys', function () {
         ->and($ctx->originatingFocus)->toBeNull();
 });
 
-it('throws when reason is missing from fromArray payload', function () {
-    expect(fn () => CaptureContext::fromArray(['entity_types' => ['goal']]))
-        ->toThrow(\InvalidArgumentException::class);
+it('synthesises a reason from entity_types when fromArray payload omits reason (S0.5.t)', function () {
+    // S0.5.t: BS-14 caught the LLM emitting delegate_to_capture without a
+    // `reason` field. Pre-S0.5.t this threw InvalidArgumentException and
+    // AdviceFyn::wrapStream silently dropped the handoff, leading to a
+    // hallucinated success message and no DB write. The fromArray contract
+    // now accepts a missing reason and synthesises one from entity_types so
+    // the handoff still wires through.
+    $context = CaptureContext::fromArray(['entity_types' => ['goal']]);
+    expect($context->reason)->toBe('Inline capture for: goal');
+    expect($context->entityTypes)->toBe(['goal']);
+});
+
+it('synthesises a default reason when both reason and entity_types-derived label are unavailable (S0.5.t)', function () {
+    // entity_types still required — only `reason` is forgiving.
+    $context = CaptureContext::fromArray([
+        'entity_types' => ['savings_account', 'protection_policy'],
+        'reason' => '   ',  // whitespace-only treated as missing
+    ]);
+    expect($context->reason)->toBe('Inline capture for: savings_account, protection_policy');
 });
 
 it('throws when entity_types is missing from fromArray payload', function () {

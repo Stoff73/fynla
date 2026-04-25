@@ -224,6 +224,30 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 
 **Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
 
+### 15. LOOP UNTIL CORRECT — NON-NEGOTIABLE
+
+**WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
+
+**The loop is:**
+1. Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
+2. Fix the root cause in code.
+3. Re-verify in the browser end-to-end via Playwright (click, fill, submit, observe DB + SSE + UI).
+4. If still RED, return to step 1 with the new evidence. **Repeat until GREEN exactly as the plan defines GREEN.**
+
+**Acceptance is defined by the plan, not by me.** For BS-NN scenarios in `April/April24Updates/plan/`, the docblock in `tests/Browser/scenarios/BS-NN-*.php` is the contract — every assertion must hold (DB row, SSE shape, audit chain, UI card, no fabricated success).
+
+**The only acceptable exits from the loop are:**
+- (a) The test is GREEN per the plan's full acceptance criteria, verified in the live browser.
+- (b) I hit a question that genuinely requires a CSJ decision the plan does not answer. Before exiting under (b) I must have exhausted the plan, the spec, the canonical contract, and the relevant memory files. Asking "what should I try next?" is **not** an acceptable exit — that's me handing the work back.
+
+**Forbidden inside the loop:**
+- Apologies without an attached fix attempt.
+- Marking a task complete on partial evidence.
+- Declaring something "good enough" because the plan didn't anticipate the bug — bugs uncovered while looping route through the plan's own bug-fix sub-task pattern (see Sprint 0 plan §S0.16b: "any failures route through dedicated bug-fix sub-tasks against the relevant Sprint 0 file"). **Routing means I open and fix the sub-task in the same loop, then re-verify BS-NN. It does not mean I hand back.**
+- Stopping to write reports, summaries, or session notes mid-loop. Reports come AFTER GREEN.
+
+**Ownership:** This rule is OWNED by CSJ. The mirror copies in `MEMORY.md` (under "Top laws") and the fynlaBrain vault are read-only references — the source of truth is this section of CLAUDE.md.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**
