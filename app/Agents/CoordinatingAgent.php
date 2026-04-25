@@ -3037,26 +3037,32 @@ class CoordinatingAgent extends BaseAgent
         // Default is_dependent for children and dependents
         $isDependent = $input['is_dependent'] ?? in_array($relationship, ['child', 'step_child', 'other_dependent']);
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'relationship' => $dbRelationship,
             'first_name' => $input['first_name'],
             'last_name' => $surname,
-            'date_of_birth' => $input['date_of_birth'] ?? null,
-            'gender' => $input['gender'] ?? null,
             'is_dependent' => $isDependent,
         ];
-
-        // Append mapping note to existing notes
-        if ($mappingNote) {
-            $existingNotes = $input['notes'] ?? '';
-            $fields['notes'] = trim($mappingNote.($existingNotes ? '. '.$existingNotes : ''));
+        if (isset($input['date_of_birth']) && $input['date_of_birth'] !== '') {
+            $payload['date_of_birth'] = $input['date_of_birth'];
+        }
+        if (isset($input['gender']) && $input['gender'] !== '') {
+            $payload['gender'] = $input['gender'];
         }
 
-        // Child-specific fields
-        if (in_array($dbRelationship, ['child'])) {
-            $educationStatus = $input['education_status'] ?? null;
+        // Notes: combine the relationship-mapping note with any AI-supplied
+        // notes (in that order so the mapping context comes first).
+        $aiNotes = $input['notes'] ?? '';
+        if ($mappingNote) {
+            $payload['notes'] = trim($mappingNote.($aiNotes !== '' ? '. '.$aiNotes : ''));
+        } elseif ($aiNotes !== '') {
+            $payload['notes'] = $aiNotes;
+        }
 
-            // Infer education status from age if not provided
+        // Child-specific: education_status (inferred from DOB if absent).
+        if ($dbRelationship === 'child') {
+            $educationStatus = $input['education_status'] ?? null;
             if (empty($educationStatus) && ! empty($input['date_of_birth'])) {
                 try {
                     $age = \Carbon\Carbon::parse($input['date_of_birth'])->age;
@@ -3069,28 +3075,29 @@ class CoordinatingAgent extends BaseAgent
                         default => 'graduated',
                     };
                 } catch (\Exception $e) {
-                    // Ignore parse errors
+                    // Unparseable DOB — leave education_status null.
                 }
             }
-
             if (! empty($educationStatus)) {
-                $fields['education_status'] = $educationStatus;
+                $payload['education_status'] = $educationStatus;
             }
             if (isset($input['receives_child_benefit'])) {
-                $fields['receives_child_benefit'] = $input['receives_child_benefit'];
+                $payload['receives_child_benefit'] = (bool) $input['receives_child_benefit'];
             }
         }
 
-        if (! empty($input['notes'])) {
-            $fields['notes'] = $input['notes'];
-        }
+        $member = DB::transaction(fn () => FamilyMember::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'family_member',
-            'route' => '/profile',
-            'fields' => $fields,
-            'message' => "I'll add {$input['first_name']} as a {$relationship} now.",
+            'entity_id' => $member->id,
+            'name' => trim($member->first_name.' '.($member->last_name ?? '')),
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added {$input['first_name']} as your {$relationship}.",
         ];
     }
 
