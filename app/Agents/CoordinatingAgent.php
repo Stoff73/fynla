@@ -2211,51 +2211,115 @@ class CoordinatingAgent extends BaseAgent
 
         $policyType = $input['policy_type'];
 
-        // Map AI policy_type to the form's policyType select values
-        $formPolicyType = match ($policyType) {
-            'income_protection' => 'incomeProtection',
-            'standalone_ci', 'accelerated_ci' => 'criticalIllness',
-            default => 'life', // level_term, term, whole_of_life, decreasing_term, family_income_benefit
+        // Choose the right model + entity_type per category. Each protection
+        // category has its own table and bespoke field set.
+        $category = match ($policyType) {
+            'income_protection' => 'income_protection',
+            'standalone_ci', 'accelerated_ci' => 'critical_illness',
+            default => 'life',
         };
 
-        // Build fields that map to PolicyFormModal's formData keys
-        $fields = [
-            'policyType' => $formPolicyType,
-            'provider' => $input['provider'] ?? null,
-            'premium_amount' => isset($input['premium_amount']) ? (float) $input['premium_amount'] : null,
-            'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
-        ];
-
-        // Coverage amount: benefit_amount for income protection and family income benefit, sum_assured for others
-        if ($policyType === 'income_protection' || $policyType === 'family_income_benefit') {
-            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : (isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0);
-        } else {
-            $fields['coverage_amount'] = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0;
-        }
-
-        // Life insurance sub-type — map generic 'term' to 'level_term' (dropdown value)
-        if ($formPolicyType === 'life') {
-            $fields['policy_type'] = $policyType === 'term' ? 'level_term' : $policyType;
-        }
-
-        // Term years (for life and critical illness)
-        if (isset($input['policy_term_years'])) {
-            $fields['term_years'] = (int) $input['policy_term_years'];
-        }
-
-        // In trust (for life insurance)
-        if (isset($input['in_trust'])) {
-            $fields['in_trust'] = (bool) $input['in_trust'];
-        }
-
+        $sumAssured = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0.0;
+        $benefitAmount = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : 0.0;
         $providerLabel = $input['provider'] ?? str_replace('_', ' ', $policyType);
 
+        if ($category === 'life') {
+            $payload = [
+                'user_id' => $user->id,
+                // map generic 'term' onto canonical 'level_term'
+                'policy_type' => $policyType === 'term' ? 'level_term' : $policyType,
+                'sum_assured' => $policyType === 'family_income_benefit' && $benefitAmount > 0
+                    ? $benefitAmount
+                    : $sumAssured,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+            ];
+            foreach (['provider', 'policy_number', 'policy_start_date', 'policy_end_date'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+            foreach (['premium_amount', 'start_value', 'decreasing_rate', 'indexation_rate'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (float) $input[$f];
+                }
+            }
+            if (isset($input['policy_term_years']) && is_numeric($input['policy_term_years'])) {
+                $payload['policy_term_years'] = (int) $input['policy_term_years'];
+            }
+            foreach (['in_trust', 'is_mortgage_protection', 'joint_life'] as $f) {
+                if (isset($input[$f])) {
+                    $payload[$f] = (bool) $input[$f];
+                }
+            }
+
+            $policy = DB::transaction(fn () => LifeInsurancePolicy::create($payload));
+            $entityType = 'life_insurance_policy';
+        } elseif ($category === 'critical_illness') {
+            // CI table's enum uses bare values (standalone | accelerated)
+            // — strip the AI tool's `_ci` suffix.
+            $ciType = match ($policyType) {
+                'standalone_ci' => 'standalone',
+                'accelerated_ci' => 'accelerated',
+                default => 'standalone',
+            };
+            $payload = [
+                'user_id' => $user->id,
+                'policy_type' => $ciType,
+                'sum_assured' => $sumAssured,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+            ];
+            foreach (['provider', 'policy_number', 'policy_start_date'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+            if (isset($input['premium_amount']) && is_numeric($input['premium_amount'])) {
+                $payload['premium_amount'] = (float) $input['premium_amount'];
+            }
+            if (isset($input['policy_term_years']) && is_numeric($input['policy_term_years'])) {
+                $payload['policy_term_years'] = (int) $input['policy_term_years'];
+            }
+            if (isset($input['conditions_covered']) && is_array($input['conditions_covered'])) {
+                $payload['conditions_covered'] = $input['conditions_covered'];
+            }
+
+            $policy = DB::transaction(fn () => CriticalIllnessPolicy::create($payload));
+            $entityType = 'critical_illness_policy';
+        } else {
+            $payload = [
+                'user_id' => $user->id,
+                'benefit_amount' => $benefitAmount > 0 ? $benefitAmount : $sumAssured,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+                'benefit_frequency' => $input['benefit_frequency'] ?? 'monthly',
+            ];
+            foreach (['provider', 'policy_number', 'occupation_class', 'policy_start_date'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+            if (isset($input['premium_amount']) && is_numeric($input['premium_amount'])) {
+                $payload['premium_amount'] = (float) $input['premium_amount'];
+            }
+            foreach (['deferred_period_weeks', 'benefit_period_months'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (int) $input[$f];
+                }
+            }
+
+            $policy = DB::transaction(fn () => IncomeProtectionPolicy::create($payload));
+            $entityType = 'income_protection_policy';
+        }
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
-            'entity_type' => 'protection_policy',
-            'route' => '/protection',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$providerLabel}\" protection policy now.",
+            'success' => true,
+            'created' => true,
+            'entity_type' => $entityType,
+            'entity_id' => $policy->id,
+            'name' => (string) $providerLabel,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$providerLabel}\" protection policy.",
         ];
     }
 
