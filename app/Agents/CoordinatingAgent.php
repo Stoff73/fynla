@@ -3580,19 +3580,57 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('record');
         }
 
-        $entityType = $input['entity_type'];
-        $entityId = (int) $input['entity_id'];
+        $entityType = (string) ($input['entity_type'] ?? '');
+        $entityId = (int) ($input['entity_id'] ?? 0);
+
+        // Two-phase confirmation (Rubric-A D5 Level 3): the first call
+        // never deletes — it returns a deterministic SHA-256 token bound
+        // to (user_id, entity_type, entity_id, today's date). The LLM
+        // must echo that exact token on the second call to proceed.
+        // The same-day salt means tokens cannot be replayed across days.
+        $expectedToken = hash(
+            'sha256',
+            $user->id.'|'.$entityType.'|'.$entityId.'|'.now()->format('Y-m-d')
+        );
+
+        $providedToken = (string) ($input['confirmation_token'] ?? '');
+
+        if (! hash_equals($expectedToken, $providedToken)) {
+            return [
+                'requires_confirmation' => true,
+                'confirmation_token' => $expectedToken,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'preview_message' => 'This will permanently delete '
+                    .str_replace('_', ' ', $entityType)." #{$entityId}. "
+                    .'Confirm with the user before re-calling delete_record with this confirmation_token.',
+            ];
+        }
 
         $model = $this->resolveModel($entityType, $entityId, $user->id);
-        if (isset($model['error'])) {
+        if (is_array($model) && isset($model['error'])) {
             return $model;
         }
 
-        $name = $model->goal_name ?? $model->account_name ?? $model->trust_name ?? $model->business_name ?? $model->description ?? $model->first_name ?? "#{$entityId}";
+        $name = $model->goal_name
+            ?? $model->account_name
+            ?? $model->trust_name
+            ?? $model->business_name
+            ?? $model->description
+            ?? $model->first_name
+            ?? "#{$entityId}";
 
-        $model->delete();
+        return DB::transaction(function () use ($model, $entityType, $entityId, $name) {
+            $model->delete();
 
-        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted."];
+            return [
+                'success' => true,
+                'deleted' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
+            ];
+        });
     }
 
     /**

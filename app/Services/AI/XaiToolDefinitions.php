@@ -966,7 +966,7 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'delete_record',
-                'Delete an existing record. ALWAYS confirm with the user before deleting.',
+                'Delete an existing record. Two-phase confirmation: the first call returns a confirmation_token and preview_message — DO NOT delete on that turn; show the preview to the user and ask for confirmation. Only on a second call, echoing the exact same confirmation_token, does the deletion proceed. Tokens are bound to (user, entity_type, entity_id, today\'s date) and cannot be replayed across days.',
                 [
                     'entity_type' => [
                         'type' => 'string',
@@ -974,8 +974,12 @@ class XaiToolDefinitions
                         'description' => 'The type of record to delete',
                     ],
                     'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to delete'],
+                    'confirmation_token' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Omit (or null) on the first call — you will receive a token. On the second call, pass the exact 64-character token from the first response. Without a matching token the call returns requires_confirmation again and does NOT delete.',
+                    ],
                 ],
-                ['entity_type', 'entity_id']
+                ['entity_type', 'entity_id', 'confirmation_token']
             ),
         ];
     }

@@ -1075,7 +1075,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'delete_record',
-                'description' => 'Delete an existing record. ALWAYS confirm with the user before deleting. Use when the user explicitly asks to remove a goal, account, property, pension, policy, or other financial record.',
+                'description' => 'Delete an existing record. Two-phase confirmation: the first call returns a confirmation_token and a preview_message — DO NOT delete on that turn; show the user the preview_message and ask them to confirm. Only on a second call, with the exact same confirmation_token echoed back, does the deletion proceed. Tokens are bound to (user, entity_type, entity_id, today\'s date) and cannot be replayed across days.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1085,6 +1085,10 @@ class AiToolDefinitions
                             'description' => 'The type of record to delete',
                         ],
                         'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to delete'],
+                        'confirmation_token' => [
+                            'type' => 'string',
+                            'description' => 'Optional. Omit on the first call (you will receive a token). On the second call, pass the exact 64-character token from the first response. Without a matching token the call returns requires_confirmation again and does NOT delete.',
+                        ],
                     ],
                     'required' => ['entity_type', 'entity_id'],
                     'additionalProperties' => false,
