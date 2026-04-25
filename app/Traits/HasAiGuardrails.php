@@ -21,10 +21,52 @@ trait HasAiGuardrails
 
     /**
      * Get the active AI provider, checking admin toggle (cache) first, then .env.
+     *
+     * Delegates to {@see getAiProviderForLoop()} so every reader goes
+     * through the same versioned-cache path. Kept as a thin wrapper for
+     * backward compatibility with existing call sites (`HasAiChat::chat`,
+     * `AdviceFyn::buildToolList`, etc.).
      */
     protected static function getAiProvider(): string
     {
-        return \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+        return static::getAiProviderForLoop();
+    }
+
+    /**
+     * Resolve the active AI provider for an in-flight chat() call.
+     *
+     * Reads the versioned cache key written by AdminController::setAiProvider.
+     * Callers that span an entire chat loop (HasAiChat::chat) MUST capture
+     * the result ONCE at the top and reuse the local snapshot for every
+     * iteration — otherwise a mid-stream admin toggle can swap the
+     * provider mid-loop and cause Anthropic prompt-cache markers to leak
+     * into xAI (or vice versa), producing a 400 from the wrong endpoint
+     * (S0.11.4 / INV-2.9.4).
+     *
+     * Lookup order (first match wins):
+     *  1. Versioned key `ai_provider:v{N}` where N is `ai_provider_version`
+     *     (the canonical post-S0.11.4 path — admin toggle bumps the version
+     *     atomically so any in-flight reader never sees a torn write).
+     *  2. Legacy unversioned `ai_provider` key (kept for backward
+     *     compatibility with existing tests / fixtures that wrote the old
+     *     key directly via `Cache::forever('ai_provider', ...)`).
+     *  3. The `services.ai_provider` config default ('anthropic').
+     */
+    protected static function getAiProviderForLoop(): string
+    {
+        $version = (int) \Illuminate\Support\Facades\Cache::get('ai_provider_version', 0);
+
+        if ($version > 0) {
+            return \Illuminate\Support\Facades\Cache::get(
+                "ai_provider:v{$version}",
+                config('services.ai_provider', 'anthropic')
+            );
+        }
+
+        return \Illuminate\Support\Facades\Cache::get(
+            'ai_provider',
+            config('services.ai_provider', 'anthropic')
+        );
     }
 
     private const DAILY_TOKEN_LIMITS = [
