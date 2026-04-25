@@ -1,261 +1,156 @@
 ---
 name: session-start
-description: Bootstrap a new Fynla development session with full project context. Syncs git, loads the fynlaBrain vault (design system, past bugs, feedback rules, deployment history), reads all memory files, seeds the database, and starts the dev server. This skill exists because Claude repeatedly makes the same mistakes across sessions — skipping tests, ignoring the design system, claiming work is done without browser verification. Running this skill prevents that cycle. Use at the start of EVERY conversation, or when the user says "start session", "get ready", "set up", "begin", "new session", or similar. Also use if you notice you're missing project context mid-session.
+description: Bootstrap a new Fynla development session. Syncs git, seeds the database, starts the dev server, surfaces recent work, and prints a lookup map so the instance knows where to read on-demand (memory, vault, design guide). Does NOT bulk-load reference files — CLAUDE.md and MEMORY.md are already auto-loaded by the harness, and individual feedback/vault/design files should be read only when relevant. Use at the start of EVERY conversation, or when the user says "start session", "get ready", "set up", "begin", "new session". Also use mid-session if you notice you're missing project context.
 ---
 
-# Session Start — Full Context Bootstrap
+# Session Start — Lean Bootstrap
 
-**You are an expert Laravel 10, PHP 8.2, Vue.js 3, and MySQL 8 developer.** You have deep knowledge of the entire stack: Eloquent ORM, Sanctum auth, Pest testing, Vuex state management, Vue Router, Tailwind CSS, Vite build tooling, Capacitor iOS, and UK financial regulations (tax years, ISA/pension allowances, IHT thresholds). You write production-quality code, not tutorials. You understand SOLID principles, service layer architecture, and frontend component patterns. When working on Fynla, you operate at the level of a senior full-stack engineer who has been on this project for months.
+**You are an expert Laravel 10, PHP 8.2, Vue.js 3, and MySQL 8 developer.** Senior full-stack engineer level — Eloquent, Sanctum, Pest, Vuex, Vue Router, Tailwind, Vite, Capacitor iOS, UK financial regulations.
 
-This skill exists because of a real, recurring problem: new Claude instances start sessions without knowing the project's hard-won lessons, design rules, or past mistakes — and then repeat them. The user has been through this cycle dozens of times and it causes genuine frustration.
+## What's already loaded — do NOT re-read
 
-Your job here is to load everything you need so that when the user gives you work, you already know the rules, the patterns, the gotchas, and the history. No excuses for ignorance after this skill runs.
+The harness has already injected these into context for you. Do not Read them again.
 
-## Phase 1: Git Sync
+- **`CLAUDE.md`** — project rules, deployment, design constraints, all 14 numbered rules. Already in your context.
+- **`MEMORY.md`** — index of every feedback / project / reference / critical memory file with a one-line hook for each. Already in your context.
 
-Make sure you're working on the latest code. Do these checks in order — stop and report to the user if anything is wrong.
+Use the MEMORY.md index to decide which individual memory files to Read on-demand when the topic comes up. Don't read them all proactively.
 
-### 1a. Current state
+## Phase 1: Operational checks
+
+Run these in parallel where possible. Stop and report to the user if anything is wrong — do not auto-resolve.
+
+### 1a. Git state
 
 ```bash
 git status
 git rev-parse --abbrev-ref HEAD
-```
-
-If there are uncommitted changes, **report them to the user** before doing anything else. Do not silently stash or discard.
-
-### 1b. Fetch and compare with remote
-
-```bash
 git fetch origin
-git rev-list --left-right --count HEAD...origin/main
+git rev-list --left-right --count HEAD...@{u} 2>/dev/null || git rev-list --left-right --count HEAD...origin/main
+git log --oneline -10
 ```
 
-The output is `LOCAL_AHEAD  REMOTE_AHEAD`. Interpret:
-- `0  0` → Up to date. Good.
-- `0  N` → Behind by N commits. Pull needed.
-- `N  0` → Ahead by N commits. Fine, local work not yet pushed.
-- `N  M` → Diverged. Report to user — do not auto-resolve.
+Output of `rev-list` is `LOCAL_AHEAD  REMOTE_AHEAD`:
+- `0  0` → up to date
+- `0  N` → behind. If working tree is clean → `git pull`. If dirty → ask user before stashing.
+- `N  0` → fine, local work not pushed
+- `N  M` → diverged → report, do not auto-resolve
 
-### 1c. Pull if behind (and working tree is clean)
+If there are uncommitted changes, **report them** before doing anything else.
 
-If behind and no uncommitted changes:
-
-```bash
-git pull origin main
-```
-
-If there are uncommitted changes AND you're behind, tell the user:
-> "You have uncommitted changes and main has new commits. Would you like me to stash your changes and pull, or leave things as-is?"
-
-### 1d. Clean up stale worktrees
-
-Previous sessions leave orphaned agent worktrees. Clean up any that have no uncommitted changes:
+### 1b. Worktree cleanup
 
 ```bash
 git worktree list
 ```
 
-For each worktree in `.claude/worktrees/agent-*/`:
-- If it has uncommitted changes → report to user, do NOT delete
-- If it's clean → remove it: `git worktree remove <path> --force`
+For any `.claude/worktrees/agent-*/`: if clean → `git worktree remove <path> --force`. If dirty → report, do NOT delete.
 
-Report what was cleaned up and what needs user attention.
-
-### 1e. Recent changes
-
-```bash
-git log --oneline -10
-```
-
-Note the recent commits so you understand what was last worked on.
-
----
-
-## Phase 2: Load Project Context
-
-This is the critical phase. Read these files and **internalise their content** — not just skim them. The user will know immediately if you didn't actually absorb this context because you'll violate a rule that's been established for weeks.
-
-### 2a. Read ALL memory files
-
-Read every file in the memory directory:
-
-```
-/Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/
-```
-
-Start with `MEMORY.md` (the index), then read every `feedback_*.md`, `project_*.md`, `reference_*.md`, and `critical_*.md` file.
-
-**Every feedback file is a rule that was created because Claude violated it.** These are not suggestions. They are laws born from frustration. Internalise each one.
-
-The key feedback themes you will encounter (and must follow):
-
-**Testing is mandatory, not optional:**
-- "Browser tested" means you CLICKED, FILLED, SUBMITTED in Playwright and verified the result
-- Reading a diff is NOT testing. A snapshot without interaction is NOT testing
-- After ANY fix, re-test from Step 1 — never skip to the fix point
-- Never say "verified", "pass", or "confirmed" for items you didn't interact with
-- Never write a completion report until ALL browser testing is done
-- If blocked (login, verification code), ASK THE USER — do not skip
-
-**Don't hack the system:**
-- Never modify .env or insert DB records to work around issues
-- Never run artisan/composer/npm in the main directory if agents are working in worktrees
-- Never use `npx vite build` — use `./deploy/fynla-org/build.sh`
-- Never use `migrate:fresh` or `migrate:refresh` — they destroy data
-
-**Scope discipline:**
-- Only change what was asked for
-- Don't "improve" unrelated code while fixing a bug
-- Don't add features that weren't requested
-- If you notice something, REPORT it — don't silently fix it
-
-**Honesty:**
-- If something is broken, say it's broken
-- If you skipped testing, say you skipped testing
-- Never self-approve your own work
-- Never accept sub-agent claims without verification
-
-### 2b. Read the design guide
-
-```
-/Users/CSJ/Desktop/fynlaBrain/Design/fynlaDesignGuide.md
-```
-
-This is the single source of truth for all visual decisions. Read it and know:
-- **Color palette**: raspberry (CTAs), horizon (text/nav), spring (success), violet (warnings/focus), savannah (hover/subtle), eggshell (page bg)
-- **Banned colors**: amber-*, orange-*, primary-*, secondary-*, gray-* for general UI
-- **Typography**: Segoe UI primary, Inter fallback, weights 900 (display/h1), 700 (h2-h5)
-- **Component patterns**: buttons, cards, forms, modals, badges
-- **Chart colors**: use `designSystem.js` constants, never hardcode hex
-
-If you make ANY UI change this session without following this guide, you have failed.
-
-### 2c. Read the TODO / handover
-
-```bash
-cat CSJTODO.md 2>/dev/null || echo "No TODO file"
-```
-
-If it exists, present outstanding items to the user. Also check the vault for a potentially newer version:
-
-```bash
-ls -t /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates/CSJTODO.md 2>/dev/null | head -1
-```
-
-### 2d. Read recent vault session notes
-
-Check the 3 most recent session update folders for deploy notes, bug fixes, and outstanding issues:
-
-```bash
-ls -d /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates 2>/dev/null | sort -V | tail -3
-```
-
-For each folder, look for:
-- Deploy notes (`*deploy*.md`, `*Deploy*.md`) — what was deployed, what broke
-- Fix notes (`*fix*.md`, `*Fix*.md`, `*bug*.md`) — what went wrong and how it was resolved
-- Session summaries — what was worked on
-
-This gives you the narrative of recent work so you don't repeat fixed bugs or re-introduce solved issues.
-
-### 2e. Read recent reports (if any)
-
-```bash
-find /Users/CSJ/Desktop/fynlaBrain/Reports -name "*.md" -mtime -7 2>/dev/null
-```
-
-If any reports from the last 7 days, read key findings (tech debt, security, code review issues).
-
----
-
-## Phase 3: Environment Setup
-
-### 3a. Database seed (NON-NEGOTIABLE)
+### 1c. Database seed (NON-NEGOTIABLE)
 
 ```bash
 php artisan db:seed
 ```
 
-This must happen every session. No exceptions. If it fails:
+Every session, no exceptions. If table-missing → `php artisan migrate && php artisan db:seed`. Duplicate-key errors are safe (seeders use `updateOrCreate`).
 
-| Error | Fix |
-|-------|-----|
-| Table doesn't exist | `php artisan migrate && php artisan db:seed` |
-| Duplicate key | Safe to ignore — seeders use `updateOrCreate()` |
-| Connection refused | MySQL not running: `mysql.server start` |
-
-### 3b. Check for code issues
+### 1d. Code health checks
 
 ```bash
-# Check for unresolved merge conflict markers
 grep -rn "<<<<<<< " --include="*.php" --include="*.vue" --include="*.js" app/ resources/ 2>/dev/null | head -10
-
-# Check PHP syntax on recently changed files
-for file in $(git diff --name-only HEAD~5 -- '*.php' 2>/dev/null); do
-  php -l "$file" 2>&1 | grep -v "No syntax errors"
-done
-
-# Check migration status
-php artisan migrate:status 2>&1 | grep -i "pending\|error" | head -5
-
-# Check routes compile
-php artisan route:list --json 2>&1 | head -3
+php artisan migrate:status 2>&1 | grep -iE "pending|error" | head -5
 ```
 
-If conflict markers are found, they MUST be resolved before any other work.
-If pending migrations exist, report to user — do NOT auto-run.
+Conflict markers MUST be resolved before any other work. Pending migrations → report, do NOT auto-run.
 
-### 3c. Start dev server (if not running)
+### 1e. Dev server
 
 ```bash
 lsof -i :8000 2>/dev/null | head -1
 lsof -i :5173 2>/dev/null | head -1
 ```
 
-If not running: `./dev.sh` (run in background so bootstrap can continue).
+If not running → `./dev.sh` in the background.
 
----
+## Phase 2: Current-state context (small reads only)
 
-## Phase 4: Session Report
+### 2a. Handover
 
-Present a clean summary to the user. This is what they see — make it useful, not verbose.
+```bash
+cat CSJTODO.md 2>/dev/null | head -100
+ls -t /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates/CSJTODO.md 2>/dev/null | head -1
+```
+
+If a vault CSJTODO exists and is newer than the repo one, prefer it.
+
+### 2b. Most recent vault session folder (LIST, do not read contents)
+
+```bash
+ls -d /Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates 2>/dev/null | sort -V | tail -1
+```
+
+Surface the folder name in the report. Read individual files inside it ONLY when the user's request relates to that work.
+
+## Phase 3: Lookup map (no reads — just know where to look)
+
+This is the most important part. Most "lazy" questions happen because the instance forgets where the answer lives. Keep this map in mind for the rest of the session.
+
+| When you need... | Look here (read on-demand, not now) |
+|---|---|
+| A specific feedback rule's full text | `/Users/CSJ/.claude/projects/-Users-CSJ-Desktop-fynla/memory/<file>.md` (filename in MEMORY.md index) |
+| Design system / colours / typography / components | `/Users/CSJ/Desktop/fynlaBrain/Design/fynlaDesignGuide.md` (v1.3.0) |
+| Module architecture (Investment, Estate, Protection, etc.) | `/Users/CSJ/Desktop/fynlaBrain/v083/09-MODULES.md` + module-specific doc per CLAUDE.md table |
+| Auth / security patterns | `/Users/CSJ/Desktop/fynlaBrain/v083/03-AUTH-SECURITY.md` |
+| Database / schema | `/Users/CSJ/Desktop/fynlaBrain/v083/02-DATABASE.md` |
+| Frontend conventions | `/Users/CSJ/Desktop/fynlaBrain/v083/05-FRONTEND.md` + `resources/js/CLAUDE.md` |
+| Backend conventions | `/Users/CSJ/Desktop/fynlaBrain/v083/04-BACKEND.md` + `app/Services/CLAUDE.md` + `app/Http/CLAUDE.md` |
+| Tax / financial rules | `/Users/CSJ/Desktop/fynlaBrain/v083/08-FINANCIAL-CALCS.md` + `app/Services/Tax/TaxConfigService.php` |
+| Deployment | `/Users/CSJ/Desktop/fynlaBrain/v083/11-CONFIG-DEPLOY.md` + CLAUDE.md "Deployment" section |
+| What was deployed / fixed recently | `/Users/CSJ/Desktop/fynlaBrain/$(date +%B)/$(date +%B)*Updates/` (most recent folder from Phase 2b) |
+| Tests for a module | `tests/Unit/Services/<Module>/`, `tests/Feature/<Module>/` + `tests/CLAUDE.md` |
+| Existing code for "is there already a service for X?" | `grep -r "X" app/Services/` BEFORE writing new code |
+| Mobile / iOS / Capacitor patterns | memory file `mobile_capacitor_patterns.md` (already indexed in MEMORY.md) |
+
+**Hard rule**: before asking the user a question, check the relevant location above first. "I don't see it in CLAUDE.md" is not a valid excuse if the answer is in the vault or in a memory file the index points to.
+
+## Phase 4: Session report
+
+Present this concise summary to the user. No filler.
 
 ```markdown
-## Session Ready
+## Session Ready — [date]
 
-**Date:** [today]
-**Branch:** `main` (or current branch)
-**Git:** Up to date / Pulled N new commits / X uncommitted changes
-**Database:** Seeded
-**Dev server:** Running on :8000/:5173
+**Branch:** `<branch>` · **Git:** <up to date | pulled N | ahead N | diverged>
+**DB seeded** · **Dev server:** <running on :8000 / :5173 | started>
 
-### Recent Work
-- [last 3-5 commits summarised]
+**Recent commits**
+- <last 5 oneline>
 
-### Outstanding Items
-- [from CSJTODO.md or vault TODO, if any]
+**Outstanding (CSJTODO)**
+- <items, or "none">
 
-### Issues Found
-- [conflict markers / broken imports / pending migrations / stale worktrees — or "None"]
+**Latest vault session folder:** `<path>` (not read — will consult on-demand)
 
-### Rules Loaded
-[number] feedback rules loaded from [number] memory files.
-Key reminders for this session:
-- Browser testing is mandatory — click, fill, submit, verify
-- Design system compliance — all colors from fynlaDesignGuide.md palette
-- Scope discipline — only change what's asked for
-- Honesty — never claim "done" without evidence
+**Issues**
+- <conflict markers / pending migrations / dirty worktrees / nothing>
+
+**Reminders this session**
+- CLAUDE.md and MEMORY.md are loaded — consult before asking
+- Read individual memory / vault / design files on-demand using the lookup map
+- Browser testing = click, fill, submit, verify result in Playwright
+- Design system: fynlaDesignGuide.md v1.3.0 (read before any UI change)
+- Scope discipline · Honesty · No raw `vite build` · No `migrate:fresh`
 
 **Ready. What would you like to work on?**
 ```
 
----
+## What NOT to do
 
-## What NOT to Do
-
-- Do NOT make code changes during session start — this is diagnostic and context-loading only
-- Do NOT auto-delete branches with uncommitted work
+- Do NOT Read `CLAUDE.md` or `MEMORY.md` — already in context
+- Do NOT bulk-Read every memory file — use the index, read individually when relevant
+- Do NOT Read `fynlaDesignGuide.md` until UI work starts
+- Do NOT Read every recent vault session folder — list the latest, read on-demand
+- Do NOT make code changes during session start — this is diagnostic only
+- Do NOT auto-delete branches or worktrees with uncommitted work
 - Do NOT run `migrate:fresh` or `migrate:refresh`
-- Do NOT skip the database seed
-- Do NOT skip reading the feedback files — they are the most important part of this skill
-- Do NOT summarise the feedback rules as "follow best practices" — they are specific, concrete rules with specific reasons
+- Do NOT skip `db:seed`
