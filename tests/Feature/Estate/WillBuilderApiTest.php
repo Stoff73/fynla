@@ -14,8 +14,12 @@ beforeEach(function () {
 describe('Will Builder API', function () {
     describe('GET /estate/will-builder/pre-populate', function () {
         it('returns pre-populated data for authenticated user', function () {
+            // middle_name=null override prevents the 30% factory flake where
+            // fake()->optional(0.3)->firstName() inserts a middle name and
+            // breaks the full_name='James Carter' assertion.
             $user = User::factory()->create([
                 'first_name' => 'James',
+                'middle_name' => null,
                 'surname' => 'Carter',
                 'occupation' => 'Engineer',
             ]);
