@@ -226,10 +226,10 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 
 ### 15. LOOP UNTIL CORRECT — NON-NEGOTIABLE
 
-**WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
+**FOR ALL TESTS AND WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
 
 **The loop is:**
-1. Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
+1. Use /sytemic-debugging skill to Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
 2. Fix the root cause in code.
 3. Re-verify in the browser end-to-end via Playwright (click, fill, submit, observe DB + SSE + UI).
 4. If still RED, return to step 1 with the new evidence. **Repeat until GREEN exactly as the plan defines GREEN.**

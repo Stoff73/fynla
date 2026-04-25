@@ -1,47 +1,54 @@
-# Tech Debt Report — Session 78 (2026-04-25, 18:12 BST)
+# Tech Debt Report — Session 81 (2026-04-25, 22:00 BST)
 
-**Files analysed:** 4 modified production + 7 new Pest tests + 4 harness files (the 20 BS-NN scenario stubs, 20 .gitkeep dirs, phpunit.xml, tests/Pest.php, and README.md are config / docs / empty / docblock-only — skipped)
-**Issues found:** 2 (0 critical, 2 warnings, 0 suggestions)
-**Severity breakdown:** 0 critical, 2 warnings, 0 suggestions
+**Files analysed:** 10 (committed in 231b846) + CLAUDE.md (uncommitted CSJ tweak)
+**Issues found:** 0
+**Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
 
-## Critical Issues
+## Audit categories — all clean
 
-None. Both Sprint 0.15 and 0.16a commits (503ac99 + bc855fd) ship clean against project conventions:
+### Duplicate code
+- No within-file duplication.
+- No cross-file duplication. `getHandoffGuidance()` is a new helper extracted from inline Layer 10b — that's deduplication, not duplication.
 
-- `declare(strict_types=1)` retained on every modified PHP file.
-- Type hints on every new method parameter + return type.
-- No hardcoded tax values introduced; nothing in scope touched tax math.
-- No banned colours — `border-horizon-200` was REPLACED with `border-light-gray` (palette-aligned, no new violations).
-- No `DB` facade in controllers (controller modification only reads config + sets user fields).
-- No acronyms in user-facing copy (config / state-machine work only).
-- No scores / `X/100` / adequacy ratings.
-- No icons on banned surfaces.
-- No new `submit` event emissions (form-modal pattern unchanged).
-- Pest suite green: 735/735 across AI / Fyn / Onboarding / Audit / Architecture / Unit-Constants / Unit-Services-AI / Unit-Services-Onboarding (S0.15 sweep) + 20 skipped on the new Browser suite (S0.16a parses cleanly).
+### Dead & redundant code
+- No commented-out code. The pre-S0.5.t code paths were replaced with explanatory `// S0.5.t —` comments documenting WHY behaviour changed (genuine context, not dead code).
+- No `console.log`, `dd()`, `dump()`, `var_dump()`.
+- No empty catch blocks. The one new `Log::warning` block in `AdviceFyn::wrapStream` for malformed payloads continues the loop intentionally per INV-2.4.1.
+- No unused imports.
 
-## Warnings
+### Convention violations
+- All 6 PHP files have `declare(strict_types=1);` ✓
+- New method `getHandoffGuidance(): string` has return type ✓
+- No `DB` facade in controllers (no controllers touched)
+- No hardcoded tax values (no tax math touched)
+- No `sole` ownership references
+- No banned colour classes
+- No CSS / Vue / chart changes (frontend untouched)
+- No acronyms in user-facing text (prompt strings are LLM-facing, not user-facing)
+- No scores in user-facing UI
 
-### W1 — Generic global helper function names (collision risk)
+### Complexity & maintainability
+- Longest single hunk: the new BS-14 stub delivery note (80 lines of docblock comment, not code). Out of scope for tech-debt — that's intentional documentation per the plan's delivery-note convention.
+- New code in `AdviceFyn::wrapStream`: 12 lines added (the `Log::notice` observability block + `return` statement). No nested conditionals introduced; just one extra `if` for the missing-`reason` log line.
+- `getHandoffGuidance()`: 27 lines, single concern (return prompt string), pure function.
+- No magic numbers introduced.
 
-- **Files:**
-  - `tests/Feature/AI/ReadCompletenessTest.php:121` — `function invokeProtectedMethod(object $instance, string $methodName, array $args = []): mixed`
-  - `tests/Feature/Onboarding/ParkedFactsFlushTest.php:25` — `function makeUserAtState(string $stateId, ?string $selection = null): array`
-- **Category:** Inconsistency with existing patterns
-- **What's wrong:** Both names are generic enough that a future test in another module could declare a same-named global helper and trigger the kind of fatal global-function collision that session 76 commit `567b8cf` ("rename makeRequest helper to dodge global collision") fixed. The existing convention in `tests/` is to namespace helpers via the function-name prefix (e.g., `grantAiChatConsentForOnboardingEndpointTest`, `makeIdempotencyTestRequest`, `callGetAiProviderForLoop`). My S0.15.5 / S0.15.3 helpers don't follow that convention — `invokeProtectedMethod` and `makeUserAtState` are reusable-sounding names with no scenario-prefix.
-- **Suggested fix:** Rename to `invokeProtectedMethodForReadCompletenessTest` (or move into `Tests\TestCase` as a protected method since the reflection trick is generally useful) and `makeUserAtStateForParkedFactsFlush`. Alternatively, leave as-is and absorb the collision risk — the failure mode is loud (PHP fatal at autoload), so a regression surfaces immediately.
-- **Severity:** Warning. No live collision today; risk is future-only.
+### Security
+- No new user input pathways. The `reason` synthesis in `CaptureContext::fromArray` synthesises an internal string from the LLM's `entity_types` field — not user input.
+- No new SQL queries.
+- No sensitive data logging. The `Log::notice` records `entity_types` and `synthesised_reason` for observability; neither contain PII.
+- No authorisation changes.
 
-### W2 — `handleModuleAnalysis` still wraps via `summariseToolAnalysis`
+### Pattern consistency
+- `Log::notice` uses the same Facade pattern as the existing `Log::warning` block four lines above it.
+- `data_capture` persona enum value matches the existing `'advice'` enum value (both already in the database schema).
+- `WRITE_TOOLS` array follows the existing comma-separated single-line-per-group convention.
 
-- **File:** `app/Agents/CoordinatingAgent.php:1512` (NOT changed this session — flagged as known carry-over)
-- **Category:** Convention / spec deviation (INV-2.6.1)
-- **What's wrong:** INV-2.6.1's spec text says: *"`handleModuleAnalysis` returns the raw `analyze()` output for the requested module — no `summariseToolAnalysis` stripping for this handler."* The handler still returns `$this->summariseToolAnalysis($module, $analysis)` rather than the raw `$analysis`. The S0.15 plan task only scoped the list-handler completeness, so this carry-over is documented in the S0.15 delivery note rather than fixed here.
-- **Suggested fix:** Open a follow-up sub-task before S0.17 verification rollup — switch `handleModuleAnalysis` to return raw `$analysis` and update existing call-sites that may assume the summarised shape. Not a Sprint 0 blocker for the rest of the work but should not slip into Sprint 1 unscoped.
-- **Severity:** Warning. Pre-existing, not introduced this session, but on the radar.
+## Notes
 
-## Suggestions
+The eight S0.5.t sub-fixes were minimal, targeted edits: prompt-string changes, one terminate-after-handoff `return`, one persona rename, one resilient-fallback in a value object, and a tool-list addition. No refactors, no abstraction layers introduced, no scope creep. Each change is documented with its exact reason in a `// S0.5.t —` comment.
 
-None.
+CLAUDE.md uncommitted edit by CSJ: tightened Rule #15 wording and added a reference to the `/systematic-debugging` skill. This is a correction to the rule I added, not new debt — and it's been mirrored into `feedback_loop_until_correct.md` and `fynlaBrain/LoopUntilCorrect.md`.
 
 ---
-*Generated by tech-debt-session skill*
+*Generated by tech-debt-session skill — clean bill of health.*
