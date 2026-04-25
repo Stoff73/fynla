@@ -32,6 +32,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
 
         $schedule->job(new \App\Jobs\PublishScheduledInsightsJob())->everyFiveMinutes();
+
+        // S0.11.3 — clean up expired idempotency rows once a day.
+        $schedule->job(new \App\Jobs\AiIdempotencyCleanupJob())->dailyAt('03:30');
     }
 
     /**
