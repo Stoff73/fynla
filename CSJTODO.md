@@ -1,134 +1,96 @@
 # CSJTODO — Fynla
 
-*Last updated: 24 April 2026 — session 72 (context-clear: Sprint 0.2 sidecar deletion + phpunit 4G memory bump)*
-*Previous session: 24 April 2026 — session 71 (Sprint 0.1 rebase + main-test-fixes PR #235)*
+*Last updated: 25 April 2026 — session 73 (Sprint 0 Tasks 0.3 + 0.4 + 0.5 complete)*
+*Previous session: 24 April 2026 — session 72 (Sprint 0.2 sidecar deletion + phpunit 4G memory bump)*
 
 ---
 
-## Session 72 (24 April late evening) — Sprint 0 Task 0.2 + phpunit infra fix
-
-**Context-clear wrap (not end-of-day)** — next session same day.
+## Session 73 (25 April morning) — Sprint 0 Task 0.5 complete: 16 create handlers fill_form → direct DB::transaction writes
 
 ### Completed
 
-#### Sprint 0 Task 0.2 — delete stale OpenAI config + dead Python sidecar (single commit `2b1f347`)
-- [x] **15 files changed (+106 / −774)** on `feature/fyn-persona-split`.
-- [x] Deleted `scripts/fynla_agent/` (6 files: `__init__.py`, `agent.py`, `config.py`, `hooks.py`, `schemas.py`, `tools.py`), `scripts/run_agent.py`, `scripts/requirements.txt`.
-- [x] Deleted `app/Http/Controllers/Api/AgentInternalController.php` (6 privileged endpoints with `user_id`-query-param impersonation via shared secret) + `app/Http/Middleware/AgentTokenAuth.php` (`X-Agent-Token` header auth).
-- [x] `config/services.php` — removed `openai` block (zero callers) AND dead `agent_internal_token` entries from `anthropic` + `xai` blocks (only `AgentTokenAuth` consumed them; required for arch test grep to pass — scope expansion beyond the plan's original "lines 34-38" but necessary and correct).
-- [x] `routes/api.php` — removed `/api/internal/agent/*` prefix group (6 routes).
-- [x] `app/Http/Kernel.php` — removed `'agent.token'` middleware alias.
-- [x] `.env.example` — removed `AGENT_INTERNAL_TOKEN` entry (no `OPENAI_*` entries existed there; plan clause was a no-op).
-- [x] Created `tests/Architecture/NoStaleReferencesTest.php` — 5 arch assertions grepping `app/` + `config/` + `routes/` for `AgentInternalController`, `AgentTokenAuth`, `AGENT_INTERNAL_TOKEN`, `OPENAI_CHAT_MODEL`, and `/internal/agent` route prefix. TDD: wrote test → failing 5/5 → applied deletions → passing 5/5.
-- [x] Pushed to `origin/feature/fyn-persona-split`.
-- [x] **Attack surface reduced**: no more shared-secret privileged endpoint with impersonation-by-query-param, no audit trail bypass. Per `audit-synthesis.md §8` CSJ decision 4.
+#### Sprint 0 Task 0.5 — convert every `create_*` AI tool handler from `fill_form` (UI hydration) to direct `DB::transaction` writes — **DONE** (13 commits)
 
-#### PR #236 `feature/csj/phpunit-memory-bump` → `dev` → merged + deleted
-- [x] Branch `feature/csj/phpunit-memory-bump` off `origin/dev`, single commit `58aeb47` bumping `phpunit.xml` `<ini name="memory_limit" value="1G" />` to `4G`.
-- [x] 1G was causing OOM in `nikic/php-parser` during the Architecture phase (~2,500+ tests). 4G matches the session 71 operating baseline and CSJTODO note "240s at 4GB memory_limit".
-- [x] Verified at 4G off dev: Architecture suite 94 tests / 195 assertions / 0 fail / 31s.
-- [x] PR [#236](https://github.com/Stoff73/fynla/pull/236) admin-squash-merged to dev as `58aeb47`. Branch auto-deleted.
-- [x] `origin/dev` merged into `feature/fyn-persona-split` as `0409272` (trivial, one-line phpunit.xml conflict-free merge) — local persona-split now has 4G too.
+- [x] **0.5.a `create_savings_account`** (`b7a881d`) — 6 tests. Validates AI input, ISA auto-inference (`is_isa: true` → `account_type: cash_isa`), AI→DB enum mapping (`fixed_term`→`fixed`, `regular_saver`→`easy_access`), preserves duplicate-name check + `invalidateUserCache`.
+- [x] **0.5.b `create_investment_account`** (`bed4222`) — 6 tests. AI→DB account_type mapping (`stocks_shares_isa`→`isa` with `isa_type='stocks_shares'`, `personal_investment_account`→`gia`); ISA-must-be-individual hard rejection (mirrors `InvestmentController::storeAccount` UK-tax rule); pass-through for VCT / EIS / private-company / employee-scheme fields.
+- [x] **0.5.c `create_holding`** (`fec1b7c`) — 5 tests. Polymorphic `holdable_type=InvestmentAccount` write; `current_value` derived from `allocation_percent * account.current_value` when AI didn't supply quantity/price (DB column is NOT NULL with no default).
+- [x] **0.5.d `create_pension`** (`43086a8`) — 6 tests. DC vs DB branch with separate model writes — DC defaults `pension_type=occupational`, DB defaults `scheme_type=final_salary`; AI scheme_type → DC pension_type mapping (`workplace`→`occupational`, `sipp`→`sipp`, etc.).
+- [x] **0.5.e `create_property`** (`0054141`) — 7 tests. Atomic `Property + Mortgage` write inside one transaction when AI flags `has_mortgage` (or supplies legacy `outstanding_mortgage > 0`); ownership defaults from ownership_type (joint/tenants_in_common → 50%, individual → 100%, trust → 0); honours both AI param names (`mortgage_outstanding_balance`, `mortgage_interest_rate`) and legacy Anthropic ones (`outstanding_mortgage`, `mortgage_rate`).
+- [x] **0.5.f `create_mortgage`** (`8763670`) — 6 tests. Standalone mortgage; resolves target property via fuzzy match on `address_line_1` / `postcode` / `city` LIKE `%hint%`; falls back to user's only property when one exists; returns `error.error_type=missing_property` when none, `property_match_failed` when hint unmatched.
+- [x] **0.5.g `create_protection_policy`** (`c503eae`) — 7 tests. Branches across 3 models (`LifeInsurancePolicy` / `CriticalIllnessPolicy` / `IncomeProtectionPolicy`) by AI `policy_type`; strips `_ci` suffix to match `critical_illness_policies.policy_type` enum's bare values (`standalone`, `accelerated`); maps generic `term` → `level_term` for life policies.
+- [x] **0.5.h-j `create_asset / create_liability / create_estate_gift`** (`87637e8`) — 9 tests. Estate `Asset` with `valuation_date` defaulted + `is_iht_exempt`; `Liability` maps `loan` → `personal_loan`; `Gift` resolves family-name references via existing `resolveFamilyNames` helper.
+- [x] **0.5.k `create_family_member`** (`d2c1253`) — 7 tests. Direct-write only — AI tool schema has no `email` parameter so `SpouseLinkingService::linkOrCreateSpouse` doesn't apply (spouse linking remains the onboarding director's territory). Maps AI relationship enums (`step_child`→`child`, `partner`→`other_dependent`) and appends mapping note. Education status inferred from DOB for children.
+- [x] **0.5.l `create_trust`** (`17ea6df`) — 6 tests. Derives `is_relevant_property_trust` from `trust_type` (true for `discretionary` / `accumulation_maintenance`, false otherwise — mirrors `TrustController::createTrust`); settlor defaults to user's full name; `TrustObserver::created` continues to emit the matching CLT `Gift` row.
+- [x] **0.5.m-n `create_business_interest / create_chattel`** (`adf2062`) — 7 tests. BusinessInterest persists with `valuation_date` defaulted; Chattel maps AI category enums (`jewellery`→`jewelry`, `antiques`→`antique`, `collectibles`→`collectible`, `vehicles`→`vehicle`) to canonical singular DB values.
+- [x] **0.5.o-p `create_goal / create_life_event`** (`87bb04f`) — 8 tests. Goal sets `custom_goal_type_name` automatically when `goal_type=custom`; LifeEvent defaults `certainty=likely` and ownership defaults to individual / 100%.
+- [x] **0.5.q rollup tests** (`71aa98a`) — 5 tests across 3 files:
+  - `DirectWriteCoverageTest` — exactly 1 `'action' => 'fill_form'` site remaining (in `handleUpdateRecord` — 0.7's territory); all 16 handlers contain `'success' => true`, `'created' => true`, and `DB::transaction`.
+  - `DirectWriteObserverFireTest` — every direct-write handler fires its model's `created` Eloquent event (so risk / goal / net-worth observers continue to run).
+  - `DirectWriteTransactionRollbackTest` — validation failure leaves zero rows; DB-level rollback contract verified for the property+mortgage atomic write path.
 
-#### Full Pest suite on `feature/fyn-persona-split` (post-merge, 4GB)
-- [x] **2,663 pass / 1 fail / 11,223 assertions / 205s.**
-- [x] Architecture suite on dev baseline: **94 tests / 195 assertions / 0 fail / 31s.**
-- [x] Architecture suite on persona-split (after 0.2): **99 tests / 200 assertions / 0 fail / 32s** — the +5 assertions/tests are the new `NoStaleReferencesTest`.
+#### Test coverage summary
+- [x] **New:** 12 files in `tests/Feature/AI/DirectWrite/` — 85 tests, 357 assertions, all green.
+- [x] **Regression check:** `./vendor/bin/pest tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture` → **259/259 passing, 0 regressions.**
+
+#### Spec amendment captured in plan
+- [x] Source spec said the lone surviving `'action' => 'fill_form'` site after S0.5 would live in `handleCreateWhatIfScenario` (per INV-2.5.6). Reality: `handleCreateWhatIfScenario` returns `'action' => 'navigate'`, and the only remaining `fill_form` is in `handleUpdateRecord`. Plan updated with delivery note; coverage test pins this so 0.7 can rewrite the path without re-litigating the architectural floor.
 
 ### NOT Done — Outstanding for next session
 
-#### Known flake — `WillBuilderApiTest::pre-populate` (pre-existing, 30% fail rate)
-- [ ] `tests/Feature/Estate/WillBuilderApiTest.php:17-21` creates user with only `first_name = 'James'` + `surname = 'Carter'`. `UserFactory.php:30` sets `middle_name` via `fake()->optional(0.3)->firstName()`. `User.php:292` concatenates first + middle + surname in `full_name` accessor. Test asserts `'James Carter'` → fails 30% of the time when faker rolls a middle name producing `'James Roberta Carter'`. **Fix: add `'middle_name' => null` to the factory override in the test.** One-line PR, separate from Sprint 0 work. Not my Sprint 0.2 scope — flagged for a later tidy.
+#### Sprint 0 continuation — Task 0.6 next
+- [ ] **S0.6 — Billing / subscription tools** (`get_subscription_status`, `list_invoices`, `get_current_plan`). Add to both `AiToolDefinitions` (Anthropic) + `XaiToolDefinitions` (with `strict: true` wrap); 3 new handlers in `CoordinatingAgent::executeTool` switch; tests at `tests/Feature/AI/BillingToolsTest.php` + `tests/Architecture/ToolCatalogueParityTest.php`. Brings catalogue to 40/40. See [[April/April24Updates/plan/10-sprint-0-plan|plan]] §S0.6.
 
-#### Deploy PR #235 main-test-fixes to dev (still pending CSJ action from session 71)
-- [ ] Upload 9 files per [[April/April25Updates/deployInherit|deployInherit]] to `~/www/csjones.co/public_html/fynla/`.
-- [ ] SSH + cache clears on dev (no migrations needed).
-- [ ] Browser smoke Estate + Holdings on `csjones.co/fynla`.
-- [ ] After dev soak: CSJ opens `dev → main` PR (will include PR #236 phpunit bump alongside PR #235 fixes), merges, uploads to `fynla.org`, runs SSH cache clears.
-- [ ] Monitor `storage/logs/laravel.log` 10-15 min post-deploy on each environment.
+- [ ] **S0.7 — `update_record` allowlist + strict schema.** Replaces the 2-field blocklist (`user_id`, `id`) with per-entity-type allowlist via `UpdateRecordAllowlist::MAP`; replaces `fields` schema with `oneOf` keyed on `entity_type`; xAI wraps with `strict: true`. **This is the path that owns the lone surviving `'action' => 'fill_form'` site after S0.5** — 0.7 can rewrite it now without affecting 0.5's contract.
 
-#### Sprint 0 continuation — start with Task 0.3
-- [ ] **Sprint 0 Task 0.3 — two-Fyn collapse (architecture core).** Biggest code task in Sprint 0. See `April/April24Updates/plan/10-sprint-0-plan.md` slice **S0.3** (lines 49-73). Scope:
-  - CREATE `app/Services/AI/AdviceFyn.php` (spec lines 297-364) — constructor-injected `CoordinatingAgent` + tool-definition classes; `handle(User, AiConversation, string $message, ?string $currentRoute = null): \Generator`; `buildToolList(User): array` returns all-tools minus 26-element `WRITE_TOOLS` constant.
-  - CREATE `app/Services/AI/HandoffPayloadValidator.php` (spec 369-407) — static `validateDelegateToCapture` + `validateCaptureComplete` returning error-key string or null.
-  - MODIFY `app/Services/Onboarding/OnboardingChatDirector.php` — append `handleInlineCapture(User, AiConversation, string $message, CaptureContext, ?string $currentRoute = null): \Generator` (spec 414-461). Filters `onboarding_layout_change` + `quick_replies` events per INV-2.4.2. Ports `emitGapFillFromCaptureContext` + `runExtractorForFocus` from `FynPersonaInvoker` before deleting it.
-  - MODIFY `app/Http/Controllers/Api/AiChatController.php` — rewrite `sendMessage` dispatch (spec 489-514): early returns retained; `$inOnboarding = $user->onboarding_completed === false && (bool) config('onboarding.fyn_flow_enabled', true)`; single `StreamedResponse` delegating to director OR `AdviceFyn::handle`. Inject `AdviceFyn`; remove `FynPersonaOrchestrator` dependency + `wrapWithMultiEntityGapFill` wrapper.
-  - DELETE `FynPersonaOrchestrator.php` (415 lines) + `FynPersonaInvoker.php` (518 lines) + `FynPersonaRegistry.php` (104 lines) + `Prompts/DataCapturePromptBuilder.php` (110 lines) + `config/fyn_personas.php` (91 lines).
-  - MODIFY `app/Providers/AppServiceProvider.php` — remove orchestrator bindings; add `$this->app->singleton(\App\Services\AI\AdviceFyn::class)`.
-  - CREATE migration `database/migrations/2026_04_25_000001_clear_stale_persona_state.php` — `up()` sets `ai_conversations.persona_state = null`; `down()` no-op.
-  - DELETE ~10 stale test files: `tests/Feature/AI/PersonaSplit/{CancelMidCapture,CaptureTimeout,ClassifierFastPath,PreviewMode,KycGateFlow}Test.php`, `tests/Unit/Services/AI/{FynPersonaInvoker,FynPersonaOrchestrator,FynPersonaRegistry}Test.php`, `tests/Unit/Services/AI/Prompts/DataCapturePromptBuilderTest.php`, `tests/Unit/Services/AI/AdvicePromptBuilderPersonaSplitTest.php`.
-  - PORT (rename + namespace fix): `tests/Feature/AI/PersonaSplit/{CreateWillTool,CreatePowerOfAttorneyTool,InlineCaptureFlow}Test.php` → `tests/Feature/Fyn/*Test.php`.
-  - CREATE 5 new tests: `tests/Feature/Fyn/DispatchRoutingTest.php`, `AdviceFynToolListTest.php`, `HandoffInvisibilityTest.php`, `HandoffPayloadValidationTest.php`, `tests/Architecture/PersonaMachineryAbsentTest.php`.
-  - Acceptance: all new Fyn + Architecture tests green; `grep -rn "FynPersonaOrchestrator|FynPersonaInvoker|FynPersonaRegistry|DataCapturePromptBuilder" app/ config/ tests/` → 0; migration clean; commit `feat(fyn): two-Fyn collapse — AdviceFyn + handleInlineCapture + delete orchestrator stack`.
-- [ ] Sprint 0 Tasks 0.4–0.17 thereafter per plan (`10-sprint-0-plan.md`).
+- [ ] **S0.8 — `delete_record` two-phase confirmation.** First call returns `{requires_confirmation: true, confirmation_token: <sha256>, preview_message}`; second call with matching token + same-day salt proceeds within `DB::transaction`.
 
-### Context for next session
+- [ ] **S0.9 through S0.17** — see plan; nothing changed in scope from session 72's CSJTODO.
 
-1. **Branch**: already on `feature/fyn-persona-split` at `0409272` (Sprint 0.1 rebase + Sprint 0.2 sidecar deletion + merged dev with phpunit 4G). Working tree clean. Pushed.
-2. **Start Sprint 0.3**: biggest code change in Sprint 0. Read `April/April24Updates/plan/10-sprint-0-plan.md` slice **S0.3** (lines 49-73) — it enumerates every file to create/modify/delete with code citations. Use **subagent-driven-development** skill if it makes sense to parallelise the test creation vs code deletion; else sequential execution-plans is fine.
-3. **Sprint 0.3 mode**: likely 4-6 hour task. Checkpoint after `AdviceFyn` + `HandoffPayloadValidator` + `OnboardingChatDirector::handleInlineCapture` + `AiChatController::sendMessage` rewrite. Then the deletions. Then tests. Each commit can be its own logical unit.
-4. **Memory baseline**: phpunit.xml is 4G on both dev and persona-split. `./vendor/bin/pest` works without `-d memory_limit=` workaround now.
-5. **Scheduled agent** `trig_015ggy6qz1M3axH6Shvv5Wfw` still pending for Sun 26 Apr 09:00 BST — verifies the 22 fixes on main post `dev → main` merge.
+#### Tech debt logged from session 73 (deferred — not blocking S0.6)
 
-### Deploy Status
+- [ ] **W1 — Repeated success-envelope literal across 16 handlers.** The 7-key return shape `['success' => true, 'created' => true, 'entity_type' => ..., 'entity_id' => ..., 'name' => ..., 'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])), 'message' => ...]` repeats verbatim 16 times. Extract to `private function createdEnvelope(string $entityType, Model $entity, array $payload, string $nameField, string $message): array`. Each handler shrinks ~7 lines. Defer to a follow-up "S0.5 polish" pass.
 
-- **PR #236 phpunit-memory-bump**: merged to `dev` branch on GitHub. Not applicable to server (`phpunit.xml` is not copied to production).
-- **PR #235 main-test-fixes**: on `dev` branch, NOT yet deployed (awaits CSJ upload per session 71's `deployInherit.md`). Not on main.
-- **Sprint 0.2 sidecar deletion**: on `feature/fyn-persona-split` tip `0409272`. No user-visible behaviour change; just attack-surface reduction. No deploy action for now — will go out as part of whatever PR eventually takes persona-split → dev.
-- **Sprint 0.1 rebase**: on `feature/fyn-persona-split` (no user-visible behaviour; foundation for Sprint 0.3+).
+- [ ] **W2 — Long handler bodies.** 10 of the 16 new handlers exceed 60 lines (largest: `handleCreateInvestmentAccount` 134, `handleCreateProperty` 130, `handleCreateProtectionPolicy` 130). The repeated `foreach ([...] as $f) { if (isset($input[$f]) && is_numeric($input[$f])) { $payload[$f] = (float) $input[$f]; } }` pattern across handlers could lift into `mergeOptionalFields(...)` helper. Defer until after Sprint 0.7/0.8.
 
-### Pest baseline (current)
+- [ ] **S1 — Extract `handleCreateProperty`'s mortgage-write block** into `private function persistMortgageForProperty(...)`. Keeps the property handler at ~70 lines and makes the mortgage logic separately testable. Defer.
 
-- **On `feature/fyn-persona-split` at `0409272` (4G)**: 2,663 pass / 1 fail (pre-existing WillBuilder faker flake) / 11,223 assertions / 205s.
-- **On `dev` branch at `58aeb47` (4G)**: Architecture suite green (94/195/0). Full suite not rerun — last measured on PR #235 fix-branch: 2,370 pass / 0 fail / 10,314 assertions / 240s.
+- [ ] **Pre-existing — `CoordinatingAgent.php` is 3,568 lines** (S0.5 added net ~250 lines). Past the 500-line "split" threshold but splitting has been deferred because every handler shares private helpers (`validateToolInput`, `previewBlocked`, `checkForDuplicate`, `invalidateUserCache`, `resolveFamilyNames`). Worth revisiting after Sprint 0.7/0.8 (update + delete handlers) land.
 
-### Memory-rule adherence this session
+### Context for Next Session
 
-- ✅ `feedback_main_via_dev_only.md` — PR #236 targeted `dev`, CSJ-authorised admin-merge in current turn ("commit, push and merge") was explicit authorisation per the rule's exception clause.
-- ✅ `feedback_never_raw_vite_build.md` — no vite builds attempted.
-- ✅ `feedback_deploy_guide_completeness.md` — no new deploy guide needed (phpunit.xml is test-infra; Sprint 0.2 is on persona-split not yet deployed).
-- ✅ `feedback_deploy_guides_both_locations.md` — n/a this session.
-- ✅ `feedback_never_hardcode_tax_values.md` — no tax values touched.
-- ✅ `feedback_never_touch_env_or_db.md` — no `.env` changes beyond removing the stale `AGENT_INTERNAL_TOKEN` entry in `.env.example` (which was in scope per Sprint 0.2 plan), no DB hand-inserts.
-- ✅ `critical_browser_testing_law.md` — no user-facing behaviour changed; no browser claims made. Pest is the verification surface for an infrastructure-only session.
-- ✅ `feedback_never_skip_testing.md` — full Pest re-run after every code change. OOM diagnosed → 4G bump shipped as separate PR; not silently worked around.
-- ✅ `feedback_never_claim_verified.md` — the WillBuilder faker flake was diagnosed but NOT silently fixed; flagged for next session.
-- ✅ `feedback_no_self_approval.md` — PR #236 admin-merge happened only after explicit CSJ in-turn instruction ("merge").
-- ✅ `feedback_never_switch_branches.md` — switched briefly to `feature/csj/phpunit-memory-bump` for the one-line bump (scoped, isolated), returned to persona-split immediately. Not a parallel-agent scenario.
+Sprint 0 is **5/17 tasks done** (0.1, 0.2, 0.3, 0.4, 0.5 ticked). Branch `feature/fyn-persona-split` is 85 commits ahead of `main`, just pushed to `origin`. Working tree clean. 4 personasplit services deleted in session 70 (S0.3) — CLAUDE.md metrics row updated 262 → 260 PHP services.
+
+**Start session 74 with S0.6** (billing tools — small, mechanical, 3 read-only handlers + 2 test files). It's the lowest-risk next slice and lets you keep momentum before S0.7's allowlist work, which is heavier.
+
+**The lone surviving `'action' => 'fill_form'` lives in `handleUpdateRecord`** — that's intentional. Sprint 0.7 owns it, not 0.5. The `DirectWriteCoverageTest` pins this so any accidental re-introduction of `fill_form` on a create handler will fail loudly.
+
+**No deploy this session.** Branch is mid-Sprint-0; nothing to ship until 0.6 → 0.17 land. Per [[memory:feedback_main_via_dev_only|feedback_main_via_dev_only]]: nothing merges to main without first being on dev + browser-tested.
 
 ---
 
-## Decision register snapshot (unchanged from session 70, still locked)
+## Outstanding — Tech Debt Deferred (carried from earlier sessions)
 
-1. Two Fyns, no Orchestrator class. Delete orchestrator/invoker/registry/data_capture prompt builder.
-2. All 17 fill_form handlers → direct-write (Q1=a).
-3. Provider parity. 40 tools post-Sprint-0 (+14 batch = 54 post-Sprint-2).
-4. FCA: guidance-only. Signposting: *"For regulated advice personal to your circumstances, speak to a qualified financial adviser."*
-5. Out-of-remit: *"I'm able to help you with your finances. {context} is out of scope."*
-6. Memory model: 3 stores + 1 index. `MemoryRetrieverService` retrieval order DB → parked → current → index.
-7. SSE abort: keep partial writes, instrument.
-8. Python sidecar: delete. **[DONE session 72 commit `2b1f347`]**
-9. Deploy gate: local-first unambiguous.
-10. Rubric-A + Rubric-B: build both.
-11. Multi-entity thresholds: 95% baseline recall/precision; 100% hard-fail floors.
-12. Advice response shape: new `advice_response` SSE event + `AdviceResponsePanel.vue`.
-13. Recommendation engine: existing `orchestrateAnalysis` pipeline — reused, not replaced.
-14. Entry-source mapping: config-driven + extensible; 4 initial mappings.
-15. Document extraction: UI-only CTA flow; not an Advice Fyn tool.
-16. Estate/Holding `decimal:2` casts: deferred per arch exception; API Resource layer when it lands.
+### From session 72
+- [ ] **Known flake — `WillBuilderApiTest::pre-populate`** (pre-existing, 30% fail rate). `tests/Feature/Estate/WillBuilderApiTest.php:17-21` creates user with `first_name='James' + surname='Carter'`. `UserFactory.php:30` sets `middle_name` via `fake()->optional(0.3)->firstName()`. `User.php:292` concatenates first+middle+surname in `full_name`. Test asserts `'James Carter'` → fails 30% when faker rolls a middle name. **Fix: add `'middle_name' => null` to the factory override in the test.** One-line PR, separate from Sprint 0 work.
 
----
+- [ ] **Deploy PR #235 main-test-fixes** to `csjones.co/fynla` then `fynla.org`. Upload 9 files per [[April/April25Updates/deployInherit|deployInherit]]. No migrations, no build. SSH + cache clears. Browser smoke Estate + Holdings. After dev soak: open `dev → main` PR (will include PR #236 phpunit bump alongside PR #235 fixes).
 
-## Outstanding — Tech Debt Deferred
+### From earlier sessions
+- [ ] **Production cleanup of `build.old/`** + 19 historical sandbox CheckoutPage chunks (after 24h) — flagged session 68.
 
-- `WillBuilderApiTest::pre-populate` faker `middle_name` flake (see above) — one-line factory override in the test.
-- Tracked in `MonetaryCastsArchitectureTest::ALLOWED_FLOAT_COLUMNS` header comment (from session 71): when API Resource layer lands, remove each of the 16 exempt column entries and reinstate `decimal:2` on Estate Asset/Liability/Gift/IHTProfile + Investment Holding.
-
----
+- [ ] **Exercise edit-mode auto-expand** + collapsed-form submit → DB + onboarding-path for the field-collapse toggle work — flagged session 67.
 
 ## Known Issues
+- [ ] **Production lifecycle engine throttle** (resolved in session 68 — `LIFECYCLE_THROTTLE_MS=150` in prod `.env`, engine re-enabled). Listed here only for handover continuity; no action.
 
-- `WillBuilderApiTest::GET /estate/will-builder/pre-populate → it returns pre-populated data` — 30% flake rate (faker `middle_name`). Does not block Sprint 0 work.
-- `SavingsAgentGoalsTest` + `AutoRiskCalculatorTest` — older known flakes per session 71 CSJTODO. Unrelated to Sprint 0.
+## Deploy Status
+
+| Environment | Branch | State |
+|---|---|---|
+| `fynla.org` (production) | `main` | Last release: PR #228 + PR #231 hotfix (sessions 67–68, 23 April). |
+| `csjones.co/fynla` (dev) | `dev` | Last deploy: session 65 (afternoon, 23 April) — lifecycle engine + Awin + insights CMS + session 66/67 UI fixes. PR #235 main-test-fixes still pending CSJ deploy from session 71 (see deferred above). |
+| `feature/fyn-persona-split` | (none) | 85 commits ahead of main, 5/17 Sprint 0 tasks done. NOT deploying — still mid-Sprint. |
 
 ---
+
+*This file is the canonical handover. `session-start` reads this first.*
