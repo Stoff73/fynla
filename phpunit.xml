@@ -16,6 +16,11 @@
         <testsuite name="Architecture">
             <directory>tests/Architecture</directory>
         </testsuite>
+        <testsuite name="Browser">
+            <!-- BS-NN scenario filenames don't end in *Test.php (per spec
+                 03-test-strategy.md), so override the default suffix. -->
+            <directory suffix=".php">tests/Browser/scenarios</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

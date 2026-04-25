@@ -37,6 +37,12 @@ uses(
     Illuminate\Foundation\Testing\RefreshDatabase::class,
 )->in('Integration');
 
+// Sprint 0 browser harness — every BS-NN scenario binds to the Browser
+// TestCase so the markPendingInteractiveRun() helper is in scope. No
+// RefreshDatabase: scenarios run against a seeded local DB driven by
+// `./dev.sh`, not the test schema.
+uses(Tests\Browser\TestCase::class)->in('Browser/scenarios');
+
 // Global setup for all tests that need TaxConfiguration
 beforeEach(function () {
     // Ensure active tax configuration exists for tests
