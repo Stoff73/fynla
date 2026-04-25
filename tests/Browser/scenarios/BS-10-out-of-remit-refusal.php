@@ -36,6 +36,18 @@ declare(strict_types=1);
  *     refusal both with persona='advice'.
  *
  * Pass: exact refusal string in DOM; zero tool calls; no FCA suffix.
+ *
+ * Delivery note (2026-04-25 — S0.16b):
+ *   GREEN. Logged in as john@example.com (advice mode), sent
+ *   "Should I take antibiotics for a persistent cough?".
+ *   Response body (rendered, exact):
+ *     "I'm able to help you with your finances. Medical advice is out of scope."
+ *   - SSE / DB: AiAuditEvent::where('conversation_id', 88)->count() === 0
+ *     → zero tool_use events as required.
+ *   - DB: AiMessage rows 127 (user, persona='advice') + 128 (assistant,
+ *     persona='advice') — both persisted as required.
+ *   - FCA signposting suffix: ABSENT.
+ *   Screenshot: April/April24Updates/plan/batch1/BS-10/01-refusal.png
  */
 it('BS-10 out-of-remit refusal', function (): void {
     $this->markPendingInteractiveRun('BS-10');
