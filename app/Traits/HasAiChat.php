@@ -701,12 +701,17 @@ trait HasAiChat
 
     /**
      * Generate a short conversation title from the first message.
+     *
+     * Strips HTML tags before truncating so script/img/anchor markup in the
+     * user's first message cannot leak into the conversation list sidebar
+     * or the audit trail (S0.11.6).
      */
     private function generateTitle(string $message): string
     {
-        $title = mb_substr(trim($message), 0, 80);
+        $cleaned = trim(strip_tags($message));
+        $title = mb_substr($cleaned, 0, 100);
 
-        if (mb_strlen($message) > 80) {
+        if (mb_strlen($cleaned) > 100) {
             $title .= '...';
         }
 
@@ -749,6 +754,11 @@ trait HasAiChat
 
     /**
      * Summarise a tool result.
+     *
+     * Always preserves `entity_id` and `entity_type` when present, even if
+     * other keys would push them past the 5-key cap (S0.11.6 / INV-2.5.3).
+     * The audit chain and downstream observers correlate direct-write tool
+     * calls back to the persisted row via these two keys.
      */
     private function summariseToolResult(array $result): string
     {
@@ -757,11 +767,11 @@ trait HasAiChat
         }
 
         $parts = [];
-        $count = 0;
+        $rendered = [];
 
-        foreach ($result as $key => $value) {
-            if ($count >= 5) {
-                break;
+        $renderPart = static function (string $key, mixed $value) use (&$parts, &$rendered): void {
+            if (isset($rendered[$key])) {
+                return;
             }
 
             if (is_string($value)) {
@@ -773,8 +783,30 @@ trait HasAiChat
                 $parts[] = "{$key}: ".($value ? 'true' : 'false');
             } elseif (is_array($value)) {
                 $parts[] = "{$key}: [".count($value).' items]';
+            } else {
+                return;
             }
 
+            $rendered[$key] = true;
+        };
+
+        foreach (['entity_id', 'entity_type'] as $priorityKey) {
+            if (array_key_exists($priorityKey, $result)) {
+                $renderPart($priorityKey, $result[$priorityKey]);
+            }
+        }
+
+        $count = 0;
+        foreach ($result as $key => $value) {
+            if ($key === 'entity_id' || $key === 'entity_type') {
+                continue;
+            }
+
+            if ($count >= 5) {
+                break;
+            }
+
+            $renderPart((string) $key, $value);
             $count++;
         }
 
