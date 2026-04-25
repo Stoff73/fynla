@@ -933,25 +933,36 @@ class XaiToolDefinitions
 
     private function dataModificationTools(): array
     {
+        // xAI strict mode does not accept oneOf in function-calling parameters,
+        // so we expose the union of all allowed field names with
+        // additionalProperties:false. The runtime handler enforces the
+        // per-entity allowlist (UpdateRecordAllowlist::allowedFields).
+        $allFields = \App\Constants\UpdateRecordAllowlist::allFieldNames();
+        $fieldProps = [];
+        foreach ($allFields as $field) {
+            $fieldProps[$field] = ['type' => ['string', 'number', 'boolean', 'null']];
+        }
+
         return [
             $this->wrapTool(
                 'update_record',
-                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling. You MAY call this tool multiple times in the same turn when the user retracts or amends multiple records in one message.',
+                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling. The handler enforces a per-entity allowlist — only fields documented for the chosen entity_type will be accepted; others return fields_not_allowed.',
                 [
                     'entity_type' => [
                         'type' => 'string',
-                        'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
+                        'enum' => \App\Constants\UpdateRecordAllowlist::entityTypes(),
                         'description' => 'The type of record to update',
                     ],
                     'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update'],
                     'fields' => [
                         'type' => 'object',
-                        'description' => 'Key-value pairs of fields to update. Only include fields that are changing.',
-                        'additionalProperties' => true,
+                        'description' => 'Key-value pairs to update. Allowed field names are constrained per entity_type (e.g. goal accepts goal_name/target_amount/target_date/priority/status; mortgage accepts outstanding_balance/interest_rate/monthly_payment but NOT start_date or mortgage_type). Inventing field names returns fields_not_allowed.',
+                        'properties' => $fieldProps,
+                        'additionalProperties' => false,
                     ],
                 ],
                 ['entity_type', 'entity_id', 'fields'],
-                false // Cannot use strict mode — fields object has dynamic keys
+                false // Cannot use strict mode — fields object is conditional on entity_type at runtime
             ),
             $this->wrapTool(
                 'delete_record',

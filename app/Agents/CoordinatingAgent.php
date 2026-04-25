@@ -695,7 +695,7 @@ class CoordinatingAgent extends BaseAgent
             return $v;
         }, $input);
 
-        $isPreviewUser = $user->is_preview_user;
+        $isPreviewUser = (bool) $user->is_preview_user;
 
         // Prerequisite gate check
         $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
@@ -3472,26 +3472,33 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('record');
         }
 
-        $entityType = $input['entity_type'];
-        $entityId = (int) $input['entity_id'];
+        $entityType = (string) ($input['entity_type'] ?? '');
+        $entityId = (int) ($input['entity_id'] ?? 0);
         $fields = $input['fields'] ?? [];
 
         if (empty($fields)) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
+            return ['error' => 'validation_failed', 'message' => 'No fields provided to update.'];
         }
 
-        $model = $this->resolveModel($entityType, $entityId, $user->id);
-        if (isset($model['error'])) {
-            return $model;
-        }
-
-        // Map AI tool field names to actual model field names
+        // Map AI tool field names to actual model field names. Aliasing happens
+        // BEFORE the allowlist check so the LLM may use either the schema
+        // name or any legacy alias and still pass.
         $fieldAliases = match ($entityType) {
-            'business_interest' => ['estimated_value' => 'current_valuation'],
-            'chattel' => ['estimated_value' => 'current_value', 'category' => 'chattel_type'],
-            'dc_pension' => ['current_value' => 'current_fund_value'],
-            'mortgage' => ['current_balance' => 'outstanding_balance'],
-            'life_insurance' => ['life_policy_type' => 'policy_type', 'monthly_premium' => 'premium_amount'],
+            'business_interest' => ['estimated_value' => 'current_valuation', 'value' => 'current_valuation'],
+            'chattel' => ['estimated_value' => 'current_value', 'category' => 'chattel_type', 'value' => 'current_value', 'chattel_name' => 'name'],
+            'dc_pension' => ['current_value' => 'current_fund_value', 'pot_value' => 'current_fund_value', 'monthly_contribution' => 'monthly_contribution_amount', 'employer_contribution' => 'employer_contribution_percent'],
+            'mortgage' => ['current_balance' => 'outstanding_balance', 'term_years' => 'remaining_term_months'],
+            'life_insurance' => ['life_policy_type' => 'policy_type', 'monthly_premium' => 'premium_amount', 'end_date' => 'policy_end_date'],
+            'critical_illness' => ['monthly_premium' => 'premium_amount'],
+            'income_protection' => ['monthly_premium' => 'premium_amount', 'monthly_benefit' => 'benefit_amount', 'deferred_period' => 'deferred_period_weeks'],
+            'savings_account' => ['balance' => 'current_balance', 'provider' => 'institution'],
+            'investment_account' => ['total_value' => 'current_value'],
+            'db_pension' => ['annual_pension_amount' => 'accrued_annual_pension'],
+            'estate_asset' => ['value' => 'current_value'],
+            'estate_liability' => ['outstanding_amount' => 'current_balance'],
+            'estate_gift' => ['value' => 'gift_value', 'gift_description' => 'gift_type', 'recipient_name' => 'recipient'],
+            'trust' => ['value' => 'current_value'],
+            'family_member' => ['surname' => 'last_name'],
             default => [],
         };
         foreach ($fieldAliases as $aiName => $dbName) {
@@ -3501,27 +3508,47 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
-        // Only allow updating fillable fields
-        $fillable = $model->getFillable();
-        $safeFields = array_intersect_key($fields, array_flip($fillable));
-        // Never allow changing user_id or id
-        unset($safeFields['user_id'], $safeFields['id']);
-
-        if (empty($safeFields)) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are editable.'];
+        // Per-entity allowlist enforcement (INV-2.7.3). Replaces the prior
+        // `unset($safeFields['user_id'], $safeFields['id'])` blocklist with
+        // a positive list — every other column (identity FKs, audit
+        // timestamps, ownership-changing fields like Trust.settlor or
+        // FamilyMember.relationship) is rejected explicitly.
+        $allowed = \App\Constants\UpdateRecordAllowlist::allowedFields($entityType);
+        if (empty($allowed)) {
+            return [
+                'error' => 'unsupported_entity_type',
+                'entity_type' => $entityType,
+                'message' => "The entity type '{$entityType}' cannot be updated via this tool.",
+            ];
         }
 
-        $route = $this->getRouteForEntityType($entityType);
+        $disallowed = array_diff(array_keys($fields), $allowed);
+        if (! empty($disallowed)) {
+            return [
+                'error' => 'fields_not_allowed',
+                'entity_type' => $entityType,
+                'disallowed_fields' => array_values($disallowed),
+                'allowed_fields' => $allowed,
+            ];
+        }
 
-        return [
-            'action' => 'fill_form',
-            'mode' => 'edit',
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'route' => $route,
-            'fields' => $safeFields,
-            'message' => "I'll update the ".str_replace('_', ' ', $entityType).' for you now.',
-        ];
+        $model = $this->resolveModel($entityType, $entityId, $user->id);
+        if (is_array($model) && isset($model['error'])) {
+            return $model;
+        }
+
+        return DB::transaction(function () use ($model, $fields, $entityType) {
+            $model->fill($fields);
+            $model->save();
+
+            return [
+                'success' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $model->id,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
+            ];
+        });
     }
 
     /**

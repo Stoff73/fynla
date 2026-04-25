@@ -3,25 +3,18 @@
 declare(strict_types=1);
 
 /**
- * S0.5.q rollup — coverage assertion.
+ * S0.5 + S0.7 rollup — coverage assertion.
  *
- * Pins that every `create_*` handler now persists directly via
- * DB::transaction; no `'action' => 'fill_form'` survives in any create
- * path. The one remaining fill_form site lives in handleUpdateRecord
- * (legacy edit path) which is out of scope for S0.5 — Sprint 0.7
- * tackles update_record. This test is the architectural floor that
- * stops anyone re-introducing a fill_form return on a create handler.
+ * Pins that every `create_*` handler AND the `update_record` handler now
+ * persist directly via DB::transaction; no `'action' => 'fill_form'`
+ * survives anywhere in the agent. Architectural floor that stops anyone
+ * re-introducing a fill_form return on any handler.
  */
-it('only one fill_form return site remains and it is on the legacy update path', function (): void {
+it('zero fill_form return sites remain in CoordinatingAgent', function (): void {
     $source = file_get_contents(base_path('app/Agents/CoordinatingAgent.php'));
     preg_match_all("/'action' => 'fill_form'/", $source, $matches);
 
-    expect(count($matches[0]))->toBe(1);
-
-    // The lone surviving fill_form must be inside handleUpdateRecord
-    // (the edit path 0.7 will rewrite). Other handlers must not regress.
-    preg_match('/private function handleUpdateRecord.*?\n    \}/s', $source, $body);
-    expect($body[0] ?? '')->toContain("'action' => 'fill_form'");
+    expect(count($matches[0]))->toBe(0);
 });
 
 it('all create handlers return success: true on the success path', function (): void {

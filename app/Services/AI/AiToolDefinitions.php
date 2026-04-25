@@ -1070,25 +1070,8 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'update_record',
-                'description' => 'Update an existing record. Use when the user wants to change details of an existing goal, account, property, pension, policy, or other financial record. Ask the user to confirm the changes before calling this tool. You MAY call this tool multiple times in the same turn when the user retracts or amends multiple records in one message.',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'entity_type' => [
-                            'type' => 'string',
-                            'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
-                            'description' => 'The type of record to update',
-                        ],
-                        'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update'],
-                        'fields' => [
-                            'type' => 'object',
-                            'description' => 'Key-value pairs of fields to update. Only include fields that are changing.',
-                            'additionalProperties' => true,
-                        ],
-                    ],
-                    'required' => ['entity_type', 'entity_id', 'fields'],
-                    'additionalProperties' => false,
-                ],
+                'description' => 'Update an existing record. Use when the user wants to change details of an existing goal, account, property, pension, policy, or other financial record. Ask the user to confirm the changes before calling this tool. You MAY call this tool multiple times in the same turn when the user retracts or amends multiple records in one message. The schema restricts which fields are editable per entity_type — invented field names will be rejected.',
+                'parameters' => $this->updateRecordSchema(),
             ],
             [
                 'name' => 'delete_record',
@@ -1108,6 +1091,44 @@ class AiToolDefinitions
                 ],
             ],
         ];
+    }
+
+    /**
+     * Build the `update_record` parameter schema as a oneOf of per-entity
+     * branches, sourcing allowed fields from {@see UpdateRecordAllowlist}.
+     *
+     * Each branch pins `entity_type` to a const and restricts `fields` to
+     * the per-entity allowlist with `additionalProperties: false`. The
+     * runtime handler still re-checks the allowlist (defence-in-depth)
+     * because the LLM occasionally ignores schema constraints.
+     */
+    private function updateRecordSchema(): array
+    {
+        $oneOf = [];
+        foreach (\App\Constants\UpdateRecordAllowlist::MAP as $entityType => $allowedFields) {
+            $properties = [];
+            foreach ($allowedFields as $field) {
+                $properties[$field] = ['type' => ['string', 'number', 'boolean', 'null']];
+            }
+
+            $oneOf[] = [
+                'type' => 'object',
+                'properties' => [
+                    'entity_type' => ['const' => $entityType],
+                    'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update.'],
+                    'fields' => [
+                        'type' => 'object',
+                        'description' => 'Key-value pairs to update. Only the fields listed for this entity_type are accepted.',
+                        'properties' => $properties,
+                        'additionalProperties' => false,
+                    ],
+                ],
+                'required' => ['entity_type', 'entity_id', 'fields'],
+                'additionalProperties' => false,
+            ];
+        }
+
+        return ['oneOf' => $oneOf];
     }
 
     /**
