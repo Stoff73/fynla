@@ -3121,45 +3121,59 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $initialValue = isset($input['initial_value']) ? (float) $input['initial_value'] : (isset($input['current_value']) ? (float) $input['current_value'] : 0);
+        $initialValue = isset($input['initial_value'])
+            ? (float) $input['initial_value']
+            : (isset($input['current_value']) ? (float) $input['current_value'] : 0);
         $currentValue = isset($input['current_value']) ? (float) $input['current_value'] : $initialValue;
 
-        // Resolve family references in beneficiaries and trustees
         $beneficiaries = $this->resolveFamilyNames($input['beneficiaries'] ?? null, $user);
         $trustees = $this->resolveFamilyNames($input['trustees'] ?? null, $user);
+        $settlor = $input['settlor'] ?? trim($user->first_name.' '.$user->surname);
+        $creationDate = $input['trust_creation_date'] ?? now()->toDateString();
 
-        // Default settlor to the user (they created the trust unless stated otherwise)
-        $userName = trim($user->first_name.' '.$user->surname);
-        $settlor = $userName;
+        // Discretionary + A&M trusts attract relevant-property regime
+        // (10-yearly + exit charges). Mirrors TrustController::createTrust.
+        $isRelevantProperty = in_array($input['trust_type'], ['discretionary', 'accumulation_maintenance'], true);
 
-        // Default creation date to today if not provided (trust is being recorded now)
-        $creationDate = $input['trust_creation_date'] ?? date('Y-m-d');
-
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'trust_name' => $input['trust_name'],
             'trust_type' => $input['trust_type'],
             'initial_value' => $initialValue,
             'current_value' => $currentValue,
             'trust_creation_date' => $creationDate,
-            'beneficiaries' => $beneficiaries,
-            'trustees' => $trustees,
             'settlor' => $settlor,
-            'purpose' => $input['purpose'] ?? null,
+            'is_relevant_property_trust' => $isRelevantProperty,
         ];
+        if ($beneficiaries !== null) {
+            $payload['beneficiaries'] = $beneficiaries;
+        }
+        if ($trustees !== null) {
+            $payload['trustees'] = $trustees;
+        }
+        if (isset($input['purpose']) && $input['purpose'] !== '') {
+            $payload['purpose'] = $input['purpose'];
+        }
 
-        // FR-M15 — CLT Gift creation moved to TrustObserver::created. The
-        // observer writes the Gift if and only if the Trust row is saved,
-        // which prevents orphan CLT rows when the user cancels the form.
+        // FR-M15 — TrustObserver::created emits the corresponding Gift
+        // (Chargeable Lifetime Transfer) when the trust persists; we don't
+        // need to do anything extra here.
+        $trust = DB::transaction(fn () => Trust::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         $cltMessage = $initialValue > 0
-            ? " Once you save it, I'll also record a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.'
+            ? " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.'
             : '';
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'trust',
-            'route' => '/trusts',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.{$cltMessage}",
+            'entity_id' => $trust->id,
+            'name' => $trust->trust_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$trust->trust_name}\" trust.{$cltMessage}",
         ];
     }
 
