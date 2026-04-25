@@ -437,7 +437,7 @@ trait HasAiChat
                         'status' => 'running',
                     ];
 
-                    $toolResult = $this->executeTool($functionName, $functionArgs, $user);
+                    $toolResult = $this->executeTool($functionName, $functionArgs, $user, $conversation->id);
 
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
                         $partialWriteCount++;

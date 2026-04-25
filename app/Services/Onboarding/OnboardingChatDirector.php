@@ -962,7 +962,7 @@ final class OnboardingChatDirector
             'parked_fields' => array_keys($input),
         ]);
 
-        $result = $this->coordinatingAgent->executeTool($extractionTool, $input, $user);
+        $result = $this->coordinatingAgent->executeTool($extractionTool, $input, $user, $conversation->id);
 
         if (($result['error'] ?? false) === true) {
             Log::info('[OnboardingChatDirector] Parking hydration rejected — falling through to LLM', [

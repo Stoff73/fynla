@@ -1067,6 +1067,9 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         Route::get('/users', [\App\Http\Controllers\Api\AiAuditController::class, 'users']);
         Route::get('/users/{userId}/conversations', [\App\Http\Controllers\Api\AiAuditController::class, 'conversations']);
         Route::get('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\AiAuditController::class, 'messages']);
+        // S0.12 — hash-chain audit endpoints.
+        Route::get('/chain', [\App\Http\Controllers\Api\AiAuditController::class, 'chain']);
+        Route::get('/chain/verify', [\App\Http\Controllers\Api\AiAuditController::class, 'verifyChain']);
     });
 
     // Database backup - list (read-only, no rate limit)

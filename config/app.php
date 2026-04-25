@@ -35,6 +35,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | AI Audit HMAC Key (S0.12)
+    |--------------------------------------------------------------------------
+    |
+    | Secret used to HMAC-sign `ai_audit_events.row_hash`. A chain dump alone
+    | is not enough to forge new rows — an attacker also needs this key. Falls
+    | back to APP_KEY when AI_AUDIT_HMAC_KEY is unset so local dev still works,
+    | but production MUST set a dedicated secret.
+    |
+    */
+
+    'ai_audit_hmac_key' => env('AI_AUDIT_HMAC_KEY', env('APP_KEY', 'unset-ai-audit-hmac-key')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Debug Mode
     |--------------------------------------------------------------------------
     |

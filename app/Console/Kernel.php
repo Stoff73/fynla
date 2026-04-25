@@ -35,6 +35,10 @@ class Kernel extends ConsoleKernel
 
         // S0.11.3 — clean up expired idempotency rows once a day.
         $schedule->job(new \App\Jobs\AiIdempotencyCleanupJob())->dailyAt('03:30');
+
+        // S0.12 — weekly retention sweep + chain-integrity health check.
+        $schedule->job(new \App\Jobs\AiAuditRetentionJob())->weeklyOn(0, '04:00');
+        $schedule->command('ai:audit:verify-chain')->weeklyOn(0, '04:30');
     }
 
     /**

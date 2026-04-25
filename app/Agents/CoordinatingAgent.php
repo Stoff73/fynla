@@ -28,6 +28,7 @@ use App\Models\SavingsAccount;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\AuditChainService;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
@@ -680,7 +681,7 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Execute a tool call with prerequisite gate enforcement.
      */
-    public function executeTool(string $toolName, array $input, User $user): array
+    public function executeTool(string $toolName, array $input, User $user, ?int $conversationId = null): array
     {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
@@ -696,6 +697,18 @@ class CoordinatingAgent extends BaseAgent
         }, $input);
 
         $isPreviewUser = (bool) $user->is_preview_user;
+
+        // S0.12 — append a chain row at dispatch. Replaces the [AI-AUDIT] file
+        // log that used to fire after the result returned (which dropped any
+        // tool that threw before the log line was reached).
+        $this->appendAuditEvent([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+            'tool_name' => $toolName,
+            'operation' => self::operationFor($toolName),
+            'status' => 'dispatched',
+            'input_summary' => self::summariseInput($toolName, $input, $isPreviewUser),
+        ]);
 
         // Prerequisite gate check
         $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
@@ -771,30 +784,156 @@ class CoordinatingAgent extends BaseAgent
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
-            // Audit log for write operations (create, update, delete, profile changes)
-            if (str_starts_with($toolName, 'create_') || in_array($toolName, ['update_record', 'delete_record', 'update_profile'])) {
-                $entityId = $result['id'] ?? $result['data']['id'] ?? ($input['id'] ?? null);
-                Log::channel('single')->info('[AI-AUDIT] Tool executed', [
-                    'user_id' => $user->id,
-                    'tool' => $toolName,
-                    'entity_id' => $entityId,
-                    'success' => ! isset($result['error']),
-                    'preview' => $isPreviewUser,
-                ]);
-            }
+            // S0.12 — chain-append the completion row. `persisted` for any
+            // result without an `error` key; `failed` otherwise. Replaces the
+            // [AI-AUDIT] file log entirely.
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
 
             return $result;
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->appendAuditEvent([
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'tool_name' => $toolName,
+                'operation' => self::operationFor($toolName),
+                'status' => 'failed',
+                'result_summary' => ['error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()],
+            ]);
+
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()];
         } catch (\Illuminate\Database\QueryException $e) {
             Log::error('[CoordinatingAgent] Database error', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+            $this->appendAuditEvent([
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'tool_name' => $toolName,
+                'operation' => self::operationFor($toolName),
+                'status' => 'failed',
+                'result_summary' => ['error_type' => 'database_error', 'message' => $e->getMessage()],
+            ]);
 
             return ['error' => true, 'error_type' => 'database_error', 'message' => 'Unable to save the record. Please try again.'];
         } catch (\Exception $e) {
             Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+            $this->appendAuditEvent([
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'tool_name' => $toolName,
+                'operation' => self::operationFor($toolName),
+                'status' => 'failed',
+                'result_summary' => ['error_type' => 'execution_failed', 'message' => $e->getMessage()],
+            ]);
 
             return ['error' => true, 'error_type' => 'execution_failed', 'message' => 'An unexpected error occurred. Please try again.'];
         }
+    }
+
+    /**
+     * S0.12 — Wraps `AuditChainService::append` so failures inside the chain
+     * (e.g. the migration not being run yet on a worker that holds an old
+     * schema cache) cannot bring the chat down. The chain is forensic, not
+     * load-bearing.
+     */
+    private function appendAuditEvent(array $event): void
+    {
+        try {
+            app(AuditChainService::class)->append($event);
+        } catch (\Throwable $e) {
+            Log::warning('[CoordinatingAgent] Audit chain append failed', [
+                'tool' => $event['tool_name'] ?? null,
+                'status' => $event['status'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * S0.12 — Build and append the completion audit row. Status flips between
+     * `persisted` (no error key) and `failed` (error returned in-band rather
+     * than thrown).
+     */
+    private function appendAuditCompletion(User $user, ?int $conversationId, string $toolName, array $input, array $result): void
+    {
+        $hasError = isset($result['error']) && $result['error'] !== false;
+        $entityId = $result['entity_id'] ?? $result['id'] ?? $result['data']['id'] ?? ($input['id'] ?? $input['entity_id'] ?? null);
+        $entityType = $result['entity_type'] ?? ($input['entity_type'] ?? null);
+
+        $this->appendAuditEvent([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+            'tool_name' => $toolName,
+            'operation' => self::operationFor($toolName),
+            'status' => $hasError ? 'failed' : 'persisted',
+            'result_summary' => self::summariseResult($result),
+            'entity_type' => is_string($entityType) ? $entityType : null,
+            'entity_id' => is_numeric($entityId) ? (int) $entityId : null,
+        ]);
+    }
+
+    /**
+     * Operation classification for INV-2.10.2 audit rows. Anything that
+     * persists state is `write`; handoff stubs are `handoff`; everything else
+     * is `read`. The `classify` operation is reserved for QueryClassifier
+     * audits which run outside this method (Sprint 1 work).
+     */
+    private static function operationFor(string $toolName): string
+    {
+        if (in_array($toolName, ['delegate_to_capture', 'capture_complete'], true)) {
+            return 'handoff';
+        }
+
+        if (str_starts_with($toolName, 'create_')
+            || str_starts_with($toolName, 'update_')
+            || str_starts_with($toolName, 'capture_')
+            || in_array($toolName, ['delete_record', 'set_expenditure'], true)
+        ) {
+            return 'write';
+        }
+
+        return 'read';
+    }
+
+    /**
+     * Summarise the tool input for the audit row. Truncates long string
+     * values so a runaway prompt-injection attempt or pasted document
+     * doesn't bloat the chain.
+     */
+    private static function summariseInput(string $toolName, array $input, bool $isPreviewUser): array
+    {
+        $summary = ['preview' => $isPreviewUser];
+
+        foreach ($input as $key => $value) {
+            if (is_scalar($value) || $value === null) {
+                if (is_string($value) && mb_strlen($value) > 200) {
+                    $summary[$key] = mb_substr($value, 0, 200).'…';
+                } else {
+                    $summary[$key] = $value;
+                }
+            } elseif (is_array($value)) {
+                $summary[$key] = '['.count($value).' items]';
+            } else {
+                $summary[$key] = '[non-scalar]';
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Summarise the tool result for the audit row. Keeps the canonical
+     * outcome flags but drops large nested arrays.
+     */
+    private static function summariseResult(array $result): array
+    {
+        $keep = ['success', 'created', 'error', 'error_type', 'message', 'blocked', 'reason', 'action', 'requires_confirmation'];
+        $summary = [];
+        foreach ($keep as $key) {
+            if (array_key_exists($key, $result)) {
+                $summary[$key] = $result[$key];
+            }
+        }
+
+        return $summary;
     }
 
     // ─── Read-only tool handlers ─────────────────────────────────────
