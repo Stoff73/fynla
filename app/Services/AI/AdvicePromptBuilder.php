@@ -12,6 +12,7 @@ use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\EmptyDataGuard;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\Prompts\QueryKnowledge;
+use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\PrerequisiteGateService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
@@ -204,7 +205,11 @@ PROMPT;
     public function buildUserProfile(User $user): string
     {
         $lines = [];
-        $firstName = $user->first_name ?? explode(' ', $user->name)[0] ?? 'User';
+        // S0.10 — wrap user-controlled first name (or full-name fallback)
+        // in <user_provided> markers so prompt-injection payloads in the
+        // name field cannot escape the user-profile layer.
+        $firstNameRaw = $user->first_name ?? explode(' ', $user->name)[0] ?? 'User';
+        $firstName = UserContentSanitiser::wrap($firstNameRaw);
         $lines[] = "- Name: {$firstName}";
 
         if ($user->date_of_birth) {
@@ -277,7 +282,11 @@ PROMPT;
 
         $spouse = $user->spouse;
         if ($spouse) {
-            $spouseName = $spouse->first_name ?? explode(' ', $spouse->name)[0] ?? 'Spouse';
+            // S0.10 — spouse name is user-controlled free text; wrap before
+            // interpolation so injection payloads in the spouse name field
+            // cannot escape the family layer.
+            $spouseNameRaw = $spouse->first_name ?? explode(' ', $spouse->name)[0] ?? 'Spouse';
+            $spouseName = UserContentSanitiser::wrap($spouseNameRaw);
             $spouseAge = $spouse->date_of_birth ? $spouse->date_of_birth->age : null;
             $familyLines[] = $spouseAge
                 ? "  - Spouse: {$spouseName} (age {$spouseAge})"
@@ -286,7 +295,8 @@ PROMPT;
 
         $familyMembers = $user->familyMembers()->orderBy('date_of_birth')->get();
         foreach ($familyMembers as $member) {
-            $memberName = $member->first_name ?? 'Unknown';
+            // S0.10 — family member name is user-controlled free text.
+            $memberName = UserContentSanitiser::wrap($member->first_name ?? 'Unknown');
             $memberAge = $member->date_of_birth ? now()->diffInYears($member->date_of_birth) : null;
             $relationship = ucfirst($member->relationship ?? 'family member');
             $familyLines[] = $memberAge
@@ -414,7 +424,9 @@ PROMPT;
                     $remaining = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
                     $status = $goal->is_on_track ? 'on track' : 'behind';
                     $contribution = $goal->monthly_contribution ? ' — £'.number_format((float) $goal->monthly_contribution, 0).'/month' : '';
-                    $lines[] = "  [ID:{$goal->id}] {$goal->goal_name}: £".number_format((float) $goal->current_amount, 0)
+                    // S0.10 — goal_name is user-controlled free text.
+                    $goalName = UserContentSanitiser::wrap((string) $goal->goal_name);
+                    $lines[] = "  [ID:{$goal->id}] {$goalName}: £".number_format((float) $goal->current_amount, 0)
                         .' of £'.number_format((float) $goal->target_amount, 0)
                         ." ({$status}){$contribution}"
                         .($goal->target_date ? ' — target: '.$goal->target_date->format('M Y') : '');
@@ -587,10 +599,12 @@ PROMPT;
                     : (100 - ($record->ownership_percentage ?? 100)));
                 $otherPct = 100 - $pct;
 
-                // Use the name stored on the record (joint_owner_name), or fall back to linked user
-                $coOwnerName = $record->joint_owner_name
+                // Use the name stored on the record (joint_owner_name), or fall back to linked user.
+                // S0.10 — co-owner name is user-controlled free text.
+                $coOwnerNameRaw = $record->joint_owner_name
                     ?? ($record->jointOwner?->first_name)
                     ?? null;
+                $coOwnerName = $coOwnerNameRaw !== null ? UserContentSanitiser::wrap((string) $coOwnerNameRaw) : null;
 
                 return $coOwnerName
                     ? " {$type} with {$coOwnerName}({$pct}%/{$otherPct}%)"
@@ -615,7 +629,12 @@ PROMPT;
             if ($include('savings_account')) {
                 $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($savings->isNotEmpty()) {
-                    $items = $savings->map(fn ($a) => "[ID:{$a->id} \"{$a->account_name}\" at {$a->institution}".($a->is_isa ? ' ISA(tax-free)' : '').$ownershipLabel($a).' '.$valueWithShare($a, (float) $a->current_balance).']')->implode(' ');
+                    // S0.10 — account_name and institution are user-controlled free text.
+                    $items = $savings->map(fn ($a) => '[ID:'.$a->id
+                        .' '.UserContentSanitiser::wrap((string) $a->account_name)
+                        .' at '.UserContentSanitiser::wrap((string) $a->institution)
+                        .($a->is_isa ? ' ISA(tax-free)' : '')
+                        .$ownershipLabel($a).' '.$valueWithShare($a, (float) $a->current_balance).']')->implode(' ');
                     $lines[] = "SAVINGS: {$items}";
                 }
             }
@@ -624,7 +643,11 @@ PROMPT;
             if ($include('investment_account')) {
                 $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($investments->isNotEmpty()) {
-                    $items = $investments->map(fn ($a) => "[ID:{$a->id} \"{$a->provider}\" ".$this->formatInvestmentAccountType($a->account_type).$ownershipLabel($a).' '.$valueWithShare($a, (float) $a->current_value).']')->implode(' ');
+                    // S0.10 — provider is user-controlled free text.
+                    $items = $investments->map(fn ($a) => '[ID:'.$a->id
+                        .' '.UserContentSanitiser::wrap((string) $a->provider).' '
+                        .$this->formatInvestmentAccountType($a->account_type)
+                        .$ownershipLabel($a).' '.$valueWithShare($a, (float) $a->current_value).']')->implode(' ');
                     $lines[] = "INVESTMENTS: {$items}";
                 }
             }
@@ -633,7 +656,11 @@ PROMPT;
             if ($include('dc_pension')) {
                 $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
                 if ($dcPensions->isNotEmpty()) {
-                    $items = $dcPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" {$p->pension_type} £".number_format((float) $p->current_fund_value, 0).']')->implode(' ');
+                    // S0.10 — scheme_name is user-controlled free text.
+                    $items = $dcPensions->map(fn ($p) => '[ID:'.$p->id
+                        .' '.UserContentSanitiser::wrap((string) $p->scheme_name)
+                        .' '.$p->pension_type
+                        .' £'.number_format((float) $p->current_fund_value, 0).']')->implode(' ');
                     $lines[] = "DC PENSIONS: {$items}";
                 }
             }
@@ -642,7 +669,10 @@ PROMPT;
             if ($include('db_pension')) {
                 $dbPensions = \App\Models\DBPension::where('user_id', $userId)->get();
                 if ($dbPensions->isNotEmpty()) {
-                    $items = $dbPensions->map(fn ($p) => "[ID:{$p->id} \"{$p->scheme_name}\" £".number_format((float) ($p->accrued_annual_pension ?? 0), 0).'/yr]')->implode(' ');
+                    // S0.10 — scheme_name is user-controlled free text.
+                    $items = $dbPensions->map(fn ($p) => '[ID:'.$p->id
+                        .' '.UserContentSanitiser::wrap((string) $p->scheme_name)
+                        .' £'.number_format((float) ($p->accrued_annual_pension ?? 0), 0).'/yr]')->implode(' ');
                     $lines[] = "DB PENSIONS: {$items}";
                 }
             }
@@ -676,7 +706,10 @@ PROMPT;
                                 : ' rent:£'.number_format($rentalTotal, 0).'/mo')
                             : '';
 
-                        return "[ID:{$p->id} \"{$p->address_line_1}\" {$p->property_type}".$ownershipLabel($p)."{$mortgageLabel}{$rentalLabel}{$valueLabel}]";
+                        // S0.10 — address_line_1 is user-controlled free text.
+                        $addressLabel = UserContentSanitiser::wrap((string) $p->address_line_1);
+
+                        return '[ID:'.$p->id.' '.$addressLabel.' '.$p->property_type.$ownershipLabel($p)."{$mortgageLabel}{$rentalLabel}{$valueLabel}]";
                     })->implode(' ');
                     $lines[] = "PROPERTIES: {$items}";
                 }
@@ -686,7 +719,11 @@ PROMPT;
             if ($include('life_insurance')) {
                 $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
                 if ($lifePolicies->isNotEmpty()) {
-                    $items = $lifePolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" {$p->policy_type} £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                    // S0.10 — provider is user-controlled free text.
+                    $items = $lifePolicies->map(fn ($p) => '[ID:'.$p->id
+                        .' '.UserContentSanitiser::wrap((string) $p->provider)
+                        .' '.$p->policy_type
+                        .' £'.number_format((float) $p->sum_assured, 0).']')->implode(' ');
                     $lines[] = "LIFE INSURANCE: {$items}";
                 }
             }
@@ -695,7 +732,10 @@ PROMPT;
             if ($include('critical_illness')) {
                 $ciPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
                 if ($ciPolicies->isNotEmpty()) {
-                    $items = $ciPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £".number_format((float) $p->sum_assured, 0).']')->implode(' ');
+                    // S0.10 — provider is user-controlled free text.
+                    $items = $ciPolicies->map(fn ($p) => '[ID:'.$p->id
+                        .' '.UserContentSanitiser::wrap((string) $p->provider)
+                        .' £'.number_format((float) $p->sum_assured, 0).']')->implode(' ');
                     $lines[] = "CRITICAL ILLNESS: {$items}";
                 }
             }
@@ -704,7 +744,10 @@ PROMPT;
             if ($include('income_protection')) {
                 $ipPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
                 if ($ipPolicies->isNotEmpty()) {
-                    $items = $ipPolicies->map(fn ($p) => "[ID:{$p->id} \"{$p->provider}\" £".number_format((float) $p->benefit_amount, 0).'/mo]')->implode(' ');
+                    // S0.10 — provider is user-controlled free text.
+                    $items = $ipPolicies->map(fn ($p) => '[ID:'.$p->id
+                        .' '.UserContentSanitiser::wrap((string) $p->provider)
+                        .' £'.number_format((float) $p->benefit_amount, 0).'/mo]')->implode(' ');
                     $lines[] = "INCOME PROTECTION: {$items}";
                 }
             }
@@ -713,7 +756,11 @@ PROMPT;
             if ($include('trust')) {
                 $trusts = \App\Models\Estate\Trust::where('user_id', $userId)->get();
                 if ($trusts->isNotEmpty()) {
-                    $items = $trusts->map(fn ($t) => "[ID:{$t->id} \"{$t->trust_name}\" {$t->trust_type} £".number_format((float) $t->current_value, 0).']')->implode(' ');
+                    // S0.10 — trust_name is user-controlled free text.
+                    $items = $trusts->map(fn ($t) => '[ID:'.$t->id
+                        .' '.UserContentSanitiser::wrap((string) $t->trust_name)
+                        .' '.$t->trust_type
+                        .' £'.number_format((float) $t->current_value, 0).']')->implode(' ');
                     $lines[] = "TRUSTS: {$items}";
                 }
             }
@@ -722,7 +769,11 @@ PROMPT;
             if ($include('business')) {
                 $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($businesses->isNotEmpty()) {
-                    $items = $businesses->map(fn ($b) => "[ID:{$b->id} \"{$b->business_name}\" {$b->business_type} £".number_format((float) $b->current_valuation, 0).']')->implode(' ');
+                    // S0.10 — business_name is user-controlled free text.
+                    $items = $businesses->map(fn ($b) => '[ID:'.$b->id
+                        .' '.UserContentSanitiser::wrap((string) $b->business_name)
+                        .' '.$b->business_type
+                        .' £'.number_format((float) $b->current_valuation, 0).']')->implode(' ');
                     $lines[] = "BUSINESS: {$items}";
                 }
             }
@@ -731,7 +782,11 @@ PROMPT;
             if ($include('chattel')) {
                 $chattels = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($chattels->isNotEmpty()) {
-                    $items = $chattels->map(fn ($c) => "[ID:{$c->id} \"{$c->description}\" {$c->chattel_type} £".number_format((float) $c->current_value, 0).']')->implode(' ');
+                    // S0.10 — chattel description is user-controlled free text.
+                    $items = $chattels->map(fn ($c) => '[ID:'.$c->id
+                        .' '.UserContentSanitiser::wrap((string) $c->description)
+                        .' '.$c->chattel_type
+                        .' £'.number_format((float) $c->current_value, 0).']')->implode(' ');
                     $lines[] = "CHATTELS: {$items}";
                 }
             }
@@ -741,7 +796,9 @@ PROMPT;
                 $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($liabilities->isNotEmpty()) {
                     $items = $liabilities->map(function ($l) {
-                        $parts = "[ID:{$l->id} \"{$l->liability_name}\" {$l->liability_type} £".number_format((float) $l->current_balance, 0);
+                        // S0.10 — liability_name is user-controlled free text.
+                        $name = UserContentSanitiser::wrap((string) $l->liability_name);
+                        $parts = '[ID:'.$l->id.' '.$name.' '.$l->liability_type.' £'.number_format((float) $l->current_balance, 0);
                         if ($l->interest_rate) {
                             $parts .= " rate:{$l->interest_rate}%";
                         }
@@ -762,7 +819,12 @@ PROMPT;
             if ($include('gift')) {
                 $gifts = \App\Models\Estate\Gift::where('user_id', $userId)->get();
                 if ($gifts->isNotEmpty()) {
-                    $items = $gifts->map(fn ($g) => "[ID:{$g->id} \"{$g->recipient}\" {$g->gift_type} £".number_format((float) $g->gift_value, 0).' '.($g->gift_date ? $g->gift_date->format('M Y') : '').']')->implode(' ');
+                    // S0.10 — gift recipient is user-controlled free text.
+                    $items = $gifts->map(fn ($g) => '[ID:'.$g->id
+                        .' '.UserContentSanitiser::wrap((string) $g->recipient)
+                        .' '.$g->gift_type
+                        .' £'.number_format((float) $g->gift_value, 0)
+                        .' '.($g->gift_date ? $g->gift_date->format('M Y') : '').']')->implode(' ');
                     $lines[] = "GIFTS: {$items}";
                 }
             }
@@ -773,11 +835,16 @@ PROMPT;
                 $spouse = $user->spouse;
                 $familyParts = [];
                 if ($spouse) {
-                    $familyParts[] = "[Spouse: {$spouse->first_name} {$spouse->surname}]";
+                    // S0.10 — family names are user-controlled free text.
+                    $sf = UserContentSanitiser::wrap((string) $spouse->first_name);
+                    $ss = UserContentSanitiser::wrap((string) $spouse->surname);
+                    $familyParts[] = "[Spouse: {$sf} {$ss}]";
                 }
                 foreach ($family as $m) {
                     $age = $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : '?';
-                    $familyParts[] = "[ID:{$m->id} \"{$m->first_name} {$m->last_name}\" {$m->relationship} age {$age}]";
+                    $mf = UserContentSanitiser::wrap((string) $m->first_name);
+                    $ml = UserContentSanitiser::wrap((string) $m->last_name);
+                    $familyParts[] = '[ID:'.$m->id.' '.$mf.' '.$ml.' '.$m->relationship.' age '.$age.']';
                 }
                 if (! empty($familyParts)) {
                     $lines[] = 'FAMILY: '.implode(' ', $familyParts);

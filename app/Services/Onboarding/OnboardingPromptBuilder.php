@@ -7,6 +7,7 @@ namespace App\Services\Onboarding;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
+use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\TaxConfigService;
 
 /**
@@ -43,7 +44,12 @@ final class OnboardingPromptBuilder
     public function buildAssetCapturePrompt(User $user, string $focus): string
     {
         $nameParts = explode(' ', (string) $user->name);
-        $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        $firstNameRaw = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        // S0.10 — wrap the user-controlled first name in
+        // <user_provided>...</user_provided> markers so prompt-injection
+        // payloads in the name field cannot escape into Fyn's identity
+        // layer.
+        $firstName = UserContentSanitiser::wrap($firstNameRaw);
 
         $taxYear = $this->taxConfig->getTaxYear() ?? '2025/26';
 
