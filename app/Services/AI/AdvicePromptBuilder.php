@@ -127,6 +127,16 @@ class AdvicePromptBuilder
             $layers[] = "<current_context>\n{$moduleContext}\n</current_context>";
         }
 
+        // S0.13 — FCA signposting suffix on recommendation-mode responses.
+        // INV-2.3.3: every advice-type query must end with the canonical
+        // signposting string. Factual / bypass / out-of-remit classifications
+        // do NOT carry the suffix — the layer is only attached when the
+        // primary classification is in QuerySchemas::ADVICE_TYPES.
+        $signpostingBlock = $this->buildFcaSignpostingBlock($classification);
+        if ($signpostingBlock !== '') {
+            $layers[] = $signpostingBlock;
+        }
+
         // Layer 10b (persona-split): bias advice Fyn toward delegate_to_capture
         // Layer 11 (persona-split): preview-mode instruction. When the user
         // is previewing the app without an account, data-capture is not
@@ -998,6 +1008,39 @@ PROMPT;
         }
 
         return implode("\n\n", $parts);
+    }
+
+    // ─── Layer 10b: FCA Signposting (S0.13 / INV-2.3.3) ──────────────
+
+    /**
+     * Append the canonical FCA signposting instruction to the system prompt
+     * when the classification's primary type is an advice query.
+     *
+     * Recommendation-mode responses (anything in QuerySchemas::ADVICE_TYPES)
+     * end with the exact string in the prompt; factual queries (`general`),
+     * bypass types (`navigation`, `data_entry`), and unclassified turns do
+     * not carry the suffix because they aren't producing a recommendation.
+     */
+    private function buildFcaSignpostingBlock(?array $classification): string
+    {
+        if ($classification === null) {
+            return '';
+        }
+
+        $primary = (string) ($classification['primary'] ?? '');
+        if (! QuerySchemas::isAdviceType($primary)) {
+            return '';
+        }
+
+        return <<<'PROMPT'
+<fca_signposting>
+This query asks for recommendations or advice. End your response with this exact sentence on its own line, verbatim, with no surrounding quotes or formatting:
+
+For regulated advice personal to your circumstances, speak to a qualified financial adviser.
+
+Do NOT include this sentence on factual-only responses, on out-of-remit refusals, or anywhere mid-paragraph. Place it as the final line of the response, after your follow-up question if you have one.
+</fca_signposting>
+PROMPT;
     }
 
     // ─── Layer 10: Module Context ────────────────────────────────────
