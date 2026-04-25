@@ -36,6 +36,7 @@ use App\Services\TaxConfigService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -1564,7 +1565,10 @@ class CoordinatingAgent extends BaseAgent
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
             'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver', 'savings_account', 'current_account', 'instant_access', 'fixed', 'cash_isa', 'junior_isa', 'premium_bonds', 'nsi'])],
+            'institution' => 'nullable|string|max:255',
             'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'is_isa' => 'nullable|boolean',
+            'is_emergency_fund' => 'nullable|boolean',
             'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
@@ -1576,38 +1580,63 @@ class CoordinatingAgent extends BaseAgent
             return $duplicateCheck;
         }
 
-        $isIsa = $input['is_isa'] ?? false;
+        $isIsa = (bool) ($input['is_isa'] ?? false);
         $accountType = $input['account_type'] ?? 'easy_access';
 
-        // Map AI account_type to form-compatible account_type
-        $formAccountType = match ($accountType) {
+        // AI tool enum → canonical DB value. `fixed_term`/`regular_saver` are
+        // AI-facing conveniences that map onto existing DB categories.
+        $dbAccountType = match ($accountType) {
             'fixed_term' => 'fixed',
             'regular_saver' => 'easy_access',
             default => $accountType,
         };
 
-        // If ISA, set account_type to cash_isa so the form shows ISA fields
-        if ($isIsa && ! in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
-            $formAccountType = 'cash_isa';
+        // ISA inference — if flagged ISA but account_type isn't already an
+        // ISA variant, promote to cash_isa so downstream ISA tracking works.
+        if ($isIsa && ! in_array($dbAccountType, ['cash_isa', 'junior_isa'], true)) {
+            $dbAccountType = 'cash_isa';
         }
 
+        $accessType = match ($dbAccountType) {
+            'notice' => 'notice',
+            'fixed' => 'fixed',
+            default => 'immediate',
+        };
+
+        $payload = [
+            'user_id' => $user->id,
+            'account_name' => $input['account_name'],
+            'institution' => ! empty($input['institution']) ? $input['institution'] : $input['account_name'],
+            'account_type' => $dbAccountType,
+            'current_balance' => (float) $input['current_balance'],
+            'access_type' => $accessType,
+            'is_isa' => $isIsa,
+            'is_emergency_fund' => (bool) ($input['is_emergency_fund'] ?? false),
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+        ];
+
+        // interest_rate / regular_contribution_amount are optional on the AI
+        // tool; only include them when actually supplied so DB defaults apply.
+        if (isset($input['interest_rate'])) {
+            $payload['interest_rate'] = (float) $input['interest_rate'];
+        }
+        if (isset($input['regular_contribution_amount'])) {
+            $payload['regular_contribution_amount'] = (float) $input['regular_contribution_amount'];
+        }
+
+        $account = DB::transaction(fn () => SavingsAccount::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'savings_account',
-            'route' => '/net-worth/cash',
-            'fields' => [
-                'institution' => ! empty($input['institution']) ? $input['institution'] : (! empty($input['provider']) ? $input['provider'] : $input['account_name']),
-                'account_type' => $formAccountType,
-                'current_balance' => (float) $input['current_balance'],
-                'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
-                'is_isa' => $isIsa,
-                'is_emergency_fund' => $input['is_emergency_fund'] ?? false,
-                'regular_contribution_amount' => isset($input['regular_contribution_amount']) ? (float) $input['regular_contribution_amount'] : null,
-                'access_type' => match ($formAccountType) {
-                    'notice' => 'notice', 'fixed' => 'fixed', default => 'immediate'
-                },
-            ],
-            'message' => "I'll fill in the form for your \"{$input['account_name']}\" account now.",
+            'entity_id' => $account->id,
+            'name' => $account->account_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$account->account_name}\" savings account.",
         ];
     }
 
