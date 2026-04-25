@@ -3198,37 +3198,42 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'business_name' => $input['business_name'],
             'business_type' => $input['business_type'],
             'current_valuation' => isset($input['estimated_value']) ? (float) $input['estimated_value'] : 0,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100.00,
+            'valuation_date' => now()->toDateString(),
         ];
 
-        if (isset($input['industry_sector'])) {
-            $fields['industry_sector'] = $input['industry_sector'];
+        foreach (['annual_revenue', 'annual_profit', 'annual_dividend_income'] as $f) {
+            if (isset($input[$f]) && is_numeric($input[$f])) {
+                $payload[$f] = (float) $input[$f];
+            }
         }
-        if (isset($input['ownership_percentage'])) {
-            $fields['ownership_percentage'] = (float) $input['ownership_percentage'];
+        if (isset($input['employee_count']) && is_numeric($input['employee_count'])) {
+            $payload['employee_count'] = (int) $input['employee_count'];
         }
-        if (isset($input['annual_revenue'])) {
-            $fields['annual_revenue'] = (float) $input['annual_revenue'];
-        }
-        if (isset($input['annual_profit'])) {
-            $fields['annual_profit'] = (float) $input['annual_profit'];
-        }
-        if (isset($input['annual_dividend_income'])) {
-            $fields['annual_dividend_income'] = (float) $input['annual_dividend_income'];
-        }
-        if (isset($input['employee_count'])) {
-            $fields['employee_count'] = (int) $input['employee_count'];
+        foreach (['description', 'notes'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
         }
 
+        $bi = DB::transaction(fn () => BusinessInterest::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'business_interest',
-            'route' => '/net-worth/business',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['business_name']}\" business interest now.",
+            'entity_id' => $bi->id,
+            'name' => $bi->business_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$bi->business_name}\" business interest.",
         ];
     }
 
@@ -3249,7 +3254,7 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        // Map AI category values to form chattel_type values
+        // AI category -> canonical DB chattel_type (singular forms).
         $chattelType = match ($input['category'] ?? 'other') {
             'jewellery' => 'jewelry',
             'art' => 'art',
@@ -3259,19 +3264,35 @@ class CoordinatingAgent extends BaseAgent
             default => 'other',
         };
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'chattel_type' => $chattelType,
             'name' => $input['description'],
             'current_value' => (float) $input['estimated_value'],
-            'purchase_price' => isset($input['purchase_value']) ? (float) $input['purchase_value'] : null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+            'valuation_date' => now()->toDateString(),
         ];
 
+        if (isset($input['purchase_value']) && is_numeric($input['purchase_value'])) {
+            $payload['purchase_price'] = (float) $input['purchase_value'];
+        }
+        if (isset($input['notes']) && $input['notes'] !== '') {
+            $payload['notes'] = $input['notes'];
+        }
+
+        $chattel = DB::transaction(fn () => Chattel::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'chattel',
-            'route' => '/net-worth/chattels',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['description']}\" now.",
+            'entity_id' => $chattel->id,
+            'name' => $chattel->name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$chattel->name}\".",
         ];
     }
 
