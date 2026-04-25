@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Agents\CoordinatingAgent;
+use App\Constants\QuerySchemas;
 use App\Models\AiConversation;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -39,6 +40,7 @@ final class AdviceFyn
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly AiToolDefinitions $toolDefinitions,
         private readonly XaiToolDefinitions $xaiToolDefinitions,
+        private readonly QueryClassifier $queryClassifier,
     ) {}
 
     public function handle(
@@ -47,9 +49,41 @@ final class AdviceFyn
         string $message,
         ?string $currentRoute = null,
     ): \Generator {
+        // S0.14 — short-circuit non-financial topics with the canonical
+        // refusal. The classifier only flags out_of_remit when no advice
+        // keyword fired, so financial questions that incidentally mention
+        // a non-financial term still route through the normal advice path.
+        $classification = $this->queryClassifier->classify($message, $currentRoute);
+
+        if (($classification['primary'] ?? null) === QuerySchemas::OUT_OF_REMIT) {
+            $context = $classification['detected_topic'] ?? 'General queries';
+            $text = "I'm able to help you with your finances. {$context} is out of scope.";
+
+            // Persist the user's message so the conversation transcript stays
+            // honest — chatWithPromptOverride would normally do this, but
+            // we're short-circuiting that path. Persist the assistant refusal
+            // alongside it so the next turn's history loader sees both.
+            $conversation->messages()->create([
+                'role' => 'user',
+                'content' => $message,
+                'persona' => 'advice',
+            ]);
+
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $text,
+                'persona' => 'advice',
+            ]);
+
+            yield ['type' => 'content', 'text' => $text];
+            yield ['type' => 'done'];
+
+            return;
+        }
+
         $allowedTools = $this->buildToolList($user);
 
-        return $this->coordinatingAgent->chatWithPromptOverride(
+        yield from $this->coordinatingAgent->chatWithPromptOverride(
             user: $user,
             conversation: $conversation,
             message: $message,

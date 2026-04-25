@@ -58,6 +58,13 @@ final class QuerySchemas
 
     public const AFFORDABILITY = 'affordability';
 
+    /**
+     * S0.14 — non-financial topic detected (medical, legal, emotional support,
+     * general knowledge). AdviceFyn::handle short-circuits these with the
+     * canonical refusal string and emits zero tool calls.
+     */
+    public const OUT_OF_REMIT = 'out_of_remit';
+
     // ─── Type Groups ─────────────────────────────────────────────────
 
     /**
@@ -128,6 +135,7 @@ final class QuerySchemas
         self::GENERAL => [],
         self::DATA_ENTRY => [],
         self::NAVIGATION => [],
+        self::OUT_OF_REMIT => [],
     ];
 
     // ─── Implicit Related Types ──────────────────────────────────────
@@ -159,6 +167,7 @@ final class QuerySchemas
         self::DATA_ENTRY => [],
         self::NAVIGATION => [],
         self::INVESTMENT_FEES => [],
+        self::OUT_OF_REMIT => [],
     ];
 
     // ─── Keyword Patterns ────────────────────────────────────────────
