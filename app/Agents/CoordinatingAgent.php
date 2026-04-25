@@ -2008,96 +2008,96 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $propertyType = $input['property_type'] ?? 'main_residence';
-        $addressLabel = $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType));
-
-        // Frontend validateForm() requires: property_type, address_line_1, city, postcode, current_value,
-        // ownership_type, ownership_percentage. Set sensible defaults for any the AI didn't provide.
-        $address = $input['address_line_1'] ?? $addressLabel;
-        $city = $input['city'] ?? 'Unknown';
-        $postcode = $input['postcode'] ?? 'N/A';
+        $propertyType = $input['property_type'];
         $ownershipType = $input['ownership_type'] ?? 'individual';
-        $ownershipPct = isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : null;
-        // Auto-set ownership percentage from type if not explicitly provided
-        if ($ownershipPct === null) {
-            $ownershipPct = match ($ownershipType) {
-                'individual' => 100.0,
-                'joint' => 50.0,
-                'tenants_in_common' => 50.0,
+        $ownershipPct = isset($input['ownership_percentage'])
+            ? (float) $input['ownership_percentage']
+            : match ($ownershipType) {
+                'joint', 'tenants_in_common' => 50.0,
                 'trust' => 0.0,
                 default => 100.0,
             };
-        }
 
-        // Build property form fields — pass through all provided data
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'property_type' => $propertyType,
             'current_value' => (float) $input['current_value'],
-            // Address — defaults ensure form validation passes
-            'address_line_1' => $address,
-            'address_line_2' => $input['address_line_2'] ?? null,
-            'city' => $city,
-            'county' => $input['county'] ?? null,
-            'postcode' => $postcode,
-            // Purchase
-            'purchase_price' => isset($input['purchase_price']) ? (float) $input['purchase_price'] : null,
-            'purchase_date' => $input['purchase_date'] ?? null,
-            'valuation_date' => $input['valuation_date'] ?? null,
-            // Ownership — defaults set above to ensure form validation passes
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
-            'joint_owner_name' => $input['joint_owner_name'] ?? null,
-            // Tenure
-            'tenure_type' => $input['tenure_type'] ?? null,
-            'lease_remaining_years' => isset($input['lease_remaining_years']) ? (int) $input['lease_remaining_years'] : null,
-            'lease_expiry_date' => $input['lease_expiry_date'] ?? null,
-            // Monthly costs
-            'monthly_council_tax' => isset($input['monthly_council_tax']) ? (float) $input['monthly_council_tax'] : null,
-            'monthly_gas' => isset($input['monthly_gas']) ? (float) $input['monthly_gas'] : null,
-            'monthly_electricity' => isset($input['monthly_electricity']) ? (float) $input['monthly_electricity'] : null,
-            'monthly_water' => isset($input['monthly_water']) ? (float) $input['monthly_water'] : null,
-            'monthly_building_insurance' => isset($input['monthly_building_insurance']) ? (float) $input['monthly_building_insurance'] : null,
-            'monthly_contents_insurance' => isset($input['monthly_contents_insurance']) ? (float) $input['monthly_contents_insurance'] : null,
-            'monthly_service_charge' => isset($input['monthly_service_charge']) ? (float) $input['monthly_service_charge'] : null,
-            'monthly_maintenance_reserve' => isset($input['monthly_maintenance_reserve']) ? (float) $input['monthly_maintenance_reserve'] : null,
-            'other_monthly_costs' => isset($input['other_monthly_costs']) ? (float) $input['other_monthly_costs'] : null,
-            // BTL rental
-            'monthly_rental_income' => isset($input['monthly_rental_income']) ? (float) $input['monthly_rental_income'] : null,
-            'tenant_name' => $input['tenant_name'] ?? null,
-            'managing_agent_name' => $input['managing_agent_name'] ?? null,
+            'address_line_1' => $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType)),
+            'city' => $input['city'] ?? 'Unknown',
+            'postcode' => $input['postcode'] ?? 'N/A',
         ];
 
-        // Add mortgage fields if provided (xAI: has_mortgage flag, Anthropic: outstanding_mortgage legacy)
-        $hasMortgage = ! empty($input['has_mortgage'])
-            || (! empty($input['mortgage_outstanding_balance']) && $input['mortgage_outstanding_balance'] > 0)
-            || (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0);
-
-        if ($hasMortgage) {
-            $fields['has_mortgage'] = true;
-            // xAI uses mortgage_outstanding_balance, Anthropic uses outstanding_mortgage
-            $balance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
-            $fields['mortgage_outstanding_balance'] = isset($balance) ? (float) $balance : null;
-            // xAI uses mortgage_interest_rate, Anthropic uses mortgage_rate
-            $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
-            $fields['mortgage_interest_rate'] = isset($rate) ? (float) $rate : null;
-            // AI param is 'mortgage_lender', form field is 'mortgage_lender_name'
-            $fields['mortgage_lender_name'] = $input['mortgage_lender'] ?? null;
-            $fields['mortgage_type'] = $input['mortgage_type'] ?? null;
-            $fields['mortgage_rate_type'] = $input['mortgage_rate_type'] ?? null;
-            $fields['mortgage_monthly_payment'] = isset($input['mortgage_monthly_payment']) ? (float) $input['mortgage_monthly_payment'] : null;
-            $fields['mortgage_start_date'] = $input['mortgage_start_date'] ?? null;
-            $fields['mortgage_maturity_date'] = $input['mortgage_maturity_date'] ?? null;
+        foreach (['address_line_2', 'county', 'tenure_type', 'joint_owner_name', 'tenant_name', 'managing_agent_name'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+        foreach (['purchase_date', 'valuation_date', 'lease_expiry_date'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+        foreach (['purchase_price', 'monthly_council_tax', 'monthly_gas', 'monthly_electricity', 'monthly_water', 'monthly_building_insurance', 'monthly_contents_insurance', 'monthly_service_charge', 'monthly_maintenance_reserve', 'other_monthly_costs', 'monthly_rental_income'] as $f) {
+            if (isset($input[$f]) && is_numeric($input[$f])) {
+                $payload[$f] = (float) $input[$f];
+            }
+        }
+        if (isset($input['lease_remaining_years']) && is_numeric($input['lease_remaining_years'])) {
+            $payload['lease_remaining_years'] = (int) $input['lease_remaining_years'];
         }
 
-        // Strip nulls and empty strings — only send fields with actual values
-        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
+        // Mortgage auto-create — flagged via has_mortgage OR by legacy
+        // outstanding_mortgage / mortgage_outstanding_balance fields.
+        $mortgageBalance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
+        $hasMortgage = ! empty($input['has_mortgage'])
+            || (is_numeric($mortgageBalance) && (float) $mortgageBalance > 0);
+
+        $property = DB::transaction(function () use ($payload, $hasMortgage, $input, $mortgageBalance, $user, $ownershipType, $ownershipPct) {
+            $property = Property::create($payload);
+
+            if ($hasMortgage) {
+                $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
+                $mortgagePayload = [
+                    'user_id' => $user->id,
+                    'property_id' => $property->id,
+                    'lender_name' => $input['mortgage_lender'] ?? null,
+                    'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+                    'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
+                    'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
+                    'ownership_type' => $ownershipType,
+                    'ownership_percentage' => $ownershipPct,
+                ];
+                if (is_numeric($rate)) {
+                    $mortgagePayload['interest_rate'] = (float) $rate;
+                }
+                if (isset($input['mortgage_monthly_payment']) && is_numeric($input['mortgage_monthly_payment'])) {
+                    $mortgagePayload['monthly_payment'] = (float) $input['mortgage_monthly_payment'];
+                }
+                if (isset($input['mortgage_start_date']) && $input['mortgage_start_date'] !== '') {
+                    $mortgagePayload['start_date'] = $input['mortgage_start_date'];
+                }
+                if (isset($input['mortgage_maturity_date']) && $input['mortgage_maturity_date'] !== '') {
+                    $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
+                }
+
+                Mortgage::create($mortgagePayload);
+            }
+
+            return $property;
+        });
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'property',
-            'route' => '/net-worth/property',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your property at \"{$addressLabel}\" now.",
+            'entity_id' => $property->id,
+            'name' => $property->address_line_1,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your property at \"{$property->address_line_1}\".",
         ];
     }
 
