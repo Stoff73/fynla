@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Traits;
 
 use App\Models\AiConversation;
+use App\Models\AiDailyUsage;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -182,11 +183,58 @@ trait HasAiGuardrails
 
     /**
      * Invalidate the cached daily usage (call after each message).
+     *
+     * No-op since S0.11.1 — daily usage is now read directly from
+     * `ai_daily_usage` with no cache layer between, so there is nothing
+     * to invalidate. Kept for backward compatibility with any external
+     * caller that may still invoke it.
      */
     protected function invalidateDailyUsageCache(User $user): void
     {
-        $cacheKey = "ai_daily_tokens_{$user->id}_".now()->format('Y-m-d');
-        Cache::forget($cacheKey);
+        // S0.11.1: deliberately a no-op. Also clear the legacy cache
+        // key in case any pre-deploy fixture / running process wrote
+        // it; harmless if absent.
+        Cache::forget("ai_daily_tokens_{$user->id}_".now()->format('Y-m-d'));
+    }
+
+    /**
+     * Atomically record token usage for the current day.
+     *
+     * Wrapped in a DB::transaction with a `SELECT ... FOR UPDATE` row
+     * lock so concurrent calls for the same user serialise on the row.
+     * The (user_id, usage_date) unique key on the ai_daily_usage table
+     * makes firstOrCreate atomic against the race where two parallel
+     * processes simultaneously discover the row is missing.
+     *
+     * Closes INV-2.9.1: the pre-S0.11.1 path used a 5-minute Cache
+     * remember layer, so two parallel chat() calls could both pass
+     * hasTokenBudget on stale data and silently exceed the daily limit.
+     */
+    protected function recordTokenUsage(User $user, int $tokens): void
+    {
+        if ($tokens <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($user, $tokens) {
+            $today = now()->toDateString();
+
+            // The unique (user_id, usage_date) key makes firstOrCreate
+            // atomic against the create-create race; the followup
+            // lockForUpdate query holds the row exclusively for the rest
+            // of the transaction so the increment cannot be lost.
+            AiDailyUsage::firstOrCreate(
+                ['user_id' => $user->id, 'usage_date' => $today],
+                ['tokens_used' => 0]
+            );
+
+            AiDailyUsage::query()
+                ->where('user_id', $user->id)
+                ->where('usage_date', $today)
+                ->lockForUpdate()
+                ->first()
+                ?->increment('tokens_used', $tokens);
+        });
     }
 
     /**
@@ -254,16 +302,24 @@ trait HasAiGuardrails
     }
 
     /**
-     * Get today's token usage for a user (cached for 5 minutes).
+     * Get today's token usage for a user — read directly from
+     * ai_daily_usage with no cache layer (S0.11.1).
+     *
+     * Pre-S0.11.1 this method cached the result for 5 minutes and read
+     * by summing ai_conversations.total_input_tokens +
+     * total_output_tokens for rows updated today. The cache window
+     * created the race that allowed parallel chats to silently exceed
+     * the daily limit. The new path reads the canonical row from
+     * ai_daily_usage which is written transactionally by
+     * recordTokenUsage on every chat completion.
      */
     private function getTodayTokenUsage(User $user): int
     {
-        $cacheKey = "ai_daily_tokens_{$user->id}_".now()->format('Y-m-d');
+        $row = AiDailyUsage::query()
+            ->where('user_id', $user->id)
+            ->where('usage_date', now()->toDateString())
+            ->first(['tokens_used']);
 
-        return Cache::remember($cacheKey, 300, function () use ($user) {
-            return (int) AiConversation::where('user_id', $user->id)
-                ->whereDate('updated_at', now()->toDateString())
-                ->sum(DB::raw('total_input_tokens + total_output_tokens'));
-        });
+        return $row !== null ? (int) $row->tokens_used : 0;
     }
 }

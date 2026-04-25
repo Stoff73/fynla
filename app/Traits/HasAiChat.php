@@ -591,8 +591,10 @@ trait HasAiChat
         $conversation->incrementTokenUsage($totalInputTokens, $totalOutputTokens);
         $conversation->update(['model_used' => $model]);
 
-        // Invalidate daily usage cache
-        $this->invalidateDailyUsageCache($user);
+        // S0.11.1 — atomically record the daily total to ai_daily_usage
+        // so the next hasTokenBudget call sees the latest figure with no
+        // 5-minute cache lag.
+        $this->recordTokenUsage($user, $totalInputTokens + $totalOutputTokens);
 
         // Log advice for review system (only for advice query types)
         if ($classification !== null
