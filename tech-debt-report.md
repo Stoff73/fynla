@@ -1,66 +1,57 @@
-# Tech Debt Report — Session 73 (2026-04-25)
+# Tech Debt Report — Session 74 (2026-04-25)
 
-**Scope:** session 73 commits (`b7a881d` → `71aa98a`) on `feature/fyn-persona-split`
-**Files analysed:** 16 (1 source + 15 tests)
-**Issues found:** 3 (0 critical, 2 warnings, 1 suggestion)
+**Scope:** session 74 commits (`dcf35ed` → `fcdc1a3`) on `feature/fyn-persona-split` — Sprint 0.6 / 0.7 / 0.8.
+**Files analysed:** 12 (10 prod/test under Sprint 0, 2 harness/skill cleanups)
+**Issues found:** 3 (0 critical, 1 warning, 2 suggestions)
+
+The session shipped Sprint 0.6 / 0.7 / 0.8 — billing tools, `update_record` allowlist, `delete_record` two-phase confirmation. All TDD, all green: 334 tests / 1296 assertions / 0 regressions across AI / Fyn / Onboarding / Architecture / Unit-Constants. Production code introduced 0 TODOs, 0 debug dumps, 0 hardcoded tax values, 0 banned colour tokens, 0 acronyms in user-facing copy.
 
 ---
 
 ## Critical Issues
 
-None. Conventions clean — `declare(strict_types=1)` present, no hardcoded tax values, no banned colours, no `sole` ownership, no leftover `dd()` / `var_dump` / debug calls, all handlers use the shared `validateToolInput` helper, all use `DB::transaction` (architecturally pinned by `tests/Feature/AI/DirectWriteCoverageTest.php`).
+None.
 
 ---
 
 ## Warnings
 
-### W1 — Repeated success-envelope literal across 16 handlers
-**File:** `app/Agents/CoordinatingAgent.php`
-**Category:** Duplicate Code
-**What:** The 7-key return shape `['success' => true, 'created' => true, 'entity_type' => ..., 'entity_id' => ..., 'name' => ..., 'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])), 'message' => ...]` is repeated verbatim 16 times. The `array_keys(array_diff_key($payload, ['user_id' => null]))` idiom alone shows up 15× (line count from `grep`).
-**Suggested fix:** Extract a private helper `createdEnvelope(string $entityType, Model $entity, array $payload, string $nameField, string $message): array`. Each handler shrinks to one line for the return. Not done in S0.5 to keep diffs reviewable on a per-commit basis.
+### W1. `CoordinatingAgent.php` is now 3,718 lines
 
-### W2 — Long handler bodies
-**File:** `app/Agents/CoordinatingAgent.php`
-**Category:** Complexity & Maintainability
-**What:** 10 of the 16 new direct-write handlers exceed 60 lines:
-
-| Handler | Lines |
-|---|---|
-| `handleCreateInvestmentAccount` | 134 |
-| `handleCreateProperty` | 130 |
-| `handleCreateProtectionPolicy` | 130 |
-| `handleCreatePension` | 111 |
-| `handleCreateFamilyMember` | 105 |
-| `handleCreateMortgage` | 90 |
-| `handleCreateSavingsAccount` | 84 |
-| `handleCreateHolding` | 81 |
-| `handleCreateTrust` | 75 |
-| `handleCreateEstateLiability` | 61 |
-
-Each contains: inline validation rules + AI→DB enum mapping + optional-field iteration + `DB::transaction` write + return envelope. The complexity reflects the actual AI↔DB schema mismatch each entity type requires.
-**Suggested fix:** Two parallel cleanups would help:
-1. Adopt W1's `createdEnvelope` helper (saves ~7 lines per handler).
-2. Extract the optional-field-loop pattern into a `mergeOptionalFields(array $input, array $allowedFields, array $casts): array` helper. The current `foreach (...) { if (isset($input[$f]) && is_numeric($input[$f])) { $payload[$f] = (float) $input[$f]; } }` blocks are mechanically identical across handlers.
-
-Both deferred to a follow-up "S0.5 polish" pass — not blocking S0.6.
+- **File:** `app/Agents/CoordinatingAgent.php`
+- **Category:** 4 (complexity)
+- **What's wrong:** The agent class crossed 3,500 lines this session and is now 3,718. This was already true at session start (3,568 lines), so the +150 lines added (3 billing handlers + rewritten update/delete handlers) are not the root cause — the structural concern is pre-existing and stems from collapsing every direct-write handler onto the agent during S0.3–S0.5.
+- **Suggested fix:** Out of scope for Sprint 0. Sprint 4 backlog candidate: extract handler families (`Billing*Handlers`, `EstateUpdateHandlers`, `OnboardingCaptureHandlers` etc.) into traits or services that the agent composes. The two-Fyn collapse is the priority — splitting handlers now would conflict with the same-file test pins (`DirectWriteCoverageTest`, `DispatchRoutingTest`).
 
 ---
 
 ## Suggestions
 
-### S1 — `handleCreateProperty` mortgage-write helper
-**File:** `app/Agents/CoordinatingAgent.php` lines 2042–2102
-**Category:** Inconsistency with Existing Patterns
-**What:** The mortgage auto-create block inside `handleCreateProperty` is a nested `DB::transaction` callback that builds a separate Mortgage payload. It's the only direct-write handler that emits two entities in one transaction, and the inline closure reads as a second handler embedded inside the first.
-**Suggested fix:** Extract to `private function persistMortgageForProperty(Property $property, array $input, User $user, string $ownershipType, float $ownershipPct): void`. Keeps the property handler at ~70 lines and makes the mortgage logic separately testable. Defer.
+### S1. `handleUpdateRecord` field aliasing chain is long
+
+- **File:** `app/Agents/CoordinatingAgent.php:3486–3510`
+- **Category:** 4 (maintainability)
+- **What's wrong:** The `match ($entityType)` at the top of `handleUpdateRecord` has 16 branches mapping legacy AI field names to DB column names (e.g. `monthly_premium → premium_amount`). Each branch is small but the cumulative 25-line block grows over time.
+- **Suggested fix:** When Sprint 0.7 results are stable, consider promoting this to `app/Constants/UpdateRecordFieldAliases.php` alongside the allowlist. Not urgent — the LLM is now schema-constrained to DB names directly, so legacy aliases are belt-and-braces and may mostly be dead code within a sprint or two.
+
+### S2. `handleListInvoices` queries `Invoice` directly rather than via a `User->invoices()` relation
+
+- **File:** `app/Agents/CoordinatingAgent.php` (`handleListInvoices` method)
+- **Category:** 6 (consistency)
+- **What's wrong:** `$user` doesn't have an `invoices()` HasMany — only `subscriptions()` and `payments()`. So the handler does `Invoice::query()->where('user_id', $user->id)`. Functionally correct, slightly off-pattern.
+- **Suggested fix:** Add `public function invoices(): HasMany { return $this->hasMany(Invoice::class); }` to `User` and switch to `$user->invoices()->latest('issued_at')->get()`. One-line change but cross-cuts other consumers (`PaymentController::billingHistory`), so out of scope for S0.6.
 
 ---
 
-## Pre-existing concerns (not introduced this session)
+## Notes & Confirmations
 
-- `app/Agents/CoordinatingAgent.php` is 3,568 lines. S0.5 added net ~250 lines. The file is past the 500-line split threshold but splitting it (e.g. one trait per module) has been previously deferred because every handler shares the same private helpers (`validateToolInput`, `previewBlocked`, `checkForDuplicate`, `invalidateUserCache`, `resolveFamilyNames`). Worth revisiting after Sprint 0.7/0.8 (update + delete handlers) land.
+- `app/Constants/UpdateRecordAllowlist.php` — clean. Constants-only class, single-purpose, documented forbidden-field rationale in class-level docblock.
+- All test files declare `strict_types=1`, use `it()` / `RefreshDatabase` / `TaxConfigurationSeeder`, and follow the project Pest conventions.
+- `hash_equals()` used in `handleDeleteRecord` for constant-time token comparison — correct security primitive.
+- `additionalProperties:false` on every new schema branch — LLM cannot invent field names.
+- Tool catalogue parity between Anthropic and xAI providers verified by `ToolCatalogueParityTest` (passes in both preview and non-preview mode).
+- Two unstaged harness/skill files (`.claude-plugin/marketplace.json` removing the `fynla-windows` listing, `.claude/skills/session-start/SKILL.md` slimmed to lean bootstrap) are not Sprint 0 work; they're pre-existing on-disk edits to commit as a chore.
 
 ---
 
-*Generated by tech-debt-session skill — 2026-04-25*
+*Generated by tech-debt-session skill — session 74, 2026-04-25*
