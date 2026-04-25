@@ -16,6 +16,7 @@ class AiToolDefinitions
             ...$this->analysisTools(),
             ...$this->taxTools(),
             ...$this->planGenerationTools(),
+            ...$this->billingTools(),
         ];
 
         if (! $isPreviewMode) {
@@ -1391,6 +1392,49 @@ class AiToolDefinitions
                         'charitable_donations' => ['type' => 'number', 'description' => 'Monthly charitable donations in pounds.'],
                         'other_expenditure' => ['type' => 'number', 'description' => 'Other monthly expenses in pounds.'],
                     ],
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Billing / subscription tools. All read-only and zero-parameter, so they
+     * are exposed in both preview and live mode (preview personas have no
+     * subscription rows, so they get the canonical "none" shape back).
+     */
+    private function billingTools(): array
+    {
+        $emptyObject = (object) [];
+
+        return [
+            [
+                'name' => 'get_subscription_status',
+                'description' => 'Get the user\'s current subscription status — plan, billing cycle, current period end, trial end, next charge, and whether they have cancelled. Use when the user asks about their subscription, billing, when they will be charged next, whether their trial has ended, or whether their subscription is still active.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => $emptyObject,
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'list_invoices',
+                'description' => 'List the user\'s invoices in reverse chronological order (most recent first). Each row includes the invoice number, issued date, amount in pounds, currency, status, plan name, billing cycle, and a PDF download URL. Use when the user asks for their billing history, past invoices, or wants to download a receipt.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => $emptyObject,
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'get_current_plan',
+                'description' => 'Get the details of the user\'s current subscription plan — name, tier slug, billing cycle, price in pounds, and the list of features included. Use when the user asks what plan they are on, what features they have, or what they are paying.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => $emptyObject,
                     'required' => [],
                     'additionalProperties' => false,
                 ],

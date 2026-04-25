@@ -30,6 +30,7 @@ class XaiToolDefinitions
             ...$this->analysisTools(),
             ...$this->taxTools(),
             ...$this->planGenerationTools(),
+            ...$this->billingTools(),
         ];
 
         if (! $isPreviewMode) {
@@ -964,6 +965,35 @@ class XaiToolDefinitions
                     'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to delete'],
                 ],
                 ['entity_type', 'entity_id']
+            ),
+        ];
+    }
+
+    // ─── Billing ─────────────────────────────────────────────────────
+
+    /**
+     * Read-only, zero-parameter tools. Exposed in both preview and live mode.
+     */
+    private function billingTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'get_subscription_status',
+                'Get the user\'s current subscription status — plan, billing cycle, current period end, trial end, next charge, and whether they have cancelled. Use when the user asks about their subscription, billing, when they will be charged next, whether their trial has ended, or whether their subscription is still active.',
+                [],
+                []
+            ),
+            $this->wrapTool(
+                'list_invoices',
+                'List the user\'s invoices in reverse chronological order (most recent first). Each row includes the invoice number, issued date, amount in pounds, currency, status, plan name, billing cycle, and a PDF download URL. Use when the user asks for their billing history, past invoices, or wants to download a receipt.',
+                [],
+                []
+            ),
+            $this->wrapTool(
+                'get_current_plan',
+                'Get the details of the user\'s current subscription plan — name, tier slug, billing cycle, price in pounds, and the list of features included. Use when the user asks what plan they are on, what features they have, or what they are paying.',
+                [],
+                []
             ),
         ];
     }

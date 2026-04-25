@@ -17,6 +17,7 @@ use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
+use App\Models\Invoice;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
@@ -24,6 +25,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -737,6 +739,9 @@ class CoordinatingAgent extends BaseAgent
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
+                'get_subscription_status' => $this->handleGetSubscriptionStatus($user),
+                'list_invoices' => $this->handleListInvoices($user),
+                'get_current_plan' => $this->handleGetCurrentPlan($user),
                 'get_tax_information' => $this->handleTaxInformation($input, $user),
                 'generate_financial_plan' => $this->handleFinancialPlan($user),
                 'create_goal' => $this->handleCreateGoal($input, $user, $isPreviewUser),
@@ -1397,6 +1402,86 @@ class CoordinatingAgent extends BaseAgent
             'recommendations' => $analysis['ranked_recommendations'] ?? [],
             'total' => count($analysis['ranked_recommendations'] ?? []),
             'surplus' => $analysis['available_surplus'] ?? 0,
+        ];
+    }
+
+    /**
+     * Resolve the user's current subscription. Read-only — returns null if absent.
+     * Mirrors the controller-side resolution so chat-tool callers see the same row.
+     */
+    private function resolveSubscription(User $user): ?\App\Models\Subscription
+    {
+        return $user->subscription()->latest('id')->first();
+    }
+
+    private function handleGetSubscriptionStatus(User $user): array
+    {
+        $sub = $this->resolveSubscription($user);
+
+        if (! $sub) {
+            return ['status' => 'none'];
+        }
+
+        $plan = SubscriptionPlan::findBySlug($sub->plan);
+
+        return [
+            'status' => $sub->status,
+            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
+            'billing_cycle' => $sub->billing_cycle,
+            'trial_ends_at' => $sub->trial_ends_at?->toIso8601String(),
+            'current_period_end' => $sub->current_period_end?->toIso8601String(),
+            'next_charge_amount' => round((float) $sub->amount, 2),
+            'is_cancelled' => $sub->cancelled_at !== null,
+        ];
+    }
+
+    private function handleListInvoices(User $user): array
+    {
+        return Invoice::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('issued_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Invoice $i) => [
+                'invoice_id' => $i->id,
+                'invoice_number' => $i->invoice_number,
+                'issued_at' => $i->issued_at?->toIso8601String(),
+                'amount' => round($i->total_amount / 100, 2),
+                'currency' => $i->currency ?? 'GBP',
+                'status' => $i->status,
+                'plan_name' => $i->plan_name,
+                'billing_cycle' => $i->billing_cycle,
+                'pdf_url' => '/api/payment/invoices/'.$i->id.'/download',
+            ])
+            ->all();
+    }
+
+    private function handleGetCurrentPlan(User $user): array
+    {
+        $sub = $this->resolveSubscription($user);
+
+        if (! $sub) {
+            return [
+                'plan_name' => 'none',
+                'tier' => 'none',
+                'billing_cycle' => null,
+                'price_gbp' => 0.0,
+                'features' => [],
+            ];
+        }
+
+        $plan = SubscriptionPlan::findBySlug($sub->plan);
+
+        $pricePence = $plan
+            ? ($plan->getLaunchPriceForCycle($sub->billing_cycle) ?? $plan->getPriceForCycle($sub->billing_cycle))
+            : (int) round(((float) $sub->amount) * 100);
+
+        return [
+            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
+            'tier' => $sub->plan,
+            'billing_cycle' => $sub->billing_cycle,
+            'price_gbp' => round($pricePence / 100, 2),
+            'features' => $plan?->features ?? [],
         ];
     }
 
