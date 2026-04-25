@@ -182,7 +182,7 @@
                 v-else-if="msg.role === 'capture_complete'"
                 class="flex justify-start"
               >
-                <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-horizon-200 px-3 py-2 space-y-2">
+                <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-light-gray px-3 py-2 space-y-2">
                   <p class="text-sm font-semibold text-horizon-500">{{ msg.content }}</p>
                   <div
                     v-if="Array.isArray(msg.metadata?.records_created) && msg.metadata.records_created.length"
@@ -446,7 +446,7 @@
             v-else-if="msg.role === 'capture_complete'"
             class="flex justify-start"
           >
-            <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-horizon-200 px-3 py-2 space-y-2 text-sm">
+            <div class="max-w-[85%] w-full rounded-lg bg-savannah-100 border border-light-gray px-3 py-2 space-y-2 text-sm">
               <p class="font-semibold text-horizon-500">{{ msg.content }}</p>
               <div
                 v-if="Array.isArray(msg.metadata?.records_created) && msg.metadata.records_created.length"

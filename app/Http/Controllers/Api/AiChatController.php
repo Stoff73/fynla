@@ -320,11 +320,31 @@ class AiChatController extends Controller
             ],
         ]);
 
-        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_PATH_CHOICE;
+        // INV-2.2.5 — entry-source journey map. When the request carries a
+        // `from` value (e.g. landing-page CTA, lifecycle email, deep link)
+        // and the value matches a key in config('onboarding.journey_map'),
+        // pre-select that life-stage journey and skip STATE_PATH_CHOICE +
+        // STATE_JOURNEY_SELECTION so the user lands at base personal capture.
+        // Unknown / missing `from` falls through to the default path_choice
+        // bubbles. Adding a new entry source requires only a config change.
+        $from = $request->input('from');
+        $journeyMap = (array) config('onboarding.journey_map', []);
+        $matchedJourney = is_string($from) && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
+
+        if ($matchedJourney !== null) {
+            $user->onboarding_fyn_path = 'journey';
+            $user->onboarding_fyn_selection = $matchedJourney;
+            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_PERSONAL;
+            $startStateId = OnboardingStateMachine::STATE_BASE_PERSONAL;
+        } else {
+            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_PATH_CHOICE;
+            $startStateId = OnboardingStateMachine::STATE_PATH_CHOICE;
+        }
+
         $user->onboarding_started_at = $user->onboarding_started_at ?? now();
         $user->save();
 
-        return new StreamedResponse(function () use ($user, $conversation) {
+        return new StreamedResponse(function () use ($user, $conversation, $startStateId) {
             // Emit the conversation id first so the frontend can route
             // subsequent /messages calls to this specific conversation.
             $firstEvent = [
@@ -339,7 +359,7 @@ class AiChatController extends Controller
             flush();
 
             try {
-                foreach ($this->onboardingDirector->emitFirstTurn($user, $conversation) as $event) {
+                foreach ($this->onboardingDirector->emitFirstTurn($user, $conversation, $startStateId) as $event) {
                     echo 'data: '.json_encode($event)."\n\n";
 
                     if (ob_get_level() > 0) {

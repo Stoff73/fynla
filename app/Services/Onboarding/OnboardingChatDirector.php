@@ -55,16 +55,18 @@ final class OnboardingChatDirector
      *
      * @return \Generator<array{type: string}>
      */
-    public function emitFirstTurn(User $user, AiConversation $conversation): \Generator
+    public function emitFirstTurn(User $user, AiConversation $conversation, ?string $stateId = null): \Generator
     {
-        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
+        $stateId = $stateId ?? OnboardingStateMachine::STATE_PATH_CHOICE;
+
+        $state = OnboardingStateMachine::getState($stateId);
         if ($state === null) {
             yield $this->errorEvent('Onboarding is temporarily unavailable.');
 
             return;
         }
 
-        yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_PATH_CHOICE, $state);
+        yield from $this->emitTurnForState($user, $conversation, $stateId, $state);
     }
 
     /**
@@ -168,6 +170,12 @@ final class OnboardingChatDirector
         // Persist the captured value where applicable (profile column,
         // FamilyMember row, or scratch-pad context).
         $this->persistCapture($user, $state, $interpretation);
+
+        // INV-2.2.6 — flush the matching parked-facts bucket so the
+        // <known_facts> block on the next prompt does not list the same
+        // field twice (the values now live on users.* / family_members /
+        // expenditure_profiles instead).
+        $this->flushParkedFactsForState($conversation, $currentStateId);
 
         // Record the completed step in onboarding_progress for audit/resume.
         $this->recordProgress($user, $currentStateId, $interpretation['captured_value'] ?? null);
@@ -990,6 +998,12 @@ final class OnboardingChatDirector
 
             $this->recordProgress($user, $currentStateId, ['hydrated_from_parking' => true]);
 
+            // INV-2.2.6 — parking hydration has just committed the bucket
+            // to users.* via the executeTool call above; clear the bucket
+            // so the next prompt does not surface it again as a parked
+            // fact and trigger duplicate ask-asks.
+            $this->flushParkedFactsForState($conversation, $currentStateId);
+
             $user->refresh();
 
             $nextStateId = OnboardingStateMachine::getNextStateId(
@@ -1026,6 +1040,51 @@ final class OnboardingChatDirector
 
             yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
         })();
+    }
+
+    /**
+     * INV-2.2.6 — remove parked-fact buckets that have just been committed
+     * to backing tables so the next prompt's <known_facts> block does not
+     * re-list values the user already volunteered. Keys outside the state's
+     * bucket set stay intact (e.g. parked spouse facts survive a
+     * base_personal commit).
+     *
+     * Mapping mirrors INV-2.2.6: the state at which each bucket's data
+     * gets written to its destination row.
+     */
+    private function flushParkedFactsForState(AiConversation $conversation, string $stateId): void
+    {
+        $buckets = match ($stateId) {
+            OnboardingStateMachine::STATE_BASE_PERSONAL => ['personal'],
+            OnboardingStateMachine::STATE_BASE_SPOUSE => ['spouse'],
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => ['dependants'],
+            OnboardingStateMachine::STATE_BASE_WORK => ['employment'],
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => ['expenditure'],
+            default => [],
+        };
+
+        if ($buckets === []) {
+            return;
+        }
+
+        $parked = (array) ($conversation->onboarding_parked_facts ?? []);
+        if ($parked === []) {
+            return;
+        }
+
+        $changed = false;
+        foreach ($buckets as $bucket) {
+            if (array_key_exists($bucket, $parked)) {
+                unset($parked[$bucket]);
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $conversation->update([
+                'onboarding_parked_facts' => $parked === [] ? null : $parked,
+            ]);
+        }
     }
 
     /**
@@ -1239,6 +1298,12 @@ final class OnboardingChatDirector
         }
 
         $this->recordProgress($user, $currentStateId, $captureDetails);
+
+        // INV-2.2.6 — same flush as the free-text path above. The grouped
+        // capture handler has just written the bucket's fields to users.*
+        // / family_members so leaving the parked copy would re-list those
+        // values in the next <known_facts> block.
+        $this->flushParkedFactsForState($conversation, $currentStateId);
 
         // Refresh the user so skip_if helpers on the next state see the
         // freshly-written columns.
