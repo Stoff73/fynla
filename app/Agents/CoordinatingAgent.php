@@ -1654,9 +1654,14 @@ class CoordinatingAgent extends BaseAgent
                 'onshore_bond', 'offshore_bond', 'vct', 'eis',
                 'private_company', 'crowdfunding', 'saye', 'csop',
                 'emi', 'unapproved_options', 'rsu', 'other',
+                // DB-canonical values (the HTTP form posts these directly)
+                'isa', 'gia',
             ])],
+            'provider' => 'nullable|string|max:255',
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1669,110 +1674,104 @@ class CoordinatingAgent extends BaseAgent
 
         $accountType = $input['account_type'] ?? 'personal_investment_account';
 
-        // Map AI account_type values to form select values
-        $formAccountType = match ($accountType) {
+        // AI-facing enums → DB canonical values (mirrors the existing
+        // form-fill mapping so AI direct-write and HTTP form path persist
+        // identical rows).
+        $dbAccountType = match ($accountType) {
             'stocks_shares_isa', 'lifetime_isa' => 'isa',
             'personal_investment_account' => 'gia',
-            default => $accountType, // vct, eis, private_company, crowdfunding, saye, csop, emi, unapproved_options, rsu, other pass through directly
+            default => $accountType,
         };
 
-        // Form uses 'provider' as the main name field — map account_name to it
-        $provider = $input['provider'] ?? $input['account_name'];
+        $isaType = match ($accountType) {
+            'stocks_shares_isa' => 'stocks_shares',
+            'lifetime_isa' => 'lifetime',
+            default => null,
+        };
 
-        $fields = [
-            'account_type' => $formAccountType,
-            'provider' => $provider,
+        // ISAs are individually owned per UK tax rules. Mirrors the HTTP
+        // controller's hard rejection.
+        $ownershipType = $input['ownership_type'] ?? 'individual';
+        if ($dbAccountType === 'isa' && $ownershipType !== 'individual') {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'message' => 'ISAs can only be individually owned under UK tax rules.',
+            ];
+        }
+
+        $payload = [
+            'user_id' => $user->id,
+            'account_name' => $input['account_name'],
+            'provider' => ! empty($input['provider']) ? $input['provider'] : $input['account_name'],
+            'account_type' => $dbAccountType,
             'current_value' => (float) $input['current_value'],
-            'monthly_contribution_amount' => isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : 0,
-            'platform_fee_percent' => isset($input['platform_fee_percent']) ? (float) $input['platform_fee_percent'] : null,
+            'ownership_type' => $ownershipType,
+            'ownership_percentage' => isset($input['ownership_percentage'])
+                ? (float) $input['ownership_percentage']
+                : 100.00,
         ];
 
-        // Bond-specific fields
-        if (in_array($accountType, ['onshore_bond', 'offshore_bond'])) {
-            $bondFields = ['bond_purchase_date', 'bond_withdrawal_taken'];
-            foreach ($bondFields as $field) {
-                if (isset($input[$field])) {
-                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
-                }
+        if ($isaType !== null) {
+            $payload['isa_type'] = $isaType;
+        }
+
+        // Optional numeric / string fields — only persist when supplied.
+        $optionalNumeric = [
+            'monthly_contribution_amount', 'platform_fee_percent',
+            'investment_amount', 'number_of_shares', 'price_per_share',
+            'units_granted', 'exercise_price', 'market_value_at_grant',
+            'current_share_price', 'units_vested', 'units_unvested',
+            'cliff_percentage', 'saye_monthly_savings',
+            'saye_current_savings_balance', 'scheme_duration_months',
+        ];
+        foreach ($optionalNumeric as $field) {
+            if (isset($input[$field]) && $input[$field] !== '' && is_numeric($input[$field])) {
+                $payload[$field] = (float) $input[$field];
             }
         }
 
-        // Private company / Crowdfunding fields
-        if (in_array($formAccountType, ['private_company', 'crowdfunding', 'vct', 'eis'])) {
-            $privateStringFields = [
-                'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
-                'investment_date', 'instrument_type', 'funding_round', 'share_class', 'tax_relief_type',
-            ];
-            $privateNumericFields = [
-                'investment_amount', 'number_of_shares', 'price_per_share',
-            ];
-            foreach ($privateStringFields as $field) {
-                if (isset($input[$field]) && $input[$field] !== '') {
-                    $fields[$field] = (string) $input[$field];
-                }
-            }
-            foreach ($privateNumericFields as $field) {
-                if (isset($input[$field]) && $input[$field] !== '') {
-                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
-                }
+        $optionalString = [
+            'company_legal_name', 'company_registration_number',
+            'crowdfunding_platform', 'instrument_type', 'funding_round',
+            'share_class', 'tax_relief_type', 'employer_name',
+            'vesting_type',
+        ];
+        foreach ($optionalString as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
+                $payload[$field] = (string) $input[$field];
             }
         }
 
-        // Employee share scheme fields
-        if (in_array($formAccountType, ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'])) {
-            $schemeFields = [
-                'employer_name', 'employer_is_listed', 'grant_date', 'units_granted',
-                'exercise_price', 'market_value_at_grant', 'current_share_price',
-                'units_vested', 'units_unvested', 'vesting_type', 'full_vest_date',
-                'cliff_date', 'cliff_percentage',
-            ];
-            foreach ($schemeFields as $field) {
-                if (isset($input[$field]) && $input[$field] !== '') {
-                    if (is_bool($input[$field])) {
-                        $fields[$field] = $input[$field];
-                    } elseif (is_numeric($input[$field])) {
-                        $fields[$field] = (float) $input[$field];
-                    } else {
-                        $fields[$field] = $input[$field];
-                    }
-                }
-            }
-
-            // SAYE-specific fields
-            if ($formAccountType === 'saye') {
-                $sayeFields = ['saye_monthly_savings', 'saye_current_savings_balance', 'scheme_start_date', 'scheme_duration_months'];
-                foreach ($sayeFields as $field) {
-                    if (isset($input[$field]) && $input[$field] !== '') {
-                        $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
-                    }
-                }
+        $optionalDate = [
+            'bond_purchase_date', 'investment_date', 'grant_date',
+            'full_vest_date', 'cliff_date', 'scheme_start_date',
+        ];
+        foreach ($optionalDate as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
+                $payload[$field] = $input[$field];
             }
         }
 
-        // Inline holdings — pass through for holdable account types (ISA, GIA, bonds, VCT, EIS)
-        $holdableTypes = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
-        if (in_array($formAccountType, $holdableTypes) && ! empty($input['holdings']) && is_array($input['holdings'])) {
-            $holdings = [];
-            foreach ($input['holdings'] as $holding) {
-                $h = [
-                    'security_name' => $holding['security_name'] ?? '',
-                    'asset_type' => $holding['asset_type'] ?? '',
-                    'allocation_percent' => isset($holding['allocation_percent']) ? (float) $holding['allocation_percent'] : 0,
-                ];
-                if (isset($holding['cost_basis']) && $holding['cost_basis'] !== null) {
-                    $h['cost_basis'] = (float) $holding['cost_basis'];
-                }
-                $holdings[] = $h;
-            }
-            $fields['holdings'] = $holdings;
+        if (isset($input['bond_withdrawal_taken'])) {
+            $payload['bond_withdrawal_taken'] = (float) $input['bond_withdrawal_taken'];
         }
+        if (isset($input['employer_is_listed'])) {
+            $payload['employer_is_listed'] = (bool) $input['employer_is_listed'];
+        }
+
+        $account = DB::transaction(fn () => InvestmentAccount::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'investment_account',
-            'route' => '/net-worth/investments',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$provider}\" investment account now.",
+            'entity_id' => $account->id,
+            'name' => $account->account_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$account->account_name}\" investment account.",
         ];
     }
 
