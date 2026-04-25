@@ -17,6 +17,7 @@ use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
@@ -1811,34 +1812,49 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        $fields = [
-            'investment_account_id' => $account->id,
+        $allocationPct = isset($input['allocation_percent']) ? (float) $input['allocation_percent'] : null;
+        $accountCurrentValue = (float) ($account->current_value ?? 0);
+        $currentValue = $allocationPct !== null
+            ? round(($allocationPct / 100) * $accountCurrentValue, 2)
+            : 0.0;
+
+        $payload = [
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
             'security_name' => $input['security_name'],
             'asset_type' => $input['asset_type'],
+            'current_value' => $currentValue,
         ];
 
-        if (isset($input['ticker'])) {
-            $fields['ticker'] = $input['ticker'];
+        if ($allocationPct !== null) {
+            $payload['allocation_percent'] = $allocationPct;
         }
-        if (isset($input['allocation_percent'])) {
-            $fields['allocation_percent'] = (float) $input['allocation_percent'];
+        foreach (['ticker', 'isin'] as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
+                $payload[$field] = $input[$field];
+            }
         }
-        if (isset($input['purchase_price'])) {
-            $fields['purchase_price'] = (float) $input['purchase_price'];
+        foreach (['purchase_price', 'current_price', 'ocf_percent'] as $field) {
+            if (isset($input[$field]) && is_numeric($input[$field])) {
+                $payload[$field] = (float) $input[$field];
+            }
         }
-        if (isset($input['current_price'])) {
-            $fields['current_price'] = (float) $input['current_price'];
-        }
-        if (isset($input['ocf_percent'])) {
-            $fields['ocf_percent'] = (float) $input['ocf_percent'];
+        if (isset($input['purchase_date']) && $input['purchase_date'] !== '') {
+            $payload['purchase_date'] = $input['purchase_date'];
         }
 
+        $holding = DB::transaction(fn () => Holding::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'investment_holding',
-            'route' => '/net-worth/investments',
-            'fields' => $fields,
-            'message' => "I'll add \"{$input['security_name']}\" to your {$account->provider} account now.",
+            'entity_id' => $holding->id,
+            'name' => $holding->security_name,
+            'persisted_fields' => array_keys($payload),
+            'message' => "I've added \"{$holding->security_name}\" to your {$account->provider} account.",
         ];
     }
 
