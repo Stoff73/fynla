@@ -1713,7 +1713,7 @@ PROMPT;
 
         try {
             $extracted = $this->entityExtractor->extractForFocus($selection, $message);
-            $missing = $this->entityExtractor->findMissing($selection, $extracted, $llmEmittedFills);
+            $missing = $this->entityExtractor->findMissing($selection, $extracted, $llmEmittedFills, $user);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Gap-fill extraction failed', [
                 'user_id' => $user->id,
@@ -2114,7 +2114,7 @@ PROMPT;
 
         try {
             $extracted = $this->entityExtractor->extractForFocus($focus, $message);
-            $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills);
+            $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills, $user);
         } catch (\Throwable $e) {
             Log::warning('[OnboardingChatDirector] Inline-capture gap-fill extraction failed', [
                 'user_id' => $user->id,

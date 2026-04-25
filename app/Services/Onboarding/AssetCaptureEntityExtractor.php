@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Models\CriticalIllnessPolicy;
+use App\Models\DBPension;
+use App\Models\DCPension;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\SavingsAccount;
+use App\Models\User;
+
 /**
  * Deterministic entity extractor for onboarding asset_capture turns.
  *
@@ -85,11 +94,17 @@ final class AssetCaptureEntityExtractor
      * with slightly different casing or punctuation still suppresses a
      * duplicate gap-fill.
      *
+     * When $user is provided, also dedup against rows persisted in the
+     * target module within the last 24h (S0.11.5 / INV-2.9.5). Without
+     * this, a user retrying the same multi-entity message would re-emit
+     * gap-fill tool calls that re-persist duplicate rows — the
+     * in-message dedup only protects within a single turn.
+     *
      * @param  list<array<string, mixed>>  $extracted   output of extractForFocus()
      * @param  list<array<string, mixed>>  $llmEmitted  fields[] from each fill_form event the LLM emitted
      * @return list<array<string, mixed>>
      */
-    public function findMissing(string $focus, array $extracted, array $llmEmitted): array
+    public function findMissing(string $focus, array $extracted, array $llmEmitted, ?User $user = null): array
     {
         if ($extracted === []) {
             return [];
@@ -100,8 +115,12 @@ final class AssetCaptureEntityExtractor
             $llmEmitted
         );
 
+        $persistedKeys = $user !== null
+            ? $this->recentlyPersistedIdentityKeys($focus, $user)
+            : [];
+
         $missing = [];
-        $seen = $emittedKeys; // also dedupe within the extracted set
+        $seen = array_merge($emittedKeys, $persistedKeys); // also dedupe within the extracted set
         foreach ($extracted as $entity) {
             $key = $this->identityKey($focus, $entity, false);
             if ($key === '' || in_array($key, $seen, true)) {
@@ -112,6 +131,150 @@ final class AssetCaptureEntityExtractor
         }
 
         return $missing;
+    }
+
+    /**
+     * Build the set of identity keys for rows persisted in the last 24h
+     * for this user in the focus's target module(s). Used by findMissing
+     * to suppress gap-fill emissions that would re-create existing rows
+     * (S0.11.5 / INV-2.9.5).
+     *
+     * The 24h window is the spec-fixed dedup horizon — it is wide enough
+     * to catch retries from network glitches and same-day re-engagements
+     * without permanently blocking a user from adding a genuinely new
+     * second account at the same provider.
+     *
+     * @return list<string>
+     */
+    private function recentlyPersistedIdentityKeys(string $focus, User $user): array
+    {
+        $cutoff = now()->subHours(24);
+
+        return match ($focus) {
+            'protection' => $this->protectionPersistedKeys($user, $cutoff),
+            'savings', 'budgeting' => $this->savingsPersistedKeys($user, $cutoff),
+            'retirement' => $this->retirementPersistedKeys($user, $cutoff),
+            'investment' => $this->investmentPersistedKeys($user, $cutoff),
+            default => [],
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function protectionPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (LifeInsurancePolicy::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['policy_type', 'provider']) as $row) {
+            $keys[] = $this->protectionIdentityKey([
+                'policy_type' => $row->policy_type,
+                'provider' => $row->provider,
+            ], false);
+        }
+
+        // CI table's policy_type column is 'standalone' / 'accelerated' (no
+        // `_ci` suffix that the identity-key matcher expects). The table
+        // identity is enough — every row in this table keys to group 'ci'
+        // — so we synthesise 'standalone_ci' to land in the right bucket.
+        foreach (CriticalIllnessPolicy::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['provider']) as $row) {
+            $keys[] = $this->protectionIdentityKey([
+                'policy_type' => 'standalone_ci',
+                'provider' => $row->provider,
+            ], false);
+        }
+
+        foreach (IncomeProtectionPolicy::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['provider']) as $row) {
+            $keys[] = $this->protectionIdentityKey([
+                'policy_type' => 'income_protection',
+                'provider' => $row->provider,
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function savingsPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (SavingsAccount::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['institution', 'account_name', 'is_isa']) as $row) {
+            $keys[] = $this->savingsIdentityKey([
+                'institution' => $row->institution,
+                'account_name' => $row->account_name,
+                'is_isa' => (bool) $row->is_isa,
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function retirementPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (DCPension::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['provider', 'scheme_name']) as $row) {
+            $keys[] = $this->pensionIdentityKey([
+                'provider' => $row->provider,
+                'scheme_name' => $row->scheme_name,
+                'pension_category' => 'dc',
+            ], false);
+        }
+
+        foreach (DBPension::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['scheme_name']) as $row) {
+            $keys[] = $this->pensionIdentityKey([
+                'provider' => null,
+                'scheme_name' => $row->scheme_name,
+                'pension_category' => 'db',
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function investmentPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (InvestmentAccount::query()
+            ->where('user_id', $user->id)
+            ->where('created_at', '>', $cutoff)
+            ->get(['provider', 'account_name', 'account_type']) as $row) {
+            $keys[] = $this->investmentIdentityKey([
+                'provider' => $row->provider,
+                'account_name' => $row->account_name,
+                'account_type' => $row->account_type,
+            ], false);
+        }
+
+        return $keys;
     }
 
     // ─── Protection ─────────────────────────────────────────────────
