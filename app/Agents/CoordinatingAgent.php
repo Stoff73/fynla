@@ -1887,52 +1887,86 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $category = $input['pension_category'] ?? 'dc';
-        $entityType = $category === 'db' ? 'db_pension' : 'dc_pension';
-
-        $schemeName = ! empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
-
-        $fields = [
-            'scheme_name' => $schemeName,
-        ];
+        $schemeName = $input['scheme_name'];
 
         if ($category === 'db') {
-            $fields['employer_name'] = $input['scheme_name'] ?? $schemeName;
-            $fields['scheme_type'] = $input['scheme_type'] ?? 'final_salary';
-            // scheme_status is REQUIRED by DB form validation — default to 'Active'
-            $fields['scheme_status'] = $input['scheme_status'] ?? 'Active';
-            $fields['annual_income'] = isset($input['accrued_annual_pension']) ? (float) $input['accrued_annual_pension'] : 0;
-            $fields['service_years'] = isset($input['pensionable_service_years']) ? (int) $input['pensionable_service_years'] : null;
-            $fields['final_salary'] = isset($input['final_salary']) ? (float) $input['final_salary'] : null;
-            $fields['accrual_rate'] = isset($input['accrual_rate']) ? (int) $input['accrual_rate'] : null;
-            $fields['normal_retirement_age'] = isset($input['normal_retirement_age']) ? (int) $input['normal_retirement_age'] : null;
+            // DB pensions: scheme_type column is NOT NULL with enum
+            // (final_salary|career_average|public_sector). The DB form's
+            // free-text "scheme_type" field overlaps semantically — keep the
+            // existing default of final_salary when the AI didn't pin it.
+            $rawSchemeType = $input['scheme_type'] ?? 'final_salary';
+            $schemeType = in_array($rawSchemeType, ['final_salary', 'career_average', 'public_sector'], true)
+                ? $rawSchemeType
+                : 'final_salary';
+
+            $payload = [
+                'user_id' => $user->id,
+                'scheme_name' => $schemeName,
+                'scheme_type' => $schemeType,
+            ];
+
+            foreach (['accrued_annual_pension', 'pensionable_service_years', 'pensionable_salary', 'spouse_pension_percent', 'lump_sum_entitlement'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (float) $input[$f];
+                }
+            }
+            if (isset($input['normal_retirement_age']) && is_numeric($input['normal_retirement_age'])) {
+                $payload['normal_retirement_age'] = (int) $input['normal_retirement_age'];
+            }
+            foreach (['revaluation_method', 'inflation_protection'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+
+            $pension = DB::transaction(fn () => DBPension::create($payload));
+            $entityType = 'db_pension';
         } else {
-            // Map AI scheme_type to form pension_type select values
-            $formPensionType = match ($input['scheme_type'] ?? 'workplace') {
+            // DC pensions: pension_type NOT NULL enum
+            // (occupational|sipp|personal|stakeholder), defaults to occupational.
+            $pensionType = match ($input['scheme_type'] ?? 'workplace') {
                 'workplace', 'occupational' => 'occupational',
                 'sipp', 'self_invested' => 'sipp',
                 'personal', 'personal_pension' => 'personal',
                 'stakeholder' => 'stakeholder',
                 default => 'occupational',
             };
-            $fields['pension_type'] = $formPensionType;
-            $fields['provider'] = ! empty($input['provider']) ? $input['provider'] : $schemeName;
-            $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
-            $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
-            $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
-            $fields['monthly_contribution_amount'] = isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : null;
-            $fields['annual_salary'] = isset($input['annual_salary']) ? (float) $input['annual_salary'] : null;
-            $fields['retirement_age'] = isset($input['retirement_age']) ? (int) $input['retirement_age'] : null;
+
+            $payload = [
+                'user_id' => $user->id,
+                'scheme_name' => $schemeName,
+                'pension_type' => $pensionType,
+                'provider' => ! empty($input['provider']) ? $input['provider'] : $schemeName,
+            ];
+
+            foreach (['current_fund_value', 'annual_salary', 'employee_contribution_percent', 'employer_contribution_percent', 'employer_matching_limit', 'monthly_contribution_amount', 'lump_sum_contribution', 'expected_return_percent', 'platform_fee_percent', 'advisor_fee_percent'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (float) $input[$f];
+                }
+            }
+            if (isset($input['retirement_age']) && is_numeric($input['retirement_age'])) {
+                $payload['retirement_age'] = (int) $input['retirement_age'];
+            }
+            foreach (['member_number', 'investment_strategy'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+
+            $pension = DB::transaction(fn () => DCPension::create($payload));
+            $entityType = 'dc_pension';
         }
 
-        // Strip nulls and empty strings
-        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => $entityType,
-            'route' => '/net-worth/retirement',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['scheme_name']}\" pension now.",
+            'entity_id' => $pension->id,
+            'name' => $pension->scheme_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$pension->scheme_name}\" pension.",
         ];
     }
 
