@@ -2116,35 +2116,79 @@ class CoordinatingAgent extends BaseAgent
             'remaining_term_months' => 'nullable|integer|min:1|max:480',
             'start_date' => 'nullable|date',
             'maturity_date' => 'nullable|date',
+            'lender_name' => 'nullable|string|max:255',
+            'property_address_hint' => 'nullable|string|max:500',
         ]);
         if ($validationError) {
             return $validationError;
         }
 
-        $lenderName = $input['lender_name'] ?? 'Mortgage';
+        // Resolve target property: fuzzy match on hint, else fall back to
+        // the user's only property if exactly one exists.
+        $hint = trim((string) ($input['property_address_hint'] ?? ''));
+        $propertyQuery = Property::where('user_id', $user->id);
+        if ($hint !== '') {
+            $like = '%'.$hint.'%';
+            $propertyQuery->where(function ($q) use ($like) {
+                $q->where('address_line_1', 'LIKE', $like)
+                    ->orWhere('postcode', 'LIKE', $like)
+                    ->orWhere('city', 'LIKE', $like);
+            });
+        }
+        $property = $propertyQuery->orderBy('id')->first();
 
-        $fields = [
-            'has_mortgage' => true,
-            'mortgage_lender_name' => $lenderName,
-            'mortgage_outstanding_balance' => (float) $input['outstanding_balance'],
-            'mortgage_interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : 4.5,
+        if (! $property) {
+            $userProperties = Property::where('user_id', $user->id)->count();
+
+            return [
+                'error' => true,
+                'error_type' => $userProperties === 0 ? 'missing_property' : 'property_match_failed',
+                'message' => $userProperties === 0
+                    ? "I couldn't find a property to attach this mortgage to. Please add the property first."
+                    : "I couldn't match \"{$hint}\" to one of your properties. Please be more specific.",
+            ];
+        }
+
+        $payload = [
+            'user_id' => $user->id,
+            'property_id' => $property->id,
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
-            'mortgage_rate_type' => $input['rate_type'] ?? 'fixed',
-            'mortgage_remaining_term_months' => isset($input['remaining_term_months']) ? (int) $input['remaining_term_months'] : 300,
-            'mortgage_monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
-            'mortgage_start_date' => $input['start_date'] ?? null,
-            'mortgage_maturity_date' => $input['maturity_date'] ?? null,
+            'rate_type' => $input['rate_type'] ?? 'fixed',
+            'outstanding_balance' => (float) $input['outstanding_balance'],
+            'ownership_type' => $property->ownership_type,
+            'ownership_percentage' => (float) $property->ownership_percentage,
         ];
 
-        // Strip only empty strings — keep nulls so frontend form fill receives all fields
-        $fields = array_filter($fields, fn ($v) => $v !== '');
+        if (isset($input['lender_name']) && $input['lender_name'] !== '') {
+            $payload['lender_name'] = $input['lender_name'];
+        }
+        if (isset($input['interest_rate']) && is_numeric($input['interest_rate'])) {
+            $payload['interest_rate'] = (float) $input['interest_rate'];
+        }
+        if (isset($input['monthly_payment']) && is_numeric($input['monthly_payment'])) {
+            $payload['monthly_payment'] = (float) $input['monthly_payment'];
+        }
+        if (isset($input['remaining_term_months']) && is_numeric($input['remaining_term_months'])) {
+            $payload['remaining_term_months'] = (int) $input['remaining_term_months'];
+        }
+        foreach (['start_date', 'maturity_date'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+
+        $mortgage = DB::transaction(fn () => Mortgage::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'mortgage',
-            'route' => '/net-worth/property',
-            'fields' => $fields,
-            'message' => "I'll fill in the mortgage details for \"{$lenderName}\" now.",
+            'entity_id' => $mortgage->id,
+            'name' => $mortgage->lender_name ?? 'Mortgage',
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added the mortgage on \"{$property->address_line_1}\".",
         ];
     }
 
