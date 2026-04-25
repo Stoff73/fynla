@@ -1,67 +1,52 @@
-# Tech Debt Report — Session 75 (2026-04-25)
+# Tech Debt Report — Session 76 (25 April 2026)
 
-**Scope:** session 75 commits (`ff8e4ed` → `786d841`) on `feature/fyn-persona-split` — Sprint 0.9 / 0.10 + Trust direct-write test contract + Will faker flake fix.
-**Files analysed:** 13 (6 production, 7 tests)
-**Issues found:** 2 (0 critical, 0 warnings, 2 suggestions)
+**Scope:** session 76 commits (`9d45697` → `4de58fd`) on `feature/fyn-persona-split` — Sprint 0.11 reliability bundle (all 6 sub-steps) + test-helper rename + handover.
+**Files analysed:** 25 (14 production PHP, 3 migrations, 7 tests, 1 docs)
+**Issues found:** 4
+**Severity breakdown:** 0 critical, 0 warnings, 4 suggestions
 
-The session shipped Sprint 0.9 (consent runtime check) and 0.10 (user-content sanitisation + structural separation), updated the TrustObserver test to pin the post-S0.5.l direct-write contract (the agent persists the Trust + observer fires the CLT Gift), and pinned the long-known `WillBuilderApiTest` faker flake. Verified end-to-end live (Trust→CLT chain produces correct Gift row; AdvicePromptBuilder emits `<user_provided>James</user_provided>` for the user-profile layer). Full Pest suite: 2799/2799 passing, 10958 assertions, 0 failures. Production code introduced 0 TODOs, 0 debug dumps, 0 hardcoded tax values, 0 banned colour tokens, 0 acronyms in user-facing copy.
+A clean session. All 14 production-code changes pass the convention checklist: every PHP file declares `strict_types`; no banned colour classes (no frontend touched); no hardcoded tax values; no raw SQL with user input (the `DB::raw('DATE(...)')` and `SUM/COALESCE` aggregates in the backfill command have no user-supplied values); no `DB` facade abuse in controllers; no acronyms in user-facing text (the `SSE`/`DB`/`TTL`/`HMAC` references are in code comments and constant names only, which Rule #10 explicitly permits); no `submit` event regressions; no scoring UI; no missing `:key` on `v-for` (no Vue files changed). Three new migrations are clean `Schema::create` calls with proper FKs and indexes.
 
----
+The four findings below are suggestions for follow-up — none block ship, none affect correctness, none warrant fixing in-scope.
 
 ## Critical Issues
 
 None.
 
----
-
 ## Warnings
 
 None.
 
----
-
 ## Suggestions
 
-### S1. Mid-stream consent re-check fires one DB query per SSE event
+### S1 — Duplicated provider-resolution lookup in AdminController
 
-- **File:** `app/Http/Controllers/Api/AiChatController.php:165-178`
-- **Category:** 4 (complexity / scalability)
-- **What's there:** Every yield from the LLM generator triggers a fresh indexed `EXISTS` query against `user_consents` to detect mid-stream consent withdrawal. For a typical 30–100-yield response this is 30–100 queries (sub-millisecond each, ~30–100ms cumulative per stream).
-- **Why it works today:** The query is the cheapest possible — single composite index hit, returns boolean. Total stream overhead is bounded because chat responses cap around 100 events. Behaviour is correct and the spec's mid-stream contract is honoured.
-- **Suggested fix (defer):** Throttle to every Nth event (e.g. N=10) OR cache consent state for the stream duration with explicit invalidation on the consent-update endpoint. Either keeps the contract while flattening DB pressure under load. Natural fit for S0.11 reliability bundle, not a blocker.
+- **File:** `app/Http/Controllers/Api/AdminController.php:647-651` and elsewhere
+- **Category:** Inconsistency with Existing Patterns
+- **What's wrong:** The "read versioned key with fallback to legacy key" lookup is implemented inline in `getAiProvider` (the GET handler), reproducing the conditional that already lives in `HasAiGuardrails::getAiProviderForLoop()`. Two copies of the same lookup means a future change to the cache-key shape (e.g. adding a tenant prefix) needs two coordinated edits.
+- **Suggested fix:** Extract a single `\App\Services\AI\ProviderResolver::current(): string` static helper that both `AdminController::getAiProvider` and `HasAiGuardrails::getAiProviderForLoop` delegate to. Defer until S0.13 (CoreIdentity rewrite) opens AdminController for other touch — folding it in standalone is churn.
 
-### S2. Duplicated "grant ai_chat consent" helper across test files
+### S2 — `AssetCaptureEntityExtractor` approaching the maintainability threshold
 
-- **Files:**
-  - `tests/Feature/AI/ConsentRuntimeCheckTest.php:22` — defines `grantAiChatConsent(User)`
-  - `tests/Feature/Onboarding/StartOnboardingEndpointTest.php:18` — defines `grantAiChatConsentForOnboardingEndpointTest(User)` (renamed to dodge the function-redeclaration collision Pest's global-function autoload triggers)
-  - `tests/Feature/Onboarding/StateMachineWalkthroughTest.php:42-44` — calls `app(ConsentService::class)->recordConsent(...)` inline in `beforeEach`
-  - `tests/Feature/Fyn/HandoffInvisibilityTest.php:18` — calls `app(ConsentService::class)->recordConsent(...)` inline
-- **Category:** 1 (duplicate code)
-- **What's there:** Four places do the same thing (record ai_chat consent for a factory user) with three different shapes. The `*ForOnboardingEndpointTest` rename is a workaround for Pest's global-function autoloading.
-- **Suggested fix (defer):** Extract to a small `tests/Helpers/AiChatTestHelpers.php` (or a Pest-compatible trait used via `uses()`) with a single canonical helper. Low value, low urgency — only matters once 5+ test files need consent setup. Worth bundling with any future test-helper consolidation pass.
+- **File:** `app/Services/Onboarding/AssetCaptureEntityExtractor.php` (828 lines, +162 this session)
+- **Category:** Complexity & Maintainability
+- **What's wrong:** Adding the per-focus persisted-key lookup (`protectionPersistedKeys`, `savingsPersistedKeys`, `retirementPersistedKeys`, `investmentPersistedKeys`) pushed the file past 800 lines. The class still has a single responsibility (deterministic gap-fill) but the extraction logic, the identity-key normalisation, and the DB dedup are three distinct concerns sharing a file.
+- **Suggested fix:** When S1 (Sprint 1) adds the eval harness, split into three focused classes: `AssetCaptureExtractor` (parse), `IdentityKeyNormaliser` (matchers), `PersistedKeyResolver` (DB lookup). Out of scope for S0.11.5; deferred.
 
----
+### S3 — `$fromLlm` parameter on identity-key methods is dead
 
-## Notes & Confirmations
+- **File:** `app/Services/Onboarding/AssetCaptureEntityExtractor.php:585-650` (every `*IdentityKey` private method)
+- **Category:** Dead & Redundant Code
+- **What's wrong:** Pre-existing. Each `protectionIdentityKey`/`savingsIdentityKey`/`pensionIdentityKey`/`investmentIdentityKey` accepts a `bool $fromLlm` parameter that is never branched on. My new persisted-key callers pass `false` consistently, so the dead parameter persists through this session's changes too.
+- **Suggested fix:** Drop the parameter from all four signatures and every call site (3 in original `findMissing`, 4 in new persisted-key methods). Trivial cleanup; defer to the same split as S2.
 
-- `app/Services/AI/Prompts/UserContentSanitiser.php` — clean. Two static methods, single-purpose, documented allow-list rationale + non-ASCII trade-off in class-level docblock. No state, no dependencies.
-- All wrapping sites in `AdvicePromptBuilder.php` use `(string)` cast before `wrap()` so null-ish DB columns don't trigger `TypeError`.
-- Enum-typed columns (`trust_type`, `business_type`, `ownership_type`, `property_type`, `relationship`, `marital_status` etc.) are deliberately NOT wrapped — they come from fixed sets and cannot carry prompt-injection payloads. Documented in S0.10 commit message.
-- `<user_provided>` boundary survives an attacker-supplied forgery test (`tests/Unit/Services/AI/Prompts/UserContentSanitisationTest.php:90-103`) — the inner content is provably free of `<` and `>` because `clean()` strips them before wrapping.
-- `hasConsent()` re-check uses an indexed query (`user_id, consent_type, version, consented`) directly — does not rely on the closed-over `$user` model's relations, so a withdrawn consent is observed even mid-stream.
-- All test files declare `strict_types=1`, use `it()` / `RefreshDatabase` / `TaxConfigurationSeeder`, and follow the project Pest conventions.
-- The `WillBuilderApiTest` fix is a one-line `'middle_name' => null` factory override — pinpoint fix for the faker flake CSJTODO had carried since session 72.
-- Trust → CLT chain verified live via `php artisan tinker`: `executeTool('create_trust', initial_value: 250000)` produced both the Trust row AND the matching `Gift` row (`gift_type='clt'`, `gift_value=250000`, `recipient='Live Test Trust'`, `gift_date='2026-04-20'`) in the same transaction. Observer behaviour preserved post-S0.5.l direct-write conversion.
+### S4 — Backfill command has no progress-friendly output
+
+- **File:** `app/Console/Commands/BackfillAiDailyUsage.php`
+- **Category:** Inconsistency with Existing Patterns
+- **What's wrong:** Existing one-shot data-migration commands (`MigrateEstateToNetWorth`, `MigrateSavingsToCash`) print a "skipping N already-migrated rows" tally on rerun. This command silently `updateOrCreate`s every aggregated row, so a rerun looks like fresh work in the output even when nothing meaningful changed. Operators running it on the deploy checklist won't know whether the second invocation did anything.
+- **Suggested fix:** Add a `--dry-run` flag and a "skipped X / wrote Y" tally to the output so operators can sanity-check pre/post state. Out of scope for S0.11.1; flag for the post-deploy checklist instead.
 
 ---
 
-## Carried from session 74 (still open)
-
-- **W1 carried** — `CoordinatingAgent.php` is now 3,718 lines (no change this session — S0.9/0.10 didn't touch the agent file). Sprint 4 backlog candidate.
-- **S1 carried** — `handleUpdateRecord` field aliasing chain. Defer.
-- **S2 carried** — `handleListInvoices` queries `Invoice` directly rather than via a `User->invoices()` relation. Defer.
-
----
-
-*Generated by tech-debt-session skill — session 75, 2026-04-25*
+*Generated by tech-debt-session skill — session 76 (Sprint 0.11 reliability bundle).*
