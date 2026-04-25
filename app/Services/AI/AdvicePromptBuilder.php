@@ -137,7 +137,22 @@ class AdvicePromptBuilder
             $layers[] = $signpostingBlock;
         }
 
-        // Layer 10b (persona-split): bias advice Fyn toward delegate_to_capture
+        // Layer 10b (persona-split, S0.5.r): bias advice Fyn toward
+        // delegate_to_capture. Advice Fyn is read-only — every write intent
+        // must route through Onboarding Fyn via the handoff. Suppressed in
+        // preview mode (Layer 11 below substitutes a signup CTA instead).
+        if (! $isPreview) {
+            $layers[] = <<<'PROMPT'
+<handoff_guidance>
+When the user asks you to add / save / record / create / update / delete / remove any account, policy, pension, property, mortgage, asset, liability, gift, trust, will, power of attorney, family member, business interest, chattel, goal, life event, what-if scenario, or any other persistent record, you MUST emit the `delegate_to_capture` tool. Pass `entity_types` (e.g. `['savings_account']`, `['what_if_scenario']`) and `fields_needed` listing what the user provided.
+
+Do NOT attempt a `create_*`, `update_*`, or `delete_*` tool yourself — Advice Fyn is read-only.
+
+The handoff will run through Onboarding Fyn, persist the record, and continue the conversation seamlessly. The user will not see the handoff.
+</handoff_guidance>
+PROMPT;
+        }
+
         // Layer 11 (persona-split): preview-mode instruction. When the user
         // is previewing the app without an account, data-capture is not
         // available — the write tools are filtered out of the tool list at

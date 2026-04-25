@@ -2127,6 +2127,13 @@ PROMPT;
             'create_asset', 'create_liability', 'create_estate_gift',
             'create_chattel', 'create_business_interest',
             'update_record', 'update_profile', 'set_expenditure',
+            // S0.5.r — what-if scenarios persist a WhatIfScenario row, so
+            // they route through the handoff like every other create_*.
+            'create_what_if_scenario',
+            // S0.5.r — delete is allowed in inline-capture so the user can
+            // ask Advice Fyn to remove a record and have the handoff dispatch
+            // delete_record for them.
+            'delete_record',
         ];
     }
 
