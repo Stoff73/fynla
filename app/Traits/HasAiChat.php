@@ -14,6 +14,7 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
+use App\Models\AiAbortEvent;
 use App\Models\AiConversation;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiMessage;
@@ -168,11 +169,26 @@ trait HasAiChat
         $toolCallsSummary = [];
         $messages = $messageHistory;
 
+        // S0.11.2 — track the last tool dispatched + how many wrote so an
+        // ai_abort_events row can capture them on a mid-stream disconnect.
+        $lastToolCall = null;
+        $partialWriteCount = 0;
+
         // For xAI: XaiToolDefinitions returns pre-wrapped tools, use directly.
         // For Anthropic: AiToolDefinitions returns Anthropic format, not used in xAI path.
         $xaiTools = $isXai ? $tools : [];
 
         while (true) {
+            // S0.11.2 — bail out cleanly if the SSE client has dropped.
+            // Per INV-2.9.2 we DO NOT roll back the partial writes that
+            // already landed — every direct-write tool runs in its own
+            // transaction and what's persisted stays.
+            if ($this->wasConnectionAborted()) {
+                $this->recordAbort($conversation, $lastToolCall, $partialWriteCount);
+
+                return;
+            }
+
             $contentBlocks = [];
             $toolUseBlocks = [];
             $stopReason = 'end_turn';
@@ -403,6 +419,17 @@ trait HasAiChat
                     $toolCallCount++;
                     $functionName = $toolUseBlock['name'];
                     $functionArgs = $toolUseBlock['input'] ?? [];
+                    $lastToolCall = $functionName;
+
+                    // S0.11.2 — abort BEFORE dispatching the next tool so
+                    // a disconnected client doesn't trigger an unnecessary
+                    // DB write. Anything earlier in this generator pass
+                    // stays — see INV-2.9.2.
+                    if ($this->wasConnectionAborted()) {
+                        $this->recordAbort($conversation, $lastToolCall, $partialWriteCount);
+
+                        return;
+                    }
 
                     yield [
                         'type' => 'tool_use',
@@ -411,6 +438,10 @@ trait HasAiChat
                     ];
 
                     $toolResult = $this->executeTool($functionName, $functionArgs, $user);
+
+                    if (isset($toolResult['created']) && $toolResult['created'] === true) {
+                        $partialWriteCount++;
+                    }
 
                     // Handle navigation results
                     if (isset($toolResult['action']) && $toolResult['action'] === 'navigate') {
@@ -846,5 +877,47 @@ trait HasAiChat
         $this->skipUserMessagePersistence = false;
         $this->toolsListOverride = null;
         $this->personaOverride = null;
+    }
+
+    /**
+     * Detect whether the SSE client has dropped the connection mid-stream.
+     *
+     * Wraps PHP's `connection_aborted()` so tests can stub abort behaviour.
+     * Note: PHP only updates the abort flag after a write attempt OR when
+     * `ignore_user_abort()` is false (the Apache/php-fpm default), so the
+     * caller should be inside or just-past a `yield` for this to be
+     * reliable.
+     */
+    protected function wasConnectionAborted(): bool
+    {
+        return connection_aborted() === 1;
+    }
+
+    /**
+     * Persist a forensic abort row. Partial writes from earlier tool
+     * calls in the same generator pass are deliberately NOT rolled back
+     * (INV-2.9.2) — every direct-write tool runs in its own transaction
+     * and what already landed is real.
+     */
+    protected function recordAbort(
+        AiConversation $conversation,
+        ?string $lastToolCall,
+        int $partialWriteCount
+    ): void {
+        try {
+            AiAbortEvent::create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $conversation->user_id,
+                'last_tool_call' => $lastToolCall,
+                'partial_write_count' => $partialWriteCount,
+            ]);
+        } catch (\Throwable $e) {
+            // Best-effort write — never let an audit failure mask the
+            // upstream abort itself.
+            Log::warning('[HasAiChat] Failed to persist ai_abort_events row', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
