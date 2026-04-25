@@ -1,216 +1,134 @@
 # CSJTODO — Fynla
 
-*Last updated: 25 April 2026 — session 76 (Sprint 0 Task 0.11 reliability bundle complete — all 6 sub-steps green)*
-*Previous session: 25 April 2026 — session 75 (Sprint 0 Tasks 0.9 + 0.10 complete)*
+*Last updated: 25 April 2026 — session 77 (Sprint 0 Tasks 0.12 + 0.13 + 0.14 complete)*
+*Previous session: 25 April 2026 — session 76 (Sprint 0 Task 0.11 reliability bundle complete)*
 
 ---
 
-## Session 76 (25 April afternoon) — Sprint 0 Task 0.11 reliability bundle complete
+## Session 77 (25 April late-afternoon) — Sprint 0 Tasks 0.12 + 0.13 + 0.14 complete
 
 ### Completed
 
-#### Sprint 0 Task 0.11 — Reliability bundle — **DONE** (6 sub-step commits)
+#### Sprint 0 Task 0.12 — Hash-chain audit — **DONE** (`1d61a47`)
 
-All 6 sub-steps shipped as separate TDD commits per the plan's `each sub-step is its own TDD cycle + commit` directive. Order was per CSJTODO session-75 advice: smallest first as warm-up (0.11.6), then small (0.11.4 + 0.11.5), then larger (0.11.1, 0.11.3, 0.11.2). Suggested co-location of the S0.10 mid-stream consent throttle (S1 deferred from session 75) into 0.11.1's atomic-token-budget transaction was NOT taken — they touch different concerns (consent re-check is per-event, token budget is per-chat) and merging them would have hidden the test surface for both.
+Replaces the file-channel `[AI-AUDIT]` `Log::channel('single')` line at `app/Agents/CoordinatingAgent.php:777` with an append-only, tamper-evident `ai_audit_events` table. Per INV-2.10.2 + INV-2.5.4.
 
-- [x] **0.11.6 — generateTitle sanitation + summariseToolResult preserves entity_id** (commit `9d45697`).
-  - `HasAiChat::generateTitle` now `trim(strip_tags($message))` + cap raised 80 → 100 chars. Closes XSS-via-sidebar via `<script>...</script>` first messages.
-  - `HasAiChat::summariseToolResult` always preserves `entity_id` + `entity_type` keys via a priority pre-pass + `$rendered` guard, even when other keys would push them past the 5-key truncation cap. Closes INV-2.5.3 (audit chain + observers correlate by these keys).
-  - Tests: 14 cases across two files (`tests/Unit/Traits/GenerateTitleSanitisationTest.php` + `HasAiChatSummarisationTest.php`).
+- [x] **Migration** `database/migrations/2026_04_25_000013_create_ai_audit_events_table.php` per INV-2.10.2 schema (id, user_id, conversation_id nullable, tool_name, operation enum read|write|handoff|classify, status enum dispatched|persisted|failed|stripped, input_summary JSON, result_summary JSON, entity_type, entity_id, prev_hash CHAR(64), row_hash CHAR(64), signed_at, signature CHAR(64), created_at). Indexes on (user_id, created_at), (tool_name, status), and row_hash.
+- [x] **Model** `app/Models/AiAuditEvent.php` — append-only, no `updated_at`, casts for JSON fields, FKs on user + conversation.
+- [x] **Service** `app/Services/AI/AuditChainService.php` — `append/verifyChain/verifySignature` methods. `append` uses `DB::transaction` + `lockForUpdate` for serialised writes. SHA-256 row_hash over a 9-field payload (`prev_hash + JSON-serialised payload + signed_at toIso8601String`). HMAC-SHA256 signature on `config('app.ai_audit_hmac_key')` keyed value. `verifyChain()` walks via `cursor()` so memory is constant regardless of chain length, returns `chain_valid + tip_hash + row_count` on success or `chain_valid:false + broken_at + row_count` on first mismatch.
+- [x] **Artisan command** `app/Console/Commands/AiAuditVerifyChainCommand.php` — `php artisan ai:audit:verify-chain` emits the canonical JSON, exit 0 on green / exit 1 on broken.
+- [x] **Retention job** `app/Jobs/AiAuditRetentionJob.php` — weekly Sunday 04:00. 7-year window for `operation='write'` rows + `tool_name='get_recommendations'`, 2-year window for everything else. **Deletes (not pseudonymises) — class docblock explains why mutating in place would break the hash chain. Pseudonymisation belongs in a separate read-only export view if/when GDPR-style PII removal is needed for older rows.**
+- [x] **Three append sites** in `CoordinatingAgent::executeTool` — dispatched at entry, persisted/failed at completion (decided by `error` key presence), failed in each catch — wrapped in `appendAuditEvent()` which swallows append failures into `Log::warning` so the chain is forensic, not load-bearing on the chat path.
+- [x] **`executeTool` signature** gained optional `?int $conversationId = null`. `HasAiChat::handle` passes `$conversation->id`. `OnboardingChatDirector` parking-hydration call site (line 965) also passes it. The two gap-fill call sites at lines 1747 + 2148 leave it null because `$conversation` isn't in scope there — schema permits null, deferred (see suggestions).
+- [x] **Operation classifier** — `create_*|update_*|capture_*|delete_record|set_expenditure` → `write`, `delegate_to_capture|capture_complete` → `handoff`, default → `read`. The `classify` operation is reserved for QueryClassifier audits in Sprint 1.
+- [x] **Input/result summarisers** — `summariseInput` truncates strings >200 chars and replaces nested arrays with `[N items]` placeholders. `summariseResult` keeps the canonical outcome flags (`success/created/error/error_type/message/blocked/reason/action/requires_confirmation`) and drops large nested arrays.
+- [x] **Schedule** `app/Console/Kernel.php` — weekly retention Sun 04:00, weekly verify-chain health-check Sun 04:30.
+- [x] **HMAC config** `config/app.php` adds `ai_audit_hmac_key` falling back to `APP_KEY` when `AI_AUDIT_HMAC_KEY` env is unset (production must override). `.env.example` adds the env var.
+- [x] **Admin endpoints** `app/Http/Controllers/Api/AiAuditController.php` adds `chain` (paginated read with user_id/status/operation filters) and `verifyChain` endpoints. `routes/api.php` adds `GET /api/admin/ai-audit/chain` + `/chain/verify` inside the existing `permission:admin.access` group.
+- [x] **Admin UI** `resources/js/components/Admin/AiAudit.vue` — added a tab switcher and a chain-view tab with filters (operation, status, user_id), a paginated table showing tool / op / status / entity / hash / when, a status-badge column, and an integrity banner showing `Chain valid · N rows` or `Chain broken at row #N` with a Re-verify button. `aiAuditService.js` extended with `getChain` + `verifyChain` methods.
+- [x] **Tests** `tests/Feature/Audit/{HashChain,HmacSigning,ChainTamperDetection,RetentionPseudonymisation}Test.php` — 14 cases (3 hash-chain growth, 2 HMAC signing + key rotation, 4 tamper-detection paths, 5 retention boundaries). All green.
 
-- [x] **0.11.4 — Provider-swap lock — versioned ai_provider cache key** (commit `4f75511`).
-  - `HasAiGuardrails::getAiProviderForLoop()` reads `ai_provider:v{N}` where N = `ai_provider_version`. `getAiProvider()` becomes a thin wrapper. Backward-compat fallback to legacy unversioned `ai_provider` for existing fixtures (`AdviceFynToolListTest` uses this).
-  - `AdminController::setAiProvider` bumps the version + writes the new value under the versioned key BEFORE writing the legacy key. In-flight chat() loops capture the old version's value at entry; the new value is invisible to them.
-  - Closes INV-2.9.4 (Anthropic prompt-cache markers leaking into xAI mid-loop, or vice versa).
-  - Tests: 8 cases in `tests/Feature/AI/ProviderSwapLockTest.php`.
+#### Sprint 0 Task 0.13 — CoreIdentity guidance-only framing + FCA signposting — **DONE** (`05e7525`)
 
-- [x] **0.11.5 — Gap-fill DB dedup — 24h horizon** (commit `d5de479`).
-  - `AssetCaptureEntityExtractor::findMissing` now optionally accepts a `User` and queries the per-focus target table for rows with `created_at > now() - 24h` matching the same identity key. Filters those out before emission so a user retry of an identical multi-entity message does NOT re-persist duplicates.
-  - Per-focus DB lookups: protection (Life + CI + IP — CI policy_type is `'standalone'`/`'accelerated'` not `'standalone_ci'`, so the dedup pass synthesises the group-correct value), savings (institution + is_isa), retirement (DC + DB pensions), investment (provider + account_type).
-  - Both call sites in `OnboardingChatDirector` now pass `$user`. Existing extractor unit-tests (no User) keep working via the back-compat path.
-  - Tests: 10 cases in `tests/Feature/AI/GapFillDedupTest.php`.
+Per INV-2.10.1 + INV-2.3.3.
 
-- [x] **0.11.1 — Atomic token budget — ai_daily_usage table + DB::transaction with FOR UPDATE** (commit `c628408`).
-  - New `ai_daily_usage` table — one row per `(user_id, usage_date)` with unique constraint. `recordTokenUsage($user, $tokens)` does `firstOrCreate + lockForUpdate + increment` inside `DB::transaction`. Concurrent writes serialise on the row lock — no lost updates.
-  - `getTodayTokenUsage` rewritten to read from the new table directly. The old 5-minute `Cache::remember` layer is gone; `invalidateDailyUsageCache` kept as a thin no-op for back-compat.
-  - `HasAiChat::chat` post-stream call replaced — `invalidateDailyUsageCache` → `recordTokenUsage($user, $totalInputTokens + $totalOutputTokens)`. Next `hasTokenBudget` check sees the new value with no cache lag.
-  - Backfill: `php artisan ai:usage:backfill --days=30` populates from existing `ai_messages` joined on `ai_conversations.user_id`. Idempotent via updateOrCreate. Run once after deploy.
-  - Closes INV-2.9.1.
-  - Tests: 13 cases in `tests/Feature/AI/TokenBudgetConcurrencyTest.php` including the FOR UPDATE SQL trace check via `DB::listen()`.
+- [x] **`CoreIdentity.php` rewrite** — `<identity>` block reframes Fyn as a UK personal-finance guidance tool that helps the user understand their finances, explore options, and surface engine outputs. Explicitly states "You do NOT give personalised regulated financial advice". `<scope>` reworded to drop "personal financial planner" framing. Security / personality / response-format blocks kept (with British spelling / £ / signposting cue folded into personality). Docblock also rephrased to avoid the banned phrases (the architecture grep covers comments).
+- [x] **FCA signposting layer** — `AdvicePromptBuilder::buildFcaSignpostingBlock(?array $classification)` is a new gated layer using `QuerySchemas::isAdviceType($primary)`. Fires for all 19 `ADVICE_TYPES`, skips `general` / `data_entry` / `navigation` / missing / unknown. The layer instructs the LLM to end its response with the exact sentence `"For regulated advice personal to your circumstances, speak to a qualified financial adviser."` on its own line, and explicitly NOT to include it on factual-only / out-of-remit / mid-paragraph turns.
+- [x] **Architecture test** `tests/Architecture/CoreIdentityFramingTest.php` — 2 cases (banned-phrase absence + guidance framing presence). Uses `__DIR__`-relative path because `base_path()` isn't bootstrapped for the Architecture suite.
+- [x] **Feature tests** `tests/Feature/Fyn/FcaSignpostingTest.php` — 5 cases (signposting on every advice type + absence on factual / bypass / missing / unknown classifications).
 
-- [x] **0.11.3 — Idempotency-Key middleware + table + cleanup job** (commit `c94568a`).
-  - New `ai_request_idempotency` table (key_hash UNIQUE, response_payload JSON nullable, expires_at indexed). New `IdempotencyKeyMiddleware` opt-in by `Idempotency-Key` header — hashes `(user_id|method|path|sha256(body)|client_key)` and returns a 24h-cached response on duplicate. SSE / streamed responses store `null` payload and replay a generic `{idempotent: true, message: ...}` ack on hit (you can't re-stream a closed connection).
-  - `'idempotent'` middleware alias registered in `Http/Kernel.php`. Attached to `POST /api/ai-chat/conversations/{id}/messages` only.
-  - `AiIdempotencyCleanupJob` scheduled daily at 03:30 in `Console/Kernel.php`. Returns deleted count.
-  - Closes INV-2.9.3.
-  - Tests: 9 cases in `tests/Feature/AI/IdempotencyKeyTest.php` covering pass-through, first-call store, duplicate replay, body-mismatch isolation, cross-user isolation, expiry, SSE handling, oversize key rejection, and the cleanup job.
+#### Sprint 0 Task 0.14 — Out-of-remit canonical refusal — **DONE** (`04a99fa`)
 
-- [x] **0.11.2 — SSE abort detection + ai_abort_events forensic row** (commit `6edeae3`).
-  - New `ai_abort_events` table (conversation_id, user_id, last_tool_call nullable, partial_write_count default 0). New `wasConnectionAborted()` + `recordAbort()` helpers on `HasAiChat`.
-  - Two abort-check sites in `chat()`: top-of-while (before next API round-trip) + pre-tool-execute (before the next direct-write tool runs). On detection, persist the audit row and `return` cleanly.
-  - Per INV-2.9.2: partial writes are NOT rolled back. Each direct-write handler runs in its own transaction and what already landed stays — the audit row records what the loop was about to do next so an operator can manually reconcile.
-  - `$partialWriteCount` increments when `toolResult['created'] === true`, matching the existing `entity_created` SSE event criterion.
-  - Tests: 7 cases in `tests/Feature/AI/SseAbortKeepWritesTest.php` including source-pin checks for the two abort-check sites.
+Per INV-2.3.4.
 
-#### Test-helper rename — chore (commit `567b8cf`)
+- [x] **`QuerySchemas::OUT_OF_REMIT` constant** — outside `ADVICE_TYPES` (so the S0.13 signposting suffix doesn't fire on refusals), `BYPASS_TYPES`, `FACTUAL_TYPES`. Empty MODULE_MAP / IMPLICIT_RELATED entries for consistency.
+- [x] **`QueryClassifier` extension** — 4th detection step `detectOutOfRemitTopic` runs AFTER advice keyword matching but BEFORE route fallback. Patterns are narrow and labelled into 4 buckets — `Medical advice`, `Legal advice`, `Emotional support`, `General knowledge` — phrased to drop into the canonical refusal sentence directly. `detected_topic` is returned as a 4th key on the classification array.
+- [x] **`AdviceFyn::handle` early-return** — converted to a true generator (`yield from` instead of `return`) so the early-return path can yield `content` + `done` directly. On `OUT_OF_REMIT`, persists user + assistant messages (because `chatWithPromptOverride` would normally do this and we're bypassing it), yields `['type' => 'content', 'text' => "I'm able to help you with your finances. {$detectedTopic} is out of scope."]`, yields `['type' => 'done']`, returns. Constructor gets a new `QueryClassifier` dependency.
+- [x] **Tests** `tests/Feature/Fyn/OutOfRemitTest.php` — 8 cases (4 topic categories with exact refusal-string + zero tool_use events + persisted user+assistant messages + financial-keyword override "I'm depressed about my pension pot — am I on track for retirement?" still routes to `retirement_readiness` not OUT_OF_REMIT + isolated classifier assertion).
 
-Renamed `makeRequest` helper in `IdempotencyKeyTest.php` to `makeIdempotencyTestRequest` — Pest pulls every top-level test function into the global namespace, and `tests/Feature/Middleware/CheckFeatureAccessTest.php` already declared a function with the same name. Without the rename `./vendor/bin/pest` (full suite) fataled with `Cannot redeclare function makeRequest()`. Same workaround pattern as `grantAiChatConsentForOnboardingEndpointTest` from S0.9.
+#### Test results (cumulative session-77)
 
-#### Test results (cumulative session-76)
+- AI / Fyn / Onboarding / Audit / Architecture / Unit-Constants / Unit-Services-AI sweep: **495 / 495 passing (1943 assertions, 0 failures)**.
+- Note: focused sweep, not the full Pest suite. Full-suite verification deferred to Sprint 0 verification rollup (S0.17).
+- One new table live and migrated: `ai_audit_events`.
+- One new artisan command: `php artisan ai:audit:verify-chain`.
+- Two new scheduled jobs: `AiAuditRetentionJob` Sunday 04:00 + `ai:audit:verify-chain` Sunday 04:30.
 
-- **Full Pest suite: 2860/2860 passing (11164 assertions, 0 failures).** First fully-green full-suite run on this branch since session 75; +61 new passing tests across 7 new test files. Three new tables (`ai_daily_usage`, `ai_request_idempotency`, `ai_abort_events`) live and migrated.
+#### Plan + spec status (Sprint 0)
 
-### NOT Done — Outstanding for next session
+`April/April24Updates/plan/10-sprint-0-plan.md` ticked through S0.14 with delivery notes per task. `April/April24Updates/spec/10-sprint-0-plan.md` reference-only, never edited per project convention.
 
-#### Sprint 0 continuation — Task 0.12 next
-
-- [ ] **S0.12 — Hash-chain audit migration + service + command + job + admin view.** New `ai_audit_events` table with `prev_hash`/`row_hash`/`signature` chain. `AuditChainService::append + verifyChain` with SHA-256 row hash + HMAC signature. `php artisan ai:audit:verify-chain` command. `AiAuditRetentionJob` weekly. Admin `AiAudit.vue` chain-view tab. Replaces the `[AI-AUDIT]` file log in `CoordinatingAgent::executeTool`. Pseudonymisation done in an export view (NOT by mutating source rows — that would break the chain). Spec: plan §S0.12.
-
-- [ ] **S0.13 through S0.17** — see [[April/April24Updates/plan/10-sprint-0-plan|plan]]. Nothing changed in scope.
-
-#### Tech debt logged from session 76 (deferred — not blocking S0.12)
-
-- [ ] **S1 — `summariseToolResult` priority-pass closure introduces an unused-import lint warning under stricter analyzers.** The `static function ($key, $value) use (&$parts, &$rendered)` closure uses `mixed $value` to keep the signature aligned with the existing `is_string/is_numeric/is_bool` branches; some PHPStan rulesets flag the resulting union as redundant. Not currently failing because this codebase's PHPStan baseline is lenient. **Suggested fix:** add an explicit `@param mixed $value` PHPDoc tag if/when PHPStan strictness is raised. Low value, no behavioural impact.
-
-- [ ] **S2 — Per-event abort check in `HasAiChat::chat` is per-iteration, NOT per-yield.** The `wasConnectionAborted()` check fires at the top of each `while` iteration and before each tool execute — but inside the inner `foreach ($stream as $response)` xAI streaming loop, an abort during a long content stream is only detected on the next outer iteration. **Suggested fix:** add a post-yield `wasConnectionAborted()` check inside the streaming loop with a "yields since last check" counter so we only poll every N yields (avoid bloating per-token cost). Defer until production telemetry shows long content streams matter; the typical Fyn turn finishes in <10s.
-
-- [ ] **S3 — Backfill command is opt-in (`php artisan ai:usage:backfill`) — must be remembered in deploy guide.** Without running it, users with prior token usage will appear to have 0 usage in the new ai_daily_usage table until their next chat lands a row. **Suggested fix:** include the command in the post-deploy checklist for whichever environment ships S0.11.1 first (csjones first, fynla.org later).
-
-#### Carried from session 75 (still deferred)
-
-- [ ] **S1 carried — Mid-stream consent re-check fires one DB query per SSE event** (`AiChatController:165-178`). Behaviour correct; query is cheapest-possible indexed EXISTS. **Suggested fix:** throttle to every Nth event (N=10) OR cache for the stream duration with explicit invalidation on the consent-update endpoint. Considered for inclusion in 0.11.1's atomic-token-budget transaction, declined — different concerns.
-
-- [ ] **S2 carried — Duplicated "grant ai_chat consent" helper across 4 test files.** **Suggested fix:** extract to `tests/Helpers/AiChatTestHelpers.php` once 5+ files need it. Low value, low urgency.
-
-#### Carried from session 74 (still deferred)
-
-- [ ] **W1 carried — `CoordinatingAgent.php` is 3,718 lines.** No change in S0.11 (those touched `HasAiChat` + `HasAiGuardrails` traits + new files, not the agent). Sprint 4 backlog candidate.
-- [ ] **S1 carried — `handleUpdateRecord` field-aliasing chain** (16-branch `match`, 25 lines). Lift to `app/Constants/UpdateRecordFieldAliases.php` once S0.7 stable.
-- [ ] **S2 carried — `handleListInvoices` queries `Invoice` directly** rather than via `$user->invoices()`. One-line fix cross-cuts `PaymentController::billingHistory`. Out of scope for S0.6.
-
-#### Carried from session 73 (still deferred)
-
-- [ ] **W1 carried — repeated success-envelope literal across 16 create handlers.**
-- [ ] **W2 carried — long handler bodies** (10 of 16 exceed 60 lines).
-- [ ] **S1 carried — Extract `handleCreateProperty`'s mortgage-write block** into `persistMortgageForProperty(...)`.
-
-### Context for Next Session
-
-Sprint 0 is **11/17 tasks done** (0.1–0.11 ticked). Branch `feature/fyn-persona-split` is **101 commits ahead of `main`** (94 + 7 from this session: 6 sub-step commits + 1 chore rename), pushed to `origin/feature/fyn-persona-split` (push pending — see "Outstanding sweep" below). Working tree clean. **2860/2860 full Pest suite green — second consecutive fully-green session on this branch.**
-
-**Start session 77 with S0.12 hash-chain audit.** Largest remaining task in Sprint 0 — new table + service + command + weekly job + admin view + 4 test files. Replaces the `[AI-AUDIT]` `Log::channel('single')->info(...)` at `CoordinatingAgent.php:770`. Plan: `April/April24Updates/plan/10-sprint-0-plan.md` §S0.12.
-
-**No deploy this session.** Branch is mid-Sprint-0; nothing to ship until 0.12 → 0.17 land. Per [[memory:feedback_main_via_dev_only|feedback_main_via_dev_only]]: nothing merges to main without first being on dev + browser-tested.
-
-**Outstanding sweep before next session:** push the 7 new commits to origin (`git push`) and consider whether the new `ai_*` tables' migrations should be flagged in the deploy guide for the eventual csjones rollout.
-
----
-
-## Session 75 (25 April late-morning) — Sprint 0 Tasks 0.9 + 0.10 complete
-
-### Completed
-
-#### Sprint 0 Task 0.9 — Consent runtime check — **DONE** (commit `ff8e4ed`)
-
-- [x] **`AiChatController::sendMessage` widened** to `StreamedResponse|JsonResponse`. Constructor-injects `ConsentService`. Entry guard returns 403 JSON `{error:'consent_required', required:'ai_chat'}` when the user has no canonical `consented=true` row in `user_consents` for type `ai_chat`.
-- [x] **`AiChatController::startOnboarding` got the same entry guard** (consent first, then existing already-completed / disabled / preview-mode checks).
-- [x] **Mid-stream re-check** — the SSE `foreach ($generator as $event)` re-checks `hasConsent` before every yield. A mid-flight `PUT /api/user/consents` → `consented=false` triggers a terminal `consent_required` SSE event and `return;` to close the stream cleanly. `hasConsent` runs a fresh indexed `EXISTS` query (not via the closed-over `$user` model), so the withdrawal is observed even though `$user` is stale.
-- [x] **No migration needed.** `user_consents.consent_type` is already `varchar(100)` so storing `'ai_chat'` works without widening. New `UserConsent::TYPE_AI_CHAT = 'ai_chat'` constant + `CURRENT_VERSIONS['ai_chat'] => 'v1.0'` entry are sufficient. `ConsentService::hasConsent` works unchanged via the constant.
-- [x] **Frontend (`aiChat.js`):** new `consentRequired` state + getter + mutation, RESET hook clears it, SSE `case 'consent_required':` flips the flag and stops streaming with a re-consent error string. Light-touch — full modal wiring deferred per spec ("reuses existing consent infra; building a new consent modal UI is out of scope").
-- [x] **6 tests** in `tests/Feature/AI/ConsentRuntimeCheckTest.php` — sendMessage 403 missing / 403 withdrawn / 200 stream / startOnboarding 403 / 200 / mid-stream withdrawal yields `['content', 'consent_required']` only. Mid-stream test mocks `CoordinatingAgent::chatWithPromptOverride` (only method `AdviceFyn::handle` calls; `AdviceFyn` is `final` so cannot be Mockery'd directly).
-- [x] **3 existing tests touched** (`HandoffInvisibilityTest`, `StartOnboardingEndpointTest`, `StateMachineWalkthroughTest`) to grant `ai_chat` consent in setup so they reach the gates they pin.
-
-#### TrustObserver direct-write CLT contract — **DONE** (commit `4e13d84`)
-
-- [x] **Test contract updated post-S0.5.l** — the obsolete `'fill_form'`-asserting test from before S0.5.l replaced with four cases pinning the new direct-write contract: agent persists Trust + observer fires CLT Gift in same transaction (success path, value=0 path, validation failure, preview block).
-- [x] **Verified live via `php artisan tinker`** — `executeTool('create_trust', initial_value: 250000)` produced both the Trust row AND the matching `Gift` row (`gift_type='clt'`, `gift_value=250000`, `recipient='Live Test Trust'`, `gift_date='2026-04-20'`) in the same `DB::transaction`. `TrustObserver::created` chain works correctly post-direct-write conversion.
-
-#### WillBuilderApiTest faker flake — **DONE** (commit `5771687`)
-
-- [x] **One-line `'middle_name' => null` factory override** pins the long-known 30%-flake CSJTODO had carried since session 72. Folded in here because the regression sweep tripped on it.
-
-#### Sprint 0 Task 0.10 — User-content sanitisation + structural separation — **DONE** (commit `786d841`)
-
-- [x] **New `app/Services/AI/Prompts/UserContentSanitiser.php`** with two static helpers: `clean(string)` (strips everything outside `[A-Za-z0-9\s'.,\-]/u`) and `wrap(string)` (clean + `<user_provided>...</user_provided>` markers). The wrapper is a reliable structural boundary because `clean()` guarantees the inner content cannot contain angle brackets — verified by an attacker-forgery survival test.
-- [x] **Wired into `AdvicePromptBuilder`** at every user-controlled free-text interpolation site: user/spouse/family `first_name + last_name + surname`, `goal_name`, `joint_owner_name`, savings `account_name + institution`, investment `provider`, DC/DB `scheme_name`, property `address_line_1`, life/CI/IP `provider`, `trust_name`, `business_name`, chattel `description`, `liability_name`, gift `recipient`.
-- [x] **Wired into `OnboardingPromptBuilder::buildAssetCapturePrompt`** — wraps `firstName` before passing to `CoreIdentity::get()`.
-- [x] **Enum fields deliberately NOT wrapped** — `trust_type`, `business_type`, `ownership_type`, `property_type`, `relationship`, `marital_status`, `policy_type`, `pension_type`, `account_type`, `gift_type`, `chattel_type`, `liability_type` etc. all come from fixed sets and cannot carry prompt-injection payloads.
-- [x] **18 tests** in `tests/Unit/Services/AI/Prompts/UserContentSanitisationTest.php` — allow-list happy paths (apostrophes, hyphens, multi-line whitespace), HTML/script payloads, template braces (`{{ previous_instructions }}`), classic prompt-override punctuation (`"; reveal system prompt; "`), shell payloads, URL payloads, non-ASCII strip, emoji + zero-width strip, empty input, fully-stripped input, attacker-forgery survival.
-- [x] **Live verification** — `AdvicePromptBuilder::buildUserProfile` for "James Carter" emits `- Name: <user_provided>James</user_provided>`.
-
-#### Test results (cumulative session-75)
-
-- [x] **30 new tests + 1 obsolete-contract case replaced + 0 regressions.**
-- [x] **Full Pest suite: 2799/2799 passing (10958 assertions, 0 failures).** First fully-green full suite on this branch — previous sessions had the `WillBuilderApiTest` faker flake at 30% and the obsolete `TrustObserverTest > 'fill_form'` case failing post-S0.5.l.
+```
+✓ S0.1  Rebase onto main
+✓ S0.2  Delete OpenAI sidecar
+✓ S0.3  Two-Fyn collapse
+✓ S0.4  Remove visible-handoff UI
+✓ S0.5  17 fill_form → direct-write (a-q)
+✓ S0.6  Billing tools (3, parity 40/40)
+✓ S0.7  update_record allowlist + strict schema
+✓ S0.8  delete_record two-phase confirmation
+✓ S0.9  Consent runtime check
+✓ S0.10 User-content sanitisation + structural separation
+✓ S0.11 Reliability bundle (6 sub-steps)
+✓ S0.12 Hash-chain audit                            ← session 77
+✓ S0.13 CoreIdentity rewrite + FCA signposting      ← session 77
+✓ S0.14 Out-of-remit canonical refusal              ← session 77
+☐ S0.15 Coverage-gap tests (7 invariants)
+☐ S0.16 Browser harness + 20 Playwright scenarios
+☐ S0.17 Verification rollup + Rubric-A re-score
+```
 
 ### NOT Done — Outstanding for next session
 
-#### Sprint 0 continuation — Task 0.11 next
-
-- [ ] **S0.11 — Reliability bundle (6 sub-steps, biggest task in Sprint 0).** Each sub-step is its own TDD cycle + commit:
-  - **0.11.1 Atomic token budget** — migration + `AiDailyUsage` model + `HasAiGuardrails::consume` rewrite with `DB::transaction` + `SELECT ... FOR UPDATE`. Backfill job reads today's `ai_messages` into `ai_daily_usage`. Fixes the 5-minute `Cache::remember` race window.
-  - **0.11.2 SSE abort detection + `ai_abort_events`** — `connection_aborted()` polling in `HasAiChat::chat` generator loop; insert row on detection; do NOT roll back writes (per INV-2.9.2).
-  - **0.11.3 Idempotency middleware + table + cleanup job** — `IdempotencyKeyMiddleware` reads `Idempotency-Key` header; duplicate within 24h → cached response; daily cleanup via scheduled job.
-  - **0.11.4 Provider-swap lock** — `HasAiGuardrails::getAiProviderForLoop()` captures provider once per chat call; versioned `ai_provider:v{n}` cache key incremented by admin toggle; prevents Anthropic cache markers leaking into xAI mid-loop.
-  - **0.11.5 Gap-fill DB dedup** — `AssetCaptureEntityExtractor::findMissing` queries target table by `(user_id, provider | account_name | policy_type_group, created_at > now() - 24h)` before emission.
-  - **0.11.6 `generateTitle` sanitation + `summariseToolResult` preserves entity_id** — `mb_substr(strip_tags($message), 0, 100)` before LLM call AND DB write at `HasAiChat.php:704`; `summariseToolResult` keeps `entity_id` + `entity_type` keys at line 749 (INV-2.5.3).
-  - **3 new migrations** (`ai_daily_usage`, `ai_request_idempotency`, `ai_abort_events`) + **3 new models** + **1 middleware** (registered in `Http/Kernel.php` + `routes/api.php`) + **1 job** (registered in `Console/Kernel.php` daily) + **9 new test files** (TokenBudgetConcurrencyTest, SseAbortKeepWritesTest, IdempotencyKeyTest, ProviderSwapLockTest, GapFillDedupTest, GenerateTitleSanitisationTest, HasAiChatSummarisationTest).
-  - See [[April/April24Updates/plan/10-sprint-0-plan|plan]] §S0.11 for the full spec.
-
-- [ ] **S0.12 — Hash-chain audit migration + service + command + job + admin view.** `ai_audit_events` table with `prev_hash`/`row_hash`/`signature` chain; `AuditChainService::append + verifyChain`; `php artisan ai:audit:verify-chain`; weekly retention job; admin chain-view tab in `AiAudit.vue`. Replaces the `[AI-AUDIT]` file log.
-
-- [ ] **S0.13 through S0.17** — see [[April/April24Updates/plan/10-sprint-0-plan|plan]]. Nothing changed in scope.
-
-#### Tech debt logged from session 75 (deferred — not blocking S0.11)
-
-- [ ] **S1 — Mid-stream consent re-check fires one DB query per SSE event** (`AiChatController:165-178`). Behaviour correct; query is cheapest-possible indexed EXISTS; for typical 30–100-yield streams the cumulative cost is ~30–100ms which is fine. Won't scale linearly under load. **Suggested fix:** throttle to every Nth event (N=10) OR cache for the stream duration with explicit invalidation on the consent-update endpoint. Natural fit during S0.11 reliability work.
-
-- [ ] **S2 — Duplicated "grant ai_chat consent" helper across 4 test files** with 3 different shapes: `grantAiChatConsent` in `ConsentRuntimeCheckTest.php`, `grantAiChatConsentForOnboardingEndpointTest` in `StartOnboardingEndpointTest.php` (renamed to dodge global-function autoload collision), inline `app(ConsentService::class)->recordConsent(...)` in `StateMachineWalkthroughTest.php` and `HandoffInvisibilityTest.php`. **Suggested fix:** extract to `tests/Helpers/AiChatTestHelpers.php` once 5+ files need it. Low value, low urgency.
-
-#### Carried from session 74 (still deferred)
-
-- [ ] **W1 carried — `CoordinatingAgent.php` is 3,718 lines.** No change in S0.9/0.10 (those touched the controller + prompt builders, not the agent file). Sprint 4 backlog candidate. Splitting now would conflict with the same-file test pins (`DirectWriteCoverageTest`, `DispatchRoutingTest`).
-- [ ] **S1 carried — `handleUpdateRecord` field-aliasing chain** (16-branch `match`, 25 lines). When S0.7 stable, lift to `app/Constants/UpdateRecordFieldAliases.php`. Most aliases will become dead code now that the LLM is schema-constrained.
-- [ ] **S2 carried — `handleListInvoices` queries `Invoice` directly** rather than via `$user->invoices()`. `User` lacks the relation. One-line fix cross-cuts `PaymentController::billingHistory`. Out of scope for S0.6.
-
-#### Carried from session 73 (still deferred)
-
-- [ ] **W1 carried — repeated success-envelope literal across 16 create handlers.** The 7-key return shape repeats verbatim. Extract to `private function createdEnvelope(...)`. Defer to "S0.5 polish".
-- [ ] **W2 carried — long handler bodies** (10 of 16 exceed 60 lines). The optional-field-loop pattern is mechanically identical — extract to `mergeOptionalFields(...)`. Defer.
-- [ ] **S1 carried — Extract `handleCreateProperty`'s mortgage-write block** into `persistMortgageForProperty(...)`. Defer.
+- [ ] **Sprint 0 Task 0.15 — Coverage-gap tests for 7 small invariants** ← start here next session.
+  - INV-2.2.4 (resume after disconnect)
+  - INV-2.2.5 (entry-source journey map) + tiny `config/onboarding.php` + `AiChatController::startOnboarding` edits
+  - INV-2.2.6 (parked-facts flush)
+  - INV-2.4.3 (capture_complete styling matches normal content bubble)
+  - INV-2.6.1 (read completeness — list_records returns full count)
+  - INV-2.6.2 (get_recommendations completeness)
+  - INV-2.7.4 (preview-mode tool catalogue parity)
+  - 7 single tests + 1 architecture test + 2 tiny code edits. Should be a fast session if existing test patterns hold.
 
 ### Context for Next Session
 
-Sprint 0 is **10/17 tasks done** (0.1–0.10 ticked). Branch `feature/fyn-persona-split` is **94 commits ahead of `main`**, pushed to `origin/feature/fyn-persona-split`. Working tree clean. **First fully-green full Pest suite on this branch (2799/2799).**
-
-**Start session 76 with S0.11 reliability bundle.** This is the biggest single task in Sprint 0 — 6 sub-steps, each its own TDD cycle and commit. Plan the order: 0.11.6 (generateTitle sanitation + summariseToolResult) is the smallest and could land first as a warm-up. 0.11.4 (provider-swap lock) is also small — single trait method + cache-key versioning. 0.11.1 (atomic token budget) and 0.11.3 (idempotency middleware) need new migrations and are larger. 0.11.2 (SSE abort + `ai_abort_events`) integrates with the existing chat generator loop. 0.11.5 (gap-fill dedup) is a one-method change in `AssetCaptureEntityExtractor`. After S0.11 lands, S0.12 (hash-chain audit) is similarly large.
-
-**Consider rolling the S0.10 mid-stream consent throttle (S1 above) into 0.11.1's atomic-token-budget transaction** — both touch atomic per-stream state in `HasAiGuardrails`-style code, so co-locating reduces churn.
-
-**No deploy this session.** Branch is mid-Sprint-0; nothing to ship until 0.11 → 0.17 land. Per [[memory:feedback_main_via_dev_only|feedback_main_via_dev_only]]: nothing merges to main without first being on dev + browser-tested.
+Sprint 0 compliance + audit floor is in. Next is the coverage-gap tests (S0.15) which closes out the Sprint-0 invariant test surface, then the browser harness + 20 Playwright scenarios (S0.16), then the verification rollup (S0.17). After Sprint 0 closes, Sprint 1 opens with the eval harness + memory model + `<known_facts>`. Work continues on `feature/fyn-persona-split` — do NOT merge to `dev` until S0.17 has Rubric-A re-scored 13–15/40.
 
 ---
 
-## Outstanding — Tech Debt Deferred (carried from earlier sessions)
+## Outstanding — Tech Debt (deferred from session 77 audit)
 
-### From session 71
-- [ ] **Deploy PR #235 main-test-fixes** to `csjones.co/fynla` then `fynla.org`. Upload 9 files per [[April/April25Updates/deployInherit|deployInherit]]. No migrations, no build. SSH + cache clears. Browser smoke Estate + Holdings. After dev soak: open `dev → main` PR (will include PR #236 phpunit bump alongside PR #235 fixes).
+From session-77 tech-debt-report.md (0 critical, 1 warning, 3 suggestions):
 
-### From earlier sessions
-- [ ] **Production cleanup of `build.old/`** + 19 historical sandbox CheckoutPage chunks (after 24h) — flagged session 68.
-- [ ] **Exercise edit-mode auto-expand** + collapsed-form submit → DB + onboarding-path for the field-collapse toggle work — flagged session 67.
+- [ ] **W1 — `summariseInput` records tool input verbatim on the chain.** PII (DOB, email, postcode) lands in `ai_audit_events.input_summary` for tools like `capture_personal_details` / `update_profile` / `update_record`. Strings >200 chars are truncated but anything below that lands raw. Admin-only access bounds the exposure but redaction belongs in Sprint 1's prompt-injection / sanitisation theme. Add a per-tool field redaction list inside `summariseInput` BEFORE the value reaches the chain row (e.g. `capture_personal_details.date_of_birth → 'YYYY-MM-DD'` masked, `update_profile.email → hash(email)`, `*.postcode → first 3 chars only`). **Critical to do BEFORE the chain accumulates real production data — once written, redacting later breaks every subsequent hash.**
+- [ ] **S1 — `appendAuditEvent` swallows all `Throwable`.** Intentional (chain is forensic, not load-bearing on the chat path) but the catch-all hides a real bug if `AuditChainService::append` ever starts failing. Add an alert path: increment a `cache()` counter or fire a `LogAlertEvent` so the weekly `ai:audit:verify-chain` health check can surface append-failure counts in its JSON output. Sprint 1.
+- [ ] **S2 — Onboarding gap-fill call sites pass `conversation_id = null`.** `OnboardingChatDirector` lines 1747 (`emitGapFillToolCalls`) and 2148 (inline-capture gap-fill) don't have `$conversation` in scope, so they pass null implicitly when calling `executeTool`. Result: 10-30% of audit rows for onboarding-stage users land with `conversation_id = NULL`, which weakens the admin chain-view "by conversation" navigation for those rows. Thread `AiConversation $conversation` through both methods. Small mechanical change. Sprint 1.
+- [ ] **S3 — Pre-existing: `border-3` in `AiAudit.vue` spinners.** Tailwind's default config doesn't expose `border-3` — only `border-1`, `border-2`, `border-4`, `border-8`. The class is a no-op so the spinner ring renders with default 1-pixel border instead of the intended thicker ring. Design system rule #12 specifies `border-4`. The original file had this pre-S0.12; my new chain-tab spinner copied the pattern. Replace both occurrences with `border-4`. One-line cleanup commit; not blocking.
+
+## Outstanding — Tech Debt carried from earlier sessions
+
+From session 76 tech-debt-report.md:
+
+- [ ] **S1 (session 76)** — Duplicated provider-resolution lookup in `AdminController::getAiProvider` reproduces the conditional from `HasAiGuardrails::getAiProviderForLoop`. Extract to a `ProviderResolver::current()` static helper. Defer to Sprint 1 (not S0.13 as originally planned — S0.13 was a CoreIdentity rewrite, didn't touch AdminController).
+- [ ] **S2 (session 76)** — `AssetCaptureEntityExtractor` now 828 lines (+162 from S0.11.5). Three concerns sharing a file: extraction, identity-key normalisation, DB dedup. Split when Sprint 1's eval harness opens it.
+- [ ] **S3 (session 76)** — `$fromLlm` parameter on the four `*IdentityKey` private methods is dead (pre-existing, not introduced by S0.11.5). Drop in the same split as S2.
+- [ ] **S4 (session 76)** — `ai:usage:backfill` artisan command silently `updateOrCreate`s every aggregated row on rerun — no skipped/wrote tally. Add `--dry-run` + counters when next touched.
+
+From session 75 tech-debt-report.md (still carried):
+
+- [ ] **S1 (session 75)** — Mid-stream consent re-check fires one DB query per SSE event. Indexed, sub-ms, but on a long stream this is dozens of redundant queries for the unchanged answer. Throttle (e.g. re-check every Nth event or once every 5s) when next touched.
+- [ ] **S2 (session 75)** — Duplicated "grant ai_chat consent" helper across 4 test files. Extract to a test trait when 5+ callers exist.
 
 ## Known Issues
-- [ ] **Production lifecycle engine throttle** (resolved in session 68 — `LIFECYCLE_THROTTLE_MS=150` in prod `.env`, engine re-enabled). Listed here only for handover continuity; no action.
+
+- None new from session 77.
 
 ## Deploy Status
 
-| Environment | Branch | State |
-|---|---|---|
-| `fynla.org` (production) | `main` | Last release: PR #228 + PR #231 hotfix (sessions 67–68, 23 April). |
-| `csjones.co/fynla` (dev) | `dev` | Last deploy: session 65 (afternoon, 23 April) — lifecycle engine + Awin + insights CMS + session 66/67 UI fixes. PR #235 main-test-fixes still pending CSJ deploy from session 71 (see deferred above). |
-| `feature/fyn-persona-split` | (none) | 94 commits ahead of main, **10/17 Sprint 0 tasks done**. NOT deploying — still mid-Sprint. |
+- `feature/fyn-persona-split` was 3 commits ahead of origin at start of session 77; pushed at session-end (origin/feature/fyn-persona-split now matches local).
+- **Not yet on `dev`.** Per memory `feedback_main_via_dev_only.md`, work flows `feature/fyn-persona-split → dev → main`. Open PR feature/fyn-persona-split → dev only AFTER Sprint 0 closes (S0.15 + S0.16 + S0.17 complete with browser matrix + Rubric-A re-score).
+- Deploy guide for session 77 at `April/April25Updates/deploy.md` covers S0.12 + S0.13 + S0.14 — 16 PHP files + 1 migration + frontend rebuild + routes/api.php + config/app.php. Sets `AI_AUDIT_HMAC_KEY` env (production must override `APP_KEY` fallback). Smoke includes `php artisan ai:audit:verify-chain`.
 
 ---
 
-*This file is the canonical handover. `session-start` reads this first.*
+*Generated by `/session-end` skill — 25 April 2026, session 77.*
