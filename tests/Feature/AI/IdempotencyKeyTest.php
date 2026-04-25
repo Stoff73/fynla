@@ -24,7 +24,7 @@ beforeEach(function () {
     $this->middleware = new IdempotencyKeyMiddleware;
 });
 
-function makeRequest(User $user, string $method, string $uri, string $body, ?string $idempotencyKey): Request
+function makeIdempotencyTestRequest(User $user, string $method, string $uri, string $body, ?string $idempotencyKey): Request
 {
     $request = Request::create("/{$uri}", $method, [], [], [], [], $body);
     $request->setUserResolver(fn () => $user);
@@ -38,7 +38,7 @@ function makeRequest(User $user, string $method, string $uri, string $body, ?str
 describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
     it('passes through requests with no Idempotency-Key header', function () {
         $user = User::factory()->create();
-        $request = makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"hi"}', null);
+        $request = makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"hi"}', null);
 
         $response = $this->middleware->handle($request, function () {
             return new JsonResponse(['ok' => true], 200);
@@ -50,7 +50,7 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
 
     it('first request with an Idempotency-Key passes through and stores the row', function () {
         $user = User::factory()->create();
-        $request = makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"hi"}', 'abc-123');
+        $request = makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"hi"}', 'abc-123');
 
         $response = $this->middleware->handle($request, function () {
             return new JsonResponse(['ok' => true, 'id' => 7], 201);
@@ -73,14 +73,14 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
 
         // First call — passes through, response captured.
         $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'dup-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'dup-key'),
             fn () => new JsonResponse(['ok' => true, 'id' => 42], 201)
         );
 
         // Second call — controller closure should NOT run.
         $controllerCalled = false;
         $response = $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'dup-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'dup-key'),
             function () use (&$controllerCalled) {
                 $controllerCalled = true;
 
@@ -98,13 +98,13 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
         $user = User::factory()->create();
 
         $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"first"}', 'shared-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"first"}', 'shared-key'),
             fn () => new JsonResponse(['ok' => true, 'first' => true], 200)
         );
 
         $controllerCalled = false;
         $response = $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"different"}', 'shared-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{"msg":"different"}', 'shared-key'),
             function () use (&$controllerCalled) {
                 $controllerCalled = true;
 
@@ -121,13 +121,13 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
         $bob = User::factory()->create();
 
         $this->middleware->handle(
-            makeRequest($alice, 'POST', 'api/ai-chat/conversations/1/messages', '{}', 'shared-key'),
+            makeIdempotencyTestRequest($alice, 'POST', 'api/ai-chat/conversations/1/messages', '{}', 'shared-key'),
             fn () => new JsonResponse(['user' => 'alice'], 200)
         );
 
         $controllerCalled = false;
         $response = $this->middleware->handle(
-            makeRequest($bob, 'POST', 'api/ai-chat/conversations/1/messages', '{}', 'shared-key'),
+            makeIdempotencyTestRequest($bob, 'POST', 'api/ai-chat/conversations/1/messages', '{}', 'shared-key'),
             function () use (&$controllerCalled) {
                 $controllerCalled = true;
 
@@ -144,7 +144,7 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
         $body = '{"msg":"hi"}';
 
         $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'old-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'old-key'),
             fn () => new JsonResponse(['ok' => true, 'first' => true], 200)
         );
 
@@ -153,7 +153,7 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
 
         $controllerCalled = false;
         $response = $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'old-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'old-key'),
             function () use (&$controllerCalled) {
                 $controllerCalled = true;
 
@@ -169,7 +169,7 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
         $body = '{"msg":"hi"}';
 
         $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'sse-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'sse-key'),
             fn () => new StreamedResponse(function () { /* no-op */ }, 200)
         );
 
@@ -178,7 +178,7 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
 
         $controllerCalled = false;
         $response = $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'sse-key'),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'sse-key'),
             function () use (&$controllerCalled) {
                 $controllerCalled = true;
 
@@ -198,7 +198,7 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
         $hugeKey = str_repeat('x', 300);
 
         $response = $this->middleware->handle(
-            makeRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{}', $hugeKey),
+            makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', '{}', $hugeKey),
             fn () => new JsonResponse(['ok' => true], 200)
         );
 
