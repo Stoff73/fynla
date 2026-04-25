@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Models\UserConsent;
+use App\Services\GDPR\ConsentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -17,6 +19,8 @@ it('zero persona_state_change SSE events emitted during handoff', function (): v
         'onboarding_completed' => true,
         'is_preview_user' => false,
     ]);
+    // S0.9 — ai_chat consent is now required to reach the streaming path.
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
     $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
 
     $response = $this->actingAs($user)

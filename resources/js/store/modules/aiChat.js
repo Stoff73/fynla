@@ -34,6 +34,11 @@ const state = {
     // wide-chat wrapper + dashboard blur on /dashboard routes — the
     // onboarding surface is not tied to a specific URL path.
     isOnboardingActive: false,
+    // Set true when the backend emits a consent_required event (either as
+    // a 403 on send or as a mid-stream SSE event after withdrawal). UI
+    // components watch this getter to surface a re-consent prompt; the
+    // existing /settings GDPR consent UI handles the actual re-grant.
+    consentRequired: false,
 };
 
 const getters = {
@@ -57,6 +62,7 @@ const getters = {
     skipLink: (state) => state.skipLink,
     previewCta: (state) => state.previewCta,
     isOnboardingActive: (state) => state.isOnboardingActive,
+    consentRequired: (state) => state.consentRequired,
 };
 
 const mutations = {
@@ -142,6 +148,10 @@ const mutations = {
         state.isOnboardingActive = !!value;
     },
 
+    SET_CONSENT_REQUIRED(state, value) {
+        state.consentRequired = !!value;
+    },
+
     UPDATE_CONVERSATION_TITLE(state, { conversationId, title }) {
         if (state.currentConversation && state.currentConversation.id === conversationId) {
             state.currentConversation.title = title;
@@ -181,6 +191,7 @@ const mutations = {
         state.skipLink = null;
         state.previewCta = null;
         state.isOnboardingActive = false;
+        state.consentRequired = false;
     },
 };
 
@@ -555,6 +566,17 @@ const actions = {
                                     resetAt: event.reset_at,
                                     secondsUntilReset: event.seconds_until_reset,
                                 });
+                                break;
+
+                            case 'consent_required':
+                                // S0.9 — backend re-checks ai_chat consent on every
+                                // SSE iteration. If the user withdrew consent
+                                // mid-stream the controller emits this terminal
+                                // event and closes the connection. Surface the
+                                // re-consent prompt and stop streaming locally.
+                                commit('SET_CONSENT_REQUIRED', true);
+                                commit('SET_STREAMING', false);
+                                commit('SET_ERROR', 'AI chat consent was withdrawn. Re-grant in Settings to continue.');
                                 break;
 
                             case 'error':

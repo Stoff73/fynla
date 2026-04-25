@@ -8,7 +8,9 @@ use App\Agents\CoordinatingAgent;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
+use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
+use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +26,7 @@ class AiChatController extends Controller
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingChatDirector $onboardingDirector,
         private readonly AdviceFyn $adviceFyn,
+        private readonly ConsentService $consentService,
     ) {}
 
     /**
@@ -135,7 +138,7 @@ class AiChatController extends Controller
      * Preview users are handled via tool restrictions (getTools(true) excludes write tools)
      * and the preview mode section in the system prompt.
      */
-    public function sendMessage(Request $request, int $id): StreamedResponse
+    public function sendMessage(Request $request, int $id): StreamedResponse|JsonResponse
     {
         $request->validate([
             'message' => 'required|string|max:2000',
@@ -143,6 +146,16 @@ class AiChatController extends Controller
         ]);
 
         $user = $request->user();
+
+        // S0.9 — runtime consent gate (INV-2.10.3). Block at entry so the
+        // SSE stream never opens for users without ai_chat consent.
+        if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+            return response()->json([
+                'error' => 'consent_required',
+                'required' => 'ai_chat',
+            ], 403);
+        }
+
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
 
         $message = $request->input('message');
@@ -164,6 +177,27 @@ class AiChatController extends Controller
                     : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute);
 
                 foreach ($generator as $event) {
+                    // S0.9 — mid-stream consent re-check. If the user
+                    // withdraws ai_chat consent while the stream is in
+                    // flight (PUT /api/user/consents → consented=false),
+                    // emit a terminal consent_required event and close
+                    // the stream. hasConsent() runs a fresh indexed
+                    // EXISTS query so it picks up the withdrawal even
+                    // though $user is closed-over.
+                    if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+                        echo 'data: '.json_encode([
+                            'type' => 'consent_required',
+                            'required' => 'ai_chat',
+                        ])."\n\n";
+
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
+                        flush();
+
+                        return;
+                    }
+
                     echo 'data: '.json_encode($event)."\n\n";
 
                     if (ob_get_level() > 0) {
@@ -216,6 +250,16 @@ class AiChatController extends Controller
     public function startOnboarding(Request $request): StreamedResponse|JsonResponse
     {
         $user = $request->user();
+
+        // S0.9 — runtime consent gate (INV-2.10.3). Same shape as the
+        // sendMessage guard so the frontend can hand both 403s to the
+        // same modal trigger.
+        if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+            return response()->json([
+                'error' => 'consent_required',
+                'required' => 'ai_chat',
+            ], 403);
+        }
 
         if ($user->onboarding_completed === true) {
             return response()->json([

@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
+use App\Models\UserConsent;
+use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +39,12 @@ beforeEach(function () {
         'onboarding_fyn_step' => null,
         'first_name' => 'Test',
     ]);
+
+    // S0.9 — runtime guard now requires ai_chat consent before any
+    // /api/ai-chat/* endpoint streams. This walkthrough drives the
+    // state machine via real HTTP, so grant the canonical consent
+    // record up-front.
+    app(ConsentService::class)->recordConsent($this->user, UserConsent::TYPE_AI_CHAT, true);
 });
 
 function sendOnboardingMessage(
