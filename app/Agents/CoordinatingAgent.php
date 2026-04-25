@@ -2338,21 +2338,35 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'asset_name' => $input['asset_name'],
             'asset_type' => $input['asset_type'],
             'current_value' => (float) $input['current_value'],
             'ownership_type' => 'individual',
             'valuation_date' => now()->toDateString(),
-            'is_iht_exempt' => $input['is_iht_exempt'] ?? false,
+            'is_iht_exempt' => (bool) ($input['is_iht_exempt'] ?? false),
         ];
 
+        if (isset($input['exemption_reason']) && $input['exemption_reason'] !== '') {
+            $payload['exemption_reason'] = $input['exemption_reason'];
+        }
+        if (isset($input['liquidity']) && $input['liquidity'] !== '') {
+            $payload['liquidity'] = $input['liquidity'];
+        }
+
+        $asset = DB::transaction(fn () => Asset::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'estate_asset',
-            'route' => '/estate',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['asset_name']}\" estate asset now.",
+            'entity_id' => $asset->id,
+            'name' => $asset->asset_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added \"{$asset->asset_name}\" to your estate.",
         ];
     }
 
@@ -2373,26 +2387,48 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        // Map AI liability_type to form-compatible values
-        $formLiabilityType = match ($input['liability_type']) {
+        $dbLiabilityType = match ($input['liability_type']) {
             'loan' => 'personal_loan',
             default => $input['liability_type'],
         };
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'liability_name' => $input['liability_name'],
-            'liability_type' => $formLiabilityType,
+            'liability_type' => $dbLiabilityType,
             'current_balance' => (float) $input['current_balance'],
-            'monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
-            'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
+            'ownership_type' => 'individual',
         ];
 
+        if (isset($input['monthly_payment']) && is_numeric($input['monthly_payment'])) {
+            $payload['monthly_payment'] = (float) $input['monthly_payment'];
+        }
+        if (isset($input['interest_rate']) && is_numeric($input['interest_rate'])) {
+            $payload['interest_rate'] = (float) $input['interest_rate'];
+        }
+        foreach (['secured_against', 'mortgage_type', 'notes'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+        foreach (['maturity_date', 'fixed_until'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+
+        $liability = DB::transaction(fn () => Liability::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'estate_liability',
-            'route' => '/net-worth/liabilities',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['liability_name']}\" liability now.",
+            'entity_id' => $liability->id,
+            'name' => $liability->liability_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$liability->liability_name}\" liability.",
         ];
     }
 
@@ -2412,26 +2448,32 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        // Resolve family name references in recipient
         $recipient = $this->resolveFamilyNames($input['recipient'], $user) ?? $input['recipient'];
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'gift_date' => substr($input['gift_date'], 0, 10),
             'recipient' => $recipient,
             'gift_type' => $input['gift_type'] ?? 'pet',
             'gift_value' => (float) $input['gift_value'],
         ];
 
-        if (isset($input['notes'])) {
-            $fields['notes'] = $input['notes'];
+        if (isset($input['notes']) && $input['notes'] !== '') {
+            $payload['notes'] = $input['notes'];
         }
 
+        $gift = DB::transaction(fn () => Gift::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'estate_gift',
-            'route' => '/estate',
-            'fields' => $fields,
-            'message' => "I'll record your gift of £".number_format((float) $input['gift_value'])." to {$recipient} now.",
+            'entity_id' => $gift->id,
+            'name' => $recipient,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've recorded your gift of £".number_format((float) $input['gift_value'])." to {$recipient}.",
         ];
     }
 
