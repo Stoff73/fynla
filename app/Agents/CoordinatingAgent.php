@@ -1491,7 +1491,8 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'goal_name' => $input['name'],
             'goal_type' => $input['goal_type'],
             'target_amount' => (float) $input['target_amount'],
@@ -1499,21 +1500,31 @@ class CoordinatingAgent extends BaseAgent
             'priority' => $input['priority'],
         ];
 
-        // Custom goals need the custom_goal_type_name field — use the goal name
+        // Custom goals require custom_goal_type_name; reuse the goal name
+        // because the AI tool doesn't expose a separate slot for it.
         if ($input['goal_type'] === 'custom') {
-            $fields['custom_goal_type_name'] = $input['name'];
+            $payload['custom_goal_type_name'] = $input['name'];
         }
 
-        if (isset($input['monthly_contribution'])) {
-            $fields['monthly_contribution'] = (float) $input['monthly_contribution'];
+        if (isset($input['monthly_contribution']) && is_numeric($input['monthly_contribution'])) {
+            $payload['monthly_contribution'] = (float) $input['monthly_contribution'];
         }
+        if (isset($input['description']) && $input['description'] !== '') {
+            $payload['description'] = $input['description'];
+        }
+
+        $goal = DB::transaction(fn () => Goal::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'goal',
-            'route' => '/goals',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['name']}\" goal now.",
+            'entity_id' => $goal->id,
+            'name' => $goal->goal_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$goal->goal_name}\" goal.",
         ];
     }
 
@@ -1535,24 +1546,33 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'event_name' => $input['event_name'],
             'event_type' => $input['event_type'],
             'amount' => (float) $input['estimated_amount'],
             'expected_date' => $input['event_date'],
             'certainty' => $input['certainty'] ?? 'likely',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
         ];
 
-        if (isset($input['description'])) {
-            $fields['description'] = $input['description'];
+        if (isset($input['description']) && $input['description'] !== '') {
+            $payload['description'] = $input['description'];
         }
 
+        $event = DB::transaction(fn () => LifeEvent::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'life_event',
-            'route' => '/goals?tab=events',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['event_name']}\" life event now.",
+            'entity_id' => $event->id,
+            'name' => $event->event_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$event->event_name}\" life event.",
         ];
     }
 
