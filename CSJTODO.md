@@ -25,34 +25,36 @@ The data + backend wiring is already in place: read `onboarding_fyn_context.paus
 
 ---
 
-## Next session: continue S0.16b Batch 3 — 12 scenarios remaining
+## Next session 86 — continue S0.16b Batch 3 — 12 scenarios remaining
 
-Session 84 closed with **BS-01 onboarding path-choice-to-done GREEN end-to-end via the canonical Quick start with Fyn real-user flow** and **S0.5.z** shipped — a real registration-flow gap that was silently locking every newly-registered user out of onboarding. CSJ pushed back hard on the first attempt's seeding approach and the redundant questions that came with it, and instructed: drive the test as a real user would, from the CTA through to completion, clicking and filling actual forms, creating records the way the product creates them. Reset the approach. The fix lives in `AuthController::verifyCode` and runs immediately after `TrialService::startTrial`. The dev environment (`csjones.co/fynla`) needs the AuthController fix uploaded BEFORE further BS-NN runs there — see the deploy note.
+Session 85 closed with **BS-02 (base spouse direct-write)** and **BS-04 (resume after disconnect)** GREEN end-to-end via the canonical Quick start with Fyn real-user flow. Two commits pushed to `origin/feature/fyn-persona-split`: `b3e18e2` (the BS-02 + BS-04 work + 7 product fixes that unblocked BS-04, including the new "Something else" handoff that pauses onboarding and routes free-text to AdviceFyn) and `9b1c644` (CSJTODO + tech debt report). Working tree is clean. CSJ flagged a follow-up that needs **design + plan before any implementation**: there is no UI affordance to resume onboarding after a "Something else" pause — chat window is NOT the right surface — see the "Needs design + planning before implementation" section at the top of this file.
 
-**The next session should:**
+**Session 86 should:**
 
-1. Read this file top-to-bottom.
+1. Read this file top-to-bottom (especially the "Needs design + planning" section, the session 85 narrative below, and the BS-NN Batch 3 checklist).
 2. Run `./dev.sh` to start the local dev stack.
-3. Run targeted Pest sweep to verify no regressions from session 84's AuthController change:
+3. **Targeted Pest sweep** to verify no regressions from session 85's changes (UserResource fields, `something_else` action, `sendMessage` dispatch check, `handleQuickReplySelect` action-bubble routing, `handleCaptureDependants` name fix):
    ```
    ./vendor/bin/pest tests/Feature/Auth tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture
    ```
-   (Session 84 baseline: 486 passing.)
-4. Continue S0.16b Batch 3 with **BS-05 (journey map by entry source)** next — BS-02 and BS-04 landed GREEN in session 85. All 12 remaining scenarios run via the same canonical Quick start with Fyn real-user pattern — no factory seeds, ever. Update each stub docblock with a delivery note as you go.
+   Session 84 baseline: 486 passing. If anything fails, fix in the same loop before continuing — these changes touched dispatch routing, action validation, and message handling, so regressions are non-trivial.
+4. **Continue S0.16b Batch 3** with **BS-05 (journey map by entry source)** next. 12 scenarios remaining (BS-05, 06, 07, 10, 13, 15, 17, 18, 19, 21, 22, 23). All run via the canonical Quick start with Fyn real-user pattern — **no factory seeds, ever, no SQL fixtures, no manual consent grants, no manual trial starts** (session 85 reinforced this — when BS-04 stub said "backdate `ai_messages.created_at`", CSJ correctly directed to drive sign-out + sign-in instead, which uncovered the 7 real bugs). Update each stub docblock with a delivery note as you go.
 
-All Sprint 0 work stays on `feature/fyn-persona-split` locally until S0.17 verification rollup is complete. The deploy note (`April/April26Updates/deploy-session-84.md`) sits there for the eventual `feature → dev` PR after Sprint 0 is 100% green; it is NOT a precondition for any BS-NN run.
+All Sprint 0 work stays on `feature/fyn-persona-split` locally until S0.17 verification rollup is complete. The deploy note (`April/April26Updates/deploy-session-84.md`) sits ready for the eventual `feature → dev` PR after Sprint 0 is 100% green; it is NOT a precondition for any BS-NN run.
 
 **Read these before starting:**
 
 - This file top-to-bottom (handover).
-- `April/April26Updates/deploy-session-84.md` — deploy steps for S0.5.z to csjones.co/fynla (and later fynla.org).
-- `tests/Browser/scenarios/BS-01-onboarding-path-choice-to-done.php` — full session 84 delivery note explaining the wrong "stub gaps" the first attempt produced (factory-user shortcuts) vs the three real stub-script amendments uncovered via the canonical real-user flow. Read this so the next session doesn't repeat the factory-seed mistake.
-- `April/April24Updates/plan/10-sprint-0-plan.md` §S0.5.z (gitignored, vault has the mirror) — registration consent fix details + verification steps.
-- `MEMORY.md` "Top laws" — `feedback_loop_until_correct.md`, `critical_browser_testing_law.md`.
+- `tests/Browser/scenarios/BS-04-resume-after-disconnect.php` — full session 85 GREEN delivery note with all 7 product fixes itemised, plus the "Outstanding follow-up" pointing at the resume-from-pause UX gap.
+- `tests/Browser/scenarios/BS-02-base-spouse-direct-write.php` — session 85 GREEN delivery note with three stub-script amendments.
+- `tests/Browser/scenarios/BS-01-onboarding-path-choice-to-done.php` — session 84 delivery note: read this so session 86 doesn't repeat the factory-seed mistake.
+- `April/April26Updates/deploy-session-84.md` — deploy steps for S0.5.z (still pending the eventual `feature → dev` PR; not blocking BS-NN runs).
+- `April/April24Updates/plan/10-sprint-0-plan.md` (gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/10-sprint-0-plan.md`) — Sprint 0 plan with all S0.5.* sub-tasks.
+- `MEMORY.md` "Top laws" — especially `feedback_loop_until_correct.md`, `critical_browser_testing_law.md`, `feedback_never_touch_env_or_db.md`.
 
 ---
 
-## Session 85 — BS-02 + BS-04 GREEN, 7 product fixes shipped
+## Session 85 — BS-02 + BS-04 GREEN, 7 product fixes shipped (commits `b3e18e2`, `9b1c644`)
 
 ### Completed this session
 
@@ -66,7 +68,7 @@ All Sprint 0 work stays on `feature/fyn-persona-split` locally until S0.17 verif
 
   3. **Welcome-back bubble label "Start over" → "Something else"** (CSJ direction). Restart was a heavy hammer for someone who just wanted to ask a different question. Greeting wording updated to "...continue from where we left off, or is there something else I can help with?".
 
-  4. **New `something_else` action handler** in `OnboardingChatDirector` — pauses onboarding (stores current step into `onboarding_fyn_context.paused_at_step`, nulls `onboarding_fyn_step`) and emits "Of course — what can I help you with?". Path + selection preserved for future resume. Action also added to `AiChatController` validation regex + `aiChat.js` validActions.
+  4. **New `something_else` action handler** in `OnboardingChatDirector` — pauses onboarding (stores current step into `onboarding_fyn_context.paused_at_step`, nulls `onboarding_fyn_step`) and emits "Of course — what can I help you with?". Path + selection preserved for future resume. Action also added to `AiChatController` validation regex + `aiChat.js` validActions + `aiChatService.js` JSDoc union.
 
   5. **Quick-reply bubble click handler called `sendMessage(label)` for ALL bubbles** — including action bubbles. Clicking "Continue" persisted a user message "Continue", which `OnboardingDirector::handleUserMessage` treated as a state response (duplicate assistant turn) AND `HasAiChat`'s first-message-title hook overwrote the conversation title from "Onboarding" to "Continue", breaking `getOnboardingStatus`'s title filter on next sign-in. Fixed: `AiChatPanel.vue handleQuickReplySelect` differentiates action bubbles (`msg.metadata.action_bubbles === true` → `postAction(bubble.id)`) from regular bubbles (still `sendMessage(label)`).
 
@@ -78,28 +80,17 @@ All Sprint 0 work stays on `feature/fyn-persona-split` locally until S0.17 verif
 
 - [x] **Resume-onboarding-after-pause UX gap noted** at the top of this file under "Needs design + planning before implementation". CSJ explicitly directed: chat window is NOT the right surface. Needs design call on dashboard banner / global header / outstanding-actions list / etc. Data + backend wiring already in place — implementation is small once surface is chosen.
 
-### NOT Done — Outstanding for next session 86
+- [x] **Tech debt audit** — 5 doc-staleness items found (4 docblocks missing `something_else` in their action enum + 1 stale "Continue / Start over" reference + 1 duplicate screenshot). All fixed inline as part of the same change.
 
-- [ ] **Targeted Pest sweep** to verify no regressions from session 85's changes:
-  ```
-  ./vendor/bin/pest tests/Feature/Auth tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture
-  ```
-  (Session 84 baseline: 486 passing.) Several new code paths added (something_else action, dispatch check, action_bubbles handler) — verify nothing else broke.
+- [x] **Two commits pushed to origin**:
+  - `b3e18e2` `feat(fyn): resume-after-disconnect end-to-end + Something Else handoff (BS-02 + BS-04 GREEN)` — 32 files, +376 / −110.
+  - `9b1c644` `docs: session 85 end — CSJTODO + tech debt report (BS-02 + BS-04 GREEN)` — 2 files, +133 / −68.
 
-- [ ] **Continue BS-NN Batch 3** starting with **BS-05 (journey map by entry source)**. 12 scenarios remaining.
+- [x] **Vault sync** — Apr26.md updated (8 → 11 commits, session 85 narrative appended), Apr2026 Commits.md updated (620 → 623), Home.md updated (2,814 → 2,817 commits, April 620 → 623), April Index.md session 85 entry added + April26Updates section reference updated.
 
-- [ ] **Commit session 85 changes**. Untracked / modified:
-  - `app/Http/Resources/UserResource.php` (UserResource onboarding fields)
-  - `app/Services/Onboarding/OnboardingChatDirector.php` (something_else handler + greeting wording)
-  - `app/Http/Controllers/Api/AiChatController.php` (validation regex + dispatch check)
-  - `app/Agents/CoordinatingAgent.php` (handleCaptureDependants name fix)
-  - `resources/js/store/modules/aiChat.js` (postAction wiring + validActions)
-  - `resources/js/components/Shared/AiChatPanel.vue` (handleQuickReplySelect)
-  - `tests/Browser/scenarios/BS-02-base-spouse-direct-write.php` (delivery note)
-  - `tests/Browser/scenarios/BS-04-resume-after-disconnect.php` (delivery note)
-  - `docs/sprint-0-verification/BS-02/*.png` (9 screenshots)
-  - `docs/sprint-0-verification/BS-04/*.png` (14 screenshots)
-  - `April/April26Updates/CSJTODO.md` (this file)
+### Outstanding for session 86
+
+See "Next session 86" header at the top of this file. Summary: targeted Pest sweep, then BS-05.
 
 ---
 
