@@ -289,9 +289,12 @@ class AiChatController extends Controller
 
         // Already mid-flow? Emit a resume event and point the frontend
         // at the existing conversation instead of creating a new one.
+        // Pivot on metadata.source via the `onboarding` scope so the lookup
+        // survives the first user message — the title is mutable; the
+        // metadata flag set at creation is the immutable identifier.
         if ($user->onboarding_fyn_step !== null) {
             $existing = AiConversation::forUser($user->id)
-                ->where('title', 'Onboarding')
+                ->onboarding()
                 ->latest('id')
                 ->first();
 

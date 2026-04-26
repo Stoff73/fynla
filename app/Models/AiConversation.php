@@ -60,6 +60,22 @@ class AiConversation extends Model
         return $query->where('user_id', $userId);
     }
 
+    /**
+     * Filter to conversations created by the Fyn onboarding flow.
+     *
+     * The onboarding conversation's `title` legitimately changes as the
+     * conversation evolves (HasAiChat updates it from a user message), so
+     * the resume + status flows pivot on the immutable `metadata.source`
+     * flag set at creation in AiChatController::startOnboarding. Without
+     * this scope, getOnboardingStatus's prior `where('title','Onboarding')`
+     * filter returned null once the title was updated, breaking the
+     * welcome-back resume on every sign-in past the first user message.
+     */
+    public function scopeOnboarding(Builder $query): Builder
+    {
+        return $query->where('metadata->source', 'fyn_onboarding');
+    }
+
     public function incrementTokenUsage(int $inputTokens, int $outputTokens): void
     {
         $this->increment('total_input_tokens', $inputTokens);

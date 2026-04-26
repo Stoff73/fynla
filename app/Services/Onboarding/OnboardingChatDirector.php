@@ -452,6 +452,10 @@ final class OnboardingChatDirector
             OnboardingStateMachine::STATE_BASE_WORK => 'capturing your employer and role',
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
             OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',
+            OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY => 'reviewing your family details',
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE => 'reviewing your full profile',
             OnboardingStateMachine::STATE_ASSET_CAPTURE => 'mapping your '.($user?->onboarding_fyn_selection ?? 'financial').' records',
             OnboardingStateMachine::STATE_ADD_MORE => 'choosing whether to add another module',
             default => 'mid-onboarding',
@@ -474,8 +478,13 @@ final class OnboardingChatDirector
             return ['in_progress' => false];
         }
 
+        // Pivot on metadata.source via the `onboarding` scope — the title
+        // legitimately changes as the conversation evolves, so the prior
+        // `where('title','Onboarding')` filter started returning null after
+        // the first user message and broke welcome-back resume on every
+        // re-login past base_personal.
         $conversation = AiConversation::forUser($user->id)
-            ->where('title', 'Onboarding')
+            ->onboarding()
             ->latest('id')
             ->first();
 

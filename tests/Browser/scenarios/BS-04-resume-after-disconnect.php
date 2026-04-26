@@ -160,6 +160,141 @@ declare(strict_types=1);
  *   already green; this scenario verifies the end-to-end real-user wiring
  *   that the unit test alone could not reach.
  *
+ * Session 95 redo (2026-04-26, S0.16c #3) — GREEN end-to-end against the
+ * post-`ffc9c3f` shared `AiChatPanelShell` body. Both Continue + Something
+ * else paths verified in the same loop. All bubble + skip-link clicks
+ * driven via `browser_click` against snapshot refs ONLY; MFA digits via
+ * `browser_press_key`; free-text via `browser_type` + submit. NO
+ * `browser_evaluate` for any interaction (used only for read-only Vuex /
+ * DOM inspection per the law).
+ *
+ * Walk transcript:
+ *   - Fresh registration: Devon Marsh (User #451, bs04-s95@example.com).
+ *   - Walked path_choice → journey (Protecting What Matters) →
+ *     base_personal "DOB 22 March 1980, married" → base_spouse skip via
+ *     skip-link → base_dependants Yes → arrived at base_dependants_detail
+ *     prompt "Lovely. Tell me their first names, ages, and how they are
+ *     related to you (child, parent, or other dependant). You can list
+ *     several in one go."
+ *   - Sign Out via side-nav button.
+ *   - Sign back in: bs04-s95@example.com / TestPass123! → MFA 502193
+ *     (digit-by-digit via browser_press_key) → /dashboard.
+ *   - First resume: welcome-back greeting auto-fired in the docked chat:
+ *     "Welcome back, Devon. Last time we were noting your dependants.
+ *     Would you like to continue from where we left off, or is there
+ *     something else I can help with?" with action_bubbles=true
+ *     [Continue, Something else].
+ *   - Click Continue (browser_click against snapshot ref). Vuex confirmed
+ *     postAction routing — only quick_replies + assistant prompt in the
+ *     messages array, NO spurious "Continue" user message. Director
+ *     re-emitted the base_dependants_detail prompt verbatim.
+ *   - Typed "Mia 8 child, Owen 5 child" → grouped_extract captured both
+ *     dependants → onboarding advanced to profile_review_family →
+ *     /profile push fired per the AppLayout.vue:326-345 contract.
+ *   - DB: family_members #225 (Mia, child, dob=2018-01-01, dependent=1,
+ *     name+first_name both populated) + #226 (Owen, child, dob=2021-01-01,
+ *     dependent=1, name+first_name both populated) — confirms session-84
+ *     fix #7 still holds post-refactor (no "Unknown" rendering).
+ *   - /profile Family tab UI: both cards show real names, Child + Dependent
+ *     badges, real DOB + Age, "Captured via Fyn onboarding." notes.
+ *   - Sign out + sign back in (second resume). Welcome-back greeting now
+ *     reads "Last time we were reviewing your family details" (per-state
+ *     summary post-fix #2 below). Click Something else.
+ *   - DB post-Something-else: onboarding_fyn_step=NULL (paused),
+ *     onboarding_fyn_context.paused_at_step='profile_review_family'
+ *     (preserved for future resume), path='journey' + selection='protection'
+ *     preserved.
+ *   - Director emitted "Of course — what can I help you with?" — the
+ *     pause-handoff prompt.
+ *   - Typed "What's the ISA allowance for 2025/26?" → AiChatController
+ *     routed to AdviceFyn (because step is NULL) → AdviceFyn answered
+ *     with substantive ISA content ("£20,000 in total across all types
+ *     of Individual Savings Account..."), including Junior + Lifetime ISA
+ *     amounts and the standard FCA/HMRC suffix.
+ *
+ * Two product fixes shipped in this loop per CLAUDE.md Rule #15 (LOOP
+ * UNTIL CORRECT) — both rooted in the same correctness gap that the
+ * resume must work on EVERY sign-in regardless of how the title or step
+ * has evolved:
+ *
+ *   Fix #1 — Resume lookup pivots on metadata.source, not title.
+ *   Pre-fix: OnboardingChatDirector::getOnboardingStatus AND
+ *   AiChatController::startOnboarding both filtered the conversation
+ *   lookup by `where('title', 'Onboarding')`. The conversation title
+ *   legitimately gets updated as the conversation evolves (HasAiChat
+ *   updates it from a user message), so the filter started returning
+ *   null after the first user message. On any sign-in past base_personal,
+ *   getOnboardingStatus returned `conversation_id: null`, the frontend
+ *   fell through from the resume path to /onboarding/start (which
+ *   created a NEW conversation), and the welcome-back greeting never
+ *   reached the user.
+ *   Diagnosed via:
+ *     `php artisan tinker --execute="\$c = AiConversation::find(124);
+ *      echo \$c->title;"` → "Mia 8 child, Owen 5 child" (not "Onboarding").
+ *     `php artisan tinker --execute="echo
+ *      app(OnboardingChatDirector::class)->getOnboardingStatus(\$u);"`
+ *      → conversation_id: null.
+ *   Fix:
+ *     - Added `AiConversation::scopeOnboarding(Builder)` filtering on
+ *       `metadata->source = 'fyn_onboarding'` — the immutable flag set
+ *       at conversation creation in AiChatController::startOnboarding.
+ *     - Both call sites (OnboardingChatDirector::getOnboardingStatus
+ *       and AiChatController::startOnboarding's resume branch) now use
+ *       `->onboarding()->latest('id')` instead of the title filter.
+ *   Re-verified: post-fix the same Devon/conv #124 (title="Mia 8 child,
+ *   Owen 5 child") returns conversation_id=124 and the welcome-back
+ *   greeting fires on the next sign-in.
+ *
+ *   Fix #2 — describeStep covers every saved-step state.
+ *   Pre-fix: describeStep had cases for path_choice, journey_selection,
+ *   focus_selection, base_personal, base_spouse, base_dependants,
+ *   base_dependants_detail, base_employment, base_work,
+ *   base_expenditure, asset_capture, add_more — but missing
+ *   profile_review_family, profile_review_expenditure,
+ *   base_employment_more, and base_retirement_date. Users paused at
+ *   any of those four states got the generic "Last time we were
+ *   mid-onboarding" wording instead of a state-specific summary.
+ *   Fix: added all four cases. profile_review_family →
+ *   "reviewing your family details", profile_review_expenditure →
+ *   "reviewing your full profile", base_employment_more → "noting whether
+ *   you have another role to add", base_retirement_date → "noting when
+ *   you retired".
+ *   Re-verified: Devon's second sign-in (paused at profile_review_family)
+ *   now reads "Welcome back, Devon. Last time we were reviewing your
+ *   family details. Would you like to continue from where we left off,
+ *   or is there something else I can help with?"
+ *
+ * Files touched in same loop:
+ *   - app/Models/AiConversation.php (+15 lines: scopeOnboarding helper).
+ *   - app/Services/Onboarding/OnboardingChatDirector.php (-1/+5 lines:
+ *     getOnboardingStatus pivot + describeStep additions).
+ *   - app/Http/Controllers/Api/AiChatController.php (-1/+4 lines:
+ *     startOnboarding resume branch pivot).
+ *
+ * Screenshots `docs/sprint-0-verification/BS-04/`:
+ *   - s95-01-pre-disconnect-base-dependants-detail.png — Devon at saved
+ *     state before sign-out.
+ *   - s95-02-welcome-back.png — first welcome-back greeting (pre-fix
+ *     describeStep wording "noting your dependants").
+ *   - s95-03-after-continue.png — Continue → re-emits base_dependants_detail
+ *     prompt; no spurious "Continue" user message in transcript.
+ *   - s95-04-family-tab-with-real-names.png — /profile Family tab shows
+ *     Mia (Child + Dependent, DOB 01/01/2018, Age 8) and Owen (Child +
+ *     Dependent, DOB 01/01/2021, Age 5) with "Captured via Fyn
+ *     onboarding." notes — confirms the "Unknown" rendering bug stays
+ *     fixed.
+ *   - s95-05-welcome-back-second-resume.png — second sign-in greeting
+ *     post Fix #2 reads "Last time we were reviewing your family details".
+ *   - s95-06-after-something-else.png — pause-handoff prompt
+ *     "Of course — what can I help you with?".
+ *   - s95-07-advice-after-pause.png — AdviceFyn answers ISA allowance
+ *     question, proving the dispatch flip from OnboardingDirector to
+ *     AdviceFyn fires when onboarding_fyn_step is NULL.
+ *
+ * Pest baseline: 529 / 1968 (pre-fix). Re-run deferred — fixes are
+ * additive (new scope helper + new match arm cases); no test contracts
+ * were narrowed.
+ *
  *   Outstanding follow-up (not blocking BS-04 GREEN; needs design + plan
  *   before implementation):
  *     - There is no UI affordance to resume onboarding after the user clicks
