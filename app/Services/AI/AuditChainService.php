@@ -25,6 +25,15 @@ use Illuminate\Support\Facades\DB;
  * user_id, conversation_id, tool_name, operation, status, input_summary,
  * result_summary, entity_type, entity_id (the chain & signature columns
  * are intentionally NOT covered, otherwise the hash would be self-referential).
+ *
+ * Hashed JSON is canonicalised via deep-ksort before encoding. MySQL's
+ * binary JSON column type reorders object keys on storage (sorts by key
+ * length ascending, ties by insertion order). Without canonicalisation
+ * the write-time PHP array order differs from the read-back order and
+ * `verifyChain()` cannot reproduce the stored `row_hash` for any row whose
+ * `input_summary` keys aren't already in MySQL-sort order. Canonicalising
+ * to alphabetical key order makes the hash input independent of either
+ * MySQL's internal sort or PHP's array iteration order.
  */
 final class AuditChainService
 {
@@ -132,9 +141,35 @@ final class AuditChainService
 
     private static function computeRowHash(string $prevHash, array $payload, string $signedAtIso): string
     {
-        $serialised = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $canonical = self::canonicaliseForHash($payload);
+        $serialised = json_encode($canonical, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         return hash('sha256', $prevHash.$serialised.$signedAtIso);
+    }
+
+    /**
+     * Recursively sort associative-array keys alphabetically so the hash
+     * input is independent of write-time PHP array order or MySQL's binary
+     * JSON key reordering. Numeric (list) arrays preserve their order —
+     * only string-keyed objects are sorted.
+     */
+    private static function canonicaliseForHash(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $isList = array_is_list($value);
+        $result = [];
+        foreach ($value as $k => $v) {
+            $result[$k] = self::canonicaliseForHash($v);
+        }
+
+        if (! $isList) {
+            ksort($result);
+        }
+
+        return $result;
     }
 
     /**

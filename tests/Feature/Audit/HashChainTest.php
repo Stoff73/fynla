@@ -65,4 +65,45 @@ describe('AuditChainService hash chain (S0.12)', function () {
             'tip_hash' => str_repeat('0', 64),
         ]);
     });
+
+    it('verifies chains whose input_summary keys MySQL would reorder', function () {
+        // MySQL's binary JSON column sorts object keys by length ascending
+        // (ties by insertion order). PHP arrays iterate in insertion order.
+        // Without canonicalisation, write-time and verify-time JSON differ
+        // any time the PHP key order isn't already MySQL's stored order.
+        // ['preview', 'q'] is the canonical reproducer: MySQL stores it as
+        // ['q', 'preview'] (1 char < 7 chars), breaking verify.
+        AiAuditEvent::query()->delete();
+        $service = app(AuditChainService::class);
+        $user = User::factory()->create();
+
+        $service->append([
+            'user_id' => $user->id,
+            'tool_name' => 'list_records',
+            'operation' => 'read',
+            'status' => 'dispatched',
+            'input_summary' => ['preview' => false, 'q' => 'test'],
+        ]);
+
+        // Mixed key-length payload that triggers reorder for the short keys
+        // (q=1, in=2) but preserves order for keys already length-sorted.
+        $service->append([
+            'user_id' => $user->id,
+            'tool_name' => 'create_protection_policy',
+            'operation' => 'write',
+            'status' => 'dispatched',
+            'input_summary' => [
+                'preview' => false,
+                'q' => 'short',
+                'provider' => 'Aviva',
+                'sum_assured' => 300000,
+                'policy_type' => 'level_term',
+            ],
+        ]);
+
+        $result = $service->verifyChain();
+
+        expect($result['chain_valid'])->toBeTrue()
+            ->and($result['row_count'])->toBe(2);
+    });
 });
