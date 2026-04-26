@@ -139,10 +139,97 @@ declare(strict_types=1);
  * navigation as "unrelated cosmetic" without diagnosing it; it is in
  * fact the documented `profile_review_*` pause behaviour wired in
  * `AppLayout.vue:326-331`. NO claim of GREEN can rest on this walk.
- * The next instance must read the S0.16c pre-flight block in full,
- * read the state machine + director + aiChat.js + AppLayout.vue, then
- * redrive BS-01 with `browser_click` only. Screenshots from session 94
- * (`s94-*.png`) should be deleted on the redo.
+ *
+ * Session 95 redo (2026-04-26, S0.16c #1) — GREEN end-to-end against
+ * the post-`ffc9c3f` shared `AiChatPanelShell` body. All bubble + skip
+ * link clicks driven via `browser_click` against snapshot refs ONLY;
+ * MFA digits via `browser_press_key`; free-text via `browser_type` +
+ * submit. NO `browser_evaluate` for any interaction. Pre-flight reading
+ * (state machine 719L + director 2383L + aiChat.js 1028L + AppLayout
+ * 200-345 + AiChatPanel 1261L + AiChatPanelShell 68L) completed before
+ * any browser action.
+ *
+ * Walk transcript:
+ *   1. Landing → Quick start with Fyn CTA → /register?from=fyn
+ *   2. Filled (Laury, Greenwood, bs01-s95@example.com, TestPass123!)
+ *   3. MFA code 739904 typed digit-by-digit via browser_press_key
+ *   4. Land /dashboard with onboarding chat docked open (wide layout)
+ *   5. path_choice → click "Follow a journey" (ref-based)
+ *   6. journey_selection → 5 bubbles render (Starting Out, Building
+ *      Foundations, Protecting What Matters, Planning Your Future,
+ *      Enjoying Your Wealth) → click "Protecting What Matters"
+ *   7. base_personal grouped_extract → typed "My date of birth is
+ *      12 January 1985 and I am married." → captured DOB+marital
+ *   8. base_spouse → typed "Angela, 12 January 1985, angela-bs01s95
+ *      @example.com" → captured. Director ack: "Got it — I've added
+ *      Angela and linked the two of you."
+ *   9. base_dependants → click "No"
+ *   10. profile_review_family layout=standard → ROUTER PUSHED TO
+ *       /profile per AppLayout.vue:326-331 contract (verified via
+ *       browser_snapshot showing /profile URL, ProfileReviewPanel
+ *       rendering captured DOB/marital/spouse, chat narrowed to 356px).
+ *       This is the CONTRACT, not a bug. Click "Looks correct"
+ *       → router pushed back to /dashboard (wide watcher).
+ *   11. base_employment → click "Full-time"
+ *   12. base_work grouped_extract → typed "ACME Ltd, Engineer,
+ *       £75,000" → captured. ack: "Thanks — I've noted your work
+ *       details."
+ *   13. base_employment_more → click "No, that's everything"
+ *   14. base_expenditure free_text → typed "£2,500" → captured.
+ *       ack: "Thanks — I've noted your monthly spending."
+ *   15. profile_review_expenditure layout=standard → 2nd /profile
+ *       push, panel shows full captured profile (78% complete, Engineer
+ *       at ACME Ltd visible). Click "Looks correct" → back /dashboard.
+ *   16. asset_capture (LLM-delegated, focus=protection) → typed
+ *       "Aviva life cover £300,000" → LLM dispatched create_protection_
+ *       policy → "Got it — recording that now. Your Aviva term life
+ *       insurance for £300,000 is now recorded, Laury."
+ *   17. add_more → 4 bubbles (Savings/Investment/Retirement/I'm done)
+ *       — protection focus correctly stripped via filterBubbles.
+ *       Click "I'm done"
+ *   18. emitDoneTurn → celebration "All set, Laury. Your protection
+ *       module is ready to explore." + navigation to /protection
+ *       (canonical route for "Protecting What Matters" per
+ *       routeForSelection). Pre-fix BS-01 docblock loosened the
+ *       assertion to "any authenticated route" — matched.
+ *
+ * Final state (User #449, AiConversation #80):
+ *   onboarding_completed=true, onboarding_completed_at=2026-04-26
+ *   21:55:11, onboarding_fyn_step/path/selection all NULL.
+ *   date_of_birth=1985-01-12, marital_status=married,
+ *   employment_status=full_time, employer=ACME Ltd, occupation=Engineer,
+ *   annual_employment_income=75000.00, monthly_expenditure=2500.00,
+ *   household_id=6.
+ *   FamilyMember #223 (Angela, spouse, dob=1985-01-12, household_id=6).
+ *   LifeInsurancePolicy #121 (Aviva, level_term, sum_assured=300000.00,
+ *   premium_frequency=monthly, in_trust=0, joint_life=0).
+ *   4 consents granted (ai_chat, data_processing, privacy, terms).
+ *   1 AiConversation (onboarding).
+ *
+ * Post-refactor evidence — chat panel observations:
+ *   - Single shared body via AiChatPanelShell renders identically across
+ *     wide (712px, blurred dashboard) and standard (356px, /profile)
+ *     layouts. No docked-vs-modal divergence.
+ *   - Suggestions panel correctly hidden during onboarding (v-if
+ *     "!isOnboardingActive"); reappears on /protection terminal once
+ *     emitDoneTurn flipped isOnboardingActive=false.
+ *   - latestQuickRepliesIndex correctly disables every prior bubble
+ *     set; only the latest remains clickable.
+ *   - ref="messagesContainer" + ref="inputContainer" wired through the
+ *     unified template — no $refs.dockedMessagesContainer fallback
+ *     branch needed (per W1 tech debt note in CSJTODO).
+ *   - User-bubble echoes (raspberry, top-right) for every text+bubble
+ *     turn render correctly above the next assistant message.
+ *
+ * 13 fresh screenshots `docs/sprint-0-verification/BS-01/s95-*.png`:
+ *   01-landing, 02-register-form, 03-path-choice, 04-journey-choice,
+ *   05-base-personal, 06-base-spouse, 07-base-dependants,
+ *   08-profile-review-family (the documented /profile pause),
+ *   09-base-employment, 10-base-work, 11-profile-review-expenditure
+ *   (the second /profile pause), 12-add-more, 13-completed (/protection
+ *   with Aviva £300k policy card visible).
+ *
+ * Pest baseline: 529 passed / 1968 assertions / 0 failures (97.00s).
  */
 it('BS-01 onboarding path-choice-to-done', function (): void {
     $this->markPendingInteractiveRun('BS-01');

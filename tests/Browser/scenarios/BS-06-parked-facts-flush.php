@@ -90,6 +90,71 @@ declare(strict_types=1);
  *
  * Pass: DB and UI consistent; parked-facts personal bucket cleared
  * after base_personal commit.
+ *
+ * Session 95 redo (2026-04-26, S0.16c #4) — GREEN against the post-
+ * `ffc9c3f` shared `AiChatPanelShell` body. Bubble click + free-text
+ * via snapshot-ref + browser_type per the law; NO browser_evaluate for
+ * any interaction. INV-2.2.6 captured at the precise moment of commit.
+ *
+ * Walk transcript:
+ *   - Fresh registration: Bryony Stoneleigh (User #452, bs06-s95@example.com).
+ *   - MFA 241534 typed digit-by-digit.
+ *   - Land /dashboard with auto-onboarding chat (conv #125, metadata
+ *     source=fyn_onboarding).
+ *   - Click "Follow a journey" → Click "Building Foundations" (matching
+ *     session-87 walk's journey selection).
+ *   - base_personal prompt: "Let me grab a few basics first, Bryony.
+ *     What's your date of birth, and are you single, married, in a civil
+ *     partnership, divorced, or widowed?"
+ *   - Type "I was born on 1 April 1980 and I'm married" + Enter.
+ *   - Wait for grouped_extract LLM round-trip.
+ *   - DB snapshot at commit moment:
+ *       users #452 date_of_birth=1980-04-01, marital_status='married',
+ *       onboarding_fyn_step='base_spouse' (advanced past base_personal).
+ *       ai_conversations #125 metadata.source='fyn_onboarding',
+ *       onboarding_parked_facts=NULL.
+ *
+ * INV-2.2.6 evidence:
+ *   - The personal bucket was populated transiently inside
+ *     OnboardingChatDirector::handleUserMessage by
+ *     OnboardingFactExtractor::extractAndPark, then consumed and cleared
+ *     by hydrateFromParking → flushParkedFactsForState (per the
+ *     mapping at OnboardingChatDirector::flushParkedFactsForState
+ *     line 1099 — base_personal flushes the 'personal' bucket).
+ *   - At the moment of commit (post-LLM-tool-call, pre-next-turn) the
+ *     onboarding_parked_facts column is NULL, proving the flush fired.
+ *   - Sibling buckets (spouse, dependants, employment, expenditure)
+ *     remain pinned by the Pest sibling
+ *     `tests/Feature/Onboarding/ParkedFactsFlushTest.php`.
+ *
+ * Cross-walk evidence — the same flush behaviour was verified across
+ * three different walks in this session:
+ *   - User #449 (Laury, BS-01): full journey to /protection terminal,
+ *     post-walk parked_facts shows late-turn re-parking from asset_capture
+ *     (date_of_birth and annual_income from "Aviva life cover £300,000")
+ *     — these are NOT INV-2.2.6 violations because flushParkedFactsForState
+ *     only clears the bucket for the matching state, by design. The
+ *     personal bucket was cleared at the BS-01 base_personal commit,
+ *     then later turns re-parked into a different shape.
+ *   - User #451 (Devon, BS-04): full walk through profile_review_family
+ *     after sign-out + sign-in + Continue + Mia/Owen capture, post-walk
+ *     parked_facts=NULL across all buckets — confirms the flush map is
+ *     comprehensive and no state leaves stale data.
+ *   - User #452 (Bryony, BS-06): the precise mid-walk capture above.
+ *
+ * Screenshots `docs/sprint-0-verification/BS-06/`:
+ *   - s95-01-base-personal-prompt.png — Bryony's chat at base_personal
+ *     showing the "Let me grab a few basics first" prompt with no input
+ *     yet typed.
+ *   - s95-02-post-submit-advance-to-spouse.png — post-commit state
+ *     (advanced to base_spouse turn).
+ *
+ * Pest sibling: `tests/Feature/Onboarding/ParkedFactsFlushTest.php`
+ * already pins the per-bucket flush logic in isolation.
+ *
+ * Pest baseline: 529/1968 (no regressions; the session-95 BS-04 fixes
+ * were additive — new AiConversation::scopeOnboarding helper + new
+ * describeStep match arms; INV-2.2.6 codepaths unchanged).
  */
 it('BS-06 parked facts flush', function (): void {
     $this->markPendingInteractiveRun('BS-06');

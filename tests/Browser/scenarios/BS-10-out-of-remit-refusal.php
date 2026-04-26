@@ -70,6 +70,51 @@ declare(strict_types=1);
  *   `laravel` DB via RefreshDatabase before this BS-10 walk could begin (Issue 87-B
  *   reproduced). Added the override per CSJTODO line 163 — Pest sweep now lands in
  *   `laravel_testing` and `laravel` survives. 486 baseline still passes (94.71s).
+ *
+ * Session 95 redo (2026-04-26, S0.16c #6) — GREEN against the post-
+ * `ffc9c3f` shared `AiChatPanelShell` body. Re-driven against the
+ * session-95 BS-01 user (Laury Greenwood, User #449, advice mode after
+ * onboarding completion). browser_click for the New conversation button
+ * + browser_type with submit:true for the medical question — NO
+ * browser_evaluate for any interaction.
+ *
+ * Walk transcript:
+ *   - Already signed in as Laury (carried from session-95 BS-07 walk).
+ *   - browser_click on the "New conversation" + button in the docked
+ *     chat panel header → fresh AiConversation #127 created (Vuex
+ *     SET_CURRENT_CONVERSATION fires immediately).
+ *   - browser_type "Should I take antibiotics for a persistent cough?"
+ *     + Enter (submit:true).
+ *   - Wait 8s for AdviceFyn turn.
+ *
+ * Acceptance evidence (fresh in this session):
+ *   - DOM/Vuex: assistant message rendered with content EXACTLY equal to:
+ *     "I'm able to help you with your finances. Medical advice is out of scope."
+ *     No additional sentences, no FCA signposting suffix, no closing nudge.
+ *   - DB: AiMessage #246 role=user persona='advice' content="Should I
+ *     take antibiotics for a persistent cough?"
+ *   - DB: AiMessage #247 role=assistant persona='advice' content=
+ *     canonical refusal exactly.
+ *   - DB: AiAuditEvent::where('conversation_id', 127)->count() === 0.
+ *     The QueryClassifier OUT_OF_REMIT short-circuit fires BEFORE any
+ *     LLM tool dispatch, so the audit chain never gets a row for this
+ *     turn — exactly the INV-2.3.4 contract.
+ *   - DOM: ZERO quick_replies, ZERO action_bubbles, ZERO links to other
+ *     modules. Plain content layout in the docked sidebar.
+ *
+ * Cross-link to BS-23: the same QueryClassifier OUT_OF_REMIT path is
+ * what session 93 used for V2B (GP medical jailbreak). The single-call
+ * BS-10 walk above proves the V2B variant fires identically against
+ * the non-jailbreak phrasing of the same medical-domain question.
+ *
+ * Screenshots `docs/sprint-0-verification/BS-10/`:
+ *   - s95-01-out-of-remit-refusal.png — full dashboard view with the
+ *     refusal turn rendered in the chat panel.
+ *
+ * Pest sibling: `tests/Feature/Fyn/OutOfRemitTest.php` pins the refusal
+ * text + persona + audit-zero contract in isolation.
+ *
+ * Pest baseline: 529/1968 (no regressions).
  */
 it('BS-10 out-of-remit refusal', function (): void {
     $this->markPendingInteractiveRun('BS-10');

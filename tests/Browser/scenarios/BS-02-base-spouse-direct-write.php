@@ -91,11 +91,73 @@ declare(strict_types=1);
  * The /profile Family tab snapshot was the only Playwright-real
  * verification, but it does not by itself prove the chat-panel
  * spouse-capture contract held against the new shared body. NO claim
- * of GREEN can rest on this walk. The next instance must redrive BS-02
- * end-to-end with `browser_click` only after reading the S0.16c
- * pre-flight block, the state machine, the director, aiChat.js and
- * AppLayout.vue. Screenshots from session 94 (`s94-*.png`) should be
- * deleted on the redo.
+ * of GREEN can rest on this walk.
+ *
+ * Session 95 redo (2026-04-26, S0.16c #2) — GREEN against the post-
+ * `ffc9c3f` shared `AiChatPanelShell` body. The base_spouse capture
+ * was driven as part of the same session-95 BS-01 walk (User #449
+ * Laury Greenwood); this BS-02 evidence rolls up the spouse-specific
+ * acceptance against that walk plus a fresh /profile Family tab visit.
+ * All chat interactions in the upstream walk used `browser_click` against
+ * snapshot refs, no `browser_evaluate` shortcuts.
+ *
+ * Walk transcript (relevant slice from session-95 BS-01 walk):
+ *   - base_spouse grouped_extract prompt: "Great — let's add your spouse's
+ *     details. Can you share their first name, date of birth, and email
+ *     address? I'll create an account and link the two of you so you can
+ *     plan together."
+ *   - User typed via browser_type: "Angela, 12 January 1985,
+ *     angela-bs01s95@example.com" + Enter.
+ *   - LLM (capture_spouse_details tool) extracted all three fields,
+ *     CoordinatingAgent::handleCaptureSpouseDetails dispatched the
+ *     direct-write, HouseholdProvisioner.ensureFor created household
+ *     #6, two FamilyMember rows + one new User row inserted, both
+ *     User rows updated with spouse_id pointing at each other.
+ *   - Director ack rendered: "Got it — I've added Angela and linked
+ *     the two of you." (verified live in chat)
+ *
+ * DB acceptance (queried from primary `laravel` DB post-walk):
+ *   - users #449 (Laury): spouse_id=450, household_id=6,
+ *     marital_status='married', date_of_birth='1985-01-12'.
+ *   - users #450 (Angela, freshly created): spouse_id=449,
+ *     household_id=6, email='angela-bs01s95@example.com',
+ *     first_name='Angela', date_of_birth='1985-01-12'.
+ *   - family_members #223: user_id=449, linked_user_id=450,
+ *     relationship='spouse', first_name='Angela'.
+ *   - family_members #224: user_id=450, linked_user_id=449,
+ *     relationship='spouse', first_name='Laury' (bidirectional).
+ *   - ai_audit_events #432 (capture_spouse_details, op=write,
+ *     status=dispatched) and #433 (op=write, status=persisted) — the
+ *     INV-2.10.x dispatched+persisted audit pair.
+ *
+ * UI acceptance (fresh /profile Family tab snapshot in this session,
+ * after BS-01 closed):
+ *   - Tab order: Personal Info / Health / Family / Subscription;
+ *     Family active.
+ *   - Family Members card heading.
+ *   - Angela row card (only family member): heading "Angela",
+ *     "spouse" relationship badge, "Account Linked" status badge,
+ *     "Date of Birth" field 12/01/1985, "Age: 41".
+ *   - Caption "Linked account — can only be edited or deleted by
+ *     logging into the spouse's account" — confirms the linked-User
+ *     bidirectional state.
+ *   - Email NOT shown on the card (per session-84 amendment 2:
+ *     email lives only on the linked users row, never on the
+ *     family_members card UI).
+ *
+ * Screenshots `docs/sprint-0-verification/BS-02/`:
+ *   - s95-01-landing through s95-07-spouse-ack are reused from the
+ *     session-95 BS-01 walk (the captures are bytewise identical for
+ *     turns 1-7 because both scenarios drive the same flow up to
+ *     base_spouse).
+ *   - s95-08-family-tab.png — fresh post-refactor capture of /profile
+ *     Family tab showing Angela's card with both badges.
+ *
+ * Pest baseline: 529 passed / 1968 assertions / 0 failures (97.00s).
+ *
+ * The three stub-script amendments below (session 84) still apply
+ * post-refactor — they are spec-text issues, not refactor regressions,
+ * and remain on the carry-forward list for S0.17.
  */
 it('BS-02 base_spouse direct-write', function (): void {
     $this->markPendingInteractiveRun('BS-02');
