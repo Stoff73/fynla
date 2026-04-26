@@ -1,80 +1,40 @@
-# Tech Debt Report — Session 86 (2026-04-26)
+# Tech Debt Report — Session 88 (2026-04-26)
 
-**Files analysed:** 3 tracked test files + 6 gitignored documentation files inside `April/` (CSJTODO + sprint plan tails + new post-sprint plan).
+**Files analysed:** 4 (PHP + JS code only; screenshots and test docblock excluded from code-quality scan)
 **Issues found:** 0
 **Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
 
 ---
 
-## Files in scope
+## Files reviewed
 
-Tracked, will be committed:
+| File | LOC delta | Verdict |
+|---|---|---|
+| `app/Observers/GoalCacheObserver.php` | +46 (new) | Clean — strict types, type hints, `private readonly` constructor injection, mirrors `LifeEventMonteCarloObserver` pattern, single responsibility |
+| `app/Providers/EventServiceProvider.php` | +3 | Clean — observer registration sits in alphabetical position, matches existing format |
+| `resources/js/store/modules/aiChat.js` | +11 | Clean — cross-module dispatches use `{ root: true }`, `.catch(() => {})` matches established convention at line 737 (onboarding_layout_change handler), explanatory comment captures non-obvious WHY (router push is no-op on same-route) |
+| `tests/Browser/scenarios/BS-07-dispatch-flips-after-onboarding.php` | +88 (mostly docblock) | Clean — delivery note follows session 85/86/87 pattern, asserts inventory matches BS-07 acceptance criteria |
 
-1. `tests/Browser/scenarios/BS-05-journey-map-by-entry-source.php` — added a 33-line delivery-note docblock explaining the BS-05 deferral. Production-relevant code (the `it(...)` block + `markPendingInteractiveRun('BS-05')` call) unchanged.
-2. `tests/Feature/Onboarding/OnboardingResumeTest.php` — 6 lines changed: docblock, test name, and one assertion array updated to match session 85's intentional `restart` → `something_else` rename of the welcome-back greeting bubble.
-3. `tests/Feature/Onboarding/ResumeAfterDisconnectTest.php` — 6 lines changed: same pattern as above for the second resume-related test file.
-4. `CSJTODO.md` (project root) — synced from the gitignored `April/April26Updates/CSJTODO.md` working copy. Documentation only.
+## Categories checked
 
-Pre-existing untracked, NOT touched this session:
+- **Duplicate code** — none
+- **Dead/redundant code** — none. No commented-out blocks, no `dd()` / `dump()` / `console.log` left in
+- **Convention violations** — none
+  - PHP: `declare(strict_types=1);` present, type hints on all methods, no DB facade, no hardcoded tax values, no `sole` ownership
+  - JS: cross-module dispatches use `{ root: true }`, no banned colors (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*`), no acronyms in user-facing text, no scores
+- **Complexity** — observer is 46 lines with single responsibility; aiChat.js change is 4 dispatches in an existing switch arm (no nesting added)
+- **Security** — no user input handling changed; no new query paths
+- **Inconsistency** — `GoalCacheObserver` mirrors `LifeEventMonteCarloObserver` exactly (constructor injection style, lifecycle hooks, joint-owner invalidation pattern)
 
-- `CSJ-CAMPAIGN-LANDING-PLAN.md` (repo root) — CSJ's draft, last updated 2026-04-25. Out of scope.
+## Top observations
 
-Gitignored, vault holds canonical mirror:
+1. The `.catch(() => {})` swallow on the four added dispatches in `aiChat.js` is intentional and established convention. The same pattern already exists at `aiChat.js:737-738` for the `onboarding_layout_change` handler. Errors here are non-critical (best-effort refresh) and propagating them would surface a misleading user error.
+2. `GoalCacheObserver` invalidates for both `user_id` and `joint_owner_id` — Goal supports joint ownership via `joint_owner_id` per the existing `forUserOrJoint` scope in `HasJointOwnership` trait. Matches `NetWorthCacheObserver`'s joint-owner pattern.
+3. Pest sweep ran 486 passing / 1605 assertions / 0 failures after the fix — observer registration does not regress existing tests.
 
-- `April/April26Updates/CSJTODO.md` — session 86 narrative + Batch 3 list update.
-- `April/April24Updates/plan/15-post-sprint-priorities-plan.md` — new file (106 lines).
-- `April/April24Updates/plan/{10,11,12,13,14}-sprint-N-plan.md` — forward-reference + S0.15 deferral note.
+## Conclusion
 
-## Critical Issues
-
-None.
-
-## Warnings
-
-None.
-
-## Suggestions
-
-None.
-
----
-
-## Audit detail
-
-### Category 1: Duplicate Code
-
-No duplicate logic introduced. The 3 changed test files contain assertion-only edits and one docblock note; no helpers, mixins, or shared utilities touched.
-
-### Category 2: Dead & Redundant Code
-
-No dead code introduced. No commented-out blocks, no `dd()` / `dump()` / `console.log` / unused imports. The added BS-05 docblock is intentional documentation, not dead code.
-
-### Category 3: Convention Violations
-
-All 3 modified test files retain `declare(strict_types=1);`. No banned colour tokens, no hardcoded hex, no acronyms in user-facing copy (the only acronyms appearing are inside Pest test names referring to internal state-machine constants like `STATE_BASE_PERSONAL`, which are code identifiers, not user-facing copy). No `Mockery` setup that would need cleanup. No hardcoded tax values. No `sole` ownership type. Test naming follows the lowercase `it('does something specific')` Pest convention per `tests/CLAUDE.md`.
-
-The Pest tests that were edited (`OnboardingResumeTest.php`, `ResumeAfterDisconnectTest.php`) use `User::factory()->create([...])` — that is correct for unit/feature-level tests of the director per `tests/CLAUDE.md`. The "no factory seeds" rule applies to **BS-NN browser scenarios** (canonical real-user flow), not to Pest feature tests of internal services.
-
-### Category 4: Complexity & Maintainability
-
-No method or file size growth. The BS-05 stub gained ~33 lines of docblock comment, but the test body is still a single one-line `markPendingInteractiveRun` call. No new conditionals, no magic numbers.
-
-### Category 5: Security Concerns
-
-No user input handling, no SQL, no auth changes, no exposed sensitive data. All edits are in test code or doc comments.
-
-### Category 6: Inconsistency with Existing Patterns
-
-The BS-05 deferral docblock follows the same delivery-note pattern used in BS-01, BS-02, BS-04, BS-11, BS-12, BS-16, BS-20 stubs (date + outcome + scope + pointer to plan / spec-amendment list). The session 86 entry in CSJTODO follows the structure of session 84 + 85 entries (Completed / Outstanding / Context). The new `15-post-sprint-priorities-plan.md` mirrors the existing sprint-plan style (canonical-contract reference + Purpose + Gate + numbered task entries with Objective / Files / Acceptance / Out of scope).
+Clean bill of health. Nothing to fix before commit.
 
 ---
-
-## Notes
-
-- Session 86 was scoped to test-assertion alignment + plan-shaped documentation. No production PHP, Vue, JS, CSS, migration, or seeder changes. That accounts for the clean bill of health.
-- The doc-staleness items called out in session 85's tech-debt report (S1–S4: `something_else` missing from various docblocks across the director / controller / service / store) were resolved in commit `b3e18e2` last session. Spot-checked during this audit: all four references now include `something_else` in their action enums.
-- The previous session's W1 (duplicate screenshot at BS-04 slot 11) — also resolved in `b3e18e2`.
-
----
-
-*Generated by tech-debt-session skill — 2026-04-26 session 86. Clean bill of health: 0 issues across 3 changed tracked files.*
+*Generated by tech-debt-session skill — 2026-04-26 session 88. 0 issues across 4 changed code files.*
