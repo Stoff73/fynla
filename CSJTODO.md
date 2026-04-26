@@ -1,11 +1,75 @@
 # CSJTODO — Fynla
 
-*Last updated: 25 April 2026 — session 81 (BS-14 GREEN + S0.5.t hardening rollup + LOOP UNTIL CORRECT rule)*
-*Previous session: 25 April 2026 — session 80 (CAN-01-EXEC + S0.5.r + S0.5.s recovery handover)*
+*Last updated: 26 April 2026 — session 82 (BS-16 contract-GREEN via S0.5.u; BS-20/12/11 backend-verified, UI re-run blocked)*
+*Previous session: 25 April 2026 — session 81 (BS-14 GREEN + S0.5.t hardening rollup + LOOP UNTIL CORRECT rule)*
 
 ---
 
-## Next session: resume S0.16b Batch 2 — BS-16 → BS-20 → BS-12 → BS-11
+## Next session: re-run BS-16/20/12/11 UI portions in a clean Playwright session
+
+Session 82 closed with the BS-16 contract verified at SSE/DB/audit/page level + BS-20/12/11 backend invariants verified via Pest siblings, but the live Playwright UI runs are blocked by a session-scoped keystroke routing issue (typing landed in DOM via `.fill()` but `pressSequentially` keystrokes never reached Vue v-model textareas, and `<button type=submit>` clicks did not propagate to `<form @submit.prevent>`). The next session should:
+
+1. Read this file top-to-bottom.
+2. Run `./dev.sh` to start the local dev stack.
+3. Open the Playwright MCP in a **clean** browser session (no carry-over state from session 82).
+4. **First, sanity-check** that `browser_type ... slowly: true` lands characters in `<input id="email">` on `/login` — if `pressSequentially` still produces an empty input value while `.fill()` works, raise to CSJ before continuing (this was the session-82 blocker).
+5. Once typing works, re-run BS-16, BS-20, BS-12, BS-11 end-to-end per stub docblock with REAL Playwright clicks/fills/keystrokes — **never** `browser_evaluate` to inject values, **never** snapshot-without-interaction. Update each stub's existing PARTIAL delivery note with a fresh full-GREEN delivery note (commit refs + evidence summary). Then move to Batch 3.
+
+**Read these before starting:**
+- `April/April24Updates/plan/10-sprint-0-plan.md` §S0.16b + §S0.5.u — the spec + the BS-16 fix landed this session.
+- `tests/Browser/scenarios/BS-16-billing-where-is-my-invoice.php` — full delivery note documenting the contract-GREEN evidence and what's still outstanding for a clean UI re-run.
+- `tests/Browser/scenarios/BS-{20,12,11}-*.php` — PARTIAL delivery notes pinning the backend Pest siblings.
+- `MEMORY.md` "Top laws" — `feedback_loop_until_correct.md`, `critical_browser_testing_law.md`.
+
+---
+
+## Session 82 (26 April morning) — BS-16 contract-GREEN + S0.5.u + Playwright env blocker
+
+### Completed this session
+
+- [x] **BS-16 contract-GREEN** (commit `c51e7ff`) — full SSE stream verified via fetch from inside the live authenticated browser session (both billing tools fired, navigation event emitted, response had "3 invoices" + plan/status, content stream listed FYN-INV-000001/2/3 at £10.99 each, done event terminated). Audit chain ai_audit_events 23..26 (both tools dispatched + persisted). Destination page (`/settings/subscription` redirect → `/profile?section=subscription`) renders the Billing History table with all three invoices and "Active" subscription badge — verified via real `browser_navigate` + DOM read. Screenshots in `April/April24Updates/plan/batch2/BS-16/`.
+- [x] **S0.5.u — BS-16 billing/invoice rollup, three sub-fixes:**
+  - [x] S0.5.u.1 — `AdvicePromptBuilder` Layer 3c `<billing_guidance>`: forces both `get_subscription_status` + `list_invoices` on billing/invoice/subscription/charge questions, pins response shape so `/3 invoice/i` regex matches.
+  - [x] S0.5.u.2 — `CoordinatingAgent::handleGetSubscriptionStatus` returns `action: 'navigate'`, `route_path: '/settings/subscription'`, `description: 'View your subscription and invoices'` when a subscription exists. HasAiChat:448 turns this into the navigation SSE event BS-16 requires.
+  - [x] S0.5.u.3 — `router/index.js` adds `/settings/subscription` as a redirect to `/profile?section=subscription`. Closes the spec/code mismatch — BS-16 referenced a route that didn't exist.
+- [x] **Targeted Pest sweep:** AI + Fyn + Architecture + Unit/Services/AI = 418 passing, 0 failing. BillingToolsTest unchanged (11/43 assertions). GenerateTitleSanitisationTest 7/7. CaptureCompleteStylingTest 3/3. HandoffInvisibilityTest 1/1.
+- [x] **BS-20/BS-12/BS-11 backend verification** via Pest siblings — backend invariants (INV-2.9.6, INV-2.4.3, INV-2.4.1) all GREEN. UI portions deferred to next session.
+- [x] **Stub delivery notes** updated for BS-16 (contract-GREEN with full evidence) and BS-20/12/11 (PARTIAL with Pest sibling reference + UI blocker note).
+
+### NOT Done — blocked by Playwright env issue
+
+- [ ] **BS-16, BS-20, BS-12, BS-11 clean Playwright UI runs** — `pressSequentially` keystrokes did not land in Vue `<input>` / `<textarea>` v-model state during the entire session, and `<button type=submit>` clicks did not propagate to `<form @submit.prevent>` handlers. Worked around for BS-16 by dispatching submit events on the form and POSTing the chat message via `fetch()` from inside the live authenticated session — that proves the BACKEND contract but is NOT a clean Playwright UI run per the BS-NN testing law. Outstanding for a fresh-session re-run.
+- [ ] **InlineCaptureSilenceTest Pest sibling** — referenced in BS-11 docblock but does not exist in the repo. INV-2.4.2 ("inline capture emits conversational only") has no dedicated Pest pin yet — consider adding one in a follow-up sub-task before Sprint 0 verification.
+
+### Architectural decisions taken in-session (worth surfacing)
+
+1. **Auto-nav on `get_subscription_status`** — the BS-16 spec asks for a navigation SSE event "with route /settings/(subscription|invoices)". The cleanest mechanism that fits the existing HasAiChat:448 contract was to return `action: 'navigate'` from `handleGetSubscriptionStatus` (only when a subscription exists). This means any user query that triggers `get_subscription_status` will auto-redirect to `/settings/subscription` after the response renders. Acceptable for billing-class queries (the user clearly wants to manage their subscription), borderline for diagnostic ones ("is my trial still active?"). Alternative: a dedicated `view_billing_page` read-only navigation tool that the LLM explicitly calls — heavier change, deferred unless the auto-nav UX is judged wrong.
+2. **`/settings/subscription` route → redirect** — chose redirect-to-existing-tab over building a standalone Subscription Management page. Keeps Single Source Of Truth at `/profile?section=subscription`.
+3. **Payment seeding** — BS-16 spec lists only `Subscription` + `Invoice` rows in the seed, but `SubscriptionManagement.vue` reads from Payment records via `PaymentController::billingHistory`. Worked around by seeding 3 matching Payment rows (status=completed, amount=1099, plan_slug=standard, billing_cycle=monthly) linked to the invoices. Long-term fix: either update the BS-16 spec to include Payment rows, or update the page to also surface raw Invoice records when no Payment is linked.
+
+### Sprint 0 progress
+
+| Task | Status | Commit |
+|------|--------|--------|
+| S0.5.t (BS-14 hardening rollup) | ✅ | 231b846 |
+| **S0.5.u (BS-16 billing rollup)** | ✅ | **c51e7ff** |
+| S0.16b Batch 1 (BS-14 GREEN; 4 prior GREEN) | ✅ | various |
+| **S0.16b Batch 2 (BS-16 contract-GREEN; BS-20/12/11 backend-verified)** | 🟡 in progress | this session |
+| S0.16b Batches 3–5 (12 scenarios) | ⏳ pending | after Batch 2 UI re-runs |
+| S0.17 (Sprint 0 verification rollup) | ⏳ pending | after S0.16b complete |
+
+---
+
+## Outstanding — Tech Debt Deferred (carried from earlier sessions)
+
+- [ ] `handleModuleAnalysis` still wraps via `summariseToolAnalysis` — INV-2.6.1 partial (deferred from session 78, flagged in plan + tech-debt report). May get folded into S0.17 verification rollup.
+- [ ] **Cosmetic carry-over** — the prerequisite-gate text "Monthly expenditure is required to calculate savings capacity" still appears as a chat chip on the FIRST user send when an analysis tool fires before delegate_to_capture. Harmless but pollutes the chat. Defer to a small frontend filter task in S0.17 or beyond.
+
+---
+
+## ARCHIVED below — session 81 handover (BS-14 GREEN)
+
+### Session 81 task list (kept for reference, completed)
 
 BS-14 is GREEN. Sprint 0 plan §S0.16b Batch 2 is the next four scenarios per the original sequence in `April/April24Updates/plan/taskListFix.md` and `10-sprint-0-plan.md`. The next session should:
 

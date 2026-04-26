@@ -37,6 +37,20 @@ declare(strict_types=1);
  *   - The sanitised title still contains the substring "hello".
  *
  * Pass: no script execution; DB title cleaned; sidebar text safe.
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2):
+ *   PARTIAL — backend invariant GREEN via the Pest sibling
+ *   `tests/Unit/Traits/GenerateTitleSanitisationTest.php` (7/7 passing,
+ *   15 assertions): strip_tags applied, length capped at 100,
+ *   ellipsis only on overflow, no markup chars survive, multibyte
+ *   safe. The `HasAiChat::generateTitle` contract that BS-20 pins is
+ *   fully covered.
+ *
+ *   UI portion NOT run — same Playwright environmental blocker as
+ *   BS-16 prevented the chat textarea from receiving keystrokes in
+ *   this session. The sidebar-render assertion (visible title text
+ *   contains no `<` or `>`, no JS alert dialog fired) remains
+ *   outstanding pending a clean Playwright run. Flagged in CSJTODO.
  */
 it('BS-20 generateTitle sanitation', function (): void {
     $this->markPendingInteractiveRun('BS-20');

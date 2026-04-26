@@ -48,6 +48,29 @@ declare(strict_types=1);
  *     === true.
  *
  * Pass: all SSE / DOM / DB assertions hold.
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2):
+ *   PARTIAL — INV-2.4.1 backend invariant GREEN via the Pest sibling
+ *   `tests/Feature/Fyn/HandoffInvisibilityTest.php` (1/1 passing):
+ *     - zero `persona_state_change` SSE events emitted during a
+ *       full advice→capture handoff turn (the synthetic `handoff`
+ *       event yielded by HasAiChat is consumed internally by
+ *       AdviceFyn::wrapStream and never reaches the SSE wire).
+ *
+ *   UI portion NOT run — same Playwright environmental blocker.
+ *   The DOM-level assertions (no .capturing-pill, input placeholder
+ *   stable across the multi-intent message, /protection page renders
+ *   the Aviva life policy row) remain pending. The seed assertion
+ *   `LifeInsurancePolicy::where(['user_id' => $user->id, 'provider' =>
+ *   'Aviva'])->exists()` was not executed because the message was not
+ *   sent through the live chat. Flagged in CSJTODO.
+ *
+ *   Note: an `InlineCaptureSilenceTest` Pest sibling is referenced in
+ *   the docblock above but does not currently exist in the repo —
+ *   only `tests/Feature/Fyn/HandoffInvisibilityTest.php`. INV-2.4.2
+ *   ("inline capture emits conversational only") therefore has no
+ *   dedicated Pest pin yet; consider adding one in a follow-up
+ *   sub-task to close the parity gap before Sprint 0 verification.
  */
 it('BS-11 handoff invisibility', function (): void {
     $this->markPendingInteractiveRun('BS-11');

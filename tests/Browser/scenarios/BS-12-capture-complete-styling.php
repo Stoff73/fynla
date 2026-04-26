@@ -39,6 +39,21 @@ declare(strict_types=1);
  *   - No SVG icon inside the capture_complete bubble (CLAUDE.md Rule 14).
  *
  * Pass: styling equivalence verified at the DOM level.
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2):
+ *   PARTIAL — backend/styling invariant GREEN via the Pest sibling
+ *   `tests/Feature/Fyn/CaptureCompleteStylingTest.php` (3/3 passing):
+ *     - capture_complete bubbles render with the same bg-savannah-100
+ *       + border-light-gray + rounded-lg as a normal assistant bubble
+ *     - no capture-mode badge/ring/icon/distinct border surfaces
+ *     - same outer flex/justify-start alignment
+ *   INV-2.4.3 contract coverage is intact.
+ *
+ *   UI portion NOT run — same Playwright environmental blocker.
+ *   The DOM classList read from a live capture_complete bubble was
+ *   not captured in this session because the chat textarea was
+ *   unresponsive to keystrokes (typing the BS-11 trigger message).
+ *   Flagged in CSJTODO.
  */
 it('BS-12 capture_complete matches assistant-bubble styling', function (): void {
     $this->markPendingInteractiveRun('BS-12');
