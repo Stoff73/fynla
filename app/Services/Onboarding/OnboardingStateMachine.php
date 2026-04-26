@@ -562,8 +562,11 @@ final class OnboardingStateMachine
     public static function buildAssetCaptureIntro(string $answer, User $user): string
     {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
-        $nameParts = explode(' ', (string) $user->name);
-        $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
 
         $intros = [
             'savings' => "Right {$firstName}, let's get your savings mapped. Tell me about any cash accounts, ISAs, or savings pots — the provider, the balance, and whether it's an ISA or not. You can list several in one message and I'll add them all at once.",
@@ -649,8 +652,11 @@ final class OnboardingStateMachine
      */
     public static function interpolate(string $template, User $user): string
     {
-        $nameParts = explode(' ', (string) $user->name);
-        $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
 
         return strtr($template, [
             '{first_name}' => $firstName,

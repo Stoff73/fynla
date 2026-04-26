@@ -43,8 +43,11 @@ final class OnboardingPromptBuilder
      */
     public function buildAssetCapturePrompt(User $user, string $focus): string
     {
-        $nameParts = explode(' ', (string) $user->name);
-        $firstNameRaw = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        $firstNameRaw = trim((string) ($user->first_name ?? ''));
+        if ($firstNameRaw === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstNameRaw = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
         // S0.10 — wrap the user-controlled first name in
         // <user_provided>...</user_provided> markers so prompt-injection
         // payloads in the name field cannot escape into Fyn's identity

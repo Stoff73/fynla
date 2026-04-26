@@ -309,8 +309,11 @@ final class OnboardingChatDirector
             return;
         }
 
-        $nameParts = explode(' ', (string) $user->name);
-        $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
 
         $stateLabel = $this->describeStep($currentStateId, $user);
         $greeting = "Welcome back, {$firstName}. Last time we were {$stateLabel}. Would you like to continue from where we left off, or is there something else I can help with?";
@@ -1526,8 +1529,11 @@ final class OnboardingChatDirector
      */
     private function buildGroupedExtractPrompt(User $user, string $stateId, string $toolName): string
     {
-        $nameParts = explode(' ', (string) $user->name);
-        $firstName = $nameParts[0] ?: 'there';
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] ?: 'there';
+        }
 
         $instructions = match ($toolName) {
             'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',

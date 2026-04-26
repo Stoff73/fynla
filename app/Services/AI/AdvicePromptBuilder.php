@@ -58,8 +58,11 @@ class AdvicePromptBuilder
         bool $isPreview = false,
         ?callable $orchestrateAnalysis = null,
     ): string {
-        $nameParts = explode(' ', $user->name);
-        $firstName = $nameParts[0] ?? 'there';
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
 
         $layers = [];
 
@@ -310,7 +313,7 @@ PROMPT;
         // name field cannot escape the user-profile layer.
         $firstNameRaw = $user->first_name ?? explode(' ', $user->name)[0] ?? 'User';
         $firstName = UserContentSanitiser::wrap($firstNameRaw);
-        $lines[] = "- Name: {$firstName}";
+        $lines[] = "- First name (always use in full when addressing the user; do not truncate or parse): {$firstName}";
 
         if ($user->date_of_birth) {
             $lines[] = "- Age: {$user->date_of_birth->age}";
