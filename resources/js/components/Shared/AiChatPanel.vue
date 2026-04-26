@@ -168,6 +168,7 @@
             <div
               v-for="(msg, idx) in messages"
               :key="msg.id"
+              v-show="msg.role !== 'entity_created'"
             >
               <!-- Quick-reply bubbles (Fyn onboarding tool output) -->
               <FynQuickReplies
@@ -193,7 +194,7 @@
                       :key="`${rec.type}-${rec.id}`"
                       class="flex items-center justify-between rounded bg-white border border-light-gray px-2 py-1 text-xs"
                     >
-                      <span class="font-semibold text-horizon-500">{{ formatEntityType(rec.type) }}</span>
+                      <span class="font-semibold text-horizon-500">{{ formatRecordCardLabel(rec) }}</span>
                       <button
                         type="button"
                         @click="handleRecordView(rec)"
@@ -432,7 +433,7 @@
         </div>
 
         <!-- Messages -->
-        <div v-for="(msg, idx) in messages" :key="idx">
+        <div v-for="(msg, idx) in messages" :key="idx" v-show="msg.role !== 'entity_created'">
           <!-- Quick-reply bubbles (Fyn onboarding) -->
           <FynQuickReplies
             v-if="msg.role === 'quick_replies'"
@@ -457,7 +458,7 @@
                   :key="`${rec.type}-${rec.id}`"
                   class="flex items-center justify-between rounded bg-white border border-light-gray px-2 py-1 text-xs"
                 >
-                  <span class="font-semibold text-horizon-500">{{ formatEntityType(rec.type) }}</span>
+                  <span class="font-semibold text-horizon-500">{{ formatRecordCardLabel(rec) }}</span>
                   <button
                     type="button"
                     @click="handleRecordView(rec)"
@@ -1006,54 +1007,99 @@ export default {
          * module page for the captured record.
          */
         handleRecordView(record) {
+            // Each entity type the create_* handlers emit needs an explicit
+            // entry — falling back to /dashboard makes the View link feel
+            // broken. Aliases keep both the historical short keys
+            // ("life_insurance") AND the canonical long keys the protection
+            // handler emits ("life_insurance_policy") working.
             const routeMap = {
                 savings_account: '/net-worth/cash',
                 investment_account: '/net-worth/investments',
+                holding: '/net-worth/investments',
                 dc_pension: '/net-worth/retirement',
                 db_pension: '/net-worth/retirement',
+                pension: '/net-worth/retirement',
                 property: '/net-worth/property',
                 mortgage: '/net-worth/property',
                 life_insurance: '/protection',
+                life_insurance_policy: '/protection',
                 critical_illness: '/protection',
+                critical_illness_policy: '/protection',
                 income_protection: '/protection',
+                income_protection_policy: '/protection',
+                protection_policy: '/protection',
                 trust: '/trusts',
                 business_interest: '/net-worth/business',
                 chattel: '/net-worth/chattels',
+                liability: '/net-worth/liabilities',
                 estate_liability: '/net-worth/liabilities',
+                asset: '/net-worth/wealth-summary',
+                estate_asset: '/net-worth/wealth-summary',
                 estate_gift: '/estate',
-                family_member: '/profile',
+                family_member: '/profile?section=family',
                 will: '/estate/will-builder',
+                power_of_attorney: '/estate/power-of-attorney',
                 lasting_power_of_attorney: '/estate/power-of-attorney',
                 goal: '/goals',
                 life_event: '/goals?tab=events',
+                what_if_scenario: '/planning/what-if',
             };
             const route = routeMap[record.type] || '/dashboard';
             this.$router.push(route);
         },
 
         formatEntityType(type) {
+            // CLAUDE.md Rule #10 — no acronyms in user-facing text. ISA is
+            // the only permitted abbreviation; everything else is spelled
+            // out ("Lasting Power of Attorney", not "LPA").
             const labels = {
                 savings_account: 'Savings account',
                 investment_account: 'Investment account',
+                holding: 'Investment holding',
                 dc_pension: 'Pension',
                 db_pension: 'Pension',
+                pension: 'Pension',
                 property: 'Property',
                 mortgage: 'Mortgage',
                 life_insurance: 'Life insurance',
+                life_insurance_policy: 'Life insurance',
                 critical_illness: 'Critical illness',
+                critical_illness_policy: 'Critical illness',
                 income_protection: 'Income protection',
+                income_protection_policy: 'Income protection',
+                protection_policy: 'Protection policy',
                 trust: 'Trust',
                 business_interest: 'Business interest',
                 chattel: 'Valuable',
+                liability: 'Liability',
                 estate_liability: 'Liability',
+                asset: 'Asset',
+                estate_asset: 'Asset',
                 estate_gift: 'Gift',
                 family_member: 'Family member',
                 will: 'Will',
-                lasting_power_of_attorney: 'LPA',
+                power_of_attorney: 'Lasting Power of Attorney',
+                lasting_power_of_attorney: 'Lasting Power of Attorney',
                 goal: 'Goal',
                 life_event: 'Life event',
+                what_if_scenario: 'What-if scenario',
             };
-            return labels[type] || type;
+            return labels[type] || type.replace(/_/g, ' ');
+        },
+
+        /**
+         * Personalised one-line label for a created record card. Combines
+         * the user-facing entity name (e.g. provider) with the friendly
+         * type label so the card reads "Aviva — Life insurance" rather
+         * than the bare "life_insurance_policy" slug.
+         */
+        formatRecordCardLabel(record) {
+            const typeLabel = this.formatEntityType(record.type);
+            const name = (record.name || '').trim();
+            if (name === '' || name.toLowerCase() === typeLabel.toLowerCase()) {
+                return typeLabel;
+            }
+            return `${name} — ${typeLabel}`;
         },
 
         startInputResize(e) {

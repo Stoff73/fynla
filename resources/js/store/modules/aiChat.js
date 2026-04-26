@@ -6,6 +6,7 @@
  */
 
 import aiChatService from '@/services/aiChatService';
+import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
 const state = {
@@ -351,11 +352,16 @@ const actions = {
     async sendMessage({ commit, dispatch, state, rootState }, message) {
         if (!state.currentConversation) return;
 
-        // Add user message to local state immediately
+        // Add user message to local state immediately. Strip HTML tags so the
+        // optimistic bubble matches what SanitizeInput middleware writes to
+        // the DB — otherwise the user sees their own "<script>...</script>"
+        // input rendered as visible text in the bubble (escaped, but ugly).
+        const displayMessage = stripTags(message);
+
         commit('ADD_MESSAGE', {
             id: 'temp_' + Date.now(),
             role: 'user',
-            content: message,
+            content: displayMessage,
             created_at: new Date().toISOString(),
         });
 
