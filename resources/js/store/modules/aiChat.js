@@ -637,9 +637,9 @@ const actions = {
     },
 
     /**
-     * Post a routed action (resume / continue / restart / skip) against
-     * the current conversation. Streams the director's response via SSE
-     * and commits events using the same mutations as sendMessage.
+     * Post a routed action (resume / continue / restart / skip / something_else)
+     * against the current conversation. Streams the director's response via
+     * SSE and commits events using the same mutations as sendMessage.
      * Phase 12 — replaces the old sentinel-string resume/skip/restart
      * hack.
      */
@@ -649,7 +649,7 @@ const actions = {
             return;
         }
 
-        const validActions = ['resume', 'continue', 'restart', 'skip'];
+        const validActions = ['resume', 'continue', 'restart', 'skip', 'something_else'];
         if (!validActions.includes(action)) {
             logger.warn('[chat] invalid action', action);
             return;
@@ -836,14 +836,25 @@ const actions = {
         commit('SET_IS_ONBOARDING_ACTIVE', true);
         commit('SET_ONBOARDING_LAYOUT', 'wide');
 
-        // Check status first — if already in progress, resume instead of starting
+        // Check status first — if already in progress, fire the resume action
+        // so the director emits a clean welcome-back greeting + Continue/Start
+        // over bubbles. We do NOT dump the prior history into the active chat —
+        // that lives in the conversation history sidebar. The active chat
+        // surface is reserved for the welcome-back turn so the user gets a
+        // friendly summary of where they left off (per OnboardingChatDirector
+        // ::handleResumeAction → describeStep), not a wall of past messages.
         try {
             const status = await aiChatService.getOnboardingStatus();
             const inProgress = status?.data?.in_progress === true;
             const conversationId = status?.data?.conversation_id;
             if (inProgress && conversationId) {
+                commit('SET_CURRENT_CONVERSATION', {
+                    id: conversationId,
+                    title: 'Onboarding',
+                    message_count: 0,
+                });
                 commit('SET_LOADING', false);
-                await dispatch('loadConversation', conversationId);
+                await dispatch('postAction', 'resume');
                 return;
             }
         } catch (error) {

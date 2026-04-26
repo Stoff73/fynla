@@ -162,12 +162,17 @@ class AiChatController extends Controller
         $currentRoute = $request->input('current_route');
 
         // Two-way dispatch after the Sprint 0 two-Fyn collapse:
-        //   1. Onboarding (mid-flow users) → OnboardingChatDirector — the
-        //      deterministic state machine (handleInlineCapture handles any
-        //      mid-flow capture intent).
-        //   2. Post-onboarding → AdviceFyn — read-only tools only. Write
-        //      intents surface from onboarding, not from chat.
+        //   1. Onboarding (mid-flow users with a saved step) → OnboardingChatDirector
+        //      — the deterministic state machine (handleInlineCapture handles
+        //      any mid-flow capture intent).
+        //   2. Otherwise (post-onboarding OR paused via the welcome-back
+        //      "Something else" handoff which nulls onboarding_fyn_step) →
+        //      AdviceFyn — read-only tools only. Write intents surface from
+        //      onboarding, not from chat. Matches the /action endpoint check
+        //      at AiChatController::postAction so a paused user does not
+        //      silently no-op when they ask a free-text question.
         $inOnboarding = $user->onboarding_completed === false
+            && $user->onboarding_fyn_step !== null
             && (bool) config('onboarding.fyn_flow_enabled', true);
 
         return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding) {
@@ -412,7 +417,7 @@ class AiChatController extends Controller
      *
      * POST /api/ai-chat/conversations/{id}/action
      *
-     * Body: { action: 'resume' | 'continue' | 'restart' | 'skip' }
+     * Body: { action: 'resume' | 'continue' | 'restart' | 'skip' | 'something_else' }
      *
      * Actions are NOT persisted as AiMessage rows. Streams director
      * events back to the client via SSE. Covered by the existing
@@ -422,7 +427,7 @@ class AiChatController extends Controller
     public function action(Request $request, int $id): StreamedResponse|JsonResponse
     {
         $request->validate([
-            'action' => 'required|string|in:resume,continue,restart,skip',
+            'action' => 'required|string|in:resume,continue,restart,skip,something_else',
         ]);
 
         $user = $request->user();

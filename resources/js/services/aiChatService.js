@@ -150,13 +150,13 @@ const aiChatService = {
     },
 
     /**
-     * Post a routed action (resume / continue / restart / skip) against
-     * an existing conversation. Replaces the old sentinel-string user-
+     * Post a routed action (resume / continue / restart / skip / something_else)
+     * against an existing conversation. Replaces the old sentinel-string user-
      * message path. Returns a ReadableStream reader; the caller consumes
      * the SSE stream exactly like sendMessageStream.
      *
      * @param {number} conversationId
-     * @param {'resume'|'continue'|'restart'|'skip'} action
+     * @param {'resume'|'continue'|'restart'|'skip'|'something_else'} action
      */
     async postActionStream(conversationId, action, { signal } = {}) {
         const token = await getToken();

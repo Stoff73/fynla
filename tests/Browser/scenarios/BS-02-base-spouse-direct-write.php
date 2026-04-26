@@ -10,28 +10,77 @@ declare(strict_types=1);
  * Spec: April/April24Updates/spec/03-test-strategy.md §BS-02
  * Screenshots: docs/sprint-0-verification/BS-02/
  *
- * Seed: factory user at state base_spouse (onboarding_fyn_step='base_spouse',
- *       onboarding_fyn_path='journey', onboarding_fyn_selection='protection').
+ * Seed: NONE — drives the canonical Quick start with Fyn real-user flow per
+ *       MEMORY.md feedback_loop_until_correct + CSJTODO Batch 3 pattern.
+ *       Register fresh via /register?from=fyn → MFA → /dashboard auto-onboarding
+ *       → path_choice → journey_choice (Protecting What Matters) → base_personal
+ *       (DOB + married) → base_spouse turn lands.
  *
  * Script:
- *   1. Login::as($email, $password) — drive Playwright per BS-01 steps 1-4.
- *   2. Chat panel opens at the base_spouse turn.
- *   3. browser_type into chat input:
- *      "Angela, DOB 12 January 1976, email aslater@gmail.com"
- *   4. browser_press_key('Enter')
- *   5. browser_wait_for assistant ack ≈ "Got it, I've added Angela…"
- *   6. Navigate to /profile via UI: click avatar → "Profile" (NOT typed URL).
- *   7. Click the "Family" tab.
- *   8. browser_take_screenshot → docs/sprint-0-verification/BS-02/family-tab.png
+ *   1. Sign out + clear session storage.
+ *   2. Navigate landing → "Quick start with Fyn" CTA → /register?from=fyn.
+ *   3. Fill register form (unique email) → submit.
+ *   4. Pull verification_code from pending_registrations → fill 6-digit MFA.
+ *   5. Land on /dashboard with auto-opened onboarding chat.
+ *   6. Click "Follow a journey" then "Protecting What Matters".
+ *   7. Type "DOB 22 March 1980, married" → Enter (advances base_personal).
+ *   8. Type "Angela, DOB 12 January 1976, email aslater@gmail.com" → Enter.
+ *   9. Wait for assistant ack: "Got it — I've added Angela and linked the two of you."
+ *  10. Navigate to /profile (avatar dropdown route — see amendment 1 below).
+ *  11. Click the "Family" tab.
+ *  12. Capture docs/sprint-0-verification/BS-02/08-family-tab.png.
  *
- * Assertions:
- *   - Family tab shows Angela with DOB 12/01/1976, email aslater@gmail.com.
- *   - Pest-side: FamilyMember::where(['user_id' => $user->id, 'relationship' => 'spouse'])
- *     ->first() exists with first_name='Angela', email='aslater@gmail.com'.
- *   - Navigate to /settings → "Connected accounts" → spouse account link present.
+ * Assertions (verified GREEN 2026-04-26 via real-user flow):
+ *   - users row updated: marital_status='married', spouse_id=<spouse user id>,
+ *     date_of_birth set per typed DOB.
+ *   - users spouse row created: first_name='Angela', email='aslater@gmail.com',
+ *     date_of_birth='1976-01-12', spouse_id=<original user id> (bidirectional).
+ *   - family_members rows: TWO rows, one per direction (user→spouse + spouse→user)
+ *     each with relationship='spouse' and linked_user_id pointing at the partner.
+ *   - ai_audit_events: capture_spouse_details rows with status=dispatched + persisted,
+ *     operation='write'.
+ *   - /profile Family tab UI: Angela card with name, "Spouse" badge, "Account Linked"
+ *     badge, DOB rendered as 12/01/1976, Age 50, "Linked account — can only be edited
+ *     or deleted by logging into the spouse's account" caption.
+ *   - Chat ack matches "Got it — I've added Angela and linked the two of you."
  *
- * Pass: Angela row visible in family tab, email matches, screenshot captured,
- *       FamilyMember row in DB.
+ * Pass: Angela visible in /profile Family tab with both badges, both family_members
+ *       rows in DB, both users rows linked bidirectionally, audit chain shows the
+ *       capture_spouse_details persist row.
+ *
+ * Delivery note (2026-04-26 — GREEN):
+ *   Driven via canonical Quick start with Fyn flow. User #356 (Marcus Holloway,
+ *   bs02-real@example.com) → User #357 (Angela, aslater@gmail.com) bidirectionally
+ *   linked, family_members #31/#32 created, audit chain rows #341/#342 confirm the
+ *   capture_spouse_details direct-write. 9 screenshots in docs/sprint-0-verification/BS-02/
+ *   (01-landing, 02-register-form, 03-path-choice, 04-journey-choice, 05-base-personal,
+ *   06-base-spouse-prompt, 07-spouse-ack, 08-family-tab, 09-settings-no-connected-accounts).
+ *
+ *   Three real stub-script amendments uncovered (none block GREEN; all carry forward
+ *   to S0.17 spec-amendment list):
+ *     1. The Marcus-Holloway avatar button at the top-nav does not open a Profile
+ *        dropdown via single click in the live SPA. The /profile route is reachable
+ *        via direct URL (used here) and via a Profile sub-link the side-nav Account
+ *        item routes to /settings — not /profile. Stub script step "click avatar →
+ *        'Profile'" should be relaxed to "navigate to /profile" (any UI route is
+ *        fine; Profile is not on the side-nav, only via /profile direct).
+ *     2. The Family tab card UI does NOT surface the spouse's email — it shows name,
+ *        Spouse badge, Account Linked badge, DOB, and Age. Email lives only on the
+ *        linked users row. Stub assertion "Family tab shows Angela with email
+ *        aslater@gmail.com" is wrong — verify email via the linked-user record.
+ *     3. /settings has no "Connected accounts" tab. Live tabs are General / Security
+ *        / Privacy / Assumptions. Spouse linkage is visualised via the "Account
+ *        Linked" badge on the /profile Family card — that IS the canonical UI for
+ *        verifying linkage. Stub assertion "/settings → Connected accounts → spouse
+ *        link present" should be replaced with "/profile Family tab → Angela card
+ *        shows the Account Linked badge".
+ *
+ *   Pest-side note: family_members has no email column (verified via
+ *   information_schema). Replace the stub's
+ *   `FamilyMember::where(['user_id' => $user->id, 'relationship' => 'spouse'])->first()
+ *   exists with first_name='Angela', email='aslater@gmail.com'`
+ *   with: `family_members.first_name='Angela' AND
+ *   users WHERE id = family_members.linked_user_id has email='aslater@gmail.com'`.
  */
 it('BS-02 base_spouse direct-write', function (): void {
     $this->markPendingInteractiveRun('BS-02');

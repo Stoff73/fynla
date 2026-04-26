@@ -1153,12 +1153,14 @@ class CoordinatingAgent extends BaseAgent
             }
 
             $firstName = trim((string) ($dep['first_name'] ?? ''));
+            $resolvedName = $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant');
 
             $familyMember = \App\Models\FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $user->household_id,
                 'relationship' => $relationship,
-                'first_name' => $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant'),
+                'first_name' => $resolvedName,
+                'name' => $resolvedName,
                 'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
                 'is_dependent' => true,
                 'education_status' => $this->educationStatusForAge($age),

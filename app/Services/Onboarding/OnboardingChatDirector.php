@@ -236,10 +236,14 @@ final class OnboardingChatDirector
      * persisted as AiMessage rows.
      *
      * Supported actions:
-     *   - resume:   emit welcome-back greeting referencing the saved step
-     *   - continue: resume at the saved step (re-emit the current state)
-     *   - restart:  hard-delete prior AiMessage rows, reset step to path_choice
-     *   - skip:     advance past the current state (used for the spouse skip)
+     *   - resume:         emit welcome-back greeting referencing the saved step
+     *   - continue:       resume at the saved step (re-emit the current state)
+     *   - restart:        hard-delete prior AiMessage rows, reset step to path_choice
+     *   - skip:           advance past the current state (used for the spouse skip)
+     *   - something_else: pause onboarding (preserving path/selection in
+     *                     onboarding_fyn_context.paused_at_step) and hand the
+     *                     user to free-text mode by emitting "What can I help
+     *                     you with?" — subsequent messages route to AdviceFyn.
      *
      * @return \Generator<array{type: string}>
      */
@@ -250,6 +254,11 @@ final class OnboardingChatDirector
         switch ($action) {
             case 'resume':
                 yield from $this->handleResumeAction($user, $conversation, $currentStateId);
+
+                return;
+
+            case 'something_else':
+                yield from $this->handleSomethingElseAction($user, $conversation, $currentStateId);
 
                 return;
 
@@ -289,7 +298,7 @@ final class OnboardingChatDirector
 
     /**
      * Emit a welcome-back greeting referencing the saved step and surface
-     * Continue / Start over action bubbles. Used by the resume flow on
+     * Continue / Something else action bubbles. Used by the resume flow on
      * conversation mount (Phase 12).
      */
     private function handleResumeAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
@@ -304,7 +313,7 @@ final class OnboardingChatDirector
         $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
 
         $stateLabel = $this->describeStep($currentStateId, $user);
-        $greeting = "Welcome back, {$firstName}. Last time we were {$stateLabel}. Would you like to continue from where we left off, or start over?";
+        $greeting = "Welcome back, {$firstName}. Last time we were {$stateLabel}. Would you like to continue from where we left off, or is there something else I can help with?";
 
         $message = $this->saveMessage($conversation, 'assistant', $greeting, [
             'metadata' => [
@@ -318,7 +327,7 @@ final class OnboardingChatDirector
             'prompt_text' => $greeting,
             'bubbles' => [
                 ['id' => 'continue', 'label' => 'Continue'],
-                ['id' => 'restart', 'label' => 'Start over'],
+                ['id' => 'something_else', 'label' => 'Something else'],
             ],
             'action_bubbles' => true,
         ];
@@ -346,6 +355,35 @@ final class OnboardingChatDirector
         if ($state !== null) {
             yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_PATH_CHOICE, $state);
         }
+    }
+
+    /**
+     * Pause onboarding without losing it. Stores the current step into
+     * onboarding_fyn_context.paused_at_step and nulls onboarding_fyn_step
+     * so AiChatController::sendMessage routes the user's next message to
+     * AdviceFyn. Path + selection are preserved so the dashboard can offer a
+     * Continue Onboarding CTA when the user is ready to come back.
+     */
+    private function handleSomethingElseAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
+    {
+        if ($currentStateId !== null) {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['paused_at_step'] = $currentStateId;
+            $user->onboarding_fyn_context = $context;
+            $user->onboarding_fyn_step = null;
+            $user->save();
+        }
+
+        $prompt = 'Of course — what can I help you with?';
+        $message = $this->saveMessage($conversation, 'assistant', $prompt, [
+            'metadata' => [
+                'paused_at_step' => $currentStateId,
+                'is_pause_handoff' => true,
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $prompt];
+        yield ['type' => 'done', 'message_id' => $message->id];
     }
 
     /**

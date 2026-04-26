@@ -176,7 +176,7 @@
                 :prompt-text="msg.content"
                 :bubbles="msg.metadata?.bubbles || []"
                 :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
-                @select="handleQuickReplySelect"
+                @select="b => handleQuickReplySelect(b, msg)"
               />
               <!-- Phase 13 — capture_complete record-card row -->
               <div
@@ -440,7 +440,7 @@
             :prompt-text="msg.content"
             :bubbles="msg.metadata?.bubbles || []"
             :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
-            @select="handleQuickReplySelect"
+            @select="b => handleQuickReplySelect(b, msg)"
           />
           <!-- Phase 13 — capture_complete record card (docked) -->
           <div
@@ -1269,12 +1269,31 @@ export default {
             await this.sendMessage(message);
         },
 
-        // Handler for FynQuickReplies clicks — sends the bubble's label as if
-        // the user had typed it. The matchNavigationIntent check is skipped
-        // because onboarding bubbles are never navigation intents.
-        async handleQuickReplySelect(bubble) {
+        // Handler for FynQuickReplies clicks. Two modes:
+        //   - Action bubbles (parent msg.metadata.action_bubbles === true):
+        //     dispatch postAction(bubble.id) so the director routes via
+        //     handleAction (resume / continue / restart / skip / something_else).
+        //     The bubble's label must NOT be sent as a user message — that
+        //     would persist a sentinel like "Continue" to ai_messages and
+        //     OnboardingDirector::handleUserMessage would treat it as a state
+        //     response, producing a duplicate turn and overwriting the
+        //     conversation title via HasAiChat's first-message title hook.
+        //   - Regular bubbles: send the bubble's label as if the user had
+        //     typed it. The matchNavigationIntent check is skipped because
+        //     onboarding bubbles are never navigation intents.
+        async handleQuickReplySelect(bubble, msg) {
+            if (this.streaming || this.loading) return;
+            const isActionBubble = Boolean(msg?.metadata?.action_bubbles);
+            const id = (bubble && bubble.id) ? String(bubble.id).trim() : '';
             const label = (bubble && bubble.label) ? bubble.label.trim() : '';
-            if (!label || this.streaming || this.loading) return;
+            if (isActionBubble) {
+                if (!id) return;
+                window.dispatchEvent(new Event('fyn-chat-interaction'));
+                analyticsService.trackChatMessageSent(label.length);
+                await this.postAction(id);
+                return;
+            }
+            if (!label) return;
             window.dispatchEvent(new Event('fyn-chat-interaction'));
             analyticsService.trackChatMessageSent(label.length);
             await this.sendMessage(label);
