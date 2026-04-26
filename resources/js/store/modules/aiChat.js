@@ -637,8 +637,23 @@ const actions = {
             // "Replied" = either streamingText has content OR new messages
             // (assistant, quick_replies, navigation, entity_created, etc.)
             // were pushed during the stream.
+            //
+            // Skip the empty-response error when the stream legitimately
+            // ended with no assistant turn — token_limit and consent_required
+            // both close the stream after a single terminal SSE event and
+            // produce no message. Without these guards the violet token-
+            // limit notice and the raspberry empty-response banner both
+            // render, with the banner overwriting the legitimate notice
+            // (BS-13 RED until session 89).
             const producedNewMessages = state.messages.length > preStreamMessageCount;
-            if (state.streaming && !state.streamingText && !producedNewMessages && !state.error) {
+            if (
+                state.streaming
+                && !state.streamingText
+                && !producedNewMessages
+                && !state.error
+                && !state.tokenLimitReached
+                && !state.consentRequired
+            ) {
                 commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
             }
             commit('SET_STREAMING', false);
