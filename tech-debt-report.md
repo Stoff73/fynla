@@ -1,61 +1,55 @@
-# Tech Debt Report — Session 82 (2026-04-26)
+# Tech Debt Report — Session 85 (2026-04-26)
 
-**Files analysed:** 8
-**Issues found:** 0
-**Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
+**Files analysed:** 8 modified PHP/Vue/JS + 24 new screenshots
+**Issues found:** 5 (0 critical, 1 warning, 4 suggestions)
+**Severity breakdown:** 0 critical, 1 warning, 4 suggestions
 
-## Files reviewed
+## Critical Issues
 
-Code:
-- `app/Agents/CoordinatingAgent.php` — `handleGetSubscriptionStatus` returns 3 extra keys (`action`, `route_path`, `description`) on the existing dict result. Comment justifies why and confirms `BillingToolsTest::toHaveKeys` still passes.
-- `app/Services/AI/AdvicePromptBuilder.php` — new `Layer 3c` block + `getBillingGuidance()` method, structurally identical to the existing `getHandoffGuidance()` (S0.5.t pattern).
-- `resources/js/router/index.js` — new `/settings/subscription` route redirects to `/profile?section=subscription`. Follows the existing `/settings/security`, `/settings/privacy`, `/settings/assumptions` pattern.
-
-Stubs (docblock-only changes):
-- `tests/Browser/scenarios/BS-{11,12,16,20}-*.php` — delivery notes added; no executable code touched.
-
-Docs:
-- `CSJTODO.md` — session 82 handover.
-
-## Categories
-
-### Duplicate Code
-None. `getBillingGuidance()` mirrors `getHandoffGuidance()` shape but is a distinct concern, not duplication.
-
-### Dead & Redundant Code
-None. No commented-out code, no unused imports, no unreachable branches.
-
-### Convention Violations
 None.
 
-- declare(strict_types=1) intact in both PHP files.
-- Type hints intact on all methods.
-- No DB facade in controllers (changes are in agent + service).
-- No hardcoded tax values.
-- No hardcoded hex / banned colour classes (no `<style>` work this session).
-- No new acronyms in user-facing text (FYN-INV is an invoice number, not an acronym).
-- No scores / "X/100" introduced.
-- Vue route follows existing `/settings/*` pattern.
+## Warnings
 
-### Complexity & Maintainability
-None.
+### W1 — Duplicate screenshot at BS-04 slot 11
+- **File:** `docs/sprint-0-verification/BS-04/11-welcome-back-new-wording.png`
+- **Category:** Dead & Redundant Code
+- **What's wrong:** Two distinct PNGs named `11-*.png` at the same slot. The BS-04 stub delivery note references `11-rachel-welcome-back.png` (the actual one). `11-welcome-back-new-wording.png` is a leftover capture and never referenced.
+- **Suggested fix:** Delete `11-welcome-back-new-wording.png` before commit.
 
-- `getBillingGuidance()` is 23 lines of HEREDOC — within budget.
-- `handleGetSubscriptionStatus` was 17 lines; now 28 lines. Still single-responsibility.
+## Suggestions
 
-### Security
-None.
+### S1 — `OnboardingChatDirector::handleResumeAction` docblock stale
+- **File:** `app/Services/Onboarding/OnboardingChatDirector.php:301`
+- **Category:** Convention Violations (doc-staleness)
+- **What's wrong:** Docblock says "Continue / Start over action bubbles" — bubble was renamed to "Something else" this session.
+- **Suggested fix:** Change "Continue / Start over" → "Continue / Something else" in the docblock.
 
-- No user-input handling changed.
-- No new SQL or external integration.
-- The route path `/settings/subscription` is a static string in both backend (tool result) and router — matches by design.
+### S2 — `AiChatController::action` docblock missing 'something_else'
+- **File:** `app/Http/Controllers/Api/AiChatController.php:420`
+- **Category:** Convention Violations (doc-staleness)
+- **What's wrong:** Docblock says `Body: { action: 'resume' | 'continue' | 'restart' | 'skip' }` — missing `something_else`.
+- **Suggested fix:** Add `'something_else'` to the docblock action enum.
 
-### Inconsistency with Existing Patterns
-None. Both new prompt block and tool-result navigate-action mirror prior Sprint 0 patterns (S0.5.t handoff guidance, existing `handleSetExpenditure` / `handleCreateWhatIfScenario` navigate emitters).
+### S3 — `aiChatService.postAction` docblock missing 'something_else'
+- **File:** `resources/js/services/aiChatService.js:153,159`
+- **Category:** Convention Violations (doc-staleness)
+- **What's wrong:** Both prose docblock at L153 ("resume / continue / restart / skip") and JSDoc `@param` type union at L159 (`{'resume'|'continue'|'restart'|'skip'} action`) omit `something_else`.
+- **Suggested fix:** Add `something_else` to both.
 
-## Summary
-
-Clean bill of health. The S0.5.u rollup followed the established S0.5.t hardening pattern: small, focused, well-commented, tested via existing Pest suites (418 passing post-change). Nothing to fix before commit — already committed in `c51e7ff`.
+### S4 — `aiChat.js postAction` docblock missing 'something_else'
+- **File:** `resources/js/store/modules/aiChat.js:640`
+- **Category:** Convention Violations (doc-staleness)
+- **What's wrong:** Docblock prose says "(resume / continue / restart / skip)" — missing `something_else`.
+- **Suggested fix:** Add `something_else` to the docblock.
 
 ---
-*Generated by tech-debt-session skill — session 82, 2026-04-26.*
+
+## Notes
+
+- W1 + S1–S4 are all doc-staleness from the same root cause: `something_else` was added as a 5th action this session and not every reference was updated. Total fix is ~5 lines.
+- No security, complexity, real dead-code (W1 is a stray screenshot, not code), tax-hardcoding, design-system, or convention violations in the PHP/Vue/JS changes.
+- Architecture is consistent: action handlers follow the existing `handleResumeAction`/`handleRestartAction`/`handleSkipAction` pattern; dispatch check matches the existing `/action` endpoint check; `name`-field fix mirrors the spouse-linking handler pattern.
+- BS-02 / BS-04 stub docblocks are correctly updated with delivery notes and follow the same format as BS-01.
+
+---
+*Generated by tech-debt-session skill*
