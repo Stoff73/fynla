@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+uses(Tests\TestCase::class);
+
 it('no class references remain for deleted persona machinery', function (): void {
     $patterns = [
         'FynPersonaOrchestrator',
