@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 26 April 2026 — session 85 (BS-02 + BS-04 GREEN, 7 product fixes shipped)*
-*Previous session: 26 April 2026 — session 84 (BS-01 GREEN via real-user flow + S0.5.z registration consent fix)*
+*Last updated: 26 April 2026 — session 86 (stale-test fix → 486 baseline held; BS-05 deferred to post-sprint workstream; new `15-post-sprint-priorities-plan.md` queued)*
+*Previous session: 26 April 2026 — session 85 (BS-02 + BS-04 GREEN, 7 product fixes shipped)*
 
 ---
 
@@ -25,32 +25,67 @@ The data + backend wiring is already in place: read `onboarding_fyn_context.paus
 
 ---
 
-## Next session 86 — continue S0.16b Batch 3 — 12 scenarios remaining
+## Next session 87 — continue S0.16b Batch 3 — 11 scenarios remaining (BS-05 deferred)
 
-Session 85 closed with **BS-02 (base spouse direct-write)** and **BS-04 (resume after disconnect)** GREEN end-to-end via the canonical Quick start with Fyn real-user flow. Two commits pushed to `origin/feature/fyn-persona-split`: `b3e18e2` (the BS-02 + BS-04 work + 7 product fixes that unblocked BS-04, including the new "Something else" handoff that pauses onboarding and routes free-text to AdviceFyn) and `9b1c644` (CSJTODO + tech debt report). Working tree is clean. CSJ flagged a follow-up that needs **design + plan before any implementation**: there is no UI affordance to resume onboarding after a "Something else" pause — chat window is NOT the right surface — see the "Needs design + planning before implementation" section at the top of this file.
+Session 86 closed with the targeted Pest sweep at the post-session-85 baseline (486 passing) and BS-05 explicitly deferred to the post-sprint Lifestyle Landing Pages workstream per CSJ direction 2026-04-26. Two stale Pest assertions were updated to match session 85's intentional `restart` → `something_else` greeting bubble rename (`OnboardingResumeTest.php:54` and `ResumeAfterDisconnectTest.php:84`). A new top-level plan file `April/April24Updates/plan/15-post-sprint-priorities-plan.md` was created (mirrored to vault) capturing both the lifestyle and campaign landing-pages workstreams as the next priority once Sprints 0-4 are GREEN; one-line forward references were added to the tail of every sprint plan (10/11/12/13/14). Session 86 closed without a new commit yet — the BS-05 stub docblock + plan files remain unstaged so CSJ can review before the session-86 wrap commit.
 
-**Session 86 should:**
+**Session 87 should:**
 
-1. Read this file top-to-bottom (especially the "Needs design + planning" section, the session 85 narrative below, and the BS-NN Batch 3 checklist).
-2. Run `./dev.sh` to start the local dev stack.
-3. **Targeted Pest sweep** to verify no regressions from session 85's changes (UserResource fields, `something_else` action, `sendMessage` dispatch check, `handleQuickReplySelect` action-bubble routing, `handleCaptureDependants` name fix):
+1. Read this file top-to-bottom (especially the "Needs design + planning" section, the session 86 narrative below, and the BS-NN Batch 3 checklist with BS-05 now deferred).
+2. Read `April/April24Updates/plan/15-post-sprint-priorities-plan.md` once so the post-sprint context is loaded; the Sprint 0 S0.15 entry now carries a deferral note pointing at PSP-LS, and BS-05's stub docblock has the same pointer.
+3. Run `./dev.sh` to start the local dev stack.
+4. **Targeted Pest sweep** to verify no regressions from session 86's stale-assertion fixes (the rename was assertion-only — no production code changed):
    ```
    ./vendor/bin/pest tests/Feature/Auth tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture
    ```
-   Session 84 baseline: 486 passing. If anything fails, fix in the same loop before continuing — these changes touched dispatch routing, action validation, and message handling, so regressions are non-trivial.
-4. **Continue S0.16b Batch 3** with **BS-05 (journey map by entry source)** next. 12 scenarios remaining (BS-05, 06, 07, 10, 13, 15, 17, 18, 19, 21, 22, 23). All run via the canonical Quick start with Fyn real-user pattern — **no factory seeds, ever, no SQL fixtures, no manual consent grants, no manual trial starts** (session 85 reinforced this — when BS-04 stub said "backdate `ai_messages.created_at`", CSJ correctly directed to drive sign-out + sign-in instead, which uncovered the 7 real bugs). Update each stub docblock with a delivery note as you go.
+   Baseline: 486 passing. If anything fails, fix in the same loop before continuing.
+5. **Continue S0.16b Batch 3** with **BS-06 (parked facts flush)** next. **11 scenarios remaining** (BS-06, 07, 10, 13, 15, 17, 18, 19, 21, 22, 23 — BS-05 is now deferred, not next). All run via the canonical Quick start with Fyn real-user pattern — **no factory seeds, ever, no SQL fixtures, no manual consent grants, no manual trial starts** (session 85 reinforced this — when BS-04 stub said "backdate `ai_messages.created_at`", CSJ correctly directed to drive sign-out + sign-in instead, which uncovered the 7 real bugs). Update each stub docblock with a delivery note as you go.
 
 All Sprint 0 work stays on `feature/fyn-persona-split` locally until S0.17 verification rollup is complete. The deploy note (`April/April26Updates/deploy-session-84.md`) sits ready for the eventual `feature → dev` PR after Sprint 0 is 100% green; it is NOT a precondition for any BS-NN run.
+
+**Lifestyle + campaign landing pages — queued post-Sprints 0-4 GREEN.** See `April/April24Updates/plan/15-post-sprint-priorities-plan.md`. Campaign side has an existing 617-line draft at repo root (`CSJ-CAMPAIGN-LANDING-PLAN.md`, untracked, last updated 2026-04-25) that becomes the canonical campaign plan when PSP-C kicks off. Lifestyle side will need a parallel plan written at PSP-LS kickoff. Architectural extensibility (config-driven entry-source map, additive `journey_map`, optional first-state argument on `OnboardingChatDirector::emitFirstTurn`) is already in place from Sprint 0 work — no current-sprint code change needed to keep this open for future entry sources.
 
 **Read these before starting:**
 
 - This file top-to-bottom (handover).
+- `April/April24Updates/plan/15-post-sprint-priorities-plan.md` (NEW session 86 — also vault-mirrored) — post-Sprint-0-4 lifestyle + campaign workstream queue. Read once so the BS-05 deferral context is loaded.
+- `tests/Browser/scenarios/BS-05-journey-map-by-entry-source.php` — session 86 delivery note explaining the user-visible-flow deferral.
 - `tests/Browser/scenarios/BS-04-resume-after-disconnect.php` — full session 85 GREEN delivery note with all 7 product fixes itemised, plus the "Outstanding follow-up" pointing at the resume-from-pause UX gap.
 - `tests/Browser/scenarios/BS-02-base-spouse-direct-write.php` — session 85 GREEN delivery note with three stub-script amendments.
-- `tests/Browser/scenarios/BS-01-onboarding-path-choice-to-done.php` — session 84 delivery note: read this so session 86 doesn't repeat the factory-seed mistake.
+- `tests/Browser/scenarios/BS-01-onboarding-path-choice-to-done.php` — session 84 delivery note: read this so session 87 doesn't repeat the factory-seed mistake.
 - `April/April26Updates/deploy-session-84.md` — deploy steps for S0.5.z (still pending the eventual `feature → dev` PR; not blocking BS-NN runs).
-- `April/April24Updates/plan/10-sprint-0-plan.md` (gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/10-sprint-0-plan.md`) — Sprint 0 plan with all S0.5.* sub-tasks.
+- `April/April24Updates/plan/10-sprint-0-plan.md` (gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/10-sprint-0-plan.md`) — Sprint 0 plan with all S0.5.* sub-tasks; S0.15 entry now carries the BS-05 deferral note.
 - `MEMORY.md` "Top laws" — especially `feedback_loop_until_correct.md`, `critical_browser_testing_law.md`, `feedback_never_touch_env_or_db.md`.
+
+---
+
+## Session 86 — stale-test fix, BS-05 deferred, post-sprint plan queued
+
+### Completed this session
+
+- [x] **Session-bootstrap operational checks** — git clean (untracked `CSJ-CAMPAIGN-LANDING-PLAN.md` carried), branch `feature/fyn-persona-split` up-to-date with origin, no conflict markers, no pending migrations, DB seeded, dev server up. No worktrees.
+
+- [x] **Targeted Pest sweep first pass — 2 failures.** Both stale-assertion regressions from session 85's intentional `restart` → `something_else` rename of the welcome-back greeting bubble (CSJ direction during session 85 BS-04 work). The product code is correct; only the test assertions were behind:
+  - `tests/Feature/Onboarding/OnboardingResumeTest.php:54` asserted `bubbleIds → ['continue', 'restart']`. Updated to `['continue', 'something_else']` plus matching docblock + test-name update.
+  - `tests/Feature/Onboarding/ResumeAfterDisconnectTest.php:84` asserted `['id' => 'restart', 'label' => 'Start over']`. Updated to `['id' => 'something_else', 'label' => 'Something else']` plus matching docblock + test-name update.
+
+- [x] **Targeted Pest sweep re-run — 486 passing across `tests/Feature/Auth tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture` (1605 assertions, 0 failures).** Exact match to the session 84 baseline. No other regressions.
+
+- [x] **BS-05 deferred per CSJ direction (2026-04-26).** Driving BS-05 via the canonical real-user flow surfaced that the 4 entry-source CTAs the stub script assumes (Starting Out / Building Foundations / Protecting What Matters / Planning Your Future → `/register?from={journey_id}`) do not exist in the product. The current landing page has only `/register?from=fyn`. The existing `/stage/*` SEO pages route to `/register?stage={career_stage}` which feeds the legacy Onboarding flow, not the journey-map flow. Frontend plumbing to forward `from` for journey-map keys is also missing (Register.vue at lines 341-352 only special-cases `from === 'fyn'`; `aiChatService.startOnboardingStream` sends body `'{}'` with no `from` field). Backend half of INV-2.2.5 is complete and Pest-verified end-to-end by `EntrySourceJourneyMapTest` (S0.15.2). CSJ direction: BS-05 user-visible flow is part of the Lifestyle Landing Pages workstream, paired with the parallel Campaign Landing Pages workstream — both built together, both queued after Sprints 0-4 GREEN.
+
+- [x] **Created `April/April24Updates/plan/15-post-sprint-priorities-plan.md`** (106 lines, mirrored to fynlaBrain vault). Captures: gate (sprints 0-4 verification rollups all GREEN), architectural extensibility brief (config-driven entry-source map applies to current sprint work — no Sprint 0-4 code change needed but no tightening either), PSP-LS (Lifestyle Landing Pages — 4-5 pages routing through `/register?from={journey_id}`, frontend plumbing list, director-side personalised welcome), PSP-C (Campaign Landing Pages — references existing 617-line `CSJ-CAMPAIGN-LANDING-PLAN.md` draft), PSP-S (shared plumbing both workstreams need). Aligned to existing plan-file style with task entries / acceptance / out-of-scope.
+
+- [x] **Annotated Sprint 0 plan S0.15 entry** with the BS-05 user-visible-flow deferral note pointing at PSP-LS.
+
+- [x] **Added "Post-sprint priorities" forward references** at the tail of every sprint plan (`10-sprint-0`, `11-sprint-1`, `12-sprint-2`, `13-sprint-3`, `14-sprint-4`) pointing at `15-post-sprint-priorities-plan.md`. Sprint 4's footer was rewritten to say "Next priority" (with the gate condition) instead of the original "Subsequent iterations get their own separate plans".
+
+- [x] **Vault mirror sync** — copied 5 updated sprint plan files + the new `15-post-sprint-priorities-plan.md` to `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/`. Vault mirror line counts now match local (106 / 568 / 218 / 291 / 157 / 240 = 1580 total).
+
+- [x] **BS-05 stub docblock updated** with full delivery note explaining the deferral, the missing frontend plumbing, the backend Pest-sibling coverage, and the pointer to PSP-LS / PSP-S of the new plan. `markPendingInteractiveRun('BS-05')` retained.
+
+### Outstanding for session 87
+
+See "Next session 87" header at the top of this file. Summary: targeted Pest sweep at 486 baseline, then **BS-06 (parked facts flush)** — not BS-05. Batch 3 is now 11 scenarios remaining.
 
 ---
 
@@ -109,11 +144,11 @@ See "Next session 86" header at the top of this file. Summary: targeted Pest swe
 
 ### NOT Done — Outstanding for next session
 
-#### S0.16b Batch 3 — 12 remaining scenarios (BS-02 + BS-04 GREEN session 85)
+#### S0.16b Batch 3 — 11 remaining scenarios (BS-02 + BS-04 GREEN session 85; BS-05 deferred session 86)
 
 - [x] **BS-02** — base spouse direct-write (GREEN session 85)
 - [x] **BS-04** — resume after disconnect (GREEN session 85, 7 product fixes shipped — see below)
-- [ ] **BS-05** — journey map by entry source
+- [~] **BS-05** — journey map by entry source — **DEFERRED to PSP-LS / PSP-S in `15-post-sprint-priorities-plan.md`** (session 86, CSJ direction 2026-04-26). Backend half complete + Pest-sibling green; user-visible flow ships with the Lifestyle Landing Pages workstream after Sprints 0-4 GREEN.
 - [ ] **BS-06** — parked facts flush
 - [ ] **BS-07** — dispatch flips after onboarding
 - [ ] **BS-10** — out-of-remit refusal

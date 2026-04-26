@@ -1,8 +1,29 @@
-# Tech Debt Report — Session 85 (2026-04-26)
+# Tech Debt Report — Session 86 (2026-04-26)
 
-**Files analysed:** 8 modified PHP/Vue/JS + 24 new screenshots
-**Issues found:** 5 (0 critical, 1 warning, 4 suggestions)
-**Severity breakdown:** 0 critical, 1 warning, 4 suggestions
+**Files analysed:** 3 tracked test files + 6 gitignored documentation files inside `April/` (CSJTODO + sprint plan tails + new post-sprint plan).
+**Issues found:** 0
+**Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
+
+---
+
+## Files in scope
+
+Tracked, will be committed:
+
+1. `tests/Browser/scenarios/BS-05-journey-map-by-entry-source.php` — added a 33-line delivery-note docblock explaining the BS-05 deferral. Production-relevant code (the `it(...)` block + `markPendingInteractiveRun('BS-05')` call) unchanged.
+2. `tests/Feature/Onboarding/OnboardingResumeTest.php` — 6 lines changed: docblock, test name, and one assertion array updated to match session 85's intentional `restart` → `something_else` rename of the welcome-back greeting bubble.
+3. `tests/Feature/Onboarding/ResumeAfterDisconnectTest.php` — 6 lines changed: same pattern as above for the second resume-related test file.
+4. `CSJTODO.md` (project root) — synced from the gitignored `April/April26Updates/CSJTODO.md` working copy. Documentation only.
+
+Pre-existing untracked, NOT touched this session:
+
+- `CSJ-CAMPAIGN-LANDING-PLAN.md` (repo root) — CSJ's draft, last updated 2026-04-25. Out of scope.
+
+Gitignored, vault holds canonical mirror:
+
+- `April/April26Updates/CSJTODO.md` — session 86 narrative + Batch 3 list update.
+- `April/April24Updates/plan/15-post-sprint-priorities-plan.md` — new file (106 lines).
+- `April/April24Updates/plan/{10,11,12,13,14}-sprint-N-plan.md` — forward-reference + S0.15 deferral note.
 
 ## Critical Issues
 
@@ -10,46 +31,50 @@ None.
 
 ## Warnings
 
-### W1 — Duplicate screenshot at BS-04 slot 11
-- **File:** `docs/sprint-0-verification/BS-04/11-welcome-back-new-wording.png`
-- **Category:** Dead & Redundant Code
-- **What's wrong:** Two distinct PNGs named `11-*.png` at the same slot. The BS-04 stub delivery note references `11-rachel-welcome-back.png` (the actual one). `11-welcome-back-new-wording.png` is a leftover capture and never referenced.
-- **Suggested fix:** Delete `11-welcome-back-new-wording.png` before commit.
+None.
 
 ## Suggestions
 
-### S1 — `OnboardingChatDirector::handleResumeAction` docblock stale
-- **File:** `app/Services/Onboarding/OnboardingChatDirector.php:301`
-- **Category:** Convention Violations (doc-staleness)
-- **What's wrong:** Docblock says "Continue / Start over action bubbles" — bubble was renamed to "Something else" this session.
-- **Suggested fix:** Change "Continue / Start over" → "Continue / Something else" in the docblock.
+None.
 
-### S2 — `AiChatController::action` docblock missing 'something_else'
-- **File:** `app/Http/Controllers/Api/AiChatController.php:420`
-- **Category:** Convention Violations (doc-staleness)
-- **What's wrong:** Docblock says `Body: { action: 'resume' | 'continue' | 'restart' | 'skip' }` — missing `something_else`.
-- **Suggested fix:** Add `'something_else'` to the docblock action enum.
+---
 
-### S3 — `aiChatService.postAction` docblock missing 'something_else'
-- **File:** `resources/js/services/aiChatService.js:153,159`
-- **Category:** Convention Violations (doc-staleness)
-- **What's wrong:** Both prose docblock at L153 ("resume / continue / restart / skip") and JSDoc `@param` type union at L159 (`{'resume'|'continue'|'restart'|'skip'} action`) omit `something_else`.
-- **Suggested fix:** Add `something_else` to both.
+## Audit detail
 
-### S4 — `aiChat.js postAction` docblock missing 'something_else'
-- **File:** `resources/js/store/modules/aiChat.js:640`
-- **Category:** Convention Violations (doc-staleness)
-- **What's wrong:** Docblock prose says "(resume / continue / restart / skip)" — missing `something_else`.
-- **Suggested fix:** Add `something_else` to the docblock.
+### Category 1: Duplicate Code
+
+No duplicate logic introduced. The 3 changed test files contain assertion-only edits and one docblock note; no helpers, mixins, or shared utilities touched.
+
+### Category 2: Dead & Redundant Code
+
+No dead code introduced. No commented-out blocks, no `dd()` / `dump()` / `console.log` / unused imports. The added BS-05 docblock is intentional documentation, not dead code.
+
+### Category 3: Convention Violations
+
+All 3 modified test files retain `declare(strict_types=1);`. No banned colour tokens, no hardcoded hex, no acronyms in user-facing copy (the only acronyms appearing are inside Pest test names referring to internal state-machine constants like `STATE_BASE_PERSONAL`, which are code identifiers, not user-facing copy). No `Mockery` setup that would need cleanup. No hardcoded tax values. No `sole` ownership type. Test naming follows the lowercase `it('does something specific')` Pest convention per `tests/CLAUDE.md`.
+
+The Pest tests that were edited (`OnboardingResumeTest.php`, `ResumeAfterDisconnectTest.php`) use `User::factory()->create([...])` — that is correct for unit/feature-level tests of the director per `tests/CLAUDE.md`. The "no factory seeds" rule applies to **BS-NN browser scenarios** (canonical real-user flow), not to Pest feature tests of internal services.
+
+### Category 4: Complexity & Maintainability
+
+No method or file size growth. The BS-05 stub gained ~33 lines of docblock comment, but the test body is still a single one-line `markPendingInteractiveRun` call. No new conditionals, no magic numbers.
+
+### Category 5: Security Concerns
+
+No user input handling, no SQL, no auth changes, no exposed sensitive data. All edits are in test code or doc comments.
+
+### Category 6: Inconsistency with Existing Patterns
+
+The BS-05 deferral docblock follows the same delivery-note pattern used in BS-01, BS-02, BS-04, BS-11, BS-12, BS-16, BS-20 stubs (date + outcome + scope + pointer to plan / spec-amendment list). The session 86 entry in CSJTODO follows the structure of session 84 + 85 entries (Completed / Outstanding / Context). The new `15-post-sprint-priorities-plan.md` mirrors the existing sprint-plan style (canonical-contract reference + Purpose + Gate + numbered task entries with Objective / Files / Acceptance / Out of scope).
 
 ---
 
 ## Notes
 
-- W1 + S1–S4 are all doc-staleness from the same root cause: `something_else` was added as a 5th action this session and not every reference was updated. Total fix is ~5 lines.
-- No security, complexity, real dead-code (W1 is a stray screenshot, not code), tax-hardcoding, design-system, or convention violations in the PHP/Vue/JS changes.
-- Architecture is consistent: action handlers follow the existing `handleResumeAction`/`handleRestartAction`/`handleSkipAction` pattern; dispatch check matches the existing `/action` endpoint check; `name`-field fix mirrors the spouse-linking handler pattern.
-- BS-02 / BS-04 stub docblocks are correctly updated with delivery notes and follow the same format as BS-01.
+- Session 86 was scoped to test-assertion alignment + plan-shaped documentation. No production PHP, Vue, JS, CSS, migration, or seeder changes. That accounts for the clean bill of health.
+- The doc-staleness items called out in session 85's tech-debt report (S1–S4: `something_else` missing from various docblocks across the director / controller / service / store) were resolved in commit `b3e18e2` last session. Spot-checked during this audit: all four references now include `something_else` in their action enums.
+- The previous session's W1 (duplicate screenshot at BS-04 slot 11) — also resolved in `b3e18e2`.
 
 ---
-*Generated by tech-debt-session skill*
+
+*Generated by tech-debt-session skill — 2026-04-26 session 86. Clean bill of health: 0 issues across 3 changed tracked files.*

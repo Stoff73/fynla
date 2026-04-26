@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
  * than 5 minutes returns to the conversation, the next session
  * emits a welcome-back quick_replies turn whose prompt_text contains
  * the OnboardingChatDirector's per-state label and whose bubbles are
- * the binary continue/restart action_bubbles set.
+ * the binary continue/something_else action_bubbles set.
  *
  * The 5-minute threshold itself is enforced client-side (the chat
  * frontend decides when to dispatch action=resume vs action=continue).
@@ -62,7 +62,7 @@ function makeStaleOnboardingUser(string $stateId, ?string $selection = null): ar
     return [$user, $conversation];
 }
 
-it('emits welcome-back quick_replies with continue/restart action bubbles on resume after stale gap', function () {
+it('emits welcome-back quick_replies with continue/something_else action bubbles on resume after stale gap', function () {
     [$user, $conversation] = makeStaleOnboardingUser(
         OnboardingStateMachine::STATE_BASE_DEPENDANTS
     );
@@ -81,7 +81,7 @@ it('emits welcome-back quick_replies with continue/restart action bubbles on res
     $bubbles = $quick['bubbles'] ?? [];
     expect($bubbles)->toHaveCount(2);
     expect($bubbles[0])->toMatchArray(['id' => 'continue', 'label' => 'Continue']);
-    expect($bubbles[1])->toMatchArray(['id' => 'restart', 'label' => 'Start over']);
+    expect($bubbles[1])->toMatchArray(['id' => 'something_else', 'label' => 'Something else']);
 
     // State must not advance — the user picks the next move.
     $user->refresh();

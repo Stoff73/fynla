@@ -16,7 +16,7 @@ uses(RefreshDatabase::class);
  * When a user lands on a conversation they abandoned mid-onboarding,
  * the client sends POST /action with action=resume. The director must:
  *   1. Emit a welcome-back greeting naming the saved step.
- *   2. Surface Continue / Start over action bubbles.
+ *   2. Surface Continue / Something else action bubbles.
  *   3. Not advance state — the user decides next turn.
  * And for action=continue, it re-emits the current state's turn.
  * And for action=restart, it deletes prior messages and resets to path_choice.
@@ -25,7 +25,7 @@ beforeEach(function () {
     $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
 });
 
-it('emits a welcome-back greeting with Continue / Start over bubbles on resume', function () {
+it('emits a welcome-back greeting with Continue / Something else bubbles on resume', function () {
     $user = User::factory()->create([
         'is_preview_user' => false,
         'first_name' => 'Chris',
@@ -51,7 +51,7 @@ it('emits a welcome-back greeting with Continue / Start over bubbles on resume',
     expect($quick['action_bubbles'] ?? false)->toBeTrue();
 
     $bubbleIds = array_column($quick['bubbles'] ?? [], 'id');
-    expect($bubbleIds)->toBe(['continue', 'restart']);
+    expect($bubbleIds)->toBe(['continue', 'something_else']);
 
     // State not advanced — the user decides what to do next turn.
     $user->refresh();

@@ -51,6 +51,39 @@ declare(strict_types=1);
  *
  * Pass: 5 sub-scenarios all produce the correct initial state and the
  *       expected user.* columns.
+ *
+ * ---------------------------------------------------------------------
+ * Delivery note (2026-04-26, session 86) — BS-05 USER-VISIBLE FLOW DEFERRED.
+ *
+ * Driving BS-05 via the canonical Quick start with Fyn real-user flow
+ * surfaced that the 4 entry-source CTAs the script assumes (Starting Out
+ * → from=budgeting, Building Foundations → from=goals, Protecting What
+ * Matters → from=protection, Planning Your Future → from=retirement)
+ * do not exist on the landing page. The current product has only the
+ * unified `/register?from=fyn` CTA on the landing page; the existing
+ * `/stage/*` SEO pages route to `/register?stage={career_stage}` and feed
+ * the legacy Onboarding flow, not the journey-map one. Frontend plumbing
+ * to forward `from` for known journey-map keys is also missing
+ * (Register.vue at lines 341-352 only handles `from === 'fyn'`;
+ * aiChatService.startOnboardingStream sends body '{}' with no `from`).
+ *
+ * Backend half of INV-2.2.5 is complete and Pest-verified end-to-end by
+ * `tests/Feature/Onboarding/EntrySourceJourneyMapTest.php` (S0.15.2):
+ * the controller's `request->input('from')` lookup, the journey_map
+ * config, the runtime-additive contract, the unknown/missing fallthrough
+ * to STATE_PATH_CHOICE, and the per-known-key state advancement.
+ *
+ * CSJ direction (2026-04-26): BS-05 user-visible flow is part of the
+ * Lifestyle Landing Pages workstream queued in
+ * `April/April24Updates/plan/15-post-sprint-priorities-plan.md` §PSP-LS,
+ * which starts only after Sprints 0-4 are GREEN. Both lifestyle and
+ * campaign landing pages are built together at that point. BS-05 stays
+ * markPendingInteractiveRun until the lifestyle plumbing ships.
+ *
+ * Required reading before re-driving BS-05: §PSP-LS + §PSP-S of
+ * 15-post-sprint-priorities-plan.md. The stub script's per-page CTA
+ * labels above will need updating during PSP-LS implementation to match
+ * whatever lifestyle-page UX ships.
  */
 it('BS-05 journey map by entry source', function (): void {
     $this->markPendingInteractiveRun('BS-05');
