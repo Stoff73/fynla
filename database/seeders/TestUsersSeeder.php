@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Models\Household;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\UserConsent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -135,6 +136,19 @@ class TestUsersSeeder extends Seeder
                         'current_period_end' => $trialEnd,
                     ]
                 );
+
+                // Grant the same consents real users grant at registration
+                // (AuthController::register lines 506-511). Without this the
+                // consent gate at AiChatController::sendMessage returns 403
+                // and chat is silently locked out for seeded users.
+                foreach ([
+                    UserConsent::TYPE_TERMS,
+                    UserConsent::TYPE_PRIVACY,
+                    UserConsent::TYPE_DATA_PROCESSING,
+                    UserConsent::TYPE_AI_CHAT,
+                ] as $consentType) {
+                    UserConsent::recordConsent($user->id, $consentType, true);
+                }
             }
         }
     }
