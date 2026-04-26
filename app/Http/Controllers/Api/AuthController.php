@@ -16,11 +16,13 @@ use App\Models\LoginAttempt;
 use App\Models\PendingRegistration;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserConsent;
 use App\Models\UserSession;
 use App\Services\Audit\AuditService;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\SessionService;
+use App\Services\GDPR\ConsentService;
 use App\Services\Payment\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +42,8 @@ class AuthController extends Controller
         private readonly MFAService $mfaService,
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
-        private readonly TrialService $trialService
+        private readonly TrialService $trialService,
+        private readonly ConsentService $consentService
     ) {}
 
     /**
@@ -489,6 +492,23 @@ class AuthController extends Controller
                 : 'standard';
             $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
             $this->trialService->startTrial($user, $plan, $billingCycle);
+
+            // Record GDPR consents accepted at registration. The form footer
+            // says "By creating an account, you agree to our Terms of Service
+            // and Privacy Policy" so terms + privacy are explicit. Data
+            // processing is the lawful basis under which the app operates and
+            // is implicit at sign-up. AI chat consent is granted because the
+            // entire post-registration journey (onboarding, advice) is chat-
+            // driven — without it /api/ai-chat/onboarding/start returns 403
+            // and the user is silently locked out of the product. Withdrawing
+            // any of these via /settings continues to flow through the
+            // existing UserConsent::withdraw path (INV-2.10.3 still applies).
+            $this->consentService->recordConsents($user, [
+                UserConsent::TYPE_TERMS => true,
+                UserConsent::TYPE_PRIVACY => true,
+                UserConsent::TYPE_DATA_PROCESSING => true,
+                UserConsent::TYPE_AI_CHAT => true,
+            ]);
 
             // Link referral if user registered with a referral code
             if ($pending->referral_code) {

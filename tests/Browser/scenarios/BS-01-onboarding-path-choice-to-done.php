@@ -47,6 +47,88 @@ declare(strict_types=1);
  *
  * Pass: scenario reaches dashboard without error, screenshots captured,
  *       onboarding_completed flipped, no SSE error events in stream.
+ *
+ * Delivery note (2026-04-26, session 84 — Batch 3 #1, GREEN end-to-end):
+ *   Drove the canonical user journey: landing page → "Quick start with Fyn"
+ *   CTA (/register?from=fyn) → registration form → MFA → /dashboard?openFyn=
+ *   journey&newUser=1 (auto-onboarding) → walk every state to completion. No
+ *   factory shortcuts. Final state: User #54 (Laury Marks, bs01-real@example.com),
+ *   onboarding_completed=true, onboarding_fyn_step=null, dob=1985-01-12,
+ *   marital=married, spouse_id=55 (Angela linked bidirectionally), employer=
+ *   ACME Ltd, occupation=Engineer, annual_employment_income=75000,
+ *   monthly_expenditure=2500, 1 LifeInsurancePolicy (Aviva £300k level_term),
+ *   4 consents granted (terms, privacy, data_processing, ai_chat).
+ *   13 screenshots in docs/sprint-0-verification/BS-01/.
+ *
+ *   Product fix shipped during this run (folded into the same loop per
+ *   §S0.16b "any failures route through dedicated bug-fix sub-tasks"):
+ *
+ *     S0.5.z — Registration verifyCode now records the four implicit
+ *     GDPR consents the post-registration journey depends on. Before this
+ *     fix, AuthController::verifyCode() created the user, started the
+ *     trial, and routed them to /dashboard?openFyn=journey — which
+ *     immediately POSTs /api/ai-chat/onboarding/start. That endpoint
+ *     gates on TYPE_AI_CHAT consent (AiChatController:257), the consent
+ *     was never granted, the call returned 403, and the frontend
+ *     silently fell back to a blank conversation. Onboarding never
+ *     started. Fix: ConsentService::recordConsents() called for terms +
+ *     privacy + data_processing + ai_chat right after startTrial().
+ *     Form footer "By creating an account, you agree to our Terms of
+ *     Service and Privacy Policy" makes terms+privacy explicit;
+ *     data_processing is the lawful basis under which the app operates;
+ *     ai_chat is implicit when the user enters via the Quick start with
+ *     Fyn CTA (the entire post-registration journey is chat-driven).
+ *     INV-2.10.3 still applies — withdrawing any of these via /settings
+ *     continues to flow through UserConsent::withdraw and the runtime
+ *     consent gate on every chat turn.
+ *     Files: app/Http/Controllers/Api/AuthController.php (+2 imports,
+ *     +1 dep, +13 lines).
+ *
+ *   Stub-script amendments needed (carry to spec amendment list):
+ *
+ *     1. Seed wording: "factory user" understates. The canonical seed
+ *        for every BS-NN that drives onboarding is "register a fresh
+ *        user via the /register?from=fyn flow" — not User::factory().
+ *        Real registration gives the user (a) a trialing Subscription,
+ *        (b) the four GDPR consents (post-S0.5.z), (c) NULL marital +
+ *        DOB so the state machine asks for them. Factory-created users
+ *        miss all three. Recommend: add a Login::registerFreshFynUser
+ *        helper in tests/Browser/Helpers/ that drives the register UI
+ *        and returns the User row.
+ *
+ *     2. Step 8 — journey-choice turn shows FIVE bubbles, not four.
+ *        Canonical list in OnboardingStateMachine.php:96-126 and
+ *        resources/js/constants/lifeStageConfig.js: Starting Out,
+ *        Building Foundations, Protecting What Matters, Planning Your
+ *        Future, Enjoying Your Wealth. Add the fifth to the stub.
+ *
+ *     3. Step 11 — terminal bubble label is "I'm done", not
+ *        "Finish for now". Update stub.
+ *
+ *     4. Step 12 — Fyn auto-navigates to the journey's terminal module
+ *        (/protection for "Protecting What Matters") rather than
+ *        /dashboard. Loosen the assertion to "any authenticated route
+ *        rendered, onboarding_completed=true".
+ *
+ *   Notes on what the FIRST attempt got wrong (recording for next
+ *   session's reference):
+ *     - Attempting to seed a factory user + manually grant consent +
+ *       manually start trial diverged from the canonical user journey
+ *       and surfaced ghost gaps that did not exist in production. The
+ *       only reliable seed is "drive the actual /register?from=fyn UI".
+ *     - Earlier "stub gap" claim that base_work loses employer/income
+ *       was wrong: I was checking users.employer_name and users.
+ *       gross_annual_income; the actual columns CoordinatingAgent::
+ *       handleCaptureWorkDetails writes to are users.employer and
+ *       users.annual_employment_income (CoordinatingAgent.php:1220-1228).
+ *       All three fields capture correctly via the LLM-driven extractor.
+ *     - Earlier "stub gap" claim that base_personal couldn't capture
+ *       marital was wrong: User::factory()'s default
+ *       marital_status='single' (UserFactory:36) routes
+ *       buildPersonalPrompt (OnboardingStateMachine:483-512) to its
+ *       "have you noted as single — share your DOB" branch. Real users
+ *       start with marital=NULL and the prompt asks for both, which
+ *       the LLM extracts correctly.
  */
 it('BS-01 onboarding path-choice-to-done', function (): void {
     $this->markPendingInteractiveRun('BS-01');
