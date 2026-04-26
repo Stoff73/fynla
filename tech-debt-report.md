@@ -1,40 +1,48 @@
-# Tech Debt Report — Session 88 (2026-04-26)
+# Tech Debt Report — Session 90 (2026-04-26)
 
-**Files analysed:** 4 (PHP + JS code only; screenshots and test docblock excluded from code-quality scan)
-**Issues found:** 0
-**Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
+**Files analysed:** 5 (4 PHP source + 1 test stub docblock)
+**Issues found:** 2
+**Severity breakdown:** 0 critical, 1 warning, 1 suggestion
+
+Files in scope (from session-90 commits `5b65a7b` + `d5a3bbb`):
+
+- `app/Services/AI/AdvicePromptBuilder.php`
+- `app/Services/Onboarding/OnboardingChatDirector.php`
+- `app/Services/Onboarding/OnboardingPromptBuilder.php`
+- `app/Services/Onboarding/OnboardingStateMachine.php`
+- `tests/Browser/scenarios/BS-21-coreidentity-tone.php` (docblock-only — not audited for code debt)
+
+## Critical Issues
+
+None.
+
+## Warnings
+
+### W1 — Duplicated first-name resolution pattern across 5 sites
+
+- **Files**:
+  - `app/Services/AI/AdvicePromptBuilder.php:61-65` (`build()`)
+  - `app/Services/Onboarding/OnboardingChatDirector.php:312-316` (`handleResumeAction`)
+  - `app/Services/Onboarding/OnboardingChatDirector.php:1532-1536` (`buildGroupedExtractPrompt`)
+  - `app/Services/Onboarding/OnboardingPromptBuilder.php:46-50` (`buildAssetCapturePrompt`)
+  - `app/Services/Onboarding/OnboardingStateMachine.php:565-569` (`buildAssetCaptureIntro`)
+  - `app/Services/Onboarding/OnboardingStateMachine.php:655-659` (`interpolate`)
+  - Plus pre-existing inline variants at `app/Services/AI/AdvicePromptBuilder.php:314` (`buildUserProfile` — `$user->first_name ?? explode(...)[0] ?? 'User'`) and `app/Services/Plans/BasePlanService.php:241` (same inline shape with `'there'` fallback).
+- **Category**: Duplicate Code
+- **What's wrong**: The same 4-line block — `$firstName = trim((string) ($user->first_name ?? '')); if ($firstName === '') { $nameParts = explode(' ', (string) $user->name); $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there'; }` — is now repeated five times across four files. With the two pre-existing inline variants this is seven copies of the same name-resolution intent.
+- **Suggested fix**: Extract a single helper. Either:
+  - A `User` model accessor: `public function getFirstNameForDisplayAttribute(): string` (with optional `firstNameForDisplay(string $fallback = 'there'): string` method for callers that want a non-default fallback like `'User'`).
+  - A static helper: `App\Support\UserNameResolver::firstName(User $user, string $fallback = 'there'): string`.
+- **Why deferred**: Bug-fix scope discipline (CLAUDE.md "don't introduce abstractions beyond what the task requires") kept session 90 tight — the fix was a focused-line replacement at the broken sites, not a refactor. Cleanup is a small follow-up.
+
+## Suggestions
+
+### S1 — Inconsistent first-name resolution shape inside `AdvicePromptBuilder.php`
+
+- **File**: `app/Services/AI/AdvicePromptBuilder.php:314` (`buildUserProfile`)
+- **Category**: Inconsistency with existing patterns
+- **What's wrong**: Line 314 uses the older inline shape `$user->first_name ?? explode(' ', $user->name)[0] ?? 'User'` with a `'User'` fallback, while line 61 of the same file uses the new pattern with a `'there'` fallback. Two divergent resolution shapes in one file are confusing to read.
+- **Suggested fix**: Unify with the helper from W1, or — if W1 is deferred — at minimum bring line 314 up to the new `if ($firstName === '')` shape. Choice of fallback (`'User'` vs `'there'`) should be intentional and documented.
 
 ---
-
-## Files reviewed
-
-| File | LOC delta | Verdict |
-|---|---|---|
-| `app/Observers/GoalCacheObserver.php` | +46 (new) | Clean — strict types, type hints, `private readonly` constructor injection, mirrors `LifeEventMonteCarloObserver` pattern, single responsibility |
-| `app/Providers/EventServiceProvider.php` | +3 | Clean — observer registration sits in alphabetical position, matches existing format |
-| `resources/js/store/modules/aiChat.js` | +11 | Clean — cross-module dispatches use `{ root: true }`, `.catch(() => {})` matches established convention at line 737 (onboarding_layout_change handler), explanatory comment captures non-obvious WHY (router push is no-op on same-route) |
-| `tests/Browser/scenarios/BS-07-dispatch-flips-after-onboarding.php` | +88 (mostly docblock) | Clean — delivery note follows session 85/86/87 pattern, asserts inventory matches BS-07 acceptance criteria |
-
-## Categories checked
-
-- **Duplicate code** — none
-- **Dead/redundant code** — none. No commented-out blocks, no `dd()` / `dump()` / `console.log` left in
-- **Convention violations** — none
-  - PHP: `declare(strict_types=1);` present, type hints on all methods, no DB facade, no hardcoded tax values, no `sole` ownership
-  - JS: cross-module dispatches use `{ root: true }`, no banned colors (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*`), no acronyms in user-facing text, no scores
-- **Complexity** — observer is 46 lines with single responsibility; aiChat.js change is 4 dispatches in an existing switch arm (no nesting added)
-- **Security** — no user input handling changed; no new query paths
-- **Inconsistency** — `GoalCacheObserver` mirrors `LifeEventMonteCarloObserver` exactly (constructor injection style, lifecycle hooks, joint-owner invalidation pattern)
-
-## Top observations
-
-1. The `.catch(() => {})` swallow on the four added dispatches in `aiChat.js` is intentional and established convention. The same pattern already exists at `aiChat.js:737-738` for the `onboarding_layout_change` handler. Errors here are non-critical (best-effort refresh) and propagating them would surface a misleading user error.
-2. `GoalCacheObserver` invalidates for both `user_id` and `joint_owner_id` — Goal supports joint ownership via `joint_owner_id` per the existing `forUserOrJoint` scope in `HasJointOwnership` trait. Matches `NetWorthCacheObserver`'s joint-owner pattern.
-3. Pest sweep ran 486 passing / 1605 assertions / 0 failures after the fix — observer registration does not regress existing tests.
-
-## Conclusion
-
-Clean bill of health. Nothing to fix before commit.
-
----
-*Generated by tech-debt-session skill — 2026-04-26 session 88. 0 issues across 4 changed code files.*
+*Generated by tech-debt-session skill — session 90, 2026-04-26*
