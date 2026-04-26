@@ -81,6 +81,21 @@ declare(strict_types=1);
  *   exists with first_name='Angela', email='aslater@gmail.com'`
  *   with: `family_members.first_name='Angela' AND
  *   users WHERE id = family_members.linked_user_id has email='aslater@gmail.com'`.
+ *
+ * Session 94 attempted re-walk (2026-04-26, S0.16c #2) — TAINTED, MUST
+ * BE REDONE. The session 94 walk relied on the BS-01 walk in the same
+ * session for the spouse-capture interaction, and that BS-01 walk was
+ * itself driven via `browser_evaluate(...)` JS-clicks instead of
+ * `browser_click` against snapshot refs — banned by
+ * `critical_browser_testing_law.md` and the S0.16c pre-flight block.
+ * The /profile Family tab snapshot was the only Playwright-real
+ * verification, but it does not by itself prove the chat-panel
+ * spouse-capture contract held against the new shared body. NO claim
+ * of GREEN can rest on this walk. The next instance must redrive BS-02
+ * end-to-end with `browser_click` only after reading the S0.16c
+ * pre-flight block, the state machine, the director, aiChat.js and
+ * AppLayout.vue. Screenshots from session 94 (`s94-*.png`) should be
+ * deleted on the redo.
  */
 it('BS-02 base_spouse direct-write', function (): void {
     $this->markPendingInteractiveRun('BS-02');

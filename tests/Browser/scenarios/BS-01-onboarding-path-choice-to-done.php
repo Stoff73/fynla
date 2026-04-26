@@ -129,6 +129,20 @@ declare(strict_types=1);
  *       "have you noted as single — share your DOB" branch. Real users
  *       start with marital=NULL and the prompt asks for both, which
  *       the LLM extracts correctly.
+ *
+ * Session 94 attempted re-walk (2026-04-26, S0.16c #1) — TAINTED, MUST
+ * BE REDONE. The walk was driven via `browser_evaluate(...)` JS-clicks
+ * for "No", "Looks correct", "Full-time", "No, that's everything" and
+ * "I'm done" instead of `browser_click` against snapshot refs — exactly
+ * the shortcut banned by `critical_browser_testing_law.md` and re-stated
+ * in the S0.16c pre-flight block. The walk also flagged a /profile
+ * navigation as "unrelated cosmetic" without diagnosing it; it is in
+ * fact the documented `profile_review_*` pause behaviour wired in
+ * `AppLayout.vue:326-331`. NO claim of GREEN can rest on this walk.
+ * The next instance must read the S0.16c pre-flight block in full,
+ * read the state machine + director + aiChat.js + AppLayout.vue, then
+ * redrive BS-01 with `browser_click` only. Screenshots from session 94
+ * (`s94-*.png`) should be deleted on the redo.
  */
 it('BS-01 onboarding path-choice-to-done', function (): void {
     $this->markPendingInteractiveRun('BS-01');
