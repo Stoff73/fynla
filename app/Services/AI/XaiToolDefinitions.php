@@ -635,9 +635,10 @@ class XaiToolDefinitions
                     'premium_amount' => ['type' => ['number', 'null'], 'description' => 'Premium amount (£).'],
                     'premium_frequency' => $this->nullableEnum(['monthly', 'annually'], 'How often premiums are paid. Default "monthly".'),
                     'policy_term_years' => ['type' => ['integer', 'null'], 'description' => 'Policy term in years (not for whole of life).'],
+                    'policy_start_date' => ['type' => ['string', 'null'], 'description' => 'Policy start date. Pass the user-supplied phrase verbatim (e.g. "today", "26 April 2026", "last Monday") — the server parses it deterministically.'],
                     'in_trust' => ['type' => ['boolean', 'null'], 'description' => 'Whether written in trust for IHT. Default false.'],
                 ],
-                ['policy_type', 'provider', 'sum_assured', 'benefit_amount', 'premium_amount', 'premium_frequency', 'policy_term_years', 'in_trust']
+                ['policy_type', 'provider', 'sum_assured', 'benefit_amount', 'premium_amount', 'premium_frequency', 'policy_term_years', 'policy_start_date', 'in_trust']
             ),
         ];
     }

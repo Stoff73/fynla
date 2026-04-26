@@ -619,7 +619,14 @@ trait HasAiChat
             $assistantExtra['persona'] = $this->personaOverride;
         }
 
-        $assistantMessage = $this->saveMessage($conversation, 'assistant', $fullResponse, $assistantExtra);
+        // Defence in depth — strip any `<function_call>...</function_call>`
+        // markup the LLM may have emitted as plain text instead of using the
+        // structured tool_use API. We never want that leaking into a
+        // persisted assistant message (it breaks the chat bubble + the
+        // BS-20 visible-text contract).
+        $sanitisedResponse = \App\Support\AssistantContentSanitiser::stripLeakedToolCallMarkup($fullResponse);
+
+        $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
 
         // Update conversation token usage
         $conversation->incrementTokenUsage($totalInputTokens, $totalOutputTokens);

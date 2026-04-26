@@ -70,6 +70,8 @@ final class AdviceFyn
         private readonly XaiToolDefinitions $xaiToolDefinitions,
         private readonly QueryClassifier $queryClassifier,
         private readonly OnboardingChatDirector $onboardingChatDirector,
+        private readonly WriteIntentClassifier $writeIntentClassifier,
+        private readonly RecordDuplicateChecker $duplicateChecker,
     ) {}
 
     public function handle(
@@ -105,6 +107,57 @@ final class AdviceFyn
             ]);
 
             yield ['type' => 'content', 'text' => $text];
+            yield ['type' => 'done'];
+
+            return;
+        }
+
+        // Server-side write-intent classifier — runs BEFORE the LLM stream.
+        // If the user message clearly says "add / I have / we bought + a
+        // policy / account / pension / etc." AND no matching record already
+        // exists, route the turn through OnboardingChatDirector::handleInlineCapture
+        // directly. This decouples the write path from LLM tool-call
+        // reliability — grok-4-1-fast occasionally emits delegate_to_capture
+        // as plain `<function_call>` text instead of using the structured
+        // tool API, which made BS-11/14/17 flaky on the LLM-mediated path.
+        // The classifier is conservative: ambiguous messages fall through
+        // to the normal LLM advice flow.
+        $intent = $this->writeIntentClassifier->classify($message);
+
+        if ($intent !== null && ! $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+            // Persist the user message ourselves — handleInlineCapture's
+            // chatWithPromptOverride call uses persistUserMessage:false on
+            // purpose (it normally rides on top of an Advice-Fyn turn that
+            // already saved the user message). On this deterministic path
+            // there IS no preceding advice turn, so we save it here.
+            $conversation->messages()->create([
+                'role' => 'user',
+                'content' => $message,
+                'persona' => 'advice',
+            ]);
+
+            $captureContext = CaptureContext::fromArray([
+                'reason' => $intent['reason'],
+                'entity_types' => [$intent['entity_type']],
+                'fields_needed' => $intent['fields_needed'],
+            ]);
+
+            Log::info('[AdviceFyn] Deterministic write-intent routed', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'entity_type' => $intent['entity_type'],
+                'matched_verb' => $intent['matched_verb'],
+                'matched_entity_keyword' => $intent['matched_entity_keyword'],
+            ]);
+
+            yield from $this->onboardingChatDirector->handleInlineCapture(
+                $user,
+                $conversation,
+                $message,
+                $captureContext,
+                $currentRoute,
+            );
+
             yield ['type' => 'done'];
 
             return;

@@ -2089,6 +2089,9 @@ PROMPT;
         /** @var list<array<string, mixed>> $llmEmittedFills */
         $llmEmittedFills = [];
 
+        /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
+        $recordsCreated = [];
+
         foreach ($generator as $event) {
             $type = $event['type'] ?? '';
 
@@ -2098,6 +2101,16 @@ PROMPT;
 
             if ($type === 'fill_form') {
                 $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+            }
+
+            // Track every record persisted by a create_* / direct-write handler
+            // so the closing capture_complete event carries the full list.
+            if ($type === 'entity_created') {
+                $recordsCreated[] = [
+                    'type' => (string) ($event['entity_type'] ?? ''),
+                    'id' => $event['entity_id'] ?? null,
+                    'name' => (string) ($event['name'] ?? ''),
+                ];
             }
 
             yield $event;
@@ -2110,6 +2123,35 @@ PROMPT;
             $message,
             $llmEmittedFills,
         );
+
+        // Emit a single closing capture_complete event so AiChatPanel.vue can
+        // render the rich record-card bubble (one card per record) instead of
+        // leaving the user with the bare entity_created mini-bubble plus the
+        // assistant's prose. Suppressed when nothing was actually written —
+        // an empty card would just be visual noise.
+        if ($recordsCreated !== []) {
+            yield [
+                'type' => 'capture_complete',
+                'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
+                'records_created' => $recordsCreated,
+            ];
+        }
+    }
+
+    /**
+     * One-line summary heading for the capture_complete record-card bubble.
+     * The card itself shows each record on its own row; this is the bold
+     * prefix above them.
+     *
+     * @param  list<array{type: string, id: int|string|null, name: string}>  $records
+     */
+    private function buildCaptureCompleteSummary(array $records): string
+    {
+        if (count($records) === 1) {
+            return 'Saved to your records';
+        }
+
+        return sprintf('Saved %d records', count($records));
     }
 
     /**

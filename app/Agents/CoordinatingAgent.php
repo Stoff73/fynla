@@ -2479,6 +2479,22 @@ class CoordinatingAgent extends BaseAgent
         $benefitAmount = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : 0.0;
         $providerLabel = $input['provider'] ?? str_replace('_', ' ', $policyType);
 
+        // Resolve any natural-language date the LLM passed through. We do NOT
+        // ask the LLM to format dates as ISO 8601 — it's an unreliable thing
+        // to delegate. The handler accepts whatever phrase the user said and
+        // parses it deterministically (Carbon handles "today", "yesterday",
+        // "26 April 2026", "last Monday", etc.). Bad strings drop to null
+        // rather than 500 the request.
+        foreach (['policy_start_date', 'policy_end_date'] as $dateField) {
+            if (isset($input[$dateField]) && is_string($input[$dateField]) && $input[$dateField] !== '') {
+                try {
+                    $input[$dateField] = \Carbon\Carbon::parse($input[$dateField])->toDateString();
+                } catch (\Throwable $e) {
+                    unset($input[$dateField]);
+                }
+            }
+        }
+
         if ($category === 'life') {
             $payload = [
                 'user_id' => $user->id,

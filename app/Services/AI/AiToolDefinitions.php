@@ -772,6 +772,10 @@ class AiToolDefinitions
                             'type' => 'integer',
                             'description' => 'Policy term in years (not applicable for whole of life)',
                         ],
+                        'policy_start_date' => [
+                            'type' => 'string',
+                            'description' => 'Policy start date. Pass the user-supplied phrase verbatim (e.g. "today", "26 April 2026", "last Monday") — the server parses it deterministically.',
+                        ],
                         'in_trust' => [
                             'type' => 'boolean',
                             'description' => 'Whether the policy is written in trust for Inheritance Tax planning. Default false.',
