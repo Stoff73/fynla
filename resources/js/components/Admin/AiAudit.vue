@@ -32,7 +32,9 @@
         <span
           v-else-if="chainStatus.result?.chain_valid"
           class="text-xs px-2 py-1 rounded-md bg-spring-100 text-spring-700"
-        >Chain valid · {{ chainStatus.result.row_count }} rows</span>
+          :data-tip-hash="chainStatus.result.tip_hash"
+          :title="`tip ${chainStatus.result.tip_hash}`"
+        >Chain valid · {{ chainStatus.result.row_count }} rows · tip {{ shortTipHash(chainStatus.result.tip_hash) }}</span>
         <span
           v-else-if="chainStatus.result"
           class="text-xs px-2 py-1 rounded-md bg-raspberry-100 text-raspberry-700"
@@ -459,12 +461,12 @@ export default {
           operation: this.chainFilters.operation || '',
           page,
         });
-        const payload = response.data?.data || response.data || {};
-        this.chainEvents = payload.data || [];
+        const paginator = response.data || {};
+        this.chainEvents = paginator.data || [];
         this.chainPagination = {
-          current_page: payload.current_page || 1,
-          last_page: payload.last_page || 1,
-          total: payload.total ?? null,
+          current_page: paginator.current_page || 1,
+          last_page: paginator.last_page || 1,
+          total: paginator.total ?? null,
         };
       } catch (e) {
         this.chainEvents = [];
@@ -477,7 +479,7 @@ export default {
       this.chainStatus.loading = true;
       try {
         const response = await aiAuditService.verifyChain();
-        this.chainStatus.result = response.data?.data || response.data || null;
+        this.chainStatus.result = response.data || null;
       } catch (e) {
         this.chainStatus.result = null;
       } finally {
@@ -494,6 +496,10 @@ export default {
         default:
           return 'bg-horizon-100 text-horizon-700';
       }
+    },
+
+    shortTipHash(hash) {
+      return typeof hash === 'string' && hash.length >= 12 ? hash.slice(0, 12) + '…' : hash;
     },
   },
 };
