@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
-use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Onboarding\AssetCaptureEntityExtractor;
 
 /**
  * Conservative duplicate-checker for write-intent routing.
@@ -27,6 +27,10 @@ use App\Models\User;
  */
 final class RecordDuplicateChecker
 {
+    public function __construct(
+        private readonly AssetCaptureEntityExtractor $extractor,
+    ) {}
+
     /**
      * Returns true if there's already a record matching the rough
      * shape of the user's message. Conservative — only checks fields
@@ -37,74 +41,42 @@ final class RecordDuplicateChecker
     public function alreadyExists(User $user, array $intent, string $userMessage): bool
     {
         return match ($intent['entity_type']) {
-            'protection_policy' => $this->protectionPolicyExists($user, $userMessage),
+            'protection_policy' => $this->allEntitiesExist($user, 'protection', $userMessage),
             default => false,
         };
     }
 
     /**
-     * Match on (provider × sum_assured ±1%) for life-category policies.
-     * Both fields are extractable with reasonable confidence from typical
-     * user phrasing ("Aviva for £300k", "Legal & General £150,000 cover").
+     * Suppress the inline-capture route when EVERY entity the deterministic
+     * extractor finds in the user message is already persisted in the
+     * target module within the 24h dedup window (S0.11.5 / INV-2.9.5).
+     *
+     * BS-19 contract: a user retrying the same multi-entity message
+     * ("I have Aviva life insurance £300k and Vitality critical illness £100k")
+     * must not produce duplicate rows. The Pest sibling
+     * (tests/Feature/AI/GapFillDedupTest.php) already covers
+     * AssetCaptureEntityExtractor::findMissing in isolation; reusing it
+     * here is what stops the LLM-direct path (handleInlineCapture invokes
+     * the LLM with create_* tools allowed) from re-firing a duplicate
+     * create_protection_policy on the second turn.
+     *
+     * Returns true ONLY when extractedEntities > 0 AND findMissing(user)
+     * returns []. Partial cases (some new + some existing) fall through
+     * to inline-capture so the new entities still persist via gap-fill;
+     * the existing-entity duplicate that the LLM may emit on the partial
+     * path is the residual edge case the gap-fill in-message dedup
+     * already partially mitigates.
      */
-    private function protectionPolicyExists(User $user, string $userMessage): bool
+    private function allEntitiesExist(User $user, string $focus, string $userMessage): bool
     {
-        $provider = $this->extractProvider($userMessage);
-        $sumAssured = $this->extractCurrencyAmount($userMessage);
+        $extracted = $this->extractor->extractForFocus($focus, $userMessage);
 
-        if ($provider === null || $sumAssured === null) {
+        if ($extracted === []) {
             return false;
         }
 
-        $tolerance = max(1.0, $sumAssured * 0.01);
+        $missing = $this->extractor->findMissing($focus, $extracted, [], $user);
 
-        return LifeInsurancePolicy::where('user_id', $user->id)
-            ->whereRaw('LOWER(provider) = ?', [strtolower($provider)])
-            ->whereBetween('sum_assured', [$sumAssured - $tolerance, $sumAssured + $tolerance])
-            ->exists();
-    }
-
-    /**
-     * Extract a provider name from "with X", "at X", "from X" phrasing.
-     * Conservative: only matches names of 1-3 capitalised words to avoid
-     * picking up arbitrary nouns.
-     */
-    private function extractProvider(string $userMessage): ?string
-    {
-        if (preg_match('/\b(?:with|at|from)\s+([A-Z][A-Za-z&\'\- ]{1,40}?)(?=\s+(?:for|of|£|valued|worth|paying|costing|term|monthly|yearly|annually|per|that|which|started|starting|covering|sum|covers|paying|due|over|until)|[\.,;\?\!]|$)/u', $userMessage, $m) === 1) {
-            $provider = trim($m[1]);
-
-            // Strip trailing words that look like sentence continuation
-            $provider = preg_replace('/\s+(?:policy|insurance|cover|isa|sipp|account)$/i', '', $provider) ?? $provider;
-
-            if (strlen($provider) >= 2) {
-                return $provider;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Extract the first £-prefixed currency amount. Handles "£300k",
-     * "£300,000", "£10.99", "£1.5m" (returns 1_500_000.00).
-     */
-    private function extractCurrencyAmount(string $userMessage): ?float
-    {
-        if (preg_match('/£\s*([0-9]+(?:[\.,][0-9]+)*)\s*([kKmM])?/u', $userMessage, $m) !== 1) {
-            return null;
-        }
-
-        $rawNumber = str_replace(',', '', $m[1]);
-        $value = (float) $rawNumber;
-        $suffix = strtolower($m[2] ?? '');
-
-        if ($suffix === 'k') {
-            $value *= 1000;
-        } elseif ($suffix === 'm') {
-            $value *= 1_000_000;
-        }
-
-        return $value;
+        return $missing === [];
     }
 }
