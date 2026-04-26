@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DCPension;
+use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
@@ -226,6 +228,109 @@ describe('Gap-fill DB dedup — investment (S0.11.5)', function () {
         $missing = $this->extractor->findMissing('investment', $extracted, [], $this->user);
 
         expect($missing)->toBe([]);
+    });
+});
+
+describe('Gap-fill DB dedup — property (S0.16b BS-17 prep)', function () {
+    it('suppresses a property gap-fill when a matching buy-to-let exists', function () {
+        Property::factory()->create([
+            'user_id' => $this->user->id,
+            'property_type' => 'buy_to_let',
+            'postcode' => 'SW1A 1AA',
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $extracted = [
+            ['property_type' => 'buy_to_let', 'postcode' => 'SW1A1AA', 'current_value' => 350000.0],
+        ];
+
+        $missing = $this->extractor->findMissing('property', $extracted, [], $this->user);
+
+        expect($missing)->toBe([]);
+    });
+
+    it('does not suppress when postcodes differ', function () {
+        Property::factory()->create([
+            'user_id' => $this->user->id,
+            'property_type' => 'buy_to_let',
+            'postcode' => 'SW1A 1AA',
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $extracted = [
+            ['property_type' => 'buy_to_let', 'postcode' => 'M1 1AA', 'current_value' => 250000.0],
+        ];
+
+        $missing = $this->extractor->findMissing('property', $extracted, [], $this->user);
+
+        expect($missing)->toHaveCount(1);
+    });
+
+    it('still emits the gap-fill when the matching property is older than 24h', function () {
+        Property::factory()->create([
+            'user_id' => $this->user->id,
+            'property_type' => 'main_residence',
+            'postcode' => 'SW1A 1AA',
+            'created_at' => now()->subHours(25),
+        ]);
+
+        $extracted = [
+            ['property_type' => 'main_residence', 'postcode' => 'SW1A1AA', 'current_value' => 600000.0],
+        ];
+
+        $missing = $this->extractor->findMissing('property', $extracted, [], $this->user);
+
+        expect($missing)->toHaveCount(1);
+    });
+});
+
+describe('Gap-fill DB dedup — goal (S0.16b BS-17 prep)', function () {
+    it('suppresses a goal gap-fill when a matching goal exists', function () {
+        Goal::factory()->create([
+            'user_id' => $this->user->id,
+            'goal_name' => 'Emergency Fund',
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $extracted = [
+            ['goal_name' => 'Emergency Fund', 'target_amount' => 10000.0],
+        ];
+
+        $missing = $this->extractor->findMissing('goal', $extracted, [], $this->user);
+
+        expect($missing)->toBe([]);
+    });
+
+    it('matches goal names case- and punctuation-insensitively', function () {
+        Goal::factory()->create([
+            'user_id' => $this->user->id,
+            'goal_name' => 'Emergency Fund',
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $extracted = [
+            ['goal_name' => 'emergency-fund', 'target_amount' => 10000.0],
+        ];
+
+        $missing = $this->extractor->findMissing('goal', $extracted, [], $this->user);
+
+        expect($missing)->toBe([]);
+    });
+
+    it('does not suppress when goal names differ', function () {
+        Goal::factory()->create([
+            'user_id' => $this->user->id,
+            'goal_name' => 'Emergency Fund',
+            'created_at' => now()->subHours(2),
+        ]);
+
+        $extracted = [
+            ['goal_name' => 'House Deposit', 'target_amount' => 50000.0],
+        ];
+
+        $missing = $this->extractor->findMissing('goal', $extracted, [], $this->user);
+
+        expect($missing)->toHaveCount(1);
     });
 });
 

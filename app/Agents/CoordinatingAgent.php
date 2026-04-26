@@ -2526,6 +2526,33 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
+            // BS-17 in-turn idempotency: grok-4-1-fast occasionally emits
+            // create_protection_policy twice for the same entity inside one
+            // multi-entity message. Without this guard the second tool call
+            // creates a duplicate row before the LLM has a chance to see the
+            // first result. The check is scoped to a 60s window so genuine
+            // separate-session adds are unaffected.
+            $existing = LifeInsurancePolicy::where('user_id', $user->id)
+                ->where('policy_type', $payload['policy_type'])
+                ->where('sum_assured', $payload['sum_assured'])
+                ->where('provider', $payload['provider'] ?? null)
+                ->where('created_at', '>', now()->subMinute())
+                ->first();
+            if ($existing !== null) {
+                $this->invalidateUserCache($user->id);
+
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'duplicate' => true,
+                    'entity_type' => 'life_insurance_policy',
+                    'entity_id' => $existing->id,
+                    'name' => (string) $providerLabel,
+                    'persisted_fields' => [],
+                    'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
+                ];
+            }
+
             $policy = DB::transaction(fn () => LifeInsurancePolicy::create($payload));
             $entityType = 'life_insurance_policy';
         } elseif ($category === 'critical_illness') {
@@ -2557,6 +2584,28 @@ class CoordinatingAgent extends BaseAgent
                 $payload['conditions_covered'] = $input['conditions_covered'];
             }
 
+            // BS-17 in-turn idempotency — see life-branch comment above.
+            $existing = CriticalIllnessPolicy::where('user_id', $user->id)
+                ->where('policy_type', $payload['policy_type'])
+                ->where('sum_assured', $payload['sum_assured'])
+                ->where('provider', $payload['provider'] ?? null)
+                ->where('created_at', '>', now()->subMinute())
+                ->first();
+            if ($existing !== null) {
+                $this->invalidateUserCache($user->id);
+
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'duplicate' => true,
+                    'entity_type' => 'critical_illness_policy',
+                    'entity_id' => $existing->id,
+                    'name' => (string) $providerLabel,
+                    'persisted_fields' => [],
+                    'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
+                ];
+            }
+
             $policy = DB::transaction(fn () => CriticalIllnessPolicy::create($payload));
             $entityType = 'critical_illness_policy';
         } else {
@@ -2578,6 +2627,27 @@ class CoordinatingAgent extends BaseAgent
                 if (isset($input[$f]) && is_numeric($input[$f])) {
                     $payload[$f] = (int) $input[$f];
                 }
+            }
+
+            // BS-17 in-turn idempotency — see life-branch comment above.
+            $existing = IncomeProtectionPolicy::where('user_id', $user->id)
+                ->where('benefit_amount', $payload['benefit_amount'])
+                ->where('provider', $payload['provider'] ?? null)
+                ->where('created_at', '>', now()->subMinute())
+                ->first();
+            if ($existing !== null) {
+                $this->invalidateUserCache($user->id);
+
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'duplicate' => true,
+                    'entity_type' => 'income_protection_policy',
+                    'entity_id' => $existing->id,
+                    'name' => (string) $providerLabel,
+                    'persisted_fields' => [],
+                    'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
+                ];
             }
 
             $policy = DB::transaction(fn () => IncomeProtectionPolicy::create($payload));

@@ -7,9 +7,13 @@ namespace App\Services\Onboarding;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
+use App\Models\Estate\Liability;
+use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 
@@ -83,6 +87,10 @@ final class AssetCaptureEntityExtractor
             'savings', 'budgeting' => $this->extractSavingsAccounts($message),
             'retirement' => $this->extractPensions($message),
             'investment' => $this->extractInvestmentAccounts($message),
+            'property' => $this->extractProperties($message),
+            'goal' => $this->extractGoals($message),
+            'mortgage' => $this->extractMortgages($message),
+            'liability' => $this->extractLiabilities($message),
             default => [],
         };
     }
@@ -155,6 +163,10 @@ final class AssetCaptureEntityExtractor
             'savings', 'budgeting' => $this->savingsPersistedKeys($user, $cutoff),
             'retirement' => $this->retirementPersistedKeys($user, $cutoff),
             'investment' => $this->investmentPersistedKeys($user, $cutoff),
+            'property' => $this->propertyPersistedKeys($user, $cutoff),
+            'goal' => $this->goalPersistedKeys($user, $cutoff),
+            'mortgage' => $this->mortgagePersistedKeys($user, $cutoff),
+            'liability' => $this->liabilityPersistedKeys($user, $cutoff),
             default => [],
         };
     }
@@ -271,6 +283,96 @@ final class AssetCaptureEntityExtractor
                 'provider' => $row->provider,
                 'account_name' => $row->account_name,
                 'account_type' => $row->account_type,
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function propertyPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (Property::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->where('created_at', '>', $cutoff)
+            ->get(['property_type', 'postcode']) as $row) {
+            $keys[] = $this->propertyIdentityKey([
+                'property_type' => $row->property_type,
+                'postcode' => $row->postcode,
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function goalPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (Goal::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->where('created_at', '>', $cutoff)
+            ->get(['goal_name']) as $row) {
+            $keys[] = $this->goalIdentityKey([
+                'goal_name' => $row->goal_name,
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function mortgagePersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (Mortgage::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->where('created_at', '>', $cutoff)
+            ->get(['lender_name']) as $row) {
+            $keys[] = $this->mortgageIdentityKey([
+                'lender_name' => $row->lender_name,
+            ], false);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function liabilityPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    {
+        $keys = [];
+
+        foreach (Liability::query()
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere('joint_owner_id', $user->id);
+            })
+            ->where('created_at', '>', $cutoff)
+            ->get(['liability_type', 'liability_name']) as $row) {
+            $keys[] = $this->liabilityIdentityKey([
+                'liability_type' => $row->liability_type,
+                'liability_name' => $row->liability_name,
             ], false);
         }
 
@@ -619,6 +721,278 @@ final class AssetCaptureEntityExtractor
         return $input;
     }
 
+    // ─── Properties ─────────────────────────────────────────────────
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function extractProperties(string $message): array
+    {
+        $chunks = $this->splitOnConnectors($message);
+        $properties = [];
+
+        foreach ($chunks as $chunk) {
+            $property = $this->extractOneProperty($chunk);
+            if ($property !== null) {
+                $properties[] = $property;
+            }
+        }
+
+        return $properties;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function extractOneProperty(string $chunk): ?array
+    {
+        $lower = mb_strtolower($chunk);
+
+        // Type detection — most specific first so "buy-to-let property" does
+        // not match the bare "property" branch and downgrade to main_residence.
+        $group = match (true) {
+            preg_match('/\bbuy[\s-]?to[\s-]?let\b|\brental\s+property\b|\binvestment\s+property\b|\bbtl\b/u', $lower) === 1 => 'buy_to_let',
+            preg_match('/\bsecond\s+home\b|\bsecondary\s+residence\b|\bholiday\s+home\b/u', $lower) === 1 => 'secondary_residence',
+            preg_match('/\bmain\s+residence\b|\bprimary\s+residence\b|\bprincipal\s+residence\b/u', $lower) === 1 => 'main_residence',
+            preg_match('/\bproperty\b|\bhouse\b|\bflat\b|\bapartment\b|\bbungalow\b|\bmaisonette\b/u', $lower) === 1 => 'main_residence',
+            default => null,
+        };
+
+        if ($group === null) {
+            return null;
+        }
+
+        $input = ['property_type' => $group];
+
+        // UK postcode format — case-insensitive, optional space.
+        if (preg_match('/\b([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b/iu', $chunk, $m) === 1) {
+            $input['postcode'] = strtoupper(preg_replace('/\s+/u', '', $m[1]) ?? $m[1]);
+        }
+
+        $amount = $this->extractAmount($chunk);
+        if ($amount !== null) {
+            $input['current_value'] = $amount;
+        }
+
+        return $input;
+    }
+
+    // ─── Goals ──────────────────────────────────────────────────────
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function extractGoals(string $message): array
+    {
+        $chunks = $this->splitOnConnectors($message);
+        $goals = [];
+
+        foreach ($chunks as $chunk) {
+            $goal = $this->extractOneGoal($chunk);
+            if ($goal !== null) {
+                $goals[] = $goal;
+            }
+        }
+
+        return $goals;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function extractOneGoal(string $chunk): ?array
+    {
+        $lower = mb_strtolower($chunk);
+
+        // A chunk is a goal entity only if the word "goal" appears. "target"
+        // and "save for" alone are too noisy — the WriteIntentClassifier may
+        // route on those phrases but the extractor stays conservative.
+        if (preg_match('/\bgoals?\b/u', $lower) !== 1) {
+            return null;
+        }
+
+        $name = $this->extractGoalName($chunk);
+        if ($name === null) {
+            return null;
+        }
+
+        $input = ['goal_name' => $name];
+
+        $amount = $this->extractAmount($chunk);
+        if ($amount !== null) {
+            $input['target_amount'] = $amount;
+        }
+
+        // Capture "by 2028" / "by December 2028" / "by 2028-06-30" target dates
+        // when the user provides one. We pass through the raw match — the
+        // identity key only cares about the name, but downstream gap-fill
+        // would benefit from the target_date when persisting.
+        if (preg_match('/\bby\s+(\d{4}(?:-\d{2}-\d{2})?|\w+\s+\d{4})\b/iu', $chunk, $m) === 1) {
+            $input['target_date_hint'] = trim($m[1]);
+        }
+
+        return $input;
+    }
+
+    private function extractGoalName(string $chunk): ?string
+    {
+        // Patterns ordered by specificity. We accept short names (one word)
+        // and stop on connector words / currency / date markers so we do
+        // not gobble the whole remaining chunk.
+        $stop = '(?:\s+(?:£|of|by|to|for|with|target|targeted|of|with)\b|,|;|$)';
+
+        if (preg_match('/\bgoals?\s+(?:called|named|titled)\s+([\w\s&\-\']+?)'.$stop.'/iu', $chunk, $m) === 1) {
+            return $this->cleanGoalName($m[1]);
+        }
+        if (preg_match('/\bgoals?\s*(?:[:—-]|\xE2\x80\x94)\s*([\w\s&\-\']+?)'.$stop.'/iu', $chunk, $m) === 1) {
+            return $this->cleanGoalName($m[1]);
+        }
+        if (preg_match('/\b(?:add|create|set\s+up|setup|start)\s+(?:a\s+)?([\w\s&\-\']+?)\s+goal\b/iu', $chunk, $m) === 1) {
+            return $this->cleanGoalName($m[1]);
+        }
+        if (preg_match('/\b(?:save|saving)\s+for\s+(?:a\s+|an\s+|my\s+|our\s+)?([\w\s&\-\']+?)\s+goal\b/iu', $chunk, $m) === 1) {
+            return $this->cleanGoalName($m[1]);
+        }
+
+        return null;
+    }
+
+    private function cleanGoalName(string $raw): ?string
+    {
+        $name = trim(preg_replace('/\s+/u', ' ', $raw) ?? $raw);
+        $name = trim($name, " \t\n\r\0\x0B-—:;,");
+
+        if ($name === '' || preg_match('/^[\d\s£]+$/u', $name) === 1) {
+            return null;
+        }
+
+        // Discard generic articles that snuck in via greedy capture.
+        if (in_array(mb_strtolower($name), ['a', 'an', 'the', 'my', 'our'], true)) {
+            return null;
+        }
+
+        return $name;
+    }
+
+    // ─── Mortgage ───────────────────────────────────────────────────
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function extractMortgages(string $message): array
+    {
+        $chunks = $this->splitOnConnectors($message);
+        $mortgages = [];
+
+        foreach ($chunks as $chunk) {
+            $mortgage = $this->extractOneMortgage($chunk);
+            if ($mortgage !== null) {
+                $mortgages[] = $mortgage;
+            }
+        }
+
+        return $mortgages;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function extractOneMortgage(string $chunk): ?array
+    {
+        $lower = mb_strtolower($chunk);
+
+        if (preg_match('/\bmortgage\b|\bhome\s+loan\b|\bremortgage\b/u', $lower) !== 1) {
+            return null;
+        }
+
+        $input = [];
+
+        $lender = $this->extractKnownProvider($chunk);
+        if ($lender !== null) {
+            $input['lender_name'] = $lender;
+        }
+
+        $balance = $this->extractAmount($chunk);
+        if ($balance !== null) {
+            $input['outstanding_balance'] = $balance;
+        }
+
+        $mortgageType = match (true) {
+            preg_match('/\binterest[\s-]only\b|\bio\s+mortgage\b/u', $lower) === 1 => 'interest_only',
+            preg_match('/\brepayment\b|\bcapital[\s-]repayment\b/u', $lower) === 1 => 'repayment',
+            preg_match('/\bmixed\s+mortgage\b|\bpart[\s-]repayment\b/u', $lower) === 1 => 'mixed',
+            default => null,
+        };
+        if ($mortgageType !== null) {
+            $input['mortgage_type'] = $mortgageType;
+        }
+
+        // No lender + no balance = ambiguous; skip.
+        if ($lender === null && $balance === null) {
+            return null;
+        }
+
+        return $input;
+    }
+
+    // ─── Liability ──────────────────────────────────────────────────
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function extractLiabilities(string $message): array
+    {
+        $chunks = $this->splitOnConnectors($message);
+        $liabilities = [];
+
+        foreach ($chunks as $chunk) {
+            $liability = $this->extractOneLiability($chunk);
+            if ($liability !== null) {
+                $liabilities[] = $liability;
+            }
+        }
+
+        return $liabilities;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function extractOneLiability(string $chunk): ?array
+    {
+        $lower = mb_strtolower($chunk);
+
+        // Detect common liability types. Most-specific keywords first so
+        // "credit card" doesn't get caught by the bare "loan" branch.
+        $type = match (true) {
+            preg_match('/\bcredit\s+card\b/u', $lower) === 1 => 'credit_card',
+            preg_match('/\bstudent\s+loan\b/u', $lower) === 1 => 'student_loan',
+            preg_match('/\bcar\s+(?:finance|loan)\b|\bauto\s+loan\b|\bvehicle\s+finance\b/u', $lower) === 1 => 'car_finance',
+            preg_match('/\bpersonal\s+loan\b/u', $lower) === 1 => 'personal_loan',
+            preg_match('/\boverdraft\b/u', $lower) === 1 => 'overdraft',
+            preg_match('/\bloan\b/u', $lower) === 1 => 'personal_loan',
+            default => null,
+        };
+
+        if ($type === null) {
+            return null;
+        }
+
+        $input = ['liability_type' => $type];
+
+        $balance = $this->extractAmount($chunk);
+        if ($balance !== null) {
+            $input['current_balance'] = $balance;
+        }
+
+        $provider = $this->extractKnownProvider($chunk);
+        if ($provider !== null) {
+            $input['liability_name'] = sprintf('%s %s', $provider, str_replace('_', ' ', $type));
+        }
+
+        return $input;
+    }
+
     // ─── Shared helpers ─────────────────────────────────────────────
 
     /**
@@ -750,6 +1124,10 @@ final class AssetCaptureEntityExtractor
             'savings', 'budgeting' => $this->savingsIdentityKey($fields, $fromLlm),
             'retirement' => $this->pensionIdentityKey($fields, $fromLlm),
             'investment' => $this->investmentIdentityKey($fields, $fromLlm),
+            'property' => $this->propertyIdentityKey($fields, $fromLlm),
+            'goal' => $this->goalIdentityKey($fields, $fromLlm),
+            'mortgage' => $this->mortgageIdentityKey($fields, $fromLlm),
+            'liability' => $this->liabilityIdentityKey($fields, $fromLlm),
             default => '',
         };
     }
@@ -810,6 +1188,58 @@ final class AssetCaptureEntityExtractor
         $type = (string) ($fields['account_type'] ?? '');
 
         return 'invest|'.$type.'|'.$provider;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    private function propertyIdentityKey(array $fields, bool $fromLlm): string
+    {
+        $rawType = (string) ($fields['property_type'] ?? $fields['propertyType'] ?? '');
+        $group = match (mb_strtolower($rawType)) {
+            'main_residence', 'main residence', 'primary', 'primary residence', 'principal residence' => 'main_residence',
+            'buy_to_let', 'buy-to-let', 'btl', 'rental', 'rental property', 'investment property' => 'buy_to_let',
+            'secondary_residence', 'second_home', 'second home', 'holiday_home', 'holiday home' => 'secondary_residence',
+            default => 'other',
+        };
+
+        $postcode = strtoupper(preg_replace('/\s+/u', '', (string) ($fields['postcode'] ?? '')) ?? '');
+
+        return 'property|'.$group.'|'.$postcode;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    private function goalIdentityKey(array $fields, bool $fromLlm): string
+    {
+        $rawName = (string) ($fields['goal_name'] ?? $fields['goalName'] ?? '');
+        $name = preg_replace('/[^a-z0-9]/u', '', mb_strtolower($rawName)) ?? '';
+
+        return 'goal|'.$name;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    private function mortgageIdentityKey(array $fields, bool $fromLlm): string
+    {
+        $lender = $this->normaliseProviderKey(
+            (string) ($fields['lender_name'] ?? $fields['provider'] ?? '')
+        );
+
+        return 'mortgage|'.$lender;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     */
+    private function liabilityIdentityKey(array $fields, bool $fromLlm): string
+    {
+        $type = (string) ($fields['liability_type'] ?? '');
+        $name = preg_replace('/[^a-z0-9]/u', '', mb_strtolower((string) ($fields['liability_name'] ?? ''))) ?? '';
+
+        return 'liability|'.$type.'|'.$name;
     }
 
     private function normaliseProviderKey(string $s): string

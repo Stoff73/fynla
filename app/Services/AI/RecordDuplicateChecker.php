@@ -22,8 +22,11 @@ use App\Services\Onboarding\AssetCaptureEntityExtractor;
  * record exists) are then caught by the inline-capture extractor's own
  * idempotency guards.
  *
- * Initial scope: protection_policy (BS-11). Extended per entity type as
- * each BS-NN brings the next case under test.
+ * Initial scope: protection_policy (BS-11). Extended in session 93 to also
+ * cover savings_account, investment_account, pension, property, and goal
+ * (the BS-17 multi-entity persist unblocker — same entity_types that
+ * WriteIntentClassifier emits and that handleInlineCapture knows how to
+ * route).
  */
 final class RecordDuplicateChecker
 {
@@ -42,6 +45,13 @@ final class RecordDuplicateChecker
     {
         return match ($intent['entity_type']) {
             'protection_policy' => $this->allEntitiesExist($user, 'protection', $userMessage),
+            'savings_account' => $this->allEntitiesExist($user, 'savings', $userMessage),
+            'investment_account' => $this->allEntitiesExist($user, 'investment', $userMessage),
+            'pension' => $this->allEntitiesExist($user, 'retirement', $userMessage),
+            'property' => $this->allEntitiesExist($user, 'property', $userMessage),
+            'goal' => $this->allEntitiesExist($user, 'goal', $userMessage),
+            'mortgage' => $this->allEntitiesExist($user, 'mortgage', $userMessage),
+            'liability' => $this->allEntitiesExist($user, 'liability', $userMessage),
             default => false,
         };
     }

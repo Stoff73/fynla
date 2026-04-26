@@ -72,6 +72,7 @@ final class AdviceFyn
         private readonly OnboardingChatDirector $onboardingChatDirector,
         private readonly WriteIntentClassifier $writeIntentClassifier,
         private readonly RecordDuplicateChecker $duplicateChecker,
+        private readonly DuplicateAcknowledgement $duplicateAcknowledgement,
     ) {}
 
     public function handle(
@@ -124,7 +125,44 @@ final class AdviceFyn
         // to the normal LLM advice flow.
         $intent = $this->writeIntentClassifier->classify($message);
 
-        if ($intent !== null && ! $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+        // Full-duplicate short-circuit: when the user reasserts records
+        // that all already exist (RecordDuplicateChecker matches every
+        // extracted entity to a recent DB row), we do NOT involve the
+        // LLM. Its phrasing is non-deterministic and on the previous
+        // walk it produced "Your X provides £Y of cover" — ambiguous
+        // enough that a user who just typed "I have X" could read it
+        // as "yes I added it" instead of "it was already on file"
+        // (gaslighting). Build a deterministic acknowledgement from the
+        // matching DB rows and yield it as plain content.
+        if ($intent !== null && $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+            $ack = $this->duplicateAcknowledgement->build($user, $intent, $message);
+
+            $conversation->messages()->create([
+                'role' => 'user',
+                'content' => $message,
+                'persona' => 'advice',
+            ]);
+
+            $conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $ack['text'],
+                'persona' => 'advice',
+            ]);
+
+            Log::info('[AdviceFyn] Deterministic duplicate ack', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'entity_type' => $intent['entity_type'],
+                'descriptor_count' => count($ack['descriptors']),
+            ]);
+
+            yield ['type' => 'content', 'text' => $ack['text']];
+            yield ['type' => 'done'];
+
+            return;
+        }
+
+        if ($intent !== null) {
             // Persist the user message ourselves — handleInlineCapture's
             // chatWithPromptOverride call uses persistUserMessage:false on
             // purpose (it normally rides on top of an Advice-Fyn turn that
