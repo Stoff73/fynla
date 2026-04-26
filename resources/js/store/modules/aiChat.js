@@ -564,6 +564,17 @@ const actions = {
                                 // returns to normal.
                                 commit('SET_IS_ONBOARDING_ACTIVE', false);
                                 commit('SET_PENDING_NAVIGATION', event.nextRoute || '/dashboard');
+                                // Refresh dashboard data — onboarding may have created
+                                // goals, family members, income, expenditure, and other
+                                // records that the dashboard's charts and cards display.
+                                // If the user lands on the same route they were on, the
+                                // router push is a no-op and no remount fires — explicit
+                                // refresh below ensures the visible state matches the
+                                // newly captured data.
+                                dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                                dispatch('goals/fetchProjection', null, { root: true }).catch(() => {});
+                                dispatch('goals/fetchDashboardOverview', null, { root: true }).catch(() => {});
+                                dispatch('netWorth/refreshNetWorth', null, { root: true }).catch(() => {});
                                 break;
 
                             case 'token_limit':

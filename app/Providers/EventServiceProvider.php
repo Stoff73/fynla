@@ -12,6 +12,7 @@ use App\Models\DisabilityPolicy;
 use App\Models\Estate\Asset as EstateAsset;
 use App\Models\Estate\Liability as EstateLiability;
 use App\Models\FamilyMember;
+use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
@@ -23,6 +24,7 @@ use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Observers\DCPensionRiskObserver;
 use App\Observers\FamilyMemberRiskObserver;
+use App\Observers\GoalCacheObserver;
 use App\Observers\InvestmentAccountGoalObserver;
 use App\Observers\InvestmentAccountRiskObserver;
 use App\Observers\LifeEventMonteCarloObserver;
@@ -59,6 +61,7 @@ class EventServiceProvider extends ServiceProvider
     protected $observers = [
         User::class => [UserRiskObserver::class],
         FamilyMember::class => [FamilyMemberRiskObserver::class, RecommendationCacheObserver::class],
+        Goal::class => [GoalCacheObserver::class],
         SavingsAccount::class => [SavingsAccountRiskObserver::class, SavingsAccountGoalObserver::class, NetWorthCacheObserver::class, RecommendationCacheObserver::class],
         InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class, NetWorthCacheObserver::class, RecommendationCacheObserver::class],
         DCPension::class => [DCPensionRiskObserver::class, NetWorthCacheObserver::class, RecommendationCacheObserver::class],
