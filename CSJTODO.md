@@ -12,14 +12,15 @@ Session 84 closed with **BS-01 onboarding path-choice-to-done GREEN end-to-end v
 **The next session should:**
 
 1. Read this file top-to-bottom.
-2. Read `April/April26Updates/deploy-session-84.md` and deploy the S0.5.z fix to dev (`csjones.co/fynla`) — single PHP file, no rebuild, no migrations. Production deploy can wait for the next dev → main release PR.
-3. Run `./dev.sh` to start the local dev stack.
-4. Run targeted Pest sweep to verify no regressions from session 84's AuthController change:
+2. Run `./dev.sh` to start the local dev stack.
+3. Run targeted Pest sweep to verify no regressions from session 84's AuthController change:
    ```
    ./vendor/bin/pest tests/Feature/Auth tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture
    ```
    (Session 84 baseline: 486 passing.)
-5. Continue S0.16b Batch 3 with **BS-02 (base spouse direct-write)** next. All 14 remaining scenarios run via the same canonical Quick start with Fyn real-user pattern — no factory seeds, ever. Update each stub docblock with a delivery note as you go.
+4. Continue S0.16b Batch 3 with **BS-02 (base spouse direct-write)** next. All 14 remaining scenarios run via the same canonical Quick start with Fyn real-user pattern — no factory seeds, ever. Update each stub docblock with a delivery note as you go.
+
+All Sprint 0 work stays on `feature/fyn-persona-split` locally until S0.17 verification rollup is complete. The deploy note (`April/April26Updates/deploy-session-84.md`) sits there for the eventual `feature → dev` PR after Sprint 0 is 100% green; it is NOT a precondition for any BS-NN run.
 
 **Read these before starting:**
 
@@ -45,10 +46,6 @@ Session 84 closed with **BS-01 onboarding path-choice-to-done GREEN end-to-end v
 - [x] **Single commit `085bfe7` pushed** to origin: `feat(auth): record GDPR consents at registration verifyCode (S0.5.z)`. 15 files / +103 / -1 (1 PHP code change + 13 BS-01 screenshots + stub delivery note).
 
 ### NOT Done — Outstanding for next session
-
-#### Deploy S0.5.z to dev (csjones.co/fynla)
-
-- [ ] Read `April/April26Updates/deploy-session-84.md` for the steps. Single PHP file (`app/Http/Controllers/Api/AuthController.php`), no rebuild needed, no migrations. Open PR `feature/fyn-persona-split → dev`, merge, upload, SSH and clear caches, smoke-test a fresh registration on csjones.co/fynla. **Do this BEFORE running further BS-NN scenarios on dev** — otherwise newly-registered dev users will hit the same 403 silent-fallback gap.
 
 #### S0.16b Batch 3 — 14 remaining scenarios
 
@@ -137,10 +134,9 @@ Carried over from session 78:
 
 ## Known Issues
 
-- The dev environment (`csjones.co/fynla`) is currently behind on the S0.5.z fix — newly-registered users on dev will hit the 403 silent-fallback gap until the deploy lands. Production (`fynla.org`) is also behind, but production registration is rare enough that this can wait for the next dev → main release cycle.
+- None blocking BS-NN work. All Sprint 0 work runs locally against `./dev.sh`.
 
 ## Deploy Status
 
-- **Branch `feature/fyn-persona-split` ahead of `dev` and `main`** by all session 80–84 commits (Sprint 0 work). Not yet merged.
-- **csjones.co/fynla (dev)** — needs S0.5.z uploaded before further BS-NN runs. See `April/April26Updates/deploy-session-84.md`. Single file, no rebuild.
-- **fynla.org (production)** — also behind on S0.5.z, but deploy can wait for the next periodic `dev → main` PR after Sprint 0 is fully verified (S0.17 verification rollup blocks production).
+- **All Sprint 0 work stays local** on `feature/fyn-persona-split` until S0.17 verification rollup is complete.
+- **csjones.co/fynla (dev)** and **fynla.org (production)** — neither will receive Sprint 0 changes until the full Sprint 0 verification is green and CSJ opens the `feature → dev` PR. The deploy note (`April/April26Updates/deploy-session-84.md`) sits ready for that PR cycle, not as a precondition for BS-NN runs.
