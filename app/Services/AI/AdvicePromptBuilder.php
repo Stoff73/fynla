@@ -83,6 +83,20 @@ class AdvicePromptBuilder
             $layers[] = $this->getHandoffGuidance();
         }
 
+        // Layer 3c (S0.5.u, BS-16): billing/invoice guidance. Without this
+        // block grok-4-1-fast picks ONE billing tool ("where's my invoice"
+        // routes to list_invoices only) and produces a list-only response
+        // that omits the subscription status + invoice count phrasing the
+        // BS-16 acceptance criteria require. The block tells advice Fyn
+        // to call BOTH `get_subscription_status` and `list_invoices` for
+        // any billing question and to lead the answer with the
+        // count-phrasing the user expects. Suppressed in preview mode —
+        // preview personas have no real subscription so the layer would
+        // mislead the model.
+        if (! $isPreview) {
+            $layers[] = $this->getBillingGuidance();
+        }
+
         // Layer 4: User Profile (DYNAMIC/user)
         $profile = $this->buildUserProfile($user);
         $layers[] = "<user_profile>\n{$profile}\n</user_profile>";
@@ -218,6 +232,37 @@ OMITTING `reason` BREAKS THE HANDOFF. Always include it. Always include `entity_
 
 The handoff runs through Onboarding Fyn, persists the record, and continues the conversation seamlessly. The user does not see the handoff. After the handoff completes, you may add a brief confirmation only if the underlying tool actually persisted the record.
 </handoff_guidance>
+PROMPT;
+    }
+
+    /**
+     * S0.5.u (BS-16): billing/invoice guidance. Forces both billing read
+     * tools to fire on any billing-class question and pins the response
+     * shape so the count + subscription status appear before the invoice
+     * list. The navigation card is emitted automatically from the
+     * `get_subscription_status` tool result (HasAiChat consumes the
+     * `action: navigate` field) — the assistant must NOT add a manual
+     * "click here" link or instruct the user to navigate.
+     */
+    private function getBillingGuidance(): string
+    {
+        return <<<'PROMPT'
+<billing_guidance>
+When the user asks anything about billing, invoices, charges, payment, receipts, the next charge, or their subscription:
+
+- ALWAYS call BOTH `get_subscription_status` AND `list_invoices` in the same turn (parallel tool_use blocks if your provider supports them, otherwise sequential).
+- Open your reply with the subscription line — state the plan name and whether the subscription is active, trialing, paused, or cancelled. Use the exact word "active" when status is `active` and "trialing" when status is `trialing`.
+- On the next line, state the invoice count using the phrasing "You have N invoice(s)" (e.g. "You have 3 invoices."). The literal digit + " invoice" must appear so users see the count at a glance.
+- Then list the invoices — most recent first, one per line, including invoice number, issued date, and amount in pounds.
+- Do NOT add a manual link or instruct the user to navigate to a settings page. The system surfaces a Subscription Management CTA card automatically from the subscription-status tool result.
+
+Required pattern. User: "Where's my invoice?" → call `get_subscription_status` AND `list_invoices` → reply:
+"You're on the Standard monthly plan (active).
+You have 3 invoices.
+- FYN-INV-000003 — issued 25 April 2026, £10.99
+- FYN-INV-000002 — issued 25 March 2026, £10.99
+- FYN-INV-000001 — issued 25 February 2026, £10.99"
+</billing_guidance>
 PROMPT;
     }
 

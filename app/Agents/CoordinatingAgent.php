@@ -1563,6 +1563,15 @@ class CoordinatingAgent extends BaseAgent
 
         $plan = SubscriptionPlan::findBySlug($sub->plan);
 
+        // S0.5.u (BS-16): when the user has any real subscription (active,
+        // trialing, paused, or cancelled) we surface the Subscription
+        // Management page so they can act on the answer. HasAiChat::stream
+        // turns this into a `navigation` SSE event consumed by
+        // AiChatPanel; the user lands on /settings/subscription where
+        // their invoices and billing details are managed. INV-2.7.2 only
+        // mandates parity of the read tools, not their result shape, so
+        // BillingToolsTest::list_invoices stays green (extra keys are
+        // accepted by toHaveKeys).
         return [
             'status' => $sub->status,
             'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
@@ -1571,6 +1580,9 @@ class CoordinatingAgent extends BaseAgent
             'current_period_end' => $sub->current_period_end?->toIso8601String(),
             'next_charge_amount' => round((float) $sub->amount, 2),
             'is_cancelled' => $sub->cancelled_at !== null,
+            'action' => 'navigate',
+            'route_path' => '/settings/subscription',
+            'description' => 'View your subscription and invoices',
         ];
     }
 

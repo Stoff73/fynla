@@ -548,6 +548,16 @@ const routes = [
     },
   },
   {
+    // S0.5.u (BS-16): canonical billing entry point. SubscriptionManagement
+    // lives as a tab inside /profile; this route redirects so chat-emitted
+    // navigation events ('/settings/subscription' from the
+    // get_subscription_status tool result) land on the right tab.
+    path: '/settings/subscription',
+    name: 'SubscriptionSettings',
+    redirect: () => ({ path: '/profile', query: { section: 'subscription' } }),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/valuable-info',
     name: 'ValuableInfo',
     component: ValuableInfo,
