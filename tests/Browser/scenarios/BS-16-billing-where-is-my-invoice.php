@@ -143,6 +143,67 @@ declare(strict_types=1);
  *   keystroke routing issue is resolved (drive the chat textarea via
  *   browser_type + browser_press_key('Enter') and capture
  *   01-chat.png with the actual Fyn chat bubble).
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2 RE-RUN, full GREEN):
+ *   Re-driven end-to-end via REAL Playwright keystrokes + clicks (no
+ *   fetch() workaround). Session-82 keystroke wedge cleared by /mcp
+ *   reconnect (Hypothesis A — session-scoped Playwright handle, not a
+ *   product bug). Login → MFA verification code → chat textarea →
+ *   navigation event → Billing History page render all driven via
+ *   browser_type slowly: true + browser_click + browser_press_key.
+ *
+ *   Test user: john@example.com (id varies per fresh seed; this session
+ *   id=12), onboarding_completed=true, ai_chat consent recorded via
+ *   UserConsent::recordConsent, monthly_expenditure=3500.00,
+ *   subscription status=active, 3 Invoice rows + 3 Payment rows linked
+ *   via subscription_id (PaymentController::billingHistory reads
+ *   $subscription->payments() — payments need subscription_id, not just
+ *   user_id; spec gap → fixture setup updated). Invoice status uses the
+ *   schema enum value 'issued' (BS-16 stub asks for 'paid' but the
+ *   invoices.status ENUM only allows draft|issued|void).
+ *
+ *   SSE evidence (conversation id=2):
+ *     - tool_use: get_subscription_status (× 2)
+ *     - tool_use: list_invoices (× 2)
+ *     - navigation: route_path='/settings/subscription'
+ *     - assistant content: "You're on the Fynla Standard monthly plan
+ *       (active).  \nYou have **3 invoices**.  \n- **FYN-INV-000003** —
+ *       issued 26 April 2026, **£10.99**  \n- **FYN-INV-000002** ...
+ *       \n- **FYN-INV-000001** ...  \n\nWhat else can I help with on
+ *       your finances?"
+ *     - audit chain rows id=16..19 (get_subscription_status × 2,
+ *       list_invoices × 2)
+ *
+ *   Assertion check:
+ *     ✅ tool_use events for get_subscription_status AND list_invoices
+ *     ✅ Response cites plan + status='active' + count "3 invoices"
+ *        (matches /3 invoice/i regex)
+ *     ✅ Navigation SSE event with route '/settings/subscription'
+ *        (matches /\/settings\/(subscription|invoices)/ regex)
+ *     ✅ Destination page /profile?section=subscription renders the
+ *        Billing History block with all three rows: FYN-INV-000001/2/3
+ *        each at £10.99, "Standard Plan — FYN-INV-XXX" description,
+ *        "Active" subscription badge.
+ *     ✅ DB: Invoice::where('user_id', $john->id)->get() returns 3 rows
+ *        with matching invoice_number + total_amount=1099 (pence).
+ *     ✅ NO fetch() / browser_evaluate workarounds for the test path —
+ *        the only browser_evaluate calls were diagnostic (state probes
+ *        + the seed-confirmation /api/payment/billing-history API
+ *        check), not interaction substitutes.
+ *
+ *   Screenshots:
+ *     April/April24Updates/plan/batch2/BS-16/02-page.png
+ *     April/April24Updates/plan/batch2/BS-16/03-billing-history.png
+ *     (gitignored under April/April24Updates/plan/batch2/)
+ *
+ *   Spec gaps surfaced and worked around at the fixture layer (flag for
+ *   follow-up; not blocking BS-16):
+ *     1. invoices.status ENUM is draft|issued|void — BS-16 stub asks
+ *        for 'paid'. Either widen the enum or update the stub.
+ *     2. PaymentController::billingHistory reads $subscription->payments()
+ *        — Payment rows need subscription_id, not just user_id +
+ *        invoice_id. The BS-16 stub seed line implies user_id is enough.
+ *        Either widen the controller query or update the stub seed.
  */
 it('BS-16 billing where is my invoice', function (): void {
     $this->markPendingInteractiveRun('BS-16');

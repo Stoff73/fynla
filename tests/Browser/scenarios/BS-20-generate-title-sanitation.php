@@ -51,6 +51,55 @@ declare(strict_types=1);
  *   this session. The sidebar-render assertion (visible title text
  *   contains no `<` or `>`, no JS alert dialog fired) remains
  *   outstanding pending a clean Playwright run. Flagged in CSJTODO.
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2 RE-RUN, full GREEN):
+ *   Re-driven end-to-end via REAL Playwright keystrokes. Logged in as
+ *   john@example.com, clicked "New conversation", typed
+ *   `<script>alert(1)</script> hello` via browser_type slowly + Enter.
+ *
+ *   First-pass UI run uncovered a NEW UX bug not anticipated in the
+ *   stub: the optimistic user-message bubble in
+ *   `resources/js/store/modules/aiChat.js sendMessage` (line ~358)
+ *   pushed the raw user-typed string into `state.messages` before the
+ *   API round-trip, so the bubble rendered the literal text
+ *   "<script>alert(1)</script> hello" (Vue auto-escapes `{{ }}`, so
+ *   no XSS, but ugly UX — the user saw their own injection echoed
+ *   back). The DB-stored copy was already sanitised by SanitizeInput
+ *   middleware (`'alert(1) hello'`); the optimistic bubble bypassed
+ *   that.
+ *
+ *   Folded into S0.5.v in the Sprint 0 plan (per §S0.16b: "any
+ *   failures route through dedicated bug-fix sub-tasks against the
+ *   relevant Sprint 0 file"):
+ *     - CREATE `resources/js/utils/stripTags.js` — narrow tag-shaped
+ *       regex that mirrors PHP `strip_tags()` (preserves "<3",
+ *       "< 5 > 3" cases the same way).
+ *     - MODIFY `resources/js/store/modules/aiChat.js sendMessage`:
+ *       optimistic ADD_MESSAGE now uses `stripTags(message)` so the
+ *       bubble matches what the DB stores. Defence-in-depth on top of
+ *       Vue's auto-escaping.
+ *
+ *   After the fix, re-ran end-to-end:
+ *     ✅ Sidebar entry title "alert(1) hello" — no `<` or `>` chars
+ *     ✅ User-bubble text "alert(1) hello" — no `<` or `>` chars
+ *     ✅ document.body.innerText contains zero `<` or `>` anywhere
+ *        (page-wide regex check: `bodyContainsLt: false`,
+ *        `bodyContainsGt: false`, `bodyContainsLtScript: false`)
+ *     ✅ document.querySelectorAll('script') filtered for
+ *        `alert(1)` returns 0 (no injected script element)
+ *     ✅ browser_console_messages: zero alert dialog, zero uncaught
+ *        script execution (only unrelated 401 from initial login
+ *        attempt + 403 on /api/estate/trusts unrelated to this run)
+ *     ✅ DB: AiConversation::find(latest)->title = 'alert(1) hello'
+ *        (14 chars, ≤100, contains "hello", no markup)
+ *     ✅ DB: first user message content = 'alert(1) hello' (matches
+ *        what the optimistic bubble shows now — bubble + DB consistent)
+ *
+ *   Test user: john@example.com (id=12), conv id=9 (latest after
+ *   reseed + the BS-16 conv id=2 + interim "New conversation" rows).
+ *
+ *   Screenshot: April/April24Updates/plan/batch2/BS-20/01-bubble-and-sidebar.png
+ *     (gitignored under April/April24Updates/plan/batch2/)
  */
 it('BS-20 generateTitle sanitation', function (): void {
     $this->markPendingInteractiveRun('BS-20');

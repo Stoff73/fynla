@@ -54,6 +54,84 @@ declare(strict_types=1);
  *   not captured in this session because the chat textarea was
  *   unresponsive to keystrokes (typing the BS-11 trigger message).
  *   Flagged in CSJTODO.
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2 RE-RUN, full GREEN):
+ *   Re-driven end-to-end via REAL Playwright keystrokes alongside
+ *   BS-11 (same trigger turn). First-pass UI run revealed the
+ *   advice→capture handoff path was emitting `entity_created` SSE
+ *   events but NOT `capture_complete` — the latter only fired in
+ *   the legacy onboarding orchestrator, which was deleted in S0.3.
+ *   So the BS-12 contract assertion ("capture_complete bubble
+ *   matches assistant-bubble styling") had no rendered bubble to
+ *   test against, and the existing `entity_created` rendering was
+ *   producing a stray "Aviva" mini-bubble — poor UX (CSJ flagged:
+ *   "details matter").
+ *
+ *   Folded into S0.5.w (one fix landed both BS-11 and BS-12):
+ *     - `OnboardingChatDirector::handleInlineCapture` now tracks
+ *       every `entity_created` event yielded during the capture
+ *       turn and emits a closing `capture_complete` SSE event with
+ *       a `records_created` array (one entry per persisted record).
+ *       Suppressed when nothing was actually written.
+ *     - `AiChatPanel.vue` v-for now `v-show="msg.role !==
+ *       'entity_created'"` — the entity_created event remains in the
+ *       Vuex store for downstream consumers (cache invalidation,
+ *       recommendation refresh) but no longer renders as a stray
+ *       single-name bubble. The richer `capture_complete` card is
+ *       the canonical UX surface.
+ *
+ *   After fix, on the BS-11 turn (conv id=17, policy id=10):
+ *     ✅ msg.role === 'capture_complete' bubble rendered with
+ *        classes: max-w-[85%] w-full rounded-lg bg-savannah-100
+ *        border border-light-gray px-3 py-2 space-y-2 text-sm.
+ *     ✅ Bubble content: "Saved to your records" heading + one
+ *        sub-row showing entity type "life_insurance_policy" + "View"
+ *        link.
+ *     ✅ No SVG icon inside the bubble (CLAUDE.md Rule 14
+ *        functional-only icons).
+ *     ✅ Bubble shares bg-savannah-100 + border-light-gray with the
+ *        regular assistant bubble template; rounded-lg + flex
+ *        justify-start present (BS-12 contract held).
+ *     ✅ No stray "Aviva" mini-bubble visible (entity_created hidden
+ *        from render but preserved in store).
+ *     ✅ Page-wide `<` / `>` character count = 0 (no markup leak from
+ *        the function_call stripper applied at persistence).
+ *
+ *   Screenshot: April/April24Updates/plan/batch2/BS-11/02-classifier-green.png
+ *     (the BS-11 capture screenshot also shows the capture_complete
+ *     card so it covers BS-12 evidence).
+ *
+ * Delivery note (2026-04-26 — S0.5.y, BS-12 record-card UX fix):
+ *   First fully-rendered capture_complete card surfaced two more bugs
+ *   CSJ flagged on inspection:
+ *     (a) Card row showed the raw entity_type slug "life_insurance_policy"
+ *         instead of a personalised label.
+ *     (b) The "View" button click fell through to /dashboard because the
+ *         routeMap in AiChatPanel.vue only had the historical short keys
+ *         ("life_insurance"), not the canonical long keys the
+ *         create_protection_policy handler emits ("life_insurance_policy").
+ *
+ *   Folded into S0.5.y in the Sprint 0 plan:
+ *     - Extended routeMap + formatEntityType labels to cover every
+ *       canonical entity_type the create_* handlers emit (alongside the
+ *       historical short keys for back-compat). Replaced "LPA" with
+ *       "Lasting Power of Attorney" per CLAUDE.md Rule #10 (no
+ *       acronyms).
+ *     - Added formatRecordCardLabel(record) helper — combines record.name
+ *       (entity-specific human label like "Aviva") with the friendly
+ *       type label, producing "Aviva — Life insurance" in the card
+ *       row instead of the bare "life_insurance_policy" slug.
+ *
+ *   After fix:
+ *     ✅ Card row reads "Aviva — Life insurance" (personalised + no
+ *        acronyms).
+ *     ✅ "View" click navigates to /protection — the destination page
+ *        renders the new policy in the Policy section ("Aviva / Level
+ *        Term / Sum Assured £300,000 / Premium £30/monthly") and the
+ *        Existing Life Insurance Coverage / Coverage Summary blocks
+ *        update accordingly.
+ *
+ *   Screenshot: April/April24Updates/plan/batch2/BS-12/02-protection-page.png
  */
 it('BS-12 capture_complete matches assistant-bubble styling', function (): void {
     $this->markPendingInteractiveRun('BS-12');

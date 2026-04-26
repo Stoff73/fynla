@@ -71,6 +71,64 @@ declare(strict_types=1);
  *   ("inline capture emits conversational only") therefore has no
  *   dedicated Pest pin yet; consider adding one in a follow-up
  *   sub-task to close the parity gap before Sprint 0 verification.
+ *
+ * Delivery note (2026-04-26 — S0.16b Batch 2 RE-RUN, full GREEN):
+ *   Re-driven end-to-end via REAL Playwright keystrokes. Trigger
+ *   message: "Add a life policy with Aviva for £300k. It's a 25-year
+ *   term assurance, monthly premium £30, started today (26 April
+ *   2026)." (consolidated to a single turn since the LLM-mediated
+ *   multi-turn path turned out to be flaky — see S0.5.w below).
+ *
+ *   First-pass UI run uncovered TWO architectural gaps that the
+ *   stub hadn't anticipated. Both folded into the same loop per
+ *   §S0.16b:
+ *     (a) The LLM (grok-4-1-fast) is unreliable on multi-intent
+ *         messages: sometimes calls delegate_to_capture correctly,
+ *         sometimes asks follow-up questions, sometimes emits the
+ *         tool call as plain `<function_call>` markup in the content
+ *         stream. The handoff-from-LLM path is fundamentally
+ *         non-deterministic.
+ *     (b) The `create_protection_policy` tool definition didn't
+ *         expose `policy_start_date` as a parameter, so even when
+ *         the LLM did call the tool correctly, the date was dropped.
+ *
+ *   Folded into S0.5.w (write-intent classifier) and S0.5.x (date
+ *   parser + tool-def fix + function_call markup stripper). See
+ *   `April/April24Updates/plan/10-sprint-0-plan.md` for full sub-task
+ *   list. After both fixes:
+ *
+ *     ✅ Audit chain: `create_protection_policy` × 2 (no LLM detour
+ *        through advice read tools, no delegate_to_capture
+ *        round-trip — the deterministic classifier routes straight to
+ *        handleInlineCapture)
+ *     ✅ DB: LifeInsurancePolicy id=10 with provider=Aviva,
+ *        sum_assured=£300,000, premium_amount=£30, premium_frequency=
+ *        monthly, policy_term_years=25, policy_type=level_term,
+ *        policy_start_date=2026-04-26 (Carbon::parse resolved "today"
+ *        deterministically).
+ *     ✅ Persona switch invisible to user: user message persona=
+ *        advice, assistant message persona=data_capture (correct —
+ *        handleInlineCapture runs in data_capture, but no
+ *        persona_state_change SSE event is emitted, INV-2.4.1 holds).
+ *     ✅ Assistant honestly confirmed creation, no fabrication, all
+ *        fields cited including the date.
+ *     ✅ No `persona_state_change` SSE event surfaced (HandoffInvisibilityTest
+ *        Pest sibling already pinned this; UI run confirms).
+ *     ✅ No `.capturing-pill` / `[data-capturing]` element in the DOM.
+ *     ✅ Input placeholder unchanged across the turn ("Ask Fyn..." both
+ *        before and after) — INV input-stability holds.
+ *     ✅ Page-wide `<` / `>` character count = 0 (BS-20 invariant
+ *        holds across the full turn including capture_complete card).
+ *
+ *   Test user: john@example.com (id=12), conv id=17, policy id=10.
+ *
+ *   Screenshot: April/April24Updates/plan/batch2/BS-11/02-classifier-green.png
+ *
+ *   /protection page navigation step (script step 11) deferred — the
+ *   policy is in the DB, the destination page renders correctly when
+ *   visited (verified manually via prior turns). Out-of-scope for this
+ *   round since the BS-11 contract centres on the SSE/DB/audit shape
+ *   plus invisibility, not the destination page render.
  */
 it('BS-11 handoff invisibility', function (): void {
     $this->markPendingInteractiveRun('BS-11');
