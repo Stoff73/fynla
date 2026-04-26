@@ -1,54 +1,61 @@
-# Tech Debt Report — Session 81 (2026-04-25, 22:00 BST)
+# Tech Debt Report — Session 82 (2026-04-26)
 
-**Files analysed:** 10 (committed in 231b846) + CLAUDE.md (uncommitted CSJ tweak)
+**Files analysed:** 8
 **Issues found:** 0
 **Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
 
-## Audit categories — all clean
+## Files reviewed
 
-### Duplicate code
-- No within-file duplication.
-- No cross-file duplication. `getHandoffGuidance()` is a new helper extracted from inline Layer 10b — that's deduplication, not duplication.
+Code:
+- `app/Agents/CoordinatingAgent.php` — `handleGetSubscriptionStatus` returns 3 extra keys (`action`, `route_path`, `description`) on the existing dict result. Comment justifies why and confirms `BillingToolsTest::toHaveKeys` still passes.
+- `app/Services/AI/AdvicePromptBuilder.php` — new `Layer 3c` block + `getBillingGuidance()` method, structurally identical to the existing `getHandoffGuidance()` (S0.5.t pattern).
+- `resources/js/router/index.js` — new `/settings/subscription` route redirects to `/profile?section=subscription`. Follows the existing `/settings/security`, `/settings/privacy`, `/settings/assumptions` pattern.
 
-### Dead & redundant code
-- No commented-out code. The pre-S0.5.t code paths were replaced with explanatory `// S0.5.t —` comments documenting WHY behaviour changed (genuine context, not dead code).
-- No `console.log`, `dd()`, `dump()`, `var_dump()`.
-- No empty catch blocks. The one new `Log::warning` block in `AdviceFyn::wrapStream` for malformed payloads continues the loop intentionally per INV-2.4.1.
-- No unused imports.
+Stubs (docblock-only changes):
+- `tests/Browser/scenarios/BS-{11,12,16,20}-*.php` — delivery notes added; no executable code touched.
 
-### Convention violations
-- All 6 PHP files have `declare(strict_types=1);` ✓
-- New method `getHandoffGuidance(): string` has return type ✓
-- No `DB` facade in controllers (no controllers touched)
-- No hardcoded tax values (no tax math touched)
-- No `sole` ownership references
-- No banned colour classes
-- No CSS / Vue / chart changes (frontend untouched)
-- No acronyms in user-facing text (prompt strings are LLM-facing, not user-facing)
-- No scores in user-facing UI
+Docs:
+- `CSJTODO.md` — session 82 handover.
 
-### Complexity & maintainability
-- Longest single hunk: the new BS-14 stub delivery note (80 lines of docblock comment, not code). Out of scope for tech-debt — that's intentional documentation per the plan's delivery-note convention.
-- New code in `AdviceFyn::wrapStream`: 12 lines added (the `Log::notice` observability block + `return` statement). No nested conditionals introduced; just one extra `if` for the missing-`reason` log line.
-- `getHandoffGuidance()`: 27 lines, single concern (return prompt string), pure function.
-- No magic numbers introduced.
+## Categories
+
+### Duplicate Code
+None. `getBillingGuidance()` mirrors `getHandoffGuidance()` shape but is a distinct concern, not duplication.
+
+### Dead & Redundant Code
+None. No commented-out code, no unused imports, no unreachable branches.
+
+### Convention Violations
+None.
+
+- declare(strict_types=1) intact in both PHP files.
+- Type hints intact on all methods.
+- No DB facade in controllers (changes are in agent + service).
+- No hardcoded tax values.
+- No hardcoded hex / banned colour classes (no `<style>` work this session).
+- No new acronyms in user-facing text (FYN-INV is an invoice number, not an acronym).
+- No scores / "X/100" introduced.
+- Vue route follows existing `/settings/*` pattern.
+
+### Complexity & Maintainability
+None.
+
+- `getBillingGuidance()` is 23 lines of HEREDOC — within budget.
+- `handleGetSubscriptionStatus` was 17 lines; now 28 lines. Still single-responsibility.
 
 ### Security
-- No new user input pathways. The `reason` synthesis in `CaptureContext::fromArray` synthesises an internal string from the LLM's `entity_types` field — not user input.
-- No new SQL queries.
-- No sensitive data logging. The `Log::notice` records `entity_types` and `synthesised_reason` for observability; neither contain PII.
-- No authorisation changes.
+None.
 
-### Pattern consistency
-- `Log::notice` uses the same Facade pattern as the existing `Log::warning` block four lines above it.
-- `data_capture` persona enum value matches the existing `'advice'` enum value (both already in the database schema).
-- `WRITE_TOOLS` array follows the existing comma-separated single-line-per-group convention.
+- No user-input handling changed.
+- No new SQL or external integration.
+- The route path `/settings/subscription` is a static string in both backend (tool result) and router — matches by design.
 
-## Notes
+### Inconsistency with Existing Patterns
+None. Both new prompt block and tool-result navigate-action mirror prior Sprint 0 patterns (S0.5.t handoff guidance, existing `handleSetExpenditure` / `handleCreateWhatIfScenario` navigate emitters).
 
-The eight S0.5.t sub-fixes were minimal, targeted edits: prompt-string changes, one terminate-after-handoff `return`, one persona rename, one resilient-fallback in a value object, and a tool-list addition. No refactors, no abstraction layers introduced, no scope creep. Each change is documented with its exact reason in a `// S0.5.t —` comment.
+## Summary
 
-CLAUDE.md uncommitted edit by CSJ: tightened Rule #15 wording and added a reference to the `/systematic-debugging` skill. This is a correction to the rule I added, not new debt — and it's been mirrored into `feedback_loop_until_correct.md` and `fynlaBrain/LoopUntilCorrect.md`.
+Clean bill of health. The S0.5.u rollup followed the established S0.5.t hardening pattern: small, focused, well-commented, tested via existing Pest suites (418 passing post-change). Nothing to fix before commit — already committed in `c51e7ff`.
 
 ---
-*Generated by tech-debt-session skill — clean bill of health.*
+*Generated by tech-debt-session skill — session 82, 2026-04-26.*
