@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DCPension;
 use App\Models\EvalProviderRun;
@@ -322,7 +323,7 @@ final class EvalRecordCommand extends Command
                 'conversation_id' => $conversation->id,
                 'user_message' => implode("\n---\n", $userMessages),
                 'assistant_text' => $assembledContent,
-                'tool_calls' => $this->extractToolCalls($events),
+                'tool_calls' => $this->extractToolCalls($conversation->id),
                 'sse_event_count' => count($events),
                 'sse_event_types' => $this->countEventTypes($events),
                 'forbidden_hits' => $this->detectForbiddenOutputs($assembledContent, $forbiddenOutputs),
@@ -568,35 +569,38 @@ final class EvalRecordCommand extends Command
     }
 
     /**
-     * @param  list<array<string, mixed>>  $events
-     * @return list<array{name: string, args: array<string, mixed>, result: mixed}>
+     * Tool calls with full args + result_summary live on the assistant
+     * AiMessage's metadata, written by HasAiChat::handleStream after the
+     * tool loop closes. The SSE stream itself only carries name + status,
+     * not the structured input — so we read from the message of record.
+     *
+     * @return list<array{name: string, args: array<string, mixed>|string, result: mixed}>
      */
-    private function extractToolCalls(array $events): array
+    private function extractToolCalls(int $conversationId): array
     {
-        $calls = [];
-        $pending = null;
+        $message = AiMessage::where('conversation_id', $conversationId)
+            ->where('role', 'assistant')
+            ->latest('id')
+            ->first();
 
-        foreach ($events as $event) {
-            $type = $event['type'] ?? null;
-            if ($type === 'tool_use') {
-                $pending = $event;
-            } elseif ($type === 'tool_result' && $pending !== null) {
-                $calls[] = [
-                    'name' => (string) ($pending['name'] ?? 'unknown'),
-                    'args' => $pending['input'] ?? $pending['args'] ?? [],
-                    'result' => $event['result'] ?? $event['content'] ?? null,
-                ];
-                $pending = null;
-            }
+        if ($message === null) {
+            return [];
         }
 
-        // Trailing tool_use without a paired result (rare — usually means
-        // the turn ended mid-loop). Capture it without a result.
-        if ($pending !== null) {
+        $rawCalls = $message->metadata['tool_calls'] ?? null;
+        if (! is_array($rawCalls)) {
+            return [];
+        }
+
+        $calls = [];
+        foreach ($rawCalls as $tc) {
+            if (! is_array($tc)) {
+                continue;
+            }
             $calls[] = [
-                'name' => (string) ($pending['name'] ?? 'unknown'),
-                'args' => $pending['input'] ?? $pending['args'] ?? [],
-                'result' => null,
+                'name' => (string) ($tc['tool'] ?? $tc['name'] ?? 'unknown'),
+                'args' => $tc['input'] ?? $tc['args'] ?? [],
+                'result' => $tc['result_summary'] ?? $tc['result'] ?? null,
             ];
         }
 
@@ -806,11 +810,21 @@ final class EvalRecordCommand extends Command
 
     private function createConversation(User $user, string $model): AiConversation
     {
+        // message_count is explicitly set to 0 so the in-memory model
+        // matches the DB default. HasAiChat::chat() reads
+        // $conversation->message_count with strict types — leaving it
+        // unset on the in-memory object yields null and trips the
+        // classifyComplexity(int $conversationDepth) signature. The DB
+        // column already defaults to 0 (non-null), this just keeps the
+        // PHP-side state consistent without a round-trip refresh().
         return AiConversation::create([
             'user_id' => $user->id,
             'title' => 'Eval recording',
             'status' => 'active',
             'model_used' => $model,
+            'message_count' => 0,
+            'total_input_tokens' => 0,
+            'total_output_tokens' => 0,
             'persona_state' => ['source' => 'eval-record'],
         ]);
     }

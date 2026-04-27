@@ -1091,6 +1091,14 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('/user-metrics/activity', [\App\Http\Controllers\Api\UserMetricsController::class, 'activity']);
     Route::get('/user-metrics/engagement', [\App\Http\Controllers\Api\UserMetricsController::class, 'engagement']);
 
+    // Eval forensic recordings (read-only)
+    Route::prefix('eval-recordings')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'index']);
+        Route::get('/runs/{run}/raw', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'rawFixture']);
+        Route::get('/runs/{run}/system-prompt', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'systemPrompt']);
+        Route::get('/{session}', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'show']);
+    });
+
     // Discount Code Management
     Route::get('/discount-codes', [\App\Http\Controllers\Api\AdminController::class, 'listDiscountCodes']);
     Route::post('/discount-codes', [\App\Http\Controllers\Api\AdminController::class, 'createDiscountCode']);
