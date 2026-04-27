@@ -174,6 +174,29 @@ final class AdviceFyn
         // a non-financial term still route through the normal advice path.
         $classification = $this->queryClassifier->classify($message, $currentRoute);
 
+        // Fire response_mode + engine_call_level decisions for the eval trace.
+        // Map-presence guards avoid throwing on out-of-remit / data-entry types
+        // whose handlers below already cover those branches.
+        $traceablePrimary = $classification['primary'] ?? null;
+        if ($traceablePrimary !== null && isset(self::RESPONSE_MODE_MAP[$traceablePrimary])) {
+            event(new \App\Events\Eval\AgentDecision(
+                agent: 'AdviceFyn',
+                decisionPoint: 'response_mode',
+                outcome: self::RESPONSE_MODE_MAP[$traceablePrimary],
+                context: ['primary' => $traceablePrimary],
+                atMicrotime: microtime(true),
+            ));
+        }
+        if ($traceablePrimary !== null && isset(self::ENGINE_CALL_LEVEL_MAP[$traceablePrimary])) {
+            event(new \App\Events\Eval\AgentDecision(
+                agent: 'AdviceFyn',
+                decisionPoint: 'engine_call_level',
+                outcome: self::ENGINE_CALL_LEVEL_MAP[$traceablePrimary],
+                context: ['primary' => $traceablePrimary],
+                atMicrotime: microtime(true),
+            ));
+        }
+
         if (($classification['primary'] ?? null) === QuerySchemas::OUT_OF_REMIT) {
             $context = $classification['detected_topic'] ?? 'General queries';
             $text = "I'm able to help you with your finances. {$context} is out of scope.";

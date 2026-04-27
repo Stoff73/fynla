@@ -46,6 +46,18 @@ class EstateDataReadinessService
         $totalCount = count($checks);
         $completenessPercent = $totalCount > 0 ? (int) round(($passedCount / $totalCount) * 100) : 0;
 
+        event(new \App\Events\Eval\GateChecked(
+            gate: 'data_readiness',
+            module: 'estate',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
+
         return [
             'can_proceed' => $canProceed,
             'blocking' => $blocking,

@@ -69,7 +69,16 @@ class ProtectionAgent extends BaseAgent
                 'sicknessIllnessPolicies',
             ])->findOrFail($userId);
 
-            if (! $user->protectionProfile) {
+            $hasProfile = $user->protectionProfile !== null;
+            event(new \App\Events\Eval\GateChecked(
+                gate: 'profile_gate',
+                module: 'protection',
+                passed: $hasProfile,
+                context: ['profile_table' => 'protection_profiles', 'user_id' => $user->id],
+                atMicrotime: microtime(true),
+            ));
+
+            if (! $hasProfile) {
                 return $this->response(
                     false,
                     'Protection profile not found. Please create a protection profile first.',

@@ -48,12 +48,32 @@ class KycGateChecker
 
         // Check universal requirements
         $universalMissing = $this->checkUniversalRequirements($user);
+        event(new \App\Events\Eval\GateChecked(
+            gate: 'kyc',
+            module: 'global',
+            passed: empty($universalMissing),
+            context: [
+                'missing' => array_map(fn ($m) => is_array($m) ? ($m['label'] ?? $m) : $m, $universalMissing),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
         $allMissing = array_merge($allMissing, $universalMissing);
 
         // Check module-specific requirements for ALL classified modules
         $modules = QuerySchemas::getModulesForClassification($classification);
         foreach ($modules as $module) {
             $moduleMissing = $this->checkModuleRequirements($user, $module);
+            event(new \App\Events\Eval\GateChecked(
+                gate: 'kyc',
+                module: $module,
+                passed: empty($moduleMissing),
+                context: [
+                    'missing' => array_map(fn ($m) => is_array($m) ? ($m['label'] ?? $m) : $m, $moduleMissing),
+                    'user_id' => $user->id,
+                ],
+                atMicrotime: microtime(true),
+            ));
             $allMissing = array_merge($allMissing, $moduleMissing);
         }
 

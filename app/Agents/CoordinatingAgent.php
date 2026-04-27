@@ -162,6 +162,8 @@ class CoordinatingAgent extends BaseAgent
      */
     public function orchestrateAnalysis(int $userId, ?array $moduleAgents = null): array
     {
+        $orchestrateStart = microtime(true);
+
         // Collect analysis from all modules
         $allAnalysis = $this->collectModuleAnalysis($userId, $moduleAgents);
 
@@ -194,7 +196,7 @@ class CoordinatingAgent extends BaseAgent
             $crossModuleStrategies = $this->crossModuleStrategyService->generateCrossModuleStrategies($allAnalysis, $user);
         }
 
-        return [
+        $result = [
             'user_id' => $userId,
             'analysis_date' => now()->toIso8601String(),
             'module_analysis' => $allAnalysis,
@@ -213,6 +215,20 @@ class CoordinatingAgent extends BaseAgent
                 'cross_module_strategies_count' => count($crossModuleStrategies),
             ],
         ];
+
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'orchestrate_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: [
+                'keys_returned' => array_keys($result),
+                'result_path' => 'happy',
+                'modules_with_analysis' => array_keys($allAnalysis),
+            ],
+            durationMs: (int) round((microtime(true) - $orchestrateStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -713,6 +729,20 @@ class CoordinatingAgent extends BaseAgent
             'status' => 'dispatched',
             'input_summary' => self::summariseInput($toolName, $input, $isPreviewUser),
         ]);
+
+        // Eval trace — capture every tool dispatch with name + args.
+        event(new \App\Events\Eval\AgentDecision(
+            agent: 'CoordinatingAgent',
+            decisionPoint: 'tool_dispatch',
+            outcome: $toolName,
+            context: [
+                'args' => $input,
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'is_preview_user' => $isPreviewUser,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         // Prerequisite gate check
         $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
@@ -1505,6 +1535,7 @@ class CoordinatingAgent extends BaseAgent
     {
         $module = $input['module'];
 
+        $analyzeStart = microtime(true);
         $analysis = match ($module) {
             'protection' => $this->protectionAgent->analyze($user->id),
             'savings' => $this->savingsAgent->analyze($user->id),
@@ -1515,6 +1546,23 @@ class CoordinatingAgent extends BaseAgent
             'holistic' => $this->orchestrateAnalysis($user->id),
             default => ['error' => "Unknown module: {$module}"],
         };
+        $analyzeDuration = (int) round((microtime(true) - $analyzeStart) * 1000);
+
+        // Eval trace — every module analyze invocation through this tool
+        // gets one EngineCalled. result_path inferred from response shape:
+        // success_false when the agent returns ['success' => false, ...],
+        // happy otherwise.
+        $resultPath = (isset($analysis['success']) && $analysis['success'] === false) ? 'success_false' : 'happy';
+        event(new \App\Events\Eval\EngineCalled(
+            engine: $module === 'holistic' ? 'orchestrate_analysis' : "{$module}_analysis",
+            params: ['user_id' => $user->id, 'module' => $module],
+            resultSummary: [
+                'keys_returned' => array_keys($analysis),
+                'result_path' => $resultPath,
+            ],
+            durationMs: $analyzeDuration,
+            atMicrotime: microtime(true),
+        ));
 
         return $this->summariseToolAnalysis($module, $analysis);
     }

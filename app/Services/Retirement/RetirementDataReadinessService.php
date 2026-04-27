@@ -53,6 +53,18 @@ class RetirementDataReadinessService
 
         $canProceed = count($blocking) === 0;
 
+        event(new \App\Events\Eval\GateChecked(
+            gate: 'data_readiness',
+            module: 'retirement',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
+
         return [
             'can_proceed' => $canProceed,
             'blocking' => $blocking,

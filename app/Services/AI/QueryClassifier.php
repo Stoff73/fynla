@@ -226,10 +226,20 @@ class QueryClassifier
             'related' => $related,
         ]);
 
-        return [
+        $result = [
             'primary' => $primary,
             'related' => $related,
             'modules' => $modules,
         ];
+
+        event(new \App\Events\Eval\AgentDecision(
+            agent: 'CoordinatingAgent',
+            decisionPoint: 'classify_query',
+            outcome: 'success',
+            context: $result,
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 }

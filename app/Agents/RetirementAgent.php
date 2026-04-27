@@ -98,7 +98,16 @@ class RetirementAgent extends BaseAgent
             $dbPensions = $user?->dbPensions ?? collect();
             $statePension = $user?->statePension;
 
-            if (! $profile) {
+            $hasProfile = $profile !== null;
+            event(new \App\Events\Eval\GateChecked(
+                gate: 'profile_gate',
+                module: 'retirement',
+                passed: $hasProfile,
+                context: ['profile_table' => 'retirement_profiles', 'user_id' => $user?->id ?? 0],
+                atMicrotime: microtime(true),
+            ));
+
+            if (! $hasProfile) {
                 return $this->response(false, 'No retirement profile found', []);
             }
 

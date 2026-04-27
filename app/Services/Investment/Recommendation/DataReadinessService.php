@@ -41,9 +41,22 @@ class DataReadinessService
 
         $totalChecks = count($checks);
         $passedChecks = count(array_filter($checks, fn (array $check): bool => $check['passed']));
+        $canProceed = count($blocking) === 0;
+
+        event(new \App\Events\Eval\GateChecked(
+            gate: 'data_readiness',
+            module: 'investment',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         return [
-            'can_proceed' => count($blocking) === 0,
+            'can_proceed' => $canProceed,
             'blocking' => $blocking,
             'warnings' => $warnings,
             'info' => $info,

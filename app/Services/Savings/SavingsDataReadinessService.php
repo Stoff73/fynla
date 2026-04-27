@@ -49,9 +49,22 @@ class SavingsDataReadinessService
         $blocking = $collection->where('level', 'blocking');
         $warnings = $collection->where('level', 'warning');
         $info = $collection->where('level', 'info');
+        $canProceed = $blocking->where('passed', false)->isEmpty();
+
+        event(new \App\Events\Eval\GateChecked(
+            gate: 'data_readiness',
+            module: 'savings',
+            passed: $canProceed,
+            context: [
+                'blocking' => $blocking->where('passed', false)->pluck('key')->all(),
+                'warnings' => $warnings->where('passed', false)->pluck('key')->all(),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         return [
-            'can_proceed' => $blocking->where('passed', false)->isEmpty(),
+            'can_proceed' => $canProceed,
             'blocking' => array_values($blocking->toArray()),
             'warnings' => array_values($warnings->toArray()),
             'info' => array_values($info->toArray()),
