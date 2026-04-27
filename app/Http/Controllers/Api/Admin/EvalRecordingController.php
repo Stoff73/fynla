@@ -77,9 +77,11 @@ final class EvalRecordingController extends Controller
         ])->findOrFail($sessionId);
 
         $expected = $this->parseExpectations($session->scenario_yaml);
+        $fullYaml = is_array($expected['_full'] ?? null) ? $expected['_full'] : [];
+        unset($expected['_full']);
 
-        $runs = $session->providerRuns->map(function (EvalProviderRun $r) use ($expected): array {
-            $delta = $this->deltaBuilder->build($r, $expected);
+        $runs = $session->providerRuns->map(function (EvalProviderRun $r) use ($fullYaml): array {
+            $delta = $this->deltaBuilder->build($r, $fullYaml);
 
             return [
                 'id' => $r->id,
@@ -168,8 +170,10 @@ final class EvalRecordingController extends Controller
      * response" panel reads (`selectedSession.expected.X`). Returns the
      * legacy keys (`tool_calls`, `forbidden_tools`, `timing_budget_ms`,
      * etc.) so the existing Vue components keep rendering, AND the full
-     * parsed YAML alongside so EvalDeltaBuilder can read the new-shape
+     * parsed YAML under `_full` so EvalDeltaBuilder can read the new-shape
      * keys (expected_classification_shape, expected_response_mode, etc.).
+     * `show()` strips `_full` before serialising the response — it is a
+     * builder-only key, never visible over the wire.
      */
     private function parseExpectations(?string $yaml): array
     {
