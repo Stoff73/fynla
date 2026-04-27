@@ -1,7 +1,7 @@
 # Sprint 0 — Rubric-A re-score
 
-**Branch:** `feature/fyn-persona-split` (HEAD: `6c9e07d` + post-S0.17 fix)
-**Re-score date:** 2026-04-26 (session 96, S0.17 verification rollup)
+**Branch:** `feature/fyn-persona-split` (HEAD: `6c9e07d` + post-S0.17 fix + session-97 retention-policy doc)
+**Re-score date:** 2026-04-26 (session 96, S0.17 verification rollup) — **revised 2026-04-27 (session 97, D4 retention-policy close)**
 **Scorer:** Claude (Opus 4.7) per CSJ direction
 **Rubric source:** [`April/April24Updates/fyn-rubrics.md §A`](../../April/April24Updates/fyn-rubrics.md)
 **Spec target:** Post Sprint 0 → 13-15/40, 🔴 Pre-launch (still) — per `April/April24Updates/spec/01-invariants.md:543`
@@ -12,13 +12,15 @@
 
 | Metric | Score |
 |---|---|
-| **Rubric-A total** | **12/40 — 🔴 Pre-launch** |
+| **Rubric-A total** | **13/40 — 🔴 Pre-launch** |
 | Sprint 0 starting baseline | 4-5/40 (per `02-current-system.md §11`) |
-| Net delta | **+7 to +8** dimensions advanced |
+| Net delta | **+8 to +9** dimensions advanced |
 | Spec target | 13-15/40 |
-| Variance vs target | -1 to -3 (one short of the lower bound) |
+| Variance vs target | **In band (lower bound)** |
 
-The variance is explained dimension-by-dimension below. Three dimensions are on the cusp of the next level (D4, D6, D7) but each has one missing sub-criterion that the rubric requires for the level. The shortfall is honest, not regression — Sprint 0 closed every code-side invariant it scoped; the residual gaps are documentation deliverables (audit retention policy, DPA documentation) that the plan explicitly defers to Sprint 4.
+Session 97 closed the D4 sub-criterion gap by authoring `docs/audit-retention-policy.md`. The policy documents the 7-year advice / 2-year general retention windows that the as-shipped `AiAuditRetentionJob` already enforces — the previous score was held back not by missing code, but by missing documentation. The score now sits inside the spec target band.
+
+Two dimensions remain on the cusp of the next level (D6 reliability, D7 provider risk) but each requires Sprint 4-scoped work to close. Three dimensions sit at zero pending Sprint 1 / Sprint 4 deliverables (D2 data protection, D7 provider risk, D9 observability). The shortfall vs the upper target band (15) is honest, not regression — Sprint 0 closed every code-side invariant it scoped; the remaining gaps are out-of-scope documentation and configuration items.
 
 ---
 
@@ -32,15 +34,14 @@ All five S0.17 acceptance criteria satisfied as of 2026-04-26:
 | 2 | Architecture suite green | ✅ | `./vendor/bin/pest --testsuite=Architecture` → **16 passed, 303 assertions, 0 failures, 42.65s** (after S0.17 fix to `tests/Architecture/PersonaMachineryAbsentTest.php` — added `uses(Tests\TestCase::class)` to bootstrap Laravel container when run in isolation) |
 | 3 | Audit chain verify | ✅ | `php artisan ai:audit:verify-chain` → `{"chain_valid":true,"tip_hash":"36251a0fcc03a986692bf16c450da1f8b21587fb82e48cdd6b3d503fc88561ab","row_count":76}` |
 | 4 | Browser matrix 20/20 + screenshots committed | ✅ (with caveats — see §Browser matrix below) | 20 BS-NN scenario files in `tests/Browser/scenarios/`; 17 GREEN with delivery notes; BS-18 PARTIAL (third assertion deferred to post-deploy on Apache); BS-22 DROPPED (no UI consent toggle exists per CSJ); BS-05 DEFERRED to PSP-LS/PSP-S |
-| 5 | Rubric-A re-score ≥13/40 | 🟡 12/40 (1 short of target lower bound) | This document |
+| 5 | Rubric-A re-score ≥13/40 | ✅ 13/40 (lower bound of spec target band, post session-97) | This document |
 
-Acceptance #5 lands one point below the spec target. Three options for closing the gap, all out-of-scope for Sprint 0 itself:
+Acceptance #5 closed in session 97 by authoring `docs/audit-retention-policy.md`. D4 advanced from level 2 → 3 because the retention policy was the only missing sub-criterion (HMAC, key outside runtime, weekly cron all already shipped).
 
-- **Document audit retention policy** (D4 → 3) — single short doc at `docs/audit-retention-policy.md` covering the 7-year advice / 2-year general split. Nothing technical to build; the chain + HMAC + key-outside-runtime + weekly cron sub-criteria are all live. **Recommended pre-deploy follow-up.**
+Two further options remain for advancing to the upper band (14-15/40), both out-of-scope for Sprint 0:
+
 - **Add per-provider timeout parity** (D6 → 3) — set explicit timeout on `AnthropicClient` matching the 120s already in `XaiClient`. One-line config addition.
 - **Open Article 28 DPAs with Anthropic + xAI** (D7 → 1) — Sprint 4 work per spec; not feasible for Sprint 0 closure.
-
-Any one of the first two would push the score to 13/40 and clear the spec target. They are not required to close S0.17, since the 13-15 range is the spec's stated band and 12 is within reasonable variance — but flagging for CSJ visibility.
 
 ---
 
@@ -57,27 +58,23 @@ Any one of the first two would push the score to 13/40 and clear the spec target
 | BS-06 | ✅ GREEN | `docs/sprint-0-verification/BS-06/` (8 files, session-95 fresh) | Parked facts flush. INV-2.2.6 verified at exact commit moment. |
 | BS-07 | ✅ GREEN | `docs/sprint-0-verification/BS-07/` (4 files) | Dispatch flips after onboarding. Session-88 + session-95 evidence. |
 | BS-10 | ✅ GREEN | `docs/sprint-0-verification/BS-10/` (2 files) | Out-of-remit refusal. Canonical refusal text byte-exact. |
-| BS-11 | ✅ GREEN | `April/April24Updates/plan/batch2/BS-11/` (2 files) | **Migration debt:** screenshots at legacy path, not canonical `docs/sprint-0-verification/BS-11/`. Walk pre-dates session-88 path migration. |
-| BS-12 | ✅ GREEN | `April/April24Updates/plan/batch2/BS-12/` (2 files) | **Migration debt:** as BS-11. capture_complete styling parity covered by Pest sibling `tests/Feature/Fyn/CaptureCompleteStylingTest.php`. |
+| BS-11 | ✅ GREEN | `docs/sprint-0-verification/BS-11/` (2 files) | Migrated to canonical path session 97. |
+| BS-12 | ✅ GREEN | `docs/sprint-0-verification/BS-12/` (2 files) | Migrated session 97. capture_complete styling parity covered by Pest sibling `tests/Feature/Fyn/CaptureCompleteStylingTest.php`. The `02-classifier-green.png` cross-reference from BS-11 is committed in this dir for self-contained reading. |
 | BS-13 | ✅ GREEN | `docs/sprint-0-verification/BS-13/` (2 files) | Token-limit system message. Both docked + modal layouts captured (session 89 collapse into shared `AiChatPanelShell`). |
-| BS-14 | ✅ GREEN | `April/April24Updates/plan/batch1/BS-14/` (13 files) | **Migration debt:** as BS-11. Direct-write `create_savings_account` from chat. |
+| BS-14 | ✅ GREEN | `docs/sprint-0-verification/BS-14/` (2 files) | Direct-write `create_savings_account` from chat. Migrated session 97 — only the 2 GREEN-evidence files named in the post-S0.5.t delivery note are committed (`01-fyn-confirms-add.png`, `02-net-worth-cash-card.png`); the 11 walk-residue files including `jseval`/`pressSequentially` artefacts remain gitignored under the legacy path as they are bug-discovery evidence, not contract proof. |
 | BS-15 | ✅ GREEN | `docs/sprint-0-verification/BS-15/` (1 file) | Hash-chain audit admin view. Session-92 walk; 20-row chain verified, banner shows full 64-char tip_hash. |
-| BS-16 | ✅ GREEN | `April/April24Updates/plan/batch2/BS-16/` (3 files) | **Migration debt:** as BS-11. Billing "where's my invoice" — Pest siblings `BillingToolsTest.php` + `ToolCatalogueParityTest.php` cover the contract. |
+| BS-16 | ✅ GREEN | `docs/sprint-0-verification/BS-16/` (3 files) | Migrated session 97. Billing "where's my invoice" — Pest siblings `BillingToolsTest.php` + `ToolCatalogueParityTest.php` cover the contract. |
 | BS-17 | ✅ GREEN | `docs/sprint-0-verification/BS-17/` (6 files) | Multi-entity persist. DuplicateAcknowledgement service + RecordDuplicateChecker coverage parity for all 8 entity_types. |
 | BS-18 | 🟡 PARTIAL GREEN | `docs/sprint-0-verification/BS-18/` (1 file) | SSE abort keep-writes. 2/3 assertions verified live (savings persists post-abort + ai_audit_events captures dispatched/persisted). 3rd assertion (ai_abort_events row with `last_tool_call`) deferred to single post-deploy walk on csjones.co/fynla — `cli-server` SAPI doesn't propagate `connection_aborted()`; Apache mod_php does. CSJ accepted option (a) 2026-04-26. Pest sibling `SseAbortKeepWritesTest.php` covers `recordAbort` flow at unit level. |
 | BS-19 | ✅ GREEN | `docs/sprint-0-verification/BS-19/` (2 files) | Gap-fill dedup on retry. RecordDuplicateChecker now delegates to `AssetCaptureEntityExtractor::findMissing(user)` for 24h DB dedup window. |
-| BS-20 | ✅ GREEN | `April/April24Updates/plan/batch2/BS-20/` (2 files) | **Migration debt:** as BS-11. generateTitle sanitation. |
+| BS-20 | ✅ GREEN | `docs/sprint-0-verification/BS-20/` (2 files) | Migrated session 97. generateTitle sanitation. |
 | BS-21 | ✅ GREEN | `docs/sprint-0-verification/BS-21/` (1 file) | CoreIdentity tone. Canonical seeded advice-mode walk supersedes session-79 banned-factory-shortcut note. |
 | BS-22 | ⏹ DROPPED | (none) | Per CSJ direction 2026-04-26: AI chat consent is granted at registration via privacy policy — no UI toggle exists or should exist. Runtime gate is covered by `tests/Feature/AI/ConsentRuntimeCheckTest.php` (4 tests) — that's the contract. No BS-NN walk needed. |
 | BS-23 | ✅ GREEN | `docs/sprint-0-verification/BS-23/` (4 files) | Prompt-injection sanitisation. 5-vector subset (V1 / V2A solicitor / V2B GP / V5 indirect / V6 hijack / V9 markdown) all short-circuited at `AdviceFyn::handle:89` via QueryClassifier OUT_OF_REMIT path BEFORE LLM ran. V3/V4/V7/V8/V10 deferred to Sprint 1.4 dedicated security pass. |
 
 **Tally:** 17 GREEN · 1 PARTIAL (BS-18, code-complete; assertion deferred to Apache deploy) · 1 DROPPED (BS-22, unit-level coverage) · 1 DEFERRED (BS-05, moved to post-sprint).
 
-**Migration debt (post-S0.17 cleanup task):** BS-11, BS-12, BS-14, BS-16, BS-20 have screenshots committed under the legacy `April/April24Updates/plan/batch{1,2}/BS-NN/` path rather than the canonical `docs/sprint-0-verification/BS-NN/` path defined by recent BS-NN docblocks. They are committed, the contract is satisfied — but the canonical-path convention is not. Two options:
-1. **Re-walk and re-screenshot.** Most rigorous; keeps every BS-NN against the post-`ffc9c3f` shared `AiChatPanelShell` body. ~30 min per scenario × 4-5 scenarios.
-2. **Migrate screenshots in-place.** Move the legacy files into `docs/sprint-0-verification/BS-NN/` and commit. Faster but loses the post-refactor verification. Acceptable if the original walks happened post-`ffc9c3f`.
-
-Recommend option (1) for BS-14 specifically (its 13 screenshots include several "after-jseval-click" / "after-pressSequentially" filenames that suggest pre-discipline test patterns — a fresh walk against the current discipline would tighten the evidence). Option (2) is fine for BS-11, BS-12, BS-16, BS-20. Defer to CSJ.
+**Migration to canonical path (closed session 97).** BS-11, BS-12, BS-14, BS-16, BS-20 originally had their screenshots in the gitignored `April/April24Updates/plan/batch{1,2}/BS-NN/` legacy path. Session 97 path (b) executed option 2 (migrate in-place): the 11 GREEN-evidence files explicitly named in each scenario's GREEN delivery note are now committed at the canonical `docs/sprint-0-verification/BS-NN/` paths. BS-14's 11 walk-residue files including the anti-discipline `07-after-jseval-click.png` and `05-after-pressSequentially.png` artefacts were intentionally NOT committed — they are bug-discovery evidence (cited in the docblock's pre-fix delivery note for the S0.5.r/s/t bug-fix sub-tasks), not GREEN contract proof. Each scenario's docblock had its script-section path declarations and delivery-note path references updated to the canonical paths. A separate re-walk pass against the post-`ffc9c3f` `AiChatPanelShell` body remains a valid future tightening but is out of scope here.
 
 ---
 
@@ -133,8 +130,8 @@ Recommend option (1) for BS-14 specifically (its 13 screenshots include several 
 
 ### D4 — Audit integrity (tamper-evidence + durability)
 
-**Score: 2** (was: 0-1)
-**Delta: +1 to +2**
+**Score: 3** (was: 0-1, post-S0.17: 2, post-session-97: **3**)
+**Delta: +2 to +3**
 
 **Evidence:**
 - `app/Services/AI/AuditChainService.php` — append-only hash chain with SHA-256 per the rubric's level-2 test:
@@ -144,13 +141,17 @@ Recommend option (1) for BS-14 specifically (its 13 screenshots include several 
   - Line 151+ — `canonicaliseForHash` recursive deep-ksort to defeat MySQL JSON column key reorder (session-92 BS-15 fix).
 - `config/app.php:48` — `'ai_audit_hmac_key' => env('AI_AUDIT_HMAC_KEY', env('APP_KEY', 'unset-ai-audit-hmac-key'))` — HMAC key sourced from env (outside application runtime).
 - `.env.example:94` — `AI_AUDIT_HMAC_KEY=` documented for ops setup.
-- `app/Console/Kernel.php:41` — `$schedule->command('ai:audit:verify-chain')->weeklyOn(0, '04:30');` — scheduled weekly integrity job (Sundays 04:30 UTC).
+- `app/Console/Kernel.php:40-41` — scheduled weekly retention sweep (`AiAuditRetentionJob`, Sundays 04:00 UTC) and verify-chain command (Sundays 04:30 UTC).
+- `app/Jobs/AiAuditRetentionJob.php` — enforces 7-year window for `operation = 'write'` OR `tool_name = 'get_recommendations'`; 2-year window for all other rows. Deletes (does not mutate) to preserve chain integrity.
+- **`docs/audit-retention-policy.md`** (new, session 97) — single-page policy documenting the 7-year advice / 2-year general split, the deletion-not-mutation rationale, the weekly schedule, and adjacent retention policies for context. Closes the level 3 documentation sub-criterion.
 - BS-15 GREEN (session 92) — admin Chain view banner shows `Chain valid · 20 rows · tip ad21969118b3…`; `data-tip-hash` attribute exposes full 64-char hash; `php artisan ai:audit:verify-chain` returns `chain_valid: true` byte-equal to the banner.
 - 2026-04-26 session-96 verify against the live chain: 76 rows, tip `36251a0fcc03a986692bf16c450da1f8b21587fb82e48cdd6b3d503fc88561ab`, `chain_valid: true`.
 
-**Why not level 3:** Level 3 requires "Level 2 + HMAC signing with a key outside application runtime + weekly integrity-verification job + retention policy (7 years advice, 2 years general) documented." Three of four sub-criteria are live (HMAC ✓, key outside runtime ✓, weekly job ✓). The retention policy doc is missing — no `docs/audit-retention-policy.md` exists yet.
+**Achieves level 3:** All four sub-criteria live — HMAC ✓, key outside runtime ✓, weekly verify job ✓, retention policy documented ✓ (session 97).
 
-**Sub-criterion gap to level 3:** retention policy doc (single-page deliverable; could close immediately as a post-S0.17 follow-up to push score to 13/40).
+**Sub-criterion gap to level 4:** Level 4 is not defined for D4 in the rubric (level 3 is the top band).
+
+**Spec-vs-implementation note (disclosed honestly).** Spec INV-2.10.2:423 originally described the retention job as performing pseudonymisation. The as-shipped behaviour deletes aged rows instead, because mutating any historical row would invalidate the chain by design. The retention-policy doc §4 explains the rationale and notes the export-view pattern that would preserve the original GDPR intent if needed later.
 
 ### D5 — LLM safety (prompt injection + tool over-exposure)
 
@@ -263,15 +264,15 @@ Recommend option (1) for BS-14 specifically (its 13 screenshots include several 
 | D1 Regulatory | 1 | **2** | +1 | level 3 needs external legal opinion (Sprint 4) |
 | D2 Data protection | 0 | 0 | 0 | level 1 needs Privacy Policy update (Sprint 1/4) |
 | D3 Consent | 1 | **2** | +1 | level 3 needs consent version pinning (Sprint 1) |
-| D4 Audit | 0-1 | **2** | +1 to +2 | level 3 needs retention policy doc (immediate) |
+| D4 Audit | 0-1 | **3** | +2 to +3 | top band; retention policy doc landed session 97 |
 | D5 LLM safety | 0 | **2** | +2 | level 3 needs canary + eval drift (Sprint 1) |
 | D6 Reliability | 0 | **2** | +2 | level 3 needs Anthropic timeout + provider lock |
 | D7 Provider risk | 0 | 0 | 0 | level 1 needs DPA documentation (Sprint 4) |
 | D8 Code quality | 1 | 1 | 0 | level 2 needs god-file decomposition (Sprint 5) |
 | D9 Observability | 0 | 0 | 0 | level 2 needs eval harness (Sprint 1) |
 | D10 Documentation | 1 | 1 | 0 | level 2 needs DPIA / ROPA / FCA (Sprint 4) |
-| **Total** | **4-5/40** | **12/40** | **+7 to +8** | — |
-| **Band** | 🔴 Pre-launch | 🔴 Pre-launch (still) | — | spec target 13-15 |
+| **Total** | **4-5/40** | **13/40** | **+8 to +9** | — |
+| **Band** | 🔴 Pre-launch | 🔴 Pre-launch (still) | — | spec target 13-15 (in band) |
 
 ---
 
@@ -280,7 +281,7 @@ Recommend option (1) for BS-14 specifically (its 13 screenshots include several 
 - Sprint 0 invariants closed against `01-invariants.md`: §2.1, §2.4, §2.5, §2.7, §2.9, §2.10. (§2.3 partially via D3 work; full §2.3 closure is Sprint 1.)
 - Hash-chain integrity confirmed live: 76 rows, tip `36251a0f…`, weekly verify cron scheduled.
 - Sprint 0 → Sprint 1 hand-off is clean. Sprint 1 picks up: eval harness (D9 → 2), `<known_facts>` block + memory model (D9 sub-criteria), Privacy Policy work (D2 → 1), consent version pinning (D3 → 3).
-- **Recommended pre-deploy follow-up:** author `docs/audit-retention-policy.md` (single page, 7-year advice / 2-year general) to push D4 to level 3 and the total to 13/40 — closes the spec target before the dev deploy and clears the Sprint 0 acceptance band.
+- **Session 97 deliverable:** `docs/audit-retention-policy.md` authored, D4 advanced to level 3, total now 13/40 — within the spec target band (13-15). Pre-deploy follow-up complete.
 - BS-18 third assertion (ai_abort_events row with `last_tool_call`) deferred to a single post-deploy walk on `csjones.co/fynla` after the next `feature → dev` PR. Apache mod_php propagates `connection_aborted()` correctly, unlike the local `cli-server` SAPI used by `artisan serve`.
 
-**Sprint 0 verification rollup status: ✅ COMPLETE.** Total 12/40, 🔴 Pre-launch (still), one point shy of the lower target band (13). All five S0.17 acceptance criteria satisfied.
+**Sprint 0 verification rollup status: ✅ COMPLETE.** Total 13/40, 🔴 Pre-launch (still), in spec target band (13-15). All five S0.17 acceptance criteria satisfied including ≥13/40 score floor.

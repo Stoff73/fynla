@@ -27,7 +27,7 @@ declare(strict_types=1);
  *        )
  *   5. browser_evaluate to pull a regular assistant content bubble's
  *      classList in the same conversation.
- *   6. browser_take_screenshot → docs/sprint-0-verification/BS-12/bubbles.png
+ *   6. browser_take_screenshot → docs/sprint-0-verification/BS-12/01-bubbles.png
  *
  * Assertions:
  *   - The two outer-container class sets are equal modulo content-specific
@@ -97,9 +97,11 @@ declare(strict_types=1);
  *     ✅ Page-wide `<` / `>` character count = 0 (no markup leak from
  *        the function_call stripper applied at persistence).
  *
- *   Screenshot: April/April24Updates/plan/batch2/BS-11/02-classifier-green.png
- *     (the BS-11 capture screenshot also shows the capture_complete
- *     card so it covers BS-12 evidence).
+ *   Screenshot: docs/sprint-0-verification/BS-12/02-classifier-green.png
+ *     (cross-referenced from BS-11; the same capture_complete card
+ *     shown there also covers BS-12 evidence — committed to both dirs
+ *     for self-contained reading. Migrated from gitignored legacy
+ *     path 2026-04-27 session 97.)
  *
  * Delivery note (2026-04-26 — S0.5.y, BS-12 record-card UX fix):
  *   First fully-rendered capture_complete card surfaced two more bugs
@@ -131,7 +133,10 @@ declare(strict_types=1);
  *        Existing Life Insurance Coverage / Coverage Summary blocks
  *        update accordingly.
  *
- *   Screenshot: April/April24Updates/plan/batch2/BS-12/02-protection-page.png
+ *   Screenshot: docs/sprint-0-verification/BS-12/01-bubbles.png
+ *     (migrated from gitignored legacy path 2026-04-27 session 97;
+ *     the legacy 02-protection-page.png from the destination-page
+ *     navigation step was walk residue and is not committed.)
  */
 it('BS-12 capture_complete matches assistant-bubble styling', function (): void {
     $this->markPendingInteractiveRun('BS-12');

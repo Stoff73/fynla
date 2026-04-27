@@ -28,7 +28,7 @@ declare(strict_types=1);
  *       Aviva for £300k"
  *   6. browser_press_key('Enter')
  *   7. browser_wait_for the final 'done' SSE event.
- *   8. browser_take_screenshot → docs/sprint-0-verification/BS-11/02-after.png
+ *   8. browser_take_screenshot → docs/sprint-0-verification/BS-11/02-classifier-green.png
  *   9. Capture network requests via browser_network_requests; decode SSE
  *      via AssertSseEvents::fromNetworkRequests.
  *  10. Re-evaluate the input placeholder text.
@@ -122,7 +122,8 @@ declare(strict_types=1);
  *
  *   Test user: john@example.com (id=12), conv id=17, policy id=10.
  *
- *   Screenshot: April/April24Updates/plan/batch2/BS-11/02-classifier-green.png
+ *   Screenshot: docs/sprint-0-verification/BS-11/02-classifier-green.png
+ *     (migrated from gitignored legacy path 2026-04-27 session 97)
  *
  *   /protection page navigation step (script step 11) deferred — the
  *   policy is in the DB, the destination page renders correctly when

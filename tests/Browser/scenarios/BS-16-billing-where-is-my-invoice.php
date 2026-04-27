@@ -22,7 +22,7 @@ declare(strict_types=1);
  *   3. browser_type "Where's my invoice?" → browser_press_key('Enter')
  *   4. browser_wait_for the assistant response and final 'done' SSE.
  *   5. Capture network requests via browser_network_requests.
- *   6. browser_take_screenshot → docs/sprint-0-verification/BS-16/01-chat.png
+ *   6. browser_take_screenshot → docs/sprint-0-verification/BS-16/01-chat-direct-sse.png
  *   7. Click the navigation CTA the assistant emits (e.g. "View invoices").
  *   8. browser_wait_for the Subscription Management page.
  *   9. browser_take_screenshot → docs/sprint-0-verification/BS-16/02-page.png
@@ -91,7 +91,7 @@ declare(strict_types=1);
  *        table with all three invoice rows: FYN-INV-000001/2/3 each at
  *        £10.99, "Standard Plan — FYN-INV-XXX" description, "Active"
  *        subscription badge. Verified via real browser_navigate +
- *        DOM read (April/April24Updates/plan/batch2/BS-16/02-page.png).
+ *        DOM read (docs/sprint-0-verification/BS-16/02-page.png).
  *     ✅ DB: Invoice::where('user_id', $john->id)->get() returns 3 rows
  *        (id=7,8,9) with matching invoice_number + total_amount=1099 (pence)
  *
@@ -134,10 +134,11 @@ declare(strict_types=1);
  *   include Payment rows, or update SubscriptionManagement to also
  *   surface raw Invoice records when no Payment is linked.
  *
- *   Screenshots:
- *     April/April24Updates/plan/batch2/BS-16/01-chat-direct-sse.png
- *     April/April24Updates/plan/batch2/BS-16/02-page.png
- *     (both gitignored under April/April24Updates/plan/batch2/)
+ *   Screenshots (committed at canonical path, migrated from gitignored
+ *   legacy path 2026-04-27 session 97):
+ *     docs/sprint-0-verification/BS-16/01-chat-direct-sse.png
+ *     docs/sprint-0-verification/BS-16/02-page.png
+ *     docs/sprint-0-verification/BS-16/03-billing-history.png
  *
  *   Outstanding for next session: clean Playwright UI run once the
  *   keystroke routing issue is resolved (drive the chat textarea via
@@ -191,10 +192,10 @@ declare(strict_types=1);
  *        + the seed-confirmation /api/payment/billing-history API
  *        check), not interaction substitutes.
  *
- *   Screenshots:
- *     April/April24Updates/plan/batch2/BS-16/02-page.png
- *     April/April24Updates/plan/batch2/BS-16/03-billing-history.png
- *     (gitignored under April/April24Updates/plan/batch2/)
+ *   Screenshots (committed at canonical path, migrated from gitignored
+ *   legacy path 2026-04-27 session 97):
+ *     docs/sprint-0-verification/BS-16/02-page.png
+ *     docs/sprint-0-verification/BS-16/03-billing-history.png
  *
  *   Spec gaps surfaced and worked around at the fixture layer (flag for
  *   follow-up; not blocking BS-16):

@@ -98,8 +98,13 @@ declare(strict_types=1);
  *   Test user: john@example.com (id=12), conv id=9 (latest after
  *   reseed + the BS-16 conv id=2 + interim "New conversation" rows).
  *
- *   Screenshot: April/April24Updates/plan/batch2/BS-20/01-bubble-and-sidebar.png
- *     (gitignored under April/April24Updates/plan/batch2/)
+ *   Screenshots (committed at canonical path, migrated from gitignored
+ *   legacy path 2026-04-27 session 97):
+ *     docs/sprint-0-verification/BS-20/01-bubble-and-sidebar.png
+ *       — chat bubble + sidebar combined view (the richer evidence
+ *       file the delivery note relies on)
+ *     docs/sprint-0-verification/BS-20/01-sidebar.png
+ *       — sidebar-only view, matches the script step 7 capture
  */
 it('BS-20 generateTitle sanitation', function (): void {
     $this->markPendingInteractiveRun('BS-20');

@@ -22,9 +22,9 @@ declare(strict_types=1);
  *      "Add a Cash ISA with Nationwide, balance £5,000, interest 4.5%"
  *   4. browser_press_key('Enter')
  *   5. browser_wait_for the assistant ack and the final 'done' SSE.
- *   6. browser_take_screenshot → docs/sprint-0-verification/BS-14/01-chat.png
+ *   6. browser_take_screenshot → docs/sprint-0-verification/BS-14/01-fyn-confirms-add.png
  *   7. Navigate to /net-worth/cash via the UI menu (Savings dashboard).
- *   8. browser_take_screenshot → docs/sprint-0-verification/BS-14/02-list.png
+ *   8. browser_take_screenshot → docs/sprint-0-verification/BS-14/02-net-worth-cash-card.png
  *   9. Capture network requests via browser_network_requests.
  *
  * Assertions:
@@ -87,10 +87,13 @@ declare(strict_types=1);
  *     - Goal validation pin — target_date in the past should never reach
  *       persistence (currently passes input_summary validation but fails
  *       at FormRequest layer; consider stricter pre-check).
- *   Screenshots: April/April24Updates/plan/batch1/BS-14/
- *     07-after-jseval-click.png (response with hallucinated confirmation);
- *     08-second-prompt.png (retry attempt, message in textarea — Vue
- *     v-model didn't re-fire post-streaming, second prompt not POSTed).
+ *   Screenshots (gitignored walk residue, evidence of bugs found
+ *   mid-walk that drove the S0.5.r/s/t fix loop; not committed):
+ *     April/April24Updates/plan/batch1/BS-14/07-after-jseval-click.png
+ *       (response with hallucinated confirmation);
+ *     April/April24Updates/plan/batch1/BS-14/08-second-prompt.png
+ *       (retry attempt, message in textarea — Vue v-model didn't re-fire
+ *       post-streaming, second prompt not POSTed).
  *
  * Delivery note (2026-04-25 — S0.16b — GREEN after S0.5.r/s/t):
  *   GREEN. The S0.5.r/s wiring + the S0.5.t hardening drove BS-14 to all
@@ -114,9 +117,12 @@ declare(strict_types=1);
  *     - Manually navigated /net-worth/cash via the side-nav: Cash ISAs column
  *       shows £5,000 total with a Nationwide row (full UI card visible).
  *
- *   Screenshots (April/April24Updates/plan/batch1/BS-14/, gitignored):
- *     01-fyn-confirms-add.png — Fyn chat with single honest confirmation message
- *     02-net-worth-cash-card.png — Cash Management page showing the £5,000 ISA card
+ *   Screenshots (committed at canonical path, migrated from gitignored
+ *   legacy path 2026-04-27 session 97):
+ *     docs/sprint-0-verification/BS-14/01-fyn-confirms-add.png
+ *       — Fyn chat with single honest confirmation message
+ *     docs/sprint-0-verification/BS-14/02-net-worth-cash-card.png
+ *       — Cash Management page showing the £5,000 ISA card
  *
  *   Five S0.5.t bug-fix sub-tasks were folded into the loop that drove BS-14
  *   GREEN (per Sprint 0 plan §S0.16b "any failures route through dedicated
