@@ -532,21 +532,6 @@ const actions = {
                                 });
                                 break;
 
-                            case 'advice_response':
-                                // S1.6 — Advice Fyn emits ONE structured advice_response
-                                // per recommendation-mode turn. The whole event payload
-                                // becomes the message metadata so AdviceResponsePanel
-                                // can render headline / key_figures / breakdowns /
-                                // recommendations / next_steps / signposting directly.
-                                commit('ADD_MESSAGE', {
-                                    id: 'advice_response_' + Date.now(),
-                                    role: 'advice_response',
-                                    content: event.headline || '',
-                                    metadata: event,
-                                    created_at: new Date().toISOString(),
-                                });
-                                break;
-
                             case 'handoff':
                                 // Should never reach here — FynPersonaInvoker strips
                                 // handoff events from the outbound SSE. Log only.

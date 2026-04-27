@@ -37,10 +37,11 @@ final class AdviceFyn
      * constant maps to exactly one of three modes:
      *
      *  - `recommendation` — the turn invokes the engine (holistic or
-     *    module-scoped) and emits an `advice_response` SSE panel
-     *    alongside the LLM's free text.
+     *    module-scoped). The LLM's text response carries the engine
+     *    output; figures, breakdowns, and recommendations are produced
+     *    via tool results validated by `ToolResultContract`.
      *  - `factual` — the turn answers from module services or static
-     *    knowledge with no engine call. The LLM's text IS the response.
+     *    knowledge with no engine call.
      *  - `out_of_remit` — the turn short-circuits to the canonical
      *    refusal per INV-2.3.4.
      *
@@ -156,7 +157,6 @@ final class AdviceFyn
         private readonly XaiToolDefinitions $xaiToolDefinitions,
         private readonly QueryClassifier $queryClassifier,
         private readonly OnboardingChatDirector $onboardingChatDirector,
-        private readonly AdviceResponseComposer $adviceResponseComposer,
         private readonly WriteIntentClassifier $writeIntentClassifier,
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly DuplicateAcknowledgement $duplicateAcknowledgement,
@@ -302,7 +302,7 @@ final class AdviceFyn
             personaOverride: 'advice',
         );
 
-        yield from $this->wrapStream($upstream, $user, $conversation, $message, $currentRoute, $classification);
+        yield from $this->wrapStream($upstream, $user, $conversation, $message, $currentRoute);
     }
 
     /**
@@ -316,14 +316,7 @@ final class AdviceFyn
      * The `handoff` event itself is dropped — INV-2.4.1 forbids it from
      * reaching the frontend.
      *
-     * S1.6 — for advice-type classifications, emit a single
-     * `advice_response` SSE event with the structured engine-sourced
-     * payload immediately before the upstream `done` event, so the
-     * frontend renders an `AdviceResponsePanel` alongside (and as the
-     * structured-truth counterpart to) the LLM's free-text content.
-     *
      * @param  \Generator<array<string, mixed>>  $upstream
-     * @param  array<string, mixed>|null  $classification
      * @return \Generator<array<string, mixed>>
      */
     private function wrapStream(
@@ -332,7 +325,6 @@ final class AdviceFyn
         AiConversation $conversation,
         string $message,
         ?string $currentRoute,
-        ?array $classification = null,
     ): \Generator {
         foreach ($upstream as $event) {
             $type = $event['type'] ?? '';
@@ -390,34 +382,6 @@ final class AdviceFyn
                 return;
             }
 
-            // S1.6 — INV-2.3.5: emit exactly one structured
-            // `advice_response` immediately before the upstream `done`
-            // event for any advice-type classification. The payload is
-            // sourced from `orchestrateAnalysis` engine output and
-            // validated against `AdviceResponseSchema` before yield.
-            // Failures log + skip — never break the stream.
-            if ($type === 'done' && $this->shouldEmitAdviceResponse($classification)) {
-                try {
-                    $engineOutput = $this->coordinatingAgent->orchestrateAnalysis($user->id);
-                    $payload = $this->adviceResponseComposer->compose($user, $engineOutput, $classification);
-                    yield $payload;
-                } catch (AdviceResponseSchemaException $e) {
-                    Log::warning('[AdviceFyn] advice_response payload failed schema validation — skipping', [
-                        'user_id' => $user->id,
-                        'conversation_id' => $conversation->id,
-                        'classification' => $classification['primary'] ?? null,
-                        'error' => $e->getMessage(),
-                    ]);
-                } catch (\Throwable $e) {
-                    Log::warning('[AdviceFyn] advice_response composition failed — skipping', [
-                        'user_id' => $user->id,
-                        'conversation_id' => $conversation->id,
-                        'classification' => $classification['primary'] ?? null,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
             yield $event;
         }
     }
@@ -460,24 +424,6 @@ final class AdviceFyn
         }
 
         return self::ENGINE_CALL_LEVEL_MAP[$queryType];
-    }
-
-    /**
-     * S1.6 + S1.8 — `advice_response` only emits for recommendation-mode
-     * turns. Factual / billing / out-of-remit / general turns get content
-     * + done with no structured response — the LLM's plain-text content
-     * IS the response shape for those modes. INCOME is a notable shift
-     * from S1.6.a behaviour: it is in `ADVICE_TYPES` (FCA process applies)
-     * but its response mode is `factual` (no engine call), so no panel.
-     */
-    private function shouldEmitAdviceResponse(?array $classification): bool
-    {
-        $primary = $classification['primary'] ?? null;
-        if (! is_string($primary) || ! isset(self::RESPONSE_MODE_MAP[$primary])) {
-            return false;
-        }
-
-        return self::RESPONSE_MODE_MAP[$primary] === 'recommendation';
     }
 
     /** @return list<string> */

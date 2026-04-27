@@ -209,16 +209,6 @@
               </div>
             </div>
           </div>
-          <!-- S1.6 — advice_response structured panel -->
-          <div
-            v-else-if="msg.role === 'advice_response'"
-            class="flex justify-start"
-          >
-            <AdviceResponsePanel
-              :response="msg.metadata"
-              @navigate="handleNavigation"
-            />
-          </div>
           <div
             v-else
             :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
@@ -424,7 +414,6 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
-import AdviceResponsePanel from './AdviceResponsePanel.vue';
 import AiChatPanelShell from './AiChatPanelShell.vue';
 import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 
@@ -437,7 +426,6 @@ export default {
 
     components: {
         AiChatPanelShell,
-        AdviceResponsePanel,
         AiMessageContent,
         FynQuickReplies,
     },
