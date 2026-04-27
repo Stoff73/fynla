@@ -750,6 +750,7 @@ class CoordinatingAgent extends BaseAgent
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
+                'search_conversation_index' => $this->handleSearchConversationIndex($input, $user, $conversationId),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
                 'get_subscription_status' => $this->handleGetSubscriptionStatus($user),
@@ -1512,6 +1513,73 @@ class CoordinatingAgent extends BaseAgent
         };
 
         return $this->summariseToolAnalysis($module, $analysis);
+    }
+
+    /**
+     * S1.5 — Search the user's prior conversations by topic_keywords or
+     * entity_types against the S1.3 conversation-index columns.
+     *
+     * Returns up to 10 conversations ordered by `last_message_at` desc.
+     * Per-result payload is intentionally lean: id + title + summary +
+     * topics + intents_stated + last_message_at. The model uses this
+     * to surface "as we talked about last time" context — INV-2.11.3.
+     *
+     * `forUser` scope pins per-user ACL; the tool can never reach
+     * another user's conversation history.
+     *
+     * Excludes the active conversation if `$activeConversationId` is
+     * supplied — the model already has the active conversation's
+     * messages in its history, so re-surfacing them via index search
+     * would be noise.
+     */
+    private function handleSearchConversationIndex(array $input, User $user, ?int $activeConversationId = null): array
+    {
+        $topicKeywords = array_values(array_filter(
+            (array) ($input['topic_keywords'] ?? []),
+            fn ($v) => is_string($v) && $v !== ''
+        ));
+
+        $entityTypes = array_values(array_filter(
+            (array) ($input['entity_types'] ?? []),
+            fn ($v) => is_string($v) && $v !== ''
+        ));
+
+        $query = \App\Models\AiConversation::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('summary');
+
+        if ($activeConversationId !== null) {
+            $query->where('id', '!=', $activeConversationId);
+        }
+
+        if ($topicKeywords !== [] || $entityTypes !== []) {
+            $query->where(function ($outer) use ($topicKeywords, $entityTypes): void {
+                foreach ($topicKeywords as $topic) {
+                    $outer->orWhereJsonContains('topics', $topic);
+                }
+                foreach ($entityTypes as $entityType) {
+                    $outer->orWhereJsonContains('entities_mentioned', ['type' => $entityType]);
+                }
+            });
+        }
+
+        $rows = $query
+            ->orderByDesc('last_message_at')
+            ->limit(10)
+            ->get(['id', 'title', 'summary', 'topics', 'intents_stated', 'entities_mentioned', 'last_message_at']);
+
+        return [
+            'count' => $rows->count(),
+            'conversations' => $rows->map(fn ($row) => [
+                'id' => $row->id,
+                'title' => $row->title,
+                'summary' => $row->summary,
+                'topics' => $row->topics ?? [],
+                'intents_stated' => $row->intents_stated ?? [],
+                'entities_mentioned' => $row->entities_mentioned ?? [],
+                'last_message_at' => $row->last_message_at?->toIso8601String(),
+            ])->all(),
+        ];
     }
 
     private function handleCreateWhatIfScenario(array $input, User $user): array

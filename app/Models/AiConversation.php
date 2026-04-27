@@ -28,6 +28,11 @@ class AiConversation extends Model
         'metadata',
         'persona_state',
         'onboarding_parked_facts',
+        'summary',
+        'topics',
+        'entities_mentioned',
+        'intents_stated',
+        'summarised_at',
     ];
 
     protected $casts = [
@@ -38,6 +43,10 @@ class AiConversation extends Model
         'metadata' => 'array',
         'persona_state' => 'array',
         'onboarding_parked_facts' => 'array',
+        'topics' => 'array',
+        'entities_mentioned' => 'array',
+        'intents_stated' => 'array',
+        'summarised_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

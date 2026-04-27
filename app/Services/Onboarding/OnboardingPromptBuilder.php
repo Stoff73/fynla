@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\UserContentSanitiser;
@@ -31,6 +33,7 @@ final class OnboardingPromptBuilder
 {
     public function __construct(
         private readonly TaxConfigService $taxConfig,
+        private readonly MemoryRetrieverService $memory,
     ) {}
 
     /**
@@ -41,7 +44,7 @@ final class OnboardingPromptBuilder
      *                         'protection', 'estate', 'business',
      *                         'goals', 'budgeting')
      */
-    public function buildAssetCapturePrompt(User $user, string $focus): string
+    public function buildAssetCapturePrompt(User $user, string $focus, ?AiConversation $conversation = null): string
     {
         $firstNameRaw = trim((string) ($user->first_name ?? ''));
         if ($firstNameRaw === '') {
@@ -59,8 +62,17 @@ final class OnboardingPromptBuilder
         $layers = [
             CoreIdentity::get($firstName),
             ComplianceRules::get($taxYear),
-            $this->assetCaptureInstructions($focus),
         ];
+
+        // S1.4 — known_facts block. Injected before asset-capture
+        // instructions so the LLM sees what we already know about the
+        // user and never re-asks for it (INV-2.2.3, INV-2.11.1).
+        $knownFacts = $this->memory->renderKnownFactsBlock($user, $conversation);
+        if ($knownFacts !== '') {
+            $layers[] = $knownFacts;
+        }
+
+        $layers[] = $this->assetCaptureInstructions($focus);
 
         return implode("\n\n", $layers);
     }

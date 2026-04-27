@@ -6,6 +6,7 @@ namespace App\Services\AI;
 
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
+use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
@@ -37,6 +38,7 @@ class AdvicePromptBuilder
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PrerequisiteGateService $prerequisiteGate,
+        private readonly MemoryRetrieverService $memory,
     ) {}
 
     /**
@@ -48,6 +50,7 @@ class AdvicePromptBuilder
      * @param  string|null  $currentRoute  Current page route
      * @param  bool  $isPreview  Whether user is in preview mode
      * @param  callable|null  $orchestrateAnalysis  Function to call orchestrateAnalysis (injected from CoordinatingAgent)
+     * @param  AiConversation|null  $conversation  Active conversation (for parked-fact + index-fact retrieval). Optional — when omitted, the known_facts block is built from authoritative DB only.
      */
     public function build(
         User $user,
@@ -56,6 +59,7 @@ class AdvicePromptBuilder
         ?string $currentRoute = null,
         bool $isPreview = false,
         ?callable $orchestrateAnalysis = null,
+        ?AiConversation $conversation = null,
     ): string {
         $firstName = trim((string) ($user->first_name ?? ''));
         if ($firstName === '') {
@@ -100,6 +104,17 @@ class AdvicePromptBuilder
         // would mislead the model.
         if (! $isPreview && $this->isBillingQuery($classification)) {
             $layers[] = $this->getBillingGuidance();
+        }
+
+        // Layer 3d (S1.4): known_facts block. Strict gap-fill over four
+        // memory layers (authoritative DB → parked → current conv →
+        // conversation index). Suffix "Do not ask the user for any field
+        // above." pins INV-2.2.3 + INV-2.11.1. Built before user_profile
+        // so the LLM sees what we know before reading the human-readable
+        // narrative summary in Layer 4.
+        $knownFactsBlock = $this->memory->renderKnownFactsBlock($user, $conversation);
+        if ($knownFactsBlock !== '') {
+            $layers[] = $knownFactsBlock;
         }
 
         // Layer 4: User Profile (DYNAMIC/user)

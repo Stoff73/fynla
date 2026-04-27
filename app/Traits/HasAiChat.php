@@ -123,7 +123,7 @@ trait HasAiChat
 
         // Build context
         $systemPrompt = $this->systemPromptOverride
-            ?? $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult);
+            ?? $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult, $conversation);
         $messageHistory = $this->buildMessageHistory($conversation);
 
         // Model selection
@@ -685,6 +685,7 @@ trait HasAiChat
         ?string $currentRoute = null,
         ?array $classification = null,
         ?array $kycResult = null,
+        ?AiConversation $conversation = null,
     ): string {
         $builder = app(AdvicePromptBuilder::class);
 
@@ -695,6 +696,7 @@ trait HasAiChat
             currentRoute: $currentRoute,
             isPreview: $user->is_preview_user,
             orchestrateAnalysis: fn (int $userId) => $this->orchestrateAnalysis($userId),
+            conversation: $conversation,
         );
     }
 

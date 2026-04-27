@@ -45,6 +45,7 @@ final class OnboardingChatDirector
         private readonly OnboardingFactExtractor $factExtractor,
         private readonly AssetCaptureEntityExtractor $entityExtractor,
         private readonly HouseholdProvisioner $householdProvisioner,
+        private readonly \App\Services\AI\MemoryRetrieverService $memory,
     ) {}
 
     /**
@@ -1223,7 +1224,7 @@ final class OnboardingChatDirector
             return;
         }
 
-        $systemPrompt = $this->buildGroupedExtractPrompt($user, $currentStateId, $toolName);
+        $systemPrompt = $this->buildGroupedExtractPrompt($user, $currentStateId, $toolName, $conversation);
 
         $captureReceived = false;
         $captureDetails = [];
@@ -1536,13 +1537,18 @@ final class OnboardingChatDirector
      * stay narrow — we do not want Claude to answer the user, we just
      * want it to call the single extraction tool with parsed fields.
      */
-    private function buildGroupedExtractPrompt(User $user, string $stateId, string $toolName): string
+    private function buildGroupedExtractPrompt(User $user, string $stateId, string $toolName, ?AiConversation $conversation = null): string
     {
         $firstName = trim((string) ($user->first_name ?? ''));
         if ($firstName === '') {
             $nameParts = explode(' ', (string) $user->name);
             $firstName = $nameParts[0] ?: 'there';
         }
+
+        // S1.4 — known_facts block; injected after <instructions> below
+        // (rendered into the heredoc) so the LLM never re-asks for fields
+        // already known from layers 1-4.
+        $knownFactsBlock = $this->memory->renderKnownFactsBlock($user, $conversation);
 
         $instructions = match ($toolName) {
             'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
@@ -1552,7 +1558,7 @@ final class OnboardingChatDirector
             default => 'Extract the user\'s reply using the provided tool.',
         };
 
-        return <<<PROMPT
+        $prompt = <<<PROMPT
 <identity>
 You are an extraction helper for the Fynla onboarding flow. {$firstName} is a new user setting up their account. Your ONLY job this turn is to extract structured fields from their plain-English reply and call the `{$toolName}` tool exactly once. Do not answer, greet, analyse, or respond conversationally — just call the tool.
 </identity>
@@ -1568,6 +1574,12 @@ Rules:
 - Numbers must be plain integers or decimals without currency symbols, commas, or units.
 </instructions>
 PROMPT;
+
+        if ($knownFactsBlock !== '') {
+            $prompt .= "\n\n".$knownFactsBlock;
+        }
+
+        return $prompt;
     }
 
     // ─── Asset capture delegation ─────────────────────────────────────────
@@ -1593,7 +1605,7 @@ PROMPT;
         // Swap the coordinating agent's system prompt for this turn only.
         // We do this by calling chat() with a short-lived prompt override —
         // see CoordinatingAgent::chatWithPromptOverride() below.
-        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection);
+        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
 
         try {
@@ -2025,6 +2037,8 @@ PROMPT;
         $user->save();
 
         $this->recordProgress($user, OnboardingStateMachine::STATE_DONE, ['next_route' => $nextRoute]);
+
+        \App\Jobs\ConversationSummariserJob::dispatch($conversation->id);
     }
 
     private function routeForSelection(string $selection): string

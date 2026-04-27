@@ -39,6 +39,11 @@ class Kernel extends ConsoleKernel
         // S0.12 — weekly retention sweep + chain-integrity health check.
         $schedule->job(new \App\Jobs\AiAuditRetentionJob())->weeklyOn(0, '04:00');
         $schedule->command('ai:audit:verify-chain')->weeklyOn(0, '04:30');
+
+        // S1.3 — every 30 minutes, dispatch summariser jobs for any
+        // conversation whose index is missing or behind the latest
+        // message. Idle-minutes default keeps in-flight chats out.
+        $schedule->command('ai:conversations:summarise-stale')->everyThirtyMinutes();
     }
 
     /**

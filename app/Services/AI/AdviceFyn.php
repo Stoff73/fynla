@@ -70,6 +70,7 @@ final class AdviceFyn
         private readonly XaiToolDefinitions $xaiToolDefinitions,
         private readonly QueryClassifier $queryClassifier,
         private readonly OnboardingChatDirector $onboardingChatDirector,
+        private readonly AdviceResponseComposer $adviceResponseComposer,
         private readonly WriteIntentClassifier $writeIntentClassifier,
         private readonly RecordDuplicateChecker $duplicateChecker,
         private readonly DuplicateAcknowledgement $duplicateAcknowledgement,
@@ -215,7 +216,7 @@ final class AdviceFyn
             personaOverride: 'advice',
         );
 
-        yield from $this->wrapStream($upstream, $user, $conversation, $message, $currentRoute);
+        yield from $this->wrapStream($upstream, $user, $conversation, $message, $currentRoute, $classification);
     }
 
     /**
@@ -229,7 +230,14 @@ final class AdviceFyn
      * The `handoff` event itself is dropped — INV-2.4.1 forbids it from
      * reaching the frontend.
      *
+     * S1.6 — for advice-type classifications, emit a single
+     * `advice_response` SSE event with the structured engine-sourced
+     * payload immediately before the upstream `done` event, so the
+     * frontend renders an `AdviceResponsePanel` alongside (and as the
+     * structured-truth counterpart to) the LLM's free-text content.
+     *
      * @param  \Generator<array<string, mixed>>  $upstream
+     * @param  array<string, mixed>|null  $classification
      * @return \Generator<array<string, mixed>>
      */
     private function wrapStream(
@@ -238,6 +246,7 @@ final class AdviceFyn
         AiConversation $conversation,
         string $message,
         ?string $currentRoute,
+        ?array $classification = null,
     ): \Generator {
         foreach ($upstream as $event) {
             $type = $event['type'] ?? '';
@@ -295,8 +304,52 @@ final class AdviceFyn
                 return;
             }
 
+            // S1.6 — INV-2.3.5: emit exactly one structured
+            // `advice_response` immediately before the upstream `done`
+            // event for any advice-type classification. The payload is
+            // sourced from `orchestrateAnalysis` engine output and
+            // validated against `AdviceResponseSchema` before yield.
+            // Failures log + skip — never break the stream.
+            if ($type === 'done' && $this->shouldEmitAdviceResponse($classification)) {
+                try {
+                    $engineOutput = $this->coordinatingAgent->orchestrateAnalysis($user->id);
+                    $payload = $this->adviceResponseComposer->compose($user, $engineOutput, $classification);
+                    yield $payload;
+                } catch (AdviceResponseSchemaException $e) {
+                    Log::warning('[AdviceFyn] advice_response payload failed schema validation — skipping', [
+                        'user_id' => $user->id,
+                        'conversation_id' => $conversation->id,
+                        'classification' => $classification['primary'] ?? null,
+                        'error' => $e->getMessage(),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('[AdviceFyn] advice_response composition failed — skipping', [
+                        'user_id' => $user->id,
+                        'conversation_id' => $conversation->id,
+                        'classification' => $classification['primary'] ?? null,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             yield $event;
         }
+    }
+
+    /**
+     * S1.6 — `advice_response` only emits for advice-type classifications.
+     * Factual / billing / out-of-remit / general turns get content + done
+     * with no structured response — the LLM's plain-text content IS the
+     * response shape for those modes.
+     */
+    private function shouldEmitAdviceResponse(?array $classification): bool
+    {
+        $primary = $classification['primary'] ?? null;
+        if (! is_string($primary)) {
+            return false;
+        }
+
+        return QuerySchemas::isAdviceType($primary);
     }
 
     /** @return list<string> */
