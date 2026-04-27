@@ -26,155 +26,392 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 
 ---
 
-*Last updated: 27 April 2026 — session 102 end.*
+*Last updated: 27 April 2026 — session 105 end (eval HTTP-driven rewrite — 11 of 16 tasks shipped).*
 
-*Session 102 shipped Sprint 1 **S1.2.l** (rewrite all 10 eval YAMLs against the running contract; widened classifier patterns for natural advice phrasings; extended `AssertionHelpers` with 9 new helpers; 44 unit tests) and **S1.7.d Path A** (extracted `EvalDeltaBuilder` service; wired the new asserter helpers to live recordings; 27 unit tests). Re-recorded `advice_protection_cover` (eval session #21) — both providers PASS. Then calibrated 3 real defects surfaced by the recording (record_type→entity_type arg key drift, anthropic timing 6000→8000ms, xAI timing 14000→32000ms + tool_use_count_max 4→8). Final commit restored the legacy delta fields after the previous Path A commit broke the Vue dashboard's side-by-side tool comparison + checklist + timing readout — builder now computes BOTH legacy fields (existing dashboard) AND new failures map (forward-looking grading). 5 commits on `feature/fyn-persona-split` pushed to origin (`1dfcb3c`, `e00c540`, `d5f5ebb`, `89611d4`, `c29ea2a`). Tech-debt audit: 0 critical, 1 warning (W1: `_full` parsed YAML in API response — 3-line fix deferred), 2 suggestions (mild duplication, long methods).*
-
-*Previous sessions today: 27 April 2026 — session 101 (S1.6.b + S1.8 + remove S1.6.a panel, commits `edd2d86`, `74ead16`, `e373505`). Session 100 (S1.3 + S1.4 + S1.5 + S1.6.a, commits `a41143c` + `425c54f`). Session 99 (eval/live prompt divergence fix Tasks 1, 2, 3, 3b, commit `279bd9b`).*
+*Previous sessions today: 27 April 2026 — session 104 (designed the eval HTTP-driven rewrite — spec + 16-task implementation plan written; no code changes), session 102 (Sprint 1 S1.2.l + S1.7.d Path A), session 101 (S1.6.b + S1.8 + remove S1.6.a panel), session 100 (S1.3 + S1.4 + S1.5 + S1.6.a), session 99 (eval/live prompt divergence fix Tasks 1, 2, 3, 3b).*
 
 ---
 
-## Session 102 — Sprint 1 S1.2.l + S1.7.d Path A shipped
+## ⚠️ HEY NEXT AGENT — START HERE
 
-### Completed this session
+You are picking up the eval HTTP-driven rewrite mid-flight. Session 105 (this one) shipped Tasks 1–10 + 12 of the 16-task implementation plan. Your job is to ship Tasks 11, 13, 14, 15, 16. Read this whole file before touching code.
 
-#### S1.2.l — Rewrite all 10 eval YAMLs + widen classifier (commit `1dfcb3c`)
+**The plan you are executing:**
 
-- [x] Rewrote 6 advice YAMLs (`01-query-types/advice_*.yaml`) per `April/April27Updates/eval-expectations-rewrite.md` §4. Each now uses: `expected_classification_shape: {primary, related, modules}`, `expected_response_mode`, `expected_engine_call_level`, `expected_kyc_state` + `expected_kyc_missing` (when blocked), `expected_tool_calls[*]` with `required: bool` + `result_path: enum` + `result_message_contains`, `expected_tool_calls_absent`, structural `expected_sse_events`, `expected_assistant_text` rules with INV-2.3.3 signposting checks, per-provider per-path `timing_budget_ms`. Deleted dead `expected_advice_response` (S1.6.a removed the SSE event).
-- [x] Updated 4 multi-entity YAMLs (`03-multi-entity/*.yaml`) light-touch per §5: added `expected_response_mode: factual`, `expected_engine_call_level: factual`, `expected_kyc_state: bypass`, `result_path: success` per tool, `expected_db_writes_persistent: true`, `delegate_to_capture` to forbidden_tools, INV-2.3.3 signposting to forbidden_outputs, per-provider timing.
-- [x] Widened `QuerySchemas::KEYWORD_PATTERNS` (5 patterns added) so natural advice phrasings classify correctly instead of falling through to `general`:
-  - PROTECTION_COVER: `covered enough`, `enough protection/coverage/insurance`, `am I insured/covered/protected`
-  - SAVINGS_EMERGENCY: `emergency savings/cash/reserves/money/pot`
-  - INVESTMENT_PORTFOLIO: `Stocks & Shares ISA` / `Stocks and Shares ISA`
-- [x] Extended `tests/Feature/Fyn/Eval/AssertionHelpers.php` with 9 new pure-function methods: `assertClassificationShape`, `assertResponseModeMatches`, `assertEngineCallLevelMatches`, `assertKycState`, `assertToolCallsMatchRules`, `assertToolCallsAbsent`, `assertSseStructural`, `assertAssistantTextRules`, `assertTimingBudgetWithinPath`, plus `assertNoDeprecatedKeys` to reject legacy YAML shapes with migration messages.
-- [x] 44/44 Pest in `tests/Feature/Fyn/Eval/AssertionHelpersTest.php` (88 assertions). 17/17 existing classifier tests still green; 364 AI tests pass (3 unrelated pre-existing failures documented in this file's footer).
+1. **`April/April27Updates/eval-http-driven-rewrite-plan.md`** — design spec (1046 lines).
+2. **`April/April27Updates/eval-http-driven-rewrite-implementation-plan.md`** — 16 ordered tasks with concrete code (2990 lines). **This is your primary reference.** Each task has steps with code, expected output, and a commit message.
 
-#### S1.7.d Path A — Wire EvalRecordingController to new asserter (commit `e00c540`)
+**Status of every task:**
 
-- [x] Extracted `app/Services/Eval/EvalDeltaBuilder.php` (538 lines) — pure-function service that grades a recorded `EvalProviderRun` against a parsed YAML. Calls every new helper plus the legacy fields the Vue dashboard reads (`missing_tools`, `extra_tools`, `expected_tools`, `actual_tools`, `timing_status`, `timing_budget_ms` as single int, `timing_overage_ms`, `expected_sse_event_types`, `missing_sse_event_types`).
-- [x] Re-classifies `$run->user_message` live via `QueryClassifier::classify()` so the delta has the actual classification at grade time. Looks up `AdviceFyn::classifyResponseMode` + `engineCallLevel` for the resulting primary.
-- [x] Detects the dominant `ToolResultContract` path actually taken (kyc_blocked > success_false > readiness_blocked > empty_state > happy) by parsing the captured tool result strings. Uses this for per-provider per-path timing budget lookup.
-- [x] `EvalRecordingController::parseExpectations` now returns the legacy keys (`tool_calls`, `forbidden_tools`, `forbidden_outputs`, `timing_budget_ms`, `classifications`, `sse_events` derived from the new shape) PLUS the full parsed YAML under `_full` for the builder to read new keys from. Frontend keeps reading the legacy keys; the builder reads `_full`.
-- [x] 20 Pest unit tests in `tests/Unit/Services/Eval/EvalDeltaBuilderTest.php` covering: legacy YAML rejection (3 cases), classification + response_mode + engine_call_level, tool_calls with result_path enforcement, forbidden tools/outputs, expected_tool_calls_absent, per-provider per-path timing, SSE structural, assistant_text rules, detected_result_path priority, integration against the rewritten YAML.
+| # | Task | Status | Commit |
+|---|---|---|---|
+| 1 | Migrations: persona, http_log, engine_trace columns | ✅ DONE | `67a0b08` |
+| 2 | preview:reset extended to all 25 persona-touched tables (+ SoftDeletes fix) | ✅ DONE | `a6531f3` |
+| 3 | 3 Eval event value-objects | ✅ DONE | `8fe5698` |
+| 4 | bypass-preview-mode wired at 3 write-block sites | ✅ DONE | `235a019` |
+| 5 | EvalTraceCollector + EvalTraceListener + EvalServiceProvider | ✅ DONE | `8e0bb16` |
+| 6 | 11 trace call sites in production gate/agent code | ✅ DONE | `5cf51d4` |
+| 7 | EvalAuthController + eval/* routes (login, reset, trace) | ✅ DONE | `84e43c7` |
+| 8 | QuerySchemas: PROTECTION_COVER → all 3 protection types | ✅ DONE | `dc76112` |
+| 9 | EvalSseConsumer (pure SSE frame parser) | ✅ DONE | `ab00ded` |
+| 10 | EvalHttpDriver (HTTP loop service file — integration test skip-marked) | ✅ DONE | `3378f03` |
+| 11 | Rewire `EvalRecordCommand` to use `EvalHttpDriver` | ⏳ NEXT | — |
+| 12 | JSON Schema for scenarios | ✅ DONE | `9b4170b` |
+| 13 | Author 10 mitchell JSON scenarios + delete 6 YAMLs | ⏳ TODO | — |
+| 14 | Wire `EvalDeltaBuilder` to JSON + add `gradeEngineTrace` | ⏳ TODO | — |
+| 15 | 5 architecture meta-tests | ⏳ TODO | — |
+| 16 | Re-record 10 scenarios + RunPanel.vue dashboard panels | ⏳ TODO (NEEDS `./dev.sh` + LIVE LLM API) | — |
 
-#### Live recording — eval session #21 (commit `c29ea2a`)
+**11 commits on `feature/fyn-persona-split` pushed to origin this session.** Nothing merged to dev or main. The branch is now 21 commits ahead of `main` total.
 
-- [x] `php artisan eval:record advice_protection_cover` against both providers live. Re-recorded jsonl fixtures replace session #19's. Both providers PASS against the rewritten YAML:
-  - **anthropic/claude-haiku-4-5**: 6804ms, 2 tool calls, success_false path detected, classification matches, INV-2.3.3 signposting present.
-  - **xai/grok-4-1-fast-reasoning**: 29855ms, 4 tool calls (extra `list_records(income_protection)` + `list_records(critical_illness)`, both allowed-not-required), same classification + path + signposting.
+---
 
-#### Calibration after session #21 (commit `d5f5ebb`)
+## Where to start (in order)
 
-3 real defects surfaced by the live recording — all wrong YAML expectations, not bugs:
+### 1. Pre-flight (don't skip)
 
-- [x] `list_records` arg key was `record_type` across 5 advice YAMLs but actual tool definition (`AiToolDefinitions.php:96`) takes `entity_type`. Rewrite-report notation drift. Fixed in `advice_protection_cover`, `advice_savings_emergency`, `advice_retirement_contribution` (×2), `advice_estate_iht`, `advice_goals_affordability`.
-- [x] anthropic/success_false timing budget 6000ms → 8000ms (session #21 ran 6804ms on 2-tool path).
-- [x] xAI/success_false timing budget 14000ms → 32000ms (session #21 ran 29855ms with 4 tool calls; grok-4-1-fast-reasoning streams ~2 SSE tool_use events per real tool call). `tool_use_count_max` 4 → 8 in `advice_protection_cover` for the same reason.
+```bash
+# Confirm branch
+git rev-parse --abbrev-ref HEAD            # → feature/fyn-persona-split
 
-#### Restore Vue dashboard fields (commit `89611d4`)
+# Reseed (mandatory — CLAUDE.md rule)
+php artisan db:seed
 
-- [x] Path A's first commit (`e00c540`) replaced the delta shape entirely with the new failures map and stripped legacy keys. RunPanel.vue's checklist + side-by-side tool comparison + timing readout + SSE missing-types stopped rendering data because `delta.missing_tools` / `extra_tools` / `expected_tools` / `actual_tools` / `timing_status` / `timing_budget_ms` / `timing_overage_ms` / `missing_sse_event_types` were all gone.
-- [x] Restored every legacy field in `EvalDeltaBuilder` (computed from the same data, adapted to the new YAML shape — only `required: true` tools count toward missing_tools; per-provider per-path budget resolved to single int based on run.provider + detected_path; expected_sse_event_types derived from `must_contain_types`). New fields (failures, detected_result_path, classification_shape, response_mode, engine_call_level, structured tool calls) now layer on top.
-- [x] 7 additional Pest tests proving legacy fields stay populated under the new YAML shape (including `shellDelta` deprecation-path safety so undefined reads don't crash the Vue checklist).
+# Confirm green baseline across THIS SESSION's new tests
+./vendor/bin/pest \
+  tests/Feature/PreviewBypassAbilityTest.php \
+  tests/Feature/PreviewResetCompletenessTest.php \
+  tests/Feature/EvalTraceListenerTest.php \
+  tests/Feature/EvalAuthControllerTest.php \
+  tests/Unit/Events/EvalEventsTest.php \
+  tests/Unit/Services/Eval/ \
+  tests/Unit/QuerySchemasProtectionScopeTest.php
+# Expect: 35-ish tests, all green.
+```
 
-### NOT done — outstanding (carry into session 103)
+### 2. Task 11 — Rewire `EvalRecordCommand` to call `EvalHttpDriver`
 
-#### Tech-debt W1 from session 102 audit (recommend fix early)
+This is the heaviest remaining task. **Source: implementation-plan.md §11 (lines 1996–2160).**
 
-- [ ] **`_full` parsed YAML in API response payload.** `EvalRecordingController::parseExpectations:201-206` puts the entire parsed YAML under `_full` so `EvalDeltaBuilder` can read new-shape keys, but `_full` then gets returned in the JSON API response on every `/admin/eval-recordings/{id}` load — doubles the YAML payload over the wire. Frontend doesn't read it. **3-line fix**: in `show()`, after `$expected = $this->parseExpectations(...)`, do `$fullYaml = $expected['_full']; unset($expected['_full']);` and pass `$fullYaml` to the builder. Or split into `parseExpectationsForResponse()` + `parseExpectationsForBuilder()`.
+**What dies (~70% of `app/Console/Commands/EvalRecordCommand.php`):**
 
-#### S1.7 sub-tasks — broader expansion (rewrite report Section 9)
+- `seedUser`, `seedChildEntities`, `seedProtectionPolicies`, `seedRows`, `seedExpenditure`
+- `createConversation`
+- `snapshotState`, `restoreToSnapshot`, `keyById`, `diffRows`
+- `extractToolCalls`
+- `SNAPSHOT_TABLES` constant
+- The `Cache::forever('ai_provider', ...)` block in `recordOne` (already moved to `EvalHttpDriver::run`)
 
-- [ ] **S1.7.a** — Extend `AssertionHelpers` with the keys for the 48 NEW canonical-behaviour / state-machine / handoff / resume YAMLs: `expected_per_turn`, `expected_state_transition`, `expected_parked_facts`, `expected_handoff_path`, `expected_db_writes`, `inherits` fragment-inheritance, `linked_browser_scenario`. The 10-scenario subset shipped this session in S1.2.l; the broader keys are next.
-- [ ] **S1.7.b** — 6 architecture meta-tests under `tests/Architecture/`: `EvalScenarioToolListMatchesQuerySchemasTest`, `EvalScenarioResponseModeConsistencyTest`, `EvalScenarioForbiddenToolsContainsAdviceWriteToolsTest`, `EvalScenarioKycBlockedHasAbsentToolsTest`, `EvalScenarioSignpostingMatchesResponseModeTest`, `EvalScenarioTimingBudgetIsPathAwareTest`.
-- [ ] **S1.7.c** — 4 new canonical-behaviour YAMLs: `advice_kyc_blocked_no_dob.yaml`, `advice_protection_profile_setup_handoff.yaml` (3 turns), `advice_holistic_health.yaml`, `advice_out_of_remit_medical.yaml`.
-- [ ] **S1.7.d** — Path A done this session. Path A++ deferred: extend `EvalProviderRun` with `kyc_state`, `kyc_missing`, `tool_result_paths`, `engine_call_level_actual` columns (rewrite report §7 item 5) so the dashboard can filter/group by them.
-- [ ] **S1.7.e** — 14 onboarding state-machine eval YAMLs (one per non-asset_capture state transition) + `--mode=deterministic` flag on `EvalRecordCommand` so they bypass the LLM (state machine output is deterministic given state + parked facts).
-- [ ] **S1.7.f** — 14 write-tool-family handoff YAMLs (one per `AdviceFyn::WRITE_TOOLS` family) under `04-handoffs/`. Plus `_handoff_invariants.fragment.yaml` shared fragment carrying INV-2.4.x assertions.
-- [ ] **S1.7.g** — 16 resume-after-disconnect YAMLs (13 per-state + 3 edge cases) under `09-canonical-behaviour/resume/`. Each YAML calls `OnboardingChatDirector::resumeSummary($stateId)` from the asserter.
-- [ ] **S1.7.h** — Re-record all fixtures: 5 untouched advice YAMLs + 4 new canonical (where LLM-driven) + 5 LLM-driven onboarding states + 14 handoff turn-2-and-3.
+**What lives:**
+
+- `recordOne` rewritten to delegate to `app(EvalHttpDriver::class)->run(...)`. Plan provides the full code on lines 2018–2107.
+- New helpers: `extractToolCallsFromEvents`, `assembleContent`, `countEventTypes`, `detectForbiddenOutputs`, `writeFixture`. Some may already exist; reuse where possible.
+- Scenario loading switches from YAML to JSON via `json_decode` (plan lines 2127–2135). `locateScenario` glob switches `*.yaml` → `*.json` (plan line 2141).
+- `$session = EvalRecordingSession::create([...])` — add `'persona' => $scenario['persona'] ?? null,` and `'http_log' => [],` to the create call.
+
+**Side-effect updates required:**
+
+- `app/Models/EvalRecordingSession.php` → add `'persona'` and `'http_log'` to `$fillable`, `'http_log' => 'array'` to `$casts`. (NOTE: this file is currently dirty in the working tree from session 102's W1 fix work — see "Pre-existing dirty files" below before touching.)
+- `app/Models/EvalProviderRun.php` → add `'engine_trace'` to `$fillable`, `'engine_trace' => 'array'` to `$casts`.
+
+**Verification:** `./vendor/bin/pest tests/Feature/Fyn/Eval/ tests/Unit/Services/Eval/` should still pass. The command itself can't be exercised end-to-end until Task 13 ships scenario JSONs and Task 16 runs `./dev.sh`.
+
+### 3. Task 13 — Author 10 mitchell JSON scenarios
+
+**Source: implementation-plan.md §13 (lines 2303–2456). Spec: plan.md §10 (lines 783–846).**
+
+10 new files at `tests/Feature/Fyn/Eval/scenarios/01-query-types/mitchell_*.json`:
+
+1. `mitchell_advice_protection_cover.json` — implementation-plan.md §13.1 has the full template (lines 2322–2402). Copy verbatim. `expected_tool_calls` MUST include `list_records` for life_insurance + critical_illness + income_protection (Task 8 already wired the live system to require them).
+2. `mitchell_advice_savings_emergency.json`
+3. `mitchell_advice_investment_isa.json`
+4. `mitchell_advice_retirement_contribution.json`
+5. `mitchell_advice_estate_iht.json`
+6. `mitchell_advice_holistic_health.json` — `expected_engine_call_level: holistic` (only one)
+7. `mitchell_advice_tax_optimisation.json`
+8. `mitchell_advice_goals_affordability.json`
+9. `mitchell_factual_net_worth.json` — `expected_response_mode: factual`, `expected_engine_call_level: factual`, `expected_kyc_state: bypass`
+10. `mitchell_factual_income.json` — same factual shape
+
+Per-scenario authoring steps (from implementation-plan.md §13.2):
+
+- Run the question against peak_earners live to capture actual classification + tool calls. `php artisan tinker --execute="dump(app(\App\Services\AI\QueryClassifier::class)->classify('<message>'));"`
+- Copy the classification verbatim to `expected_classification_shape`.
+- Tool-call list comes from `QuerySchemas::REQUIRED_TOOLS[<primary>]` (use the `tool(args)` pattern from the constant — see `app/Constants/QuerySchemas.php:467+`).
+- Set `result_path: happy` for everything (peak_earners has full data).
+- Timing: start at `anthropic.happy: 9000`, `xai.happy: 22000` (factual: 5000 / 12000). Recalibrate after Task 16 records.
+
+**Delete the 6 superseded YAMLs:**
+```bash
+rm tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_protection_cover.yaml \
+   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_savings_emergency.yaml \
+   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_investment_isa.yaml \
+   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_retirement_contribution.yaml \
+   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_estate_iht.yaml \
+   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_goals_affordability.yaml
+```
+
+**KEEP** `tests/Feature/Fyn/Eval/scenarios/03-multi-entity/*.yaml` — out of scope per plan §11.3.
+
+**Validation:** every scenario must validate against `tests/Feature/Fyn/Eval/scenarios/_schema.json` (already shipped in Task 12). Validator install (`composer require --dev justinrainbow/json-schema`) is a Task 15 prerequisite.
+
+### 4. Task 14 — Wire `EvalDeltaBuilder` to JSON + add `gradeEngineTrace`
+
+**Source: implementation-plan.md §14 (lines 2459–2629).**
+
+- `app/Services/Eval/EvalDeltaBuilder.php` → 1 line: `Yaml::parse(...)` → `json_decode(..., true)` (~line 65 per plan).
+- `app/Http/Controllers/Api/Admin/EvalRecordingController.php` → same Yaml→JSON swap in `parseExpectations` (~line 190). File is currently dirty in the working tree — see "Pre-existing dirty files" below before touching.
+- Add `gradeEngineTrace` method (plan lines 2483–2564) — covers `must_contain`, `must_not_contain`, `ordered`. 3 new Pest tests (plan lines 2575–2614) — must_contain misses, must_not_contain hits, ordering violations.
+
+**Verification:** existing 20 tests in `EvalDeltaBuilderTest` must still pass + 3 new ones for `gradeEngineTrace`.
+
+### 5. Task 15 — 5 architecture meta-tests
+
+**Source: implementation-plan.md §15 (lines 2633–2780).**
+
+```bash
+composer require --dev justinrainbow/json-schema
+```
+
+Then create:
+
+- `tests/Architecture/EvalScenarioJsonSchemaTest.php` — validate every JSON scenario against `_schema.json`.
+- `tests/Architecture/EvalScenarioPersonaIsValidTest.php` — every scenario binds to a known persona.
+- `tests/Architecture/EvalScenarioMutatingFlagMatchesWritesTest.php` — `is_mutating: false` ⇒ `expected_db_writes.expected_count: 0`.
+- `tests/Architecture/EvalScenarioEngineTraceConsistencyTest.php` — every `expected_engine_trace.must_contain[*]` engine/gate/decisionPoint string is in the valid list.
+- `tests/Architecture/PreviewBlockSitesCheckBypassTest.php` — grep test that `bypass-preview-mode` literal appears in `PreviewWriteInterceptor.php`, `HasAiChat.php`, `CoordinatingAgent.php`. (Already does — Task 4 wired it. The test locks against drift.)
+
+### 6. Task 16 — Live re-record + dashboard polish
+
+**Source: implementation-plan.md §16 (lines 2784–2949).**
+
+This is the integration verification. **Needs `./dev.sh` running + costs LLM API calls** (anthropic + xAI per scenario × 10 scenarios).
+
+```bash
+# In a separate terminal:
+./dev.sh
+
+# Then re-record:
+php artisan eval:record mitchell_advice_protection_cover
+# Verify acceptance gate from plan §12.16 — see implementation-plan.md §16.3.
+
+# Then loop the remaining 9:
+for s in mitchell_advice_savings_emergency mitchell_advice_investment_isa \
+         mitchell_advice_retirement_contribution mitchell_advice_estate_iht \
+         mitchell_advice_holistic_health mitchell_advice_tax_optimisation \
+         mitchell_advice_goals_affordability mitchell_factual_net_worth \
+         mitchell_factual_income; do
+  php artisan eval:record "$s"
+done
+```
+
+After recording, calibrate timing budgets (plan §16.7).
+
+Dashboard polish: extend `resources/js/components/Admin/eval/RunPanel.vue` with HTTP log + engine/gate timeline panels. Plan provides full Vue snippets at lines 2854–2914. **NOTE:** RunPanel.vue may need to consume the new fields — `EvalRecordingController` already returns `persona`, `http_log`, and now `engine_trace` after Tasks 11 + 14.
+
+**Acceptance gate per plan §12.16 — every box must tick:**
+
+1. `php artisan db:seed --class=PreviewUserSeeder` produces peak_earners with full data.
+2. `php artisan eval:record mitchell_advice_protection_cover` runs end-to-end via the HTTP loop. Session row has `persona='peak_earners'`, populated `http_log`, populated `engine_trace`, `status='completed'`.
+3. Both providers' `tool_calls` contain `list_records(life_insurance)` AND `list_records(critical_illness)` AND `list_records(income_protection)` AND `get_module_analysis(protection)`.
+4. Each `list_records.result` is non-empty.
+5. `get_module_analysis(protection)` returns `happy` path.
+6. Assistant text contains FCA signposting AND references real persona data (e.g. "Aviva", "£400,000", a policy type by name).
+7. `engine_trace` contains the 7 expected events in order, with NO `EngineCalled:orchestrate_analysis`.
+8. `EvalDeltaBuilder` grades both runs as PASS.
+
+If ANY step fails: per CLAUDE.md Rule #15 (LOOP UNTIL CORRECT), diagnose, fix, re-verify, repeat until GREEN per the plan. Don't hand back partial.
+
+---
+
+## Plan corrections shipped in session 105 (KEEP THESE PATTERNS)
+
+These were bugs in the plan that surfaced during execution. Apply the same patterns going forward.
+
+### 1. Sanctum wildcard ability — `can()` is unsafe (Task 4)
+
+The implementation plan and spec both said:
+
+```php
+$token->can('bypass-preview-mode')
+```
+
+But Sanctum's default abilities for `createToken()` with no args is `['*']`. `PersonalAccessToken::can()` returns true if abilities contain `'*'` OR the literal string. So **every regular preview-user token would silently bypass**.
+
+**Correct pattern (used in 4 files):**
+
+```php
+$abilities = $token->abilities ?? [];
+$hasEvalBypass = in_array('bypass-preview-mode', $abilities, true);
+```
+
+Wired in:
+- `app/Http/Middleware/PreviewWriteInterceptor.php`
+- `app/Traits/HasAiChat.php` (around line 144)
+- `app/Agents/CoordinatingAgent.php` (around line 717)
+- `app/Listeners/Eval/EvalTraceListener.php`
+
+If you add another bypass site, use the same `in_array(..., true)` pattern, NOT `can()`.
+
+### 2. SoftDeletes leak in `preview:reset` (Task 2)
+
+Pre-existing bug (not introduced by this work, but had to be fixed for Task 2 to pass):
+
+`User` model uses `SoftDeletes`, AND every child model on `peak_earners`'s persona-touched tables uses `SoftDeletes`. The old `resetPersona` called `$user->delete()` (soft) and `Property::where(...)->delete()` (soft). Result:
+- soft-deleted user kept the email row → reseed hit unique constraint
+- soft-deleted child rows kept their joint_owner_id → forceDelete on user fired FK violations
+
+**Fix:** `forceDelete()` everywhere in `ResetPreviewData::deleteUserData` and `resetPersona`. Locked by `tests/Feature/PreviewResetCompletenessTest`.
+
+### 3. AdviceFyn::handle didn't call classifyResponseMode (Task 6 deviation)
+
+The implementation plan said "after computing `$responseMode = self::classifyResponseMode($primary)`" — but `handle()` doesn't actually call those methods. They're pure helpers used by the eval delta builder.
+
+**What I did:** post-classify in `handle()`, fire the events guarded by map presence:
+
+```php
+if (isset(self::RESPONSE_MODE_MAP[$traceablePrimary])) {
+    event(new AgentDecision('AdviceFyn', 'response_mode', self::RESPONSE_MODE_MAP[...], ...));
+}
+```
+
+This avoids throwing on out-of-remit / data-entry primaries (which have no map entry).
+
+### 4. KycGateChecker per-field events (Task 6 simplified)
+
+Plan said per-FIELD KYC events (5 universal field checks). Restructuring `checkUniversalRequirements` to emit per-field would make it noisy. **What I did:** one `GateChecked('kyc', 'global', ...)` event after the universal pass + one per module check. The architecture meta-test in Task 15 only validates gate name strings, so granularity is flexible.
+
+### 5. 6 module agents' analyze events (Task 6 simplified)
+
+Plan said wrap each module agent's `analyze()` with `EngineCalled` events. Each agent has 4–12 internal return paths. **What I did:** fire one `EngineCalled('{module}_analysis', ...)` from `CoordinatingAgent::handleModuleAnalysis` (the centralised `get_module_analysis` tool dispatcher). One emit point covers all 6 modules + `holistic`. result_path inferred from `$analysis['success']`.
+
+If Task 16 acceptance gates need finer granularity, revisit this.
+
+---
+
+## Pre-existing dirty files (NOT mine — DO NOT include in Task 11/14 commits)
+
+The working tree at session-105 end has these pre-existing modifications that were there at session-105 start and represent incomplete session-102 W1 work or other unmerged workstreams. **Don't claim them in your commits.**
+
+```
+modified:   .claude/settings.json                                        ← unrelated config
+modified:   .claude/skills/session-start/SKILL.md                        ← unrelated harness change
+modified:   app/Http/Controllers/Api/Admin/EvalRecordingController.php   ← session-102 W1 in progress
+modified:   app/Models/EvalRecordingSession.php                          ← session-102 W1 in progress
+modified:   resources/js/components/Admin/EvalRecordings.vue             ← session-102 W1 in progress
+deleted:    database/migrations/2026_04_27_180000_add_remedial_report... ← rename target
+new file:   database/migrations/2026_04_27_000002_add_remedial_report... ← rename source
+
+new file:   .claude/ccstatusline/                                        ← unrelated CC config
+new file:   .claude/statusline-command.sh                                ← unrelated
+new file:   .claude/statusline-wrapper.sh                                ← unrelated
+new file:   CSJ-CAMPAIGN-LANDING-PLAN.md                                 ← separate workstream
+new file:   docs/manuals/                                                ← separate workstream
+new files:  tests/Feature/Fyn/Eval/fixtures/.../*.jsonl (18 files)       ← prior recordings
+```
+
+**Critical for Task 11 + Task 14:** when you modify `EvalRecordingSession.php` (add fillable/casts) or `EvalRecordingController.php` (Yaml→JSON swap), MERGE your edit into the existing dirty content rather than overwriting it. Use `git diff app/Models/EvalRecordingSession.php` first to see what session-102 left there.
+
+---
+
+## Test status snapshot at session 105 end
+
+All NEW tests written this session (35 cases across 8 files):
+
+| Suite | Tests | Status |
+|---|---|---|
+| `tests/Unit/Events/EvalEventsTest.php` | 3 | ✅ green |
+| `tests/Feature/PreviewResetCompletenessTest.php` | 2 | ✅ green |
+| `tests/Feature/PreviewBypassAbilityTest.php` | 3 | ✅ green |
+| `tests/Feature/EvalTraceListenerTest.php` | 4 | ✅ green |
+| `tests/Feature/EvalAuthControllerTest.php` | 7 | ✅ green |
+| `tests/Unit/QuerySchemasProtectionScopeTest.php` | 3 | ✅ green |
+| `tests/Unit/Services/Eval/EvalSseConsumerTest.php` | 6 | ✅ green |
+| `tests/Feature/Fyn/Eval/EvalHttpDriverTest.php` | 1 (skipped) | ⏭ needs ./dev.sh |
+
+Existing test suites — no regressions:
+
+- `tests/Unit/Agents/` — 84/84
+- `tests/Unit/Services/AI/` — 17/17 classifier + 15/15 AdviceFyn maps
+- `tests/Unit/Services/Eval/EvalDeltaBuilderTest.php` — 72/72
+- `tests/Unit/Services/Protection/Savings/Investment/Retirement/Estate/` — 583/583
+
+One transient flake observed: `SavingsAgentGoalsTest::it recommends increasing contributions` failed once and passed on retry. Test isolation issue, not deterministic. If it shows up in CI, may need `RefreshDatabase` adjustment.
+
+---
+
+## Summary of what session 105 actually shipped
+
+11 commits on `feature/fyn-persona-split` (all pushed to origin):
+
+```
+3378f03 feat(eval): add EvalHttpDriver — HTTP-driven eval loop                                  [Task 10]
+9b4170b feat(eval): add JSON Schema for scenario files                                          [Task 12]
+5cf51d4 feat(eval): wire trace events at gate, agent, and engine call sites                     [Task 6]
+ab00ded feat(eval): add EvalSseConsumer for SSE frame parsing                                   [Task 9]
+dc76112 fix(query-schemas): PROTECTION_COVER must surface all 3 protection types                [Task 8]
+84e43c7 feat(eval): add EvalAuthController with login + reset + trace endpoints                 [Task 7]
+8e0bb16 feat(eval): add EvalTraceCollector + EvalTraceListener (ability-gated)                  [Task 5]
+235a019 feat(eval): add bypass-preview-mode token ability to 3 write-block sites                [Task 4]
+8fe5698 feat(eval): add GateChecked + EngineCalled + AgentDecision event classes                [Task 3]
+a6531f3 feat(preview): extend preview:reset to all persona-touched tables + fix SoftDeletes leak [Task 2]
+67a0b08 feat(eval): add persona + http_log + engine_trace columns to eval recording tables      [Task 1]
+```
+
+The HTTP loop, the eval auth surface, the trace pipeline, the bypass-ability mechanism, the persona reset, and the protection-cover scope correction are all live and tested. From here the remaining tasks connect plumbing (Tasks 11, 14), author scenarios (Task 13), add architecture meta-tests (Task 15), and run the live integration verification (Task 16).
+
+---
+
+## Carry-forward from earlier sessions (still valid)
+
+### Tech-debt W1 from session 102 audit
+
+- [ ] **`_full` parsed YAML in API response payload** — `EvalRecordingController::parseExpectations` puts the entire parsed YAML under `_full` and that key still ships in the JSON response. Should be split into `parseExpectationsForResponse()` + `parseExpectationsForBuilder()`. **Note:** commit `a96a7d5` claimed to fix this; the file still has uncommitted changes (see "Pre-existing dirty files"). **Verify when handling Task 14.**
+
+### S1.7 sub-tasks — broader expansion
+
+These pre-date the HTTP-driven rewrite. Some may be obsoleted by Tasks 11–16; others remain. Defer until after Task 16 ships.
+
+- [ ] **S1.7.a** — Extend `AssertionHelpers` for the 48 NEW canonical-behaviour / state-machine / handoff / resume YAMLs.
+- [ ] **S1.7.b** — 6 architecture meta-tests under `tests/Architecture/` (some overlap with Task 15).
+- [ ] **S1.7.c** — 4 new canonical-behaviour YAMLs.
+- [ ] **S1.7.d** — Path A++ — extend `EvalProviderRun` with `kyc_state`, `kyc_missing`, `tool_result_paths`, `engine_call_level_actual` columns for dashboard filtering.
+- [ ] **S1.7.e** — 14 onboarding state-machine eval YAMLs + `--mode=deterministic` flag.
+- [ ] **S1.7.f** — 14 write-tool-family handoff YAMLs.
+- [ ] **S1.7.g** — 16 resume-after-disconnect YAMLs.
+- [ ] **S1.7.h** — Re-record all fixtures.
 - [ ] **S1.7.i** — Hard-gate verification doc `April/April27Updates/eval-rewrite-verification.md`.
 
-#### Untouched advice YAMLs await live re-recording
+### Notes flagged in session 102 (still apply)
 
-- [ ] `advice_savings_emergency.yaml` — happy-path, expect ~7000ms anthropic / ~16000ms xAI.
-- [ ] `advice_investment_isa.yaml` — KYC-blocked path (no risk_profile in seed). Expect ~5000ms anthropic / ~12000ms xAI; no analysis tools fire.
-- [ ] `advice_retirement_contribution.yaml` — success_false path (no retirement_profile). Expect 5+ tool calls; widen budget if needed.
-- [ ] `advice_estate_iht.yaml` — happy-path. Cleanest scenario; should pass cleanly.
-- [ ] `advice_goals_affordability.yaml` — keyword collision (resolves to retirement_readiness primary, not affordability). success_false path.
+- [ ] **#10 Modal-`will` regex FP in `ESTATE_PLANNING` keyword pattern.** `/\bwill(s)?\b/i` matches the modal verb in "How much inheritance tax will my estate pay?".
+- [ ] **#11 `pensions_2x_schemes.yaml` `is_active` extraction.** Verify during S1.7.h fixture recording.
 
-After each re-recording, calibrate the YAML's timing budget per the actual run, same pattern as session #21.
+### Pest baseline — 3 pre-existing failures
 
-#### Notes flagged in session 102
+Same root cause as previous sessions: `App\Agents\CoordinatingAgent::classifyComplexity(): Argument #2 ($conversationDepth) must be of type int, null given`.
 
-- [ ] **#10 Modal-`will` regex FP in `ESTATE_PLANNING` keyword pattern.** `/\bwill(s)?\b/i` matches the modal verb in "How much inheritance tax will my estate pay?" — currently `advice_estate_iht`'s `related` includes `estate_planning` because of this. Tagged `related-includes-estate-planning-modal-will-fp`. Future fix should catch noun forms (`a will`, `my will`, `the will`, `make a will`, `will builder`) without modal `will`. Verify via positive ("Do I need a will?", "Update my will") + negative ("This will work", "Tax will be paid") test cases.
-- [ ] **#11 `pensions_2x_schemes.yaml` `is_active` extraction.** YAML asserts `is_active: false` for the "old" Standard Life pension and `true` for the "current" Aviva. Will hold only if `AssetCaptureEntityExtractor` / `create_pension` handler honour the temporal qualifier in the user message. Verify during S1.7.h fixture recording — if extraction doesn't set `is_active`, either fix the extractor or relax the YAML.
-
----
-
-## Context for Next Session
-
-**Branch:** `feature/fyn-persona-split` — 9 commits ahead of `main`, all pushed to origin. Working tree is clean of session-102 work; CSJ owns the `.claude/*` IDE config + `CSJ-CAMPAIGN-LANDING-PLAN.md` + `docs/manuals/` left in the tree (separate workstreams).
-
-**Eight commits today on this branch (sessions 100/101/102):**
-- `a41143c` chore(eval): re-record advice_protection_cover fixture (session #18)
-- `425c54f` feat(fyn): Sprint 1 S1.3 + S1.4 + S1.5 + S1.6.a
-- `edd2d86` feat(fyn): Sprint 1 S1.6.b — per-agent tool-result output contract
-- `74ead16` feat(fyn): Sprint 1 S1.8 — AdviceFyn response-mode + engine-call-level classifiers
-- `e373505` refactor(fyn): remove S1.6.a advice_response panel
-- `abb2b00` chore(eval): re-record advice_protection_cover fixture (session #19)
-- `1dfcb3c` feat(fyn): Sprint 1 S1.2.l — rewrite 10 eval scenarios + classifier widening
-- `e00c540` feat(fyn): Sprint 1 S1.7.d (Path A) — wire EvalRecordingController to new asserter
-- `d5f5ebb` fix(fyn): calibrate advice eval YAMLs against session #21 live recording
-- `89611d4` fix(fyn): restore legacy delta fields broken by S1.7.d (Path A) commit
-- `c29ea2a` chore(eval): re-record advice_protection_cover fixtures (session #21)
-
-**Next session should start with:**
-
-1. **(2 minutes) Apply tech-debt W1 fix** — strip `_full` from API response in `EvalRecordingController::show()`. Confirms a clean dashboard payload before any larger work.
-2. **(20 minutes) Re-record one of the 4 untouched advice YAMLs** (suggest `advice_estate_iht` — cleanest happy path) via `php artisan eval:record advice_estate_iht`. Inspect the new session in `/admin/eval-recordings/{id}`. Calibrate any timing/SSE bounds from the actual run, same pattern as session #21.
-3. **(then) Pick a S1.7 sub-task to drive next** — recommend S1.7.a (asserter extension for the 48 new YAMLs) since every other S1.7 item blocks on it. Or S1.7.b (architecture meta-tests) which prevents drift recurrence.
-
-**Mandatory pre-work for next session:**
-
-1. Read this file top-to-bottom.
-2. Read `April/April27Updates/eval-expectations-rewrite.md` Section 9 (execution order).
-3. Read `April/April24Updates/plan/11-sprint-1-plan.md` Status block (currently shows S1.1 → S1.6.b + S1.8 ticked; S1.2.l + S1.7.d Path A added this session, may need updating).
-4. Run `php artisan db:seed --force` (CLAUDE.md mandatory pre-flight).
-5. Confirm Pest baseline: `./vendor/bin/pest tests/Feature/Fyn/Eval/ tests/Unit/Services/Eval/ tests/Unit/Services/AI/QueryClassifierTest.php` should be 82/82 GREEN.
-
----
-
-## Pest baseline — 3 pre-existing failures still apply (deferred since session 99)
-
-Same root cause as previous sessions: `App\Agents\CoordinatingAgent::classifyComplexity(): Argument #2 ($conversationDepth) must be of type int, null given, called in /Users/CSJ/Desktop/fynla/app/Traits/HasAiChat.php on line 130`.
-
-Failing tests (verified pre-existing this session):
 - `tests/Feature/AI/AssistantHonestyOnWriteFailureTest::it AdviceFyn passes assistant honesty text through unchanged when a write tool fails`
 - `tests/Feature/AI/ConsentRuntimeCheckTest::it allows sendMessage to stream when ai_chat consent is granted`
 - `tests/Feature/AI/ConsentRuntimeCheckTest::it emits consent_required SSE and closes the stream when consent is withdrawn`
 
-Cause: in-memory `AiConversation` whose `message_count` is null. Fix: set `message_count = 0` on the in-memory conversation in those test setups, or change `classifyComplexity` signature to `?int $conversationDepth = 0` and coerce. Not blocked by any S1.x work.
-
----
-
-## Tech debt — session 102 findings
-
-Full report at `tech-debt-report.md`.
-
-- **W1 (warning, deferred):** `_full` parsed YAML in API response — see "Outstanding" above.
-- **S1 (suggestion):** mild duplication in tool-name extraction across `EvalDeltaBuilder::normaliseToolCalls`, `buildLegacyDeltaFields`, `collectForbiddenToolHits`, `shellDelta` (4 sites). Extract a `extractToolNames(array $calls, string $key = 'tool'): array<string>` helper.
-- **S2 (suggestion):** Long methods in `EvalDeltaBuilder` — `build()` ~140 lines, `buildLegacyDeltaFields()` ~95 lines, `buildHintsAndFixes()` ~60 lines. Extractable but readable as orchestration. Defer until S1.7.a expansion adds more keys.
+Cause: in-memory `AiConversation` whose `message_count` is null. Fix: set `message_count = 0` on the in-memory conversation, or change `classifyComplexity` signature to `?int $conversationDepth = 0` and coerce. Not blocked by any task.
 
 ---
 
 ## Deploy status
 
-- **Production (`fynla.org`):** main untouched this session.
-- **Dev (`csjones.co/fynla`):** dev untouched this session.
-- **`feature/fyn-persona-split`:** 5 new commits pushed to origin this session (9 total ahead of main today across sessions 100/101/102). NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR.
+- **Production (`fynla.org`):** main untouched.
+- **Dev (`csjones.co/fynla`):** dev untouched.
+- **`feature/fyn-persona-split`:** 11 new commits pushed to origin this session (21 total ahead of main). NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR. Tasks 11–16 must complete before any deploy.
 
-When the next deploy happens (whenever feature → dev merges), no migrations are pending from session 102 work. New service `app/Services/Eval/EvalDeltaBuilder.php` will be uploaded with the rest of the branch. The new YAML scenarios are test-only and may not deploy depending on `deploy/` config.
+When the next deploy happens after the rewrite finishes:
+
+- 2 new migrations (Task 1) — schema-additive, safe.
+- New routes (Task 7) — eval-only, gated by `if (! app()->environment('production'))` so they don't register on prod.
+- New service provider (Task 5) — `EvalServiceProvider` registered in `config/app.php`.
+- New event listeners (Task 5) — fire only when active token has `bypass-preview-mode` ability.
+- Modified production code (Tasks 4, 6, 8) — preview-mode write blocks, gate/agent/engine code, `QuerySchemas`. Behaviour change: protection queries now surface all 3 protection types in the live LLM tool selection (Task 8 — fixes the live product, not just the eval).
 
 ---
 
