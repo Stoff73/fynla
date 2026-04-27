@@ -82,6 +82,9 @@ class DatabaseSeeder extends Seeder
 
             // Existing bespoke insight articles — metadata only, bodies stay in Vue files
             ExistingInsightsMetadataSeeder::class,
+
+            // News articles (DB-backed; first article = launch announcement)
+            NewsArticleSeeder::class,
         ]);
 
         // ============================================================
