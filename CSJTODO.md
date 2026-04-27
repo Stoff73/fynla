@@ -31,31 +31,44 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 
 ---
 
-*Last updated: 26 April 2026 — session 94 end (S0.16b closed in plan; BS-23 GREEN already landed as commit `38cd85b` earlier in the day; session 94 attempted S0.16c BS-01 + BS-02 re-walks but BOTH WERE TAINTED — drove bubble clicks via `browser_evaluate(...)` JS shortcuts instead of `browser_click` against snapshot refs, and dismissed the documented `/profile` profile_review_* pause as "unrelated cosmetic" without diagnosing it. Pre-flight reading of state machine + director + aiChat.js + AppLayout + AiChatPanel + AiChatPanelShell was done at end of session — full understanding now in plan §S0.16c. Both stub docblocks marked TAINTED in commit `ba49301`. Session-94 screenshots `s94-*.png` deleted from BS-01 + BS-02 dirs. Pre-flight blocks added to top of this file AND to the S0.16c plan entry — both must be read by session 95 before touching the browser.)*
+*Last updated: 27 April 2026 — session 97 end (TWO deliverables: (1) D4 retention-policy close — `docs/audit-retention-policy.md` authored (single-page policy mirroring the as-shipped `AiAuditRetentionJob`: 7-year advice / 2-year general, deletion-not-mutation rationale, weekly Sunday 04:00 UTC schedule, adjacent retention policies referenced for context). (2) Path (b) screenshot migration — 11 GREEN-evidence files migrated from gitignored `April/April24Updates/plan/batch{1,2}/BS-NN/` to canonical `docs/sprint-0-verification/BS-NN/` for BS-11/12/14/16/20. BS-14's 11 walk-residue files (including anti-discipline `07-after-jseval-click.png` / `05-after-pressSequentially.png` artefacts) intentionally NOT committed — they are bug-discovery evidence for the S0.5.r/s/t fix loop, not GREEN contract proof. Each scenario's docblock had script-section path declarations + delivery-note path references updated to canonical paths. Rubric-A re-scored: D4 level 2 → **3**, total **12/40 → 13/40**, **in spec target band (13-15)**. The Sprint 0 acceptance #5 score floor (≥13/40) is now satisfied. Browser matrix table in `rubric-a-score.md` now shows ALL committed scenarios at canonical paths; "Migration debt" callout replaced with "Migration to canonical path (closed session 97)" closing note. No code changes; no Pest run needed (docs + screenshots + docblock comments only). Per CSJ direction this turn: defer path (c) `feature → dev` PR, move directly to Sprint 1 next session.)*
+
+*Previous session: 26 April 2026 — session 96 end (S0.17 CLOSED — Sprint 0 verification rollup complete. All five acceptance criteria satisfied: (1) full `./vendor/bin/pest` GREEN at **2,972 passed / 12,549 assertions / 0 failures / 412.79s** (20 skipped browser stubs, intentional); (2) `./vendor/bin/pest --testsuite=Architecture` GREEN at **16 passed / 303 assertions / 0 failures / 42.65s** after one bug-fix-in-loop to `tests/Architecture/PersonaMachineryAbsentTest.php` — added `uses(Tests\TestCase::class)` so the test bootstraps Laravel rather than relying on leakage from prior Feature/Unit tests in the full sweep; (3) `php artisan ai:audit:verify-chain` → `chain_valid:true, tip_hash:36251a0fcc03a986692bf16c450da1f8b21587fb82e48cdd6b3d503fc88561ab, row_count:76`; (4) browser matrix 20/20 scenario files present, 17 GREEN with delivery notes + screenshots committed, BS-18 PARTIAL deferred to post-deploy, BS-22 DROPPED, BS-05 DEFERRED to PSP — full inventory in rubric doc; (5) Rubric-A re-score published at `docs/sprint-0-verification/rubric-a-score.md` — **12/40, 🔴 Pre-launch (still)**, one point shy of the 13-15 spec target band. Three dimensions on the cusp of next level (D4 audit, D6 reliability, D7 provider risk) each missing one sub-criterion. **Recommended pre-deploy follow-up**: author `docs/audit-retention-policy.md` (single page, 7-year advice / 2-year general retention) to push D4 to level 3 and the total to 13/40 — closes the spec target before the dev deploy. Sprint 0 is complete. Session 97 should pick: (a) author the retention policy doc + open `feature → dev` PR, OR (b) the migration-debt cleanup for BS-11/12/14/16/20 screenshots from legacy `April/April24Updates/plan/batch*/` to canonical `docs/sprint-0-verification/`, OR (c) start Sprint 1 (eval harness + memory model + `<known_facts>`).)*
+
+*Previous session: 26 April 2026 — session 95 end (S0.16c CLOSED — all 6 re-walks GREEN against the post-`ffc9c3f` shared AiChatPanelShell body. BS-01/02/04/06/07/10 driven via `browser_click` against snapshot refs only, OTP digits via `browser_press_key`, NO `browser_evaluate` for any interaction. Two product fixes shipped in same loop during BS-04 — AiConversation::scopeOnboarding helper + describeStep cases added.)*
+
+*Previous session: 26 April 2026 — session 94 end (S0.16b closed in plan; BS-23 GREEN already landed as commit `38cd85b` earlier in the day; session 94 attempted S0.16c BS-01 + BS-02 re-walks but BOTH WERE TAINTED — drove bubble clicks via `browser_evaluate(...)` JS shortcuts instead of `browser_click` against snapshot refs, and dismissed the documented `/profile` profile_review_* pause as "unrelated cosmetic" without diagnosing it. Pre-flight reading of state machine + director + aiChat.js + AppLayout + AiChatPanel + AiChatPanelShell was done at end of session — full understanding now in plan §S0.16c. Both stub docblocks marked TAINTED in commit `ba49301`. Session-94 screenshots `s94-*.png` deleted from BS-01 + BS-02 dirs. Pre-flight blocks added to top of this file AND to the S0.16c plan entry — both must be read by session 95 before touching the browser.)*
 *Previous session: 26 April 2026 — session 93 (BS-17 + BS-23 GREEN. Three bug-fixes-in-loop on BS-17: (1) in-turn idempotency on handleCreateProtectionPolicy life/CI/IP; (2) new `DuplicateAcknowledgement` service + AdviceFyn short-circuit; (3) coverage parity — extractor supports mortgage + liability, RecordDuplicateChecker arms for all eight WriteIntentClassifier entity_types. BS-22 dropped per CSJ. BS-23 5-vector subset all short-circuited via QueryClassifier OUT_OF_REMIT. Pest 529/1968.)*
 
 ---
 
-## Next session 95 — S0.16c REDO of BS-01 + BS-02 + the remaining four
+## Next session 98 — start Sprint 1
 
-**Session 95 should, in this exact order — no shortcuts:**
+Sprint 0 is complete (S0.17 closed session 96 + path (a) D4 retention-policy doc + path (b) screenshot migration both closed session 97). Rubric-A is **13/40, in spec target band (13-15)**. Path (c) `feature → dev` PR has been deferred per CSJ direction 2026-04-27 — Sprint 1 starts next, deploy gate runs in parallel or after.
 
-1. Read this file top-to-bottom (incl. the ⛔ pre-flight block above — twice).
-2. Read `MEMORY.md` "Top laws" — particularly `feedback_loop_until_correct.md` and `critical_browser_testing_law.md`.
-3. Read the S0.16c §"Pre-flight" block in `April/April24Updates/plan/10-sprint-0-plan.md` (mirror of the block in this file).
-4. Read these six files end-to-end BEFORE touching the browser. No skimming. (Session 94's pre-flight reading is captured in plan §S0.16c — re-do it cold for proper grounding):
-   - `app/Services/Onboarding/OnboardingStateMachine.php` (719 lines)
-   - `app/Services/Onboarding/OnboardingChatDirector.php` (~2380 lines — focus on `emitTurnForState`, `handleResumeAction`, `handleSomethingElseAction`, `handleSkipAction`, `handleUserMessage`, `emitDoneTurn`)
-   - `resources/js/store/modules/aiChat.js` (1028 lines — focus on the SSE event switch in `sendMessage` action and the mirror in `postAction`)
-   - `resources/js/layouts/AppLayout.vue` lines 200-345 — `isOnboardingRoute`, `dashboardBlurClass`, `asideWidthClass`, the `onboardingLayout` watcher
-   - `resources/js/components/Shared/AiChatPanel.vue` (1261 lines — focus on template structure, `handleQuickReplySelect`, `handleSkipLink`, suggestions panel guard)
-   - `resources/js/components/Shared/AiChatPanelShell.vue` (68 lines)
-5. Run `./dev.sh` (likely already up — check `lsof -ti:8000`).
-6. Run `php artisan db:seed --force` (note: dev DB has Patricia Quinn user_id=429 + Angela 430 from session 94's tainted walk, plus carry-over fixtures — ignore).
-7. Confirm Pest baseline 529/1968 still holds via `./vendor/bin/pest tests/Feature/Auth tests/Feature/AI tests/Feature/Fyn tests/Feature/Onboarding tests/Architecture tests/Feature/Audit`.
-8. **Redo S0.16c BS-01** end-to-end with `browser_click` against snapshot refs only. NO `browser_evaluate` for clicks/fills/submits. Expect /profile push at `profile_review_family` and `profile_review_expenditure` states — that is the contract. Verify it happens, screenshot it, document it. Don't dismiss it.
-9. Then BS-02, BS-04, BS-06, BS-07, BS-10 — same discipline.
-10. Per CLAUDE.md Rule #15 LOOP UNTIL CORRECT — diagnose mid-loop bugs, fix root cause, re-verify in browser, repeat until GREEN per the docblock contract.
+**Sprint 1 plan source of truth:** `April/April24Updates/spec/11-sprint-1-plan.md` (gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/11-sprint-1-plan.md`). Read this before touching anything.
+
+**Sprint 1 high-level scope** (per the closing notes in `docs/sprint-0-verification/rubric-a-score.md`):
+- **Eval harness** (D9 → 2): `tests/Feature/Fyn/Eval/` directory; deterministic input/expected-output pairs covering CoreIdentity tone, classifier routing, prompt-injection refusal byte-equality, capture-complete card content. Drift detection at every PR.
+- **Memory model + `<known_facts>` block** (D9 sub-criteria): persistent fact extraction from prior turns, surfaced into the next turn's system prompt as a structured `<known_facts>` Layer.
+- **Privacy Policy lawful-basis update** (D2 → 1): xAI disclosure, lawful-basis mapping for AI processing, consent-language alignment.
+- **Consent version pinning** (D3 → 3): `consent_version` migration on `user_consents`, bump trigger in `AuthController`, re-consent prompt on next chat turn when version increments.
+- **Prompt-injection vectors V3/V4/V7/V8/V10** (D5 → 3 cusp): the deferred half of BS-23's 10-vector spec — V3 (instruction echo), V4 (multi-turn priming), V7 (encoding bypass), V8 (system-prompt extraction), V10 (refusal-bypass via persona switch).
+- **Canary instruction** (D5 → 3): hidden marker string in CoreIdentity that the eval harness detects in any output → auto-fail → drift alert.
+
+**Mandatory pre-work for session 98:**
+
+1. Read this file top-to-bottom (incl. the ⛔ pre-flight block above).
+2. Read `MEMORY.md` "Top laws".
+3. Read `docs/sprint-0-verification/rubric-a-score.md` (current scored state, what each remaining D-score gap needs).
+4. Read `docs/audit-retention-policy.md` (session-97 deliverable; ground for any retention-related questions).
+5. Read `April/April24Updates/spec/11-sprint-1-plan.md` end-to-end (Sprint 1 spec).
+6. Run `./dev.sh` (likely already up — `lsof -ti:8000`).
+7. Run `php artisan db:seed --force`.
+8. Confirm Pest baseline holds via `./vendor/bin/pest` (full sweep, ~7 min) — last GREEN run was session 96 at 2,972 passing / 12,549 assertions / 0 failures. Session 97 was docs/screenshots/docblock-comments only and did not touch code or tests.
+9. Per CLAUDE.md Rule #15 LOOP UNTIL CORRECT — diagnose mid-loop bugs, fix root cause, re-verify, repeat until GREEN per the spec.
+
+**Path (c) deploy gate (deferred, not closed):** All Sprint 0 invariants are GREEN; Pest 2,972 passes; chain valid; Rubric-A in band. The deploy note `April/April26Updates/deploy-session-84.md` is ready. Opening the `feature → dev` PR can happen in parallel with early Sprint 1 work (it triggers the post-deploy BS-18 third-assertion walk on csjones.co/fynla Apache, which doesn't block Sprint 1). CSJ to time this — recommended after the first Sprint 1 sub-task lands and Pest is re-verified GREEN, so the dev branch picks up both Sprint 0 + early Sprint 1 in the same deploy.
 
 **Critical state-machine context for BS-NN walks (Protecting What Matters / married / no dependants flow):**
 
@@ -142,6 +155,177 @@ Candidate surfaces (need design call):
 Backend wiring already in place: read `onboarding_fyn_context.paused_at_step`, restore `onboarding_fyn_step`, re-fire `postAction('resume')` from whatever surface the user clicks. Implementation is small once the surface is chosen.
 
 **Action**: needs a design pass + plan entry before implementation. Not blocking BS-NN. Flag for the next planning round.
+
+---
+
+## Session 96 — S0.17 Sprint 0 verification rollup CLOSED
+
+### Completed this session
+
+- [x] **Bootstrap.** Read `feedback_loop_until_correct.md`, `critical_browser_testing_law.md`, `feedback_never_claim_verified.md`. Branch `feature/fyn-persona-split` at session-95 head (`6c9e07d`); dev server already up (artisan serve on 8000, vite at 5174 per `public/hot`); `php artisan db:seed --force` ran clean — 21 users (15 standard + 6 from session-95 onboarding personas: Laury 449, Angela 450, Devon 451, Bryony 452, plus carry-overs), 6 tax configs, 4 plans, 76 audit-chain rows.
+
+- [x] **S0.17 acceptance #1 — full Pest suite green.** `./vendor/bin/pest` → **2,972 passed / 12,549 assertions / 0 failures / 412.79s**. The 20 "skipped" entries are the BS-NN browser-scenario stubs which `markTestSkipped` at runtime by design (they're driven via Playwright MCP, not Pest CLI).
+
+- [x] **S0.17 acceptance #2 — Architecture suite green.** `./vendor/bin/pest --testsuite=Architecture` initially returned **1 failure** at `tests/Architecture/PersonaMachineryAbsentTest.php:12` — `Call to undefined method Illuminate\Container\Container::path()`. Diagnosed: the test's `it()` closure calls `app_path()` / `config_path()` / `base_path()` at runtime, which require the Laravel `Illuminate\Foundation\Application` container. `tests/Pest.php` binds `Tests\TestCase::class` only to `Feature`, `Unit/Services`, `Unit/Observers`, specific Unit/Agents files, and `Integration` — `Architecture` directory is unbound (most arch tests use `arch()` and don't need the bootstrap). When the test runs as part of the FULL `./vendor/bin/pest` sweep it passes by accident — earlier `Tests\TestCase`-bound tests bootstrap the app via `CreatesApplication::createApplication`, the singleton sticks around, and `app()` returns the Foundation Application for this test too. In isolation the singleton is the bare IoC container. **Fix:** added `uses(Tests\TestCase::class);` at the top of `PersonaMachineryAbsentTest.php` so it bootstraps Laravel regardless of run order. Re-ran: **16 passed / 303 assertions / 0 failures / 42.65s**. (95 deprecated warnings are pre-existing PHPUnit notices on the `arch()` API surface, not failures.)
+
+- [x] **S0.17 acceptance #3 — audit chain verify.** `php artisan ai:audit:verify-chain` → `{"chain_valid":true,"tip_hash":"36251a0fcc03a986692bf16c450da1f8b21587fb82e48cdd6b3d503fc88561ab","row_count":76}`. Banner-tip parity confirmed against the canonical-JSON fix that landed session 92 (`50420c7`). Chain has grown from 20 fixture rows → 76 across sessions 92-96 onboarding/dispatch walks; all hash-equal.
+
+- [x] **S0.17 acceptance #4 — browser matrix 20/20 + screenshots committed.** Full inventory in `docs/sprint-0-verification/rubric-a-score.md §"Browser matrix"`. Tally: **17 GREEN** (BS-01, 02, 04, 06, 07, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 23) · **1 PARTIAL** (BS-18 — third assertion deferred to single post-deploy walk on csjones.co/fynla per cli-server SAPI quirk) · **1 DROPPED** (BS-22 — no UI consent toggle exists or should; runtime gate covered by `tests/Feature/AI/ConsentRuntimeCheckTest.php`) · **1 DEFERRED** (BS-05 — moved to PSP-LS / PSP-S in `15-post-sprint-priorities-plan.md`). Migration debt: BS-11, BS-12, BS-14, BS-16, BS-20 have screenshots at the legacy `April/April24Updates/plan/batch{1,2}/BS-NN/` path rather than the canonical `docs/sprint-0-verification/BS-NN/` path. Filed as carry-forward — see "Next session 97" path (b).
+
+- [x] **S0.17 acceptance #5 — Rubric-A re-score published** at `docs/sprint-0-verification/rubric-a-score.md`. **Total: 12/40, 🔴 Pre-launch (still).** Net delta from spec-time baseline (4-5/40): **+7 to +8** dimensions advanced. One point shy of the 13-15 spec target band. Three dimensions (D4 audit, D6 reliability, D7 provider risk) are on the cusp of the next level — each missing one specific sub-criterion documented in the rubric. The smallest close-the-gap move is authoring `docs/audit-retention-policy.md` (single page, 7-year advice / 2-year general retention) which bumps D4 from level 2 to level 3 and the total to 13/40. Recommended pre-deploy follow-up; not blocking.
+
+  Dimension scores:
+
+  | Dim | Score | Delta | Cusp gap to next level |
+  |---|---|---|---|
+  | D1 Regulatory | 2 | +1 | external legal opinion on file (Sprint 4 task A.1) |
+  | D2 Data protection | 0 | 0 | Privacy Policy lawful-basis update (Sprint 1/4) |
+  | D3 Consent | 2 | +1 | consent version pinning (Sprint 1) |
+  | D4 Audit | 2 | +1 to +2 | retention policy doc (immediate, single page) |
+  | D5 LLM safety | 2 | +2 | canary instruction + eval drift detection (Sprint 1) |
+  | D6 Reliability | 2 | +2 | Anthropic timeout parity + provider-switch lock |
+  | D7 Provider risk | 0 | 0 | DPA documentation (Sprint 4 task A.3) |
+  | D8 Code quality | 1 | 0 | god-file decomposition (Sprint 5) |
+  | D9 Observability | 0 | 0 | eval harness (Sprint 1) |
+  | D10 Documentation | 1 | 0 | DPIA / ROPA / FCA (Sprint 4) |
+  | **Total** | **12/40** | **+7 to +8** | |
+
+- [x] **S0.17 plan checkbox flipped to [x]** in `April/April24Updates/plan/10-sprint-0-plan.md` with full session-96 delivery note (Pest counts, audit tip_hash, rubric score, recommended follow-up).
+
+- [x] **CSJTODO updated** with this section, fresh "Last updated" line, and "Next session 97" three-path pointer (retention policy doc / migration-debt cleanup / open `feature → dev` PR).
+
+### Bugs fixed in same loop
+
+1. **`tests/Architecture/PersonaMachineryAbsentTest.php` — bootstrap-order leak.** Added `uses(Tests\TestCase::class);` so the test runs reliably in isolation. No behaviour change; the test passed in the full sweep prior to this fix because of bootstrap leakage from prior `Tests\TestCase`-bound tests, but `--testsuite=Architecture` and `pest tests/Architecture/` failed when run alone. Per CLAUDE.md Rule #15 fixed root cause rather than declaring the full-sweep pass sufficient.
+
+### Files changed
+
+- `tests/Architecture/PersonaMachineryAbsentTest.php` — added `uses(Tests\TestCase::class);` at line 5 (above the `it()` closure).
+- `docs/sprint-0-verification/rubric-a-score.md` — new file (the S0.17 acceptance #5 deliverable).
+- `April/April24Updates/plan/10-sprint-0-plan.md` — flipped S0.17 checkbox to [x] with delivery note.
+- `April/April26Updates/CSJTODO.md` — updated "Last updated" + added session-96 detail section + replaced "Next session 95" with "Next session 97".
+
+### Tech debt findings
+
+0 functional issues across the four changed files. The Pest architecture-bootstrap pattern (binding `Tests\TestCase` selectively in `tests/Pest.php`) means any future architecture test that uses `it()` with Laravel helpers (`app_path`, `config_path`, `base_path`) needs the same `uses(Tests\TestCase::class);` line at the top. Filed as a carry-forward note: when authoring new architecture tests in Sprint 1+, prefer Pest's `arch()` helper which doesn't need the bootstrap; only fall back to `it()` when the test needs filesystem walks rooted at Laravel paths, and remember the `uses` binding.
+
+### Context for next session
+
+Sprint 0 is COMPLETE. Three viable next picks documented in "Next session 97" above. Default recommendation: (a) author retention policy doc → (c) open `feature → dev` PR → (b) screenshot migration as polish. Sprint 1 (eval harness + memory model + `<known_facts>`) is the work that follows.
+
+---
+
+## Session 97 — D4 retention policy close (Rubric-A 12/40 → 13/40, in band)
+
+### Completed this session
+
+- [x] **Bootstrap.** Read `feedback_loop_until_correct.md`, `critical_browser_testing_law.md`, top-of-file pre-flight block, and the session-96 detail. Branch `feature/fyn-persona-split` at session-96 head; chose path (a) per the default recommendation since it's the smallest, most-targeted close and clears the spec target band before the dev deploy.
+
+- [x] **Grounded the policy in the as-shipped code.** Read `app/Jobs/AiAuditRetentionJob.php` (lines 27-43 already document the policy in the class docblock with the deletion-not-mutation rationale), `app/Console/Kernel.php:40-41` (weekly Sunday 04:00 UTC retention sweep + 04:30 UTC chain verify), `database/migrations/2026_04_25_000013_create_ai_audit_events_table.php` (table schema), and the spec at `April/April24Updates/spec/01-invariants.md:398-426` (INV-2.10.2). Spotted a deliberate spec-vs-implementation divergence: spec line 423 says the job "pseudonymises" rows; the as-shipped job deletes instead, with the class docblock explaining why mutating any historical row would invalidate the chain. Reflected this honestly in the doc rather than papering over it.
+
+- [x] **Authored `docs/audit-retention-policy.md`** (single page, 7 short sections):
+  1. Purpose + scope (covers `ai_audit_events` only; lists what's out of scope).
+  2. Retention windows table (7 years for advice/writes; 2 years for general).
+  3. Enforcement: job, schedule, action, log line, sequencing with the verifier.
+  4. Why deletion not pseudonymisation (cites the class docblock, points to the export-view pattern as the canonical workaround if pseudonymisation is later required).
+  5. Operations: routine, health-check command, on-demand prune, no `--dry-run` flag note.
+  6. Adjacent retention policies for reference (audit_logs, user-data purge, ai_messages, ai_advice_logs, ai_abort_events, ai_daily_usage) — explicit "not in scope here" framing so future readers don't assume this doc governs all of them.
+  7. Change control: spec amendment, code change, doc update, Pest update; window contractions need dev soak.
+
+  No emojis. No icons. Plain technical prose with file:line references per CLAUDE.md scope discipline.
+
+- [x] **Updated `docs/sprint-0-verification/rubric-a-score.md`** to reflect D4 → level 3 and total → 13/40:
+  - Header date stamp + branch HEAD line revised for session 97.
+  - Headline table: 12/40 → **13/40**, "−1 to −3" variance → "**In band (lower bound)**", net delta +7/+8 → +8/+9.
+  - Headline narrative rewritten to describe the close rather than the gap.
+  - Acceptance row 5: "🟡 12/40 (1 short)" → "✅ 13/40 (lower bound of spec target band)" with a one-paragraph callout citing session 97 as the closer.
+  - D4 dimension section: score 2 → **3**, evidence list extended with the new doc + spec-vs-impl honesty note, "Why not level 3" replaced with "Achieves level 3" + level 4 ("undefined; 3 is top band") clarifier.
+  - Summary table: D4 row updated, total row updated, band row notes "in band".
+  - Closing notes: "Recommended pre-deploy follow-up" replaced with "Session 97 deliverable", final status line revised from "12/40 ... one point shy" to "13/40 ... in spec target band".
+
+- [x] **CSJTODO updated** with this section, fresh "Last updated" line, and the new "Next session 98" pointer (paths (b) + (c); default = (c) first).
+
+### Bugs fixed in same loop
+
+None — doc-only deliverable, no code changes. The spec-vs-implementation divergence (pseudonymisation vs deletion) was disclosed in the doc rather than reconciled in code, because the as-shipped behaviour is correct (the chain integrity guarantee is incompatible with row mutation by design) and the spec line is the one that needs eventually amending. Filed under §7 "Change control" in the policy doc as a future spec-amendment carry.
+
+### Files changed
+
+- `docs/audit-retention-policy.md` — new file (the session-97 deliverable, single page, 7 sections).
+- `docs/sprint-0-verification/rubric-a-score.md` — D4 advanced to level 3, total advanced to 13/40, headline + acceptance row + dimension section + summary table + closing notes all kept consistent.
+- `April/April26Updates/CSJTODO.md` — "Last updated" line refreshed, session-97 detail section added (this section), "Next session 97" replaced with "Next session 98" (two paths now, not three).
+
+### Tech debt findings
+
+Zero functional issues. One documentation carry-forward: `April/April24Updates/spec/01-invariants.md:423` describes pseudonymisation; the as-shipped behaviour deletes. The spec line should be amended in a future spec-housekeeping pass to align with the as-shipped delete-on-aging contract (and to point readers at the export-view pattern for future GDPR pseudonymisation needs). Not blocking; the policy doc §7 change-control mechanism will catch any window changes that need a spec edit.
+
+### Context for next session
+
+Sprint 0 is COMPLETE. Rubric-A is **13/40, in spec target band (13-15)**. Two paths remain: (c) open `feature → dev` PR (default recommendation — triggers the BS-18 third-assertion walk on Apache) and (b) screenshot migration polish. Sprint 1 (eval harness + memory model + `<known_facts>`) follows the deploy gate. The retention policy doc is loadable for any deploy-review questions about audit data lifecycle.
+
+---
+
+## Session 97 (continued) — path (b) screenshot migration
+
+CSJ direction this turn: "do b, defer [c], move to sprint 1". Path (b) executed via the migrate-in-place option (option 2 of the rubric's two routes), with one honest carve-out for BS-14.
+
+### Completed this session (path b)
+
+- [x] **Inventoried legacy + canonical paths.** Confirmed all `April/April24Updates/plan/batch{1,2}/BS-NN/` paths are gitignored (`.gitignore:61:/April/`) — they were never in git, contrary to the rubric's previous "screenshots committed at legacy path" claim. Canonical `docs/sprint-0-verification/BS-{11,12,14,16,20}/` dirs all empty.
+
+- [x] **Read each scenario's GREEN delivery note** to identify the named-evidence files (vs walk residue). Each docblock explicitly names the canonical evidence:
+  - BS-11: `02-classifier-green.png`
+  - BS-12: cross-references BS-11's screenshot (delivery note line 100-101)
+  - BS-14: `01-fyn-confirms-add.png` + `02-net-worth-cash-card.png` (the post-S0.5.t GREEN proof; the other 11 files including jseval/pressSequentially are walk residue from the bug-fix sub-tasks)
+  - BS-16: `02-page.png` (destination page) + the chat + billing-history captures
+  - BS-20: `01-bubble-and-sidebar.png` (delivery note) + `01-sidebar.png` (script step 7)
+
+- [x] **Copied 11 named-evidence files** from legacy → canonical paths via plain `cp` (preserves originals; legacy dirs remain gitignored locally for CSJ reference). File counts per scenario after migration: BS-11 (2), BS-12 (2), BS-14 (2), BS-16 (3), BS-20 (2).
+
+- [x] **Honest carve-out for BS-14.** The 11 walk-residue files in `April/.../batch1/BS-14/` include filenames that are concrete evidence the original walk used `browser_evaluate(...).click()` shortcuts and `pressSequentially` OTP fills — both forbidden by the pre-flight rules at the top of this file. They are NOT committed because:
+  1. The GREEN delivery note explicitly names only 2 files as proof.
+  2. The other 11 are bug-discovery evidence cited in the docblock's pre-fix delivery note (driving the S0.5.r/s/t bug-fix sub-tasks), not contract proof.
+  3. Committing anti-discipline evidence into the canonical path would normalise the patterns the pre-flight block bans.
+  
+  The 2 references to walk-residue files in the BS-14 docblock (lines 92, 94) intentionally retain their `April/...` paths and are explicitly labelled "(gitignored walk residue, evidence of bugs found mid-walk … not committed)" so future readers understand the carve-out.
+
+- [x] **Updated 5 BS-NN docblocks** end-to-end:
+  - **BS-11:** script step 8 path declaration (`02-after.png` → `02-classifier-green.png`); delivery-note path reference (`April/...` → `docs/sprint-0-verification/BS-11/`).
+  - **BS-12:** script step 6 path declaration (`bubbles.png` → `01-bubbles.png`); two delivery-note path references rewritten with explanatory notes about the cross-reference from BS-11.
+  - **BS-14:** script steps 6+8 path declarations updated to the named-evidence filenames (`01-chat.png` → `01-fyn-confirms-add.png`; `02-list.png` → `02-net-worth-cash-card.png`); GREEN delivery-note path updated to canonical with migration date stamp; pre-fix delivery-note walk-residue references intentionally retained at legacy paths with explicit "(gitignored walk residue … not committed)" label.
+  - **BS-16:** script step 6 path declaration (`01-chat.png` → `01-chat-direct-sse.png`); two delivery-note path references rewritten to canonical paths.
+  - **BS-20:** delivery-note path reference rewritten to canonical paths; both `01-bubble-and-sidebar.png` and `01-sidebar.png` listed (richer evidence + script-step match respectively).
+
+- [x] **Updated `docs/sprint-0-verification/rubric-a-score.md`** browser-matrix table (5 rows now read "committed at canonical path") and replaced the "Migration debt (post-S0.17 cleanup task)" callout with a "Migration to canonical path (closed session 97)" closing note that records what was migrated, what was deliberately not migrated, and why.
+
+- [x] **CSJTODO updated** — "Last updated" line consolidates both deliverables (path a + path b); session-97 detail extended with this section; "Next session 98" pivoted from "pick (b) or (c)" to "start Sprint 1" with the Sprint 1 plan reference + a detailed pre-work checklist + a deferred-but-not-closed note for path (c).
+
+### Bugs fixed in same loop (path b)
+
+None — docs + screenshots + docblock comments only. No code changes, no Pest run.
+
+### Files changed (path b)
+
+- `docs/sprint-0-verification/BS-11/01-rest.png`, `02-classifier-green.png` (new)
+- `docs/sprint-0-verification/BS-12/01-bubbles.png`, `02-classifier-green.png` (new; latter is a self-contained copy of BS-11's screenshot per the BS-12 delivery note's cross-reference)
+- `docs/sprint-0-verification/BS-14/01-fyn-confirms-add.png`, `02-net-worth-cash-card.png` (new)
+- `docs/sprint-0-verification/BS-16/01-chat-direct-sse.png`, `02-page.png`, `03-billing-history.png` (new)
+- `docs/sprint-0-verification/BS-20/01-bubble-and-sidebar.png`, `01-sidebar.png` (new)
+- `tests/Browser/scenarios/BS-11-handoff-invisibility.php` (path declarations updated)
+- `tests/Browser/scenarios/BS-12-capture-complete-styling.php` (path declarations updated)
+- `tests/Browser/scenarios/BS-14-direct-write-savings-account.php` (path declarations updated; walk-residue carve-out documented)
+- `tests/Browser/scenarios/BS-16-billing-where-is-my-invoice.php` (path declarations updated; two delivery-note blocks)
+- `tests/Browser/scenarios/BS-20-generate-title-sanitation.php` (path declarations updated)
+- `docs/sprint-0-verification/rubric-a-score.md` (browser-matrix rows + migration-debt callout replaced)
+- `April/April26Updates/CSJTODO.md` (gitignored — this entry + Next session 98 pivot)
+
+### Tech debt findings (path b)
+
+Zero. The carve-out for BS-14 is intentional and documented inline. The 4 other scenarios migrated cleanly. The legacy dirs at `April/April24Updates/plan/batch{1,2}/BS-NN/` remain populated locally (gitignored, reference-only); CSJ can clean them up by hand when convenient — there is no functional reason to delete them and no risk of them being committed accidentally.
+
+### Context for next session (post-path-b)
+
+Sprint 0 is fully complete. Path (a) and path (b) both closed in session 97. Path (c) `feature → dev` PR is deferred — recommended timing per CSJ direction is to bundle it with the first Sprint 1 sub-task to keep the dev deploy current. Session 98 starts Sprint 1 against `April/April24Updates/spec/11-sprint-1-plan.md`.
 
 ---
 
@@ -390,12 +574,12 @@ BS-07 closes the BS-NN clock at **5 GREEN** in Batch 3 (BS-01, 02, 04, 06, 07). 
 
 **Re-walk required (full Playwright walk, fresh screenshots, fresh delivery note dated post-refactor):**
 
-- [ ] **BS-01** — first-launch onboarding (was GREEN pre-refactor)
-- [ ] **BS-02** — base spouse direct-write (GREEN session 85, pre-refactor)
-- [ ] **BS-04** — resume after disconnect (GREEN session 85, pre-refactor)
-- [ ] **BS-06** — parked facts flush (GREEN session 87, pre-refactor)
-- [ ] **BS-07** — dispatch flips after onboarding (GREEN session 88, pre-refactor)
-- [ ] **BS-10** — out-of-remit refusal (GREEN session 89, pre-refactor — walked BEFORE the AiChatPanel collapse landed in `ffc9c3f`)
+- [x] **BS-01** — first-launch onboarding (GREEN session 95 — Laury Greenwood #449, full path-choice→done walk, /protection terminal, Aviva £300k policy, 13 fresh `s95-*` screenshots)
+- [x] **BS-02** — base spouse direct-write (GREEN session 95 — rolls up from BS-01 spouse capture: User #449 ↔ User #450 (Angela), bidirectional spouse_id, FamilyMember #223+#224, ai_audit_events #432/#433, fresh /profile Family tab snapshot)
+- [x] **BS-04** — resume after disconnect (GREEN session 95 — Devon Marsh #451, full Continue + Something else paths verified, AdviceFyn ISA answer post-pause, two product fixes shipped in same loop: AiConversation::scopeOnboarding + describeStep additions)
+- [x] **BS-06** — parked facts flush (GREEN session 95 — Bryony Stoneleigh #452, INV-2.2.6 captured at exact moment of base_personal commit: parked_facts=NULL, users.dob+marital set, step advanced to base_spouse)
+- [x] **BS-07** — dispatch flips after onboarding (GREEN session 95 — rolls up via Laury's onboarded state: AdviceFyn answers "Your current net worth is £0..." with zero quick_replies)
+- [x] **BS-10** — out-of-remit refusal (GREEN session 95 — Laury again, exact canonical refusal "I'm able to help you with your finances. Medical advice is out of scope." with AiAuditEvents=0)
 
 **BS-13 is NOT in this list** — it was driven GREEN against the new shared body in the same loop as the refactor commit, so it's already post-refactor.
 
