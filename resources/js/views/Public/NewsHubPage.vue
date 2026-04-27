@@ -27,7 +27,8 @@
               <p class="text-sm font-semibold text-horizon-500 leading-tight group-hover:text-raspberry-500 transition-colors">Subscribe to our news feed</p>
               <p class="text-xs text-neutral-500 mt-0.5">Get every Fynla announcement in your reader of choice.</p>
             </div>
-            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+            <!-- Open-in-new-window icon -->
+            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0 group-hover:text-raspberry-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14M5 5h5v2H7v10h10v-3h2v5H5V5z" /></svg>
           </div>
         </a>
 
@@ -136,7 +137,10 @@
         </router-link>
         <p class="text-xs text-neutral-400 mt-6">
           Or subscribe via
-          <a href="/feed/news.xml" class="underline hover:text-raspberry-500 transition-colors">RSS</a>
+          <a href="/feed/news.xml" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 underline hover:text-raspberry-500 transition-colors">
+            RSS
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14M5 5h5v2H7v10h10v-3h2v5H5V5z" /></svg>
+          </a>
         </p>
       </div>
     </section>
