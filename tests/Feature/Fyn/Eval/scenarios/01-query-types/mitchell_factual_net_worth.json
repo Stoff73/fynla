@@ -1,0 +1,77 @@
+{
+  "id": "mitchell_factual_net_worth",
+  "category": "01-query-types",
+  "persona": "peak_earners",
+  "is_mutating": false,
+  "description": "David Mitchell asks for a factual net-worth readout. Classifier falls through to GENERAL (no advice keyword fires). Response mode is factual; no KYC gate, no engine call, no FCA signposting. LLM should answer from data already in scope (typically from prior conversation context or a brief data fetch).",
+  "input": {
+    "turns": [
+      {"user": "What is my net worth?", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "general",
+    "related": [],
+    "modules": []
+  },
+  "expected_response_mode": "factual",
+  "expected_engine_call_level": "factual",
+  "expected_kyc_state": "bypass",
+  "expected_tool_calls": [],
+  "expected_tool_calls_absent": [
+    "create_savings_account",
+    "create_investment_account",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page",
+    "get_module_analysis",
+    "get_recommendations",
+    "generate_financial_plan"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["title", "content", "done"],
+    "must_emit_exactly_once": ["done", "title"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 1,
+    "tool_use_count_min": 0,
+    "tool_use_count_max": 4
+  },
+  "expected_assistant_text": {
+    "must_contain_at_least_one_of": [
+      ["£", "total", "assets", "net worth"]
+    ],
+    "must_not_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser.",
+      "I think you should",
+      "I'd recommend",
+      "In my opinion"
+    ],
+    "minimum_length_chars": 50,
+    "maximum_length_chars": 2000
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["users", "ai_conversations"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "AgentDecision", "decisionPoint": "response_mode", "outcome": "factual"},
+      {"event": "AgentDecision", "decisionPoint": "engine_call_level", "outcome": "factual"}
+    ],
+    "must_not_contain": [
+      {"event": "EngineCalled", "engine": "orchestrate_analysis"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global"}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"factual": 5000},
+    "xai": {"factual": 12000}
+  },
+  "tags": ["regression-band-0", "factual-mode", "general", "peak_earners"]
+}

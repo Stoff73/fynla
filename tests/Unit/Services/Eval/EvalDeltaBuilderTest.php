@@ -42,11 +42,11 @@ function makeRun(array $overrides = []): EvalProviderRun
     return $run;
 }
 
-function loadScenarioYaml(string $relativePath): array
+function loadScenarioJson(string $relativePath): array
 {
     $base = __DIR__.'/../../../Feature/Fyn/Eval/scenarios';
 
-    return Symfony\Component\Yaml\Yaml::parseFile("{$base}/{$relativePath}");
+    return json_decode((string) file_get_contents("{$base}/{$relativePath}"), true);
 }
 
 describe('EvalDeltaBuilder', function () {
@@ -402,9 +402,9 @@ describe('EvalDeltaBuilder', function () {
         });
     });
 
-    describe('integration — full advice_protection_cover YAML against a happy-path run', function () {
-        it('produces a structured failures map for the rewritten YAML', function () {
-            $expected = loadScenarioYaml('01-query-types/advice_protection_cover.yaml');
+    describe('integration — full mitchell_advice_protection_cover JSON against a happy-path run', function () {
+        it('produces a structured failures map for the JSON scenario', function () {
+            $expected = loadScenarioJson('01-query-types/mitchell_advice_protection_cover.json');
             $delta = $this->builder->build(makeRun(), $expected);
 
             // Assert the builder ran end-to-end without throwing and surfaces

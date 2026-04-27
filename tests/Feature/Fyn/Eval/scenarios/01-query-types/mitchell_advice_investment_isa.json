@@ -1,0 +1,77 @@
+{
+  "id": "mitchell_advice_investment_isa",
+  "category": "01-query-types",
+  "persona": "peak_earners",
+  "is_mutating": false,
+  "description": "David Mitchell asks ISA vs GIA wrapping. Classifier resolves to INVESTMENT_TAX (primary), tax_optimisation (related), modules: [investment, tax]. Universal KYC passes. peak_earners has populated investment_accounts + savings_accounts, so the happy data path runs. LLM should reference the user's ISA usage and signpost FCA advice.",
+  "input": {
+    "turns": [
+      {"user": "Should I use ISA vs GIA for my investments?", "current_route": "/net-worth/investments"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "investment_tax",
+    "related": ["tax_optimisation"],
+    "modules": ["investment", "tax"]
+  },
+  "expected_response_mode": "recommendation",
+  "expected_engine_call_level": "module",
+  "expected_kyc_state": "passed",
+  "expected_tool_calls": [
+    {"tool": "get_tax_information", "args": {"category": "isa_allowances"}, "required": true, "result_path": "happy"},
+    {"tool": "list_records", "args": {"entity_type": "savings_account"}, "required": true, "result_path": "happy"},
+    {"tool": "list_records", "args": {"entity_type": "investment_account"}, "required": true, "result_path": "happy"}
+  ],
+  "expected_tool_calls_absent": [
+    "create_investment_account",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["title", "content", "tool_use", "done"],
+    "must_emit_exactly_once": ["done", "title"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5,
+    "tool_use_count_min": 3,
+    "tool_use_count_max": 10
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+    ],
+    "must_contain_at_least_one_of": [
+      ["ISA", "GIA", "allowance", "tax"]
+    ],
+    "must_not_contain_substrings": ["I think you should", "I'd recommend", "In my opinion", "you should definitely"],
+    "minimum_length_chars": 200,
+    "maximum_length_chars": 3000
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["investment_accounts", "savings_accounts", "users"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "AgentDecision", "decisionPoint": "response_mode", "outcome": "recommendation"},
+      {"event": "AgentDecision", "decisionPoint": "engine_call_level", "outcome": "module"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true},
+      {"event": "GateChecked", "gate": "kyc", "module": "investment", "passed": true},
+      {"event": "GateChecked", "gate": "kyc", "module": "tax", "passed": true}
+    ],
+    "must_not_contain": [
+      {"event": "EngineCalled", "engine": "orchestrate_analysis"}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"happy": 9000},
+    "xai": {"happy": 22000}
+  },
+  "tags": ["regression-band-0", "recommendation-mode", "investment", "tax", "peak_earners", "happy-path"]
+}
