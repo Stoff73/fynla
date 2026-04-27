@@ -23,21 +23,22 @@ final class EvalRecordingSession extends Model
         'scenario_path',
         'scenario_yaml',
         'eval_user_id',
+        'persona',
         'start_state_snapshot',
+        'http_log',
+        'remedial_report',
         'fynla_branch',
         'fynla_sha',
         'status',
         'started_at',
         'completed_at',
-        'remedial_report',
-        'remedial_report_updated_at',
     ];
 
     protected $casts = [
         'start_state_snapshot' => 'array',
+        'http_log' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
-        'remedial_report_updated_at' => 'datetime',
     ];
 
     public function evalUser(): BelongsTo
