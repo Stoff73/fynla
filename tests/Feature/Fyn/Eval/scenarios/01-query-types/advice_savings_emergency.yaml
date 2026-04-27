@@ -13,6 +13,11 @@ seed:
   user:
     first_name: Test
     surname: User
+    date_of_birth: '1985-04-15'
+    marital_status: married
+    employment_status: employed
+    annual_employment_income: 50000
+    monthly_expenditure: 2500
     onboarding_completed: true
   savings_accounts:
     - { provider: Nationwide, account_type: easy_access, balance: 4500, interest_rate: 4.50 }

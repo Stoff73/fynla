@@ -13,7 +13,11 @@ seed:
   user:
     first_name: Test
     surname: User
+    date_of_birth: '1968-04-15'
     marital_status: married
+    employment_status: employed
+    annual_employment_income: 75000
+    monthly_expenditure: 3500
     onboarding_completed: true
   properties:
     - { property_type: main_residence, current_value: 600000, mortgage_balance: 100000 }

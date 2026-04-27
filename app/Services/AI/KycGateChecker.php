@@ -37,8 +37,10 @@ class KycGateChecker
             return $this->pass();
         }
 
-        // General/factual queries don't need KYC
-        if ($primary === QuerySchemas::GENERAL) {
+        // Factual queries (general / billing / etc.) don't need KYC — they
+        // are answered from system data (billing tools, knowledge blocks)
+        // not from the user's onboarded financial profile.
+        if (in_array($primary, QuerySchemas::FACTUAL_TYPES, true)) {
             return $this->pass();
         }
 

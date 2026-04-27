@@ -14,11 +14,12 @@ seed:
   user:
     first_name: Test
     surname: User
-    date_of_birth: 1975-03-12
-    annual_income: 65000
+    date_of_birth: '1975-03-12'
+    marital_status: married
+    employment_status: employed
+    annual_employment_income: 65000
+    monthly_expenditure: 2800
     onboarding_completed: true
-  expenditure:
-    monthly_total: 2800
   dc_pensions:
     - { provider: Aviva, scheme_type: workplace, current_value: 220000, monthly_contribution: 400, employer_contribution: 400 }
   investment_accounts:

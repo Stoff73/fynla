@@ -9,7 +9,6 @@ use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
-use App\Services\AI\Prompts\EmptyDataGuard;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
@@ -86,17 +85,20 @@ class AdvicePromptBuilder
             $layers[] = $this->getHandoffGuidance();
         }
 
-        // Layer 3c (S0.5.u, BS-16): billing/invoice guidance. Without this
-        // block grok-4-1-fast picks ONE billing tool ("where's my invoice"
-        // routes to list_invoices only) and produces a list-only response
-        // that omits the subscription status + invoice count phrasing the
-        // BS-16 acceptance criteria require. The block tells advice Fyn
-        // to call BOTH `get_subscription_status` and `list_invoices` for
-        // any billing question and to lead the answer with the
-        // count-phrasing the user expects. Suppressed in preview mode —
-        // preview personas have no real subscription so the layer would
-        // mislead the model.
-        if (! $isPreview) {
+        // Layer 3c (S0.5.u, BS-16): billing/invoice guidance. Pins the
+        // response shape for billing queries — BOTH `get_subscription_status`
+        // AND `list_invoices` in the same turn, reply leads with the
+        // subscription line and "You have N invoices" count phrasing.
+        //
+        // Classification-gated as of April27Updates/fixEvalTask.md Task 2 —
+        // only injected when QueryClassifier returns the BILLING classification,
+        // not on every advice turn. The previous unconditional injection
+        // shipped ~830 chars of billing instructions on every protection /
+        // savings / investment / estate / goals turn, crowding the token
+        // budget that should go to module context. Suppressed in preview
+        // mode — preview personas have no real subscription so the block
+        // would mislead the model.
+        if (! $isPreview && $this->isBillingQuery($classification)) {
             $layers[] = $this->getBillingGuidance();
         }
 
@@ -104,26 +106,28 @@ class AdvicePromptBuilder
         $profile = $this->buildUserProfile($user);
         $layers[] = "<user_profile>\n{$profile}\n</user_profile>";
 
-        // For brand-new users with zero financial data, skip layers 5/6/7
-        // (FinancialContext, ExistingRecords, DataCompleteness) and substitute
-        // a lightweight EmptyDataGuard block. Running orchestrateAnalysis
-        // against empty data causes Fyn to hallucinate specific figures — see
-        // April/April9Updates/fynQuickStartBugs.md for the prior incident.
-        if ($this->isNewUserWithNoData($user)) {
-            $layers[] = EmptyDataGuard::get();
-        } else {
-            // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification
-            $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
-            $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
+        // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification.
+        // buildFinancialContext is defensive: empty modules render no lines, missing
+        // values guarded with `?? 0 > 0`. The historical hallucination bug
+        // (April/April9Updates/fynQuickStartBugs.md) that originally motivated the
+        // EmptyDataGuard substitution is closed by those guards plus the KYC BLOCKED
+        // block at Layer 9 (KycGateChecker emits MANDATORY instructions stronger than
+        // EmptyDataGuard ever did, with field-level missing data and exact navigation
+        // routes). The structural prompt swap was the root of the eval/live divergence
+        // captured in April27Updates/eval-system-vs-live-flow-audit.md — same code
+        // path is now guaranteed to assemble the same prompt structure for every user.
+        $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
+        $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
 
-            // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification
-            $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
-            $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
+        // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification.
+        $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
+        $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
 
-            // Layer 7: Data Completeness (DYNAMIC/user)
-            $prerequisiteState = $this->buildPrerequisiteStateContext($user);
-            $layers[] = $this->buildDataCompletenessBlock($prerequisiteState);
-        }
+        // Layer 7: Data Completeness (DYNAMIC/user) — per-module READY/BLOCKED via
+        // PrerequisiteGateService → 5 × DataReadinessService. Field-level tracking
+        // of every blocking + warning check per module.
+        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+        $layers[] = $this->buildDataCompletenessBlock($prerequisiteState);
 
         // Layer 7b: Review Due (DYNAMIC/user)
         $reviewBlock = $this->buildReviewDueBlock($user);
@@ -193,18 +197,6 @@ PROMPT;
     }
 
     /**
-     * Detect a brand-new user with zero financial data.
-     *
-     * Returns true when the user has NO income of any type AND NO savings,
-     * investment, DC pension, or DB pension records. In this state we skip
-     * the expensive orchestrateAnalysis call (which would hallucinate values
-     * against empty modules) and substitute the EmptyDataGuard prompt layer.
-     *
-     * Spouse data (if any) still wires through the normal flow — a newly
-     * registered user with a linked spouse who already has data is not
-     * considered "new" for prompt purposes.
-     */
-    /**
      * S0.5.t — handoff_guidance block. Extracted from inline Layer 10b so it
      * can be promoted to Layer 3b. Tells advice Fyn that ALL write intents
      * route through `delegate_to_capture` and lists the required arguments
@@ -239,6 +231,17 @@ PROMPT;
     }
 
     /**
+     * Classification-gate for the `<billing_guidance>` layer. Returns true
+     * when the query's primary classification is BILLING. Centralised here
+     * (rather than inline in build()) so the guard can be unit-tested
+     * directly and reused by future per-classification layers.
+     */
+    private function isBillingQuery(?array $classification): bool
+    {
+        return ($classification['primary'] ?? null) === QuerySchemas::BILLING;
+    }
+
+    /**
      * S0.5.u (BS-16): billing/invoice guidance. Forces both billing read
      * tools to fire on any billing-class question and pins the response
      * shape so the count + subscription status appear before the invoice
@@ -267,40 +270,6 @@ You have 3 invoices.
 - FYN-INV-000001 — issued 25 February 2026, £10.99"
 </billing_guidance>
 PROMPT;
-    }
-
-    private function isNewUserWithNoData(User $user): bool
-    {
-        $totalIncome = (float) ($user->annual_employment_income ?? 0)
-            + (float) ($user->annual_self_employment_income ?? 0)
-            + (float) ($user->annual_rental_income ?? 0)
-            + (float) ($user->annual_dividend_income ?? 0)
-            + (float) ($user->annual_interest_income ?? 0)
-            + (float) ($user->annual_trust_income ?? 0)
-            + (float) ($user->annual_other_income ?? 0);
-
-        if ($totalIncome > 0) {
-            return false;
-        }
-
-        if (\App\Models\SavingsAccount::forUserOrJoint($user->id)->exists()) {
-            return false;
-        }
-
-        if (\App\Models\Investment\InvestmentAccount::forUserOrJoint($user->id)->exists()) {
-            return false;
-        }
-
-        // DC/DB pensions don't use HasJointOwnership — they are individual records
-        if (\App\Models\DCPension::where('user_id', $user->id)->exists()) {
-            return false;
-        }
-
-        if (\App\Models\DBPension::where('user_id', $user->id)->exists()) {
-            return false;
-        }
-
-        return true;
     }
 
     // ─── Layer 4: User Profile ───────────────────────────────────────

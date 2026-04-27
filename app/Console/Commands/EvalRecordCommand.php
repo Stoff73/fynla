@@ -723,6 +723,28 @@ final class EvalRecordCommand extends Command
         $userAttrs = $seed['user'] ?? [];
         $email = 'eval+'.Str::random(10).'@fynla.test';
 
+        // Schema validation — fail loudly on any seed.user key that is not
+        // an actual users-table column. Without this guard, mass-assignment
+        // via User::create silently inserts (or, on stricter SQL modes,
+        // throws a column-not-found at INSERT time) and recordings end up
+        // with the wrong data shape. See April27Updates/fixEvalTask.md
+        // Task 3 — `annual_income: 50000` in two YAMLs was being lost
+        // because the schema uses seven `annual_*_income` columns instead.
+        if (! is_array($userAttrs)) {
+            throw new RuntimeException('Scenario seed.user must be an array.');
+        }
+
+        $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing((new User)->getTable());
+        $unknown = array_diff(array_keys($userAttrs), $tableColumns);
+        if ($unknown !== []) {
+            throw new RuntimeException(
+                "Scenario seed.user contains keys that are not columns on `users`: ".
+                implode(', ', $unknown).
+                ". Either fix the YAML (e.g. `annual_income` → `annual_employment_income`) ".
+                'or add the column via a migration first.'
+            );
+        }
+
         $user = User::create(array_merge([
             'first_name' => 'Eval',
             'surname' => 'Test',

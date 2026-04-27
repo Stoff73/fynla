@@ -59,6 +59,16 @@ final class QuerySchemas
     public const AFFORDABILITY = 'affordability';
 
     /**
+     * Billing / subscription / invoice / payment query. Factual type — no FCA
+     * advice process, no KYC gate, no per-module readiness check. The model
+     * surfaces the user's billing state via `get_subscription_status` +
+     * `list_invoices` and follows the response-shape contract pinned by
+     * `<billing_guidance>` (only injected when this classification fires —
+     * see April27Updates/fixEvalTask.md Task 2).
+     */
+    public const BILLING = 'billing';
+
+    /**
      * S0.14 — non-financial topic detected (medical, legal, emotional support,
      * general knowledge). AdviceFyn::handle short-circuits these with the
      * canonical refusal string and emits zero tool calls.
@@ -105,6 +115,7 @@ final class QuerySchemas
      */
     public const FACTUAL_TYPES = [
         self::GENERAL,
+        self::BILLING,
     ];
 
     // ─── Module Mapping ──────────────────────────────────────────────
@@ -132,6 +143,7 @@ final class QuerySchemas
         self::INCOME => ['income'],
         self::HOLISTIC_HEALTH => ['savings', 'investment', 'retirement', 'protection', 'estate', 'goals', 'tax', 'property', 'income'],
         self::AFFORDABILITY => ['savings', 'income'],
+        self::BILLING => [],
         self::GENERAL => [],
         self::DATA_ENTRY => [],
         self::NAVIGATION => [],
@@ -163,6 +175,7 @@ final class QuerySchemas
         self::PROPERTY => [],
         self::INCOME => [],
         self::AFFORDABILITY => [],
+        self::BILLING => [],
         self::GENERAL => [],
         self::DATA_ENTRY => [],
         self::NAVIGATION => [],
@@ -197,6 +210,18 @@ final class QuerySchemas
             '/\bgo\s+to\b/i',
             '/\bopen\s+(my|the)\b/i',
             '/\bshow\s+me\s+(my|the)\b/i',
+        ],
+        self::BILLING => [
+            '/\binvoice(s)?\b/i',
+            '/\breceipt(s)?\b/i',
+            '/\b(billing|bill)\s+(history|cycle|date)\b/i',
+            '/\bsubscription\s+(status|plan|active|cancelled|paused|trial|trialing|renew(al|s)?)\b/i',
+            '/\bnext\s+(charge|payment|bill|invoice)\b/i',
+            '/\bwhen\s+(am\s+i\s+)?charged\b/i',
+            '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',
+            '/\bwhat\s+(am\s+i\s+)?paying\s+(for\s+)?fynla\b/i',
+            '/\bcurrent\s+plan\b/i',
+            '/\bmy\s+plan\b/i',
         ],
         self::HOLISTIC_HEALTH => [
             '/\b(financial|total|overall|full)\s+(health|review|position|picture|summary|overview)\b/i',

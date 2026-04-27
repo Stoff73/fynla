@@ -13,8 +13,12 @@ seed:
   user:
     first_name: Test
     surname: User
+    date_of_birth: '1985-04-15'
+    marital_status: married
+    employment_status: employed
+    annual_employment_income: 50000
+    monthly_expenditure: 2500
     onboarding_completed: true
-    annual_income: 50000
   dc_pensions:
     - { provider: Standard Life, scheme_type: workplace, current_value: 45000, monthly_contribution: 250, employer_contribution: 250 }
 

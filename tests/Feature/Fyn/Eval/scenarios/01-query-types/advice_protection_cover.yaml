@@ -13,10 +13,14 @@ seed:
   user:
     first_name: Test
     surname: User
+    date_of_birth: '1985-04-15'
     marital_status: married
+    employment_status: employed
+    annual_employment_income: 50000
+    monthly_expenditure: 2500
     onboarding_completed: true
   protection_policies:
-    - { provider: Aviva, policy_type_group: life, sum_assured: 100000, monthly_premium: 25 }
+    - { provider: Aviva, policy_type_group: life, sum_assured: 100000, premium_amount: 25, premium_frequency: monthly }
 
 expected_classifications:
   - protection_cover
