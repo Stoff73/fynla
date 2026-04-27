@@ -169,6 +169,32 @@
       </div>
     </div>
 
+    <!-- Engine + gate timeline -->
+    <div v-if="traceEntries.length" class="px-5 py-3 border-b border-light-gray">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-xs uppercase tracking-wider text-neutral-400 font-bold">
+          Engine + gate timeline ({{ traceEntries.length }})
+        </div>
+        <button
+          @click="showTrace = !showTrace"
+          class="text-xs text-raspberry-500 hover:text-raspberry-600 font-medium"
+        >
+          {{ showTrace ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+      <ul v-if="showTrace" class="space-y-1">
+        <li
+          v-for="(entry, i) in traceEntries"
+          :key="i"
+          class="flex items-start gap-3 text-xs font-mono"
+        >
+          <span class="text-neutral-400 w-16 text-right shrink-0">{{ formatTraceTime(entry) }}</span>
+          <span :class="traceEventClass(entry.event)" class="font-bold w-28 shrink-0">{{ entry.event }}</span>
+          <span class="text-horizon-500 flex-1">{{ formatTraceLine(entry) }}</span>
+        </li>
+      </ul>
+    </div>
+
     <!-- Lazy-loaded raw fixture + system prompt links -->
     <div class="px-5 py-3 flex flex-wrap gap-3">
       <button
@@ -209,6 +235,7 @@ export default {
   data() {
     return {
       showTools: true,
+      showTrace: true,
     };
   },
 
@@ -234,6 +261,9 @@ export default {
         ? `${base} bg-spring-100 text-spring-800`
         : `${base} bg-raspberry-100 text-raspberry-800`;
     },
+    traceEntries() {
+      return Array.isArray(this.run.engine_trace) ? this.run.engine_trace : [];
+    },
   },
 
   methods: {
@@ -245,6 +275,37 @@ export default {
       } catch (_e) {
         return String(obj);
       }
+    },
+    traceEventClass(eventType) {
+      const map = {
+        AgentDecision: 'text-spring-700',
+        GateChecked: 'text-horizon-500',
+        EngineCalled: 'text-raspberry-500',
+      };
+      return map[eventType] || 'text-neutral-500';
+    },
+    formatTraceTime(entry) {
+      if (entry.atMicrotime) {
+        return `${Math.round(entry.atMicrotime * 1000) % 100000}ms`;
+      }
+      if (typeof entry.t_ms === 'number') return `${entry.t_ms}ms`;
+      if (typeof entry.durationMs === 'number') return `${entry.durationMs}ms`;
+      return '';
+    },
+    formatTraceLine(entry) {
+      if (entry.event === 'GateChecked') {
+        const passed = entry.passed === true ? 'PASS' : entry.passed === false ? 'FAIL' : '?';
+        return `${entry.gate}/${entry.module} → ${passed}`;
+      }
+      if (entry.event === 'EngineCalled') {
+        const path = entry.resultSummary?.result_path || entry.result_path || '';
+        return `${entry.engine}${path ? ` → ${path}` : ''}`;
+      }
+      if (entry.event === 'AgentDecision') {
+        const outcome = entry.outcome ?? '';
+        return `${entry.agent || 'Agent'}.${entry.decisionPoint}${outcome ? ` → ${outcome}` : ''}`;
+      }
+      return JSON.stringify(entry);
     },
   },
 };

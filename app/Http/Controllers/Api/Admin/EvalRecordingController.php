@@ -95,6 +95,7 @@ final class EvalRecordingController extends Controller
                 'tool_calls' => $r->tool_calls,
                 'forbidden_hits' => $r->forbidden_hits,
                 'db_writes_made' => $r->db_writes_made,
+                'engine_trace' => $r->engine_trace,
                 'fixture_path' => $r->fixture_path,
                 'fixture_exists' => $r->fixture_path && File::exists($r->fixture_path),
                 'has_system_prompt' => AiMessage::where('conversation_id', $r->conversation_id)
@@ -113,6 +114,8 @@ final class EvalRecordingController extends Controller
                 'scenario_id' => $session->scenario_id,
                 'scenario_path' => $session->scenario_path,
                 'scenario_yaml' => $session->scenario_yaml,
+                'persona' => $session->persona,
+                'http_log' => $session->http_log,
                 'status' => $session->status,
                 'fynla_branch' => $session->fynla_branch,
                 'fynla_sha' => $session->fynla_sha,
