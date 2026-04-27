@@ -285,27 +285,24 @@
 
     <!-- Your Fynla Dashboard -->
     <div id="dashboard" class="bg-eggshell-500 py-10 lg:py-12">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your Fynla dashboard</h2>
-        <div class="card-lg overflow-hidden p-0">
-          <div class="flex items-center gap-2 px-4 py-2.5 bg-savannah-100 border-b border-light-gray">
-            <span class="w-3 h-3 rounded-full bg-raspberry-500"></span>
-            <span class="w-3 h-3 rounded-full bg-violet-500"></span>
-            <span class="w-3 h-3 rounded-full bg-spring-500"></span>
-            <span class="ml-3 text-xs text-neutral-500 font-mono">fynla.org</span>
-          </div>
+        <div class="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" @click="toggleVideo">
           <video
-            src="/images/fynla-dashboard-walkthrough.mp4"
-            autoplay
-            loop
-            muted
+            ref="productVideo"
+            src="/images/Homepage-Fynla-ProductVideov2.mp4"
             playsinline
-            width="1346"
-            height="665"
             class="w-full h-auto block"
           >
             Your browser does not support the video tag.
           </video>
+          <div v-if="!videoPlaying" class="absolute inset-0 bg-horizon-500/30 flex items-center justify-center transition-opacity group-hover:bg-horizon-500/20">
+            <div class="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-raspberry-500 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -360,11 +357,11 @@
     </div>
 
     <!-- Latest insights — featured 2/3 + two supporting 1/3 (DB-driven) -->
-    <div class="bg-light-pink-100 pt-12 pb-28">
+    <div v-if="insightsFeatured" class="bg-light-pink-100 pt-12 pb-28">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6" style="letter-spacing:-0.02em;">Latest insights</h2>
 
-        <div v-if="insightsFeatured" class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
           <!-- Featured (2/3) -->
           <router-link
             :to="'/insights/' + insightsFeatured.slug"
@@ -428,18 +425,45 @@
       </div>
     </div>
 
+    <!-- Static Latest insights fallback (when CMS is disabled) -->
+    <div v-if="!insightsFeatured" class="bg-light-pink-100 pt-12 pb-28">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6" style="letter-spacing:-0.02em;">Latest insights</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <router-link
+            v-for="article in staticInsights"
+            :key="article.slug"
+            :to="article.slug"
+            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col no-underline"
+          >
+            <div class="aspect-[16/9] overflow-hidden bg-horizon-100">
+              <img v-if="getInsightImage(article.image)" :src="getInsightImage(article.image)" :alt="article.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col">
+              <p class="text-[0.65rem] text-neutral-400 mb-1 uppercase tracking-wide">{{ article.date }}</p>
+              <h3 class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-1.5 leading-snug">{{ article.title }}</h3>
+              <p class="text-xs text-neutral-500 leading-relaxed flex-1 line-clamp-2">{{ article.summary }}</p>
+            </div>
+          </router-link>
+        </div>
+        <div class="text-center mt-6">
+          <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">See all insights &rarr;</router-link>
+        </div>
+      </div>
+    </div>
+
     <!-- Stats Bar - Straddles latest insights section and footer -->
     <div class="relative z-10 -mt-14 -mb-24">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="card-lg flex flex-row items-start justify-around gap-3 sm:gap-6 py-6 sm:py-8">
           <div class="text-center flex-1 min-w-0">
             <div class="text-2xl sm:text-4xl font-bold text-horizon-500">91%</div>
-            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">UK adults don't get financial advice</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">UK adults don't get<br/>financial advice</div>
           </div>
           <div class="block w-px self-stretch bg-light-gray"></div>
           <div class="text-center flex-1 min-w-0">
-            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">1</div>
-            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">The only UK platform designed for students to retirees</div>
+            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">1000's</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">of financial plans created for people like you</div>
           </div>
           <div class="block w-px self-stretch bg-light-gray"></div>
           <div class="text-center flex-1 min-w-0">
@@ -470,8 +494,13 @@ import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 import logger from '@/utils/logger';
 
-// Auto-import insight images so the latest-insights panels resolve the same
-// bundled URLs as the Insights hub page.
+const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
+
+const STATIC_INSIGHTS = [
+  { slug: '/insights/how-much-to-retire-uk', title: 'How Much Do I Need to Retire in the UK?', date: '14 April 2026', summary: 'Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.', image: 'how-much-to-retire-uk.jpg' },
+  { slug: '/insights/stocks-shares-isa-uk', title: 'What Is a Stocks and Shares ISA?', date: '13 April 2026', summary: 'How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.', image: 'stocks-shares-isa.jpg' },
+  { slug: '/insights/isa-guide-uk', title: 'The Ultimate Guide to ISAs in the UK', date: '8 April 2026', summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and choosing the right one.', image: 'isa-guide-uk.jpg' },
+];
 
 export default {
   name: 'LandingPage',
@@ -489,12 +518,14 @@ export default {
       previewError: '',
       chatInput: '',
       fynDetailsOpen: false,
+      videoPlaying: false,
     };
   },
 
   computed: {
     ...mapGetters('preview', ['availablePersonas']),
     ...mapGetters('insights', { insightsFeatured: 'featured', insightsSupporting: 'supporting' }),
+    staticInsights() { return STATIC_INSIGHTS; },
   },
 
   async mounted() {
@@ -527,6 +558,24 @@ export default {
   methods: {
     ...mapActions('preview', ['loadPersona']),
     ...mapActions('insights', ['fetchFeatured']),
+
+    getInsightImage(filename) {
+      if (!filename) return null;
+      const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));
+      return key ? insightImages[key] : null;
+    },
+
+    toggleVideo() {
+      const video = this.$refs.productVideo;
+      if (!video) return;
+      if (video.paused) {
+        video.play();
+        this.videoPlaying = true;
+      } else {
+        video.pause();
+        this.videoPlaying = false;
+      }
+    },
 
     setMetaDescription(content) {
       let meta = document.querySelector('meta[name="description"]');
