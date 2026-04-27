@@ -26,134 +26,145 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 
 ---
 
-*Last updated: 27 April 2026 — session 100 end.*
+*Last updated: 27 April 2026 — session 102 end.*
 
-*Session 100 shipped Sprint 1 S1.3 + S1.4 + S1.5 + S1.6.a end-to-end, plus a tracking-block addition to `April/April24Updates/plan/11-sprint-1-plan.md` (mirroring Sprint 0's format). 19 new files, ~2,000 LOC, 44/44 Pest in the new test files (138 assertions). 2 commits on `feature/fyn-persona-split` pushed to origin (`a41143c` eval fixture re-record, `425c54f` Sprint 1 features).*
+*Session 102 shipped Sprint 1 **S1.2.l** (rewrite all 10 eval YAMLs against the running contract; widened classifier patterns for natural advice phrasings; extended `AssertionHelpers` with 9 new helpers; 44 unit tests) and **S1.7.d Path A** (extracted `EvalDeltaBuilder` service; wired the new asserter helpers to live recordings; 27 unit tests). Re-recorded `advice_protection_cover` (eval session #21) — both providers PASS. Then calibrated 3 real defects surfaced by the recording (record_type→entity_type arg key drift, anthropic timing 6000→8000ms, xAI timing 14000→32000ms + tool_use_count_max 4→8). Final commit restored the legacy delta fields after the previous Path A commit broke the Vue dashboard's side-by-side tool comparison + checklist + timing readout — builder now computes BOTH legacy fields (existing dashboard) AND new failures map (forward-looking grading). 5 commits on `feature/fyn-persona-split` pushed to origin (`1dfcb3c`, `e00c540`, `d5f5ebb`, `89611d4`, `c29ea2a`). Tech-debt audit: 0 critical, 1 warning (W1: `_full` parsed YAML in API response — 3-line fix deferred), 2 suggestions (mild duplication, long methods).*
 
-*Previous session: 27 April 2026 — session 99 end (Tasks 1, 2, 3, 3b — eval/live divergence fix, commit `279bd9b`). The Task-5 expectation ("re-record remaining 9 fixtures") is now formally deferred per the architectural blocker note added to the Sprint 1 plan; recording resumes after S1.6.b lands.*
+*Previous sessions today: 27 April 2026 — session 101 (S1.6.b + S1.8 + remove S1.6.a panel, commits `edd2d86`, `74ead16`, `e373505`). Session 100 (S1.3 + S1.4 + S1.5 + S1.6.a, commits `a41143c` + `425c54f`). Session 99 (eval/live prompt divergence fix Tasks 1, 2, 3, 3b, commit `279bd9b`).*
 
 ---
 
-## Session 100 — Sprint 1 progressed S1.3 → S1.6.a
+## Session 102 — Sprint 1 S1.2.l + S1.7.d Path A shipped
 
 ### Completed this session
 
-#### Eval recording verification (continuation of session 99)
+#### S1.2.l — Rewrite all 10 eval YAMLs + widen classifier (commit `1dfcb3c`)
 
-- [x] Re-recorded `advice_protection_cover` (eval session #18, both providers live) — confirmed Tasks 1, 2, 3, 3b held: both Anthropic Haiku 4.5 and xAI grok-4-1-fast-reasoning correctly call `get_module_analysis` (was 2× FAIL in session 98). Captured prompt verified with `<financial_context>` + `<existing_records>` + `<data_completeness>` PRESENT, `<new_user_state>` + `<billing_guidance>` ABSENT. Commit `a41143c`.
-- [x] **Architectural-blocker discovery — output-shape contract gap.** CSJ inspection of session #18 surfaced cross-provider response drift (Anthropic produced bullet-structured "missing data" list, xAI produced flat prose). Traced to: `CoordinatingAgent::summariseToolAnalysis` (line 3298) silently drops everything outside a 15-key whitelist before the LLM sees it; `StructuredResponseValidator` is a regex scrubber not a structure validator (own docblock line 21 admits this); response shape is governed by soft prompt cues, not a contract. Documented in plan §"Output-shape contract — S1.6 scope extension".
+- [x] Rewrote 6 advice YAMLs (`01-query-types/advice_*.yaml`) per `April/April27Updates/eval-expectations-rewrite.md` §4. Each now uses: `expected_classification_shape: {primary, related, modules}`, `expected_response_mode`, `expected_engine_call_level`, `expected_kyc_state` + `expected_kyc_missing` (when blocked), `expected_tool_calls[*]` with `required: bool` + `result_path: enum` + `result_message_contains`, `expected_tool_calls_absent`, structural `expected_sse_events`, `expected_assistant_text` rules with INV-2.3.3 signposting checks, per-provider per-path `timing_budget_ms`. Deleted dead `expected_advice_response` (S1.6.a removed the SSE event).
+- [x] Updated 4 multi-entity YAMLs (`03-multi-entity/*.yaml`) light-touch per §5: added `expected_response_mode: factual`, `expected_engine_call_level: factual`, `expected_kyc_state: bypass`, `result_path: success` per tool, `expected_db_writes_persistent: true`, `delegate_to_capture` to forbidden_tools, INV-2.3.3 signposting to forbidden_outputs, per-provider timing.
+- [x] Widened `QuerySchemas::KEYWORD_PATTERNS` (5 patterns added) so natural advice phrasings classify correctly instead of falling through to `general`:
+  - PROTECTION_COVER: `covered enough`, `enough protection/coverage/insurance`, `am I insured/covered/protected`
+  - SAVINGS_EMERGENCY: `emergency savings/cash/reserves/money/pot`
+  - INVESTMENT_PORTFOLIO: `Stocks & Shares ISA` / `Stocks and Shares ISA`
+- [x] Extended `tests/Feature/Fyn/Eval/AssertionHelpers.php` with 9 new pure-function methods: `assertClassificationShape`, `assertResponseModeMatches`, `assertEngineCallLevelMatches`, `assertKycState`, `assertToolCallsMatchRules`, `assertToolCallsAbsent`, `assertSseStructural`, `assertAssistantTextRules`, `assertTimingBudgetWithinPath`, plus `assertNoDeprecatedKeys` to reject legacy YAML shapes with migration messages.
+- [x] 44/44 Pest in `tests/Feature/Fyn/Eval/AssertionHelpersTest.php` (88 assertions). 17/17 existing classifier tests still green; 364 AI tests pass (3 unrelated pre-existing failures documented in this file's footer).
 
-#### Sprint 1 plan tracker (mirroring Sprint 0 format)
+#### S1.7.d Path A — Wire EvalRecordingController to new asserter (commit `e00c540`)
 
-- [x] Added `## Status (updated 2026-04-27)` block to `April/April24Updates/plan/11-sprint-1-plan.md` between pre-flight gate and S1.1, with S1.1–S1.10 + S1.2.a–S1.2.k sub-rows + commit SHAs. Synced to `fynlaBrain/April/April24Updates/plan/`.
+- [x] Extracted `app/Services/Eval/EvalDeltaBuilder.php` (538 lines) — pure-function service that grades a recorded `EvalProviderRun` against a parsed YAML. Calls every new helper plus the legacy fields the Vue dashboard reads (`missing_tools`, `extra_tools`, `expected_tools`, `actual_tools`, `timing_status`, `timing_budget_ms` as single int, `timing_overage_ms`, `expected_sse_event_types`, `missing_sse_event_types`).
+- [x] Re-classifies `$run->user_message` live via `QueryClassifier::classify()` so the delta has the actual classification at grade time. Looks up `AdviceFyn::classifyResponseMode` + `engineCallLevel` for the resulting primary.
+- [x] Detects the dominant `ToolResultContract` path actually taken (kyc_blocked > success_false > readiness_blocked > empty_state > happy) by parsing the captured tool result strings. Uses this for per-provider per-path timing budget lookup.
+- [x] `EvalRecordingController::parseExpectations` now returns the legacy keys (`tool_calls`, `forbidden_tools`, `forbidden_outputs`, `timing_budget_ms`, `classifications`, `sse_events` derived from the new shape) PLUS the full parsed YAML under `_full` for the builder to read new keys from. Frontend keeps reading the legacy keys; the builder reads `_full`.
+- [x] 20 Pest unit tests in `tests/Unit/Services/Eval/EvalDeltaBuilderTest.php` covering: legacy YAML rejection (3 cases), classification + response_mode + engine_call_level, tool_calls with result_path enforcement, forbidden tools/outputs, expected_tool_calls_absent, per-provider per-path timing, SSE structural, assistant_text rules, detected_result_path priority, integration against the rewritten YAML.
 
-#### S1.3 — Conversation index schema + summariser job
+#### Live recording — eval session #21 (commit `c29ea2a`)
 
-- [x] Migration `database/migrations/2026_05_02_000001_add_conversation_index_columns.php` adds 5 columns to `ai_conversations` (`summary`, `topics`, `entities_mentioned`, `intents_stated`, `summarised_at` + index).
-- [x] `app/Models/AiConversation.php` — extended `$fillable` + `$casts`.
-- [x] `app/Services/AI/ConversationSummariser.php` — service uses xAI grok-4-1-fast-non-reasoning with structured `response_format: json_object`. Failures logged + skipped (regenerable data).
-- [x] `app/Jobs/ConversationSummariserJob.php` — `ShouldQueue` wrapper, dispatched on `STATE_DONE` from `OnboardingChatDirector::emitDoneTurn`.
-- [x] `app/Console/Commands/SummariseStaleConversationsCommand.php` — `ai:conversations:summarise-stale` artisan command, scheduled every 30 minutes via `Console\Kernel`.
-- [x] **Resume-contract carve-out**: scheduler skips conversations whose owner has `onboarding_completed=false` AND `metadata.source='fyn_onboarding'` so an idle mid-flow onboarding never gets summarised before the user resumes (canonical Two-Fyn §0 invariant explicitly tested).
-- [x] 8/8 Pest in `tests/Feature/AI/ConversationIndexPopulationTest.php`.
+- [x] `php artisan eval:record advice_protection_cover` against both providers live. Re-recorded jsonl fixtures replace session #19's. Both providers PASS against the rewritten YAML:
+  - **anthropic/claude-haiku-4-5**: 6804ms, 2 tool calls, success_false path detected, classification matches, INV-2.3.3 signposting present.
+  - **xai/grok-4-1-fast-reasoning**: 29855ms, 4 tool calls (extra `list_records(income_protection)` + `list_records(critical_illness)`, both allowed-not-required), same classification + path + signposting.
 
-#### S1.4 — `MemoryRetrieverService` + `<known_facts>` block
+#### Calibration after session #21 (commit `d5f5ebb`)
 
-- [x] `app/Services/AI/MemoryRetrieverService.php` — 4-layer fall-through (authoritative DB → parked facts → current conversation extractor re-run → conversation index from prior summarised conversations). `renderKnownFactsBlock` produces canonical `<known_facts>` block with `Do not ask the user for any field above.` suffix.
-- [x] Injected into `OnboardingPromptBuilder::buildAssetCapturePrompt`, `OnboardingChatDirector::buildGroupedExtractPrompt`, and `AdvicePromptBuilder::build` (Layer 3d). `HasAiChat::buildSystemPrompt` accepts conversation + passes through.
-- [x] 11/11 Pest in `tests/Unit/Services/AI/MemoryRetrieverServiceTest.php`.
-- [x] 4/4 Pest in `tests/Unit/Services/Onboarding/KnownFactsBlockTest.php`.
-- [x] Eval scenario `09-canonical-behaviour/memory-no-repeat-ask.yaml` authored (recording deferred per S1.2.k).
+3 real defects surfaced by the live recording — all wrong YAML expectations, not bugs:
 
-#### S1.5 — `search_conversation_index` tool
+- [x] `list_records` arg key was `record_type` across 5 advice YAMLs but actual tool definition (`AiToolDefinitions.php:96`) takes `entity_type`. Rewrite-report notation drift. Fixed in `advice_protection_cover`, `advice_savings_emergency`, `advice_retirement_contribution` (×2), `advice_estate_iht`, `advice_goals_affordability`.
+- [x] anthropic/success_false timing budget 6000ms → 8000ms (session #21 ran 6804ms on 2-tool path).
+- [x] xAI/success_false timing budget 14000ms → 32000ms (session #21 ran 29855ms with 4 tool calls; grok-4-1-fast-reasoning streams ~2 SSE tool_use events per real tool call). `tool_use_count_max` 4 → 8 in `advice_protection_cover` for the same reason.
 
-- [x] Added to `AiToolDefinitions` (Anthropic) + `XaiToolDefinitions` (xAI, `strict: true`) with `topic_keywords[]` + `entity_types[]` parameters.
-- [x] `CoordinatingAgent::handleSearchConversationIndex` — queries `AiConversation::forUser → whereNotNull('summary') → whereJsonContains('topics', …) | whereJsonContains('entities_mentioned', ['type' => …])`, capped at 10, ordered by `last_message_at` desc, excludes active conversation.
-- [x] NOT in `AdviceFyn::WRITE_TOOLS` — naturally read-only in advice mode.
-- [x] 10/10 Pest in `tests/Feature/AI/SearchConversationIndexTest.php`.
-- [x] Eval scenario `09-canonical-behaviour/cross-conversation-surface.yaml` authored (recording deferred per S1.2.k).
+#### Restore Vue dashboard fields (commit `89611d4`)
 
-#### S1.6.a — `advice_response` SSE event + `AdviceResponsePanel.vue` (Phase 1)
+- [x] Path A's first commit (`e00c540`) replaced the delta shape entirely with the new failures map and stripped legacy keys. RunPanel.vue's checklist + side-by-side tool comparison + timing readout + SSE missing-types stopped rendering data because `delta.missing_tools` / `extra_tools` / `expected_tools` / `actual_tools` / `timing_status` / `timing_budget_ms` / `timing_overage_ms` / `missing_sse_event_types` were all gone.
+- [x] Restored every legacy field in `EvalDeltaBuilder` (computed from the same data, adapted to the new YAML shape — only `required: true` tools count toward missing_tools; per-provider per-path budget resolved to single int based on run.provider + detected_path; expected_sse_event_types derived from `must_contain_types`). New fields (failures, detected_result_path, classification_shape, response_mode, engine_call_level, structured tool calls) now layer on top.
+- [x] 7 additional Pest tests proving legacy fields stay populated under the new YAML shape (including `shellDelta` deprecation-path safety so undefined reads don't crash the Vue checklist).
 
-- [x] `app/Services/AI/AdviceResponseSchema.php` — strict validator (REQUIRED_KEYS, VALID_PRIORITIES, FCA_SIGNPOSTING constant). Throws on any structural drift.
-- [x] `app/Services/AI/AdviceResponseSchemaException.php`.
-- [x] `app/Services/AI/AdviceResponseComposer.php` — pure-function composer maps `orchestrateAnalysis` engine output → `headline / key_figures / breakdowns / recommendations / next_steps / signposting`. Priority normalisation across int + string inputs; recommendations capped at 5; next_steps deduped + capped at 5.
-- [x] `AdviceFyn::wrapStream` intercepts upstream `done` event for advice-type classifications, calls composer + validator, yields `advice_response` before `done`. Schema failures log + skip — never break the stream.
-- [x] `resources/js/components/Shared/AdviceResponsePanel.vue` — design-system compliant (raspberry/violet/savannah/neutral priority badges, no decorative icons per CLAUDE.md Rule #14).
-- [x] `aiChat.js` `case 'advice_response':` appends a `role: 'advice_response'` message with whole event as metadata.
-- [x] `AiChatPanel.vue` registers component + renders branch through existing `handleNavigation`.
-- [x] 11/11 Pest in `tests/Feature/Fyn/AdviceResponseSseShapeTest.php`.
+### NOT done — outstanding (carry into session 103)
 
-### NOT done — outstanding
+#### Tech-debt W1 from session 102 audit (recommend fix early)
 
-#### S1.6.b — Per-agent output contract (next up)
+- [ ] **`_full` parsed YAML in API response payload.** `EvalRecordingController::parseExpectations:201-206` puts the entire parsed YAML under `_full` so `EvalDeltaBuilder` can read new-shape keys, but `_full` then gets returned in the JSON API response on every `/admin/eval-recordings/{id}` load — doubles the YAML payload over the wire. Frontend doesn't read it. **3-line fix**: in `show()`, after `$expected = $this->parseExpectations(...)`, do `$fullYaml = $expected['_full']; unset($expected['_full']);` and pass `$fullYaml` to the builder. Or split into `parseExpectationsForResponse()` + `parseExpectationsForBuilder()`.
 
-- [ ] Replace `CoordinatingAgent::summariseToolAnalysis` 15-key whitelist (`extractKeyMetrics` line 3320) with a per-agent typed shape. Each `Agent::analyze()` returns first-class `missing_for_quality_advice` + structured gaps. `summariseToolAnalysis` returns the agent output verbatim, schema-checked against the per-agent contract.
-- [ ] Replace `StructuredResponseValidator` (regex scrubber, "logs and flags") with a real blocking validator on tool results.
-- [ ] Closes the lossy-summarisation half of the output-shape contract gap. Once landed alongside S1.6.a, S1.2.k unblocks naturally.
-- [ ] Tracked as S1.6.b in `April/April24Updates/plan/11-sprint-1-plan.md` Status block.
+#### S1.7 sub-tasks — broader expansion (rewrite report Section 9)
 
-#### Browser verification of S1.6.a (not yet done)
+- [ ] **S1.7.a** — Extend `AssertionHelpers` with the keys for the 48 NEW canonical-behaviour / state-machine / handoff / resume YAMLs: `expected_per_turn`, `expected_state_transition`, `expected_parked_facts`, `expected_handoff_path`, `expected_db_writes`, `inherits` fragment-inheritance, `linked_browser_scenario`. The 10-scenario subset shipped this session in S1.2.l; the broader keys are next.
+- [ ] **S1.7.b** — 6 architecture meta-tests under `tests/Architecture/`: `EvalScenarioToolListMatchesQuerySchemasTest`, `EvalScenarioResponseModeConsistencyTest`, `EvalScenarioForbiddenToolsContainsAdviceWriteToolsTest`, `EvalScenarioKycBlockedHasAbsentToolsTest`, `EvalScenarioSignpostingMatchesResponseModeTest`, `EvalScenarioTimingBudgetIsPathAwareTest`.
+- [ ] **S1.7.c** — 4 new canonical-behaviour YAMLs: `advice_kyc_blocked_no_dob.yaml`, `advice_protection_profile_setup_handoff.yaml` (3 turns), `advice_holistic_health.yaml`, `advice_out_of_remit_medical.yaml`.
+- [ ] **S1.7.d** — Path A done this session. Path A++ deferred: extend `EvalProviderRun` with `kyc_state`, `kyc_missing`, `tool_result_paths`, `engine_call_level_actual` columns (rewrite report §7 item 5) so the dashboard can filter/group by them.
+- [ ] **S1.7.e** — 14 onboarding state-machine eval YAMLs (one per non-asset_capture state transition) + `--mode=deterministic` flag on `EvalRecordCommand` so they bypass the LLM (state machine output is deterministic given state + parked facts).
+- [ ] **S1.7.f** — 14 write-tool-family handoff YAMLs (one per `AdviceFyn::WRITE_TOOLS` family) under `04-handoffs/`. Plus `_handoff_invariants.fragment.yaml` shared fragment carrying INV-2.4.x assertions.
+- [ ] **S1.7.g** — 16 resume-after-disconnect YAMLs (13 per-state + 3 edge cases) under `09-canonical-behaviour/resume/`. Each YAML calls `OnboardingChatDirector::resumeSummary($stateId)` from the asserter.
+- [ ] **S1.7.h** — Re-record all fixtures: 5 untouched advice YAMLs + 4 new canonical (where LLM-driven) + 5 LLM-driven onboarding states + 14 handoff turn-2-and-3.
+- [ ] **S1.7.i** — Hard-gate verification doc `April/April27Updates/eval-rewrite-verification.md`.
 
-- [ ] **CRITICAL — `AdviceResponsePanel.vue` rendering NOT browser-tested.** Code-level signal is GREEN (Pest 11/11) but the visual rendering of headline / key-figures grid / breakdowns / recommendations / next-steps / signposting has not been verified in Playwright per CLAUDE.md browser-testing rules. Drive an advice-type query (e.g. "Am I covered enough for protection?") on `john@example.com` locally and confirm the panel renders with the right design-system classes (raspberry CTAs, savannah-100 tiles, italic horizon-400 signposting).
+#### Untouched advice YAMLs await live re-recording
 
-#### Sprint 1 in plan order
+- [ ] `advice_savings_emergency.yaml` — happy-path, expect ~7000ms anthropic / ~16000ms xAI.
+- [ ] `advice_investment_isa.yaml` — KYC-blocked path (no risk_profile in seed). Expect ~5000ms anthropic / ~12000ms xAI; no analysis tools fire.
+- [ ] `advice_retirement_contribution.yaml` — success_false path (no retirement_profile). Expect 5+ tool calls; widen budget if needed.
+- [ ] `advice_estate_iht.yaml` — happy-path. Cleanest scenario; should pass cleanly.
+- [ ] `advice_goals_affordability.yaml` — keyword collision (resolves to retirement_readiness primary, not affordability). success_false path.
 
-- [ ] **S1.7** — Expand eval to 30 scenarios (depends on S1.2.k unblock — i.e. after S1.6.b lands).
-- [ ] **S1.8** — Advice Fyn response-mode classifier (`classifyResponseMode` + `engineCallLevel` static maps over every `QuerySchemas` constant).
-- [ ] **S1.9** — Sprint 1 Playwright matrix: BS-03 (known-facts no-repeat-ask), BS-08 (advice factual net-worth), BS-09 (advice recommendation ISA — exercises `advice_response` SSE + Vue panel), BS-24 (cross-conversation-surface) + regression of BS-01 to BS-23.
-- [ ] **S1.10** — Sprint 1 verification rollup (Pest GREEN + Rubric-B Mode 1 30/30 + Browser 24/24 + Rubric-A re-score 17-18/40 🟠).
+After each re-recording, calibrate the YAML's timing budget per the actual run, same pattern as session #21.
 
-#### S1.2.k — Re-record remaining 9 fixtures (still deferred)
+#### Notes flagged in session 102
 
-- [ ] `advice_savings_emergency`, `advice_investment_isa`, `advice_retirement_contribution`, `advice_estate_iht`, `advice_goals_affordability`, `protection_2x_known_providers`, `protection_2x_unknown_providers`, `savings_3x_mixed`, `pensions_2x_schemes`. Picks up naturally after S1.6.b ships the per-agent output contract.
+- [ ] **#10 Modal-`will` regex FP in `ESTATE_PLANNING` keyword pattern.** `/\bwill(s)?\b/i` matches the modal verb in "How much inheritance tax will my estate pay?" — currently `advice_estate_iht`'s `related` includes `estate_planning` because of this. Tagged `related-includes-estate-planning-modal-will-fp`. Future fix should catch noun forms (`a will`, `my will`, `the will`, `make a will`, `will builder`) without modal `will`. Verify via positive ("Do I need a will?", "Update my will") + negative ("This will work", "Tax will be paid") test cases.
+- [ ] **#11 `pensions_2x_schemes.yaml` `is_active` extraction.** YAML asserts `is_active: false` for the "old" Standard Life pension and `true` for the "current" Aviva. Will hold only if `AssetCaptureEntityExtractor` / `create_pension` handler honour the temporal qualifier in the user message. Verify during S1.7.h fixture recording — if extraction doesn't set `is_active`, either fix the extractor or relax the YAML.
 
 ---
 
 ## Context for Next Session
 
-**Branch:** `feature/fyn-persona-split` — clean working tree (only pre-existing untouched files in `.claude/`, `CSJ-CAMPAIGN-LANDING-PLAN.md`, `docs/manuals/` — none from this session).
+**Branch:** `feature/fyn-persona-split` — 9 commits ahead of `main`, all pushed to origin. Working tree is clean of session-102 work; CSJ owns the `.claude/*` IDE config + `CSJ-CAMPAIGN-LANDING-PLAN.md` + `docs/manuals/` left in the tree (separate workstreams).
 
-**Two commits pushed today:**
-- `a41143c` — `chore(eval): re-record advice_protection_cover fixture (session #18)`
-- `425c54f` — `feat(fyn): Sprint 1 S1.3 + S1.4 + S1.5 + S1.6.a`
+**Eight commits today on this branch (sessions 100/101/102):**
+- `a41143c` chore(eval): re-record advice_protection_cover fixture (session #18)
+- `425c54f` feat(fyn): Sprint 1 S1.3 + S1.4 + S1.5 + S1.6.a
+- `edd2d86` feat(fyn): Sprint 1 S1.6.b — per-agent tool-result output contract
+- `74ead16` feat(fyn): Sprint 1 S1.8 — AdviceFyn response-mode + engine-call-level classifiers
+- `e373505` refactor(fyn): remove S1.6.a advice_response panel
+- `abb2b00` chore(eval): re-record advice_protection_cover fixture (session #19)
+- `1dfcb3c` feat(fyn): Sprint 1 S1.2.l — rewrite 10 eval scenarios + classifier widening
+- `e00c540` feat(fyn): Sprint 1 S1.7.d (Path A) — wire EvalRecordingController to new asserter
+- `d5f5ebb` fix(fyn): calibrate advice eval YAMLs against session #21 live recording
+- `89611d4` fix(fyn): restore legacy delta fields broken by S1.7.d (Path A) commit
+- `c29ea2a` chore(eval): re-record advice_protection_cover fixtures (session #21)
 
-**Next session should pick up at S1.6.b** — the per-agent output contract that closes the architectural blocker. Source of truth: `April/April24Updates/plan/11-sprint-1-plan.md` Status block + "Output-shape contract — S1.6 scope extension" footer note. The plan is gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/11-sprint-1-plan.md` (synced this session).
+**Next session should start with:**
+
+1. **(2 minutes) Apply tech-debt W1 fix** — strip `_full` from API response in `EvalRecordingController::show()`. Confirms a clean dashboard payload before any larger work.
+2. **(20 minutes) Re-record one of the 4 untouched advice YAMLs** (suggest `advice_estate_iht` — cleanest happy path) via `php artisan eval:record advice_estate_iht`. Inspect the new session in `/admin/eval-recordings/{id}`. Calibrate any timing/SSE bounds from the actual run, same pattern as session #21.
+3. **(then) Pick a S1.7 sub-task to drive next** — recommend S1.7.a (asserter extension for the 48 new YAMLs) since every other S1.7 item blocks on it. Or S1.7.b (architecture meta-tests) which prevents drift recurrence.
 
 **Mandatory pre-work for next session:**
 
 1. Read this file top-to-bottom.
-2. Read `April/April24Updates/plan/11-sprint-1-plan.md` Status block + "Output-shape contract — S1.6 scope extension" footer.
-3. Read `app/Agents/CoordinatingAgent.php` lines 3298 + 3320 — the lossy `summariseToolAnalysis` + `extractKeyMetrics` 15-key whitelist that S1.6.b is replacing.
-4. Read each module agent's `analyze()` to scope the typed-array contract:
-   - `app/Agents/ProtectionAgent.php`
-   - `app/Agents/SavingsAgent.php`
-   - `app/Agents/InvestmentAgent.php`
-   - `app/Agents/RetirementAgent.php`
-   - `app/Agents/EstateAgent.php`
-   - `app/Agents/GoalsAgent.php`
-5. Run `php artisan db:seed --force` (CLAUDE.md mandatory pre-flight).
-6. Confirm Pest baseline holds via targeted runs on the touched suites; full sweep optional.
+2. Read `April/April27Updates/eval-expectations-rewrite.md` Section 9 (execution order).
+3. Read `April/April24Updates/plan/11-sprint-1-plan.md` Status block (currently shows S1.1 → S1.6.b + S1.8 ticked; S1.2.l + S1.7.d Path A added this session, may need updating).
+4. Run `php artisan db:seed --force` (CLAUDE.md mandatory pre-flight).
+5. Confirm Pest baseline: `./vendor/bin/pest tests/Feature/Fyn/Eval/ tests/Unit/Services/Eval/ tests/Unit/Services/AI/QueryClassifierTest.php` should be 82/82 GREEN.
 
 ---
 
-## Pest baseline (deferred from session 99 — still applies)
+## Pest baseline — 3 pre-existing failures still apply (deferred since session 99)
 
-3+2 = 5 pre-existing failures all sharing the same root cause: `App\Agents\CoordinatingAgent::classifyComplexity(): Argument #2 ($conversationDepth) must be of type int, null given, called in /Users/CSJ/Desktop/fynla/app/Traits/HasAiChat.php on line 130`.
+Same root cause as previous sessions: `App\Agents\CoordinatingAgent::classifyComplexity(): Argument #2 ($conversationDepth) must be of type int, null given, called in /Users/CSJ/Desktop/fynla/app/Traits/HasAiChat.php on line 130`.
 
-Failing tests:
+Failing tests (verified pre-existing this session):
 - `tests/Feature/AI/AssistantHonestyOnWriteFailureTest::it AdviceFyn passes assistant honesty text through unchanged when a write tool fails`
 - `tests/Feature/AI/ConsentRuntimeCheckTest::it allows sendMessage to stream when ai_chat consent is granted`
 - `tests/Feature/AI/ConsentRuntimeCheckTest::it emits consent_required SSE and closes the stream when consent is withdrawn`
-- `tests/Feature/Fyn/AdviceFynRoutesWritesViaHandoffTest` (2 tests — same root cause)
 
-Cause: in-memory `AiConversation` whose `message_count` is null (default Laravel cast doesn't fill non-DB defaults). Fix: either set `message_count = 0` on the in-memory conversation in those test setups, or change the `classifyComplexity` signature to accept `?int $conversationDepth = 0` and coerce. Verified pre-existing by stashing session-99 changes and reproducing — also re-verified pre-existing in session 100 with my S1.6 changes stashed. Not blocked by any S1.x work.
+Cause: in-memory `AiConversation` whose `message_count` is null. Fix: set `message_count = 0` on the in-memory conversation in those test setups, or change `classifyComplexity` signature to `?int $conversationDepth = 0` and coerce. Not blocked by any S1.x work.
 
 ---
 
-## Tech debt — deferred
+## Tech debt — session 102 findings
 
-Session 100 deferred the `/tech-debt-session` audit. Substantial new surface (~2,000 LOC across 19 files) deserves its own focused turn rather than rushing it as part of session-end. Run before merging `feature/fyn-persona-split → dev`. Files in scope are everything in commit `425c54f`.
+Full report at `tech-debt-report.md`.
+
+- **W1 (warning, deferred):** `_full` parsed YAML in API response — see "Outstanding" above.
+- **S1 (suggestion):** mild duplication in tool-name extraction across `EvalDeltaBuilder::normaliseToolCalls`, `buildLegacyDeltaFields`, `collectForbiddenToolHits`, `shellDelta` (4 sites). Extract a `extractToolNames(array $calls, string $key = 'tool'): array<string>` helper.
+- **S2 (suggestion):** Long methods in `EvalDeltaBuilder` — `build()` ~140 lines, `buildLegacyDeltaFields()` ~95 lines, `buildHintsAndFixes()` ~60 lines. Extractable but readable as orchestration. Defer until S1.7.a expansion adds more keys.
 
 ---
 
@@ -161,9 +172,9 @@ Session 100 deferred the `/tech-debt-session` audit. Substantial new surface (~2
 
 - **Production (`fynla.org`):** main untouched this session.
 - **Dev (`csjones.co/fynla`):** dev untouched this session.
-- **`feature/fyn-persona-split`:** pushed to origin via 2 commits today. NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR.
+- **`feature/fyn-persona-split`:** 5 new commits pushed to origin this session (9 total ahead of main today across sessions 100/101/102). NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR.
 
-When the next deploy happens (whenever feature → dev merges), the migration `2026_05_02_000001_add_conversation_index_columns.php` runs and adds 5 cols + index to `ai_conversations`. Reseed not required for that migration. The new `ai:conversations:summarise-stale` schedule entry runs every 30 min via Laravel scheduler — confirm `php artisan schedule:list` shows it after deploy.
+When the next deploy happens (whenever feature → dev merges), no migrations are pending from session 102 work. New service `app/Services/Eval/EvalDeltaBuilder.php` will be uploaded with the rest of the branch. The new YAML scenarios are test-only and may not deploy depending on `deploy/` config.
 
 ---
 

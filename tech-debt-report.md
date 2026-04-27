@@ -1,16 +1,8 @@
-# Tech Debt Report — Session 90 (2026-04-26)
+# Tech Debt Report — Session 2026-04-27
 
-**Files analysed:** 5 (4 PHP source + 1 test stub docblock)
-**Issues found:** 2
-**Severity breakdown:** 0 critical, 1 warning, 1 suggestion
-
-Files in scope (from session-90 commits `5b65a7b` + `d5a3bbb`):
-
-- `app/Services/AI/AdvicePromptBuilder.php`
-- `app/Services/Onboarding/OnboardingChatDirector.php`
-- `app/Services/Onboarding/OnboardingPromptBuilder.php`
-- `app/Services/Onboarding/OnboardingStateMachine.php`
-- `tests/Browser/scenarios/BS-21-coreidentity-tone.php` (docblock-only — not audited for code debt)
+**Files analysed:** 6 (3 PHP source, 3 PHP test files; 12 YAMLs not audited — data files)
+**Issues found:** 3
+**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
 
 ## Critical Issues
 
@@ -18,31 +10,49 @@ None.
 
 ## Warnings
 
-### W1 — Duplicated first-name resolution pattern across 5 sites
+### W1. `_full` parsed YAML included in API response payload
 
-- **Files**:
-  - `app/Services/AI/AdvicePromptBuilder.php:61-65` (`build()`)
-  - `app/Services/Onboarding/OnboardingChatDirector.php:312-316` (`handleResumeAction`)
-  - `app/Services/Onboarding/OnboardingChatDirector.php:1532-1536` (`buildGroupedExtractPrompt`)
-  - `app/Services/Onboarding/OnboardingPromptBuilder.php:46-50` (`buildAssetCapturePrompt`)
-  - `app/Services/Onboarding/OnboardingStateMachine.php:565-569` (`buildAssetCaptureIntro`)
-  - `app/Services/Onboarding/OnboardingStateMachine.php:655-659` (`interpolate`)
-  - Plus pre-existing inline variants at `app/Services/AI/AdvicePromptBuilder.php:314` (`buildUserProfile` — `$user->first_name ?? explode(...)[0] ?? 'User'`) and `app/Services/Plans/BasePlanService.php:241` (same inline shape with `'there'` fallback).
-- **Category**: Duplicate Code
-- **What's wrong**: The same 4-line block — `$firstName = trim((string) ($user->first_name ?? '')); if ($firstName === '') { $nameParts = explode(' ', (string) $user->name); $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there'; }` — is now repeated five times across four files. With the two pre-existing inline variants this is seven copies of the same name-resolution intent.
-- **Suggested fix**: Extract a single helper. Either:
-  - A `User` model accessor: `public function getFirstNameForDisplayAttribute(): string` (with optional `firstNameForDisplay(string $fallback = 'there'): string` method for callers that want a non-default fallback like `'User'`).
-  - A static helper: `App\Support\UserNameResolver::firstName(User $user, string $fallback = 'there'): string`.
-- **Why deferred**: Bug-fix scope discipline (CLAUDE.md "don't introduce abstractions beyond what the task requires") kept session 90 tight — the fix was a focused-line replacement at the broken sites, not a refactor. Cleanup is a small follow-up.
+- **File:** `app/Http/Controllers/Api/Admin/EvalRecordingController.php:201-206`
+- **Category:** 4 — Complexity & Maintainability (efficiency)
+- **What's wrong:** `parseExpectations()` adds the entire parsed YAML under `_full` so `EvalDeltaBuilder` can read new-shape keys. But that key is then returned in the JSON API response under `expected._full`, doubling the YAML payload over the wire on every `/admin/eval-recordings/{id}` load. The frontend doesn't read it.
+- **Suggested fix:** In `EvalRecordingController::show()`, after building the delta, strip `_full` from the `expected` array before returning. Or split the helper: `parseExpectationsForResponse()` + `parseExpectationsForBuilder()` returning different shapes.
+
+  ```php
+  $expectedForResponse = $this->parseExpectations($session->scenario_yaml);
+  $fullYaml = $expectedForResponse['_full'];
+  unset($expectedForResponse['_full']);
+  // ... pass $fullYaml to builder, $expectedForResponse to JSON
+  ```
 
 ## Suggestions
 
-### S1 — Inconsistent first-name resolution shape inside `AdvicePromptBuilder.php`
+### S1. Mild duplication in tool-name extraction
 
-- **File**: `app/Services/AI/AdvicePromptBuilder.php:314` (`buildUserProfile`)
-- **Category**: Inconsistency with existing patterns
-- **What's wrong**: Line 314 uses the older inline shape `$user->first_name ?? explode(' ', $user->name)[0] ?? 'User'` with a `'User'` fallback, while line 61 of the same file uses the new pattern with a `'there'` fallback. Two divergent resolution shapes in one file are confusing to read.
-- **Suggested fix**: Unify with the helper from W1, or — if W1 is deferred — at minimum bring line 314 up to the new `if ($firstName === '')` shape. Choice of fallback (`'User'` vs `'there'`) should be intentional and documented.
+- **File:** `app/Services/Eval/EvalDeltaBuilder.php:163-172, 232-235, 272`
+- **Category:** 1 — Duplicate Code
+- **What's wrong:** Three places extract tool names from a tool-call list using nearly the same pattern: `array_filter(array_map(fn($c) => is_array($c) ? ($c['tool'] ?? null) : null, $list))` + `array_unique` + `array_values`. `shellDelta` also has the same pattern reading `$c['name']` instead of `$c['tool']`.
+- **Suggested fix:** Extract a single private helper:
+  ```php
+  private function extractToolNames(array $calls, string $key = 'tool'): array
+  {
+      return array_values(array_unique(array_filter(
+          array_map(fn ($c) => is_array($c) ? ($c[$key] ?? null) : null, $calls),
+      )));
+  }
+  ```
+  Replace four call sites. Reduces cognitive load when reading.
+
+### S2. Long methods in `EvalDeltaBuilder`
+
+- **File:** `app/Services/Eval/EvalDeltaBuilder.php:43-181 (build), 197-291 (buildLegacyDeltaFields), 364-419 (buildHintsAndFixes)`
+- **Category:** 4 — Complexity & Maintainability
+- **What's wrong:** `build()` is ~140 lines, `buildLegacyDeltaFields()` is ~95 lines, `buildHintsAndFixes()` is ~60 lines. All exceed the 50-line guideline. Each is structured as orchestration (sequence of sub-checks → collect failures), so the line count is from breadth of checks, not depth of logic.
+- **Suggested fix:** Optional. If the builder grows further (S1.7.a expansion adds per_turn / state_transition / parked_facts / handoff_path), split into:
+  - `EvalDeltaBuilder` — public API + orchestration (~50 lines)
+  - `LegacyDeltaProjector` — `buildLegacyDeltaFields` + helpers
+  - `DeltaDiagnoser` — `buildHintsAndFixes`
+
+  Not urgent at current size; flag if S1.7.a expansion hits.
 
 ---
-*Generated by tech-debt-session skill — session 90, 2026-04-26*
+*Generated by tech-debt-session skill*
