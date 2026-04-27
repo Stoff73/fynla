@@ -1,0 +1,64 @@
+id: protection_2x_known_providers
+category: 03-multi-entity
+description: |
+  Onboarding asset_capture: user dictates two protection policies with two
+  KNOWN providers in a single message. Tests entity recall (2/2),
+  cross-entity consistency (no field-bleed Aviva↔Vitality, life↔CI), and
+  value accuracy (£300,000 / £100,000 round-trip exactly).
+
+input:
+  turns:
+    - user: "I have an Aviva life policy for £300,000 and Vitality critical illness for £100,000."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: false
+    onboarding_fyn_step: asset_capture
+
+expected_classifications:
+  - data_entry
+
+expected_tool_calls:
+  - tool: create_protection_policy
+    args: { provider: Aviva, policy_type_group: life, sum_assured: 300000 }
+  - tool: create_protection_policy
+    args: { provider: Vitality, policy_type_group: critical_illness, sum_assured: 100000 }
+
+expected_sse_events:
+  - { type: tool_use, name: create_protection_policy }
+  - { type: entity_created, entity_type: protection_policy }
+  - { type: tool_use, name: create_protection_policy }
+  - { type: entity_created, entity_type: protection_policy }
+  - { type: content }
+  - { type: done }
+
+expected_db_writes:
+  protection_policies: 2
+
+forbidden_outputs:
+  - "I'm not sure what you said"
+
+forbidden_tools:
+  - create_savings_account
+  - create_investment_account
+  - create_pension
+
+eval_focus:
+  module: protection
+  expected_entity_count: 2
+  recall_floor: 95
+  precision_floor: 95
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms: 8000
+
+tags:
+  - regression-band-0
+  - capture-mode
+  - protection
+  - multi-entity
+  - known-provider

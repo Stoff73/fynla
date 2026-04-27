@@ -1,0 +1,65 @@
+id: pensions_2x_schemes
+category: 03-multi-entity
+description: |
+  Onboarding asset_capture: user dictates two workplace pension schemes —
+  one historic (deferred) and one current — in a single message. Tests
+  recall (2/2), cross-entity consistency (correct provider per current_value),
+  value accuracy (£45,000 / £80,000), and that scheme_type is preserved
+  per pension.
+
+input:
+  turns:
+    - user: "I have an old workplace pension at Standard Life worth £45,000 and my current workplace pension is with Aviva worth £80,000."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: false
+    onboarding_fyn_step: asset_capture
+
+expected_classifications:
+  - data_entry
+
+expected_tool_calls:
+  - tool: create_pension
+    args: { provider: Standard Life, scheme_type: workplace, current_value: 45000 }
+  - tool: create_pension
+    args: { provider: Aviva, scheme_type: workplace, current_value: 80000 }
+
+expected_sse_events:
+  - { type: tool_use, name: create_pension }
+  - { type: entity_created, entity_type: pension }
+  - { type: tool_use, name: create_pension }
+  - { type: entity_created, entity_type: pension }
+  - { type: content }
+  - { type: done }
+
+expected_db_writes:
+  dc_pensions: 2
+
+forbidden_outputs:
+  - "I'm not sure what you said"
+
+forbidden_tools:
+  - create_protection_policy
+  - create_savings_account
+  - create_investment_account
+
+eval_focus:
+  module: retirement
+  expected_entity_count: 2
+  recall_floor: 95
+  precision_floor: 95
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms: 8000
+
+tags:
+  - regression-band-0
+  - capture-mode
+  - retirement
+  - pensions
+  - multi-entity

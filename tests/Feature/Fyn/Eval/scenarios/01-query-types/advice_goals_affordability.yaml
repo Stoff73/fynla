@@ -1,0 +1,65 @@
+id: advice_goals_affordability
+category: 01-query-types
+description: |
+  User asks "Can I afford to retire at 60?" — Advice Fyn classifies as
+  `affordability`, calls get_module_analysis(holistic) + get_recommendations
+  (cross-module: pension + savings + investments + expenditure), emits
+  content + done. No write tools.
+
+input:
+  turns:
+    - user: "Can I afford to retire at 60?"
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    date_of_birth: 1975-03-12
+    annual_income: 65000
+    onboarding_completed: true
+  expenditure:
+    monthly_total: 2800
+  dc_pensions:
+    - { provider: Aviva, scheme_type: workplace, current_value: 220000, monthly_contribution: 400, employer_contribution: 400 }
+  investment_accounts:
+    - { provider: Vanguard, account_type: stocks_shares_isa, balance: 95000 }
+  savings_accounts:
+    - { provider: Marcus, account_type: easy_access, balance: 30000 }
+
+expected_classifications:
+  - affordability
+
+expected_tool_calls:
+  - tool: get_module_analysis
+    args: { module: holistic }
+  - tool: get_recommendations
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_advice_response:
+  signposting_suffix_present: true
+  has_recommendations: true
+  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+
+forbidden_outputs:
+  - "I think you should"
+  - "I'd recommend"
+  - "In my opinion"
+  - "you definitely should"
+
+forbidden_tools:
+  - create_goal
+  - create_life_event
+  - create_pension
+  - create_what_if_scenario
+
+timing_budget_ms: 5000
+
+tags:
+  - regression-band-0
+  - recommendation-mode
+  - affordability
+  - holistic
+  - cross-module

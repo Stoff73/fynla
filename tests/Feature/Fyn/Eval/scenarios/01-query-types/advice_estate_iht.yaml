@@ -1,0 +1,60 @@
+id: advice_estate_iht
+category: 01-query-types
+description: |
+  User asks "How much inheritance tax will my estate pay?" — Advice Fyn classifies
+  as `estate_iht`, calls get_module_analysis(estate) + get_recommendations,
+  emits content + done. No write tools.
+
+input:
+  turns:
+    - user: "How much inheritance tax will my estate pay?"
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    marital_status: married
+    onboarding_completed: true
+  properties:
+    - { property_type: main_residence, current_value: 600000, mortgage_balance: 100000 }
+  savings_accounts:
+    - { provider: HSBC, account_type: easy_access, balance: 50000 }
+  investment_accounts:
+    - { provider: Vanguard, account_type: stocks_shares_isa, balance: 80000 }
+
+expected_classifications:
+  - estate_iht
+
+expected_tool_calls:
+  - tool: get_module_analysis
+    args: { module: estate }
+  - tool: get_recommendations
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_advice_response:
+  signposting_suffix_present: true
+  has_recommendations: true
+  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+
+forbidden_outputs:
+  - "I think you should"
+  - "I'd recommend"
+  - "In my opinion"
+  - "you definitely should"
+
+forbidden_tools:
+  - create_estate_gift
+  - create_will
+  - create_power_of_attorney
+  - create_trust
+
+timing_budget_ms: 5000
+
+tags:
+  - regression-band-0
+  - recommendation-mode
+  - estate
+  - iht

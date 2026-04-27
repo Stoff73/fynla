@@ -1,0 +1,52 @@
+id: advice_savings_emergency
+category: 01-query-types
+description: |
+  User asks "Do I have enough emergency savings?" — Advice Fyn classifies as
+  `savings_emergency`, calls get_module_analysis(savings) + get_recommendations,
+  emits content + done. No write tools.
+
+input:
+  turns:
+    - user: "Do I have enough emergency savings?"
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: true
+  savings_accounts:
+    - { provider: Nationwide, account_type: easy_access, balance: 4500, interest_rate: 4.50 }
+
+expected_classifications:
+  - savings_emergency
+
+expected_tool_calls:
+  - tool: get_module_analysis
+    args: { module: savings }
+  - tool: get_recommendations
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_advice_response:
+  signposting_suffix_present: true
+  has_recommendations: true
+  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+
+forbidden_outputs:
+  - "I think you should"
+  - "I'd recommend"
+  - "In my opinion"
+
+forbidden_tools:
+  - create_savings_account
+  - update_savings_account
+  - delete_savings_account
+
+timing_budget_ms: 5000
+
+tags:
+  - regression-band-0
+  - recommendation-mode
+  - savings

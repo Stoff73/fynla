@@ -1,0 +1,54 @@
+id: advice_investment_isa
+category: 01-query-types
+description: |
+  User asks "Should I contribute more to my Stocks & Shares ISA?" — Advice Fyn
+  classifies as `investment_portfolio`, calls get_module_analysis(investment) +
+  get_recommendations, emits content + done. No write tools.
+
+input:
+  turns:
+    - user: "Should I contribute more to my Stocks & Shares ISA?"
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: true
+  investment_accounts:
+    - { provider: Vanguard, account_type: stocks_shares_isa, balance: 12000, ytd_contribution: 4000 }
+
+expected_classifications:
+  - investment_portfolio
+
+expected_tool_calls:
+  - tool: get_module_analysis
+    args: { module: investment }
+  - tool: get_recommendations
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_advice_response:
+  signposting_suffix_present: true
+  has_recommendations: true
+  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+
+forbidden_outputs:
+  - "I think you should"
+  - "I'd recommend"
+  - "In my opinion"
+
+forbidden_tools:
+  - create_investment_account
+  - update_investment_account
+  - delete_investment_account
+  - create_holding
+
+timing_budget_ms: 5000
+
+tags:
+  - regression-band-0
+  - recommendation-mode
+  - investment
+  - isa

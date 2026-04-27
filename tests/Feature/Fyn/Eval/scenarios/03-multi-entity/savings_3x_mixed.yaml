@@ -1,0 +1,68 @@
+id: savings_3x_mixed
+category: 03-multi-entity
+description: |
+  Onboarding asset_capture: user dictates three savings accounts of three
+  different types in a single message. Tests recall (3/3), cross-entity
+  consistency (correct account_type per provider), value accuracy
+  (£5,000 / £15,000 / £2,000), and 0 fabrication.
+
+input:
+  turns:
+    - user: "I've got £5,000 in a Nationwide easy access, £15,000 in a HSBC cash ISA, and £2,000 in a Marcus regular saver."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    onboarding_completed: false
+    onboarding_fyn_step: asset_capture
+
+expected_classifications:
+  - data_entry
+
+expected_tool_calls:
+  - tool: create_savings_account
+    args: { provider: Nationwide, account_type: easy_access, balance: 5000 }
+  - tool: create_savings_account
+    args: { provider: HSBC, account_type: cash_isa, balance: 15000 }
+  - tool: create_savings_account
+    args: { provider: Marcus, account_type: regular_saver, balance: 2000 }
+
+expected_sse_events:
+  - { type: tool_use, name: create_savings_account }
+  - { type: entity_created, entity_type: savings_account }
+  - { type: tool_use, name: create_savings_account }
+  - { type: entity_created, entity_type: savings_account }
+  - { type: tool_use, name: create_savings_account }
+  - { type: entity_created, entity_type: savings_account }
+  - { type: content }
+  - { type: done }
+
+expected_db_writes:
+  savings_accounts: 3
+
+forbidden_outputs:
+  - "I'm not sure what you said"
+
+forbidden_tools:
+  - create_protection_policy
+  - create_investment_account
+  - create_pension
+
+eval_focus:
+  module: savings
+  expected_entity_count: 3
+  recall_floor: 95
+  precision_floor: 95
+  value_accuracy: 100
+  cross_entity_consistency: 100
+  fabrication_rate: 0
+
+timing_budget_ms: 9000
+
+tags:
+  - regression-band-0
+  - capture-mode
+  - savings
+  - multi-entity
+  - mixed-account-types

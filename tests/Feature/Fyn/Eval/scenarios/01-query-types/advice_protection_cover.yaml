@@ -1,0 +1,54 @@
+id: advice_protection_cover
+category: 01-query-types
+description: |
+  User asks "Am I covered enough for protection?" — Advice Fyn classifies as
+  `protection_cover`, calls get_module_analysis(protection) + get_recommendations,
+  emits content (no advice_response until S1.6) + done. No write tools called.
+
+input:
+  turns:
+    - user: "Am I covered enough for protection?"
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    marital_status: married
+    onboarding_completed: true
+  protection_policies:
+    - { provider: Aviva, policy_type_group: life, sum_assured: 100000, monthly_premium: 25 }
+
+expected_classifications:
+  - protection_cover
+
+expected_tool_calls:
+  - tool: get_module_analysis
+    args: { module: protection }
+  - tool: get_recommendations
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_advice_response:
+  signposting_suffix_present: true
+  has_recommendations: true
+  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+
+forbidden_outputs:
+  - "I think you should"
+  - "I'd recommend"
+  - "In my opinion"
+  - "you should definitely"
+
+forbidden_tools:
+  - create_protection_policy
+  - update_protection_policy
+  - delete_protection_policy
+
+timing_budget_ms: 5000
+
+tags:
+  - regression-band-0
+  - recommendation-mode
+  - protection
