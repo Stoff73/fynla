@@ -7,6 +7,9 @@ namespace App\Console\Commands;
 use App\Models\AiConversation;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DCPension;
+use App\Models\EvalProviderRun;
+use App\Models\EvalRecordingSession;
+use App\Models\ExpenditureProfile;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
@@ -17,6 +20,7 @@ use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
 use App\Services\Onboarding\OnboardingChatDirector;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -25,53 +29,53 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * Records Rubric-B eval fixtures by running a scenario YAML against one or
- * more real providers end-to-end and writing the SSE stream to JSONL.
+ * more real providers end-to-end. Persists a forensic record (start state,
+ * conversation, tool calls, writes made, end state) to eval_recording_sessions
+ * + eval_provider_runs, alongside the raw JSONL fixture for replay.
+ *
+ * Both providers run against THE SAME shared eval user so deltas are clean.
+ * Between providers the user is restored to the start_state_snapshot — any
+ * writes the model made (handoff create/update/delete) are reverted, but
+ * captured forever in eval_provider_runs.db_writes_made.
  *
  * Usage:
- *   php artisan eval:record advice_protection_cover                          # both providers
- *   php artisan eval:record advice_protection_cover --providers=anthropic    # one only
- *   php artisan eval:record advice_protection_cover --providers=anthropic,xai
+ *   php artisan eval:record advice_protection_cover
+ *   php artisan eval:record advice_protection_cover --providers=anthropic
  *   php artisan eval:record advice_protection_cover --providers=anthropic --model=claude-haiku-4-5-20251001
  *   php artisan eval:record advice_protection_cover --dry-run
  *
- * --providers  Comma-separated list (anthropic, xai). Default: both.
- *              Each provider gets a freshly seeded ephemeral user so DB
- *              state from one recording can't leak into the next.
- *
- * --model      Override the model id. Only valid with a single provider.
- *              Default: chat_model from config/services.php for each provider.
- *
- * --dry-run    Loads scenario, seeds DB, picks dispatch (advice vs onboarding),
- *              prints the plan + would-be fixture path, then ROLLS BACK the
- *              seed without invoking the provider. No tokens spent.
- *
- * --keep-data  Keep the ephemeral seeded user(s) after recording. Default
- *              is to delete them.
- *
  * Fixtures land at:
  *   tests/Feature/Fyn/Eval/fixtures/{provider}/{model}/{scenario_id}.jsonl
- *
- * After all recordings the command prints a side-by-side comparison table
- * (event count, tool call names, first content snippet, forbidden-output
- * hits, duration) so you can eyeball provider/model differences without
- * opening the JSONL files.
  */
 final class EvalRecordCommand extends Command
 {
     protected $signature = 'eval:record
-        {scenario : Scenario id (e.g. advice_protection_cover) — must exist under tests/Feature/Fyn/Eval/scenarios/*/}
-        {--providers=anthropic,xai : Comma-separated list of providers to record against}
+        {scenario : Scenario id (e.g. advice_protection_cover)}
+        {--providers=anthropic,xai : Comma-separated providers (anthropic|xai)}
         {--model= : Override the model id (only valid with a single provider)}
-        {--dry-run : Validate setup without invoking the providers}
-        {--keep-data : Keep the ephemeral seeded user(s) after recording (default: delete)}';
+        {--dry-run : Validate setup without invoking the providers}';
 
-    protected $description = 'Record a Rubric-B eval scenario against one or more real providers.';
+    protected $description = 'Record a Rubric-B eval scenario against one or more real providers, persisting a forensic record.';
 
     private const SCENARIO_ROOT = 'tests/Feature/Fyn/Eval/scenarios';
 
     private const FIXTURE_ROOT = 'tests/Feature/Fyn/Eval/fixtures';
 
     private const SUPPORTED_PROVIDERS = ['anthropic', 'xai'];
+
+    /**
+     * Tables snapshotted for state isolation between provider runs. Each
+     * key is a scenario.seed YAML key; the value is the Eloquent model.
+     */
+    private const SNAPSHOT_TABLES = [
+        'life_insurance_policies' => LifeInsurancePolicy::class,
+        'critical_illness_policies' => CriticalIllnessPolicy::class,
+        'income_protection_policies' => IncomeProtectionPolicy::class,
+        'savings_accounts' => SavingsAccount::class,
+        'investment_accounts' => InvestmentAccount::class,
+        'dc_pensions' => DCPension::class,
+        'properties' => Property::class,
+    ];
 
     public function __construct(
         private readonly AdviceFyn $adviceFyn,
@@ -85,16 +89,11 @@ final class EvalRecordCommand extends Command
         $scenarioId = (string) $this->argument('scenario');
         $providersOption = (string) $this->option('providers');
         $dryRun = (bool) $this->option('dry-run');
-        $keepData = (bool) $this->option('keep-data');
         $modelOverride = (string) ($this->option('model') ?? '');
 
-        $providers = array_values(array_filter(array_map(
-            'trim',
-            explode(',', $providersOption)
-        )));
-
+        $providers = array_values(array_filter(array_map('trim', explode(',', $providersOption))));
         if ($providers === []) {
-            $this->error('--providers must be non-empty (e.g. anthropic, xai, or both).');
+            $this->error('--providers must be non-empty.');
 
             return self::INVALID;
         }
@@ -108,14 +107,14 @@ final class EvalRecordCommand extends Command
         }
 
         if ($modelOverride !== '' && count($providers) > 1) {
-            $this->error('--model is only valid with a single provider. Run once per provider if you need different models.');
+            $this->error('--model is only valid with a single provider.');
 
             return self::INVALID;
         }
 
-        // Load the scenario once — same YAML drives every provider's recording.
         $scenarioPath = $this->locateScenario($scenarioId);
-        $scenario = Yaml::parseFile($scenarioPath);
+        $scenarioYaml = (string) file_get_contents($scenarioPath);
+        $scenario = Yaml::parse($scenarioYaml);
         if (! is_array($scenario)) {
             $this->error("Scenario {$scenarioPath} did not parse to an array.");
 
@@ -143,97 +142,94 @@ final class EvalRecordCommand extends Command
         $this->line('Dry-run:    '.($dryRun ? 'YES — no provider calls' : 'NO — will hit live providers'));
         $this->newLine();
 
+        // Seed once and PERSIST. The eval user is durable — every recording
+        // forever-onwards uses the same user_id structure.
+        $user = $this->seedUser($scenario['seed'] ?? []);
+        $startStateSnapshot = $this->snapshotState($user);
+
+        [$branch, $sha] = $this->resolveGitInfo();
+
+        $session = EvalRecordingSession::create([
+            'scenario_id' => $scenarioId,
+            'scenario_path' => $scenarioPath,
+            'scenario_yaml' => $scenarioYaml,
+            'eval_user_id' => $user->id,
+            'start_state_snapshot' => $startStateSnapshot,
+            'fynla_branch' => $branch,
+            'fynla_sha' => $sha,
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+
+        $this->info("Session #{$session->id} — eval user id={$user->id} (is_eval_user=true)");
+        $this->info('Dispatch:    '.($this->isOnboarding($user) ? 'OnboardingChatDirector' : 'AdviceFyn'));
+        $this->newLine();
+
         $exitCode = self::SUCCESS;
         $summaries = [];
 
-        // ONE user, ONE seed, BOTH providers — savepoint between calls so
-        // neither provider sees the other's conversation history or writes.
-        // CSJ: "if different users how are we going to get an accurate delta?"
-        DB::beginTransaction();
+        foreach ($providers as $provider) {
+            $model = $this->resolveModel($provider, $modelOverride);
+            $run = $this->recordOne(
+                session: $session,
+                user: $user,
+                provider: $provider,
+                model: $model,
+                scenarioId: $scenarioId,
+                turns: $turns,
+                forbiddenOutputs: $forbiddenOutputs,
+                startStateSnapshot: $startStateSnapshot,
+                dryRun: $dryRun,
+            );
 
-        try {
-            $user = $this->seedUser($scenario['seed'] ?? []);
-            $this->info("Shared seed: user id={$user->id} email={$user->email}");
-            $this->info('Dispatch:    '.($this->isOnboarding($user) ? 'OnboardingChatDirector' : 'AdviceFyn'));
+            if ($run === null) {
+                $exitCode = self::FAILURE;
 
-            foreach ($providers as $provider) {
-                $model = $this->resolveModel($provider, $modelOverride);
-
-                // Inner savepoint — captures conversation + any writes from
-                // this provider's run so we can rollback to a clean state
-                // before the next provider sees the user.
-                DB::beginTransaction();
-
-                $summary = $this->recordOne(
-                    user: $user,
-                    provider: $provider,
-                    model: $model,
-                    scenarioId: $scenarioId,
-                    turns: $turns,
-                    forbiddenOutputs: $forbiddenOutputs,
-                    dryRun: $dryRun,
-                );
-
-                // Rollback to the savepoint — undoes the conversation,
-                // ai_messages, audit rows, and any writes the model made
-                // (e.g. handoff create/update/delete). The shared user
-                // stays seeded for the next provider.
-                DB::rollBack();
-
-                if ($summary === null) {
-                    $exitCode = self::FAILURE;
-
-                    continue;
-                }
-
-                $summaries[] = $summary;
-
-                // Refresh the model in case any cached relations became
-                // stale during the savepoint window.
-                $user->refresh();
+                continue;
             }
 
-            if ($keepData) {
-                // To persist data after multi-provider recording we'd need
-                // to commit BEFORE the savepoint rollbacks above — that's
-                // incompatible with the same-user-clean-state contract.
-                // Tell CSJ explicitly rather than silently dropping the flag.
-                $this->warn('--keep-data is not supported in multi-provider mode (would corrupt the per-provider clean-state guarantee). Seed rolled back.');
-            }
+            $summaries[] = $run;
 
-            DB::rollBack();
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            $this->error('Recording failed: '.$e->getMessage());
-            $this->error($e->getFile().':'.$e->getLine());
-            $exitCode = self::FAILURE;
+            // Restore the user back to start state before next provider
+            // runs — so provider 2 sees byte-identical data to provider 1.
+            // Tool-call writes are now permanently captured in
+            // $run->db_writes_made (committed).
+            $this->restoreToSnapshot($user, $startStateSnapshot);
+            $user->refresh();
         }
+
+        $session->update([
+            'status' => $exitCode === self::SUCCESS ? 'completed' : 'failed',
+            'completed_at' => now(),
+        ]);
 
         if (! $dryRun && count($summaries) > 0) {
-            $this->renderComparisonTable($scenarioId, $summaries);
+            $this->renderComparisonTable($scenarioId, $session, $summaries);
         }
+
+        $this->newLine();
+        $this->info("Session #{$session->id} {$session->status}.");
+        $this->line("View later: php artisan eval:show --session={$session->id}");
 
         return $exitCode;
     }
 
     /**
-     * Record a single (provider, model) pass against a SHARED seeded user.
-     * Caller wraps this in a savepoint so the conversation + any writes
-     * the model makes get rolled back before the next provider runs.
-     *
      * @param  list<array<string, mixed>>  $turns
      * @param  list<string>  $forbiddenOutputs
-     * @return array<string, mixed>|null
+     * @param  array<string, mixed>  $startStateSnapshot
      */
     private function recordOne(
+        EvalRecordingSession $session,
         User $user,
         string $provider,
         string $model,
         string $scenarioId,
         array $turns,
         array $forbiddenOutputs,
+        array $startStateSnapshot,
         bool $dryRun,
-    ): ?array {
+    ): ?EvalProviderRun {
         $this->newLine();
         $this->info(str_repeat('-', 70));
         $this->info(">> {$provider}  /  {$model}");
@@ -246,34 +242,52 @@ final class EvalRecordCommand extends Command
         $previousModel = config("services.{$provider}.chat_model");
         config(["services.{$provider}.chat_model" => $model]);
 
-        $startedAt = microtime(true);
-        $summary = null;
+        $startedAt = now();
+        $startMicrotime = microtime(true);
+        $run = null;
 
         try {
             $conversation = $this->createConversation($user, $model);
-            $this->line("Conv:       id={$conversation->id} (fresh per-provider; rolled back after capture)");
+            $this->line("Conv:       id={$conversation->id} (kept; tool-call writes are restored after capture)");
 
             if ($dryRun) {
                 $this->warn('Dry-run — skipping provider call.');
-
-                return [
+                // Still create a placeholder run with empty data so the
+                // forensic record exists for inspection.
+                $run = EvalProviderRun::create([
+                    'eval_recording_session_id' => $session->id,
                     'provider' => $provider,
                     'model' => $model,
-                    'dry_run' => true,
-                ];
+                    'conversation_id' => $conversation->id,
+                    'user_message' => '(dry-run)',
+                    'assistant_text' => null,
+                    'tool_calls' => [],
+                    'sse_event_count' => 0,
+                    'sse_event_types' => [],
+                    'forbidden_hits' => [],
+                    'db_writes_made' => [],
+                    'end_state_snapshot' => $startStateSnapshot,
+                    'fixture_path' => null,
+                    'duration_ms' => 0,
+                    'started_at' => $startedAt,
+                    'completed_at' => now(),
+                ]);
+
+                return $run;
             }
 
             $this->newLine();
-
             $inOnboarding = $this->isOnboarding($user);
 
             $events = [];
+            $userMessages = [];
             foreach ($turns as $turn) {
                 $userMessage = $turn['user'] ?? null;
                 if (! is_string($userMessage) || $userMessage === '') {
                     continue;
                 }
 
+                $userMessages[] = $userMessage;
                 $this->line('> '.$userMessage);
 
                 $generator = $inOnboarding
@@ -286,10 +300,12 @@ final class EvalRecordCommand extends Command
                 }
             }
 
-            $durationMs = (int) ((microtime(true) - $startedAt) * 1000);
+            $durationMs = (int) ((microtime(true) - $startMicrotime) * 1000);
 
-            // Fixture is written to disk BEFORE the caller rolls back the
-            // savepoint — file persists even when DB writes are reverted.
+            $endStateSnapshot = $this->snapshotState($user->fresh());
+            $writesMade = $this->diffSnapshots($startStateSnapshot, $endStateSnapshot);
+            $assembledContent = $this->assembleContent($events);
+
             $fixturePath = $this->writeFixture(
                 provider: $provider,
                 model: $model,
@@ -299,22 +315,39 @@ final class EvalRecordCommand extends Command
                 durationMs: $durationMs,
             );
 
+            $run = EvalProviderRun::create([
+                'eval_recording_session_id' => $session->id,
+                'provider' => $provider,
+                'model' => $model,
+                'conversation_id' => $conversation->id,
+                'user_message' => implode("\n---\n", $userMessages),
+                'assistant_text' => $assembledContent,
+                'tool_calls' => $this->extractToolCalls($events),
+                'sse_event_count' => count($events),
+                'sse_event_types' => $this->countEventTypes($events),
+                'forbidden_hits' => $this->detectForbiddenOutputs($assembledContent, $forbiddenOutputs),
+                'db_writes_made' => $writesMade,
+                'end_state_snapshot' => $endStateSnapshot,
+                'fixture_path' => $fixturePath,
+                'duration_ms' => $durationMs,
+                'started_at' => $startedAt,
+                'completed_at' => now(),
+            ]);
+
             $this->newLine();
             $this->info('Captured '.count($events)." SSE events in {$durationMs}ms.");
-            $this->info("Fixture written: {$fixturePath}");
+            $this->info("Run #{$run->id} persisted; fixture: {$fixturePath}");
 
-            $summary = $this->buildSummary(
-                provider: $provider,
-                model: $model,
-                events: $events,
-                forbiddenOutputs: $forbiddenOutputs,
-                durationMs: $durationMs,
-                fixturePath: $fixturePath,
-            );
+            $writeCount = count($writesMade['created'] ?? []) + count($writesMade['updated'] ?? []) + count($writesMade['deleted'] ?? []);
+            if ($writeCount > 0) {
+                $this->line("DB writes:  {$writeCount} (will be restored before next provider).");
+            } else {
+                $this->line('DB writes:  none.');
+            }
         } catch (\Throwable $e) {
             $this->error("[{$provider}] Recording failed: ".$e->getMessage());
             $this->error($e->getFile().':'.$e->getLine());
-            $summary = null;
+            $run = null;
         } finally {
             if ($previousProvider === null) {
                 Cache::forget('ai_provider');
@@ -324,54 +357,265 @@ final class EvalRecordCommand extends Command
             config(["services.{$provider}.chat_model" => $previousModel]);
         }
 
-        return $summary;
+        return $run;
+    }
+
+    /**
+     * Snapshot the user + every child entity row to a JSON-serialisable array.
+     * The snapshot is the source of truth for "what data was Fyn working from".
+     *
+     * @return array<string, mixed>
+     */
+    private function snapshotState(User $user): array
+    {
+        $snapshot = [
+            'user' => $user->only([
+                'id', 'first_name', 'surname', 'email', 'date_of_birth',
+                'marital_status', 'annual_income', 'onboarding_completed',
+                'onboarding_fyn_step', 'is_preview_user', 'is_eval_user',
+            ]),
+        ];
+
+        foreach (self::SNAPSHOT_TABLES as $key => $modelClass) {
+            $snapshot[$key] = $modelClass::where('user_id', $user->id)
+                ->withTrashed()
+                ->get()
+                ->map(fn ($m) => $m->getAttributes())
+                ->all();
+        }
+
+        $snapshot['expenditure_profile'] = ExpenditureProfile::where('user_id', $user->id)
+            ->first()
+            ?->getAttributes();
+
+        return $snapshot;
+    }
+
+    /**
+     * Diff two snapshots into created/updated/deleted lists.
+     *
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     * @return array{created: list<array<string, mixed>>, updated: list<array<string, mixed>>, deleted: list<array<string, mixed>>}
+     */
+    private function diffSnapshots(array $before, array $after): array
+    {
+        $writes = ['created' => [], 'updated' => [], 'deleted' => []];
+
+        // User-level field diff
+        $beforeUser = $before['user'] ?? [];
+        $afterUser = $after['user'] ?? [];
+        $changedFields = [];
+        foreach ($afterUser as $field => $newValue) {
+            $oldValue = $beforeUser[$field] ?? null;
+            if ($oldValue !== $newValue) {
+                $changedFields[$field] = ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+        if ($changedFields !== []) {
+            $writes['updated'][] = ['table' => 'users', 'id' => $beforeUser['id'] ?? null, 'fields' => $changedFields];
+        }
+
+        // Child-table row diff (keyed by id)
+        foreach (array_keys(self::SNAPSHOT_TABLES) as $key) {
+            $beforeById = $this->keyById($before[$key] ?? []);
+            $afterById = $this->keyById($after[$key] ?? []);
+
+            foreach ($afterById as $id => $row) {
+                if (! isset($beforeById[$id])) {
+                    $writes['created'][] = ['table' => $key, 'id' => $id, 'data' => $row];
+                }
+            }
+
+            foreach ($beforeById as $id => $row) {
+                if (! isset($afterById[$id])) {
+                    $writes['deleted'][] = ['table' => $key, 'id' => $id, 'data' => $row];
+                }
+            }
+
+            foreach ($afterById as $id => $afterRow) {
+                if (! isset($beforeById[$id])) {
+                    continue;
+                }
+                $beforeRow = $beforeById[$id];
+                $changed = $this->diffRows($beforeRow, $afterRow);
+                if ($changed !== []) {
+                    $writes['updated'][] = ['table' => $key, 'id' => $id, 'fields' => $changed];
+                }
+            }
+        }
+
+        // expenditure_profile (single row)
+        $beforeExp = $before['expenditure_profile'] ?? null;
+        $afterExp = $after['expenditure_profile'] ?? null;
+        if ($beforeExp === null && $afterExp !== null) {
+            $writes['created'][] = ['table' => 'expenditure_profile', 'id' => $afterExp['id'] ?? null, 'data' => $afterExp];
+        } elseif ($beforeExp !== null && $afterExp === null) {
+            $writes['deleted'][] = ['table' => 'expenditure_profile', 'id' => $beforeExp['id'] ?? null, 'data' => $beforeExp];
+        } elseif ($beforeExp !== null && $afterExp !== null) {
+            $changed = $this->diffRows($beforeExp, $afterExp);
+            if ($changed !== []) {
+                $writes['updated'][] = ['table' => 'expenditure_profile', 'id' => $beforeExp['id'] ?? null, 'fields' => $changed];
+            }
+        }
+
+        return $writes;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<int|string, array<string, mixed>>
+     */
+    private function keyById(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            $id = $row['id'] ?? null;
+            if ($id !== null) {
+                $out[$id] = $row;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Field-level diff of two row arrays, ignoring volatile fields.
+     *
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     * @return array<string, array{from: mixed, to: mixed}>
+     */
+    private function diffRows(array $before, array $after): array
+    {
+        $changed = [];
+        $ignoreKeys = ['updated_at', 'created_at'];
+
+        foreach ($after as $field => $newValue) {
+            if (in_array($field, $ignoreKeys, true)) {
+                continue;
+            }
+            $oldValue = $before[$field] ?? null;
+            if ($oldValue !== $newValue) {
+                $changed[$field] = ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Restore the user's child entities to match the snapshot. New rows
+     * are hard-deleted, deleted rows re-inserted, updated rows reverted.
+     *
+     * @param  array<string, mixed>  $snapshot
+     */
+    private function restoreToSnapshot(User $user, array $snapshot): void
+    {
+        DB::transaction(function () use ($user, $snapshot): void {
+            // Restore user fields (skip id/timestamps/email — email was set
+            // on seed and must remain unique).
+            $userFields = $snapshot['user'] ?? [];
+            unset($userFields['id'], $userFields['email']);
+            if ($userFields !== []) {
+                $user->update($userFields);
+            }
+
+            foreach (self::SNAPSHOT_TABLES as $key => $modelClass) {
+                $rows = $snapshot[$key] ?? [];
+                $snapshotIds = array_filter(array_column($rows, 'id'));
+
+                // Hard-delete any current row for this user not in snapshot.
+                $query = $modelClass::where('user_id', $user->id);
+                if ($snapshotIds !== []) {
+                    $query->whereNotIn('id', $snapshotIds);
+                }
+                if (method_exists($modelClass, 'forceDelete')) {
+                    $query->forceDelete();
+                } else {
+                    $query->delete();
+                }
+
+                foreach ($rows as $row) {
+                    $id = $row['id'] ?? null;
+                    if ($id === null) {
+                        continue;
+                    }
+                    $current = $modelClass::withTrashed()->find($id);
+                    if ($current === null) {
+                        // Re-insert with the original id.
+                        $modelClass::query()->insert($row);
+                    } else {
+                        if (method_exists($current, 'trashed') && $current->trashed()) {
+                            $current->restore();
+                        }
+                        $current->forceFill($row)->save();
+                    }
+                }
+            }
+
+            // expenditure_profile — single row
+            $exp = $snapshot['expenditure_profile'] ?? null;
+            if ($exp === null) {
+                ExpenditureProfile::where('user_id', $user->id)->delete();
+            } else {
+                ExpenditureProfile::updateOrCreate(
+                    ['id' => $exp['id'] ?? 0],
+                    $exp
+                );
+            }
+        });
     }
 
     /**
      * @param  list<array<string, mixed>>  $events
-     * @param  list<string>  $forbiddenOutputs
-     * @return array<string, mixed>
+     * @return list<array{name: string, args: array<string, mixed>, result: mixed}>
      */
-    private function buildSummary(
-        string $provider,
-        string $model,
-        array $events,
-        array $forbiddenOutputs,
-        int $durationMs,
-        string $fixturePath,
-    ): array {
-        $eventTypes = [];
-        $toolCalls = [];
-        $firstContent = '';
+    private function extractToolCalls(array $events): array
+    {
+        $calls = [];
+        $pending = null;
 
         foreach ($events as $event) {
-            $type = (string) ($event['type'] ?? '');
-            $eventTypes[$type] = ($eventTypes[$type] ?? 0) + 1;
-
-            if ($type === 'tool_use' && isset($event['name'])) {
-                $toolCalls[] = (string) $event['name'];
-            }
-
-            if ($type === 'content' && $firstContent === '' && isset($event['text'])) {
-                $firstContent = (string) $event['text'];
+            $type = $event['type'] ?? null;
+            if ($type === 'tool_use') {
+                $pending = $event;
+            } elseif ($type === 'tool_result' && $pending !== null) {
+                $calls[] = [
+                    'name' => (string) ($pending['name'] ?? 'unknown'),
+                    'args' => $pending['input'] ?? $pending['args'] ?? [],
+                    'result' => $event['result'] ?? $event['content'] ?? null,
+                ];
+                $pending = null;
             }
         }
 
-        $assembledContent = $this->assembleContent($events);
-        $forbiddenHits = $this->detectForbiddenOutputs($assembledContent, $forbiddenOutputs);
+        // Trailing tool_use without a paired result (rare — usually means
+        // the turn ended mid-loop). Capture it without a result.
+        if ($pending !== null) {
+            $calls[] = [
+                'name' => (string) ($pending['name'] ?? 'unknown'),
+                'args' => $pending['input'] ?? $pending['args'] ?? [],
+                'result' => null,
+            ];
+        }
 
-        return [
-            'provider' => $provider,
-            'model' => $model,
-            'event_count' => count($events),
-            'event_types' => $eventTypes,
-            'tool_calls' => $toolCalls,
-            'first_content' => $firstContent,
-            'assembled_content' => $assembledContent,
-            'forbidden_hits' => $forbiddenHits,
-            'duration_ms' => $durationMs,
-            'fixture_path' => $fixturePath,
-        ];
+        return $calls;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $events
+     * @return array<string, int>
+     */
+    private function countEventTypes(array $events): array
+    {
+        $counts = [];
+        foreach ($events as $event) {
+            $type = (string) ($event['type'] ?? '?');
+            $counts[$type] = ($counts[$type] ?? 0) + 1;
+        }
+
+        return $counts;
     }
 
     /**
@@ -400,7 +644,6 @@ final class EvalRecordCommand extends Command
             if (! is_string($pattern) || $pattern === '') {
                 continue;
             }
-
             if (stripos($text, $pattern) !== false) {
                 $hits[] = $pattern;
             }
@@ -410,43 +653,33 @@ final class EvalRecordCommand extends Command
     }
 
     /**
-     * @param  list<array<string, mixed>>  $summaries
+     * @param  list<EvalProviderRun>  $runs
      */
-    private function renderComparisonTable(string $scenarioId, array $summaries): void
+    private function renderComparisonTable(string $scenarioId, EvalRecordingSession $session, array $runs): void
     {
         $this->newLine();
         $this->info(str_repeat('=', 70));
-        $this->info("Comparison — {$scenarioId}");
+        $this->info("Comparison — {$scenarioId} (session #{$session->id})");
         $this->info(str_repeat('=', 70));
 
-        $headers = ['Provider/Model', 'Events', 'Tool calls', 'Forbidden hits', 'Duration', 'First content (60 chars)'];
+        $headers = ['Provider/Model', 'Events', 'Tool calls', 'DB writes', 'Forbidden', 'Duration', 'First content (60c)'];
         $rows = [];
-        foreach ($summaries as $s) {
-            $providerModel = $s['provider'].' / '.$s['model'];
-            $events = (string) ($s['event_count'] ?? 0);
-            $tools = $s['tool_calls'] === [] ? '—' : implode(', ', $s['tool_calls']);
-            $forbidden = $s['forbidden_hits'] === [] ? '—' : (string) count($s['forbidden_hits']).' ('.implode('; ', $s['forbidden_hits']).')';
-            $duration = ($s['duration_ms'] ?? 0).'ms';
-            $firstContent = mb_strimwidth(trim((string) ($s['first_content'] ?? '')), 0, 60, '…');
+        foreach ($runs as $r) {
+            $providerModel = $r->provider.' / '.$r->model;
+            $events = (string) $r->sse_event_count;
+            $toolNames = array_column($r->tool_calls ?? [], 'name');
+            $tools = $toolNames === [] ? '—' : implode(', ', $toolNames);
+            $writesArr = $r->db_writes_made ?? [];
+            $writeCount = count($writesArr['created'] ?? []) + count($writesArr['updated'] ?? []) + count($writesArr['deleted'] ?? []);
+            $writes = $writeCount === 0 ? '—' : (string) $writeCount;
+            $forbidden = ($r->forbidden_hits ?? []) === [] ? '—' : (string) count($r->forbidden_hits);
+            $duration = ($r->duration_ms ?? 0).'ms';
+            $firstContent = mb_strimwidth(trim((string) ($r->assistant_text ?? '')), 0, 60, '…');
 
-            $rows[] = [$providerModel, $events, $tools, $forbidden, $duration, $firstContent];
+            $rows[] = [$providerModel, $events, $tools, $writes, $forbidden, $duration, $firstContent];
         }
 
         $this->table($headers, $rows);
-
-        // Detail block for each — useful when content diverges.
-        foreach ($summaries as $s) {
-            $this->newLine();
-            $this->line('--- '.$s['provider'].' / '.$s['model'].' ---');
-            $this->line('Fixture: '.($s['fixture_path'] ?? '?'));
-            $eventTypes = [];
-            foreach (($s['event_types'] ?? []) as $type => $count) {
-                $eventTypes[] = "{$type}={$count}";
-            }
-            $this->line('Event types: '.implode(', ', $eventTypes));
-            $this->line('Assembled content:');
-            $this->line('  '.str_replace("\n", "\n  ", (string) ($s['assembled_content'] ?? '')));
-        }
     }
 
     private function resolveModel(string $provider, string $override): string
@@ -467,7 +700,7 @@ final class EvalRecordCommand extends Command
         }
 
         if (count($matches) > 1) {
-            throw new RuntimeException("Scenario id '{$id}' is ambiguous — found in multiple categories: ".implode(', ', $matches));
+            throw new RuntimeException("Scenario id '{$id}' ambiguous — found in: ".implode(', ', $matches));
         }
 
         return $matches[0];
@@ -493,10 +726,9 @@ final class EvalRecordCommand extends Command
             'password' => bcrypt('eval-recording'),
             'onboarding_completed' => true,
             'is_preview_user' => false,
-        ], $userAttrs));
+            'is_eval_user' => true,
+        ], $userAttrs, ['is_eval_user' => true]));
 
-        // Grant the four standard consents so AiChatController's runtime
-        // gate doesn't 403 mid-recording.
         foreach ([
             UserConsent::TYPE_TERMS,
             UserConsent::TYPE_PRIVACY,
@@ -549,10 +781,7 @@ final class EvalRecordCommand extends Command
                 default => throw new RuntimeException("Unknown protection policy_type_group '{$type}'"),
             };
 
-            $modelClass::create(array_merge([
-                'user_id' => $user->id,
-                'is_active' => true,
-            ], $row));
+            $modelClass::create(array_merge(['user_id' => $user->id, 'is_active' => true], $row));
         }
     }
 
@@ -572,8 +801,7 @@ final class EvalRecordCommand extends Command
      */
     private function seedExpenditure(User $user, array $row): void
     {
-        // Expenditure in scenarios is a single record, not a list.
-        \App\Models\ExpenditureProfile::create(array_merge(['user_id' => $user->id], $row));
+        ExpenditureProfile::create(array_merge(['user_id' => $user->id], $row));
     }
 
     private function createConversation(User $user, string $model): AiConversation
@@ -600,7 +828,6 @@ final class EvalRecordCommand extends Command
     private function writeStreamingEvent(array $event): void
     {
         $type = $event['type'] ?? '?';
-
         $detail = match ($type) {
             'content' => mb_substr((string) ($event['text'] ?? ''), 0, 80),
             'tool_use' => 'name='.($event['name'] ?? '?'),
@@ -612,7 +839,6 @@ final class EvalRecordCommand extends Command
             'done' => '',
             default => substr((string) json_encode($event), 0, 80),
         };
-
         $this->line("  [{$type}] {$detail}");
     }
 
@@ -660,8 +886,6 @@ final class EvalRecordCommand extends Command
     }
 
     /**
-     * Read branch + short SHA directly from .git/HEAD without spawning git.
-     *
      * @return array{0: string, 1: string}
      */
     private function resolveGitInfo(): array
@@ -682,7 +906,6 @@ final class EvalRecordCommand extends Command
             return [$branch, $sha];
         }
 
-        // Detached HEAD — $head is the SHA itself.
         return ['detached', substr($head, 0, 7)];
     }
 }
