@@ -143,6 +143,74 @@
         />
       </div>
 
+      <!-- Remedial report -->
+      <div class="card">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <h4 class="font-bold text-horizon-500">Remedial report</h4>
+            <p class="text-xs text-neutral-500 mt-0.5">
+              Rubric-driven write-up of the gaps surfaced by this run.
+              <span v-if="selectedSession.session.remedial_report_updated_at">
+                · Last saved {{ formatRelative(selectedSession.session.remedial_report_updated_at) }}
+              </span>
+              <span v-else class="text-neutral-400 italic">· No report yet</span>
+            </p>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <template v-if="!reportEditing">
+              <button
+                v-if="!selectedSession.session.remedial_report"
+                @click="autoFillReport"
+                class="text-xs px-3 py-1.5 rounded border border-horizon-300 text-horizon-700 hover:bg-horizon-50 font-medium"
+              >
+                Pre-fill rubric template
+              </button>
+              <button
+                @click="startEditReport"
+                class="text-xs px-3 py-1.5 rounded bg-raspberry-500 text-white hover:bg-raspberry-600 font-medium"
+              >
+                {{ selectedSession.session.remedial_report ? 'Edit' : 'Write report' }}
+              </button>
+            </template>
+            <template v-else>
+              <button
+                @click="cancelEditReport"
+                :disabled="reportSaving"
+                class="text-xs px-3 py-1.5 rounded border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                @click="saveReport"
+                :disabled="reportSaving"
+                class="text-xs px-3 py-1.5 rounded bg-raspberry-500 text-white hover:bg-raspberry-600 font-medium disabled:opacity-50"
+              >
+                {{ reportSaving ? 'Saving…' : 'Save report' }}
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div v-if="reportError" class="mb-3 p-2 rounded bg-raspberry-50 border border-raspberry-200 text-raspberry-700 text-xs">
+          {{ reportError }}
+        </div>
+
+        <textarea
+          v-if="reportEditing"
+          v-model="reportDraft"
+          class="w-full min-h-[28rem] font-mono text-xs p-3 border border-light-gray rounded bg-white focus:border-raspberry-500 focus:ring-2 focus:ring-raspberry-200 focus:outline-none"
+          placeholder="Write the remedial report here. Markdown is supported (rendered as preformatted text)."
+        ></textarea>
+
+        <div v-else-if="selectedSession.session.remedial_report" class="bg-savannah-50 rounded p-4">
+          <pre class="whitespace-pre-wrap text-sm text-horizon-500 font-mono leading-relaxed">{{ selectedSession.session.remedial_report }}</pre>
+        </div>
+
+        <div v-else class="text-center py-8 text-sm text-neutral-400 italic">
+          No remedial report yet for this session. Click <strong class="text-horizon-500">Pre-fill rubric template</strong> to seed one from the run deltas, or <strong class="text-horizon-500">Write report</strong> to start blank.
+        </div>
+      </div>
+
       <!-- Start state collapsible -->
       <div class="card">
         <button
@@ -198,6 +266,10 @@ export default {
       error: null,
       showYaml: false,
       showStartState: false,
+      reportEditing: false,
+      reportDraft: '',
+      reportSaving: false,
+      reportError: null,
       modal: {
         open: false,
         title: '',
@@ -239,6 +311,9 @@ export default {
       this.error = null;
       this.showYaml = false;
       this.showStartState = false;
+      this.reportEditing = false;
+      this.reportDraft = '';
+      this.reportError = null;
       try {
         this.selectedSession = await evalRecordingService.getSession(sessionId);
       } catch (e) {
@@ -250,6 +325,116 @@ export default {
 
     closeDetail() {
       this.selectedSession = null;
+      this.reportEditing = false;
+      this.reportDraft = '';
+      this.reportError = null;
+    },
+
+    startEditReport() {
+      this.reportDraft = this.selectedSession?.session?.remedial_report || '';
+      this.reportEditing = true;
+      this.reportError = null;
+    },
+
+    cancelEditReport() {
+      this.reportEditing = false;
+      this.reportDraft = '';
+      this.reportError = null;
+    },
+
+    async saveReport() {
+      if (!this.selectedSession) return;
+      this.reportSaving = true;
+      this.reportError = null;
+      try {
+        const payload = (this.reportDraft || '').trim();
+        const data = await evalRecordingService.updateReport(
+          this.selectedSession.session.id,
+          payload === '' ? null : payload
+        );
+        this.selectedSession.session.remedial_report = data.remedial_report;
+        this.selectedSession.session.remedial_report_updated_at = data.remedial_report_updated_at;
+        this.reportEditing = false;
+        this.reportDraft = '';
+      } catch (e) {
+        this.reportError = e?.response?.data?.message || e.message || 'Failed to save remedial report';
+      } finally {
+        this.reportSaving = false;
+      }
+    },
+
+    autoFillReport() {
+      this.reportDraft = this.buildRubricTemplate();
+      this.reportEditing = true;
+      this.reportError = null;
+    },
+
+    buildRubricTemplate() {
+      const s = this.selectedSession?.session;
+      const runs = this.selectedSession?.runs || [];
+      if (!s) return '';
+
+      const summariseRun = (provider) => {
+        const r = runs.find((x) => x.provider === provider);
+        if (!r) return `- **${provider}:** no run captured.`;
+        const d = r.delta || {};
+        const path = d.detected_result_path || d.result_path || '—';
+        const failures = d.failures && typeof d.failures === 'object'
+          ? Object.keys(d.failures).filter((k) => d.failures[k])
+          : [];
+        const status = failures.length === 0 ? 'GREEN' : `RED (${failures.length} failure${failures.length === 1 ? '' : 's'}: ${failures.join(', ')})`;
+        return `- **${provider}/${r.model}:** ${r.duration_ms ?? '—'}ms, ${(r.tool_calls || []).length} tool calls, path \`${path}\`, **${status}**.`;
+      };
+
+      const findingFor = (provider, key, label, fallback = 'no gap') => {
+        const r = runs.find((x) => x.provider === provider);
+        const f = r?.delta?.failures?.[key];
+        if (!f) return `${label} — ${fallback}`;
+        return `${label} — ${typeof f === 'string' ? f : JSON.stringify(f)}`;
+      };
+
+      const lines = [];
+      lines.push(`# Remedial report — ${s.scenario_id} — session #${s.id}`);
+      lines.push('');
+      lines.push(`*Recording session: #${s.id}. Date: ${s.started_at ? new Date(s.started_at).toISOString().slice(0, 10) : '—'}. Branch: \`${s.fynla_branch || '—'}\` @ \`${s.fynla_sha || '—'}\`.*`);
+      lines.push('');
+      lines.push('## Run summary');
+      lines.push('');
+      lines.push(summariseRun('anthropic'));
+      lines.push(summariseRun('xai'));
+      lines.push('');
+      lines.push('## Rubric findings');
+      lines.push('');
+      lines.push('Per rubric (`April/April27Updates/eval-remediation-process.md` §2). One bullet per section; replace "no gap" with the specific gap if one exists.');
+      lines.push('');
+      lines.push(`- **2.1 Classification** — ${findingFor('anthropic', 'classification_shape', 'anthropic')}; ${findingFor('xai', 'classification_shape', 'xai')}`);
+      lines.push(`- **2.2 Tool use** — ${findingFor('anthropic', 'expected_tool_calls', 'anthropic tools')}; ${findingFor('xai', 'expected_tool_calls', 'xai tools')}`);
+      lines.push(`- **2.3 LLM response mode + signposting** — ${findingFor('anthropic', 'response_mode', 'anthropic mode')}; ${findingFor('xai', 'response_mode', 'xai mode')}; signposting (recommendation mode only): inspect assistant_text.`);
+      lines.push(`- **2.4 Engine output** — ${findingFor('anthropic', 'engine_call_level', 'anthropic engine')}; ${findingFor('xai', 'engine_call_level', 'xai engine')}.`);
+      lines.push(`- **2.5 Code path / readiness gate** — ${findingFor('anthropic', 'kyc_state', 'anthropic kyc')}; ${findingFor('xai', 'kyc_state', 'xai kyc')}.`);
+      lines.push('- **2.6 Response quality** — _human assessment required: read both providers\' assistant_text. Is it structured the way we want? Does it answer the user? Are concrete numbers from the seed surfaced? Tone right?_');
+      lines.push('- **2.7 Provider parity** — _compare anthropic vs xAI side-by-side. Note any divergence in tool count, timing, or response shape. Decide: real bug → fix prompt; cosmetic → widen YAML._');
+      lines.push(`- **2.8 SSE shape** — ${findingFor('anthropic', 'sse_structural', 'anthropic sse')}; ${findingFor('xai', 'sse_structural', 'xai sse')}.`);
+      lines.push('- **2.9 DB writes** — advice mode: must be zero (INV-2.1.2). Inspect `db_writes_made` per run.');
+      lines.push('- **2.10 Recording infrastructure** — not assessed unless other gaps suspect.');
+      lines.push('');
+      lines.push('## Gaps in detail');
+      lines.push('');
+      lines.push('For each non-"no gap" finding above, one stanza:');
+      lines.push('');
+      lines.push('### Gap 1: <description>');
+      lines.push('');
+      lines.push('- **Rubric section:** 2.X');
+      lines.push('- **Evidence:** <quoted line or value>');
+      lines.push('- **Likely category:** <YAML defect | classifier | tool/contract | prompt/engine | code path | response quality | provider drift | SSE | DB write | recording infra>');
+      lines.push('- **Likely fix surface:** `<file:line>`');
+      lines.push('- **Browser verification needed?** <yes / no / not yet decided>');
+      lines.push('- **Notes:** <nuance, trade-off, open question>');
+      lines.push('');
+      lines.push('## Recommendation');
+      lines.push('');
+      lines.push('<One paragraph for CSJ. Either "no action recommended — all gaps cosmetic", or "recommend acting on Gap N first because <reason>; estimated fix surface <file:line>; estimated effort <S/M/L>". CSJ decides.>');
+      return lines.join('\n');
     },
 
     findRun(session, provider) {

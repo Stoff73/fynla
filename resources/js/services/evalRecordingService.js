@@ -20,6 +20,13 @@ const evalRecordingService = {
         const response = await api.get(`/admin/eval-recordings/runs/${runId}/system-prompt`);
         return response.data;
     },
+
+    async updateReport(sessionId, remedialReport) {
+        const response = await api.put(`/admin/eval-recordings/${sessionId}/report`, {
+            remedial_report: remedialReport,
+        });
+        return response.data;
+    },
 };
 
 export default evalRecordingService;

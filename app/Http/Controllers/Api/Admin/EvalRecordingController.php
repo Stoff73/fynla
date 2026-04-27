@@ -121,9 +121,30 @@ final class EvalRecordingController extends Controller
                 'start_state_snapshot' => $session->start_state_snapshot,
                 'started_at' => optional($session->started_at)->toIso8601String(),
                 'completed_at' => optional($session->completed_at)->toIso8601String(),
+                'remedial_report' => $session->remedial_report,
+                'remedial_report_updated_at' => optional($session->remedial_report_updated_at)->toIso8601String(),
             ],
             'expected' => $expected,
             'runs' => $runs,
+        ]);
+    }
+
+    public function updateReport(Request $request, int $sessionId): JsonResponse
+    {
+        $validated = $request->validate([
+            'remedial_report' => ['nullable', 'string', 'max:200000'],
+        ]);
+
+        $session = EvalRecordingSession::findOrFail($sessionId);
+
+        $report = $validated['remedial_report'] ?? null;
+        $session->remedial_report = is_string($report) && $report !== '' ? $report : null;
+        $session->remedial_report_updated_at = $session->remedial_report !== null ? now() : null;
+        $session->save();
+
+        return response()->json([
+            'remedial_report' => $session->remedial_report,
+            'remedial_report_updated_at' => optional($session->remedial_report_updated_at)->toIso8601String(),
         ]);
     }
 

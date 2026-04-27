@@ -29,12 +29,15 @@ final class EvalRecordingSession extends Model
         'status',
         'started_at',
         'completed_at',
+        'remedial_report',
+        'remedial_report_updated_at',
     ];
 
     protected $casts = [
         'start_state_snapshot' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'remedial_report_updated_at' => 'datetime',
     ];
 
     public function evalUser(): BelongsTo
