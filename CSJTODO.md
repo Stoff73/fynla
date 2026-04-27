@@ -1,7 +1,40 @@
 # CSJTODO — Fynla
 
-*Last updated: 23 April 2026 — session 63*
-*Previous session: 18 April 2026 — session 62*
+*Last updated: 27 April 2026 — session 64*
+*Previous session: 23 April 2026 — session 63*
+
+---
+
+## Session 64 (27 April) — Build, UTM audit, PR-readiness review (planning only, no code commits)
+
+### Completed This Session
+
+- [x] **Re-ran dev build** (`./deploy/csjones-fynla/build.sh`) — produced same 8.2 MB `public/build/` targeting csjones.co/fynla subdirectory paths. Build is sitting on the local machine ready to upload, includes the product-video v2 swap.
+- [x] **UTM-tagging audit** of all 11 lifecycle emails — confirmed every conversion CTA routes through `LifecycleMail::utm()` (51 utm calls across 11 Mailables). Logo→home and footer privacy/terms/unsubscribe links are deliberately NOT UTM-tagged (industry norm — brand anchors and compliance links shouldn't carry attribution params).
+- [x] **PR-readiness review** — opened a PR creation request, identified three blockers and stopped before pushing. See "Outstanding" below for the proposed fix.
+
+### NOT Done — Outstanding (carried + new)
+
+- [ ] **Decide on PR strategy for session 63's email work.** Three blockers identified:
+  - Branch name `email-onboarding-video` violates the mandatory `feature/<owner>/<task>` naming (CLAUDE.md: "any other prefix is wrong and the PR will be closed").
+  - Branch is 89 commits ahead of `origin/dev` and 180 commits behind — most of the 89 are sessions 60-62 work that went to `main` but not `dev`. Diff vs dev is 294 files / 18,850 insertions / 3,408 deletions — unreviewable.
+  - Guaranteed merge conflicts with the 180 commits dev has accumulated (sessions 64-68: lifecycle-rate-limit PR, more main→dev merges).
+  - **Recommended fix:** branch off `origin/dev` as `feature/csj/lifecycle-emails`, cherry-pick the 6 session-63 commits (`9ee42f95 92da2fe6 c2e790da c1577071 af546f1e 13a5a3dd`), push, PR clean to dev.
+- [ ] **Await Azlan's review feedback** on the 11 test emails (sent 23 April).
+- [ ] **Await email scheduling flow from user** — formats agreed (photo / per-bucket lists / spreadsheet / Mermaid). User was finding flowchart hard to visualise.
+- [ ] **Implement customer bucket enum + observer** — Registered (<10%), In-progress (11-99%), Completed (100%). Journey-scoped %, source already on homepage. Implementation deferred until scheduling flow arrives.
+- [ ] **Wire 11 emails into Laravel Scheduler** — driven by the flowchart.
+- [ ] **Dev deploy** — `email-onboarding-video` is 6 commits ahead of `origin/email-onboarding-video`'s base, dev build ready locally, also need `public/images/Homepage-Fynla-ProductVideov2.mp4` (14 MB) uploaded.
+- [ ] Test Fyn chat fixes on dev (carried from session 58).
+- [ ] Re-enable branch protection on `dev` (carried from session 57).
+- [ ] Add `Current State/Insights.md` to the vault (carried from session 62).
+- [ ] `AutoRiskCalculatorTest` enum truncation (carried from April 16).
+
+### Context for Next Session
+
+On `email-onboarding-video`, clean working tree, all commits pushed. Session 64 was a planning/audit-only session — no new commits. Top priority is the PR strategy decision: does the user want me to cherry-pick the 6 session-63 commits onto a clean `feature/csj/lifecycle-emails` branch (recommended), ship `email-onboarding-video` as-is despite the naming/divergence issues, or hold off entirely until the scheduling flow arrives?
+
+Next session start point: confirm PR approach OR pick up scheduling work if user has shared the flow.
 
 ---
 
