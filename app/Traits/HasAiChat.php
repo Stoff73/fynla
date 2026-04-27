@@ -141,7 +141,11 @@ trait HasAiChat
         if ($this->toolsListOverride !== null) {
             $tools = $this->toolsListOverride;
         } else {
-            $tools = $toolDefinitions->getTools($user->is_preview_user);
+            // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
+            // (eval flow). Wildcard `['*']` tokens (default Sanctum) don't bypass.
+            $tokenAbilities = $user->currentAccessToken()?->abilities ?? [];
+            $hasEvalBypass = in_array('bypass-preview-mode', $tokenAbilities, true);
+            $tools = $toolDefinitions->getTools($user->is_preview_user && ! $hasEvalBypass);
 
             if ($this->allowedToolsOverride !== null) {
                 $allowed = array_flip($this->allowedToolsOverride);

@@ -128,6 +128,18 @@ class PreviewWriteInterceptor
             }
         }
 
+        // Eval bypass: a Sanctum token with `bypass-preview-mode` ability lets
+        // writes through. Only honoured for tokens that EXPLICITLY list the
+        // ability — wildcard `['*']` tokens (the Sanctum default for regular
+        // user logins) must NOT bypass, otherwise every preview user's normal
+        // token would silently let writes through. The ability is issued by
+        // EvalAuthController::login, gated to non-production environments.
+        // See April/April27Updates/eval-http-driven-rewrite-plan.md §4.
+        $accessToken = PersonalAccessToken::findToken($request->bearerToken() ?? '');
+        if ($accessToken && in_array('bypass-preview-mode', $accessToken->abilities ?? [], true)) {
+            return $next($request);
+        }
+
         // For write operations, return a fake success response
         return $this->fakeSuccessResponse($request);
     }

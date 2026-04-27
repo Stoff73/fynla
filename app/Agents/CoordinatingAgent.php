@@ -696,7 +696,11 @@ class CoordinatingAgent extends BaseAgent
             return $v;
         }, $input);
 
-        $isPreviewUser = (bool) $user->is_preview_user;
+        // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
+        // (eval flow). Wildcard `['*']` tokens (default Sanctum) don't bypass.
+        $tokenAbilities = $user->currentAccessToken()?->abilities ?? [];
+        $hasEvalBypass = in_array('bypass-preview-mode', $tokenAbilities, true);
+        $isPreviewUser = (bool) $user->is_preview_user && ! $hasEvalBypass;
 
         // S0.12 — append a chain row at dispatch. Replaces the [AI-AUDIT] file
         // log that used to fire after the result returned (which dropped any
