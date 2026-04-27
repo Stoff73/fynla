@@ -1091,7 +1091,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::get('/user-metrics/activity', [\App\Http\Controllers\Api\UserMetricsController::class, 'activity']);
     Route::get('/user-metrics/engagement', [\App\Http\Controllers\Api\UserMetricsController::class, 'engagement']);
 
-    // Eval forensic recordings (read-only except for the per-session remedial report)
+    // Eval forensic recordings (read-only, plus per-session editable remedial report)
     Route::prefix('eval-recordings')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'index']);
         Route::get('/runs/{run}/raw', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'rawFixture']);
@@ -1265,3 +1265,17 @@ Route::middleware(['auth:sanctum', 'advisor'])
 // Bug Report route (works for both authenticated and guest users)
 Route::post('/bug-report', [BugReportController::class, 'store'])
     ->middleware('throttle:bug-reports');
+
+// ===========================
+// Eval-only routes (HTTP-driven eval flow — see April27Updates plan).
+// Refused in production both at the controller and at the route level.
+// ===========================
+if (! app()->environment('production')) {
+    Route::middleware(['throttle:20,1'])->prefix('eval')->group(function () {
+        Route::post('/login/{personaId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'login']);
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/reset/{personaId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'reset']);
+            Route::get('/trace/{conversationId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'trace']);
+        });
+    });
+}
