@@ -73,9 +73,18 @@ final class EvalPurgeCommand extends Command
         $this->info("Deleting {$count} eval user(s)...");
 
         $deleted = 0;
-        // Delete in batches so foreign-key cascades aren't a single giant query.
+        // Order matters because eval_provider_runs.conversation_id has
+        // ON DELETE RESTRICT to keep the conversation alive alongside the
+        // run. Tear down the eval rows BEFORE the user/conversations get
+        // cascaded.
         $query->orderBy('id')->chunkById(100, function ($users) use (&$deleted): void {
             foreach ($users as $user) {
+                $sessionIds = \App\Models\EvalRecordingSession::where('eval_user_id', $user->id)->pluck('id');
+                if ($sessionIds->isNotEmpty()) {
+                    \App\Models\EvalProviderRun::whereIn('eval_recording_session_id', $sessionIds)->delete();
+                    \App\Models\EvalRecordingSession::whereIn('id', $sessionIds)->delete();
+                }
+
                 $user->forceDelete();
                 $deleted++;
             }
