@@ -467,6 +467,8 @@ final class QuerySchemas
         self::PROTECTION_COVER => [
             'get_module_analysis(protection)',
             'list_records(life_insurance)',
+            'list_records(critical_illness)',
+            'list_records(income_protection)',
         ],
         self::PROTECTION_POLICY => [
             'get_module_analysis(protection)',
