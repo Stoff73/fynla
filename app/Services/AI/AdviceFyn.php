@@ -33,6 +33,92 @@ use Illuminate\Support\Facades\Log;
 final class AdviceFyn
 {
     /**
+     * S1.8 — Response-mode classifier (INV-2.3.1). Every `QuerySchemas`
+     * constant maps to exactly one of three modes:
+     *
+     *  - `recommendation` — the turn invokes the engine (holistic or
+     *    module-scoped) and emits an `advice_response` SSE panel
+     *    alongside the LLM's free text.
+     *  - `factual` — the turn answers from module services or static
+     *    knowledge with no engine call. The LLM's text IS the response.
+     *  - `out_of_remit` — the turn short-circuits to the canonical
+     *    refusal per INV-2.3.4.
+     *
+     * INCOME is the one advice-type constant in factual mode — it
+     * answers from `get_tax_information(income_tax)` only, never
+     * orchestrateAnalysis or a single-agent analyze().
+     */
+    private const RESPONSE_MODE_MAP = [
+        QuerySchemas::PROTECTION_COVER => 'recommendation',
+        QuerySchemas::PROTECTION_POLICY => 'recommendation',
+        QuerySchemas::SAVINGS_EMERGENCY => 'recommendation',
+        QuerySchemas::SAVINGS_ACCOUNTS => 'recommendation',
+        QuerySchemas::SAVINGS_DEBT => 'recommendation',
+        QuerySchemas::RETIREMENT_CONTRIBUTION => 'recommendation',
+        QuerySchemas::RETIREMENT_READINESS => 'recommendation',
+        QuerySchemas::RETIREMENT_DECUMULATION => 'recommendation',
+        QuerySchemas::INVESTMENT_PORTFOLIO => 'recommendation',
+        QuerySchemas::INVESTMENT_FEES => 'recommendation',
+        QuerySchemas::INVESTMENT_TAX => 'recommendation',
+        QuerySchemas::ESTATE_IHT => 'recommendation',
+        QuerySchemas::ESTATE_PLANNING => 'recommendation',
+        QuerySchemas::GOALS_PROGRESS => 'recommendation',
+        QuerySchemas::TAX_OPTIMISATION => 'recommendation',
+        QuerySchemas::PROPERTY => 'recommendation',
+        QuerySchemas::HOLISTIC_HEALTH => 'recommendation',
+        QuerySchemas::AFFORDABILITY => 'recommendation',
+        QuerySchemas::INCOME => 'factual',
+        QuerySchemas::GENERAL => 'factual',
+        QuerySchemas::DATA_ENTRY => 'factual',
+        QuerySchemas::NAVIGATION => 'factual',
+        QuerySchemas::BILLING => 'factual',
+        QuerySchemas::OUT_OF_REMIT => 'out_of_remit',
+    ];
+
+    /**
+     * S1.8 — Engine call granularity (INV-2.3.6). Holistic queries call
+     * `CoordinatingAgent::orchestrateAnalysis`; module-scoped queries
+     * call the single `{Module}Agent::analyze` for their primary
+     * module; factual queries make no engine call and answer from the
+     * relevant module service directly (or static `QueryKnowledge`).
+     *
+     *  - `holistic` — only HOLISTIC_HEALTH. The single caller of
+     *    `orchestrateAnalysis` per the canonical contract.
+     *  - `module` — every advice-type query whose `MODULE_MAP` resolves
+     *    to a single module, including TAX_OPTIMISATION and
+     *    AFFORDABILITY (whose primary single-agent caller is the savings
+     *    or tax module).
+     *  - `factual` — INCOME, GENERAL, BILLING, DATA_ENTRY, NAVIGATION,
+     *    OUT_OF_REMIT. No engine cycle is spent on these turns.
+     */
+    private const ENGINE_CALL_LEVEL_MAP = [
+        QuerySchemas::HOLISTIC_HEALTH => 'holistic',
+        QuerySchemas::PROTECTION_COVER => 'module',
+        QuerySchemas::PROTECTION_POLICY => 'module',
+        QuerySchemas::SAVINGS_EMERGENCY => 'module',
+        QuerySchemas::SAVINGS_ACCOUNTS => 'module',
+        QuerySchemas::SAVINGS_DEBT => 'module',
+        QuerySchemas::RETIREMENT_CONTRIBUTION => 'module',
+        QuerySchemas::RETIREMENT_READINESS => 'module',
+        QuerySchemas::RETIREMENT_DECUMULATION => 'module',
+        QuerySchemas::INVESTMENT_PORTFOLIO => 'module',
+        QuerySchemas::INVESTMENT_FEES => 'module',
+        QuerySchemas::INVESTMENT_TAX => 'module',
+        QuerySchemas::ESTATE_IHT => 'module',
+        QuerySchemas::ESTATE_PLANNING => 'module',
+        QuerySchemas::GOALS_PROGRESS => 'module',
+        QuerySchemas::TAX_OPTIMISATION => 'module',
+        QuerySchemas::PROPERTY => 'module',
+        QuerySchemas::AFFORDABILITY => 'module',
+        QuerySchemas::INCOME => 'factual',
+        QuerySchemas::GENERAL => 'factual',
+        QuerySchemas::DATA_ENTRY => 'factual',
+        QuerySchemas::NAVIGATION => 'factual',
+        QuerySchemas::BILLING => 'factual',
+        QuerySchemas::OUT_OF_REMIT => 'factual',
+    ];
+
+    /**
      * Tools that mutate persistent records — stripped from the advice
      * tool list. Every entry here has a corresponding handler in
      * OnboardingChatDirector::captureToolSet so the handoff path can
@@ -337,19 +423,61 @@ final class AdviceFyn
     }
 
     /**
-     * S1.6 — `advice_response` only emits for advice-type classifications.
-     * Factual / billing / out-of-remit / general turns get content + done
-     * with no structured response — the LLM's plain-text content IS the
-     * response shape for those modes.
+     * S1.8 — Map a `QuerySchemas` constant to its response mode
+     * (INV-2.3.1). Returns `'factual'`, `'recommendation'`, or
+     * `'out_of_remit'`. Throws if the type is unmapped — exhaustive
+     * coverage is enforced by AdviceFynResponseModeTest.
+     *
+     * @return 'factual'|'recommendation'|'out_of_remit'
+     */
+    public static function classifyResponseMode(string $queryType): string
+    {
+        if (! isset(self::RESPONSE_MODE_MAP[$queryType])) {
+            throw new \InvalidArgumentException(
+                "AdviceFyn::classifyResponseMode has no entry for query type '{$queryType}'."
+            );
+        }
+
+        return self::RESPONSE_MODE_MAP[$queryType];
+    }
+
+    /**
+     * S1.8 — Map a `QuerySchemas` constant to its engine call level
+     * (INV-2.3.6). Returns `'holistic'`, `'module'`, or `'factual'`.
+     * Holistic turns call `CoordinatingAgent::orchestrateAnalysis`;
+     * module turns call a single `{Module}Agent::analyze`; factual
+     * turns make no engine call. Throws if unmapped — exhaustive
+     * coverage is enforced by AdviceFynEngineCallLevelTest.
+     *
+     * @return 'holistic'|'module'|'factual'
+     */
+    public static function engineCallLevel(string $queryType): string
+    {
+        if (! isset(self::ENGINE_CALL_LEVEL_MAP[$queryType])) {
+            throw new \InvalidArgumentException(
+                "AdviceFyn::engineCallLevel has no entry for query type '{$queryType}'."
+            );
+        }
+
+        return self::ENGINE_CALL_LEVEL_MAP[$queryType];
+    }
+
+    /**
+     * S1.6 + S1.8 — `advice_response` only emits for recommendation-mode
+     * turns. Factual / billing / out-of-remit / general turns get content
+     * + done with no structured response — the LLM's plain-text content
+     * IS the response shape for those modes. INCOME is a notable shift
+     * from S1.6.a behaviour: it is in `ADVICE_TYPES` (FCA process applies)
+     * but its response mode is `factual` (no engine call), so no panel.
      */
     private function shouldEmitAdviceResponse(?array $classification): bool
     {
         $primary = $classification['primary'] ?? null;
-        if (! is_string($primary)) {
+        if (! is_string($primary) || ! isset(self::RESPONSE_MODE_MAP[$primary])) {
             return false;
         }
 
-        return QuerySchemas::isAdviceType($primary);
+        return self::RESPONSE_MODE_MAP[$primary] === 'recommendation';
     }
 
     /** @return list<string> */
