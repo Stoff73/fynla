@@ -14,32 +14,54 @@
 
     <template v-else-if="article">
       <!-- Hero -->
-      <div class="relative flex items-center bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
-        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-left w-full">
-          <p class="text-sm text-white/70 mb-3">
-            {{ formatDate(article.published_at) }}
-            <span v-if="article.author_name" class="text-white/50">&middot; By {{ article.author_name }}</span>
-          </p>
-          <h1 class="text-3xl md:text-5xl font-black text-white mb-4 leading-tight">
+      <div class="relative bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left w-full">
+          <h1 class="text-3xl md:text-5xl font-black text-white leading-tight text-left">
             {{ article.title }}
           </h1>
-          <p class="text-lg text-white/80 max-w-2xl">{{ article.summary }}</p>
         </div>
       </div>
 
       <!-- Body -->
-      <article class="bg-eggshell-500 py-14">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="news-article prose prose-lg max-w-none" v-html="article.body"></div>
-
-          <div class="mt-12 pt-8 border-t border-light-gray">
-            <router-link to="/news" class="inline-flex items-center gap-1 text-sm font-semibold text-horizon-500 hover:text-raspberry-500 transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" /></svg>
-              Back to all news
-            </router-link>
+      <section class="py-12 bg-eggshell-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Back link -->
+          <div class="flex items-center gap-3 mb-2">
+            <router-link to="/news" class="text-sm text-raspberry-500 hover:underline font-medium">&larr; Back to News</router-link>
           </div>
+          <p class="text-xs text-neutral-400 mb-8">
+            <span v-if="article.author_name">By {{ article.author_name }} &middot; </span>Published on {{ formatDate(article.published_at) }}
+          </p>
+
+          <article class="space-y-10">
+            <!-- Intro / summary -->
+            <div v-if="article.summary">
+              <p class="text-sm text-neutral-500 leading-relaxed italic">
+                {{ article.summary }}
+              </p>
+            </div>
+
+            <!-- Article body -->
+            <div class="news-article" v-html="article.body"></div>
+          </article>
         </div>
-      </article>
+      </section>
+
+      <!-- CTA -->
+      <section class="py-12 bg-light-pink-100">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 mb-3">See your complete financial picture</h2>
+          <p class="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
+            Plan savings, investments, retirement and estate in one place. Start your free trial today.
+          </p>
+          <router-link
+            to="/register"
+            class="inline-block px-6 py-2.5 bg-spring-500 text-white text-sm font-semibold rounded-lg hover:bg-spring-600 transition-colors"
+          >
+            Start your free trial
+          </router-link>
+        </div>
+      </section>
     </template>
   </PublicLayout>
 </template>
@@ -107,52 +129,43 @@ export default {
 </script>
 
 <style scoped>
+/* Match the bespoke insights pages' typography (e.g. IsaGuideUkPage):
+   h2: text-xl sm:text-2xl font-bold text-horizon-500 mb-3
+   h3: text-lg font-semibold text-horizon-500 mb-2 mt-6
+   p:  text-sm text-neutral-500 leading-relaxed mb-3 */
 .news-article :deep(h2) {
-  font-size: 1.625rem;
-  font-weight: 700;
-  color: #1F2A44;
-  margin: 2rem 0 1rem;
+  @apply text-xl sm:text-2xl font-bold text-horizon-500 mb-3 mt-8;
   line-height: 1.3;
 }
 .news-article :deep(h3) {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1F2A44;
-  margin: 1.5rem 0 0.75rem;
+  @apply text-lg font-semibold text-horizon-500 mb-2 mt-6;
   line-height: 1.35;
 }
 .news-article :deep(p) {
-  font-size: 1rem;
-  color: #4b5563;
-  line-height: 1.7;
-  margin: 0 0 1rem;
+  @apply text-sm text-neutral-500 leading-relaxed mb-3;
 }
-.news-article :deep(p.lead) {
-  font-size: 1.125rem;
-  color: #1F2A44;
-  font-weight: 500;
-  margin-bottom: 1.5rem;
+/* Lead paragraph — first paragraph of the article body, or any <p class="lead">.
+   Matches the article subtitle formatting (h2: bold horizon-500, larger). */
+.news-article :deep(p.lead),
+.news-article :deep(p:first-child) {
+  @apply text-xl sm:text-2xl font-bold text-horizon-500 mb-6 mt-0;
+  line-height: 1.3;
+}
+.news-article :deep(p.lead strong),
+.news-article :deep(p:first-child strong) {
+  @apply text-horizon-500 font-bold;
 }
 .news-article :deep(ul) {
-  margin: 0 0 1.25rem 1.25rem;
-  padding-left: 1rem;
+  @apply text-sm text-neutral-500 leading-relaxed mb-3 ml-5;
   list-style: disc;
 }
 .news-article :deep(li) {
-  font-size: 1rem;
-  color: #4b5563;
-  line-height: 1.7;
-  margin-bottom: 0.5rem;
+  @apply mb-1;
 }
 .news-article :deep(a) {
-  color: #e74c6f;
-  text-decoration: underline;
-}
-.news-article :deep(a:hover) {
-  color: #d63d61;
+  @apply text-raspberry-500 underline hover:text-raspberry-600;
 }
 .news-article :deep(strong) {
-  color: #1F2A44;
-  font-weight: 600;
+  @apply text-horizon-500 font-semibold;
 }
 </style>

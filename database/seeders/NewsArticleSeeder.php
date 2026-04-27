@@ -34,7 +34,7 @@ class NewsArticleSeeder extends Seeder
     private function bodyHtml(): string
     {
         return <<<'HTML'
-<p class="lead">Today we're launching <strong>Fynla</strong>, a new UK personal finance platform built to give everyone access to the same professional-grade planning tools that have, until now, sat behind expensive advisory fees.</p>
+<p class="lead">We're launching <strong>Fynla</strong>, a new UK personal finance platform built to give everyone access to the same professional-grade planning tools that have, until now, sat behind expensive advisory fees.</p>
 
 <p>Whether you're a recent graduate weighing up student debt, a growing family balancing a mortgage, or a retiree making sense of new tax rules, Fynla helps you see all your finances in one place, understand what they mean, and make confident decisions about your future.</p>
 
@@ -46,7 +46,7 @@ class NewsArticleSeeder extends Seeder
 
 <h2>Who's behind Fynla</h2>
 
-<p>Fynla was co-founded by <strong>Chris Slater-Jones</strong> and <strong>Brett Isenberg, FCA</strong>.</p>
+<p>Fynla was co-founded by <strong><a href="/about#chris-slater-jones">Chris Slater-Jones</a></strong> and <strong><a href="/about#brett-isenberg">Brett Isenberg, FCA</a></strong>.</p>
 
 <p><strong>Chris Slater-Jones</strong> brings over twenty years of experience as a financial adviser, director and compliance lead across the UK and South Africa. His career spans the advisory front line at St. James's Place through to the boardrooms of capital markets consultancies. As a former FCA-registered adviser, Chris has helped thousands of families navigate fragmented finances — pensions in one place, ISAs in another, with no clear way to see how it all fits together. He leads Fynla's editorial work on financial planning, retirement, pensions, ISAs, protection and estate planning, and holds a PG Diploma in Financial Planning along with the DipPFS qualification from the Chartered Insurance Institute.</p>
 
@@ -61,7 +61,7 @@ class NewsArticleSeeder extends Seeder
 <ul>
   <li><strong>Protection</strong> — life cover, income protection and critical illness, with a clear view of your gaps.</li>
   <li><strong>Savings</strong> — cash, ISAs and emergency funds, with allowance tracking through the tax year.</li>
-  <li><strong>Investment</strong> — portfolio analysis, tax-efficiency reads and projections across every wrapper you hold.</li>
+  <li><strong>Planning</strong> — portfolio analysis, tax-efficiency reads and projections across every wrapper you hold.</li>
   <li><strong>Retirement</strong> — pension consolidation visibility, Annual Allowance checks and retirement income projections.</li>
   <li><strong>Estate planning</strong> — Inheritance Tax modelling, will preparation and lasting power of attorney guidance.</li>
   <li><strong>Goals &amp; life events</strong> — funding plans for the things you actually want to achieve.</li>
@@ -73,8 +73,6 @@ class NewsArticleSeeder extends Seeder
 <p>Fynla is free to try with a seven-day trial — no credit card required to start. Your data is encrypted with AES-256 and stored in UK data centres, and Fyn, your AI financial companion, is built in to walk you through your dashboard step by step.</p>
 
 <p>You don't have to be comfortable with spreadsheets or fluent in tax law. You just have to be ready to see your financial life clearly for the first time.</p>
-
-<p><strong><a href="/register">Get started today with Fyn — your financial companion for life</a></strong></p>
 HTML;
     }
 }
