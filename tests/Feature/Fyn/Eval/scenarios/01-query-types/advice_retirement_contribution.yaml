@@ -82,7 +82,7 @@ expected_tool_calls:
     result_path: success_false
     result_message_contains: "No retirement profile found"
   - tool: list_records
-    args: { record_type: dc_pension }
+    args: { entity_type: dc_pension }
     required: true
     result_path: happy
   - tool: get_tax_information
@@ -98,7 +98,7 @@ expected_tool_calls:
     required: false
     condition: "From IMPLICIT_RELATED savings_emergency / affordability."
   - tool: list_records
-    args: { record_type: savings_account }
+    args: { entity_type: savings_account }
     required: false
     condition: "From IMPLICIT_RELATED savings_emergency."
   - tool: get_recommendations

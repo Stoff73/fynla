@@ -92,7 +92,7 @@ expected_tool_calls:
     required: false
     condition: "From IMPLICIT_RELATED retirement_contribution."
   - tool: list_records
-    args: { record_type: dc_pension }
+    args: { entity_type: dc_pension }
     required: false
     condition: "From IMPLICIT_RELATED retirement_contribution."
   - tool: get_tax_information

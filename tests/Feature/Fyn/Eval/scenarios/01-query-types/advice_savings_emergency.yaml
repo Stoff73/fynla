@@ -54,7 +54,7 @@ expected_kyc_state: passed
 
 expected_tool_calls:
   - tool: list_records
-    args: { record_type: savings_account }
+    args: { entity_type: savings_account }
     required: true
     result_path: happy
   - tool: get_module_analysis

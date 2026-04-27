@@ -78,7 +78,7 @@ expected_tool_calls:
     required: true
     result_path: happy
   - tool: list_records
-    args: { record_type: property }
+    args: { entity_type: property }
     required: true
     result_path: happy
   - tool: get_recommendations
