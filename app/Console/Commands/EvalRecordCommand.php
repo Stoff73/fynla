@@ -146,26 +146,67 @@ final class EvalRecordCommand extends Command
         $exitCode = self::SUCCESS;
         $summaries = [];
 
-        foreach ($providers as $provider) {
-            $model = $this->resolveModel($provider, $modelOverride);
-            $summary = $this->recordOne(
-                provider: $provider,
-                model: $model,
-                scenarioId: $scenarioId,
-                scenario: $scenario,
-                turns: $turns,
-                forbiddenOutputs: $forbiddenOutputs,
-                dryRun: $dryRun,
-                keepData: $keepData,
-            );
+        // ONE user, ONE seed, BOTH providers — savepoint between calls so
+        // neither provider sees the other's conversation history or writes.
+        // CSJ: "if different users how are we going to get an accurate delta?"
+        DB::beginTransaction();
 
-            if ($summary === null) {
-                $exitCode = self::FAILURE;
+        try {
+            $user = $this->seedUser($scenario['seed'] ?? []);
+            $this->info("Shared seed: user id={$user->id} email={$user->email}");
+            $this->info('Dispatch:    '.($this->isOnboarding($user) ? 'OnboardingChatDirector' : 'AdviceFyn'));
 
-                continue;
+            foreach ($providers as $provider) {
+                $model = $this->resolveModel($provider, $modelOverride);
+
+                // Inner savepoint — captures conversation + any writes from
+                // this provider's run so we can rollback to a clean state
+                // before the next provider sees the user.
+                DB::beginTransaction();
+
+                $summary = $this->recordOne(
+                    user: $user,
+                    provider: $provider,
+                    model: $model,
+                    scenarioId: $scenarioId,
+                    turns: $turns,
+                    forbiddenOutputs: $forbiddenOutputs,
+                    dryRun: $dryRun,
+                );
+
+                // Rollback to the savepoint — undoes the conversation,
+                // ai_messages, audit rows, and any writes the model made
+                // (e.g. handoff create/update/delete). The shared user
+                // stays seeded for the next provider.
+                DB::rollBack();
+
+                if ($summary === null) {
+                    $exitCode = self::FAILURE;
+
+                    continue;
+                }
+
+                $summaries[] = $summary;
+
+                // Refresh the model in case any cached relations became
+                // stale during the savepoint window.
+                $user->refresh();
             }
 
-            $summaries[] = $summary;
+            if ($keepData) {
+                // To persist data after multi-provider recording we'd need
+                // to commit BEFORE the savepoint rollbacks above — that's
+                // incompatible with the same-user-clean-state contract.
+                // Tell CSJ explicitly rather than silently dropping the flag.
+                $this->warn('--keep-data is not supported in multi-provider mode (would corrupt the per-provider clean-state guarantee). Seed rolled back.');
+            }
+
+            DB::rollBack();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $this->error('Recording failed: '.$e->getMessage());
+            $this->error($e->getFile().':'.$e->getLine());
+            $exitCode = self::FAILURE;
         }
 
         if (! $dryRun && count($summaries) > 0) {
@@ -176,22 +217,22 @@ final class EvalRecordCommand extends Command
     }
 
     /**
-     * Record a single (provider, model) pass and return its summary, or null on failure.
+     * Record a single (provider, model) pass against a SHARED seeded user.
+     * Caller wraps this in a savepoint so the conversation + any writes
+     * the model makes get rolled back before the next provider runs.
      *
-     * @param  array<string, mixed>  $scenario
      * @param  list<array<string, mixed>>  $turns
      * @param  list<string>  $forbiddenOutputs
      * @return array<string, mixed>|null
      */
     private function recordOne(
+        User $user,
         string $provider,
         string $model,
         string $scenarioId,
-        array $scenario,
         array $turns,
         array $forbiddenOutputs,
         bool $dryRun,
-        bool $keepData,
     ): ?array {
         $this->newLine();
         $this->info(str_repeat('-', 70));
@@ -209,21 +250,11 @@ final class EvalRecordCommand extends Command
         $summary = null;
 
         try {
-            DB::beginTransaction();
-
-            $user = $this->seedUser($scenario['seed'] ?? []);
             $conversation = $this->createConversation($user, $model);
-
-            $this->line("Seeded:     user id={$user->id} email={$user->email}");
-            $this->line("Conv:       id={$conversation->id}");
-
-            $inOnboarding = $this->isOnboarding($user);
-            $this->line('Dispatch:   '.($inOnboarding ? 'OnboardingChatDirector' : 'AdviceFyn'));
+            $this->line("Conv:       id={$conversation->id} (fresh per-provider; rolled back after capture)");
 
             if ($dryRun) {
-                $this->newLine();
-                $this->warn('Dry-run — skipping provider call. Rolling back seed.');
-                DB::rollBack();
+                $this->warn('Dry-run — skipping provider call.');
 
                 return [
                     'provider' => $provider,
@@ -233,6 +264,8 @@ final class EvalRecordCommand extends Command
             }
 
             $this->newLine();
+
+            $inOnboarding = $this->isOnboarding($user);
 
             $events = [];
             foreach ($turns as $turn) {
@@ -255,6 +288,8 @@ final class EvalRecordCommand extends Command
 
             $durationMs = (int) ((microtime(true) - $startedAt) * 1000);
 
+            // Fixture is written to disk BEFORE the caller rolls back the
+            // savepoint — file persists even when DB writes are reverted.
             $fixturePath = $this->writeFixture(
                 provider: $provider,
                 model: $model,
@@ -276,16 +311,7 @@ final class EvalRecordCommand extends Command
                 durationMs: $durationMs,
                 fixturePath: $fixturePath,
             );
-
-            if ($keepData) {
-                DB::commit();
-                $this->info("Kept seeded user id={$user->id} (--keep-data).");
-            } else {
-                DB::rollBack();
-                $this->info('Seed rolled back (use --keep-data to persist).');
-            }
         } catch (\Throwable $e) {
-            DB::rollBack();
             $this->error("[{$provider}] Recording failed: ".$e->getMessage());
             $this->error($e->getFile().':'.$e->getLine());
             $summary = null;
