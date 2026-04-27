@@ -43,6 +43,13 @@ uses(
 // `./dev.sh`, not the test schema.
 uses(Tests\Browser\TestCase::class)->in('Browser/scenarios');
 
+// Sprint 1 eval harness arch tests need `config()` to read fyn_eval.php.
+// No DB needed — these are pure config integrity checks.
+uses(Tests\TestCase::class)->in(
+    'Architecture/EvalScenarioCountTest.php',
+    'Architecture/EvalFloorIntegrityTest.php',
+);
+
 // Global setup for all tests that need TaxConfiguration
 beforeEach(function () {
     // Ensure active tax configuration exists for tests

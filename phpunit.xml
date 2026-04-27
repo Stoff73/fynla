@@ -21,6 +21,9 @@
                  03-test-strategy.md), so override the default suffix. -->
             <directory suffix=".php">tests/Browser/scenarios</directory>
         </testsuite>
+        <testsuite name="Eval">
+            <directory>tests/Feature/Fyn/Eval</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
