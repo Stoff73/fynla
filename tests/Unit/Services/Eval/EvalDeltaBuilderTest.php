@@ -402,6 +402,61 @@ describe('EvalDeltaBuilder', function () {
         });
     });
 
+    describe('gradeEngineTrace', function () {
+        it('flags must_contain entries the trace does not match', function () {
+            $trace = [
+                ['event' => 'GateChecked', 'gate' => 'kyc', 'module' => 'global', 'passed' => true],
+            ];
+            $expected = [
+                'must_contain' => [
+                    ['event' => 'GateChecked', 'gate' => 'kyc', 'module' => 'global', 'passed' => true],
+                    ['event' => 'EngineCalled', 'engine' => 'protection_analysis'],
+                ],
+            ];
+
+            $result = $this->builder->gradeEngineTrace($trace, $expected);
+
+            expect($result['must_contain_misses'])->toHaveCount(1)
+                ->and($result['must_contain_misses'][0]['engine'])->toBe('protection_analysis')
+                ->and($result['must_not_contain_hits'])->toBeEmpty()
+                ->and($result['ordered_violations'])->toBeEmpty();
+        });
+
+        it('flags must_not_contain entries the trace does match', function () {
+            $trace = [
+                ['event' => 'EngineCalled', 'engine' => 'orchestrate_analysis'],
+            ];
+            $expected = [
+                'must_not_contain' => [
+                    ['event' => 'EngineCalled', 'engine' => 'orchestrate_analysis'],
+                ],
+            ];
+
+            $result = $this->builder->gradeEngineTrace($trace, $expected);
+
+            expect($result['must_not_contain_hits'])->toHaveCount(1)
+                ->and($result['must_contain_misses'])->toBeEmpty();
+        });
+
+        it('flags ordering violations when expected events appear out of order', function () {
+            $trace = [
+                ['event' => 'EngineCalled', 'engine' => 'protection_analysis'],
+                ['event' => 'AgentDecision', 'decisionPoint' => 'classify_query'],
+            ];
+            $expected = [
+                'ordered' => [
+                    'AgentDecision:classify_query',
+                    'EngineCalled:protection_analysis',
+                ],
+            ];
+
+            $result = $this->builder->gradeEngineTrace($trace, $expected);
+
+            expect($result['ordered_violations'])->not->toBeEmpty()
+                ->and($result['ordered_violations'][0])->toBe('EngineCalled:protection_analysis');
+        });
+    });
+
     describe('integration — full mitchell_advice_protection_cover JSON against a happy-path run', function () {
         it('produces a structured failures map for the JSON scenario', function () {
             $expected = loadScenarioJson('01-query-types/mitchell_advice_protection_cover.json');

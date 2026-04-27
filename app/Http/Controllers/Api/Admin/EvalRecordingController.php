@@ -12,7 +12,6 @@ use App\Services\Eval\EvalDeltaBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Read-only admin viewer for eval forensic recordings.
@@ -119,32 +118,34 @@ final class EvalRecordingController extends Controller
                 'fynla_sha' => $session->fynla_sha,
                 'eval_user' => $session->evalUser,
                 'start_state_snapshot' => $session->start_state_snapshot,
+                'remedial_report' => $session->remedial_report,
                 'started_at' => optional($session->started_at)->toIso8601String(),
                 'completed_at' => optional($session->completed_at)->toIso8601String(),
-                'remedial_report' => $session->remedial_report,
-                'remedial_report_updated_at' => optional($session->remedial_report_updated_at)->toIso8601String(),
             ],
             'expected' => $expected,
             'runs' => $runs,
         ]);
     }
 
-    public function updateReport(Request $request, int $sessionId): JsonResponse
+    /**
+     * Persist the human-authored remedial report for one session. Body shape:
+     *   { "remedial_report": "<markdown text or null>" }
+     * Sending null clears the report.
+     */
+    public function updateReport(int $sessionId, Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'remedial_report' => ['nullable', 'string', 'max:200000'],
-        ]);
-
         $session = EvalRecordingSession::findOrFail($sessionId);
 
-        $report = $validated['remedial_report'] ?? null;
-        $session->remedial_report = is_string($report) && $report !== '' ? $report : null;
-        $session->remedial_report_updated_at = $session->remedial_report !== null ? now() : null;
+        $validated = $request->validate([
+            'remedial_report' => 'nullable|string|max:65535',
+        ]);
+
+        $session->remedial_report = $validated['remedial_report'] ?? null;
         $session->save();
 
         return response()->json([
+            'session_id' => $session->id,
             'remedial_report' => $session->remedial_report,
-            'remedial_report_updated_at' => optional($session->remedial_report_updated_at)->toIso8601String(),
         ]);
     }
 
@@ -191,22 +192,22 @@ final class EvalRecordingController extends Controller
      * response" panel reads (`selectedSession.expected.X`). Returns the
      * legacy keys (`tool_calls`, `forbidden_tools`, `timing_budget_ms`,
      * etc.) so the existing Vue components keep rendering, AND the full
-     * parsed YAML under `_full` so EvalDeltaBuilder can read the new-shape
-     * keys (expected_classification_shape, expected_response_mode, etc.).
-     * `show()` strips `_full` before serialising the response — it is a
-     * builder-only key, never visible over the wire.
+     * parsed scenario under `_full` so EvalDeltaBuilder can read the
+     * new-shape keys (expected_classification_shape, expected_response_mode,
+     * etc.). `show()` strips `_full` before serialising the response — it
+     * is a builder-only key, never visible over the wire.
+     *
+     * The session's `scenario_yaml` column stores JSON text after the
+     * Task 11 / Task 13 cutover; the column name is preserved for backward
+     * compatibility with existing rows, but the contents are JSON.
      */
-    private function parseExpectations(?string $yaml): array
+    private function parseExpectations(?string $scenarioJson): array
     {
-        if (! is_string($yaml) || $yaml === '') {
+        if (! is_string($scenarioJson) || $scenarioJson === '') {
             return [];
         }
 
-        try {
-            $parsed = Yaml::parse($yaml);
-        } catch (\Throwable) {
-            return [];
-        }
+        $parsed = json_decode($scenarioJson, true);
 
         if (! is_array($parsed)) {
             return [];

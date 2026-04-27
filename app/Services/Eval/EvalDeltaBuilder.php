@@ -497,6 +497,120 @@ final class EvalDeltaBuilder
     }
 
     /**
+     * Grade the captured engine trace against the scenario's
+     * `expected_engine_trace` block (must_contain / must_not_contain /
+     * ordered). Each entry is matched structurally — every key present
+     * in the expected entry must match the trace entry. Dot-paths
+     * (e.g. "context.primary") are supported so deeply-nested context
+     * fields can be asserted without inflating the entry shape.
+     *
+     * @param  list<array<string, mixed>>  $trace
+     * @param  array<string, mixed>  $expected
+     * @return array{must_contain_misses: list<array<string, mixed>>, must_not_contain_hits: list<array<string, mixed>>, ordered_violations: list<string>}
+     */
+    public function gradeEngineTrace(array $trace, array $expected): array
+    {
+        $mustContainMisses = [];
+        foreach ($expected['must_contain'] ?? [] as $expectedEntry) {
+            if (! is_array($expectedEntry)) {
+                continue;
+            }
+            $matched = collect($trace)->contains(fn ($t) => is_array($t) && $this->traceEntryMatches($t, $expectedEntry));
+            if (! $matched) {
+                $mustContainMisses[] = $expectedEntry;
+            }
+        }
+
+        $mustNotContainHits = [];
+        foreach ($expected['must_not_contain'] ?? [] as $forbiddenEntry) {
+            if (! is_array($forbiddenEntry)) {
+                continue;
+            }
+            $matched = collect($trace)->contains(fn ($t) => is_array($t) && $this->traceEntryMatches($t, $forbiddenEntry));
+            if ($matched) {
+                $mustNotContainHits[] = $forbiddenEntry;
+            }
+        }
+
+        $orderedViolations = [];
+        $orderedExpected = $expected['ordered'] ?? [];
+        if (is_array($orderedExpected) && $orderedExpected !== []) {
+            $traceKeys = collect($trace)
+                ->map(fn ($t) => is_array($t) ? $this->traceEntryKey($t) : '')
+                ->all();
+            $cursor = 0;
+            foreach ($orderedExpected as $expectedKey) {
+                if (! is_string($expectedKey)) {
+                    continue;
+                }
+                $found = false;
+                for ($i = $cursor, $n = count($traceKeys); $i < $n; $i++) {
+                    if ($traceKeys[$i] === $expectedKey) {
+                        $cursor = $i + 1;
+                        $found = true;
+                        break;
+                    }
+                }
+                if (! $found) {
+                    $orderedViolations[] = $expectedKey;
+                }
+            }
+        }
+
+        return [
+            'must_contain_misses' => $mustContainMisses,
+            'must_not_contain_hits' => $mustNotContainHits,
+            'ordered_violations' => $orderedViolations,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $traceEntry
+     * @param  array<string, mixed>  $expectedEntry
+     */
+    private function traceEntryMatches(array $traceEntry, array $expectedEntry): bool
+    {
+        foreach ($expectedEntry as $key => $expectedValue) {
+            if (! is_string($key)) {
+                continue;
+            }
+            if (str_contains($key, '.')) {
+                $parts = explode('.', $key);
+                $cursor = $traceEntry;
+                foreach ($parts as $p) {
+                    if (! is_array($cursor) || ! array_key_exists($p, $cursor)) {
+                        return false;
+                    }
+                    $cursor = $cursor[$p];
+                }
+                if ($cursor !== $expectedValue) {
+                    return false;
+                }
+            } else {
+                if (($traceEntry[$key] ?? null) !== $expectedValue) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $traceEntry
+     */
+    private function traceEntryKey(array $traceEntry): string
+    {
+        $event = (string) ($traceEntry['event'] ?? '');
+        $suffix = (string) ($traceEntry['gate']
+            ?? $traceEntry['engine']
+            ?? $traceEntry['decisionPoint']
+            ?? '');
+
+        return $event.':'.$suffix;
+    }
+
+    /**
      * @param  array<string, string>  $failures
      * @param  list<string>  $fixes
      * @return array<string, mixed>
