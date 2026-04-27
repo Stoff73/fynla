@@ -44,6 +44,102 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 
 ---
 
+## Session 99 — eval/live divergence FIXED (Tasks 1, 2, 3, 3b complete) + commit `279bd9b` pushed
+
+**Status:** Sprint 1 S1.10 hard-gate Tasks 1, 2, 3, 3b done. Task 5 (re-record fixtures) is unblocked, code-side prerequisites complete.
+
+### What landed (commit `279bd9b`, pushed to `feature/fyn-persona-split`)
+
+CSJ ran a manual browser test that produced a **different response** than the eval recording on the same model + same question + same prompt. v1 of my audit hand-waved this as "data sparsity, seed eval users from preview personas" — that was wrong. Re-investigated end-to-end and traced it to a concrete wiring bug, then shipped four fixes in one commit:
+
+**Task 1 — Delete `isNewUserWithNoData` + `EmptyDataGuard` branch.** `AdvicePromptBuilder::build:107-126` was swapping layers 5/6/7 (`<financial_context>`, `<existing_records>`, `<data_completeness>`) for an `EmptyDataGuard` block when the user tripped a 4-of-12-modules guard (income / savings / investments / pensions). The eval scenario `advice_protection_cover` seeds 1 protection policy + nothing else → guard returns TRUE → layers 5/6/7 stripped → EmptyDataGuard block forbids the very tools the scenario asserts (`get_module_analysis`, `get_recommendations`). Fix: deleted the branch, the function, the import, and `app/Services/AI/Prompts/EmptyDataGuard.php`. Layers 5/6/7 now render unconditionally on every advice turn. Sparse-data signalling flows entirely through the existing `KycGateChecker` (Layer 9 `<kyc_status>`) and `PrerequisiteGateService` → 5x `DataReadinessService` (Layer 7 `<data_completeness>`) — both of which already track every input field-by-field. Same code path now produces same prompt structure for every user.
+
+**Task 2 (Option A) — Classification-gate `<billing_guidance>`.** Added `QuerySchemas::BILLING` constant + KEYWORD_PATTERNS (invoice/receipt/billing/subscription status/next charge/when am I charged/current plan/my plan) + FACTUAL_TYPES membership + MODULE_MAP entry. Updated `KycGateChecker::check` to bypass KYC for any FACTUAL_TYPES (was just GENERAL). `AdvicePromptBuilder` now only injects the ~830-char billing block when classifier returns BILLING. Token-budget impact: removes ~830 chars from every protection / savings / investment / retirement / estate / goals / affordability / holistic-health turn. BS-16 NOT yet re-walked — needs verification on csjones.co/fynla post-deploy.
+
+**Task 3 — `EvalRecordCommand::seedUser` schema validator.** Uses `Schema::getColumnListing('users')` to validate seed.user keys before `User::create`. Throws `RuntimeException` listing unknown columns with the `annual_income` → `annual_employment_income` example. Catches the prior silent-drop where `annual_income: 50000` in two YAMLs was being lost (no such column on `users`).
+
+**Task 3b — All six `01-query-types/*.yaml` seeded with universal KYC requirements.** Added `date_of_birth`, `marital_status`, `employment_status`, `annual_employment_income`, `monthly_expenditure` to every advice scenario. Replaced dead `annual_income` lines with `annual_employment_income`. Removed bad `expenditure: { monthly_total: 2800 }` block (key wasn't a column on `expenditure_profiles`). Fixed `monthly_premium` → `premium_amount` + `premium_frequency` on the protection scenario's seeded policy. End-to-end verified via tinker: seeded eval user (id=494) returns `KycGateChecker::check` `passed=1, missing=[]` for `protection_cover`. All 10 scenarios pass `php artisan eval:record <id> --dry-run`.
+
+**New regression test:** `tests/Unit/Services/AI/AdvicePromptBuilderStructuralLayersTest.php` — 12 cases / 49 assertions covering: structural layers always render for empty/partial/full users, `<new_user_state>` never re-introduced, same-code-path same-prompt-structure across user shapes, billing classification gate (4 cases).
+
+**Test signal:** `tests/Unit/Services/AI` 91/91 (was 87) + `tests/Architecture` 200/200 + total 204/204 passing (1 skipped, 504 assertions, 0 failures). Three pre-existing failures in `tests/Feature/AI` (`classifyComplexity` null at `HasAiChat:130`) were verified pre-existing by stashing the change and reproducing — unrelated, not blocked by this work.
+
+### Authored documents
+
+- [[April/April27Updates/eval-system-vs-live-flow-audit]] (v2) — root-cause audit. v1 retracted in §7.
+- [[April/April27Updates/fixEvalTask]] — 7-task list with status board, file/line, change, rationale, acceptance.
+
+---
+
+## Next session 100 — Task 5: re-record fixtures
+
+**Status as of session 99 close:** code-side prerequisites for Task 5 are complete. The code path in `AdvicePromptBuilder` no longer swaps layers 5/6/7 out. Eval scenarios all pass dry-run. The seeded eval user passes KYC. Re-recording is now an LLM-token spend, not a debugging exercise.
+
+### 1. Run Task 5 — re-record all 10 fixtures (Sprint 1 S1.2 + S1.7 acceptance)
+
+```bash
+for s in advice_protection_cover advice_savings_emergency advice_investment_isa \
+         advice_retirement_contribution advice_estate_iht advice_goals_affordability \
+         protection_2x_known_providers protection_2x_unknown_providers \
+         savings_3x_mixed pensions_2x_schemes; do
+  php artisan eval:record "$s"
+done
+```
+
+Each recording hits BOTH Anthropic + xAI live providers — budget ~£1–5 total. Inspect each via `/admin → AI → Eval Recordings → View →`. **Verify** in the captured `system_prompt`:
+- `<financial_context>` + `<existing_records>` + `<data_completeness>` wrapper blocks present
+- `<new_user_state>` block ABSENT
+- `<billing_guidance>` block ABSENT (none of the 10 scenarios are billing-classified)
+- `<kyc_status>` contains `KYC CHECK: PASSED` with the per-classification module summary
+
+If any scenario captures a prompt that's missing the wrapper blocks or has `<new_user_state>`, the fix didn't take — investigate before continuing.
+
+### 2. Then BS-16 re-walk to confirm Task 2 (Option A) didn't regress billing UX
+
+Drive "Where's my invoice?" against chris@fynla.org admin. Expect:
+- `QueryClassifier` returns `primary: billing`
+- `<billing_guidance>` block present in the captured system prompt for THIS turn
+- Model calls BOTH `get_subscription_status` AND `list_invoices` in parallel
+- Reply leads with subscription line + `You have N invoices` count phrase
+
+If the classifier doesn't return `billing` for the BS-16 phrasing, add patterns to `QuerySchemas::KEYWORD_PATTERNS[BILLING]`. The current patterns cover invoice/receipt/billing/subscription status/next charge/when am I charged/current plan/my plan — should match "Where's my invoice?".
+
+### 3. Then Task 6 — author `09-canonical-behaviour` regression scenario
+
+`tests/Feature/Fyn/Eval/scenarios/09-canonical-behaviour/empty-data-guard-only-when-truly-empty.yaml`. Asserts a partial-data user gets `<financial_context>` + `<existing_records>` rendered, `<new_user_state>` absent, `get_module_analysis(protection)` called. Requires extending `AssertionHelpers` with `assertSystemPromptContains` / `assertSystemPromptAbsent` (~30 lines). This is the first scenario in the `09-canonical-behaviour` category that the Sprint 1 plan names as merge-blocking.
+
+### 4. Then Task 4 — fix dashboard delta heuristic (independent, can run anytime)
+
+`EvalRecordingController::buildDelta` currently emits "investigate the tool catalogue" hints when no tool calls are made. Add a check before that hint: if the captured `system_prompt` contains `<new_user_state>`, emit a different hint pointing at `isNewUserWithNoData` instead. Belt-and-braces — the function is deleted now, but if someone re-introduces it the dashboard should call them out.
+
+### 5. Backlog tasks NOT touched this session
+
+- Task 3c — surface KYC + DataReadiness state in dashboard (pending)
+- Task 7 — Sprint 1 S1.4 `<known_facts>` block + `MemoryRetrieverService` (pending)
+
+### Hard-gate for Sprint 1 S1.10
+
+Tasks 1, 2, 3, 3b ✅ done. Task 5 (re-record), Task 6 (regression scenario) MUST land before S1.10 verification rollup can honestly green. Tasks 3c, 4 are independent and can ship in parallel.
+
+---
+
+## Pre-existing failure to flag (unrelated to this session)
+
+3 tests in `tests/Feature/AI` fail with `App\Agents\CoordinatingAgent::classifyComplexity(): Argument #2 ($conversationDepth) must be of type int, null given, called in /Users/CSJ/Desktop/fynla/app/Traits/HasAiChat.php on line 130`:
+- `tests/Feature/AI/AssistantHonestyOnWriteFailureTest::it AdviceFyn passes assistant honesty text through unchanged when a write tool fails`
+- `tests/Feature/AI/ConsentRuntimeCheckTest::it allows sendMessage to stream when ai_chat consent is granted`
+- `tests/Feature/AI/ConsentRuntimeCheckTest::it emits consent_required SSE and closes the stream when consent is withdrawn`
+
+The cause is an in-memory `AiConversation` whose `message_count` is null (default Laravel cast doesn't fill non-DB defaults). Fix: either set `message_count = 0` on the in-memory conversation in those test setups, or change the `classifyComplexity` signature to accept `?int $conversationDepth = 0` and coerce. Verified pre-existing by stashing my session 99 changes and reproducing — not caused by Task 1, 2, 3, or 3b.
+
+---
+
+## ARCHIVED — Next session 99 plan (now superseded by Session 99 close above)
+
+The original plan for session 99 (read the system-prompt audit, classification-gate the billing block, record remaining 9 scenarios) is now superseded. The classification-gate landed via Task 2 Option A. Recording remaining scenarios moved to Task 5 in the next-session plan above (now BLOCKED on running the actual recordings, not on code prerequisites).
+
+---
+
 ## Next session 99 — read the system-prompt audit FIRST, then continue Sprint 1 S1.2
 
 **Mandatory first read (in order):**
