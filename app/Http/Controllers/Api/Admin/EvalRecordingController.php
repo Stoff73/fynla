@@ -164,13 +164,12 @@ final class EvalRecordingController extends Controller
     }
 
     /**
-     * Surface the parsed scenario YAML to the frontend. EvalDeltaBuilder
-     * reads the raw new-shape keys directly from this payload so the
-     * controller stays a thin transport.
-     *
-     * Includes legacy-key passthrough for older sessions whose
-     * scenario_yaml predates the S1.2.l rewrite — those keys end up in
-     * the same map but the builder rejects them via assertNoDeprecatedKeys.
+     * Build the expected payload the frontend's "Question asked & expected
+     * response" panel reads (`selectedSession.expected.X`). Returns the
+     * legacy keys (`tool_calls`, `forbidden_tools`, `timing_budget_ms`,
+     * etc.) so the existing Vue components keep rendering, AND the full
+     * parsed YAML alongside so EvalDeltaBuilder can read the new-shape
+     * keys (expected_classification_shape, expected_response_mode, etc.).
      */
     private function parseExpectations(?string $yaml): array
     {
@@ -194,16 +193,52 @@ final class EvalRecordingController extends Controller
             $userMessage = (string) $turns[0]['user'];
         }
 
-        // Surface the full YAML to the builder. The builder reads the new
-        // keys (expected_classification_shape, expected_response_mode, etc.)
-        // and short-circuits on legacy keys via AssertionHelpers.
-        return array_merge(
-            $parsed,
-            [
-                'description' => trim((string) ($parsed['description'] ?? '')),
-                'user_message' => $userMessage,
-                'tags' => $parsed['tags'] ?? [],
-            ],
-        );
+        // Legacy `classifications` — derive from new shape when present so
+        // the frontend's classification chips still populate.
+        $classifications = $parsed['expected_classifications'] ?? null;
+        if ($classifications === null && isset($parsed['expected_classification_shape']['primary'])) {
+            $shape = $parsed['expected_classification_shape'];
+            $classifications = array_values(array_filter(array_merge(
+                [$shape['primary']],
+                is_array($shape['related'] ?? null) ? $shape['related'] : [],
+            )));
+        }
+        $classifications = is_array($classifications) ? $classifications : [];
+
+        // Legacy `sse_events` — derive a flat list of {type: T} from the new
+        // structural rules block so the frontend has something to render.
+        $sseEvents = $parsed['expected_sse_events'] ?? null;
+        if (is_array($sseEvents) && ! array_is_list($sseEvents)) {
+            // New structural shape — convert must_contain_types to legacy list.
+            $types = $sseEvents['must_contain_types'] ?? [];
+            $sseEvents = is_array($types)
+                ? array_map(fn ($t) => ['type' => (string) $t], $types)
+                : [];
+        }
+        $sseEvents = is_array($sseEvents) ? $sseEvents : [];
+
+        // Legacy `timing_budget_ms` — int passthrough; if the new
+        // per-provider per-path map, expose null so the panel hides cleanly
+        // (rendering `[object Object]ms` would look broken).
+        $timingBudgetMs = $parsed['timing_budget_ms'] ?? null;
+        if (is_array($timingBudgetMs)) {
+            $timingBudgetMs = null;
+        }
+
+        return [
+            'description' => trim((string) ($parsed['description'] ?? '')),
+            'user_message' => $userMessage,
+            'classifications' => $classifications,
+            'tool_calls' => $parsed['expected_tool_calls'] ?? [],
+            'sse_events' => $sseEvents,
+            'advice_response' => $parsed['expected_advice_response'] ?? null,
+            'forbidden_outputs' => $parsed['forbidden_outputs'] ?? [],
+            'forbidden_tools' => $parsed['forbidden_tools'] ?? [],
+            'timing_budget_ms' => $timingBudgetMs,
+            'tags' => $parsed['tags'] ?? [],
+            // Full parsed YAML for EvalDeltaBuilder — reads new-shape keys
+            // (expected_classification_shape, expected_response_mode, etc.).
+            '_full' => $parsed,
+        ];
     }
 }

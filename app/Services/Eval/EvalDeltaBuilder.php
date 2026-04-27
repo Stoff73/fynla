@@ -35,20 +35,30 @@ final class EvalDeltaBuilder
     ) {}
 
     /**
-     * @param  array<string, mixed>  $expected  parsed YAML expectations (new shape)
+     * @param  array<string, mixed>  $expected  parsed YAML expectations. May include either
+     *                                          the legacy subset returned by EvalRecordingController::parseExpectations
+     *                                          (with `_full` carrying the full parsed YAML) OR the full YAML directly.
      * @return array<string, mixed>
      */
     public function build(EvalProviderRun $run, array $expected): array
     {
+        // The controller passes the legacy subset with the full YAML under
+        // `_full`. Direct callers (tests, tinker) can pass the full YAML
+        // directly. Normalise so the new-key reads always work.
+        $fullYaml = isset($expected['_full']) && is_array($expected['_full'])
+            ? $expected['_full']
+            : $expected;
+
         // Reject legacy YAMLs up-front — re-record before grading.
-        [$cleanShape, $deprecationMsg] = AssertionHelpers::assertNoDeprecatedKeys($expected);
+        [$cleanShape, $deprecationMsg] = AssertionHelpers::assertNoDeprecatedKeys($fullYaml);
         if (! $cleanShape) {
             return $this->shellDelta(false, [
                 'deprecated_yaml' => $deprecationMsg,
             ], [
                 'Re-record this scenario after the YAML is rewritten to the S1.2.l shape (see eval-expectations-rewrite.md §3).',
-            ]);
+            ], $run);
         }
+        $expected = $fullYaml;
 
         // Compute derived actuals.
         $actualClassification = $this->classifier->classify((string) $run->user_message);
@@ -147,7 +157,14 @@ final class EvalDeltaBuilder
         // failures with operator-readable diagnoses.
         [$hints, $fixes] = $this->buildHintsAndFixes($run, $expected, $actualToolCalls, $failures, $detectedPath);
 
-        return [
+        // Legacy delta fields — the existing Vue dashboard reads these to
+        // render the per-checklist items, side-by-side tool comparison,
+        // timing readout, and SSE missing-types list. Computed from the
+        // SAME data, so the dashboard keeps working unchanged.
+        $legacy = $this->buildLegacyDeltaFields($run, $expected, $actualToolCalls, $detectedPath);
+
+        return array_merge($legacy, [
+            // New asserter outputs — additive on top of the legacy shape.
             'passes' => $failures === [],
             'failures' => $failures,
             'detected_result_path' => $detectedPath,
@@ -161,6 +178,123 @@ final class EvalDeltaBuilder
             'duration_ms' => (int) ($run->duration_ms ?? 0),
             'diagnosis_hints' => $hints,
             'suggested_fixes' => $fixes,
+        ]);
+    }
+
+    /**
+     * Compute the legacy delta keys the existing Vue dashboard reads:
+     *   missing_tools, extra_tools, expected_tools, actual_tools,
+     *   timing_status, timing_budget_ms (single int), timing_overage_ms,
+     *   missing_sse_event_types, expected_sse_event_types.
+     *
+     * Adapted to read both old and new YAML shapes:
+     *   - expected_tool_calls entries use `required: true` to mark a tool
+     *     as mandatory; conditional tools are excluded from missing-tools.
+     *   - timing_budget_ms uses the per-provider per-path map when present
+     *     (looked up by run.provider + detected_path) to give the dashboard
+     *     a single int budget for the run's actual path.
+     *   - expected_sse_event_types reads must_contain_types from the new
+     *     structural rules block, falling back to the old list shape.
+     *
+     * @param  array<string, mixed>  $expected  full parsed YAML
+     * @param  list<array<string, mixed>>  $actualToolCalls
+     * @return array<string, mixed>
+     */
+    private function buildLegacyDeltaFields(
+        EvalProviderRun $run,
+        array $expected,
+        array $actualToolCalls,
+        string $detectedPath,
+    ): array {
+        // Required vs conditional tools — only required tools count toward
+        // missing_tools, so the dashboard's "Required tools called" check
+        // does not flag conditional tools as failures.
+        $requiredToolNames = [];
+        $allExpectedToolNames = [];
+        foreach ($expected['expected_tool_calls'] ?? [] as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+            $name = (string) ($entry['tool'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $allExpectedToolNames[] = $name;
+            $required = $entry['required'] ?? true; // legacy entries default to required
+            if ($required === true) {
+                $requiredToolNames[] = $name;
+            }
+        }
+        $requiredToolNames = array_values(array_unique($requiredToolNames));
+        $allExpectedToolNames = array_values(array_unique($allExpectedToolNames));
+
+        $actualToolNames = array_values(array_unique(array_filter(
+            array_map(fn ($c) => is_array($c) ? ($c['tool'] ?? null) : null, $actualToolCalls),
+        )));
+
+        $missingTools = array_values(array_diff($requiredToolNames, $actualToolNames));
+        $extraTools = array_values(array_diff($actualToolNames, $allExpectedToolNames));
+
+        // Timing — use the per-provider per-path budget when present.
+        $rawBudget = $expected['timing_budget_ms'] ?? null;
+        $duration = (int) ($run->duration_ms ?? 0);
+        $resolvedBudget = null;
+        $timingStatus = 'unknown';
+        $timingOverage = 0;
+        if (is_int($rawBudget) && $rawBudget > 0) {
+            $resolvedBudget = $rawBudget;
+        } elseif (is_array($rawBudget)) {
+            $providerBudget = $rawBudget[(string) $run->provider] ?? null;
+            if (is_array($providerBudget)) {
+                $candidate = $providerBudget[$detectedPath] ?? null;
+                if (is_int($candidate)) {
+                    $resolvedBudget = $candidate;
+                }
+            }
+        }
+        if ($resolvedBudget !== null && $resolvedBudget > 0) {
+            $timingStatus = $duration <= $resolvedBudget ? 'within_budget' : 'over_budget';
+            $timingOverage = max(0, $duration - $resolvedBudget);
+        }
+
+        // SSE — expected types from must_contain_types (new) or pluck (old).
+        $expectedSseEventTypes = [];
+        $sseRules = $expected['expected_sse_events'] ?? null;
+        if (is_array($sseRules)) {
+            if (array_is_list($sseRules)) {
+                // Legacy list: [{type: T}, ...]
+                foreach ($sseRules as $entry) {
+                    if (is_array($entry) && isset($entry['type']) && is_string($entry['type'])) {
+                        $expectedSseEventTypes[] = $entry['type'];
+                    }
+                }
+            } else {
+                // New structural rules block.
+                $types = $sseRules['must_contain_types'] ?? [];
+                if (is_array($types)) {
+                    foreach ($types as $t) {
+                        if (is_string($t)) {
+                            $expectedSseEventTypes[] = $t;
+                        }
+                    }
+                }
+            }
+        }
+        $expectedSseEventTypes = array_values(array_unique($expectedSseEventTypes));
+
+        $actualSseEventTypes = is_array($run->sse_event_types) ? array_keys($run->sse_event_types) : [];
+        $missingSseEventTypes = array_values(array_diff($expectedSseEventTypes, $actualSseEventTypes));
+
+        return [
+            'expected_tools' => $requiredToolNames,
+            'actual_tools' => $actualToolNames,
+            'missing_tools' => $missingTools,
+            'extra_tools' => $extraTools,
+            'timing_budget_ms' => $resolvedBudget,
+            'timing_status' => $timingStatus,
+            'timing_overage_ms' => $timingOverage,
+            'expected_sse_event_types' => $expectedSseEventTypes,
+            'missing_sse_event_types' => $missingSseEventTypes,
         ];
     }
 
@@ -367,9 +501,25 @@ final class EvalDeltaBuilder
      * @param  list<string>  $fixes
      * @return array<string, mixed>
      */
-    private function shellDelta(bool $passes, array $failures, array $fixes): array
+    private function shellDelta(bool $passes, array $failures, array $fixes, ?EvalProviderRun $run = null): array
     {
+        // Even on the deprecated-YAML short-circuit, populate the legacy
+        // dashboard fields with sensible defaults so the Vue checklist
+        // doesn't crash on undefined array reads.
         return [
+            // Legacy fields (Vue dashboard reads these).
+            'expected_tools' => [],
+            'actual_tools' => $run !== null && is_array($run->tool_calls)
+                ? array_values(array_unique(array_filter(array_map(fn ($c) => is_array($c) ? ($c['name'] ?? null) : null, $run->tool_calls))))
+                : [],
+            'missing_tools' => [],
+            'extra_tools' => [],
+            'timing_budget_ms' => null,
+            'timing_status' => 'unknown',
+            'timing_overage_ms' => 0,
+            'expected_sse_event_types' => [],
+            'missing_sse_event_types' => [],
+            // New asserter fields.
             'passes' => $passes,
             'failures' => $failures,
             'detected_result_path' => 'unknown',
@@ -377,10 +527,10 @@ final class EvalDeltaBuilder
             'actual_response_mode' => null,
             'actual_engine_call_level' => null,
             'actual_tool_calls' => [],
-            'actual_sse_event_types' => [],
+            'actual_sse_event_types' => $run !== null && is_array($run->sse_event_types) ? $run->sse_event_types : [],
             'forbidden_tool_hits' => [],
-            'forbidden_output_hits' => [],
-            'duration_ms' => 0,
+            'forbidden_output_hits' => $run !== null && is_array($run->forbidden_hits) ? array_values($run->forbidden_hits) : [],
+            'duration_ms' => $run !== null ? (int) ($run->duration_ms ?? 0) : 0,
             'diagnosis_hints' => array_values($failures),
             'suggested_fixes' => $fixes,
         ];

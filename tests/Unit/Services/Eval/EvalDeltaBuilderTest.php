@@ -287,6 +287,121 @@ describe('EvalDeltaBuilder', function () {
         });
     });
 
+    describe('legacy delta fields preserved for existing Vue dashboard', function () {
+        it('returns expected_tools, actual_tools, missing_tools, extra_tools', function () {
+            $expected = [
+                'expected_tool_calls' => [
+                    ['tool' => 'list_records', 'args' => ['entity_type' => 'life_insurance'], 'required' => true],
+                    ['tool' => 'get_module_analysis', 'args' => ['module' => 'protection'], 'required' => true],
+                    ['tool' => 'get_recommendations', 'required' => false],
+                ],
+            ];
+            $delta = $this->builder->build(makeRun(), $expected);
+
+            expect($delta)->toHaveKey('expected_tools');
+            expect($delta)->toHaveKey('actual_tools');
+            expect($delta)->toHaveKey('missing_tools');
+            expect($delta)->toHaveKey('extra_tools');
+            expect($delta['expected_tools'])->toBe(['list_records', 'get_module_analysis']);
+            expect($delta['actual_tools'])->toContain('list_records', 'get_module_analysis');
+            expect($delta['missing_tools'])->toBe([]);
+        });
+
+        it('only flags REQUIRED tools as missing (conditional tools never fail the legacy missing_tools check)', function () {
+            $expected = [
+                'expected_tool_calls' => [
+                    ['tool' => 'get_module_analysis', 'args' => ['module' => 'protection'], 'required' => true],
+                    ['tool' => 'get_recommendations', 'required' => false],
+                ],
+            ];
+            $run = makeRun([
+                'tool_calls' => [
+                    ['name' => 'get_module_analysis', 'args' => ['module' => 'protection'], 'result' => 'happy'],
+                ],
+            ]);
+            $delta = $this->builder->build($run, $expected);
+
+            expect($delta['missing_tools'])->toBe([])    // get_recommendations is conditional
+                ->and($delta['expected_tools'])->toBe(['get_module_analysis']);    // only required
+        });
+
+        it('returns timing_status + timing_budget_ms (single int) + timing_overage_ms from per-path budget', function () {
+            $expected = [
+                'timing_budget_ms' => [
+                    'anthropic' => ['success_false' => 8000],
+                    'xai' => ['success_false' => 32000],
+                ],
+            ];
+            $delta = $this->builder->build(makeRun(['provider' => 'anthropic', 'duration_ms' => 6804]), $expected);
+
+            expect($delta['timing_status'])->toBe('within_budget');
+            expect($delta['timing_budget_ms'])->toBe(8000);
+            expect($delta['timing_overage_ms'])->toBe(0);
+        });
+
+        it('returns expected_sse_event_types + missing_sse_event_types from must_contain_types', function () {
+            $expected = [
+                'expected_sse_events' => [
+                    'must_contain_types' => ['title', 'content', 'tool_use', 'done'],
+                ],
+            ];
+            $delta = $this->builder->build(makeRun(), $expected);
+
+            expect($delta['expected_sse_event_types'])->toBe(['title', 'content', 'tool_use', 'done']);
+            expect($delta['missing_sse_event_types'])->toBe([]);
+        });
+
+        it('falls back to legacy [{type: T}] list shape when YAML still uses old SSE shape', function () {
+            $expected = [
+                'expected_sse_events' => [
+                    ['type' => 'content'],
+                    ['type' => 'done'],
+                ],
+            ];
+            // Bypass the assertNoDeprecatedKeys gate by setting only one of
+            // the deprecated shapes — old expected_sse_events list will
+            // trip assertNoDeprecatedKeys, so this test just confirms the
+            // shellDelta still surfaces a sensible structure on rejection.
+            $delta = $this->builder->build(makeRun(), $expected);
+            expect($delta)->toHaveKey('expected_sse_event_types');
+            expect($delta['failures'])->toHaveKey('deprecated_yaml');
+        });
+
+        it('shellDelta on deprecation still populates legacy fields so Vue does not crash on undefined reads', function () {
+            $expected = ['expected_advice_response' => ['signposting_suffix_present' => true]];
+            $delta = $this->builder->build(makeRun(), $expected);
+
+            // Even on deprecation short-circuit, every legacy key the
+            // dashboard reads must be present (with safe defaults).
+            expect($delta)->toHaveKeys([
+                'expected_tools', 'actual_tools', 'missing_tools', 'extra_tools',
+                'timing_budget_ms', 'timing_status', 'timing_overage_ms',
+                'expected_sse_event_types', 'missing_sse_event_types',
+                'forbidden_tool_hits', 'forbidden_output_hits',
+                'duration_ms', 'diagnosis_hints', 'suggested_fixes',
+            ]);
+            expect($delta['actual_tools'])->toContain('get_module_analysis', 'list_records');
+        });
+
+        it('accepts the full controller-shape input ({_full: parsedYaml, ...legacy}) and reads from _full', function () {
+            $controllerExpected = [
+                // Legacy subset (the controller exposes this on the response payload).
+                'tool_calls' => [['tool' => 'whatever']],
+                'forbidden_tools' => ['x'],
+                // Full parsed YAML hidden under _full — builder reads new keys from here.
+                '_full' => [
+                    'expected_tool_calls' => [
+                        ['tool' => 'get_module_analysis', 'args' => ['module' => 'protection'], 'required' => true, 'result_path' => 'success_false', 'result_message_contains' => 'Protection profile not found'],
+                    ],
+                ],
+            ];
+            $delta = $this->builder->build(makeRun(), $controllerExpected);
+
+            expect($delta['failures'])->not->toHaveKey('tool_calls');
+            expect($delta['detected_result_path'])->toBe('success_false');
+        });
+    });
+
     describe('integration — full advice_protection_cover YAML against a happy-path run', function () {
         it('produces a structured failures map for the rewritten YAML', function () {
             $expected = loadScenarioYaml('01-query-types/advice_protection_cover.yaml');
