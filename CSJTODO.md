@@ -31,7 +31,9 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 
 ---
 
-*Last updated: 27 April 2026 — session 97 end (TWO deliverables: (1) D4 retention-policy close — `docs/audit-retention-policy.md` authored (single-page policy mirroring the as-shipped `AiAuditRetentionJob`: 7-year advice / 2-year general, deletion-not-mutation rationale, weekly Sunday 04:00 UTC schedule, adjacent retention policies referenced for context). (2) Path (b) screenshot migration — 11 GREEN-evidence files migrated from gitignored `April/April24Updates/plan/batch{1,2}/BS-NN/` to canonical `docs/sprint-0-verification/BS-NN/` for BS-11/12/14/16/20. BS-14's 11 walk-residue files (including anti-discipline `07-after-jseval-click.png` / `05-after-pressSequentially.png` artefacts) intentionally NOT committed — they are bug-discovery evidence for the S0.5.r/s/t fix loop, not GREEN contract proof. Each scenario's docblock had script-section path declarations + delivery-note path references updated to canonical paths. Rubric-A re-scored: D4 level 2 → **3**, total **12/40 → 13/40**, **in spec target band (13-15)**. The Sprint 0 acceptance #5 score floor (≥13/40) is now satisfied. Browser matrix table in `rubric-a-score.md` now shows ALL committed scenarios at canonical paths; "Migration debt" callout replaced with "Migration to canonical path (closed session 97)" closing note. No code changes; no Pest run needed (docs + screenshots + docblock comments only). Per CSJ direction this turn: defer path (c) `feature → dev` PR, move directly to Sprint 1 next session.)*
+*Last updated: 27 April 2026 — session 98 end (Sprint 1 S1.1 + most of S1.2 in flight from prior sessions; this session shipped: (1) **Eval admin viewer + delta report** at `/admin → AI → Eval Recordings` — scenario × provider matrix, side-by-side run panels with PASS/FAIL banner, expected→actual tool comparison, root-cause diagnosis, suggested fixes, lazy-load modals for full system prompt + raw JSONL fixture. (2) **Tool-name capture bug fix** in `EvalRecordCommand::extractToolCalls` — now reads from `AiMessage.metadata.tool_calls` (canonical, with args + result_summary) instead of SSE events (which only carry name + status). Backfilled the existing run. (3) **Scenario 1 (`advice_protection_cover`) recorded live** against Anthropic Haiku 4.5 + xAI Grok-4-1-fast-reasoning. Both FAIL the rubric: Haiku calls `list_records` 3× instead of expected `get_module_analysis` + `get_recommendations` (and is 275ms over the 5000ms timing budget); Grok makes zero tool calls. Forensic record at `eval_recording_sessions #5`, fixtures at `tests/Feature/Fyn/Eval/fixtures/{anthropic,xai}/.../advice_protection_cover.jsonl`. Commit `6649b1a` pushed to `feature/fyn-persona-split`. (4) **System prompt audit** authored at `April/April27Updates/system-prompt-audit.md` after CSJ inspected the captured prompt and flagged the unconditional `<billing_guidance>` block. Audit findings: layered system is alive (16 XML sections present), 5 layers correctly classification-gated, but `<billing_guidance>` was added unconditionally on 2026-04-26 03:40 in commit `c51e7ff` to make BS-16 GREEN — single-line fix at `AdvicePromptBuilder.php:99` to gate it on classification. `<known_facts>` is correctly absent because S1.4 (`MemoryRetrieverService`) hasn't shipped yet. Scenarios 2-10 NOT yet recorded — DEFERRED to session 99. Tech-debt session check NOT run — DEFERRED. Vault sync NOT run — DEFERRED.)*
+
+*Previous session: 27 April 2026 — session 97 end (TWO deliverables: (1) D4 retention-policy close — `docs/audit-retention-policy.md` authored (single-page policy mirroring the as-shipped `AiAuditRetentionJob`: 7-year advice / 2-year general, deletion-not-mutation rationale, weekly Sunday 04:00 UTC schedule, adjacent retention policies referenced for context). (2) Path (b) screenshot migration — 11 GREEN-evidence files migrated from gitignored `April/April24Updates/plan/batch{1,2}/BS-NN/` to canonical `docs/sprint-0-verification/BS-NN/` for BS-11/12/14/16/20. BS-14's 11 walk-residue files (including anti-discipline `07-after-jseval-click.png` / `05-after-pressSequentially.png` artefacts) intentionally NOT committed — they are bug-discovery evidence for the S0.5.r/s/t fix loop, not GREEN contract proof. Each scenario's docblock had script-section path declarations + delivery-note path references updated to canonical paths. Rubric-A re-scored: D4 level 2 → **3**, total **12/40 → 13/40**, **in spec target band (13-15)**. The Sprint 0 acceptance #5 score floor (≥13/40) is now satisfied. Browser matrix table in `rubric-a-score.md` now shows ALL committed scenarios at canonical paths; "Migration debt" callout replaced with "Migration to canonical path (closed session 97)" closing note. No code changes; no Pest run needed (docs + screenshots + docblock comments only). Per CSJ direction this turn: defer path (c) `feature → dev` PR, move directly to Sprint 1 next session.)*
 
 *Previous session: 26 April 2026 — session 96 end (S0.17 CLOSED — Sprint 0 verification rollup complete. All five acceptance criteria satisfied: (1) full `./vendor/bin/pest` GREEN at **2,972 passed / 12,549 assertions / 0 failures / 412.79s** (20 skipped browser stubs, intentional); (2) `./vendor/bin/pest --testsuite=Architecture` GREEN at **16 passed / 303 assertions / 0 failures / 42.65s** after one bug-fix-in-loop to `tests/Architecture/PersonaMachineryAbsentTest.php` — added `uses(Tests\TestCase::class)` so the test bootstraps Laravel rather than relying on leakage from prior Feature/Unit tests in the full sweep; (3) `php artisan ai:audit:verify-chain` → `chain_valid:true, tip_hash:36251a0fcc03a986692bf16c450da1f8b21587fb82e48cdd6b3d503fc88561ab, row_count:76`; (4) browser matrix 20/20 scenario files present, 17 GREEN with delivery notes + screenshots committed, BS-18 PARTIAL deferred to post-deploy, BS-22 DROPPED, BS-05 DEFERRED to PSP — full inventory in rubric doc; (5) Rubric-A re-score published at `docs/sprint-0-verification/rubric-a-score.md` — **12/40, 🔴 Pre-launch (still)**, one point shy of the 13-15 spec target band. Three dimensions on the cusp of next level (D4 audit, D6 reliability, D7 provider risk) each missing one sub-criterion. **Recommended pre-deploy follow-up**: author `docs/audit-retention-policy.md` (single page, 7-year advice / 2-year general retention) to push D4 to level 3 and the total to 13/40 — closes the spec target before the dev deploy. Sprint 0 is complete. Session 97 should pick: (a) author the retention policy doc + open `feature → dev` PR, OR (b) the migration-debt cleanup for BS-11/12/14/16/20 screenshots from legacy `April/April24Updates/plan/batch*/` to canonical `docs/sprint-0-verification/`, OR (c) start Sprint 1 (eval harness + memory model + `<known_facts>`).)*
 
@@ -42,9 +44,92 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 
 ---
 
-## Next session 98 — start Sprint 1
+## Next session 99 — read the system-prompt audit FIRST, then continue Sprint 1 S1.2
 
-Sprint 0 is complete (S0.17 closed session 96 + path (a) D4 retention-policy doc + path (b) screenshot migration both closed session 97). Rubric-A is **13/40, in spec target band (13-15)**. Path (c) `feature → dev` PR has been deferred per CSJ direction 2026-04-27 — Sprint 1 starts next, deploy gate runs in parallel or after.
+**Mandatory first read (in order):**
+
+1. `April/April27Updates/system-prompt-audit.md` — full audit triggered by CSJ's session-98 inspection of the captured system prompt. Documents: why `<billing_guidance>` is unconditionally injected (commit `c51e7ff` 2026-04-26 03:40, BS-16 GREEN trade-off); why `<known_facts>` is absent (S1.4 not shipped); ranked fixes (smallest is a single-line classification gate at `AdvicePromptBuilder.php:99`). **Do not start any prompt-builder work without reading this end-to-end.**
+2. This file top-to-bottom (incl. the ⛔ pre-flight block above).
+3. `MEMORY.md` "Top laws" — especially Rule #15 LOOP UNTIL CORRECT.
+4. `April/April24Updates/spec/11-sprint-1-plan.md §S1.2` (gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/11-sprint-1-plan.md`) — Sprint 1 S1.2 acceptance: `./vendor/bin/pest tests/Feature/Fyn/Eval/ --testsuite=Eval` 10/10 PASS on mocked mode, requires 10 fixtures recorded.
+
+**Outstanding work, ranked:**
+
+### 1. Land the system-prompt billing-gate fix (smallest blast radius, highest value)
+
+Per the audit's ranked fix #1: change `AdvicePromptBuilder.php:99` to classification-gate the `<billing_guidance>` block. Sequence:
+
+1. Grep `app/Constants/QuerySchemas.php` for the canonical billing classification constant (`BILLING`, `INVOICE`, `SUBSCRIPTION`, `BILLING_INVOICE` — name TBD on read).
+2. Add a tiny private helper `isBillingClassification(?array $classification): bool` in `AdvicePromptBuilder`.
+3. Change the `if (! $isPreview)` at line 99 to also require billing classification.
+4. Re-run BS-16 in the browser to confirm GREEN holds. If it regresses, escalate to fix #2 (move shape rules into tool descriptions — `AiToolDefinitions.php` + `XaiToolDefinitions.php`).
+5. Re-record `advice_protection_cover` (and any non-billing scenario) — confirm `<billing_guidance>` is no longer in the prompt. The two failure findings (Haiku → `list_records`, Grok → zero tools) may shift once the prompt is leaner.
+6. Pest must stay green; `./vendor/bin/pest` full sweep before commit.
+
+### 2. Continue Sprint 1 S1.2 — record fixtures for the remaining 9 scenarios
+
+10 scenarios authored (6 query-type + 4 multi-entity); 1 recorded (`advice_protection_cover`); 9 to record. The eval admin viewer is now in place, so each recording can be inspected via the UI at `/admin → AI → Eval Recordings → View →`.
+
+Remaining scenarios to record:
+
+- `advice_savings_emergency` (01-query-types)
+- `advice_investment_isa` (01-query-types)
+- `advice_retirement_contribution` (01-query-types)
+- `advice_estate_iht` (01-query-types)
+- `advice_goals_affordability` (01-query-types)
+- `protection_2x_known_providers` (03-multi-entity)
+- `protection_2x_unknown_providers` (03-multi-entity)
+- `savings_3x_mixed` (03-multi-entity)
+- `pensions_2x_schemes` (03-multi-entity)
+
+Command: `php artisan eval:record <scenario_id>` (records both providers).
+
+**Do this AFTER fix #1 lands** so the recordings reflect the gated billing layer (cleaner baseline). Each recording costs real Anthropic + xAI tokens — budget ~£1–5 total for the nine scenarios.
+
+### 3. Tech-debt-session audit on session-98 changes (deferred)
+
+Session 98 changed/added 12 files (1259 insertions, 24 deletions) but the `/tech-debt-session` skill was not run at session end. Run it against the diff in commit `6649b1a` before merging to dev. Files in scope:
+
+- `app/Console/Commands/EvalRecordCommand.php` (modified — extractToolCalls rewrite)
+- `app/Http/Controllers/Api/Admin/EvalRecordingController.php` (new)
+- `resources/js/components/Admin/EvalRecordings.vue` + `eval/{ProviderCell,RunPanel,ChecklistItem,EvalDataModal}.vue` (new)
+- `resources/js/services/evalRecordingService.js` (new)
+- `resources/js/views/Admin/AdminPanel.vue` (modified — new tab)
+- `routes/api.php` (modified — 3 new admin routes)
+
+### 4. Vault sync (deferred from session 98)
+
+`/vault-sync` skill not run at session 98 end. Run at session 99 start so the system-prompt audit doc lands in the vault and the codebase metrics in `CLAUDE.md` reflect the current LOC/Vue/PHP counts.
+
+---
+
+## Sprint 1 status (carried)
+
+Sprint 0 is complete (S0.17 closed session 96 + path (a) D4 retention-policy doc + path (b) screenshot migration both closed session 97). Rubric-A is **13/40, in spec target band (13-15)**. Path (c) `feature → dev` PR remains deferred — bundle with the first Sprint 1 sub-task that touches code.
+
+**Sprint 1 progress to date** (across sessions 97 + 98):
+
+- [x] **S1.1 — Eval harness scaffold + scenario category directories** (commit `30ca5fa`).
+- [x] **S1.2.1–S1.2.4** — Map QuerySchemas constants, author 6 query-type YAMLs, author 4 multi-entity YAMLs, model-aware fixture path/client (commits `0bb878c`, `7fe4a8c`, earlier).
+- [x] **Forensic recording store** — eval users + sessions + provider runs migration (commit `6c703df`, fixed FK order in `a09853c`).
+- [x] **eval:record + eval:show + eval:purge artisan commands** (commits `2bd99f2`, `4ff2826`, `c133dde`).
+- [x] **Admin web viewer + delta report** (session 98, commit `6649b1a`) — NEW SCOPE on top of the plan, but de-risks recording the remaining 9 scenarios since CSJ can inspect each one in browser.
+- [x] **Tool-name capture bug fix** (session 98, commit `6649b1a`).
+- [x] **Scenario 1 recorded live, both providers** (session 98) — flagged as 2× FAIL with diagnosis hints + suggested fixes in the viewer.
+- [ ] **Billing layer classification gate** (session 99 — fix #1 above).
+- [ ] **Scenarios 2–10 recorded** (session 99 — after fix #1).
+- [ ] **S1.3 — Conversation index schema + summariser job.**
+- [ ] **S1.4 — `MemoryRetrieverService` + `<known_facts>` block.**
+- [ ] **S1.5 — `search_conversation_index` tool.**
+- [ ] **S1.6 — `advice_response` SSE event + `AdviceResponsePanel.vue`.**
+- [ ] **S1.7 — Expand eval to 30 scenarios.**
+- [ ] **S1.8 — Advice Fyn response-mode classifier.**
+- [ ] **S1.9 — Sprint 1 Playwright matrix.**
+- [ ] **S1.10 — Sprint 1 verification rollup.**
+
+---
+
+## Sprint 1 high-level scope (carried — original session-97 framing)
 
 **Sprint 1 plan source of truth:** `April/April24Updates/spec/11-sprint-1-plan.md` (gitignored — vault mirror at `/Users/CSJ/Desktop/fynlaBrain/April/April24Updates/plan/11-sprint-1-plan.md`). Read this before touching anything.
 
