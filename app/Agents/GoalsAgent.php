@@ -67,6 +67,9 @@ class GoalsAgent extends BaseAgent
             $bestStreak = $goals->max('contribution_streak') ?? 0;
             $longestEverStreak = $goals->max('longest_streak') ?? 0;
 
+            // S1.6.b — structured gap list for the LLM.
+            $missingForQualityAdvice = $this->findMissingForQualityAdvice($activeGoals, $affordability);
+
             return [
                 'has_goals' => true,
                 'summary' => $summary,
@@ -79,8 +82,50 @@ class GoalsAgent extends BaseAgent
                 ],
                 'completed_count' => $completedGoals->count(),
                 'goals_count' => $goals->count(),
+                'missing_for_quality_advice' => $missingForQualityAdvice,
             ];
         });
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice($activeGoals, array $affordability): array
+    {
+        $gaps = [];
+
+        $missingContribution = $activeGoals->filter(
+            fn ($g) => ! $g->monthly_contribution || (float) $g->monthly_contribution <= 0,
+        );
+        if ($missingContribution->isNotEmpty()) {
+            $names = $missingContribution->pluck('goal_name')->take(3)->implode(', ');
+            $gaps[] = [
+                'field' => 'goals.monthly_contribution',
+                'why' => "{$missingContribution->count()} active goal(s) have no monthly contribution set ({$names}). Time-to-target cannot be projected.",
+                'severity' => 'soft',
+            ];
+        }
+
+        $missingTargetDate = $activeGoals->filter(fn ($g) => $g->target_date === null);
+        if ($missingTargetDate->isNotEmpty()) {
+            $gaps[] = [
+                'field' => 'goals.target_date',
+                'why' => "{$missingTargetDate->count()} active goal(s) have no target date — on-track status cannot be assessed.",
+                'severity' => 'soft',
+            ];
+        }
+
+        if (($affordability['status'] ?? '') === 'overcommitted') {
+            $gaps[] = [
+                'field' => 'goals.affordability',
+                'why' => 'Goal commitments exceed available surplus — the user needs to reprioritise or adjust contributions.',
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**

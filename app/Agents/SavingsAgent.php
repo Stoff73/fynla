@@ -149,6 +149,10 @@ class SavingsAgent extends BaseAgent
             // Per-child Junior ISA status
             $childrenSavings = $this->buildChildrenSavingsStatus($user, $accounts);
 
+            // S1.6.b — structured gap list for the LLM to ask about,
+            // computed from already-loaded data (no extra queries).
+            $missingForQualityAdvice = $this->findMissingForQualityAdvice($user, $resolved, $accounts);
+
             return [
                 'summary' => [
                     'total_savings' => $this->roundToPenny($totalSavings),
@@ -183,8 +187,54 @@ class SavingsAgent extends BaseAgent
                     ]),
                 ],
                 'children_savings' => $childrenSavings,
+                'missing_for_quality_advice' => $missingForQualityAdvice,
             ];
         }, null, ['savings', 'user_'.$userId]);
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @param  array{amount: float, source: string, label: string}  $resolvedExpenditure
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(?User $user, array $resolvedExpenditure, $accounts): array
+    {
+        $gaps = [];
+
+        if ($resolvedExpenditure['source'] === 'none' || $resolvedExpenditure['amount'] <= 0) {
+            $gaps[] = [
+                'field' => 'monthly_expenditure',
+                'why' => 'Emergency-fund runway and target amount cannot be calculated without monthly outgoings.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($user && empty($user->employment_status)) {
+            $gaps[] = [
+                'field' => 'employment_status',
+                'why' => 'Self-employed and contractor users need 9 months of cover; the default falls back to 6 without this field.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($user && $user->marital_status === 'married' && $user->spouse === null) {
+            $gaps[] = [
+                'field' => 'spouse_link',
+                'why' => 'Joint emergency-fund planning needs the spouse profile linked.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($accounts->isEmpty()) {
+            $gaps[] = [
+                'field' => 'savings_accounts',
+                'why' => 'No savings accounts are recorded — runway, ISA usage, and rate comparison are all empty.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**

@@ -283,6 +283,14 @@ class EstateAgent extends BaseAgent
                 'will_executor' => isset($will) ? ($will->executor_name ?? null) : null,
             ];
 
+            // S1.6.b — structured gap list for the LLM.
+            $missingForQualityAdvice = $this->findMissingForQualityAdvice(
+                $user,
+                $assetSummary,
+                $allLifePolicies,
+                $will ?? null,
+            );
+
             return $this->response(
                 true,
                 'Estate analysis completed successfully.',
@@ -320,9 +328,58 @@ class EstateAgent extends BaseAgent
                         'has_spouse' => $user->spouse !== null,
                     ],
                     'user_context' => $userContext,
+                    'missing_for_quality_advice' => $missingForQualityAdvice,
                 ]
             );
         }, null, $cacheTags);
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(
+        User $user,
+        array $assetSummary,
+        $lifePolicies,
+        $will,
+    ): array {
+        $gaps = [];
+
+        if (($assetSummary['gross_estate'] ?? 0) <= 0) {
+            $gaps[] = [
+                'field' => 'estate_assets',
+                'why' => 'No estate assets recorded — Inheritance Tax liability cannot be calculated.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($user->marital_status === 'married' && $user->spouse === null) {
+            $gaps[] = [
+                'field' => 'spouse_link',
+                'why' => 'Spouse exemption and the transferable Nil Rate Band depend on the spouse profile being linked.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($will === null || ! ($will->has_will ?? false)) {
+            $gaps[] = [
+                'field' => 'will',
+                'why' => 'Without a recorded Will, executor, beneficiaries, and bequest structure cannot be assessed.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($lifePolicies->isEmpty() && ($assetSummary['gross_estate'] ?? 0) > $this->taxConfig->getInheritanceTax()['nil_rate_band']) {
+            $gaps[] = [
+                'field' => 'life_cover',
+                'why' => 'Estate exceeds the Nil Rate Band but no life cover is recorded — a written-in-trust policy is a common Inheritance Tax mitigation route.',
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**

@@ -223,6 +223,15 @@ class RetirementAgent extends BaseAgent
                 }
             }
 
+            // S1.6.b — structured gap list for the LLM.
+            $missingForQualityAdvice = $this->findMissingForQualityAdvice(
+                $user,
+                $profile,
+                $statePension,
+                $dcPensions,
+                $dbPensions,
+            );
+
             return $this->response(true, 'Retirement analysis completed', [
                 'summary' => $summary,
                 'income_projection' => $incomeProjection,
@@ -231,8 +240,58 @@ class RetirementAgent extends BaseAgent
                 'profile' => $profile,
                 'decumulation' => $decumulation,
                 'post_retirement_goals' => $postRetirementGoals,
+                'missing_for_quality_advice' => $missingForQualityAdvice,
             ]);
         }, null, $cacheTags);
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(
+        User $user,
+        RetirementProfile $profile,
+        $statePension,
+        Collection $dcPensions,
+        Collection $dbPensions,
+    ): array {
+        $gaps = [];
+
+        if ((float) ($profile->target_retirement_income ?? 0) <= 0) {
+            $gaps[] = [
+                'field' => 'target_retirement_income',
+                'why' => 'Income gap and contribution recommendations are computed against a target — without it the projection has nothing to aim at.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($dcPensions->isEmpty() && $dbPensions->isEmpty() && $statePension === null) {
+            $gaps[] = [
+                'field' => 'pension_records',
+                'why' => 'No DC, DB, or State Pension recorded — there is nothing to project retirement income from.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($statePension === null) {
+            $gaps[] = [
+                'field' => 'state_pension',
+                'why' => 'A State Pension forecast (NI years + state pension age) materially changes the projected income.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($user->marital_status === 'married' && $profile->spouse_life_expectancy === null) {
+            $gaps[] = [
+                'field' => 'spouse_life_expectancy',
+                'why' => 'Joint-life decumulation planning depends on the spouse life expectancy.',
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**

@@ -135,6 +135,12 @@ class ProtectionAgent extends BaseAgent
             // Check profile completeness
             $profileCompleteness = $this->completenessChecker->checkCompleteness($user);
 
+            // S1.6.b — surface gaps the LLM should ask the user about for
+            // quality advice. Blocking gaps mean a calculation could not
+            // complete; soft gaps mean the answer would be more accurate
+            // with the missing data.
+            $missingForQualityAdvice = $this->findMissingForQualityAdvice($user, $profile);
+
             // Calculate goal commitments for coverage consideration
             $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
             $goalCommitments = [
@@ -228,9 +234,64 @@ class ProtectionAgent extends BaseAgent
                         ]),
                     ],
                     'profile_completeness' => $profileCompleteness,
+                    'missing_for_quality_advice' => $missingForQualityAdvice,
                 ]
             );
         }, null, $cacheTags);
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b). Returned alongside the regular
+     * analysis payload so the LLM has structured "ask the user about X"
+     * entries instead of inferring from soft prompt cues.
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(User $user, $profile): array
+    {
+        $gaps = [];
+
+        if ((float) ($profile->monthly_expenditure ?? 0) <= 0) {
+            $gaps[] = [
+                'field' => 'monthly_expenditure',
+                'why' => 'Family income protection need is calculated from monthly outgoings.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($profile->employer_name && $profile->death_in_service_multiple === null) {
+            $gaps[] = [
+                'field' => 'death_in_service_multiple',
+                'why' => 'Employer death-in-service cover affects how much additional life cover is needed.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($profile->employer_name && $profile->group_ip_benefit_percent === null) {
+            $gaps[] = [
+                'field' => 'group_ip_benefit_percent',
+                'why' => 'Employer income protection reduces the gap a personal policy needs to fill.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($user->marital_status === 'married' && $user->spouse === null) {
+            $gaps[] = [
+                'field' => 'spouse_link',
+                'why' => 'A linked spouse profile lets coverage be analysed at the household level.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($profile->number_of_dependents === null) {
+            $gaps[] = [
+                'field' => 'number_of_dependents',
+                'why' => 'The number of financial dependants drives the income-replacement target.',
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**

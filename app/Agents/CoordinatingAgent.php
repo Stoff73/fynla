@@ -3361,48 +3361,39 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
-     * Summarise analysis data for tool result.
+     * Validate raw module analysis against the per-agent contract (S1.6.b)
+     * and return the verbatim payload as a tool_result. The previous
+     * implementation silently dropped everything outside a 15-key whitelist;
+     * the new implementation hands the LLM the structured agent output it
+     * was supposed to see all along.
+     *
+     * On contract violation the LLM receives an explicit error tool result
+     * — not a malformed shape — so it degrades by asking the user for
+     * clarification rather than fabricating around missing data.
      */
     private function summariseToolAnalysis(string $module, array $analysis): array
     {
         if (isset($analysis['error'])) {
-            return $analysis;
+            return ['module' => $module] + $analysis;
         }
 
-        $summary = ['module' => $module];
+        try {
+            return app(\App\Services\AI\ToolResultContract::class)->validate($module, $analysis);
+        } catch (\App\Services\AI\ToolResultContractException $e) {
+            \Illuminate\Support\Facades\Log::error('[CoordinatingAgent] Tool result contract violation', [
+                'module' => $module,
+                'context' => $e->context,
+                'missing_keys' => $e->missingKeys,
+                'present_keys' => $e->presentKeys,
+                'message' => $e->getMessage(),
+            ]);
 
-        if (isset($analysis['data'])) {
-            $data = $analysis['data'];
-            $summary['metrics'] = $this->extractKeyMetrics($data);
-            $summary['recommendations'] = array_slice($data['recommendations'] ?? [], 0, 5);
-        } elseif (isset($analysis['summary'])) {
-            $summary['metrics'] = $analysis['summary'];
-            $summary['recommendations'] = array_slice($analysis['ranked_recommendations'] ?? [], 0, 5);
-        } else {
-            $summary['metrics'] = $analysis;
+            return [
+                'module' => $module,
+                'error' => 'module_analysis_contract_violation',
+                'detail' => 'The module analysis returned a malformed shape and was blocked. Ask the user for clarification rather than relying on this result.',
+            ];
         }
-
-        return $summary;
-    }
-
-    private function extractKeyMetrics(array $data): array
-    {
-        $metrics = [];
-        $keyFields = [
-            'total_value', 'total_cover', 'coverage_gaps', 'net_worth',
-            'monthly_surplus', 'emergency_fund_months', 'pension_projection',
-            'iht_liability', 'total_savings', 'total_investments',
-            'retirement_income', 'target_income', 'shortfall',
-            'risk_score', 'asset_allocation', 'progress_percentage',
-        ];
-
-        foreach ($keyFields as $field) {
-            if (isset($data[$field])) {
-                $metrics[$field] = $data[$field];
-            }
-        }
-
-        return $metrics;
     }
 
     // ─── Additional creation tool handlers ──────────────────────────────

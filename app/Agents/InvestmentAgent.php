@@ -129,6 +129,14 @@ class InvestmentAgent extends BaseAgent
                 'has_offshore_bond' => $accounts->where('account_type', 'offshore_bond')->isNotEmpty(),
             ];
 
+            // S1.6.b — structured gap list for the LLM to ask about.
+            $missingForQualityAdvice = $this->findMissingForQualityAdvice(
+                $riskProfile,
+                $holdings,
+                $goals,
+                $accounts,
+            );
+
             return [
                 'portfolio_summary' => [
                     'total_value' => round($totalValue, 2),
@@ -159,8 +167,54 @@ class InvestmentAgent extends BaseAgent
                         'target_date' => $goal->target_date->format('Y-m-d'),
                     ];
                 }),
+                'missing_for_quality_advice' => $missingForQualityAdvice,
             ];
         }, null, ['investment', 'user_'.$userId]);
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(?RiskProfile $riskProfile, $holdings, $goals, $accounts): array
+    {
+        $gaps = [];
+
+        if ($riskProfile === null) {
+            $gaps[] = [
+                'field' => 'risk_profile',
+                'why' => 'A risk profile is needed to compare current allocation against a target and to suggest rebalancing.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($holdings->isEmpty() && $accounts->isNotEmpty()) {
+            $gaps[] = [
+                'field' => 'holdings',
+                'why' => 'Investment accounts are recorded but no holdings — diversification, fees, and tax efficiency cannot be analysed.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($goals->isEmpty()) {
+            $gaps[] = [
+                'field' => 'investment_goals',
+                'why' => 'Without a goal, projections cannot be tied to a target amount or date.',
+                'severity' => 'soft',
+            ];
+        }
+
+        $missingOcfHoldings = $holdings->filter(fn ($h) => empty($h->ocf) || (float) $h->ocf <= 0);
+        if ($holdings->isNotEmpty() && $missingOcfHoldings->isNotEmpty()) {
+            $gaps[] = [
+                'field' => 'holdings.ocf',
+                'why' => "{$missingOcfHoldings->count()} holding(s) have no ongoing charges figure — fee analysis is incomplete.",
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**
