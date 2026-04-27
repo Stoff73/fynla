@@ -1,10 +1,15 @@
 id: protection_2x_unknown_providers
 category: 03-multi-entity
 description: |
-  Onboarding asset_capture: user dictates two protection policies with two
-  UNKNOWN (off-list) providers. Tests that recall is preserved without
-  matching against the KNOWN_PROVIDERS list — value accuracy and cross-entity
-  consistency must hold even when provider names are unfamiliar.
+  Onboarding asset_capture turn (NOT advice). User dictates two
+  protection policies with two UNKNOWN (off-list) providers. Tests
+  that recall is preserved without matching against any KNOWN_PROVIDERS
+  list — `provider` is a free-text string. Value accuracy and
+  cross-entity consistency must hold even when provider names are
+  unfamiliar.
+
+  Dispatches to OnboardingChatDirector::handleUserMessage; AdviceFyn /
+  KYC / ProtectionAgent are bypassed.
 
 input:
   turns:
@@ -17,34 +22,53 @@ seed:
     onboarding_completed: false
     onboarding_fyn_step: asset_capture
 
-expected_classifications:
-  - data_entry
+expected_classification_shape:
+  primary: data_entry
+  related: []
+  modules: []
+
+expected_response_mode: factual
+expected_engine_call_level: factual
+expected_kyc_state: bypass
 
 expected_tool_calls:
   - tool: create_protection_policy
     args: { provider: Quilter Mutual, policy_type_group: life, sum_assured: 250000 }
+    required: true
+    result_path: success
   - tool: create_protection_policy
     args: { provider: Holloway Friendly, policy_type_group: income_protection, sum_assured: 180000 }
+    required: true
+    result_path: success
 
 expected_sse_events:
-  - { type: tool_use, name: create_protection_policy }
-  - { type: entity_created, entity_type: protection_policy }
-  - { type: tool_use, name: create_protection_policy }
-  - { type: entity_created, entity_type: protection_policy }
-  - { type: content }
-  - { type: done }
+  must_contain_types: [tool_use, entity_created, content, done]
+  must_emit_exactly_once:
+    - done
+  must_emit_exactly:
+    entity_created: 2
+    tool_use: 2
+  must_not_emit:
+    - persona_state_change
+    - handoff
 
 expected_db_writes:
   protection_policies: 2
+expected_db_writes_persistent: true
 
 forbidden_outputs:
   - "I'm not sure what you said"
   - "I don't recognise that provider"
+  - "please use a known provider"
+  - "Quilter Mutual is not a recognised provider"
+  - "Holloway Friendly is not a recognised provider"
+  - "For regulated advice personal to your circumstances"   # INV-2.3.3 — capture-mode does NOT signpost
 
 forbidden_tools:
   - create_savings_account
   - create_investment_account
   - create_pension
+  - delegate_to_capture
 
 eval_focus:
   module: protection
@@ -55,7 +79,11 @@ eval_focus:
   cross_entity_consistency: 100
   fabrication_rate: 0
 
-timing_budget_ms: 8000
+timing_budget_ms:
+  anthropic:
+    happy: 8000
+  xai:
+    happy: 18000
 
 tags:
   - regression-band-0

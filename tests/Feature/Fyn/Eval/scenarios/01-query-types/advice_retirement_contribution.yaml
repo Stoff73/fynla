@@ -1,9 +1,38 @@
 id: advice_retirement_contribution
 category: 01-query-types
 description: |
-  User asks "Should I increase my pension contributions?" — Advice Fyn classifies
-  as `retirement_contribution`, calls get_module_analysis(retirement) +
-  get_recommendations, emits content + done. No write tools.
+  User asks "Should I increase my pension contributions?". Classifier
+  resolves to RETIREMENT_CONTRIBUTION (primary), related:
+  [tax_optimisation, savings_emergency, affordability], modules:
+  [retirement, tax, savings, income] — verified via QueryClassifier.
+
+  Universal KYC passes (DOB 1985, married, employed, £50k, £2500).
+  Retirement readiness passes (RDY-RET: DOB ✓, marital ✓, income ✓).
+  Tax module canAnalyseTax passes (income > 0, employment_status set).
+  Savings module readiness passes (RDY-SAV: DOB ✓, income ✓, expenditure ✓).
+  Income module has no actionMap entry. KYC overall: PASSED.
+
+  But RetirementAgent::analyze() (AGT-RET line 101) requires a
+  `retirement_profile` row — the seed creates only one `dc_pensions`
+  row. The agent returns:
+    {success: false, message: "No retirement profile found", data: []}
+  — TRC path 0 (success_false), passes through verbatim. This is the
+  same shape as advice_protection_cover for a different agent: KYC
+  PASSES but the agent's secondary profile gate fails.
+
+  Tools fired (merged QSCH::getRequiredToolsForClassification):
+    - get_tax_information(pension_allowances)        [RETIREMENT_CONTRIBUTION]
+    - get_tax_information(income_definitions)        [RETIREMENT_CONTRIBUTION]
+    - get_module_analysis(retirement)                [RETIREMENT_CONTRIBUTION → success_false]
+    - list_records(dc_pension)                       [RETIREMENT_CONTRIBUTION]
+    - get_tax_information(income_tax)                [IMPLICIT tax_optimisation]
+    - get_tax_information(isa_allowances)            [IMPLICIT tax_optimisation]
+    - get_module_analysis(savings)                   [IMPLICIT savings_emergency + affordability]
+    - list_records(savings_account)                  [IMPLICIT savings_emergency]
+
+  get_recommendations does NOT fire on the retirement success_false
+  path. The LLM identifies the missing retirement-profile fields
+  (target_retirement_age, target_retirement_income) and asks the user.
 
 input:
   turns:
@@ -22,22 +51,84 @@ seed:
   dc_pensions:
     - { provider: Standard Life, scheme_type: workplace, current_value: 45000, monthly_contribution: 250, employer_contribution: 250 }
 
-expected_classifications:
-  - retirement_contribution
+expected_classification_shape:
+  primary: retirement_contribution
+  related:
+    - tax_optimisation
+    - savings_emergency
+    - affordability
+  modules:
+    - retirement
+    - tax
+    - savings
+    - income
+
+expected_response_mode: recommendation
+expected_engine_call_level: module
+expected_kyc_state: passed
 
 expected_tool_calls:
+  - tool: get_tax_information
+    args: { topic: pension_allowances }
+    required: true
+    result_path: happy
+  - tool: get_tax_information
+    args: { topic: income_definitions }
+    required: true
+    result_path: happy
   - tool: get_module_analysis
     args: { module: retirement }
+    required: true
+    result_path: success_false
+    result_message_contains: "No retirement profile found"
+  - tool: list_records
+    args: { record_type: dc_pension }
+    required: true
+    result_path: happy
+  - tool: get_tax_information
+    args: { topic: income_tax }
+    required: false
+    condition: "From IMPLICIT_RELATED tax_optimisation."
+  - tool: get_tax_information
+    args: { topic: isa_allowances }
+    required: false
+    condition: "From IMPLICIT_RELATED tax_optimisation."
+  - tool: get_module_analysis
+    args: { module: savings }
+    required: false
+    condition: "From IMPLICIT_RELATED savings_emergency / affordability."
+  - tool: list_records
+    args: { record_type: savings_account }
+    required: false
+    condition: "From IMPLICIT_RELATED savings_emergency."
   - tool: get_recommendations
+    required: false
+    condition: "Will not fire on the retirement success_false path."
 
 expected_sse_events:
-  - { type: content }
-  - { type: done }
+  must_contain_types: [title, content, tool_use, done]
+  must_emit_exactly_once:
+    - done
+    - title
+  must_not_emit:
+    - persona_state_change
+    - handoff
+  content_event_minimum: 8
+  tool_use_count_min: 3
+  tool_use_count_max: 8
 
-expected_advice_response:
-  signposting_suffix_present: true
-  has_recommendations: true
-  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+expected_assistant_text:
+  must_contain_substrings:
+    - "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+  must_contain_at_least_one_of:
+    - ["retirement profile", "target retirement age", "retirement age", "target retirement income"]
+  must_not_contain_substrings:
+    - "I think you should"
+    - "I'd recommend"
+    - "In my opinion"
+    - "you should definitely"
+  minimum_length_chars: 200
+  maximum_length_chars: 2500
 
 forbidden_outputs:
   - "I think you should"
@@ -48,10 +139,20 @@ forbidden_tools:
   - create_pension
   - update_pension
   - delete_pension
+  - update_record
+  - delete_record
 
-timing_budget_ms: 5000
+timing_budget_ms:
+  anthropic:
+    success_false: 7000
+  xai:
+    success_false: 15000
 
 tags:
   - regression-band-0
   - recommendation-mode
   - retirement
+  - success-false-path
+  - retirement-profile-required
+  - multi-tool-tax-information
+  - multi-implicit-related

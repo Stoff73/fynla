@@ -1,10 +1,40 @@
 id: advice_goals_affordability
 category: 01-query-types
 description: |
-  User asks "Can I afford to retire at 60?" — Advice Fyn classifies as
-  `affordability`, calls get_module_analysis(holistic) + get_recommendations
-  (cross-module: pension + savings + investments + expenditure), emits
-  content + done. No write tools.
+  User asks "Can I afford to retire at 60?". The classifier matches BOTH
+  the AFFORDABILITY pattern (/\bcan\s+i\s+afford\b/i) AND the
+  RETIREMENT_READINESS pattern (/\b(when|can)\s+.*retire/i). Per
+  QueryClassifier::findAllMatches, the order in QuerySchemas::KEYWORD_PATTERNS
+  decides primary — RETIREMENT_READINESS comes earlier so wins as primary;
+  AFFORDABILITY becomes a secondary keyword match.
+
+  Verified via QueryClassifier:
+    primary: retirement_readiness
+    related: [retirement_contribution, tax_optimisation, affordability]
+    modules: [retirement, tax, savings, income]
+
+  Universal KYC passes (DOB 1975 → age 50, married, employed, £65k, £2800).
+  Retirement readiness passes (RDY-RET: DOB ✓, marital ✓, income ✓).
+  Tax module canAnalyseTax passes. Savings readiness passes. Income module
+  has no actionMap entry. KYC overall: PASSED.
+
+  But RetirementAgent::analyze() (AGT-RET line 101) requires a
+  `retirement_profile` row — the seed creates dc_pensions +
+  investment_accounts + savings_accounts but NO retirement_profile.
+  Returns success_false "No retirement profile found" — TRC path 0.
+
+  Tools fired (merged from QuerySchemas::getRequiredToolsForClassification —
+  8 unique after dedup):
+    - get_module_analysis(retirement)               [RETIREMENT_READINESS → success_false]
+    - get_tax_information(pension_allowances)        [RETIREMENT_READINESS]
+    - get_tax_information(state_pension)             [RETIREMENT_READINESS]
+    - get_tax_information(income_definitions)        [IMPLICIT retirement_contribution]
+    - list_records(dc_pension)                       [IMPLICIT retirement_contribution]
+    - get_tax_information(income_tax)                [IMPLICIT tax_optimisation]
+    - get_tax_information(isa_allowances)            [IMPLICIT tax_optimisation]
+    - get_module_analysis(savings)                   [secondary affordability]
+
+  get_recommendations does NOT fire on the retirement success_false path.
 
 input:
   turns:
@@ -27,22 +57,84 @@ seed:
   savings_accounts:
     - { provider: Marcus, account_type: easy_access, balance: 30000 }
 
-expected_classifications:
-  - affordability
+expected_classification_shape:
+  primary: retirement_readiness
+  related:
+    - retirement_contribution
+    - tax_optimisation
+    - affordability
+  modules:
+    - retirement
+    - tax
+    - savings
+    - income
+
+expected_response_mode: recommendation
+expected_engine_call_level: module
+expected_kyc_state: passed
 
 expected_tool_calls:
   - tool: get_module_analysis
-    args: { module: holistic }
+    args: { module: retirement }
+    required: true
+    result_path: success_false
+    result_message_contains: "No retirement profile found"
+  - tool: get_tax_information
+    args: { topic: pension_allowances }
+    required: true
+    result_path: happy
+  - tool: get_tax_information
+    args: { topic: state_pension }
+    required: true
+    result_path: happy
+  - tool: get_tax_information
+    args: { topic: income_definitions }
+    required: false
+    condition: "From IMPLICIT_RELATED retirement_contribution."
+  - tool: list_records
+    args: { record_type: dc_pension }
+    required: false
+    condition: "From IMPLICIT_RELATED retirement_contribution."
+  - tool: get_tax_information
+    args: { topic: income_tax }
+    required: false
+    condition: "From IMPLICIT_RELATED tax_optimisation."
+  - tool: get_tax_information
+    args: { topic: isa_allowances }
+    required: false
+    condition: "From IMPLICIT_RELATED tax_optimisation."
+  - tool: get_module_analysis
+    args: { module: savings }
+    required: false
+    condition: "From secondary affordability keyword match."
   - tool: get_recommendations
+    required: false
+    condition: "Will not fire on the retirement success_false path."
 
 expected_sse_events:
-  - { type: content }
-  - { type: done }
+  must_contain_types: [title, content, tool_use, done]
+  must_emit_exactly_once:
+    - done
+    - title
+  must_not_emit:
+    - persona_state_change
+    - handoff
+  content_event_minimum: 8
+  tool_use_count_min: 3
+  tool_use_count_max: 8
 
-expected_advice_response:
-  signposting_suffix_present: true
-  has_recommendations: true
-  note: "S1.6 adds the advice_response SSE event; this scenario's expected_sse_events updates then."
+expected_assistant_text:
+  must_contain_substrings:
+    - "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+  must_contain_at_least_one_of:
+    - ["retirement profile", "target retirement age", "target retirement income", "retirement age"]
+  must_not_contain_substrings:
+    - "I think you should"
+    - "I'd recommend"
+    - "In my opinion"
+    - "you should definitely"
+  minimum_length_chars: 250
+  maximum_length_chars: 3000
 
 forbidden_outputs:
   - "I think you should"
@@ -54,13 +146,24 @@ forbidden_tools:
   - create_goal
   - create_life_event
   - create_pension
+  - update_pension
+  - delete_pension
   - create_what_if_scenario
+  - update_record
+  - delete_record
 
-timing_budget_ms: 5000
+timing_budget_ms:
+  anthropic:
+    success_false: 8000
+  xai:
+    success_false: 17000
 
 tags:
   - regression-band-0
   - recommendation-mode
+  - retirement
   - affordability
-  - holistic
   - cross-module
+  - success-false-path
+  - keyword-collision-retirement-readiness-vs-affordability
+  - multi-implicit-related

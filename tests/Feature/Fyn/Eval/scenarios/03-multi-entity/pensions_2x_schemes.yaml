@@ -1,11 +1,17 @@
 id: pensions_2x_schemes
 category: 03-multi-entity
 description: |
-  Onboarding asset_capture: user dictates two workplace pension schemes —
-  one historic (deferred) and one current — in a single message. Tests
-  recall (2/2), cross-entity consistency (correct provider per current_value),
-  value accuracy (£45,000 / £80,000), and that scheme_type is preserved
-  per pension.
+  Onboarding asset_capture turn (NOT advice). User dictates two
+  workplace pension schemes — one historic ("old") and one current —
+  in a single message. Dispatches to OnboardingChatDirector::handleUserMessage;
+  AdviceFyn / KYC bypassed.
+
+  Tests recall (2/2), cross-entity consistency (correct provider per
+  current_value), value accuracy (£45,000 / £80,000), and that
+  scheme_type AND the temporal qualifier (`is_active`) are preserved
+  per pension. The "old" qualifier maps to is_active=false on the
+  Standard Life entry; the "current" one maps to is_active=true on
+  Aviva.
 
 input:
   turns:
@@ -18,33 +24,49 @@ seed:
     onboarding_completed: false
     onboarding_fyn_step: asset_capture
 
-expected_classifications:
-  - data_entry
+expected_classification_shape:
+  primary: data_entry
+  related: []
+  modules: []
+
+expected_response_mode: factual
+expected_engine_call_level: factual
+expected_kyc_state: bypass
 
 expected_tool_calls:
   - tool: create_pension
-    args: { provider: Standard Life, scheme_type: workplace, current_value: 45000 }
+    args: { provider: Standard Life, scheme_type: workplace, current_value: 45000, is_active: false }
+    required: true
+    result_path: success
   - tool: create_pension
-    args: { provider: Aviva, scheme_type: workplace, current_value: 80000 }
+    args: { provider: Aviva, scheme_type: workplace, current_value: 80000, is_active: true }
+    required: true
+    result_path: success
 
 expected_sse_events:
-  - { type: tool_use, name: create_pension }
-  - { type: entity_created, entity_type: pension }
-  - { type: tool_use, name: create_pension }
-  - { type: entity_created, entity_type: pension }
-  - { type: content }
-  - { type: done }
+  must_contain_types: [tool_use, entity_created, content, done]
+  must_emit_exactly_once:
+    - done
+  must_emit_exactly:
+    entity_created: 2
+    tool_use: 2
+  must_not_emit:
+    - persona_state_change
+    - handoff
 
 expected_db_writes:
   dc_pensions: 2
+expected_db_writes_persistent: true
 
 forbidden_outputs:
   - "I'm not sure what you said"
+  - "For regulated advice personal to your circumstances"   # INV-2.3.3 — capture-mode does NOT signpost
 
 forbidden_tools:
   - create_protection_policy
   - create_savings_account
   - create_investment_account
+  - delegate_to_capture
 
 eval_focus:
   module: retirement
@@ -55,7 +77,11 @@ eval_focus:
   cross_entity_consistency: 100
   fabrication_rate: 0
 
-timing_budget_ms: 8000
+timing_budget_ms:
+  anthropic:
+    happy: 8000
+  xai:
+    happy: 18000
 
 tags:
   - regression-band-0
@@ -63,3 +89,4 @@ tags:
   - retirement
   - pensions
   - multi-entity
+  - temporal-qualifier-is-active

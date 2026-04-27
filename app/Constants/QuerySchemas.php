@@ -258,6 +258,9 @@ final class QuerySchemas
         self::PROTECTION_COVER => [
             '/\b(life|death)\s+(cover|insurance)\b/i',
             '/\b(enough|adequate|sufficient)\s+(life\s+)?cover\b/i',
+            '/\b(enough|adequate|sufficient)\s+(life\s+)?(coverage|insurance|protection)\b/i',
+            '/\bcovered?\s+(enough|adequately|sufficiently)\b/i',
+            '/\bam\s+i\s+(insured|covered|protected)\b/i',
             '/\bcoverage\s+gap\b/i',
             '/\bincome\s+protection\b/i',
             '/\bcritical\s+illness\b/i',
@@ -272,6 +275,7 @@ final class QuerySchemas
         ],
         self::SAVINGS_EMERGENCY => [
             '/\bemergency\s+fund\b/i',
+            '/\bemergency\s+(savings|cash|reserve|reserves|money|pot)\b/i',
             '/\bcash\s+buffer\b/i',
             '/\brainy\s+day\b/i',
             '/\b(enough|adequate)\s+(savings|cash|liquid)/i',
@@ -299,6 +303,7 @@ final class QuerySchemas
             '/\bdiversif/i',
             '/\brebalance?\b/i',
             '/\brisk\s+profile\b/i',
+            '/\bstocks?\s*(?:&|and)\s*shares?\s+isa\b/i',
         ],
         self::INVESTMENT_FEES => [
             '/\bfund\s+fee/i',
