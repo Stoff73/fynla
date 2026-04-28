@@ -31,3 +31,20 @@ it('creates a pending subscriber and sends confirmation email for a new address'
 
     Mail::assertSent(NewsletterConfirmationMail::class, fn ($mail) => $mail->subscriber->email === 'new@example.com');
 });
+
+it('returns already_registered when email belongs to a Fynla user', function () {
+    User::factory()->create(['email' => 'existing@example.com']);
+
+    $response = $this->postJson('/api/news/subscribe', [
+        'email' => 'existing@example.com',
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'success' => true,
+            'status' => 'already_registered',
+        ]);
+
+    expect(NewsSubscriber::where('email', 'existing@example.com')->exists())->toBeFalse();
+    Mail::assertNotSent(NewsletterConfirmationMail::class);
+});
