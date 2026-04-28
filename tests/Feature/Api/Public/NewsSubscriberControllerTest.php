@@ -110,3 +110,34 @@ it('rate-limits after 3 successful submits from the same IP', function () {
 
     expect(NewsSubscriber::where('email', 'user4@example.com')->exists())->toBeFalse();
 });
+
+it('re-subscribes a previously unsubscribed user via a fresh confirmation flow', function () {
+    $original = NewsSubscriber::factory()->unsubscribed()->create([
+        'email' => 'unsubbed@example.com',
+        'confirmation_token' => 'OLDUNSUBTOKEN',
+    ]);
+
+    $response = $this->postJson('/api/news/subscribe', [
+        'email' => 'unsubbed@example.com',
+    ]);
+
+    $response->assertOk()
+        ->assertJson(['status' => 'pending_confirmation']);
+
+    $reloaded = $original->fresh();
+    expect($reloaded->confirmation_token)->not->toBe('OLDUNSUBTOKEN');
+    expect($reloaded->unsubscribed_at)->toBeNull();
+    expect($reloaded->confirmed_at)->toBeNull();
+
+    Mail::assertQueued(NewsletterConfirmationMail::class, 1);
+});
+
+it('normalises mixed-case email to lowercase before storing', function () {
+    $this->postJson('/api/news/subscribe', [
+        'email' => 'Foo.Bar@EXAMPLE.com',
+    ])->assertOk();
+
+    $subscriber = NewsSubscriber::first();
+    expect($subscriber)->not->toBeNull();
+    expect($subscriber->email)->toBe('foo.bar@example.com');
+});
