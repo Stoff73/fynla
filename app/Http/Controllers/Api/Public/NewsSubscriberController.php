@@ -31,11 +31,11 @@ class NewsSubscriberController extends Controller
             ], 429);
         }
 
+        RateLimiter::hit($key, self::RATE_LIMIT_DECAY_SECONDS);
+
         $validated = $request->validate([
             'email' => 'required|email|max:255',
         ]);
-
-        RateLimiter::hit($key, self::RATE_LIMIT_DECAY_SECONDS);
 
         $email = strtolower(trim($validated['email']));
 
@@ -67,7 +67,7 @@ class NewsSubscriberController extends Controller
             'source' => 'news_hub',
         ])->save();
 
-        Mail::to($subscriber->email)->send(new NewsletterConfirmationMail($subscriber));
+        Mail::to($subscriber->email)->queue(new NewsletterConfirmationMail($subscriber));
 
         $message = $wasRecentlyCreated
             ? 'Check your inbox to confirm your subscription.'

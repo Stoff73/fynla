@@ -29,7 +29,7 @@ it('creates a pending subscriber and sends confirmation email for a new address'
     expect($subscriber->confirmed_at)->toBeNull();
     expect($subscriber->confirmation_token)->not->toBeEmpty();
 
-    Mail::assertSent(NewsletterConfirmationMail::class, fn ($mail) => $mail->subscriber->email === 'new@example.com');
+    Mail::assertQueued(NewsletterConfirmationMail::class, fn ($mail) => $mail->subscriber->email === 'new@example.com');
 });
 
 it('returns already_registered when email belongs to a Fynla user', function () {
@@ -46,7 +46,7 @@ it('returns already_registered when email belongs to a Fynla user', function () 
         ]);
 
     expect(NewsSubscriber::where('email', 'existing@example.com')->exists())->toBeFalse();
-    Mail::assertNotSent(NewsletterConfirmationMail::class);
+    Mail::assertNotQueued(NewsletterConfirmationMail::class);
 });
 
 it('returns already_confirmed when subscriber exists and is confirmed', function () {
@@ -62,7 +62,7 @@ it('returns already_confirmed when subscriber exists and is confirmed', function
             'status' => 'already_confirmed',
         ]);
 
-    Mail::assertNotSent(NewsletterConfirmationMail::class);
+    Mail::assertNotQueued(NewsletterConfirmationMail::class);
 });
 
 it('resends the confirmation email when a pending subscriber re-submits', function () {
@@ -82,7 +82,7 @@ it('resends the confirmation email when a pending subscriber re-submits', functi
     expect($reloaded->confirmation_token)->not->toBe('OLDTOKEN');
     expect($reloaded->confirmed_at)->toBeNull();
 
-    Mail::assertSent(NewsletterConfirmationMail::class, 1);
+    Mail::assertQueued(NewsletterConfirmationMail::class, 1);
 });
 
 it('rejects invalid email addresses', function () {
@@ -91,7 +91,7 @@ it('rejects invalid email addresses', function () {
     ]);
 
     $response->assertStatus(422);
-    Mail::assertNotSent(NewsletterConfirmationMail::class);
+    Mail::assertNotQueued(NewsletterConfirmationMail::class);
 });
 
 it('rate-limits after 3 successful submits from the same IP', function () {
