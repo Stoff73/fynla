@@ -167,6 +167,8 @@ Route::prefix('insights')->group(function () {
 // Public News API (no auth required)
 Route::prefix('news')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\Public\NewsController::class, 'index']);
+    Route::post('subscribe', [\App\Http\Controllers\Api\Public\NewsSubscriberController::class, 'subscribe'])
+        ->middleware('throttle:5,1');
     Route::get('{slug}', [\App\Http\Controllers\Api\Public\NewsController::class, 'show'])
         ->where('slug', '[a-z0-9-]+');
 });
