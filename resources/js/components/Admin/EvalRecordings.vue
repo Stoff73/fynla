@@ -143,71 +143,67 @@
         />
       </div>
 
-      <!-- Remedial report -->
+      <!-- Remedial report (per-session, human-authored against the rubric) -->
       <div class="card">
-        <div class="flex items-start justify-between gap-4 mb-3">
+        <div class="flex items-start justify-between mb-3 gap-3">
           <div>
             <h4 class="font-bold text-horizon-500">Remedial report</h4>
             <p class="text-xs text-neutral-500 mt-0.5">
-              Rubric-driven write-up of the gaps surfaced by this run.
-              <span v-if="selectedSession.session.remedial_report_updated_at">
-                · Last saved {{ formatRelative(selectedSession.session.remedial_report_updated_at) }}
-              </span>
-              <span v-else class="text-neutral-400 italic">· No report yet</span>
+              Human-authored against the rubric in
+              <code class="px-1 bg-savannah-100 rounded">April/April27Updates/eval-remediation-process.md</code>.
+              One report per session. The report is the deliverable; CSJ decides what to act on.
             </p>
           </div>
-          <div class="flex gap-2 flex-shrink-0">
-            <template v-if="!reportEditing">
-              <button
-                v-if="!selectedSession.session.remedial_report"
-                @click="autoFillReport"
-                class="text-xs px-3 py-1.5 rounded border border-horizon-300 text-horizon-700 hover:bg-horizon-50 font-medium"
-              >
-                Pre-fill rubric template
-              </button>
-              <button
-                @click="startEditReport"
-                class="text-xs px-3 py-1.5 rounded bg-raspberry-500 text-white hover:bg-raspberry-600 font-medium"
-              >
-                {{ selectedSession.session.remedial_report ? 'Edit' : 'Write report' }}
-              </button>
-            </template>
-            <template v-else>
-              <button
-                @click="cancelEditReport"
-                :disabled="reportSaving"
-                class="text-xs px-3 py-1.5 rounded border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                @click="saveReport"
-                :disabled="reportSaving"
-                class="text-xs px-3 py-1.5 rounded bg-raspberry-500 text-white hover:bg-raspberry-600 font-medium disabled:opacity-50"
-              >
-                {{ reportSaving ? 'Saving…' : 'Save report' }}
-              </button>
-            </template>
+          <button
+            v-if="!editingReport"
+            @click="startEditReport()"
+            class="text-sm text-raspberry-500 hover:text-raspberry-600 font-medium whitespace-nowrap"
+          >
+            {{ remedialReport ? 'Edit report' : 'Draft report' }}
+          </button>
+        </div>
+
+        <div v-if="!editingReport && !remedialReport" class="text-sm text-neutral-500 italic">
+          No report authored yet. Click <strong>Draft report</strong> to start with a rubric-prefilled template.
+        </div>
+
+        <div
+          v-if="!editingReport && remedialReport"
+          class="text-sm text-horizon-500 whitespace-pre-wrap font-mono leading-relaxed bg-savannah-50 rounded p-3"
+        >{{ remedialReport }}</div>
+
+        <div v-if="editingReport">
+          <textarea
+            v-model="reportDraft"
+            rows="22"
+            class="w-full border border-light-gray rounded p-3 text-sm font-mono leading-relaxed focus:border-raspberry-500 focus:ring-0"
+            placeholder="Markdown content…"
+          />
+          <div v-if="saveReportError" class="text-xs text-raspberry-700 mt-2">{{ saveReportError }}</div>
+          <div class="flex gap-2 mt-3">
+            <button
+              @click="saveReport()"
+              :disabled="savingReport"
+              class="px-4 py-2 bg-raspberry-500 text-white rounded text-sm font-medium hover:bg-raspberry-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ savingReport ? 'Saving…' : 'Save report' }}
+            </button>
+            <button
+              @click="cancelEditReport()"
+              :disabled="savingReport"
+              class="px-4 py-2 border border-light-gray text-horizon-500 rounded text-sm font-medium hover:bg-savannah-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              v-if="remedialReport"
+              @click="clearReport()"
+              :disabled="savingReport"
+              class="px-4 py-2 border border-raspberry-200 text-raspberry-600 rounded text-sm font-medium hover:bg-raspberry-50 disabled:opacity-50 ml-auto"
+            >
+              Clear report
+            </button>
           </div>
-        </div>
-
-        <div v-if="reportError" class="mb-3 p-2 rounded bg-raspberry-50 border border-raspberry-200 text-raspberry-700 text-xs">
-          {{ reportError }}
-        </div>
-
-        <textarea
-          v-if="reportEditing"
-          v-model="reportDraft"
-          class="w-full min-h-[28rem] font-mono text-xs p-3 border border-light-gray rounded bg-white focus:border-raspberry-500 focus:ring-2 focus:ring-raspberry-200 focus:outline-none"
-          placeholder="Write the remedial report here. Markdown is supported (rendered as preformatted text)."
-        ></textarea>
-
-        <div v-else-if="selectedSession.session.remedial_report" class="bg-savannah-50 rounded p-4">
-          <pre class="whitespace-pre-wrap text-sm text-horizon-500 font-mono leading-relaxed">{{ selectedSession.session.remedial_report }}</pre>
-        </div>
-
-        <div v-else class="text-center py-8 text-sm text-neutral-400 italic">
-          No remedial report yet for this session. Click <strong class="text-horizon-500">Pre-fill rubric template</strong> to seed one from the run deltas, or <strong class="text-horizon-500">Write report</strong> to start blank.
         </div>
       </div>
 
@@ -266,10 +262,10 @@ export default {
       error: null,
       showYaml: false,
       showStartState: false,
-      reportEditing: false,
+      editingReport: false,
       reportDraft: '',
-      reportSaving: false,
-      reportError: null,
+      savingReport: false,
+      saveReportError: null,
       modal: {
         open: false,
         title: '',
@@ -285,6 +281,9 @@ export default {
   computed: {
     expectedToolList() {
       return this.selectedSession?.expected?.tool_calls || [];
+    },
+    remedialReport() {
+      return this.selectedSession?.session?.remedial_report || '';
     },
   },
 
@@ -311,9 +310,9 @@ export default {
       this.error = null;
       this.showYaml = false;
       this.showStartState = false;
-      this.reportEditing = false;
+      this.editingReport = false;
       this.reportDraft = '';
-      this.reportError = null;
+      this.saveReportError = null;
       try {
         this.selectedSession = await evalRecordingService.getSession(sessionId);
       } catch (e) {
@@ -325,115 +324,166 @@ export default {
 
     closeDetail() {
       this.selectedSession = null;
-      this.reportEditing = false;
+      this.editingReport = false;
       this.reportDraft = '';
-      this.reportError = null;
+      this.saveReportError = null;
     },
 
     startEditReport() {
-      this.reportDraft = this.selectedSession?.session?.remedial_report || '';
-      this.reportEditing = true;
-      this.reportError = null;
+      this.reportDraft = this.remedialReport || this.buildReportPrefill();
+      this.saveReportError = null;
+      this.editingReport = true;
     },
 
     cancelEditReport() {
-      this.reportEditing = false;
+      this.editingReport = false;
       this.reportDraft = '';
-      this.reportError = null;
+      this.saveReportError = null;
     },
 
     async saveReport() {
-      if (!this.selectedSession) return;
-      this.reportSaving = true;
-      this.reportError = null;
+      this.savingReport = true;
+      this.saveReportError = null;
       try {
-        const payload = (this.reportDraft || '').trim();
+        const trimmed = this.reportDraft && this.reportDraft.trim() ? this.reportDraft : null;
         const data = await evalRecordingService.updateReport(
           this.selectedSession.session.id,
-          payload === '' ? null : payload
+          trimmed,
         );
         this.selectedSession.session.remedial_report = data.remedial_report;
-        this.selectedSession.session.remedial_report_updated_at = data.remedial_report_updated_at;
-        this.reportEditing = false;
+        this.editingReport = false;
         this.reportDraft = '';
       } catch (e) {
-        this.reportError = e?.response?.data?.message || e.message || 'Failed to save remedial report';
+        this.saveReportError = e?.response?.data?.message || e.message || 'Failed to save report';
       } finally {
-        this.reportSaving = false;
+        this.savingReport = false;
       }
     },
 
-    autoFillReport() {
-      this.reportDraft = this.buildRubricTemplate();
-      this.reportEditing = true;
-      this.reportError = null;
+    async clearReport() {
+      if (!confirm('Clear the remedial report for this session? This cannot be undone.')) return;
+      this.savingReport = true;
+      this.saveReportError = null;
+      try {
+        const data = await evalRecordingService.updateReport(this.selectedSession.session.id, null);
+        this.selectedSession.session.remedial_report = data.remedial_report;
+        this.editingReport = false;
+        this.reportDraft = '';
+      } catch (e) {
+        this.saveReportError = e?.response?.data?.message || e.message || 'Failed to clear report';
+      } finally {
+        this.savingReport = false;
+      }
     },
 
-    buildRubricTemplate() {
-      const s = this.selectedSession?.session;
-      const runs = this.selectedSession?.runs || [];
-      if (!s) return '';
-
-      const summariseRun = (provider) => {
-        const r = runs.find((x) => x.provider === provider);
-        if (!r) return `- **${provider}:** no run captured.`;
-        const d = r.delta || {};
-        const path = d.detected_result_path || d.result_path || '—';
-        const failures = d.failures && typeof d.failures === 'object'
-          ? Object.keys(d.failures).filter((k) => d.failures[k])
-          : [];
-        const status = failures.length === 0 ? 'GREEN' : `RED (${failures.length} failure${failures.length === 1 ? '' : 's'}: ${failures.join(', ')})`;
-        return `- **${provider}/${r.model}:** ${r.duration_ms ?? '—'}ms, ${(r.tool_calls || []).length} tool calls, path \`${path}\`, **${status}**.`;
-      };
-
-      const findingFor = (provider, key, label, fallback = 'no gap') => {
-        const r = runs.find((x) => x.provider === provider);
-        const f = r?.delta?.failures?.[key];
-        if (!f) return `${label} — ${fallback}`;
-        return `${label} — ${typeof f === 'string' ? f : JSON.stringify(f)}`;
-      };
+    buildReportPrefill() {
+      if (!this.selectedSession) return '';
+      const s = this.selectedSession.session || {};
+      const runs = this.selectedSession.runs || [];
+      const fmtDate = s.started_at ? new Date(s.started_at).toLocaleDateString('en-GB') : 'unknown';
+      const branch = s.fynla_branch || 'unknown';
 
       const lines = [];
-      lines.push(`# Remedial report — ${s.scenario_id} — session #${s.id}`);
+      lines.push(`# Remedial report — ${s.scenario_id || 'unknown'} — session #${s.id}`);
       lines.push('');
-      lines.push(`*Recording session: #${s.id}. Date: ${s.started_at ? new Date(s.started_at).toISOString().slice(0, 10) : '—'}. Branch: \`${s.fynla_branch || '—'}\` @ \`${s.fynla_sha || '—'}\`.*`);
+      lines.push(`*Recording session: #${s.id}. Date: ${fmtDate}. Branch: \`${branch}\`.*`);
       lines.push('');
       lines.push('## Run summary');
       lines.push('');
-      lines.push(summariseRun('anthropic'));
-      lines.push(summariseRun('xai'));
+      if (!runs.length) {
+        lines.push('- _no runs captured_');
+      } else {
+        for (const r of runs) {
+          const failures = r?.delta?.failures ? Object.keys(r.delta.failures).length : 0;
+          const status = failures === 0 ? 'green' : 'red';
+          const path = r?.delta?.detected_result_path || '?';
+          const tools = (r?.delta?.actual_tools?.length) ?? (Array.isArray(r?.tool_calls) ? r.tool_calls.length : 0);
+          const ms = r?.delta?.duration_ms ?? r?.duration_ms ?? '?';
+          lines.push(`- **${r.provider}/${r.model || '?'}:** ${ms}ms, ${tools} tool calls, \`${path}\` path, **${status} overall**.`);
+        }
+      }
+      lines.push('');
+      lines.push(`- **Dashboard URL:** \`/admin/eval-recordings/${s.id}\``);
       lines.push('');
       lines.push('## Rubric findings');
       lines.push('');
-      lines.push('Per rubric (`April/April27Updates/eval-remediation-process.md` §2). One bullet per section; replace "no gap" with the specific gap if one exists.');
-      lines.push('');
-      lines.push(`- **2.1 Classification** — ${findingFor('anthropic', 'classification_shape', 'anthropic')}; ${findingFor('xai', 'classification_shape', 'xai')}`);
-      lines.push(`- **2.2 Tool use** — ${findingFor('anthropic', 'expected_tool_calls', 'anthropic tools')}; ${findingFor('xai', 'expected_tool_calls', 'xai tools')}`);
-      lines.push(`- **2.3 LLM response mode + signposting** — ${findingFor('anthropic', 'response_mode', 'anthropic mode')}; ${findingFor('xai', 'response_mode', 'xai mode')}; signposting (recommendation mode only): inspect assistant_text.`);
-      lines.push(`- **2.4 Engine output** — ${findingFor('anthropic', 'engine_call_level', 'anthropic engine')}; ${findingFor('xai', 'engine_call_level', 'xai engine')}.`);
-      lines.push(`- **2.5 Code path / readiness gate** — ${findingFor('anthropic', 'kyc_state', 'anthropic kyc')}; ${findingFor('xai', 'kyc_state', 'xai kyc')}.`);
-      lines.push('- **2.6 Response quality** — _human assessment required: read both providers\' assistant_text. Is it structured the way we want? Does it answer the user? Are concrete numbers from the seed surfaced? Tone right?_');
-      lines.push('- **2.7 Provider parity** — _compare anthropic vs xAI side-by-side. Note any divergence in tool count, timing, or response shape. Decide: real bug → fix prompt; cosmetic → widen YAML._');
-      lines.push(`- **2.8 SSE shape** — ${findingFor('anthropic', 'sse_structural', 'anthropic sse')}; ${findingFor('xai', 'sse_structural', 'xai sse')}.`);
-      lines.push('- **2.9 DB writes** — advice mode: must be zero (INV-2.1.2). Inspect `db_writes_made` per run.');
+
+      const perProvider = (fn) => runs.map((r) => `${r.provider}: ${fn(r)}`).join('; ') || '_no runs_';
+
+      // 2.1 Classification
+      lines.push(`- **2.1 Classification** — ${perProvider((r) => {
+        const cs = r?.delta?.classification_shape;
+        if (!cs) return 'classification_shape not in delta';
+        const actual = cs.actual?.primary || '?';
+        const expected = cs.expected?.primary || '?';
+        return `actual \`${actual}\` (expected \`${expected}\`)`;
+      })}.`);
+
+      // 2.2 Tool use
+      lines.push(`- **2.2 Tool use** — ${perProvider((r) => {
+        const d = r?.delta || {};
+        const m = (d.missing_tools || []).length;
+        const e = (d.extra_tools || []).length;
+        const f = (d.forbidden_tool_hits || []).length;
+        const ts = d.timing_status || '?';
+        const overage = ts === 'over_budget' ? ` (over by ${d.timing_overage_ms || '?'}ms)` : '';
+        return `missing=${m}, extra=${e}, forbidden=${f}, timing ${ts}${overage}`;
+      })}.`);
+
+      // 2.3 LLM response mode + signposting
+      lines.push(`- **2.3 LLM response mode + signposting** — ${perProvider((r) => {
+        const rm = r?.delta?.response_mode;
+        const fp = (r?.delta?.forbidden_output_hits || []).length;
+        if (!rm) return `forbidden_phrases=${fp}`;
+        return `actual \`${rm.actual || '?'}\` (expected \`${rm.expected || '?'}\`); forbidden_phrases=${fp}`;
+      })}.`);
+
+      // 2.4 Engine output
+      lines.push('- **2.4 Engine output** — TODO: assess whether engine output is surfaced verbatim or paraphrased (INV-2.3.2).');
+
+      // 2.5 Code path / readiness gate
+      lines.push(`- **2.5 Code path / readiness gate** — ${perProvider((r) => `detected_result_path=\`${r?.delta?.detected_result_path || '?'}\``)}.`);
+
+      // 2.6 Response quality
+      lines.push('- **2.6 Response quality** — TODO: assess assistant text qualitatively. Compare against canonical voice; check structure, numerical specificity, tone.');
+
+      // 2.7 Provider parity
+      lines.push('- **2.7 Provider parity** — TODO: cross-provider diff. Both runs available above.');
+
+      // 2.8 SSE shape
+      lines.push(`- **2.8 SSE shape** — ${perProvider((r) => {
+        const m = (r?.delta?.missing_sse_event_types || []).length;
+        return `missing_types=${m}`;
+      })}.`);
+
+      // 2.9 DB writes
+      lines.push(`- **2.9 DB writes** — ${perProvider((r) => {
+        const w = r?.db_writes_made;
+        if (!w) return 'no db_writes captured';
+        if (Array.isArray(w)) return `${w.length} writes`;
+        return 'see db_writes_made on run row';
+      })}.`);
+
+      // 2.10 Recording infrastructure
       lines.push('- **2.10 Recording infrastructure** — not assessed unless other gaps suspect.');
       lines.push('');
       lines.push('## Gaps in detail');
       lines.push('');
-      lines.push('For each non-"no gap" finding above, one stanza:');
+      lines.push('_For each non-"no gap" finding above, add a stanza below. Delete this template line once populated._');
       lines.push('');
-      lines.push('### Gap 1: <description>');
+      lines.push('### Gap N: <one-line description>');
       lines.push('');
-      lines.push('- **Rubric section:** 2.X');
-      lines.push('- **Evidence:** <quoted line or value>');
-      lines.push('- **Likely category:** <YAML defect | classifier | tool/contract | prompt/engine | code path | response quality | provider drift | SSE | DB write | recording infra>');
+      lines.push('- **Rubric section:** <2.X>');
+      lines.push('- **Evidence:** <quoted line from delta or assistant_text>');
+      lines.push('- **Likely category:** <YAML | classifier | tool/contract | prompt/engine | code | quality | provider drift | SSE | DB | recording>');
       lines.push('- **Likely fix surface:** `<file:line>`');
-      lines.push('- **Browser verification needed?** <yes / no / not yet decided>');
-      lines.push('- **Notes:** <nuance, trade-off, open question>');
+      lines.push('- **Browser verification needed?** <yes/no/not yet decided>');
+      lines.push('- **Notes:**');
       lines.push('');
       lines.push('## Recommendation');
       lines.push('');
-      lines.push('<One paragraph for CSJ. Either "no action recommended — all gaps cosmetic", or "recommend acting on Gap N first because <reason>; estimated fix surface <file:line>; estimated effort <S/M/L>". CSJ decides.>');
+      lines.push('TODO: one paragraph. Either no action recommended, or recommend acting on Gap N first because <reason>. Estimated fix surface, estimated effort. CSJ decides.');
+      lines.push('');
       return lines.join('\n');
     },
 

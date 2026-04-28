@@ -14,9 +14,11 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('eval_recording_sessions', function (Blueprint $t): void {
-            $t->longText('remedial_report')->nullable()->after('completed_at');
-            $t->timestamp('remedial_report_updated_at')->nullable()->after('remedial_report');
+        Schema::table('eval_recording_sessions', function (Blueprint $table) {
+            // Free-text remedial report authored against the rubric in
+            // April/April27Updates/eval-remediation-process.md. One report
+            // per session; both providers' findings live inside it.
+            $table->text('remedial_report')->nullable()->after('start_state_snapshot');
         });
     }
 
@@ -26,8 +28,8 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('eval_recording_sessions', function (Blueprint $t): void {
-            $t->dropColumn(['remedial_report', 'remedial_report_updated_at']);
+        Schema::table('eval_recording_sessions', function (Blueprint $table) {
+            $table->dropColumn('remedial_report');
         });
     }
 };

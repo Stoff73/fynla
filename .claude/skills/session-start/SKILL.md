@@ -115,7 +115,7 @@ This is the most important part. Most "lazy" questions happen because the instan
 
 ## Phase 4: Session report
 
-Present this concise summary to the user. No filler.
+Present this concise summary to CSJ. No filler.
 
 ```markdown
 ## Session Ready — [date]
