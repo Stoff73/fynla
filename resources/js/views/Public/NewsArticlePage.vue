@@ -12,6 +12,18 @@
       </router-link>
     </div>
 
+    <div v-else-if="loadError" class="bg-eggshell-500 py-20 text-center">
+      <h1 class="text-3xl font-bold text-horizon-500 mb-3">We couldn't load this article</h1>
+      <p class="text-neutral-500 mb-6">Something went wrong fetching the article. Please try again in a moment.</p>
+      <button
+        type="button"
+        class="inline-block px-6 py-3 bg-raspberry-500 text-white text-sm font-semibold rounded-lg hover:bg-raspberry-600 transition-colors"
+        @click="fetchArticle"
+      >
+        Try again
+      </button>
+    </div>
+
     <template v-else-if="article">
       <!-- Hero -->
       <div class="relative bg-gradient-to-r from-horizon-500 to-raspberry-500 overflow-hidden">
@@ -41,7 +53,11 @@
               </p>
             </div>
 
-            <!-- Article body -->
+            <!--
+              SECURITY: article.body is rendered as raw HTML. SAFE today because
+              the only writer is the seeder (CSJ-authored). When an admin UI is
+              added, sanitise on input or render through a markdown pipeline.
+            -->
             <div class="news-article" v-html="article.body"></div>
           </article>
         </div>
@@ -82,6 +98,7 @@ export default {
       article: null,
       loading: true,
       notFound: false,
+      loadError: false,
     };
   },
 
@@ -99,13 +116,18 @@ export default {
     async fetchArticle() {
       this.loading = true;
       this.notFound = false;
+      this.loadError = false;
       this.article = null;
       try {
         const response = await newsService.getBySlug(this.$route.params.slug);
         this.article = response.data;
         this.applyMeta();
       } catch (err) {
-        this.notFound = true;
+        if (err?.response?.status === 404) {
+          this.notFound = true;
+        } else {
+          this.loadError = true;
+        }
       } finally {
         this.loading = false;
       }
@@ -144,15 +166,14 @@ export default {
 .news-article :deep(p) {
   @apply text-sm text-neutral-500 leading-relaxed mb-3;
 }
-/* Lead paragraph — first paragraph of the article body, or any <p class="lead">.
-   Matches the article subtitle formatting (h2: bold horizon-500, larger). */
-.news-article :deep(p.lead),
-.news-article :deep(p:first-child) {
+/* Lead paragraph — only matches explicit <p class="lead">. Authors must opt
+   in so the styling never silently shifts when an article opens with a
+   non-paragraph element (e.g. <h2> or a wrapper div). */
+.news-article :deep(p.lead) {
   @apply text-xl sm:text-2xl font-bold text-horizon-500 mb-6 mt-0;
   line-height: 1.3;
 }
-.news-article :deep(p.lead strong),
-.news-article :deep(p:first-child strong) {
+.news-article :deep(p.lead strong) {
   @apply text-horizon-500 font-bold;
 }
 .news-article :deep(ul) {

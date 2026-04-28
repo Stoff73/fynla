@@ -71,7 +71,7 @@ class SendLifecycleTestCommand extends Command
                 currentDiscount: '10%',
                 progressPercent: 50,
             ),
-            'subscribe-max'         => fn () => new SubscribeMaxDiscountMail(
+            'subscribe-max-discount' => fn () => new SubscribeMaxDiscountMail(
                 firstName: $demo['firstName'],
                 daysRemaining: $demo['daysRemaining'],
                 trialEndDate: $demo['trialEndDate'],
@@ -116,10 +116,10 @@ class SendLifecycleTestCommand extends Command
             try {
                 $mailable = $factory();
                 Mail::to($email)->send($mailable);
-                $this->line("<fg=green>✓</> {$label} — sent");
+                $this->line("<fg=green>[OK]</> {$label} - sent");
                 $sent++;
             } catch (Throwable $e) {
-                $this->line("<fg=red>✗</> {$label} — failed: " . $e->getMessage());
+                $this->line("<fg=red>[FAIL]</> {$label} - failed: " . $e->getMessage());
                 $failed[] = $slug;
             }
         }

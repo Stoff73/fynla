@@ -458,7 +458,7 @@
         <div class="card-lg flex flex-row items-start justify-around gap-3 sm:gap-6 py-6 sm:py-8">
           <div class="text-center flex-1 min-w-0">
             <div class="text-2xl sm:text-4xl font-bold text-horizon-500">91%</div>
-            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">UK adults don't get<br/>financial advice</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">UK adults don't get financial advice</div>
           </div>
           <div class="block w-px self-stretch bg-light-gray"></div>
           <div class="text-center flex-1 min-w-0">
@@ -496,6 +496,10 @@ import logger from '@/utils/logger';
 
 const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
 
+// Fallback insights rendered only when VITE_INSIGHTS_CMS_ENABLED !== 'true'
+// (the DB-driven block above is hidden in that case). Keep these in sync with
+// the bespoke insight pages — the hub itself reads from the CMS, so this list
+// is just a homepage stand-in until the CMS flag is flipped on.
 const STATIC_INSIGHTS = [
   { slug: '/insights/how-much-to-retire-uk', title: 'How Much Do I Need to Retire in the UK?', date: '14 April 2026', summary: 'Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.', image: 'how-much-to-retire-uk.jpg' },
   { slug: '/insights/stocks-shares-isa-uk', title: 'What Is a Stocks and Shares ISA?', date: '13 April 2026', summary: 'How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.', image: 'stocks-shares-isa.jpg' },

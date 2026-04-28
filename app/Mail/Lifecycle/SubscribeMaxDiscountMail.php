@@ -18,7 +18,7 @@ class SubscribeMaxDiscountMail extends LifecycleMail
 
     protected function utmCampaign(): string
     {
-        return 'subscribe-max';
+        return 'subscribe-max-discount';
     }
 
     public function envelope(): Envelope

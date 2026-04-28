@@ -64,7 +64,7 @@
             @foreach([
                 ['title' => 'Add your pensions',   'description' => 'So we can check you\'re using your Annual Allowance and reclaiming the tax relief you\'re owed.'],
                 ['title' => 'Link your investments', 'description' => 'To surface ISA headroom you\'re not using and a tax-efficiency read across all your wrappers.'],
-                ['title' => 'Log your estate',       'description' => 'Model an IHT-efficient plan before it matters &mdash; most households don\'t until it\'s too late.'],
+                ['title' => 'Log your estate',       'description' => 'Model an Inheritance-Tax-efficient plan before it matters — most households don\'t until it\'s too late.'],
             ] as $i => $step)
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:{{ $i === 2 ? '28px' : '18px' }};">
                     <tr>
@@ -73,7 +73,7 @@
                         </td>
                         <td style="vertical-align:top;">
                             <p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#1F2A44;line-height:1.2;">{{ $step['title'] }}</p>
-                            <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">{!! $step['description'] !!}</p>
+                            <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">{{ $step['description'] }}</p>
                         </td>
                     </tr>
                 </table>

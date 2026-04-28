@@ -31,6 +31,15 @@ class NewsArticleSeeder extends Seeder
         );
     }
 
+    /**
+     * Returns the launch article body as raw HTML.
+     *
+     * SECURITY: This HTML is rendered with `v-html` on the public news article
+     * page. It is currently SAFE because the only writer is this seeder
+     * (CSJ-authored content). When an admin write path is added, the input
+     * MUST be sanitised (e.g. via mews/purifier) or piped through a markdown
+     * renderer before persisting — never trust raw HTML from user input.
+     */
     private function bodyHtml(): string
     {
         return <<<'HTML'

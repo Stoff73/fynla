@@ -29,8 +29,9 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index('status');
-            $table->index('published_at');
+            // Composite index serves the published() scope query:
+            // WHERE status='published' AND published_at <= now() ORDER BY published_at DESC
+            $table->index(['status', 'published_at']);
         });
     }
 

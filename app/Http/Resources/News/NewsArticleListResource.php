@@ -20,7 +20,6 @@ class NewsArticleListResource extends JsonResource
             'slug'         => $this->slug,
             'title'        => $this->title,
             'summary'      => $this->summary,
-            'image_url'    => $this->image_url,
             'author_name'  => $this->author_name,
             'published_at' => optional($this->published_at)->toIso8601String(),
         ];
