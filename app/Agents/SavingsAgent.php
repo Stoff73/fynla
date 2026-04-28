@@ -52,6 +52,8 @@ class SavingsAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        $analyzeStart = microtime(true);
+        $result = (function () use ($userId): array {
         // Data readiness gate — return early if blocking checks fail
         $user = User::with('savingsAccounts')->find($userId);
         if ($user) {
@@ -190,6 +192,22 @@ class SavingsAgent extends BaseAgent
                 'missing_for_quality_advice' => $missingForQualityAdvice,
             ];
         }, null, ['savings', 'user_'.$userId]);
+        })();
+
+        $resultPath = match (true) {
+            isset($result['can_proceed']) && $result['can_proceed'] === false => 'readiness_blocked',
+            isset($result['success']) && $result['success'] === false => 'success_false',
+            default => 'happy',
+        };
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'savings_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -245,6 +263,8 @@ class SavingsAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
+        $start = microtime(true);
+        $result = (function () use ($analysisData): array {
         // Delegate to DB-driven action definition service if available
         if ($this->actionDefinitionService) {
             $userId = $analysisData['user_id'] ?? 0;
@@ -274,6 +294,17 @@ class SavingsAgent extends BaseAgent
 
         // Fallback: inline recommendation logic for backward compatibility
         return $this->generateInlineRecommendations($analysisData);
+        })();
+
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'savings_recommendation',
+            params: [],
+            resultSummary: ['result_path' => 'happy', 'count' => count($result)],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**

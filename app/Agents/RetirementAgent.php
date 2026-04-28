@@ -66,6 +66,8 @@ class RetirementAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        $analyzeStart = microtime(true);
+        $result = (function () use ($userId): array {
         // Data readiness gate — return early if blocking checks fail
         $gateUser = User::find($userId);
         if ($gateUser) {
@@ -252,6 +254,22 @@ class RetirementAgent extends BaseAgent
                 'missing_for_quality_advice' => $missingForQualityAdvice,
             ]);
         }, null, $cacheTags);
+        })();
+
+        $resultPath = match (true) {
+            isset($result['success']) && $result['success'] === false => 'success_false',
+            isset($result['data']['can_proceed']) && $result['data']['can_proceed'] === false => 'readiness_blocked',
+            default => 'happy',
+        };
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'retirement_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -308,7 +326,18 @@ class RetirementAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
-        return $this->actionDefinitionService->evaluateAgentActions($analysisData);
+        $start = microtime(true);
+        $result = $this->actionDefinitionService->evaluateAgentActions($analysisData);
+
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'retirement_recommendation',
+            params: [],
+            resultSummary: ['result_path' => 'happy', 'keys_returned' => is_array($result) ? array_keys($result) : []],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**

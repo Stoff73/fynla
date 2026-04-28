@@ -57,6 +57,8 @@ class EstateAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        $analyzeStart = microtime(true);
+        $result = (function () use ($userId): array {
         // Load user once with all needed relationships (avoids duplicate query)
         $user = User::with([
             'ihtProfile',
@@ -332,6 +334,22 @@ class EstateAgent extends BaseAgent
                 ]
             );
         }, null, $cacheTags);
+        })();
+
+        $resultPath = match (true) {
+            isset($result['success']) && $result['success'] === false => 'success_false',
+            isset($result['data']['can_proceed']) && $result['data']['can_proceed'] === false => 'readiness_blocked',
+            default => 'happy',
+        };
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'estate_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -396,6 +414,8 @@ class EstateAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
+        $start = microtime(true);
+        $result = (function () use ($analysisData): array {
         if (! isset($analysisData['data'])) {
             return $this->response(
                 false,
@@ -610,6 +630,20 @@ class EstateAgent extends BaseAgent
                 'mitigation_steps_applied' => count(array_filter($recommendations, fn ($r) => ($r['step'] ?? 0) > 0)),
             ]
         );
+        })();
+
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'estate_recommendation',
+            params: [],
+            resultSummary: [
+                'result_path' => (isset($result['success']) && $result['success'] === false) ? 'success_false' : 'happy',
+                'keys_returned' => array_keys($result),
+            ],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**

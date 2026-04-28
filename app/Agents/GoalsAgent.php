@@ -30,7 +30,8 @@ class GoalsAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
-        return $this->rememberForUser($userId, 'analysis', function () use ($userId) {
+        $analyzeStart = microtime(true);
+        $result = $this->rememberForUser($userId, 'analysis', function () use ($userId) {
             $user = User::findOrFail($userId);
             $goals = Goal::forUserOrJoint($userId)
                 ->get();
@@ -85,6 +86,17 @@ class GoalsAgent extends BaseAgent
                 'missing_for_quality_advice' => $missingForQualityAdvice,
             ];
         });
+
+        $resultPath = (isset($result['has_goals']) && $result['has_goals'] === false) ? 'empty_state' : 'happy';
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'goals_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => is_array($result) ? array_keys($result) : []],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -133,6 +145,8 @@ class GoalsAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
+        $start = microtime(true);
+        $result = (function () use ($analysisData): array {
         $recommendations = [];
         $priority = 1;
 
@@ -209,6 +223,17 @@ class GoalsAgent extends BaseAgent
             'recommendation_count' => count($recommendations),
             'recommendations' => $recommendations,
         ];
+        })();
+
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'goals_recommendation',
+            params: [],
+            resultSummary: ['result_path' => 'happy', 'count' => $result['recommendation_count'] ?? 0],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**

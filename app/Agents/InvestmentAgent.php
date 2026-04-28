@@ -41,6 +41,8 @@ class InvestmentAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
+        $analyzeStart = microtime(true);
+        $result = (function () use ($userId): array {
         // Data readiness gate — return early if blocking checks fail
         $gateUser = User::find($userId);
         if ($gateUser) {
@@ -170,6 +172,22 @@ class InvestmentAgent extends BaseAgent
                 'missing_for_quality_advice' => $missingForQualityAdvice,
             ];
         }, null, ['investment', 'user_'.$userId]);
+        })();
+
+        $resultPath = match (true) {
+            isset($result['can_proceed']) && $result['can_proceed'] === false => 'readiness_blocked',
+            isset($result['accounts_count']) && $result['accounts_count'] === 0 => 'empty_state',
+            default => 'happy',
+        };
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'investment_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -231,6 +249,7 @@ class InvestmentAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysis): array
     {
+        $start = microtime(true);
         $result = $this->actionDefinitionService->evaluateAgentActions(
             $analysis,
             [],                 // No savings analysis (handled by InvestmentPlanService)
@@ -240,10 +259,20 @@ class InvestmentAgent extends BaseAgent
             []                  // No fee analyses at agent level
         );
 
-        return [
+        $output = [
             'recommendation_count' => $result['total_count'],
             'recommendations' => $result['recommendations'],
         ];
+
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'investment_recommendation',
+            params: [],
+            resultSummary: ['result_path' => 'happy', 'count' => $output['recommendation_count']],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $output;
     }
 
     /**

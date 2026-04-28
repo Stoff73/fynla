@@ -224,6 +224,16 @@ class CoordinatingAgent extends BaseAgent
     {
         $orchestrateStart = microtime(true);
 
+        // Eval trace — emit at ENTRY so the orchestrate span is bookended
+        // (the existing emit below fires at exit). Doc A §5.3 spec parity.
+        event(new \App\Events\Eval\EngineCalled(
+            engine: 'orchestrate_analysis',
+            params: ['user_id' => $userId, 'phase' => 'entry'],
+            resultSummary: ['result_path' => 'pending'],
+            durationMs: 0,
+            atMicrotime: $orchestrateStart,
+        ));
+
         // Collect analysis from all modules
         $allAnalysis = $this->collectModuleAnalysis($userId, $moduleAgents);
 
