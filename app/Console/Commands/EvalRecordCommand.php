@@ -296,6 +296,11 @@ final class EvalRecordCommand extends Command
                 $this->line('DB writes:  none.');
             }
 
+            // Canonical 0.1 — reset persona ONLY when an eval has actually
+            // changed data on the persona record, AFTER EvalProviderRun
+            // is persisted so the forensic chain is captured first.
+            $this->resetPersonaIfMutating($writes, (string) ($scenario['persona'] ?? ''));
+
             return $run;
         } catch (\Throwable $e) {
             $this->error("[{$provider}] Recording failed: ".$e->getMessage());
@@ -303,6 +308,28 @@ final class EvalRecordCommand extends Command
 
             return null;
         }
+    }
+
+    /**
+     * Canonical 0.1 reset orchestration: invokes `preview:reset {persona}`
+     * if and only if the captured `$writes` diff is non-empty AND a
+     * persona is supplied. Caller is responsible for calling this AFTER
+     * `EvalProviderRun::create()` so the forensic chain is persisted
+     * before any cleanup runs.
+     *
+     * Public so the unit test can exercise it directly without driving
+     * the whole `recordOne` pipeline.
+     *
+     * @param  array<string, mixed>  $writes
+     */
+    public function resetPersonaIfMutating(array $writes, string $persona): void
+    {
+        if (empty($writes) || $persona === '') {
+            return;
+        }
+
+        $this->info('Mutating recording detected '.count($writes)." diff entries — resetting persona '{$persona}'.");
+        \Illuminate\Support\Facades\Artisan::call('preview:reset', ['persona' => $persona]);
     }
 
     /**
