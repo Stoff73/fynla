@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models\News;
 
+use Database\Factories\NewsSubscriberFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -12,6 +14,11 @@ use Illuminate\Support\Str;
 class NewsSubscriber extends Model
 {
     use HasFactory;
+
+    protected static function newFactory(): Factory
+    {
+        return NewsSubscriberFactory::new();
+    }
 
     protected $fillable = [
         'email',
