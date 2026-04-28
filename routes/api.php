@@ -1129,6 +1129,11 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/in
     Route::delete('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'destroy']);
 });
 
+// News subscribers (admin)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
+    Route::get('news-subscribers', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
+});
+
 // Retirement Action Definitions (admin-configurable plan actions)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/retirement-actions')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'index']);
