@@ -62,6 +62,35 @@ class NewsSubscriberController extends Controller
         ]);
     }
 
+    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $filename = 'news-subscribers-'.now()->format('Y-m-d-His').'.csv';
+
+        return response()->stream(function () {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['email', 'status', 'source', 'ip_address', 'created_at', 'confirmed_at', 'unsubscribed_at']);
+
+            NewsSubscriber::query()->orderByDesc('created_at')->chunk(500, function ($chunk) use ($handle) {
+                foreach ($chunk as $s) {
+                    fputcsv($handle, [
+                        $s->email,
+                        $this->statusOf($s),
+                        $s->source,
+                        $s->ip_address,
+                        $s->created_at?->toIso8601String(),
+                        $s->confirmed_at?->toIso8601String(),
+                        $s->unsubscribed_at?->toIso8601String(),
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
     private function statusOf(NewsSubscriber $s): string
     {
         if ($s->unsubscribed_at !== null) {

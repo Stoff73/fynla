@@ -67,3 +67,20 @@ it('searches by email', function () {
     $response->assertOk();
     expect($response->json('meta.total'))->toBe(1);
 });
+
+it('exports all subscribers as CSV for admins', function () {
+    Sanctum::actingAs($this->admin);
+
+    NewsSubscriber::factory()->confirmed()->create(['email' => 'csv1@example.com']);
+    NewsSubscriber::factory()->create(['email' => 'csv2@example.com']);
+
+    $response = $this->get('/api/admin/news-subscribers/export');
+
+    $response->assertOk()
+        ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+
+    $body = $response->streamedContent();
+    expect($body)->toContain('email,status,source');
+    expect($body)->toContain('csv1@example.com');
+    expect($body)->toContain('csv2@example.com');
+});

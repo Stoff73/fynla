@@ -1132,6 +1132,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/in
 // News subscribers (admin)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     Route::get('news-subscribers', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
+    Route::get('news-subscribers/export', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
