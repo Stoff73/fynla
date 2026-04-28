@@ -1,7 +1,144 @@
 # CSJTODO — Fynla
 
-*Last updated: 27 April 2026 — session 71 (RSS news hub + landing-page restoration + dev build + PR #237)*
-*Previous session: 24 April 2026 — session 70 (Fyn v2 spec directory)*
+*Last updated: 28 April 2026 — session 72 (news subscriber email-list signup + PR #238)*
+*Previous session: 27 April 2026 — session 71 (RSS news hub + landing-page restoration + PR #237)*
+
+---
+
+## Session 72 (28 April 2026) — News subscriber email-list signup
+
+**Branch:** `feature/phailanx/news-rss-lifecycle-emails` (29 commits ahead of `origin/dev`, all pushed).
+**PR:** [#238](https://github.com/Stoff73/fynla/pull/238) `feature/phailanx/news-rss-lifecycle-emails → dev` open, **replaces #237** (which was branch-naming-violation; squashed and rebased onto the convention-compliant branch in `fa6d6c6`). Self-review pending.
+**Note:** today bundles two streams — PR-237 squash (`fa6d6c6`) carries the news hub + RSS feeds + lifecycle email infrastructure unchanged; commits since are the new news-subscribe-fix work.
+
+### Completed this session
+
+#### Bug discovery + plan
+- [x] CSJ flagged that `/news` "Subscribe to our news feed" banner sent users to raw `/feed/news.xml` XML page instead of capturing emails — confirmed in browser. Root cause: `NewsHubPage.vue:21` was `<a href="/feed/news.xml" target="_blank">`.
+- [x] Wrote `April/April28Updates/news-subscribe-fix-plan.md` (26-task implementation plan with file paths, code blocks, commit messages, test assertions, and explicit cross-references to PR-237-review.md findings #16, #8, #11, #3 and B2).
+- [x] CSJ approved 5 design decisions: double opt-in, list-only (broadcast deferred), one-click unsubscribe, registered-Fynla-user gets sign-in inline link (no row created), `PreviewWriteInterceptor::EXCLUDED_ROUTES` exclusion.
+
+#### Group A — DB schema + model + mail config (commits `efb803f`, `16d2b84`, `6a66ed5`, `2d5bd3b`)
+- [x] Migration `2026_04_28_120000_create_news_subscribers_table.php` with `Schema::hasTable` guard + composite index `[unsubscribed_at, confirmed_at]`.
+- [x] `App\Models\News\NewsSubscriber` model with `confirmed`/`pending`/`unsubscribed` scopes (typed `Builder $query): Builder` matching peer `NewsArticle::scopePublished`), `generateToken()` static helper, `isConfirmed()`/`isPending()` instance helpers.
+- [x] `config/mail.php` adds `marketing` from-block reading `MAIL_MARKETING_FROM_ADDRESS`/`NAME` env vars; `.env.example` has the new keys.
+- [x] Reviewer round 1 caught namespace mismatch (model was at `App\Models\NewsSubscriber`, peer `NewsArticle` is at `App\Models\News\NewsArticle`); single-column indexes vs composite. Both fixed in `2d5bd3b`.
+
+#### Group B — Mailables + blades + factory + render tests (commits `0dbc704`, `3786f92`, `04a1dad`, `5c276cf`, `e6e45db`, `f08ed78`)
+- [x] `NewsletterConfirmationMail` + `NewsletterWelcomeMail` Mailables (queueable, from `marketing@fynla.org`).
+- [x] `confirm-subscription.blade.php` + `welcome.blade.php` extending `emails.layouts.master` per the `email-template` skill rules with Rule-2 adjacency walks documented inline.
+- [x] `NewsSubscriberFactory` with `confirmed()` and `unsubscribed()` states using `fake()` (NOT `$this->faker`) per PR-237 Finding #5.
+- [x] `tests/Pest.php` extended with `uses(Tests\TestCase::class)->in('Unit/Mail')` mirroring the `BaseAgentTest` precedent (no DB needed for render tests).
+- [x] `App\Models\News\NewsSubscriber::newFactory()` resolver added because Laravel resolved `Database\Factories\News\NewsSubscriberFactory` first and never fell back.
+- [x] 3 unit tests (`NewsletterMailRenderTest`) — confirm URL, unsubscribe URL, marketing from-address — all pass.
+- [x] Reviewer round caught Rule-2 comment scope (extended to cover full eggshell band) + unused `rssUrl` view variable. Fixed in `f08ed78`.
+
+#### Group C — Public subscribe controller + 8 feature tests (commits `b56a341`, `8399d11`, `3c14e7a`, `9eeb212`, `62dc79c`, `a6291aa`)
+- [x] `Api\Public\NewsSubscriberController::subscribe()` with 5 response branches: rate_limited / pending_confirmation / already_registered / already_confirmed / 422 validation. IP-keyed `RateLimiter` (3 per 5 min) + route-level `throttle:5,1` belt-and-braces.
+- [x] Route `POST /api/news/subscribe` added INSIDE existing `Route::prefix('news')` group, BEFORE `{slug}` (otherwise matched as a slug).
+- [x] `'api/news/subscribe'` added to `PreviewWriteInterceptor::EXCLUDED_ROUTES`.
+- [x] 8 feature tests: happy path / already-registered / already-confirmed / pending-resend (token rotates) / 422 invalid / 429 rate-limit / resubscribe-after-unsubscribe / mixed-case email normalisation. All pass.
+- [x] Reviewer round caught synchronous `Mail::send` on a public anonymous endpoint (timing-amplifies the user-enumeration oracle); fixed by switching to `Mail::queue()`. Also moved `RateLimiter::hit()` BEFORE `validate()` so spam can't bypass.
+- [x] Discovery: `Mail::fake()` actually does separate `send` vs `queue` — `assertSent` does not catch queued mail. Switched all 5 existing assertions to `assertQueued`.
+- [x] Discovery: MySQL `utf8mb4_unicode_ci` is case-insensitive — adapted normalisation test to assert via stricter PHP comparison instead of relying on `where()` to be case-sensitive.
+
+#### Group D — Web confirm/unsubscribe controller + 6 tests (commits `361c261`, `9094692`, `188c79e`)
+- [x] `NewsletterActionController::confirm($token)` and `unsubscribe($token)` — both idempotent, both `firstOrFail()` → 404 on bad token.
+- [x] Routes `GET /subscribe/news/confirm/{token}` + `GET /unsubscribe/news/{token}` in `routes/web.php` BEFORE the SPA catch-all, with `where('token', '[A-Za-z0-9]{48}')` regex (matches `Str::random(48)` base62).
+- [x] Standalone Blade pages `newsletter/confirmed.blade.php` + `newsletter/unsubscribed.blade.php` — full HTML, no SPA shell. After reviewer round: corrected hex tokens (`#f5f0eb` → `#F7F6F4` is the WEB Tailwind token; `#e74c6f` → `#E83E6D` is web; the email-template skill's `#f5f0eb`/`#e74c6f` are the EMAIL context tokens, distinct concept). Added favicon link `{{ asset('images/logos/favicon.png') }}`.
+- [x] 6 feature tests: confirm-pending / 404-invalid-confirm / idempotent-confirm / unsubscribe-confirmed / 404-invalid-unsubscribe / idempotent-unsubscribe. All pass.
+- [x] Discovery: `assertSee` HTML-escapes by default; needed `, false` second arg to match the literal `'` in "You're"/"You've" against the rendered Blade.
+
+#### Group E — Frontend service + banner component + integration (commits `9018249`, `2e2ccfd`, `007ec31`, `0a68657`)
+- [x] `newsSubscriberService.js` API wrapper (single `subscribe(email)` POST to `/news/subscribe`).
+- [x] `NewsSubscribeBanner.vue` Vue component (Options API, multi-word name) with 5 UI states: idle/error/pending_confirmation/already_registered/already_confirmed. Status-string contract matches backend exactly. Accessibility: `sr-only` label, `aria-hidden` on decorative SVG, `role="alert"` errors, `role="status"` messages. `<router-link to="/login">` for sign-in CTA in already-registered state. Design-system tokens only (no hardcoded hex).
+- [x] `NewsHubPage.vue` lines 20-33 broken `<a>` block replaced with `<NewsSubscribeBanner />`. Bottom "Want to stay updated?" CTA section UNCHANGED (PR-237 work, kept for tech users).
+- [x] CSJ requested: hidden the in-banner "Prefer RSS? Subscribe via feed" link until newsletter broadcast lands. Done in `0a68657`.
+
+#### Group F — Admin index + CSV export (commits `2e580b9`, `395d1ad`)
+- [x] `Api\Admin\NewsSubscriberController` with `index` (paginated, status filter, email search) + `export` (streamed CSV, chunked 500 at a time).
+- [x] Routes added to existing admin auth group `['auth:sanctum', 'permission:admin.access']` with prefix `admin/`. Constructor middleware `permission:admin.access` mirrors peer `InsightArticleController`.
+- [x] 6 tests using `RolesPermissionsSeeder` + `Role::findByName(Role::ROLE_ADMIN)` + `role_id`+`is_admin=true` (the canonical admin auth pattern in this codebase, NOT `is_admin` alone). All pass.
+
+#### Group G — Admin Vue page + router (commit `7481aa2`)
+- [x] `resources/js/views/Admin/NewsSubscribersPage.vue` — `AppLayout`, `max-w-7xl mx-auto`, header with Export CSV button, 4 filter chips (All/Confirmed/Pending/Unsubscribed), email search with 250ms debounce, `card overflow-hidden` table with `bg-savannah-100` thead matching `ArticleListPage.vue`, status badges using `bg-spring-100 text-spring-700` / `bg-violet-100 text-violet-700` / `bg-light-gray text-neutral-500`, pagination, `formatDate` `en-GB` locale. CSV download via `responseType: 'blob'` + temporary `<a download>`.
+- [x] Router entry `path: '/admin/news-subscribers', name: 'AdminNewsSubscribers', meta: { requiresAuth: true, requiresAdmin: true }` matching peer `AdminInsights` route shape.
+
+#### Browser tests (5 paths verified end-to-end in Playwright on local)
+- [x] Subscribe `playwright-test-1@example.com` → "Check your inbox" → DB row + token captured → navigate to confirm URL → "You're subscribed" page → `confirmed_at` set in DB.
+- [x] Submit `john@example.com` (seeded user) → "You're already registered with Fynla — sign in" inline + `<router-link>` to `/login`. NO row created.
+- [x] Resubmit `resend-test@example.com` after pending → "Confirmation email re-sent — check your inbox" + token rotated in DB.
+- [x] 4× submits in 5 min from same IP → 4th gets "Too many attempts. Please try again in a few minutes." (alert role) + 4th email NOT in DB.
+- [x] Visit `/unsubscribe/news/{token}` for confirmed subscriber → "You've unsubscribed" page + `unsubscribed_at` set.
+- [x] Admin UI: 3 test rows render with status badges, `Confirmed` filter narrows to 1, `test2` search narrows to 1, `Export CSV` returns 200 with `text/csv; charset=UTF-8` + correct header row + 3 data rows.
+- [x] Discovery: Pest's `RefreshDatabase` wiped users + news_articles after running the full feature suite. Ran `php artisan db:seed --force` to restore 14 users + launching-fynla article. (CLAUDE.md rule: "ALWAYS reseed after any operation that modifies or loses local database data".)
+
+#### Final cleanup (commit `5c20a0d`)
+- [x] Pint applied to all 13 new PHP files (4 style issues auto-fixed: `class_attributes_separation`, `single_line_empty_body`, `braces`).
+- [x] Full new-test suite re-run after pint: **23 passing, 80 assertions, 0 failures**.
+- [x] RSS feeds regression check: `/feed/news.xml` + `/feed/insights.xml` both still 200.
+- [x] Two follow-ups added to `CSJTODO.md` (this file): Newsletter broadcast + PR-237 Finding #16 test coverage gap.
+
+#### Deploy guide + PR
+- [x] `April/April28Updates/deployNewsletter.md` written (12 sections, ~12 KB) — generated from `git diff origin/dev..HEAD --name-status` (NOT memory). Covers: prereqs, DB changes, env vars, 9 file categories to upload, build, upload options, SSH finalisation, 10 smoke-test paths, post-deploy log-watching, rollback plan, promotion-to-prod, cross-references, full commit reference.
+- [x] PR #238 opened replacing #237. Title: "feat(news+emails): subscribe form + RSS hub + lifecycle emails (replaces #237)". Body covers all three streams + tests + browser verification + 17-item deploy/review checklist.
+- [x] PR-237-review.md, news-subscribe-fix-plan.md, deployNewsletter.md all synced to `/Users/CSJ/Desktop/fynlaBrain/April/April28Updates/`.
+
+### NOT Done — Outstanding for next session
+
+#### Top priority — deploy PR #238 to dev (csjones.co/fynla)
+- [ ] **Self-review and merge PR #238** on GitHub.
+- [ ] **Add to dev `.env`**: `MAIL_MARKETING_FROM_ADDRESS=marketing@fynla.org`, `MAIL_MARKETING_FROM_NAME="Fynla"` (NEW — not in git).
+- [ ] **Confirm SMTP relay can deliver from `marketing@fynla.org`** BEFORE first signup. Queue is `sync` on dev so a failing relay surfaces as a slow/erroring subscribe. Test: `php artisan tinker → Mail::raw('test', fn(\$m) => \$m->from('marketing@fynla.org')->to('chris@fynla.org')->subject('relay test'))->send();`
+- [ ] **Build**: `./deploy/csjones-fynla/build.sh` (sets VITE_BASE_PATH=/fynla/build/, VITE_ROUTER_BASE=/fynla/, VITE_REVOLUT_SANDBOX=true).
+- [ ] **Upload to** `~/www/csjones.co/fynla-app/` (NOT `public_html/fynla` — see `reference_csjones_sibling_dir.md` memory) per the 9 file categories in `deployNewsletter.md` §3.
+- [ ] **SSH finalise**: `cd ~/www/csjones.co/fynla-app && php artisan migrate --force && php artisan db:seed --class=NewsArticleSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize`
+- [ ] **Verify routes**: `php artisan route:list --path=news/subscribe`, `--path=subscribe/news`, `--path=unsubscribe/news`, `--path=admin/news-subscribers` (4 expected, with correct middleware).
+- [ ] **Smoke-test the 10 paths in `deployNewsletter.md` §7** on `https://csjones.co/fynla` — subscribe happy / registered / resend / rate-limit / unsubscribe / admin / RSS regression / lifecycle test / landing / video.
+- [ ] **Watch `storage/logs/laravel.log`** for 15 min after first request.
+
+#### After dev green — production deploy (fynla.org)
+- [ ] PR `dev → main` opened (only `@Stoff73`).
+- [ ] Build with `./deploy/fynla-org/build.sh` (production env vars: VITE_BASE_PATH=/build/, VITE_ROUTER_BASE=/, VITE_REVOLUT_SANDBOX=false).
+- [ ] Upload to `~/www/fynla.org/public_html/`.
+- [ ] Add `MAIL_MARKETING_FROM_*` to **production** `.env`. Confirm DKIM/SPF/DMARC alignment for `marketing@fynla.org` (escalate to whoever owns DNS if SMTP rejects).
+- [ ] Same migrate/seed/cache-clear sequence on production server.
+- [ ] Smoke-test all 10 paths against `https://fynla.org/...` URLs.
+- [ ] Close PR #237 on GitHub with reference to PR #238 after production lands.
+
+#### Tech debt items from this session (`tech-debt-report.md` — 9 issues, 0 critical)
+- [ ] **Admin CSV export missing `throttle:export`** (`routes/api.php`, the export route streams subscriber emails + IPs, should be 3/hour-rate-limited per HTTP CLAUDE.md convention).
+- [ ] **No AdminPanel sidebar entry** for `/admin/news-subscribers` — admins can only reach it by typing the URL. Add a link/card to `AdminPanel.vue`.
+- [ ] **Standalone newsletter pages use raw `#555` for body text** instead of a design-system token. Defensible for non-Tailwind contexts but worth swapping to `#717171` (neutral-500) if you want palette purity.
+- [ ] 6 other suggestions in `tech-debt-report.md` — none merge-blocking. Read for context if doing a polish pass.
+
+#### Carried follow-ups added to CSJTODO this session
+- [ ] **Newsletter broadcast** — when a `NewsArticle` flips to `status='published'`, fan out to confirmed `NewsSubscriber::confirmed()` rows. Queueable, paced (avoid SMTP 451 — see Session 67 lifecycle hotfix), skip subscribers who unsubscribe between queue + send.
+- [ ] **PR-237 Finding #16** — News/RSS/lifecycle code from PR-237 (~1,000 lines) still has no tests. Open a separate PR with `NewsController`, `FeedController`, `NewsArticle::published()` scope, RSS XML schema validation, and Lifecycle Mailable construction tests.
+
+### Context for next session
+
+Branch: `feature/phailanx/news-rss-lifecycle-emails` (29 commits ahead of `dev`, all pushed). PR #238 is the merge target.
+
+The user requested deployment to dev after PR review. They have the deploy guide at `April/April28Updates/deployNewsletter.md` — all steps are explicit. Most likely next-session ask: "merge #238 and deploy to dev". Read the deploy guide before doing anything.
+
+The launch news article was missing on `/news` until `php artisan db:seed --class=NewsArticleSeeder --force` was run mid-session. Pest's `RefreshDatabase` wipes the DB whenever feature tests run — always reseed before browser-testing. CLAUDE.md "DB seed every session" lesson reinforced.
+
+Two pieces of standing infrastructure now exist that future work should reuse: (1) the `email-template` skill and module library at `resources/views/emails/modules/` — every new email must use these per the skill rules; (2) the `App\Models\News\NewsSubscriber` namespace pattern — any future news-domain model should land at `App\Models\News\X` not `App\Models\X` (Group A reviewer caught this drift; mirrors peer `NewsArticle`).
+
+### Files written this session (local, gitignored)
+
+- `April/April28Updates/news-subscribe-fix-plan.md` (26-task implementation plan)
+- `April/April28Updates/deployNewsletter.md` (12-section deploy guide)
+- `tech-debt-report.md` (9 findings, 0 critical) — at repo root, gitignored
+
+### Decision register additions (locked this session)
+
+13. **Newsletter is double opt-in.** Confirmation email click required before email lands on the active list. GDPR posture.
+14. **Already-registered Fynla user → "Sign in" inline link, no list-row created.** Soft user-enumeration oracle accepted as UX trade-off.
+15. **`marketing@fynla.org` is the from-address for all newsletter mail.** Distinct from `noreply@fynla.org` (transactional / lifecycle) and `support@fynla.org` (contact form).
+16. **Newsletter broadcast deferred** until list is built. List-only first; broadcast in a follow-up PR.
+17. **In-banner "Prefer RSS?" link hidden** until newsletter broadcast lands. Bottom CTA's "Or subscribe via RSS" link kept (PR-237 original, for tech users).
 
 ---
 
