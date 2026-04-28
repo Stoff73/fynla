@@ -46,11 +46,6 @@
     <div v-if="status === 'already_confirmed'" class="mt-3 text-sm text-horizon-500" role="status">
       <strong>You're already subscribed</strong> &mdash; thanks!
     </div>
-
-    <p class="mt-3 text-xs text-neutral-400">
-      Prefer RSS?
-      <a href="/feed/news.xml" target="_blank" rel="noopener noreferrer" class="underline hover:text-raspberry-500 transition-colors">Subscribe via feed</a>.
-    </p>
   </div>
 </template>
 
