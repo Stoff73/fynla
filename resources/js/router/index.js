@@ -127,6 +127,7 @@ const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
 const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
+const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -1100,6 +1101,12 @@ const routes = [
     path: '/admin/insights/:id/edit',
     name: 'AdminInsightEdit',
     component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/news-subscribers',
+    name: 'AdminNewsSubscribers',
+    component: NewsSubscribersPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
