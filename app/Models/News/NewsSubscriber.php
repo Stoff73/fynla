@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Models\News;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -31,17 +32,17 @@ class NewsSubscriber extends Model
         return Str::random(48);
     }
 
-    public function scopeConfirmed($query)
+    public function scopeConfirmed(Builder $query): Builder
     {
         return $query->whereNotNull('confirmed_at')->whereNull('unsubscribed_at');
     }
 
-    public function scopePending($query)
+    public function scopePending(Builder $query): Builder
     {
         return $query->whereNull('confirmed_at')->whereNull('unsubscribed_at');
     }
 
-    public function scopeUnsubscribed($query)
+    public function scopeUnsubscribed(Builder $query): Builder
     {
         return $query->whereNotNull('unsubscribed_at');
     }

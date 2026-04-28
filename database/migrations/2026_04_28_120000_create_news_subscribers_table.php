@@ -23,8 +23,12 @@ return new class extends Migration {
             $table->string('source', 32)->default('news_hub');
             $table->timestamps();
 
-            $table->index('confirmed_at');
-            $table->index('unsubscribed_at');
+            // Composite index serves the active-subscriber scopes:
+            //   confirmed: confirmed_at IS NOT NULL AND unsubscribed_at IS NULL
+            //   pending:   confirmed_at IS NULL AND unsubscribed_at IS NULL
+            // Leading column unsubscribed_at is the highly-selective filter
+            // (most subscribers are not unsubscribed); confirmed_at narrows further.
+            $table->index(['unsubscribed_at', 'confirmed_at']);
         });
     }
 
