@@ -164,6 +164,15 @@ Route::prefix('insights')->group(function () {
         ->where('slug', '[a-z0-9-]+');
 });
 
+// Public News API (no auth required)
+Route::prefix('news')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Public\NewsController::class, 'index']);
+    Route::post('subscribe', [\App\Http\Controllers\Api\Public\NewsSubscriberController::class, 'subscribe'])
+        ->middleware('throttle:5,1');
+    Route::get('{slug}', [\App\Http\Controllers\Api\Public\NewsController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+');
+});
+
 // Preview Mode routes (allows unauthenticated preview access)
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)
@@ -1118,6 +1127,12 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/in
     Route::post('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'store']);
     Route::put('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'update']);
     Route::delete('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'destroy']);
+});
+
+// News subscribers (admin)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
+    Route::get('news-subscribers', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
+    Route::get('news-subscribers/export', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)

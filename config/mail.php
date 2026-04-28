@@ -112,6 +112,11 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    'marketing' => [
+        'address' => env('MAIL_MARKETING_FROM_ADDRESS', 'marketing@fynla.org'),
+        'name' => env('MAIL_MARKETING_FROM_NAME', 'Fynla'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Markdown Mail Settings
