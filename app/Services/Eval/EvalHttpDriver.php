@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Eval\EvalTraceCollector;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Laravel\Sanctum\PersonalAccessToken;
 use RuntimeException;
 
 /**
@@ -77,9 +78,25 @@ final class EvalHttpDriver
         $endState = [];
 
         try {
+            // 0. Pre-flight — fail fast if the dev server is not responding.
+            // /api/preview/personas is unauthenticated and cheap; a non-200
+            // here means the rest of the loop will fail with confusing
+            // errors. 2-second budget keeps the failure mode tight.
+            $healthResp = Http::connectTimeout(2)->timeout(2)->get("{$baseUrl}/api/preview/personas");
+            if (! $healthResp->successful()) {
+                throw new RuntimeException("eval pre-flight failed: {$baseUrl} returned [{$healthResp->status()}]; is `./dev.sh` running?");
+            }
+
+            // 0.5. Token cleanup — purge eval-issued tokens older than an
+            // hour so the personal_access_tokens table doesn't accumulate
+            // dead rows from earlier recording runs.
+            PersonalAccessToken::where('name', 'like', 'eval-%')
+                ->where('created_at', '<', now()->subHour())
+                ->delete();
+
             // 1. Login.
             $t0 = microtime(true);
-            $loginResp = Http::timeout(5)->post("{$baseUrl}/api/eval/login/{$persona}");
+            $loginResp = Http::connectTimeout(5)->timeout(5)->post("{$baseUrl}/api/eval/login/{$persona}");
             $httpLog[] = $this->logCall('POST', "{$baseUrl}/api/eval/login/{$persona}", $loginResp->status(), $t0);
             if (! $loginResp->successful()) {
                 throw new RuntimeException("eval login failed [{$loginResp->status()}]: {$loginResp->body()}");
@@ -91,6 +108,7 @@ final class EvalHttpDriver
             // 2. Create conversation.
             $t0 = microtime(true);
             $convResp = Http::withToken($token)
+                ->connectTimeout(5)
                 ->timeout(5)
                 ->post("{$baseUrl}/api/ai-chat/conversations", [
                     'title' => 'Eval recording — '.($scenario['id'] ?? 'unknown'),
@@ -123,6 +141,7 @@ final class EvalHttpDriver
                 $t0 = microtime(true);
                 $sendResp = Http::withToken($token)
                     ->withHeaders(['Accept' => 'text/event-stream'])
+                    ->connectTimeout(5)
                     ->timeout(120)
                     ->post(
                         "{$baseUrl}/api/ai-chat/conversations/{$conversationId}/messages",
@@ -157,6 +176,7 @@ final class EvalHttpDriver
             // 6. Logout.
             $t0 = microtime(true);
             $logoutResp = Http::withToken($token)
+                ->connectTimeout(5)
                 ->timeout(5)
                 ->post("{$baseUrl}/api/auth/logout");
             $httpLog[] = $this->logCall('POST', "{$baseUrl}/api/auth/logout", $logoutResp->status(), $t0);

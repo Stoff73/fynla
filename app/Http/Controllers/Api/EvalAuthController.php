@@ -56,7 +56,8 @@ final class EvalAuthController extends Controller
 
         $token = $user->createToken(
             name: 'eval-'.now()->timestamp,
-            abilities: ['bypass-preview-mode']
+            abilities: ['bypass-preview-mode'],
+            expiresAt: now()->addMinutes((int) config('fyn_eval.token_ttl_minutes', 15)),
         )->plainTextToken;
 
         return response()->json([

@@ -13,6 +13,15 @@ declare(strict_types=1);
 return [
 
     /*
+     * Sanctum token TTL for eval-issued tokens. Defence in depth — the
+     * routes that mint eval tokens already refuse in production at both
+     * the controller and route levels, but a short TTL means an
+     * accidentally-leaked dev token cannot outlive a single recording
+     * session.
+     */
+    'token_ttl_minutes' => (int) env('FYN_EVAL_TOKEN_TTL_MINUTES', 15),
+
+    /*
      * Per-focus entity-count recall baseline. Tunable per focus.
      */
     'recall_floor' => [

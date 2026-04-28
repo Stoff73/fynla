@@ -143,6 +143,44 @@
         />
       </div>
 
+      <!-- HTTP log — every request the eval driver made against the local Laravel server.
+           Per audit §5.7. Surfaced from session.http_log (EvalRecordingController:118). -->
+      <div v-if="httpLogEntries.length" class="card">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h4 class="font-bold text-horizon-500">HTTP log</h4>
+            <p class="text-xs text-neutral-500 mt-0.5">
+              Every call the driver made against the local Laravel server during this recording.
+              Entries from both providers' runs are interleaved in chronological order.
+            </p>
+          </div>
+          <span class="text-xs text-neutral-500 font-mono">{{ httpLogEntries.length }} call{{ httpLogEntries.length === 1 ? '' : 's' }}</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="border-b border-light-gray">
+                <th class="text-left py-2 px-3 text-neutral-500 font-bold uppercase tracking-wider">Method</th>
+                <th class="text-left py-2 px-3 text-neutral-500 font-bold uppercase tracking-wider">URL</th>
+                <th class="text-right py-2 px-3 text-neutral-500 font-bold uppercase tracking-wider">Status</th>
+                <th class="text-right py-2 px-3 text-neutral-500 font-bold uppercase tracking-wider">Duration</th>
+                <th class="text-right py-2 px-3 text-neutral-500 font-bold uppercase tracking-wider">At</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(call, i) in httpLogEntries" :key="i" class="border-b border-light-gray hover:bg-savannah-50">
+                <td class="py-2 px-3 font-mono font-bold text-horizon-500">{{ call.method }}</td>
+                <td class="py-2 px-3 font-mono text-horizon-500 break-all">{{ formatHttpUrl(call.url) }}</td>
+                <td class="py-2 px-3 text-right font-mono" :class="httpStatusClass(call.status)">{{ call.status }}</td>
+                <td class="py-2 px-3 text-right font-mono text-neutral-500">{{ call.duration_ms }}ms</td>
+                <td class="py-2 px-3 text-right font-mono text-neutral-400">{{ formatHttpTime(call.at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Remedial report (per-session, human-authored against the rubric) -->
       <div class="card">
         <div class="flex items-start justify-between mb-3 gap-3">
@@ -285,6 +323,10 @@ export default {
     remedialReport() {
       return this.selectedSession?.session?.remedial_report || '';
     },
+    httpLogEntries() {
+      const log = this.selectedSession?.session?.http_log;
+      return Array.isArray(log) ? log : [];
+    },
   },
 
   mounted() {
@@ -292,6 +334,26 @@ export default {
   },
 
   methods: {
+    formatHttpUrl(url) {
+      if (typeof url !== 'string') return '';
+      // Strip the local server origin so the table shows just the path —
+      // every entry in a single recording session has the same host.
+      return url.replace(/^https?:\/\/[^/]+/, '');
+    },
+    formatHttpTime(at) {
+      if (typeof at !== 'string' || at === '') return '';
+      const t = at.length >= 19 ? at.substring(11, 19) : at;
+      return t;
+    },
+    httpStatusClass(status) {
+      const n = Number(status);
+      if (!Number.isFinite(n)) return 'text-neutral-500';
+      if (n >= 200 && n < 300) return 'text-spring-700 font-bold';
+      if (n >= 300 && n < 400) return 'text-horizon-500';
+      if (n >= 400 && n < 500) return 'text-violet-700 font-bold';
+      if (n >= 500) return 'text-raspberry-700 font-bold';
+      return 'text-neutral-500';
+    },
     async fetchSessions() {
       this.loading = true;
       this.error = null;
