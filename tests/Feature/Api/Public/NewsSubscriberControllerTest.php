@@ -84,3 +84,29 @@ it('resends the confirmation email when a pending subscriber re-submits', functi
 
     Mail::assertSent(NewsletterConfirmationMail::class, 1);
 });
+
+it('rejects invalid email addresses', function () {
+    $response = $this->postJson('/api/news/subscribe', [
+        'email' => 'not-an-email',
+    ]);
+
+    $response->assertStatus(422);
+    Mail::assertNotSent(NewsletterConfirmationMail::class);
+});
+
+it('rate-limits after 3 successful submits from the same IP', function () {
+    for ($i = 1; $i <= 3; $i++) {
+        $this->postJson('/api/news/subscribe', [
+            'email' => "user{$i}@example.com",
+        ])->assertOk();
+    }
+
+    $response = $this->postJson('/api/news/subscribe', [
+        'email' => 'user4@example.com',
+    ]);
+
+    $response->assertStatus(429)
+        ->assertJson(['status' => 'rate_limited']);
+
+    expect(NewsSubscriber::where('email', 'user4@example.com')->exists())->toBeFalse();
+});
