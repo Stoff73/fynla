@@ -29,6 +29,80 @@ use App\Models\AiConversation;
 final class OnboardingFactExtractor
 {
     /**
+     * Words that follow a spouse trigger ("married to", "wife", "husband",
+     * "spouse", "partner") but are NOT first names. The match is rejected
+     * if the captured token (lowercased) appears here. Single- and two-letter
+     * pronouns ("i", "me", "we", "us", "my") are filtered automatically by
+     * the regex's `{3,21}` length quantifier.
+     */
+    private const SPOUSE_NAME_STOP_WORDS = [
+        // Pronouns / possessives
+        'her', 'him', 'them', 'his', 'hers', 'their', 'theirs', 'ours', 'yours', 'mine',
+        // Articles / determiners
+        'the', 'this', 'that', 'these', 'those',
+        // Indefinites
+        'someone', 'anyone', 'everyone', 'nobody', 'none',
+        // Relations
+        'mother', 'father', 'parent', 'parents', 'sister', 'brother',
+        'cousin', 'aunt', 'uncle', 'niece', 'nephew',
+        'sibling', 'siblings', 'child', 'children', 'son', 'sons',
+        'daughter', 'daughters', 'kid', 'kids', 'baby', 'babies', 'twin', 'twins',
+        // Self-referential / generic
+        'name', 'spouse', 'wife', 'husband', 'partner', 'family',
+    ];
+
+    /**
+     * Captured tokens that follow an employer trigger ("work for", "work at",
+     * "employed by") but are NOT company names. The match is rejected if
+     * the token (lowercased) appears here.
+     */
+    private const EMPLOYER_NAME_STOP_WORDS = [
+        // Pronouns / self-referential — except "myself" which signals self-employed,
+        // handled by dedicated branch in extractEmployment via parseEmploymentFromText.
+        'them', 'him', 'her', 'his', 'hers', 'theirs', 'ours', 'yours',
+        'myself', 'yourself', 'himself', 'herself', 'ourselves', 'themselves', 'itself',
+        // Generic "places" that aren't companies
+        'home', 'work', 'office', 'shop', 'site', 'company', 'business', 'employer',
+        'somewhere', 'anywhere', 'nowhere', 'everywhere',
+        // Articles
+        'the', 'this', 'that',
+    ];
+
+    /**
+     * Captured tokens that match the dependant name+age shape but are NOT
+     * actual dependant names. Heavier list than the spouse stop-words because
+     * the dependants regex has no trigger word, so any "noun + 1-2-digit
+     * number" pair would match without filtering.
+     */
+    private const DEPENDANT_NAME_STOP_WORDS = [
+        // Trigger / context nouns (already covered by count_hint regex)
+        'kid', 'kids', 'son', 'sons', 'daughter', 'daughters', 'child', 'children',
+        'twin', 'twins', 'dependent', 'dependents', 'dependant', 'dependants',
+        'sibling', 'siblings',
+        // Common verbs near a number
+        'earning', 'earn', 'earned', 'earns', 'spend', 'spends', 'spending', 'spent',
+        'have', 'had', 'has', 'get', 'got', 'gets', 'getting', 'give', 'gave', 'given',
+        'work', 'works', 'worked', 'working', 'born', 'made', 'make', 'makes',
+        'making', 'paying', 'paid', 'pays', 'pay',
+        // Money / income
+        'income', 'salary', 'salaries', 'wage', 'wages', 'pension', 'pensions',
+        // Time / age
+        'age', 'aged', 'year', 'years', 'month', 'months', 'week', 'weeks', 'day', 'days',
+        'old', 'older', 'young', 'younger', 'birthday',
+        // Pronouns / relations
+        'they', 'them', 'their', 'theirs', 'his', 'her', 'hers', 'mine', 'ours', 'yours',
+        'mother', 'father', 'parent', 'parents', 'mum', 'dad', 'mom', 'mommy', 'daddy',
+        'wife', 'husband', 'spouse', 'partner', 'family',
+        'aunt', 'uncle', 'cousin', 'niece', 'nephew',
+        // Connectives / generic
+        'and', 'but', 'or', 'for', 'with', 'without', 'after', 'before', 'about',
+        'around', 'over', 'under', 'name', 'names',
+        // Number words (would only match if 3+ chars)
+        'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+        'first', 'second', 'third', 'last', 'next',
+    ];
+
+    /**
      * Extract facts from a single user turn and merge them into the
      * conversation's onboarding_parked_facts column.
      */
@@ -127,15 +201,24 @@ final class OnboardingFactExtractor
     {
         $spouse = [];
 
-        // "married to Angela", "wife Emily", "husband Dave", "partner Jamie"
-        // Run on ORIGINAL case so [A-Z] works for capitalised names.
-        if (preg_match('/\b(?:married\s+to|wife|husband|spouse|partner)\s+([A-Z][a-z]{2,20})\b/', $message, $m) === 1) {
-            $spouse['first_name'] = $m[1];
+        // "married to Angela", "wife Emily", "husband Dave", "partner Jamie".
+        // Case-insensitive — chat input is rarely auto-capitalised, and users
+        // routinely type "married to angela". Captured token is normalised to
+        // title case ("ANGELA"/"angela"/"AnGeLa" → "Angela") and rejected if
+        // it falls in SPOUSE_NAME_STOP_WORDS (pronouns, relation nouns, etc.)
+        // so phrases like "wife sister angela" or "married to her" do not
+        // produce a false-positive spouse first_name.
+        if (preg_match('/\b(?:married\s+to|wife|husband|spouse|partner)\s+([a-zA-Z]{3,21})\b/i', $message, $m) === 1) {
+            $candidate = $m[1];
+            if (! in_array(strtolower($candidate), self::SPOUSE_NAME_STOP_WORDS, true)) {
+                $spouse['first_name'] = ucfirst(strtolower($candidate));
+            }
         }
 
-        // "Angela, 45" right after the wife/partner noun
+        // "Angela, 45" right after the wife/partner noun. Match against the
+        // user's original casing so the age picker locates the same token.
         if (isset($spouse['first_name'])) {
-            $pattern = '/'.preg_quote($spouse['first_name'], '/').',?\s+(\d{2})\b/';
+            $pattern = '/'.preg_quote($spouse['first_name'], '/').',?\s+(\d{2})\b/i';
             if (preg_match($pattern, $message, $m) === 1) {
                 $age = (int) $m[1];
                 if ($age >= 18 && $age <= 110) {
@@ -172,14 +255,25 @@ final class OnboardingFactExtractor
             }
         }
 
-        // People hints — "Sam 8 and Eli 6"
-        if (preg_match_all('/\b([A-Z][a-z]{2,20})\s+(?:aged?\s+)?(\d{1,2})\b/', $message, $matches, PREG_SET_ORDER) > 0) {
+        // People hints — "Sam 8 and Eli 6", "sam 8 and eli 6", "SAM 8 AND ELI 6".
+        // Case-insensitive so chat-style lowercase ("sam 8 and eli 6") still
+        // populates people_hint. Captured token is title-cased and rejected
+        // when it appears in DEPENDANT_NAME_STOP_WORDS — heavier list than the
+        // spouse extractor because there is no trigger word ("married to",
+        // "wife") to anchor the match, so common verbs/relations/pronouns
+        // adjacent to a 1-2-digit number would otherwise produce false
+        // positives ("earning 75", "born 18", "have 3").
+        if (preg_match_all('/\b([a-zA-Z]{3,21})\s+(?:aged?\s+)?(\d{1,2})\b/i', $message, $matches, PREG_SET_ORDER) > 0) {
             $people = [];
             foreach ($matches as $match) {
+                $candidate = $match[1];
+                if (in_array(strtolower($candidate), self::DEPENDANT_NAME_STOP_WORDS, true)) {
+                    continue;
+                }
                 $age = (int) $match[2];
                 if ($age >= 0 && $age <= 25) {
                     $people[] = [
-                        'name' => $match[1],
+                        'name' => ucfirst(strtolower($candidate)),
                         'age_hint' => $age,
                     ];
                 }
@@ -203,9 +297,20 @@ final class OnboardingFactExtractor
             $employment['status'] = $status;
         }
 
-        // Employer name: "I work for X", "work at X", "employed by X"
-        if (preg_match('/\b(?:work(?:ing)?\s+(?:for|at)|employed\s+by)\s+([A-Z][A-Za-z0-9& \-]{1,40})/', $message, $m) === 1) {
-            $employment['employer'] = trim($m[1]);
+        // Employer name: "I work for X", "work at X", "employed by X". Trigger
+        // matches case-insensitively. Captured token preserves original casing
+        // (companies vary — Apple, HSBC, NatWest — and title-casing would
+        // mangle acronyms). Only the first word of the company is captured by
+        // this regex; multi-word names like "Royal Bank of Scotland" are
+        // truncated to "Royal" — same behaviour as before.
+        if (preg_match('/\b(?:work(?:ing)?\s+(?:for|at)|employed\s+by)\s+([a-zA-Z][A-Za-z0-9& \-]{2,40})/i', $message, $m) === 1) {
+            $candidate = trim($m[1]);
+            if (! in_array(strtolower($candidate), self::EMPLOYER_NAME_STOP_WORDS, true)) {
+                // Lowercase-only token gets a leading capital so "i work for
+                // hsbc" parks as "Hsbc" rather than "hsbc". Mixed-case tokens
+                // ("HSBC", "NatWest") preserve the user's casing.
+                $employment['employer'] = ctype_lower($candidate) ? ucfirst($candidate) : $candidate;
+            }
         }
 
         // Income hint — use existing parser but only record when currency signal present

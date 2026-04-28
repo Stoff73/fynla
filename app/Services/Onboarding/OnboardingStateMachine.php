@@ -515,11 +515,33 @@ final class OnboardingStateMachine
      * Builds a personalised spouse prompt that uses "partner" for civil
      * partnership and "spouse" for married. Called at runtime from the
      * grouped_extract turn config.
+     *
+     * When `$conversation` carries a parked `spouse.first_name` (typically
+     * extracted upstream by `OnboardingFactExtractor` from a phrase like
+     * "married to Angela" at base_personal), the prompt acknowledges the
+     * known name and only asks for the remaining fields — DOB and email.
+     * Without this, the hardcoded fallback re-asks for the first name even
+     * though the user has already volunteered it, breaking the canonical
+     * "no repeat-asks" contract (INV-2.2.3 + INV-2.11.1).
      */
-    public static function buildSpousePrompt(string $answer, User $user): string
+    public static function buildSpousePrompt(string $answer, User $user, ?\App\Models\AiConversation $conversation = null): string
     {
         $isCivilPartnership = ($user->marital_status ?? '') === 'civil_partnership';
         $word = $isCivilPartnership ? 'partner' : 'spouse';
+
+        $parkedFirstName = null;
+        if ($conversation !== null) {
+            $parked = (array) ($conversation->onboarding_parked_facts ?? []);
+            $parkedSpouse = is_array($parked['spouse'] ?? null) ? $parked['spouse'] : [];
+            $candidate = trim((string) ($parkedSpouse['first_name'] ?? ''));
+            if ($candidate !== '') {
+                $parkedFirstName = $candidate;
+            }
+        }
+
+        if ($parkedFirstName !== null) {
+            return "Great — got {$parkedFirstName} noted. Could you share their date of birth and email address? I'll create an account and link the two of you so you can plan together.";
+        }
 
         return "Great — let's add your {$word}'s details. Can you share their first name, date of birth, and email address? I'll create an account and link the two of you so you can plan together.";
     }
@@ -670,18 +692,18 @@ final class OnboardingStateMachine
      * reference. Strings are interpolated; callables receive (answer, user)
      * and return a fresh string.
      */
-    public static function resolvePromptText(array $state, User $user, string $answer = ''): string
+    public static function resolvePromptText(array $state, User $user, string $answer = '', ?\App\Models\AiConversation $conversation = null): string
     {
         $promptText = $state['prompt_text'] ?? '';
 
         if (is_string($promptText) && self::isCallableReference($promptText)) {
-            $result = self::invokeCallableString($promptText, $answer, $user);
+            $result = self::invokeCallableString($promptText, $answer, $user, $conversation);
 
             return is_string($result) ? self::interpolate($result, $user) : '';
         }
 
         if (is_callable($promptText)) {
-            $result = $promptText($answer, $user);
+            $result = $promptText($answer, $user, $conversation);
 
             return is_string($result) ? self::interpolate($result, $user) : '';
         }
@@ -696,7 +718,7 @@ final class OnboardingStateMachine
         return str_contains($value, '::');
     }
 
-    private static function invokeCallableString(string $reference, string $answer, User $user): mixed
+    private static function invokeCallableString(string $reference, string $answer, User $user, ?\App\Models\AiConversation $conversation = null): mixed
     {
         [$class, $method] = explode('::', $reference, 2);
         if (! class_exists($class) || ! method_exists($class, $method)) {
@@ -714,6 +736,10 @@ final class OnboardingStateMachine
             return $class::$method($answer);
         }
 
-        return $class::$method($answer, $user);
+        if ($paramCount === 2) {
+            return $class::$method($answer, $user);
+        }
+
+        return $class::$method($answer, $user, $conversation);
     }
 }

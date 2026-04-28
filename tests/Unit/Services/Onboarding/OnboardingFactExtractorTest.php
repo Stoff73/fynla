@@ -40,9 +40,12 @@ describe('personal bucket', function () {
         expect($facts['personal']['age_hint'] ?? null)->toBeNull();
     });
 
-    it('does not confuse "wife\'s sister" as spouse when name is non-capitalised', function () {
+    it('does not confuse "wife\'s sister" as spouse via relation-noun stop-list', function () {
         $facts = $this->extractor->extract('my wife sister angela is coming');
-        // "angela" is lowercase so our original-case regex does not match.
+        // "sister" is in the spouse-name stop-list, so the extractor rejects
+        // it. preg_match returns at the first trigger match ("wife sister")
+        // and does not continue scanning to "angela", so the spouse bucket
+        // stays empty.
         expect($facts['spouse']['first_name'] ?? null)->toBeNull();
     });
 });
@@ -67,6 +70,42 @@ describe('spouse bucket', function () {
         $facts = $this->extractor->extract('her email is angela@example.com');
         expect($facts['spouse']['email'] ?? null)->toBe('angela@example.com');
     });
+
+    it('extracts first name from lowercase phrasing', function () {
+        // Chat input does not auto-capitalise; users routinely type "married
+        // to angela" (lowercase). This was a regression caught in session 111
+        // (Emma Student / conv #7) — the extractor previously required a
+        // capitalised first letter.
+        $facts = $this->extractor->extract('married to angela');
+        expect($facts['spouse']['first_name'] ?? null)->toBe('Angela');
+    });
+
+    it('normalises mixed and upper case to title case', function () {
+        expect($this->extractor->extract('married to ANGELA')['spouse']['first_name'] ?? null)->toBe('Angela')
+            ->and($this->extractor->extract('married to AnGeLa')['spouse']['first_name'] ?? null)->toBe('Angela')
+            ->and($this->extractor->extract('married to anGELa')['spouse']['first_name'] ?? null)->toBe('Angela');
+    });
+
+    it('extracts lowercase spouse name from CSJ regression message', function () {
+        // Verbatim from ai_messages #18 on conv #7 (28 April 2026 18:37:55).
+        $facts = $this->extractor->extract('30 october 1973, married to angela');
+        expect($facts['spouse']['first_name'] ?? null)->toBe('Angela')
+            ->and($facts['personal']['marital_status'] ?? null)->toBe('married')
+            ->and($facts['personal']['date_of_birth'] ?? null)->toBe('1973-10-30');
+    });
+
+    it('rejects pronouns as spouse first name', function () {
+        expect($this->extractor->extract('married to her')['spouse']['first_name'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('married to him')['spouse']['first_name'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('married to them')['spouse']['first_name'] ?? null)->toBeNull();
+    });
+
+    it('rejects relation nouns as spouse first name', function () {
+        // Trigger word followed by a relation noun = ambiguous. Reject.
+        expect($this->extractor->extract('married to mother')['spouse']['first_name'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('wife sister')['spouse']['first_name'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('partner brother')['spouse']['first_name'] ?? null)->toBeNull();
+    });
 });
 
 describe('dependants bucket', function () {
@@ -88,6 +127,53 @@ describe('dependants bucket', function () {
             ->and($facts['dependants']['people_hint'][1]['name'])->toBe('Eli')
             ->and($facts['dependants']['people_hint'][1]['age_hint'])->toBe(6);
     });
+
+    it('extracts people hints from lowercase phrasing', function () {
+        $facts = $this->extractor->extract('sam 8 and eli 6');
+        expect($facts['dependants']['people_hint'] ?? [])->toHaveCount(2)
+            ->and($facts['dependants']['people_hint'][0]['name'])->toBe('Sam')
+            ->and($facts['dependants']['people_hint'][1]['name'])->toBe('Eli');
+    });
+
+    it('extracts people hints from upper case phrasing', function () {
+        $facts = $this->extractor->extract('SAM 8 AND ELI 6');
+        expect($facts['dependants']['people_hint'] ?? [])->toHaveCount(2)
+            ->and($facts['dependants']['people_hint'][0]['name'])->toBe('Sam')
+            ->and($facts['dependants']['people_hint'][1]['name'])->toBe('Eli');
+    });
+
+    it('extracts people hints from full sentence with count', function () {
+        $facts = $this->extractor->extract('I have two kids, sam 8 and eli 6');
+        expect($facts['dependants']['count_hint'] ?? null)->toBe(2)
+            ->and($facts['dependants']['people_hint'] ?? [])->toHaveCount(2)
+            ->and($facts['dependants']['people_hint'][0]['name'])->toBe('Sam')
+            ->and($facts['dependants']['people_hint'][1]['name'])->toBe('Eli');
+    });
+
+    it('rejects verb+number false positives', function () {
+        // "earning 75 a year" must not produce a person named "Earning".
+        $facts = $this->extractor->extract('earning 75 a year, two kids');
+        expect($facts['dependants']['people_hint'] ?? null)->toBeNull()
+            ->and($facts['dependants']['count_hint'] ?? null)->toBe(2);
+    });
+
+    it('rejects relation-noun + number false positives', function () {
+        // "kids 2", "son 5", etc. should be rejected even though the regex
+        // shape matches — these are context nouns, not names.
+        $facts = $this->extractor->extract('kids 2 and child 4');
+        expect($facts['dependants']['people_hint'] ?? null)->toBeNull();
+    });
+
+    it('rejects "born <year>" type false positives', function () {
+        $facts = $this->extractor->extract('born 18 January');
+        expect($facts['dependants']['people_hint'] ?? null)->toBeNull();
+    });
+
+    it('caps age at 25 for dependants', function () {
+        // "Pete 35" is too old for a dependant — drop the entry.
+        $facts = $this->extractor->extract('Pete 35');
+        expect($facts['dependants']['people_hint'] ?? null)->toBeNull();
+    });
 });
 
 describe('employment bucket', function () {
@@ -104,6 +190,30 @@ describe('employment bucket', function () {
     it('does not extract income from bare number without currency signal', function () {
         $facts = $this->extractor->extract('aged 42');
         expect($facts['employment']['annual_income'] ?? null)->toBeNull();
+    });
+
+    it('extracts employer from capitalised phrasing', function () {
+        $facts = $this->extractor->extract('I work for Acme Corp');
+        expect($facts['employment']['employer'] ?? null)->toBe('Acme Corp');
+    });
+
+    it('extracts employer from lowercase phrasing', function () {
+        $facts = $this->extractor->extract('i work for acme');
+        expect($facts['employment']['employer'] ?? null)->toBe('Acme');
+    });
+
+    it('preserves acronym casing for employer', function () {
+        // "HSBC", "BBC", "NHS" — must not be title-cased to "Hsbc"/"Bbc".
+        expect($this->extractor->extract('I work for HSBC')['employment']['employer'] ?? null)->toBe('HSBC')
+            ->and($this->extractor->extract('I work for NHS')['employment']['employer'] ?? null)->toBe('NHS')
+            ->and($this->extractor->extract('working at NatWest')['employment']['employer'] ?? null)->toBe('NatWest');
+    });
+
+    it('rejects pronouns and generic places as employer', function () {
+        expect($this->extractor->extract('I work for them')['employment']['employer'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('I work for myself')['employment']['employer'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('I work at home')['employment']['employer'] ?? null)->toBeNull()
+            ->and($this->extractor->extract('I work for the')['employment']['employer'] ?? null)->toBeNull();
     });
 });
 

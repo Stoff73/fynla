@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -456,5 +457,61 @@ describe('OnboardingStateMachine::buildPersonalPrompt (FR-M10)', function () {
         expect($text)->toContain('civil partnership')
             ->and($text)->not->toContain('grab a few basics')
             ->and($text)->not->toContain('divorced');
+    });
+});
+
+/**
+ * No-repeat-ask contract for the spouse step. When the user volunteered
+ * the spouse's first name upstream (parked into onboarding_parked_facts.spouse.first_name
+ * by OnboardingFactExtractor at base_personal), the base_spouse prompt
+ * must acknowledge the name and ask only for the remaining fields — DOB
+ * and email. Re-asking is the visible regression CSJ caught (session 111).
+ */
+describe('OnboardingStateMachine::buildSpousePrompt — parked first_name awareness', function () {
+    it('asks for first name + DOB + email when no spouse facts are parked', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->toContain('first name')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->toContain('email');
+    });
+
+    it('omits the first-name ask when spouse.first_name is parked', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $conversation = AiConversation::factory()->create([
+            'user_id' => $user->id,
+            'onboarding_parked_facts' => [
+                'spouse' => ['first_name' => 'Angela'],
+            ],
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        expect($text)->toContain('Angela')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->toContain('email')
+            ->and($text)->not->toContain('first name');
+    });
+
+    it('falls back to the standard prompt when conversation is null', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user, '', null);
+
+        expect($text)->toContain('first name');
+    });
+
+    it('falls back to the standard prompt when spouse bucket is empty', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $conversation = AiConversation::factory()->create([
+            'user_id' => $user->id,
+            'onboarding_parked_facts' => ['personal' => ['marital_status' => 'married']],
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        expect($text)->toContain('first name');
     });
 });

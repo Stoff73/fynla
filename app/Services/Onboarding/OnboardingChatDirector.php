@@ -520,7 +520,7 @@ final class OnboardingChatDirector
         bool $includeTransitionHeader = true
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
-        $promptText = OnboardingStateMachine::resolvePromptText($state, $user);
+        $promptText = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
         $layoutMode = (string) ($state['layout'] ?? 'wide');
         $skipLink = $state['skip_link'] ?? null;
 
