@@ -164,6 +164,13 @@ Route::prefix('insights')->group(function () {
         ->where('slug', '[a-z0-9-]+');
 });
 
+// Public News API (no auth required)
+Route::prefix('news')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Public\NewsController::class, 'index']);
+    Route::get('{slug}', [\App\Http\Controllers\Api\Public\NewsController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+');
+});
+
 // Preview Mode routes (allows unauthenticated preview access)
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)

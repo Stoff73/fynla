@@ -104,7 +104,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <!-- Chris Slater-Jones -->
-          <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10">
+          <div id="chris-slater-jones" class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 scroll-mt-24">
             <div class="flex flex-col items-center mb-6">
               <img
                 :src="csjImageUrl"
@@ -137,7 +137,7 @@
           </div>
 
           <!-- Brett Isenberg -->
-          <div class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10">
+          <div id="brett-isenberg" class="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 scroll-mt-24">
             <div class="flex flex-col items-center mb-6">
               <img
                 :src="brettImageUrl"

@@ -77,7 +77,8 @@
         <script defer data-domain="{{ config('analytics.plausible_domain') }}" src="https://plausible.io/js/script.js"></script>
     @endif
 
-    <!-- Meta Pixel Code -->
+    <!-- Meta Pixel Code (production only) -->
+    @if(app()->environment('production'))
     <script>
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -93,6 +94,7 @@
     <noscript><img height="1" width="1" style="display:none"
     src="https://www.facebook.com/tr?id=1878962689749080&ev=PageView&noscript=1"
     /></noscript>
+    @endif
     <!-- End Meta Pixel Code -->
 
 </head>

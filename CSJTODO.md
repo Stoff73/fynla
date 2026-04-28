@@ -1,7 +1,104 @@
 # CSJTODO — Fynla
 
-*Last updated: 24 April 2026 — session 70 (Fyn v2 spec directory: 10 files, 4,644 lines, dual-layer test strategy with 24 Playwright scenarios)*
-*Previous session: 24 April 2026 — session 69 (audit + rubrics)*
+*Last updated: 27 April 2026 — session 71 (RSS news hub + landing-page restoration + dev build + PR #237)*
+*Previous session: 24 April 2026 — session 70 (Fyn v2 spec directory)*
+
+---
+
+## Session 71 (27 April 2026) — RSS news hub + landing-page restoration
+
+**Branch:** `rss-feed` (15 commits ahead of `origin/main`, in sync with `origin/rss-feed`).
+**PR:** [#237](https://github.com/Stoff73/fynla/pull/237) `rss-feed → dev` open, awaiting review.
+**Note on this session's branch:** all of session 70's work was on `feature/fyn-persona-split`; that branch was NOT touched today. This session worked entirely on `rss-feed` (a separate workstream — news/landing fixes for the public marketing site).
+
+### Completed this session
+
+#### Homepage + campaign-page restoration (commit `4de75357`)
+- [x] Restored fixes from `email-onboarding-video` branch that never reached main:
+  - Homepage stats: "1000's of financial plans created" replacing "1 / The only UK platform" filler; line-break tweak on "UK adults don't get<br/>financial advice"
+  - Latest insights: gate DB-driven block on `insightsFeatured`; add static fallback (3 hardcoded articles via `STATIC_INSIGHTS` + `getInsightImage()`) for environments where the CMS feature flag is off
+  - Homepage + campaign-page video: swap to `Homepage-Fynla-ProductVideov2.mp4` (14.3 MB asset restored from `email-onboarding-video`) with click-to-play overlay; drop fake browser-chrome card and autoplay/loop/muted
+- [x] Meta Pixel gated behind `app()->environment('production')` so dev/local don't fire it (`resources/views/app.blade.php:80`)
+
+#### News hub + RSS feed scaffolding (commit `11a85c7a`)
+- [x] `news_articles` migration + `NewsArticle` model + factory + `NewsArticleSeeder`
+- [x] Public API: `Api/Public/NewsController` with `/api/news` (list) + `/api/news/{slug}` (show)
+- [x] `FeedController` serving `/feed/news.xml` (RSS 2.0)
+- [x] Frontend: `NewsHubPage` + `NewsArticlePage` views; `/news` and `/news/:slug` routes; `newsService.js` API wrapper
+- [x] Footer link in `PublicLayout.vue`: "Accreditations" → "News"
+
+#### News redesign — match brand patterns (commit `25daf6bb`)
+- [x] `NewsHubPage`: full-width gradient hero card (raspberry blur-blob accents, "Latest" badge) for the featured article + 3-col grid of recent articles + light-pink RSS subscribe panel at top
+- [x] `NewsArticlePage`: hero stripped to title-only `py-10` (matches bespoke insights pages); body restructured with back-link, byline, italic summary intro, then v-html'd body; canonical pink-100 CTA section after the body
+- [x] Article body typography refactored to Tailwind `@apply` directives matching the insights pages — also satisfies CLAUDE.md rule 12
+- [x] Lead paragraph (`<p class="lead">` or `:first-child`) styled to match h2 subtitle formatting: `text-xl sm:text-2xl font-bold text-horizon-500`
+- [x] News article body: "Today we're launching..." → "We're launching..."; "Investment" bullet → "Planning"; co-founder names linked to `/about#chris-slater-jones` and `/about#brett-isenberg`
+- [x] `AboutPage.vue`: anchor IDs added to founder cards with `scroll-mt-24` for clean deep-link landing
+
+#### RSS link polish (commit `b55cd9c0`)
+- [x] Top pink subscribe panel: trailing right-arrow swapped for the open-in-new-window icon (no slide transform; hover colour-swap to raspberry)
+- [x] Bottom-of-page "Or subscribe via RSS" link: added `target="_blank"` + external-link icon next to the word "RSS"
+
+#### Other
+- [x] Dev build complete: `./deploy/csjones-fynla/build.sh` → `public/build/` (8.3M)
+- [x] Local dev server: Vite running on `:5174` (5173 was held by an orphaned node process), `public/hot` regenerated
+- [x] Pre-existing `dev.ps1` bugs flagged but NOT touched (scope discipline): `$pid` is a reserved PS automatic variable; `mysql` CLI not in PATH for the connection check
+- [x] Mockup file at `public/mockups/news-redesign.html` (gitignored) — Variant A approved and shipped to `NewsHubPage.vue`
+
+### NOT Done — Outstanding for next session
+
+#### Top priority — dev deploy of PR #237
+- [ ] **Branch rename decision** — `rss-feed` doesn't match the mandatory `feature/<owner>/<task>` convention. Per CLAUDE.md "any other prefix is wrong and the PR will be closed." Options: rename to `feature/phailanx/rss-feed` (since gh user is Phailanx) and re-target the PR, or push through and accept the codeowner request to rename
+- [ ] **Upload to dev** (`~/www/csjones.co/fynla-app/`) — files listed below
+- [ ] **SSH after upload**: `php artisan migrate --force` (creates `news_articles` table) → `php artisan db:seed --class=NewsArticleSeeder --force` (seeds the launch announcement) → cache clears + optimize
+- [ ] **Smoke test** on `https://csjones.co/fynla`:
+  - `/news` renders the redesigned hub; pink RSS panel opens `/feed/news.xml` in a new tab
+  - `/news/launching-fynla` renders with subtitle-formatted lead paragraph; co-founder links land on the right About sections
+  - `/feed/news.xml` returns valid RSS 2.0 (Apache may need MIME type for `.xml` if served as text/html)
+  - Homepage stats reads "1000's / of financial plans created"
+  - Latest insights static fallback renders (3 cards) since CMS flag is off on dev
+  - Homepage + campaign videos load `Homepage-Fynla-ProductVideov2.mp4` with click-to-play
+  - Meta Pixel does NOT appear in page source (dev `APP_ENV=staging`)
+- [ ] **Production deploy** (only after dev sign-off): build with `./deploy/fynla-org/build.sh`, repeat upload + SSH steps on `~/www/fynla.org/public_html/`. Verify Meta Pixel DOES fire on production.
+
+#### Pending migrations (from main, NOT auto-run this session)
+Local DB still has 7 pending migrations dated 2026-04-14/15:
+- `2026_04_14_122231_create_lifecycle_email_log_table`
+- `2026_04_14_122345_create_feedback_responses_table`
+- `2026_04_14_122424_add_user_id_and_metadata_to_discount_codes`
+- `2026_04_14_122508_add_is_lifecycle_test_user_to_users`
+- `2026_04_14_122545_add_lifecycle_columns_to_notification_preferences`
+- `2026_04_14_122656_add_subscriptions_indexes`
+- `2026_04_14_123409_add_lifecycle_welcome_to_discount_codes_type_enum`
+- `2026_04_15_153100_add_awin_tracking_to_payments_table`
+These come from upstream main and should run cleanly: `php artisan migrate --force`. Confirm before running.
+
+### Files to upload to dev (rss-feed → dev, beyond `public/build/`)
+
+**PHP / Laravel:**
+- `resources/views/app.blade.php` (Meta Pixel gate)
+- `app/Http/Controllers/Api/Public/NewsController.php` *(new)*
+- `app/Http/Controllers/FeedController.php` *(new)*
+- `app/Http/Resources/News/NewsArticleListResource.php` *(new)*
+- `app/Http/Resources/News/NewsArticleResource.php` *(new)*
+- `app/Models/News/NewsArticle.php` *(new)*
+- `database/factories/NewsArticleFactory.php` *(new)*
+- `database/migrations/2026_04_27_120000_create_news_articles_table.php` *(new)*
+- `database/seeders/NewsArticleSeeder.php` *(new)*
+- `database/seeders/DatabaseSeeder.php` (registers NewsArticleSeeder)
+- `routes/api.php`
+- `routes/web.php`
+- `resources/js/views/Public/AboutPage.vue` (anchor IDs)
+- `resources/js/layouts/PublicLayout.vue` (footer "News" link)
+
+**Asset:**
+- `public/images/Homepage-Fynla-ProductVideov2.mp4` (14.3 MB)
+
+### Context for next session
+
+Pick up at the dev deploy of PR #237. The dev build artefacts are already in `public/build/` (8.3M, built this session). If the user has uploaded since this session ended, skip the build; otherwise re-run `./deploy/csjones-fynla/build.sh` first because Vite output paths are deterministic but timestamps are not, and SiteGround's preserve-old-chunks pattern only works if both old and new artefacts are present locally.
+
+The branch-rename question is worth resolving up-front so the PR doesn't sit in limbo. CLAUDE.md treats the convention as strict.
 
 ---
 

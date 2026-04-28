@@ -44,6 +44,8 @@ const StartingOutGuidePage = () => import('@/views/Public/learn/guide/StartingOu
 const GlossaryPage = () => import('@/views/Public/learn/GlossaryPage.vue');
 // Insights
 const InsightsHubPage = () => import('@/views/Public/insights/InsightsHubPage.vue');
+const NewsHubPage = () => import('@/views/Public/NewsHubPage.vue');
+const NewsArticlePage = () => import('@/views/Public/NewsArticlePage.vue');
 const PensionIhtChanges2027Page = () => import('@/views/Public/insights/PensionIhtChanges2027Page.vue');
 const IsaAllowance202526Page = () => import('@/views/Public/insights/IsaAllowance202526Page.vue');
 const InheritanceTaxExplainedPage = () => import('@/views/Public/insights/InheritanceTaxExplainedPage.vue');
@@ -367,6 +369,9 @@ const routes = [
   ...(import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true'
     ? [{ path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } }]
     : []),
+  // News (DB-backed announcements / product updates / press)
+  { path: '/news', name: 'NewsHub', component: NewsHubPage, meta: { public: true } },
+  { path: '/news/:slug', name: 'NewsArticle', component: NewsArticlePage, meta: { public: true } },
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },

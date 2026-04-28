@@ -39,6 +39,13 @@ Route::post('/lifecycle/feedback-text', [\App\Http\Controllers\Lifecycle\Lifecyc
     ->name('lifecycle.feedback-text')
     ->middleware('signed');
 
+// Public RSS feeds. MUST be declared BEFORE the SPA catch-all so the
+// FeedController returns RSS XML instead of the Vue shell.
+Route::get('/feed/news.xml', [\App\Http\Controllers\FeedController::class, 'news'])
+    ->name('feed.news');
+Route::get('/feed/insights.xml', [\App\Http\Controllers\FeedController::class, 'insights'])
+    ->name('feed.insights');
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');
