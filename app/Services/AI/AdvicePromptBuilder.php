@@ -403,7 +403,16 @@ PROMPT;
 
     public function buildFinancialContext(User $user, ?callable $orchestrateAnalysis = null, ?array $classification = null): string
     {
-        return Cache::remember("ai_financial_context_{$user->id}", 120, function () use ($user, $orchestrateAnalysis, $classification) {
+        // Cache per (user, classification primary) — the financial context
+        // shape varies with engine_call_level (holistic vs module-scoped vs
+        // factual). Sharing one cache entry across primaries would feed a
+        // protection-scoped context to a follow-up retirement question.
+        $cacheKeyPrimary = is_array($classification) && isset($classification['primary']) && is_string($classification['primary'])
+            ? $classification['primary']
+            : 'unknown';
+        $cacheKey = "ai_financial_context_{$user->id}_{$cacheKeyPrimary}";
+
+        return Cache::remember($cacheKey, 120, function () use ($user, $orchestrateAnalysis, $classification) {
             if (! $orchestrateAnalysis) {
                 return 'Financial context unavailable — analysis service not provided.';
             }

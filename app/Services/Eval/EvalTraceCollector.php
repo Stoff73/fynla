@@ -7,14 +7,18 @@ namespace App\Services\Eval;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Events\Eval\GateChecked;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Request-scoped collector that captures GateChecked / EngineCalled /
  * AgentDecision events fired during a chat send.
  *
  * One instance per request lifecycle (registered via $app->scoped() in
- * EvalServiceProvider). The /api/eval/trace/{conversationId} endpoint
- * reads ::all() and returns the timeline to the EvalHttpDriver.
+ * EvalServiceProvider). At the end of an eval-bearing chat send,
+ * AiChatController persists the collected timeline to a 10-minute cache
+ * entry keyed by conversation id; EvalHttpDriver reads it back from the
+ * same cache (no separate HTTP call). This sidesteps the cross-request
+ * problem the original /api/eval/trace endpoint had.
  */
 final class EvalTraceCollector
 {
@@ -69,5 +73,30 @@ final class EvalTraceCollector
     {
         $this->events = [];
         $this->startMicrotime = null;
+    }
+
+    public static function cacheKey(int $conversationId): string
+    {
+        return "eval_trace:conversation:{$conversationId}";
+    }
+
+    /**
+     * Persist the collected events to a short-lived cache entry so the
+     * eval driver (running in a separate CLI process) can pull them
+     * without making an extra HTTP call. No-op when nothing was
+     * captured — the EvalTraceListener gate ensures only bypass-token
+     * requests populate the collector in the first place.
+     */
+    public function persistForConversation(int $conversationId): void
+    {
+        if ($this->events === []) {
+            return;
+        }
+
+        Cache::put(
+            self::cacheKey($conversationId),
+            $this->events,
+            now()->addMinutes(10),
+        );
     }
 }

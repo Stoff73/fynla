@@ -47,43 +47,16 @@ it('reset endpoint runs preview:reset for the persona', function () {
     expect(User::where('preview_persona_id', 'peak_earners')->exists())->toBeTrue();
 });
 
-it('trace endpoint returns the collector contents for the calling user', function () {
-    $user = User::where('preview_persona_id', 'peak_earners')->firstOrFail();
-    $token = $user->createToken('trace-test', ['bypass-preview-mode']);
-    $user->withAccessToken($token->accessToken);
-    $this->actingAs($user);
+it('does not register the legacy /api/eval/trace HTTP endpoint (P0.1 — replaced by cache hand-off)', function () {
+    $evalRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
+        ->map(fn ($r) => $r->uri())
+        ->filter(fn ($uri) => str_starts_with($uri, 'api/eval/'))
+        ->values()
+        ->all();
 
-    event(new \App\Events\Eval\GateChecked('kyc', 'global', true, ['field' => 'dob'], microtime(true)));
-
-    $conv = \App\Models\AiConversation::create([
-        'user_id' => $user->id,
-        'title' => 'trace test',
-        'status' => 'active',
-        'message_count' => 0,
-        'model_used' => 'claude-haiku-4-5-20251001',
-    ]);
-
-    $response = $this->withToken($token->plainTextToken)->getJson("/api/eval/trace/{$conv->id}");
-
-    $response->assertOk()
-        ->assertJsonStructure(['conversation_id', 'events'])
-        ->assertJsonPath('conversation_id', $conv->id);
-
-    expect($response->json('events'))->toBeArray();
-});
-
-it('trace endpoint returns 404 for a conversation not owned by the calling user', function () {
-    $user = User::where('preview_persona_id', 'peak_earners')->firstOrFail();
-    $token = $user->createToken('trace-mismatch', ['bypass-preview-mode'])->plainTextToken;
-
-    $other = User::factory()->create();
-    $conv = \App\Models\AiConversation::create([
-        'user_id' => $other->id,
-        'title' => 'someone else',
-        'status' => 'active',
-        'message_count' => 0,
-        'model_used' => 'claude-haiku-4-5-20251001',
-    ]);
-
-    $this->withToken($token)->getJson("/api/eval/trace/{$conv->id}")->assertStatus(404);
+    expect($evalRoutes)
+        ->toContain('api/eval/login/{personaId}')
+        ->toContain('api/eval/reset/{personaId}')
+        ->and(collect($evalRoutes)->filter(fn ($u) => str_contains($u, 'trace'))->all())
+        ->toBe([]);
 });

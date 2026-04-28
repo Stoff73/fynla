@@ -11,6 +11,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Eval\EvalTraceCollector;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -22,8 +23,15 @@ use RuntimeException;
  *  POST /api/eval/login/{persona}                         (issues bypass-preview-mode token)
  *  POST /api/ai-chat/conversations
  *  POST /api/ai-chat/conversations/{id}/messages          (per turn — SSE)
- *  GET  /api/eval/trace/{conversationId}                  (post-stream trace fetch)
  *  POST /api/auth/logout                                  (cleanup)
+ *
+ * Exactly 4 HTTP calls per recording. The engine/gate trace is handed
+ * off in-process via the file cache (key `eval_trace:conversation:{id}`,
+ * 10-minute TTL): the chat-send controller persists the request-scoped
+ * EvalTraceCollector to that key in its `finally` block, and this
+ * driver pulls it back here. Doing the hand-off through the cache
+ * avoids the cross-request emptying of the scoped collector that broke
+ * the original /api/eval/trace endpoint.
  *
  * Provider selection happens via the global `ai_provider` cache key —
  * the same mechanism a system admin would use. The `finally` block
@@ -136,15 +144,11 @@ final class EvalHttpDriver
                 $allEvents = array_merge($allEvents, $events);
             }
 
-            // 4. Fetch engine/gate trace for the conversation just completed.
-            $t0 = microtime(true);
-            $traceResp = Http::withToken($token)
-                ->timeout(5)
-                ->get("{$baseUrl}/api/eval/trace/{$conversationId}");
-            $httpLog[] = $this->logCall('GET', "{$baseUrl}/api/eval/trace/{$conversationId}", $traceResp->status(), $t0);
-            if ($traceResp->successful()) {
-                $traceEvents = $traceResp->json('events') ?? [];
-            }
+            // 4. Pull engine/gate trace handed off via the file cache by
+            // AiChatController's `finally` block. No HTTP call —
+            // sidesteps the cross-request scoped-collector bug that the
+            // old /api/eval/trace endpoint had.
+            $traceEvents = Cache::pull(EvalTraceCollector::cacheKey($conversationId), []);
 
             // 5. State diff.
             $endState = $this->snapshotUser($userId);

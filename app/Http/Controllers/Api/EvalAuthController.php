@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AiConversation;
 use App\Models\User;
-use App\Services\Eval\EvalTraceCollector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -15,9 +13,10 @@ use Illuminate\Support\Facades\Artisan;
 
 /**
  * Eval-only HTTP surface — issues `bypass-preview-mode` Sanctum tokens for
- * preview personas, resets persona data via the existing preview:reset
- * command, and returns the request-scoped engine/gate trace captured
- * during a chat send.
+ * preview personas and resets persona data via the existing preview:reset
+ * command. The engine/gate trace is no longer fetched over HTTP — see
+ * EvalHttpDriver and EvalTraceCollector::persistForConversation for the
+ * in-process cache hand-off.
  *
  * Every endpoint refuses outright in production. Belt-and-braces: the
  * routes themselves are wrapped in `if (! app()->environment('production'))`
@@ -84,22 +83,5 @@ final class EvalAuthController extends Controller
         Artisan::call('preview:reset', ['persona' => $personaId]);
 
         return response()->json(['reset' => $personaId]);
-    }
-
-    public function trace(Request $request, int $conversationId): JsonResponse
-    {
-        if (App::environment('production')) {
-            return response()->json(['error' => 'eval trace disabled in production'], 403);
-        }
-
-        $user = $request->user();
-        if (! $user || ! AiConversation::where('id', $conversationId)->where('user_id', $user->id)->exists()) {
-            return response()->json(['error' => 'conversation not found'], 404);
-        }
-
-        return response()->json([
-            'conversation_id' => $conversationId,
-            'events' => app(EvalTraceCollector::class)->all(),
-        ]);
     }
 }

@@ -699,7 +699,13 @@ trait HasAiChat
             kycResult: $kycResult,
             currentRoute: $currentRoute,
             isPreview: $user->is_preview_user,
-            orchestrateAnalysis: fn (int $userId) => $this->orchestrateAnalysis($userId),
+            // Sized analysis: only run the modules the classification needs.
+            // For HOLISTIC_HEALTH this still runs orchestrateAnalysis end-to-end;
+            // for module-scoped advice queries it runs only the relevant
+            // {Module}Agent::analyze() calls; for factual queries (INCOME /
+            // GENERAL / NAVIGATION / BILLING / OUT_OF_REMIT) it skips module
+            // analysis entirely. See CoordinatingAgent::analyzeRelevantModules.
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
             conversation: $conversation,
         );
     }

@@ -10,6 +10,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
+use App\Services\Eval\EvalTraceCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -227,6 +228,15 @@ class AiChatController extends Controller
                     ob_flush();
                 }
                 flush();
+            } finally {
+                // Eval trace hand-off (P0.1). The bypass-preview-mode token
+                // gate has already filtered out non-eval traffic via
+                // EvalTraceListener::shouldCapture, so the collector is
+                // empty for real-user traffic and persistForConversation
+                // becomes a no-op. We persist unconditionally to keep the
+                // controller insulated from token-shape details — see the
+                // listener for the security gate.
+                app(EvalTraceCollector::class)->persistForConversation($conversation->id);
             }
         }, 200, [
             'Content-Type' => 'text/event-stream',

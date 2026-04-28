@@ -27,6 +27,8 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Constants\QuerySchemas;
+use App\Services\AI\AdviceFyn;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -83,6 +85,64 @@ class CoordinatingAgent extends BaseAgent
     public function analyze(int $userId): array
     {
         return $this->orchestrateAnalysis($userId);
+    }
+
+    /**
+     * Build the analysis dict the prompt builder needs, sized to the
+     * query's classification.
+     *
+     * - `holistic` (HOLISTIC_HEALTH only): full orchestrate. Returns
+     *   the same shape as orchestrateAnalysis() — every cross-module
+     *   field populated. The eval trace fires `EngineCalled:orchestrate_analysis`.
+     * - `module` (every module-scoped advice query): runs only the
+     *   relevant module agents' `analyze()`. Returns a thin shape with
+     *   `module_analysis` populated for the relevant modules and the
+     *   cross-module fields (available_surplus, conflicts, etc.) absent.
+     *   The eval trace does NOT fire orchestrate_analysis — we never
+     *   called it. Fixes the "wasted holistic compute on every chat
+     *   send" issue surfaced by the 9 module-scoped scenarios'
+     *   `must_not_contain: orchestrate_analysis` assertion.
+     * - `factual` (INCOME / GENERAL / NAVIGATION / etc.): no module
+     *   analysis at all. Returns an empty thin shape. The prompt
+     *   builder still renders net worth, goals, life events from the
+     *   user record directly.
+     */
+    public function analyzeRelevantModules(int $userId, ?array $classification): array
+    {
+        $primary = is_array($classification) ? ($classification['primary'] ?? null) : null;
+        $level = AdviceFyn::engineCallLevelFor(is_string($primary) ? $primary : null);
+
+        if ($level === 'holistic') {
+            return $this->orchestrateAnalysis($userId);
+        }
+
+        if ($level === 'factual') {
+            return ['module_analysis' => []];
+        }
+
+        // Module path. Map classification → modules and fan out to the
+        // matching agents. MODULE_MAP exposes module names that don't
+        // resolve to a dispatchable agent (`tax`, `property`, `income`);
+        // those are silently skipped — the prompt builder reads goals,
+        // property and income from the user record directly.
+        $modules = QuerySchemas::getModulesForClassification(is_array($classification) ? $classification : []);
+        $moduleAnalysis = [];
+        foreach ($modules as $module) {
+            $analysis = match ($module) {
+                'protection' => $this->protectionAgent->analyze($userId),
+                'savings' => $this->savingsAgent->analyze($userId),
+                'investment' => $this->investmentAgent->analyze($userId),
+                'retirement' => $this->retirementAgent->analyze($userId),
+                'estate' => $this->estateAgent->analyze($userId),
+                'goals' => $this->goalsAgent->analyze($userId),
+                default => null,
+            };
+            if ($analysis !== null) {
+                $moduleAnalysis[$module] = $analysis;
+            }
+        }
+
+        return ['module_analysis' => $moduleAnalysis];
     }
 
     /**

@@ -18,7 +18,7 @@ beforeEach(function () {
     );
 });
 
-it('drives a full login → create conversation → send message → consume SSE → fetch trace cycle', function () {
+it('drives a full login → create conversation → send message → consume SSE → logout cycle', function () {
     $driver = new EvalHttpDriver(new EvalSseConsumer);
 
     $result = $driver->run(
@@ -37,7 +37,7 @@ it('drives a full login → create conversation → send message → consume SSE
     );
 
     expect($result['events'])->not->toBeEmpty()
-        ->and($result['http_log'])->toHaveCount(5) // login, create conv, send msg, trace, logout
+        ->and($result['http_log'])->toHaveCount(4) // login, create conv, send msg, logout (trace via cache, no HTTP)
         ->and($result['http_log'][0]['url'])->toContain('/api/eval/login/peak_earners')
         ->and($result['http_log'][0]['status'])->toBe(200)
         ->and($result['engine_trace'])->not->toBeEmpty();

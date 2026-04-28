@@ -14,9 +14,13 @@ use RuntimeException;
 /**
  * Records eval fixtures by driving a JSON scenario end-to-end against the
  * local Laravel server via {@see EvalHttpDriver} — the same HTTP surface a
- * real browser session uses (login → create conversation → SSE message →
- * trace fetch → logout). The driver owns persona reset, provider switching,
- * and snapshot-based DB write detection.
+ * real browser session uses: login → create conversation → SSE message →
+ * logout (4 HTTP calls). The engine/gate trace is handed off in-process
+ * via the file cache, not a separate HTTP fetch. The driver owns
+ * provider switching and snapshot-based DB write detection; per the
+ * canonical contract (§0.1), the driver does NOT reset the persona —
+ * any post-capture reset for mutating scenarios runs here in the caller
+ * AFTER EvalProviderRun rows are persisted.
  *
  * The command's job is the orchestration shell:
  *   1. Load + validate the scenario JSON.
@@ -313,7 +317,7 @@ final class EvalRecordCommand extends Command
                 continue;
             }
             $calls[] = [
-                'name' => (string) ($event['name'] ?? 'unknown'),
+                'name' => (string) ($event['tool'] ?? 'unknown'),
                 'args' => is_array($event['input'] ?? null) ? $event['input'] : [],
                 'result' => null,
             ];

@@ -120,6 +120,21 @@ final class AdviceFyn
     ];
 
     /**
+     * Public lookup for the engine-call level of a primary classification.
+     * Defaults to 'holistic' for unknown primaries (safe fallback — when
+     * we don't know what the user is asking, prefer full context to a
+     * truncated one).
+     */
+    public static function engineCallLevelFor(?string $primary): string
+    {
+        if ($primary === null) {
+            return 'holistic';
+        }
+
+        return self::ENGINE_CALL_LEVEL_MAP[$primary] ?? 'holistic';
+    }
+
+    /**
      * Tools that mutate persistent records — stripped from the advice
      * tool list. Every entry here has a corresponding handler in
      * OnboardingChatDirector::captureToolSet so the handoff path can

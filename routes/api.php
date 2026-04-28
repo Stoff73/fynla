@@ -1275,7 +1275,6 @@ if (! app()->environment('production')) {
         Route::post('/login/{personaId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'login']);
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/reset/{personaId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'reset']);
-            Route::get('/trace/{conversationId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'trace']);
         });
     });
 }
