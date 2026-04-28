@@ -646,6 +646,11 @@ Dev branch is fully in sync with csjones.co/fynla server. Working tree is clean.
 - [ ] **Add `Current State/Insights.md`** to the vault — carried from session 62.
 - [ ] **`AutoRiskCalculatorTest` pre-existing failure** — `risk_level` enum truncation. Pre-existing since 16 April.
 
+## Follow-ups from news-subscribe-fix (2026-04-28)
+
+- [ ] **Newsletter broadcast** — when a `NewsArticle` flips to `status='published'`, fan out an email to all confirmed `NewsSubscriber` rows (`->confirmed()` scope). Should be queueable, paced (avoid SMTP 451 — see Session 67 lifecycle hotfix), and skip subscribers who unsubscribe between queueing and sending. Out of scope for the news-subscribe-fix branch which only built list-build infrastructure.
+- [ ] **PR-237 Finding #16 — News/RSS/lifecycle test coverage** — news-subscribe-fix added 20 tests for the new code, but the original PR-237 news/RSS/lifecycle code (~1,000 lines) still has no tests. Add a separate PR with unit/feature tests for `NewsController`, `FeedController`, `NewsArticle::published()` scope, RSS XML schema, and Lifecycle Mailable construction.
+
 ## Known Issues
 
 - **CLAUDE.md stale tax-year claim** — says `active: 2025/26` but the seeded `TaxConfiguration` table correctly has `2026/27` active (which is right — 2026/27 started 6 April 2026). `TaxConfigService` reads from DB so behaviour is correct; the line in CLAUDE.md just wants a one-character update.

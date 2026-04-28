@@ -16,7 +16,9 @@ use Illuminate\Support\Facades\RateLimiter;
 class NewsSubscriberController extends Controller
 {
     private const RATE_LIMIT_KEY_PREFIX = 'news-subscribe:';
+
     private const RATE_LIMIT_MAX_ATTEMPTS = 3;
+
     private const RATE_LIMIT_DECAY_SECONDS = 300;
 
     public function subscribe(Request $request): JsonResponse
