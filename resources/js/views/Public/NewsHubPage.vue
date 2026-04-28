@@ -17,20 +17,7 @@
     <section class="bg-eggshell-500 py-14 min-h-[60vh]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <!-- RSS subscription bar (whole row clickable, non-coloured icon) -->
-        <a href="/feed/news.xml" target="_blank" rel="noopener noreferrer" class="group block bg-light-pink-100 rounded-xl px-5 py-4 mb-10 no-underline hover:bg-light-pink-100/80 transition-colors">
-          <div class="flex items-center gap-3">
-            <svg class="w-6 h-6 text-horizon-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a14 14 0 0114 14M5 11a8 8 0 018 8M6.5 18.5a1 1 0 11-2 0 1 1 0 012 0z" />
-            </svg>
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-horizon-500 leading-tight group-hover:text-raspberry-500 transition-colors">Subscribe to our news feed</p>
-              <p class="text-xs text-neutral-500 mt-0.5">Get every Fynla announcement in your reader of choice.</p>
-            </div>
-            <!-- Open-in-new-window icon -->
-            <svg class="w-4 h-4 text-horizon-500 flex-shrink-0 group-hover:text-raspberry-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14M5 5h5v2H7v10h10v-3h2v5H5V5z" /></svg>
-          </div>
-        </a>
+        <NewsSubscribeBanner />
 
         <div v-if="loading" class="text-center text-neutral-500 py-12">
           Loading news…
@@ -150,12 +137,14 @@
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import newsService from '@/services/newsService';
+import NewsSubscribeBanner from '@/components/News/NewsSubscribeBanner.vue';
 
 export default {
   name: 'NewsHubPage',
 
   components: {
     PublicLayout,
+    NewsSubscribeBanner,
   },
 
   data() {
