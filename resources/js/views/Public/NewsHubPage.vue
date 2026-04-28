@@ -109,6 +109,13 @@
       </div>
     </section>
 
+    <!-- Newsletter status modal (post-confirm / post-unsubscribe) -->
+    <NewsletterStatusModal
+      v-if="newsletterStatus"
+      :state="newsletterStatus"
+      @close="closeNewsletterModal"
+    />
+
     <!-- Stay updated CTA -->
     <section class="py-14 bg-light-pink-100">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -138,6 +145,7 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import newsService from '@/services/newsService';
 import NewsSubscribeBanner from '@/components/News/NewsSubscribeBanner.vue';
+import NewsletterStatusModal from '@/components/News/NewsletterStatusModal.vue';
 
 export default {
   name: 'NewsHubPage',
@@ -145,6 +153,7 @@ export default {
   components: {
     PublicLayout,
     NewsSubscribeBanner,
+    NewsletterStatusModal,
   },
 
   data() {
@@ -154,6 +163,7 @@ export default {
       page: 1,
       loading: true,
       error: null,
+      newsletterStatus: null,
     };
   },
 
@@ -172,10 +182,28 @@ export default {
     if (meta) {
       meta.setAttribute('content', 'Announcements, product updates and stories from the Fynla team.');
     }
+    this.detectNewsletterStatus();
     this.fetchArticles();
   },
 
   methods: {
+    detectNewsletterStatus() {
+      const { subscribed, unsubscribed } = this.$route.query;
+      if (subscribed === '1') {
+        this.newsletterStatus = 'subscribed';
+      } else if (subscribed === 'already') {
+        this.newsletterStatus = 'already_subscribed';
+      } else if (unsubscribed === '1') {
+        this.newsletterStatus = 'unsubscribed';
+      }
+    },
+    closeNewsletterModal() {
+      this.newsletterStatus = null;
+      const query = { ...this.$route.query };
+      delete query.subscribed;
+      delete query.unsubscribed;
+      this.$router.replace({ path: this.$route.path, query });
+    },
     async fetchArticles() {
       this.loading = true;
       this.error = null;

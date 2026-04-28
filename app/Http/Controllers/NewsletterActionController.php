@@ -6,12 +6,12 @@ namespace App\Http\Controllers;
 
 use App\Mail\Newsletter\NewsletterWelcomeMail;
 use App\Models\News\NewsSubscriber;
-use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
 
 class NewsletterActionController extends Controller
 {
-    public function confirm(string $token): View
+    public function confirm(string $token): RedirectResponse
     {
         $subscriber = NewsSubscriber::where('confirmation_token', $token)->firstOrFail();
 
@@ -26,13 +26,10 @@ class NewsletterActionController extends Controller
             Mail::to($subscriber->email)->queue(new NewsletterWelcomeMail($subscriber));
         }
 
-        return view('newsletter.confirmed', [
-            'email' => $subscriber->email,
-            'alreadyConfirmed' => $alreadyConfirmed,
-        ]);
+        return redirect('/news?subscribed='.($alreadyConfirmed ? 'already' : '1'));
     }
 
-    public function unsubscribe(string $token): View
+    public function unsubscribe(string $token): RedirectResponse
     {
         $subscriber = NewsSubscriber::where('confirmation_token', $token)->firstOrFail();
 
@@ -40,8 +37,6 @@ class NewsletterActionController extends Controller
             $subscriber->update(['unsubscribed_at' => now()]);
         }
 
-        return view('newsletter.unsubscribed', [
-            'email' => $subscriber->email,
-        ]);
+        return redirect('/news?unsubscribed=1');
     }
 }

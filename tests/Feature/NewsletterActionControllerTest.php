@@ -14,8 +14,7 @@ it('confirms a pending subscriber via valid token and queues welcome mail', func
 
     $response = $this->get("/subscribe/news/confirm/{$token}");
 
-    $response->assertOk();
-    $response->assertSee("You're subscribed", false);
+    $response->assertRedirect('/news?subscribed=1');
 
     expect($subscriber->fresh()->confirmed_at)->not->toBeNull();
     Mail::assertQueued(NewsletterWelcomeMail::class);
@@ -26,11 +25,11 @@ it('returns 404 for an invalid confirm token', function () {
     $this->get("/subscribe/news/confirm/{$invalidToken}")->assertNotFound();
 });
 
-it('is idempotent — second confirm click does not re-queue welcome', function () {
+it('is idempotent — second confirm click redirects to already state and does not re-queue welcome', function () {
     $token = str_repeat('C', 48);
     NewsSubscriber::factory()->confirmed()->create(['confirmation_token' => $token]);
 
-    $this->get("/subscribe/news/confirm/{$token}")->assertOk();
+    $this->get("/subscribe/news/confirm/{$token}")->assertRedirect('/news?subscribed=already');
 
     Mail::assertNotQueued(NewsletterWelcomeMail::class);
 });
@@ -41,8 +40,7 @@ it('unsubscribes a confirmed subscriber via valid token', function () {
 
     $response = $this->get("/unsubscribe/news/{$token}");
 
-    $response->assertOk();
-    $response->assertSee("You've unsubscribed", false);
+    $response->assertRedirect('/news?unsubscribed=1');
 
     expect($subscriber->fresh()->unsubscribed_at)->not->toBeNull();
 });
@@ -57,7 +55,7 @@ it('is idempotent — second unsubscribe click does not change unsubscribed_at',
     $subscriber = NewsSubscriber::factory()->unsubscribed()->create(['confirmation_token' => $token]);
     $first = $subscriber->fresh()->unsubscribed_at;
 
-    $this->get("/unsubscribe/news/{$token}")->assertOk();
+    $this->get("/unsubscribe/news/{$token}")->assertRedirect('/news?unsubscribed=1');
 
     expect($subscriber->fresh()->unsubscribed_at->timestamp)->toBe($first->timestamp);
 });
