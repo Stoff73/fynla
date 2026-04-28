@@ -48,78 +48,138 @@ The earlier spec sections (Doc A §3.2 step 1, §4.5, §8.1, §8.4, §11.3, §14
 
 ---
 
-*Last updated: 28 April 2026 — session 108 end (canonical contract issued + 3 plan docs aligned + maxAuditEval.md verified audit).*
+*Last updated: 28 April 2026 — session 109 end (P0+P1+P2 maxAuditEval items shipped, both providers green on `mitchell_advice_protection_cover`, branch pushed).*
 
-*Previous sessions: session 107 (line-by-line audit `iLovetoLeavestuffOut.md` + removed pre-flight + post-flight resets from EvalHttpDriver, commit `dd2942f`). 27 April 2026 — session 106 (Task 11 + 13 + 14 + 15 + Task 16 dashboard polish), session 105 (Tasks 1–10 + 12), session 104 (designed the eval HTTP-driven rewrite).*
+*Previous sessions: session 108 (canonical contract issued + 3 plan docs aligned + maxAuditEval.md verified audit). Session 107 (line-by-line audit `iLovetoLeavestuffOut.md` + removed pre-flight + post-flight resets from EvalHttpDriver, commit `dd2942f`). 27 April 2026 — session 106 (Task 11 + 13 + 14 + 15 + Task 16 dashboard polish), session 105 (Tasks 1–10 + 12), session 104 (designed the eval HTTP-driven rewrite).*
 
 ---
 
 ## ⚠️ HEY NEXT AGENT — START HERE
 
-**Read `April/April28Updates/maxAuditEval.md` end-to-end before touching the eval.** It's a 458-line verified three-way audit anchored to the canonical contract (§0). Section 5 is the priority-ordered fix list; ship P0.1 + P0.2 + P0.3 to clear all 4 Task 16 acceptance-gate blockers.
+**`feature/fyn-persona-split` is GREEN on the maxAuditEval acceptance gate.** Both providers (anthropic, xai) cleared `mitchell_advice_protection_cover` end-to-end on `ba7fd33`: status=completed, http_log=4, real tool names, gradeEngineTrace PASS, persona user.id byte-identical. 31 commits ahead of `main`, all pushed.
 
-**Code state on `feature/fyn-persona-split` HEAD `dd2942f`:**
+**The next focused chunk is Sprint 1 / S1.7 fixture re-recording** (the 9 other mitchell scenarios + the broader S1.7 series). Don't re-record blindly — read `April/April28Updates/maxAuditEval.md` §7 (definition of done) and confirm the 4-call http_log + populated engine_trace for each new recording.
 
-- ✅ Canonical-clean for all 10 current scenarios (no resets, no mirror user, real preview user, Sanctum bypass token).
-- 🚫 **3 P0 defects block Task 16 acceptance gate:**
-  1. **Trace endpoint always returns empty** — `EvalServiceProvider:20` registers `EvalTraceCollector` as `$this->app->scoped()` (per-request); trace endpoint runs in a separate request, so collector is empty. **Fix:** persist trace via `Cache::put("eval_trace:{$conversationId}", ...)` at end of chat-send OR write directly to `eval_provider_runs.engine_trace`. Recommended: the latter — drops the trace_fetch HTTP call entirely (also closes P0.3).
-  2. **`tool_calls[*].name === "unknown"`** — `EvalRecordCommand:316` reads `$event['name']` but actual SSE key is `'tool'` (verified `HasAiChat:441` + fixture line 6). **Fix:** change to `$event['tool'] ?? 'unknown'`.
-  3. **HTTP call count mismatch** — all 10 mitchell scenarios assert `expected_http_log.calls=4`, driver makes 5. **Fix:** if P0.1 takes the "drop trace_fetch" path, this resolves automatically.
+**Acceptance gate criteria (all met for protection_cover):**
 
-**Acceptance gate after P0 fixes:** the 7 expected events for `mitchell_advice_protection_cover` are all reachable from the current emit set (verified — see `maxAuditEval.md` §3.4). No additional fire-site work needed for the 10 current scenarios.
-
-**Status of every task (canonical-aligned):**
-
-| # | Task | Status | Commit |
+| # | Criterion | Anthropic | xAI |
 |---|---|---|---|
-| 1 | Migrations: persona, http_log, engine_trace columns | ✅ DONE | `67a0b08` |
-| 2 | preview:reset extended to all 25 persona-touched tables (+ SoftDeletes fix) | ✅ DONE | `a6531f3` |
-| 3 | 3 Eval event value-objects | ✅ DONE | `8fe5698` |
-| 4 | bypass-preview-mode wired at 3 write-block sites (uses `in_array` correctly, not `can()`) | ✅ DONE | `235a019` |
-| 5 | EvalTraceCollector + EvalTraceListener + EvalServiceProvider | ✅ DONE — **but P0.1 cross-request bug. Both spec & impl plan baked it in.** | `8e0bb16` |
-| 6 | 11 trace call sites | 🔶 partial — KYC per-stage instead of per-field, `orchestrate_analysis` exit-only, 6 module-agent emits centralised, 6 recommendation-engine emits absent. **PrerequisiteGateService DOES fire at line 234 (Doc C audit was wrong).** All 10 current scenarios are still satisfiable. | `5cf51d4` |
-| 7 | EvalAuthController + eval/* routes | ✅ DONE — **both controller-level AND route-level production gates present** (Doc C audit was wrong about route-level being missing) | `84e43c7` |
-| 8 | QuerySchemas: PROTECTION_COVER → all 3 protection types | ✅ DONE | `dc76112` |
-| 9 | EvalSseConsumer | ✅ DONE | `ab00ded` |
-| 10 | EvalHttpDriver — canonical-clean (no resets) | ✅ DONE | `3378f03` + `dd2942f` |
-| 11 | Rewire `EvalRecordCommand` | ✅ DONE — **P0.2 wrong-SSE-key bug at line 316** | `df51cd3` |
-| 12 | JSON Schema for scenarios | ✅ DONE — `success` path missing from timing budget enum (factual scenarios don't grade timing) | `9b4170b` |
-| 13 | Author 10 mitchell JSON scenarios + delete 6 YAMLs | 🔶 3 of 10 classifications diverge from spec §10.2 (investment_isa → investment_tax; goals_affordability → goals_progress; factual_net_worth → general). Live classifier output captured. P1 fix. | `f13208c` |
-| 14 | Wire `EvalDeltaBuilder` to JSON + add `gradeEngineTrace` | ✅ DONE | `ab89fd4` |
-| 15 | 5 architecture meta-tests | ✅ DONE — `PreviewBlockSitesCheckBypassTest` is too narrow (only checks 3 specific files); `EvalScenarioEngineTraceConsistencyTest::$validEngines` legalises engine names that never fire. P2. | `dc962f0` |
-| 16 | Live re-record + RunPanel dashboard | 🔶 dashboard engine timeline DONE (`dac1a66`); HTTP log panel NOT added; **live recording blocked by P0.1 + P0.2 + P0.3** | `dac1a66` + `dd2942f` |
+| 1 | `db:seed --class=PreviewUserSeeder` produces peak_earners with full data | ✅ | ✅ |
+| 2 | `eval:record` runs end-to-end via HTTP loop, both providers' rows populated | ✅ | ✅ |
+| 3 | `tool_calls[*].name` matches actual tool names | ✅ | ✅ |
+| 4 | `get_module_analysis(protection)` returns happy path | ✅ | ✅ |
+| 5 | Assistant text contains FCA signposting + real persona data | ✅ | ✅ |
+| 6 | engine_trace contains 6 expected events | ✅ | ✅ |
+| 7 | EvalDeltaBuilder grades both runs as PASS | ✅ | ✅ |
+| Canonical | persona `users.id` byte-identical, no `preview:reset`, no `db:seed` | ✅ | ✅ |
 
-**Branch is now 28 commits ahead of `main`.** All pushed to origin. Doc edits in session 108 are local-only (April/ is gitignored).
+**Branch is now 31 commits ahead of `main`** (28 from sessions 104–108 + 3 from session 109). All pushed to origin. Doc edits in sessions 108 + 109 are local-only (April/ is gitignored).
 
 ---
 
-## What needs to land before re-recording (priority-ordered, canonical-aligned)
+## What's outstanding (priority-ordered)
 
-### P0 (blockers — ship these first; clears all 4 Task 16 acceptance-gate failures)
+### P1 / Sprint 1 — pick up here
 
-1. ⏳ **Fix the trace cross-request persistence.** See P0.1 above. Recommended: write trace to `eval_provider_runs.engine_trace` directly from `HasAiChat::handleStream` and drop the trace_fetch HTTP call from `EvalHttpDriver::run`.
-2. ⏳ **Fix `extractToolCallsFromEvents` SSE key.** `EvalRecordCommand:316` — change `$event['name']` to `$event['tool']`. Add a unit test loading the actual fixture.
-3. ⏳ **Reconcile HTTP call count.** Falls out of P0.1 if you drop the trace_fetch. Otherwise update all 10 scenarios to `calls: 5`.
-
-### P1 (spec parity — not gate blockers)
-
-4. ⏳ **Decide on the 6 module-agent + 6 recommendation-engine `EngineCalled` emits.** Either implement (12 small additions) or codify the simplification (delete the engine names from `EvalScenarioEngineTraceConsistencyTest::$validEngines:16-21`). None of the 10 current scenarios assert on these — defer until needed.
-5. ⏳ **Add HTTP-log panel to `RunPanel.vue`.** Plan §3.1 / §5.7. Data is already in the API response (`session.http_log` from `EvalRecordingController:118`). ~30-40 lines of template.
-6. ⏳ **Reconcile 3 mismatched scenario classifications** (Task 13). Update spec §10.2 OR re-author user messages. Don't widen `KEYWORD_PATTERNS` without a live-product reason.
-7. ⏳ **Add the AssertionHelpers HTTP helpers** (`assertSseStreamComplete`, `assertHttpStatusCodes`, `assertNoMiddlewareBypass`). Plan §3.1.
-8. ⏳ **Convert `EvalRunner.php` to JSON-aware.** Currently scaffold-only (line 62). Plan §3.1.
-
-### P2 (risk mitigations — Doc A §13)
-
-9. ⏳ **Add `connectTimeout(5)` to every `Http::` call** in `EvalHttpDriver`. Lines 74, 86, 117, 142, 156. Already have `->timeout(N)`; chain `->connectTimeout(5)`.
-10. ⏳ **Add Sanctum token TTL.** `EvalAuthController::login:58-61` set `expiresAt: now()->addMinutes(15)`.
-11. ⏳ **Pre-flight server health check** in `EvalHttpDriver::run`. `Http::timeout(2)->get("{$baseUrl}/api/preview/personas")` — throw if non-200.
-12. ⏳ **Token cleanup at driver setup.** Delete eval-tagged tokens older than 1h before login.
-13. ⏳ **Make `PreviewBlockSitesCheckBypassTest` actually scan** for new write-block sites instead of checking 3 hard-coded paths.
+1. ⏳ **Re-record the other 9 mitchell scenarios.** Each costs LLM tokens. Run `php artisan eval:record mitchell_advice_<x> --providers=anthropic,xai` per scenario. Verify each one against `maxAuditEval.md` §7 acceptance criteria (status=completed, http_log=4, gradeEngineTrace PASS, persona user.id unchanged) before moving to the next.
+2. ⏳ **Decide §5.4 spec-parity stance** — codify the simplification (option **b**, no code) OR implement the 13 missing emits (option **a**). Currently §5.4 in `maxAuditEval.md` recommends (b). If (b), remove `*_recommendation` strings from `EvalScenarioEngineTraceConsistencyTest::$validEngines:16-21` so the architecture meta-test reflects reality.
+3. ⏳ **Add the AssertionHelpers HTTP helpers** (`assertSseStreamComplete`, `assertHttpStatusCodes`, `assertNoMiddlewareBypass`). Plan §3.1.
+4. ⏳ **Convert `EvalRunner.php` to JSON-aware.** Currently scaffold-only (line 62). Plan §3.1.
 
 ### Future (when first mutating scenario lands)
 
-14. ⏳ **Add canonical 0.1 reset orchestration** to `EvalRecordCommand::recordOne` after `EvalProviderRun::create()`. See `April/April27Updates/eval-http-driven-rewrite-implementation-plan.md` Task 11 step 11.3 (revised 2026-04-28).
+5. ⏳ **Add canonical 0.1 reset orchestration** to `EvalRecordCommand::recordOne` after `EvalProviderRun::create()`. Pattern documented in Doc B Task 11 step 11.3 (revised 2026-04-28).
+6. ⏳ **`Auditable::shouldAudit` must also gate on `bypass-preview-mode`** — otherwise eval mutating writes won't produce audit-chain rows. Currently in the explicit ignore-list of `PreviewBlockSitesCheckBypassTest` with a TODO comment. Drop from ignore-list and add the bypass check when the first mutating scenario is being designed.
+
+---
+
+## Session 109 (28 April 2026) — maxAuditEval P0 + P1 + P2 ship; acceptance gate GREEN
+
+**Branch:** `feature/fyn-persona-split` (31 commits ahead of `main`, all pushed). 3 commits this session: `3062cf3`, `ba7fd33`.
+
+### Completed this session
+
+#### P0 — clear all 4 Task 16 acceptance-gate blockers (commit `3062cf3`)
+
+- [x] **§5.1 — Drop the cross-request trace endpoint.** `EvalTraceCollector::persistForConversation()` writes the request-scoped trace to a 10-min file-cache entry from `AiChatController::sendMessage`'s `finally` block. `EvalHttpDriver` `Cache::pull`s it directly — no HTTP call. Removed `GET /api/eval/trace`, the trace HTTP call (was line 141 in driver), and `EvalAuthController::trace`. New unit-level test `tests/Feature/EvalTracePersistenceTest.php` covers cache write + non-write semantics.
+- [x] **§5.2 — `EvalRecordCommand:316` SSE key fix.** Changed `$event['name']` → `$event['tool']` to match `HasAiChat:439–443/532–566` actual emit shape. Captured a regression test against the recorded fixture in `tests/Unit/Console/Commands/EvalRecordCommandToolExtractionTest.php`.
+- [x] **§5.3 — HTTP call count = 4.** Auto-resolved by §5.1 (drop trace fetch). All 10 mitchell scenarios already declare `expected_http_log.calls = 4`.
+
+#### Bonus engineering fix (the eval was correctly surfacing wasted compute)
+
+- [x] **`AdvicePromptBuilder` no longer pays full-orchestrate cost on every chat send.** The 9 module-scoped scenarios' `must_not_contain: orchestrate_analysis` assertion was correctly flagging that `buildFinancialContext` was unconditionally calling `orchestrateAnalysis` to build the prompt context — wasted compute + wasted prompt tokens for module-scoped queries.
+- [x] **`AdviceFyn::engineCallLevelFor(?string)` exposed as public static.** Reads the existing private `ENGINE_CALL_LEVEL_MAP`.
+- [x] **`CoordinatingAgent::analyzeRelevantModules(int, ?array)`** sizes the analysis to classification's engine_call_level: `holistic` runs full `orchestrateAnalysis`, `module` runs only the relevant `{Module}Agent::analyze` calls (uses `QuerySchemas::getModulesForClassification`), `factual` skips module analysis entirely.
+- [x] **`HasAiChat::buildSystemPrompt`** switched to `analyzeRelevantModules`.
+- [x] **`AdvicePromptBuilder::buildFinancialContext` cache key** now includes classification primary so different query types don't share cached context.
+
+#### P1 §5.5 — reconcile 3 mismatched primary classifications
+
+- [x] **All 3 scenarios already match live classifier** (verified against `QueryClassifier::classify`); only Doc A §10.2 was stale.
+- [x] **Doc A `eval-http-driven-rewrite-plan.md` §10.2 rows 3, 8, 9** updated with `[REVISED 2026-04-28]` annotations: investment_isa → `investment_tax`; goals_affordability → `goals_progress`; factual_net_worth → `general`. Question-text columns also brought in line with the actual scenario JSON files. (Local-only — April/ is gitignored.)
+
+#### P1 §5.7 — HTTP-log panel (commit `ba7fd33`)
+
+- [x] **Added to `EvalRecordings.vue`** (NOT inside `RunPanel.vue` — `session.http_log` is per-session not per-run; mixing both providers' calls inside each run-panel card would be redundant). Renders method / URL / status / duration / time with status-colour coding from the design system. ~50 LoC template + ~25 LoC script.
+- [ ] **Not browser-tested** — code follows existing patterns (table styling, conditional rendering, null safety from `Array.isArray`); needs visual verification in the admin UI.
+
+#### P1 §5.8 — 5 risk mitigations (commit `ba7fd33`)
+
+- [x] **Token TTL.** `EvalAuthController::login` mints Sanctum tokens with `expiresAt = now + config('fyn_eval.token_ttl_minutes', 15)`. New `FYN_EVAL_TOKEN_TTL_MINUTES` env var. Defence in depth on top of the existing production-environment + route-registration refusals.
+- [x] **`connectTimeout(5)` on every Http call** in `EvalHttpDriver` (login, create_conv, send_msg, logout) — fail fast on a hung dev server.
+- [x] **Pre-flight health check** at the start of `EvalHttpDriver::run`: `GET /api/preview/personas` with `timeout(2)/connectTimeout(2)`. Surfaces a clean error if `./dev.sh` isn't running.
+- [x] **Token cleanup at driver setup**: `PersonalAccessToken::where(name 'like' 'eval-%')` older than an hour deleted before each recording.
+- [x] **`PreviewBlockSitesCheckBypassTest` broadened** from a hardcoded 3-file list to a recursive scan of `app/Http/Middleware/`, `app/Traits/`, `app/Agents/`. Files reading `is_preview_user` must also contain `bypass-preview-mode` unless explicitly on the ignore list. The list flags 4 read-context callers (CheckSubscription, CheckFeatureAccess, HasAiGuardrails plan-tier, Auditable audit-skip). Auditable is noted as needing the bypass check before the first mutating eval scenario lands so audit chains fire for eval writes.
+
+#### P2 §4.2 / §4.3 — Doc B / Doc C alignment
+
+- [x] **Doc B was already aligned** by session 108 — Task 10 step 10.3 (DELETE pre/post-flight reset) and Task 11 step 11.3 (ADD caller-side reset orchestration) carry the `[REVISED 2026-04-28]` markers. No further edits needed.
+- [x] **Doc C `iLovetoLeavestuffOut.md`** got 3 inline annotations: §3.2 IMPACT (canonical 0.1 forbids pre-flight), §4.5 DIVERGENCE (both spec and impl plan were wrong, not just impl plan), §8 PLANNED (canonical 0.1 says reset gated on persisted db_writes diff, not on `is_mutating` flag alone). (Local-only.)
+
+#### Live verification — both providers
+
+- [x] **`mitchell_advice_protection_cover` end-to-end** for both anthropic + xai post-§5.8 hardening. status=completed, http_log=4, real tool names, `gradeEngineTrace` PASS, persona user.id unchanged (17 → 17), 8.6s anthropic / 12.4s xai.
+- [x] **Test sweep:** 282 passed (1070 assertions), 0 failed, 1 skipped (manual integration), 23 deprecation warnings (all upstream Pest 8.5 reflection internals, none from our code).
+
+#### Memory + housekeeping
+
+- [x] Saved `feedback_evals_surface_engineering_issues.md` to memory — captures CSJ's principle that failing assertions surface real engineering issues; my first instinct ("drop the assertion") was wrong.
+- [x] `MEMORY.md` index updated.
+- [x] Migrations + reseed: 16 pending migrations were run (`php artisan migrate --force`) — 4 eval tables + 12 persona-split branch additive migrations + 1 small data migration (`clear_stale_persona_state` on `ai_conversations.persona_state`). Re-seeded after.
+
+### Files written this session — git-tracked
+
+**Code (10):**
+- `app/Console/Commands/EvalRecordCommand.php` — P0.2 + docblock
+- `app/Services/Eval/EvalTraceCollector.php` — `cacheKey()` + `persistForConversation()`
+- `app/Services/Eval/EvalHttpDriver.php` — drop trace fetch + cache pull + 4 connectTimeout chains + pre-flight + token cleanup
+- `app/Http/Controllers/Api/AiChatController.php` — `finally` block dumping trace to cache
+- `app/Http/Controllers/Api/EvalAuthController.php` — drop `trace()` method + token expiresAt
+- `routes/api.php` — drop `/api/eval/trace` route
+- `app/Services/AI/AdviceFyn.php` — `engineCallLevelFor()` public static
+- `app/Agents/CoordinatingAgent.php` — `analyzeRelevantModules()`
+- `app/Traits/HasAiChat.php` — `buildSystemPrompt` switches to `analyzeRelevantModules`
+- `app/Services/AI/AdvicePromptBuilder.php` — cache key includes classification primary
+- `config/fyn_eval.php` — `token_ttl_minutes`
+- `resources/js/components/Admin/EvalRecordings.vue` — HTTP-log panel
+
+**Tests (5):**
+- `tests/Unit/Console/Commands/EvalRecordCommandToolExtractionTest.php` *(new)*
+- `tests/Feature/EvalTracePersistenceTest.php` *(new)*
+- `tests/Feature/EvalAuthControllerTest.php` (replaced trace tests)
+- `tests/Feature/Fyn/Eval/EvalHttpDriverTest.php` (count 5→4)
+- `tests/Architecture/PreviewBlockSitesCheckBypassTest.php` (3-file list → recursive scan with ignore list)
+
+**Fixtures (2):** Re-recorded `mitchell_advice_protection_cover.jsonl` for both `anthropic/claude-haiku-4-5-20251001` and `xai/grok-4-1-fast-reasoning`.
+
+### Files written this session — local-only (April/ is gitignored)
+
+- `April/April27Updates/eval-http-driven-rewrite-plan.md` — §10.2 rows 3, 8, 9 updated with [REVISED 2026-04-28] annotations
+- `April/April28Updates/iLovetoLeavestuffOut.md` — 3 inline annotations cross-referencing canonical 0.1
+
+### Context for next session
+
+The acceptance gate is GREEN for `mitchell_advice_protection_cover` on both providers. Next batch is the other 9 mitchell scenarios. The cost is mostly LLM tokens (~$0.05–$0.10 per scenario per provider). Re-record one at a time, verify each via the `gradeEngineTrace` shape in `EvalDeltaBuilder`, before moving on. Several fixtures will surface new engineering issues (the way the protection_cover one surfaced the unconditional-orchestrate issue) — that's the eval working correctly. **Do not silence assertions to make recordings pass; investigate the underlying issue.** See `feedback_evals_surface_engineering_issues.md`.
 
 ---
 
@@ -220,7 +280,7 @@ CLAUDE.md was edited this session for metrics correction (PHP Services + Control
 
 - **Production (`fynla.org`):** main untouched.
 - **Dev (`csjones.co/fynla`):** dev untouched.
-- **`feature/fyn-persona-split`:** 28 commits ahead of main, all pushed. NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR. P0 + P1 items must complete before any deploy.
+- **`feature/fyn-persona-split`:** 31 commits ahead of main, all pushed. NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR. Acceptance gate GREEN on `mitchell_advice_protection_cover` for both providers; remaining 9 mitchell scenarios still need re-recording before merge.
 
 ---
 
