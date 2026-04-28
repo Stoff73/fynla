@@ -1,8 +1,97 @@
 # CSJTODO — Fynla
 
-*Last updated: 28 April 2026 — session 110 (eval spec-parity emits §5.4(a) + canonical 0.1 reset orchestration §5.6 + Doc A surgical edits §4.1 verified).*
-*Previous sessions today: session 109 (eval P0+P1+P2 ship; acceptance gate GREEN on mitchell_advice_protection_cover for both providers); session 72 (news subscriber email-list signup + PR #238); session 71 (RSS news hub + landing-page restoration + PR #237).*
-*Note: sessions 109/110 (eval workstream) and 71/72 (Phailanx newsletter workstream) ran in parallel against different branches; both are recorded here.*
+*Last updated: 28 April 2026 — session 111 (Sprint 0+1 audit + parked-memory regression fix + SaveTax campaign brainstorm + 12-task plan).*
+*Previous sessions today: 110 (eval spec-parity emits §5.4(a) + canonical 0.1 reset orchestration §5.6); 109 (eval P0+P1+P2 ship; acceptance gate GREEN); 108 (canonical contract issued); 107 (line-by-line audit); 72 (Phailanx newsletter — separate branch).*
+
+---
+
+## Session 111 (28 April 2026 — evening) — Sprint 0+1 audit, parked-memory regression fix, SaveTax campaign planning
+
+**Branch:** `feature/fyn-persona-split` (36 commits ahead of `origin/main`, all pushed). 2 commits this session: `32e08ab`, `48fcdfe`.
+
+### Completed this session
+
+#### Sprint 0+1 audit at /effort max
+
+- [x] CSJ paused Sprint 1 after spotting an onboarding regression: typed *"married to angela"* through Quick Start with Fyn → Fyn promptly asked for spouse's name despite the canonical no-repeat-ask contract. Asked for a full review before re-running BS-NN.
+- [x] Wrote `April/April28Updates/sprint-0-and-1-audit-report.md` — 323 lines covering ASKED vs REPORTED-DONE vs ACTUALLY-DONE deltas across all 17 Sprint 0 tasks + 10 Sprint 1 tasks. Synced to vault.
+- [x] **Top-line findings:**
+  - Sprint 0 essentially complete. Real delta: Rubric-A 12/40 vs 13-15 target — one cusp dimension shy (D4 — needs `docs/audit-retention-policy.md` to push to 13).
+  - Sprint 1: S1.1, S1.3, S1.4, S1.5, S1.6.b, S1.8 done; S1.6.a deliberately removed; **S1.2.k, S1.2.l, S1.7.a-i, S1.9, S1.10 OPEN.**
+  - Sessions 102-110 spent 6 days on eval infrastructure + 0 on S1.7 YAML deliverables. Focus drift, not truth-claiming.
+- [x] Three plausible failure modes for the Angela regression isolated in §5.4 of the audit. One targeted Playwright walk in §5.6 to confirm cause.
+
+#### Parked-memory regression — diagnosis (systematic-debugging Phase 1)
+
+- [x] Replayed CSJ's exact input through `OnboardingFactExtractor::extract`. Confirmed regex behaviour:
+  - `"married to Angela"` → spouse parked ✓
+  - `"married to angela"` → spouse NOT parked (lowercase rejected by `[A-Z][a-z]{2,20}`) ✗
+- [x] Pulled CSJ's actual broken DB row: User #26 / Conv #7 (Emma Student / c.jones@csjones.co). `parked_facts=NULL`. `users.marital_status='married'`, `date_of_birth='1973-10-30'`, `onboarding_fyn_step='base_spouse'`, `spouse_id=null`. Personal extraction worked; spouse never parked.
+- [x] Confirmed `<known_facts>` block correctly omitted `spouse_first_name` because parking never happened. **LLM behaved correctly given what it was handed** — mode (B) ruled out.
+- [x] **Mode (A) confirmed**: case-insensitive regex sensitivity. Same shape in `extractDependants:176` and `extractEmployment:207` — flagged.
+
+#### Parked-memory regression — fix (`32e08ab`)
+
+- [x] **`OnboardingFactExtractor.php`**: case-insensitive regex with stop-word filter for spouse, dependants, and employer. Added 3 const stop-word lists. Captured tokens normalise via `ucfirst(strtolower())` for names; employer preserves acronym casing. Stop-word filter preserves the existing "wife sister angela" disambiguation.
+- [x] Discovered a SECOND bug during browser verification: `OnboardingStateMachine::buildSpousePrompt` was a hardcoded string with no awareness of parked facts — even when Angela was parked correctly, the prompt re-asked for the name.
+- [x] **`OnboardingStateMachine::buildSpousePrompt`** — now accepts optional `?AiConversation`, reads `parked_facts.spouse.first_name`, emits *"Great — got Angela noted. Could you share their date of birth and email address?"* when known. Plumbing extends `resolvePromptText` + `invokeCallableString` to accept the conversation; `OnboardingChatDirector::emitTurnForState` passes it through.
+- [x] **24 new Pest cases** (extractor 20, state machine 4). Wider sweep: **386 passed, 1 skipped, 0 failed**.
+- [x] **End-to-end browser-verified via Playwright MCP**: User #28 / Conv #9 — typed `"30 october 1973, married to angela"` → spouse correctly parked → Fyn replied with the parked-aware prompt acknowledging Angela. Screenshot at `docs/sprint-0-verification/BS-06/s111-lowercase-fix-green.png`.
+
+#### SaveTax campaign brainstorm + plan (`48fcdfe`)
+
+- [x] Brainstormed campaign architecture per superpowers:brainstorming. CSJ chose **option C**: campaign is independent of journey/focus, reuses base_personal → base_expenditure unchanged, diverges only post-expenses.
+- [x] Confirmed welcome screen pattern — option A (combined first-turn opening + base_personal question in one bubble).
+- [x] Discovered `aiChatService.startOnboardingStream` posts `body: '{}'` and never forwards `?from=` — the S0.15 `journey_map` is **dead code** on real browser flows. BS-05 / PSP-LS gap. Closing this is in scope per CSJ's "identifier/tag(magic link) when they register so we know they are registering from the save tax campaign page".
+- [x] Built `resources/js/views/Public/SaveTaxCampaignPage.vue` from CSJ's HTML mockup at `April/April28Updates/Save Tax Campaign.html`. Stripped Inter Google Font import; relies on `tailwind.config.js`'s Segoe UI primary per `fynlaDesignGuide.md`. Hero + 2026/27 allowances table + 4 example cards. CTA + example buttons all link to `/register?from=savetax`. **Scaffold-only commit — `/savetax` route still points at the generic `CampaignPage` until the next session executes the plan.**
+- [x] Wrote `April/April28Updates/savetax-campaign-onboarding-plan.md` — 12 tasks across 4 commit groups, full code blocks, exact file paths, TDD pattern, self-reviewed inline. Synced to vault.
+
+### NOT Done — Outstanding for next session
+
+#### Top priority — execute the SaveTax campaign plan
+
+The plan is at `April/April28Updates/savetax-campaign-onboarding-plan.md` (vault: `/Users/CSJ/Desktop/fynlaBrain/April/April28Updates/savetax-campaign-onboarding-plan.md`).
+
+**4 commit groups, 12 tasks:**
+
+- [ ] **Tasks 1-2** — Verify `SaveTaxCampaignPage.vue` (already scaffolded in `48fcdfe`); change `/savetax` route in `resources/js/router/index.js:227-231` to use the new component; smoke-test in browser. Commit together.
+- [ ] **Tasks 3-5** — Add `campaign_map` to `config/onboarding.php`; extend `AiChatController::startOnboarding:340-360` to check campaign_map BEFORE journey_map; create `tests/Feature/Onboarding/EntrySourceCampaignMapTest.php` mirroring `EntrySourceJourneyMapTest`. Commit together.
+- [ ] **Task 6** — Extend `OnboardingStateMachine::buildPersonalPrompt` with a fresh-campaign-user branch + 5 new Pest cases. Standalone commit.
+- [ ] **Tasks 7-10** — Frontend `?from=` wire-through: `Register.vue:340-351` propagates `from` in dashboard redirect; `Dashboard.vue:2154-2183` reads `route.query.from` BEFORE the URL strip; `aiChat/startOnboardingConversation` accepts `{from}`; `aiChatService.startOnboardingStream` sends `JSON.stringify({from})` instead of `'{}'`. Commit together. Closes BS-05 / PSP-LS gap.
+- [ ] **Task 11** — End-to-end browser smoke test via Playwright MCP.
+- [ ] **Task 12** — Final regression sweep + spec doc.
+
+**Out of scope for this plan (deferred awaiting CSJ's planned conversation map):**
+- Section 4 — post-expenses state-machine branch ("Hello {name}, in order to generate your tax savings strategies, there are some additional details I need to gather. Does {spouse_name} work?")
+- Section 5 — `capture_spouse_work_details` tool + the deterministic "no, doesn't work" write path
+- Section 6 — terminal page / strategy outcome (CSJ noted: *"the actions tab is a good spot, but I need to think this through properly, as we would need to create a dashboard on the fly with the user's information"*)
+- BS-26 / BS-27 Playwright scenario stubs — author once sections 4-6 land
+
+#### After SaveTax — return to Sprint 1 work
+
+- [ ] **Re-record the other 9 mitchell scenarios** with the new EngineCalled emits captured in `engine_trace`. Run `php artisan eval:record mitchell_advice_<x>` (no flag, both providers default) per scenario. ~$1.80 total.
+- [ ] **S1.7.a** — Extend `tests/Feature/Fyn/Eval/AssertionHelpers.php` with new keys per `April/April27Updates/eval-expectations-rewrite.md` §3. **Blocks every other S1.7 sub-task.**
+- [ ] **S1.7.b** — 6th architecture meta-test (5 of 6 already shipped in `dc962f0`).
+- [ ] **S1.7.c-i** — All gated on S1.7.a. 4 canonical-behaviour YAMLs, EvalProviderRun column additions + dashboard, 14 state-machine YAMLs, 14 handoff YAMLs, 16 resume YAMLs, hard-gate verification doc.
+- [ ] **S1.9** — Browser matrix: BS-03, BS-08, BS-09, BS-24 + BS-01–BS-23 regression.
+- [ ] **S1.10** — Sprint 1 verification rollup (Rubric-A ≥17/40 🟠).
+
+### Tech-debt flagged this session (don't auto-fix)
+
+- [ ] **`SaveTaxCampaignPage.vue` has hardcoded 2026/27 allowance values** (£12,570, £20,000, £60,000, £3,000, £500, £1,260, £1,000, £5,000, £18,750, £100,000, £3,500). Per CLAUDE.md Rule #3 — backend services must use `TaxConfigService`; frontend display strings on a marketing page are arguably exempt, but these will rot when 2027/28 rates land. Future task: source from `TaxConfigService` API or move to a constants file. Not blocking deploy.
+
+### Future deferrals (carried from session 110)
+
+- [ ] **§5.4 spec-parity — codify simplification (option b) decision.** §5.4(a) shipped via session 110; option (b) (trim `*_recommendation` strings from `EvalScenarioEngineTraceConsistencyTest::$validEngines:16-21`) now moot. Mark §5.4 closed.
+- [ ] **`Auditable::shouldAudit` must gate on `bypass-preview-mode`** when first mutating scenario lands. Currently in `PreviewBlockSitesCheckBypassTest` ignore-list with TODO.
+
+### Context for next session
+
+The SaveTax campaign plan is the highest-leverage next step — CSJ's stated near-term priority. The plan is fully self-contained (12 bite-sized tasks, exact code blocks, TDD pattern). Two execution options offered (subagent-driven OR inline) — CSJ has not yet picked one. **Default to subagent-driven** (recommended in the plan) unless CSJ overrides at session start.
+
+The Sprint 0+1 audit report contains the full architectural picture if CSJ wants to revisit Sprint 1 priorities.
+
+The Angela regression is GREEN end-to-end — no follow-up needed. Sections 4-6 of the campaign onboarding (post-expenses divergence, spouse-work tool, terminal page) need CSJ's planned conversation map before they can be specced.
 
 ---
 
