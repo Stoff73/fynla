@@ -46,6 +46,17 @@ Route::get('/feed/news.xml', [\App\Http\Controllers\FeedController::class, 'news
 Route::get('/feed/insights.xml', [\App\Http\Controllers\FeedController::class, 'insights'])
     ->name('feed.insights');
 
+// Newsletter confirm/unsubscribe — public, must be declared BEFORE the SPA catch-all
+// so email-link clicks render the action page rather than the Vue shell. The 48-char
+// random token IS the secret (Str::random(48) ≈ 285 bits of entropy), so no `signed`
+// middleware is needed.
+Route::get('/subscribe/news/confirm/{token}', [\App\Http\Controllers\NewsletterActionController::class, 'confirm'])
+    ->name('newsletter.confirm')
+    ->where('token', '[A-Za-z0-9]{48}');
+Route::get('/unsubscribe/news/{token}', [\App\Http\Controllers\NewsletterActionController::class, 'unsubscribe'])
+    ->name('newsletter.unsubscribe')
+    ->where('token', '[A-Za-z0-9]{48}');
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');
