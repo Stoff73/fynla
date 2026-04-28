@@ -22,7 +22,9 @@
             'We\'ll only send you Fynla announcements and product updates &mdash; nothing else.',
         ],
     ])
-    {{-- Rule 2 note: body + cta render as one continuous eggshell band (intentional). --}}
+    {{-- Rule 2 note: body + cta + notice + signoff form one continuous eggshell band
+         (intentional — the email reads as a single "ask + reassure + sign off" unit).
+         The notice's pink inner pill provides the visual break inside the band. --}}
     @include('emails.modules.cta', [
         'buttons' => [
             ['label' => 'Confirm subscription', 'url' => $confirmUrl, 'variant' => 'raspberry'],

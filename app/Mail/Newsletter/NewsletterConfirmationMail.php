@@ -37,7 +37,6 @@ class NewsletterConfirmationMail extends Mailable
             view: 'emails.newsletter.confirm-subscription',
             with: [
                 'confirmUrl' => url('/subscribe/news/confirm/'.$this->subscriber->confirmation_token),
-                'rssUrl' => url('/feed/news.xml'),
             ],
         );
     }

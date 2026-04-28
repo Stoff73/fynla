@@ -29,7 +29,9 @@
             'Occasional deep-dives on UK personal finance topics.',
         ],
     ])
-    {{-- Rule 2 note: body + bullet-list + cta render as one continuous eggshell band (intentional). --}}
+    {{-- Rule 2 note: body + bullet-list + cta + signoff form one continuous eggshell band
+         (intentional — the email reads as a single "thanks + what to expect + read latest"
+         unit). The bullet-list's #F7F6F4 inner box provides a visual break inside the band. --}}
     @include('emails.modules.cta', [
         'buttons' => [
             ['label' => 'Read latest news', 'url' => $newsUrl, 'variant' => 'raspberry'],
