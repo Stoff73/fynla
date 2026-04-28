@@ -11,7 +11,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -30,9 +29,12 @@ use RuntimeException;
  * the same mechanism a system admin would use. The `finally` block
  * always restores the previous value.
  *
- * Persona reset runs pre-flight (defensive — prior crash leak) and
- * post-flight when the scenario is mutating or any DB writes are
- * detected via the snapshot diff.
+ * NO PERSONA RESET happens in this driver. The persona's seeded data
+ * is the input; for read-only advice scenarios it must be preserved
+ * across recordings. Reset orchestration (between providers for
+ * mutating scenarios, after the whole session) lives in the caller
+ * (EvalRecordCommand) where it can run AFTER EvalProviderRun rows are
+ * persisted, so the forensic chain is not wiped before it's recorded.
  */
 final class EvalHttpDriver
 {
@@ -40,7 +42,7 @@ final class EvalHttpDriver
 
     /**
      * @param  array<string, mixed>  $scenario
-     * @return array{events: list<array<string, mixed>>, http_log: list<array<string, mixed>>, db_writes: array<string, mixed>, engine_trace: list<array<string, mixed>>, conversation_id: int|null, start_state: array<string, mixed>, end_state: array<string, mixed>}
+     * @return array{events: list<array<string, mixed>>, http_log: list<array<string, mixed>>, db_writes: array<string, mixed>, engine_trace: list<array<string, mixed>>, conversation_id: int|null, user_id: int|null, start_state: array<string, mixed>, end_state: array<string, mixed>}
      */
     public function run(
         array $scenario,
@@ -51,7 +53,6 @@ final class EvalHttpDriver
         $persona = $scenario['persona']
             ?? throw new RuntimeException('scenario.persona is required');
         $turns = $scenario['input']['turns'] ?? [];
-        $isMutating = (bool) ($scenario['is_mutating'] ?? false);
 
         $previousProvider = Cache::get('ai_provider');
         Cache::forever('ai_provider', $provider);
@@ -61,15 +62,13 @@ final class EvalHttpDriver
         $httpLog = [];
         $allEvents = [];
         $conversationId = null;
+        $userId = null;
         $traceEvents = [];
         $dbWrites = [];
         $startState = [];
         $endState = [];
 
         try {
-            // 0. Pre-flight reset — covers any prior leak.
-            Artisan::call('preview:reset', ['persona' => $persona]);
-
             // 1. Login.
             $t0 = microtime(true);
             $loginResp = Http::timeout(5)->post("{$baseUrl}/api/eval/login/{$persona}");
@@ -79,6 +78,7 @@ final class EvalHttpDriver
             }
             $token = $loginResp->json('token');
             $userId = (int) $loginResp->json('user.id');
+            // Defer to the caller — userId is part of the return shape.
 
             // 2. Create conversation.
             $t0 = microtime(true);
@@ -163,11 +163,15 @@ final class EvalHttpDriver
                 'db_writes' => $dbWrites,
                 'engine_trace' => $traceEvents,
                 'conversation_id' => $conversationId,
+                'user_id' => $userId,
                 'start_state' => $startState,
                 'end_state' => $endState,
             ];
         } finally {
-            // Restore provider.
+            // Restore provider — that's it. No persona reset; the caller
+            // owns reset orchestration so the forensic chain
+            // (eval_recording_sessions + eval_provider_runs) gets a chance
+            // to persist BEFORE any cleanup runs.
             if ($previousProvider === null) {
                 Cache::forget('ai_provider');
             } else {
@@ -178,24 +182,22 @@ final class EvalHttpDriver
             } else {
                 config(["services.{$provider}.chat_model" => $previousModel]);
             }
-
-            // Reset persona post-flight when mutating OR any write detected.
-            // Belt: also reset on exception so partial-write state can't leak.
-            if ($isMutating || ! empty($dbWrites)) {
-                Artisan::call('preview:reset', ['persona' => $persona]);
-            }
         }
     }
 
     /**
-     * @return array<string, mixed>
+     * Capture row counts only — no Carbon-serialised columns. Date casts
+     * round-trip through different formats depending on whether the
+     * model came from a fresh `find()` or was hydrated post-update,
+     * which trips spurious diffs in `diffSnapshots` and falsely flags
+     * non-mutating recordings as having writes.
+     *
+     * @return array<string, int>
      */
     private function snapshotUser(int $userId): array
     {
-        $user = User::find($userId);
-
         return [
-            'user_keys' => $user?->only(['id', 'first_name', 'date_of_birth', 'marital_status', 'onboarding_completed']) ?? [],
+            'user_exists' => User::where('id', $userId)->exists() ? 1 : 0,
             'savings_count' => SavingsAccount::where('user_id', $userId)->count(),
             'protection_count' => LifeInsurancePolicy::where('user_id', $userId)->count()
                 + CriticalIllnessPolicy::where('user_id', $userId)->count()
