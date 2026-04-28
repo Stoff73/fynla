@@ -17,348 +17,143 @@ Before driving ANY BS-NN walk (or any onboarding / chat / state-machine flow), y
 5. `resources/js/layouts/AppLayout.vue` — how the layout REACTS to `onboardingLayout` flips.
 6. `resources/js/components/Shared/AiChatPanel.vue` + `AiChatPanelShell.vue` — the actual chat panel body.
 
-**The rules that follow from this:**
+---
 
-- If a navigation, prompt, or bubble surprises you mid-walk, STOP and read the state machine. Do not type past it. Do not call it cosmetic. The state machine is the contract. The browser is the audit.
-- Browser interactions ONLY via `browser_click` / `browser_type` / `browser_press_key` against a `ref` from `browser_snapshot`. NEVER `browser_evaluate` for clicks, fills, or form submits.
-- OTP boxes: each digit via `browser_press_key`, never `browser_type` of the whole code (boxes are `maxlength=1`, only auto-advance on real keypresses).
-- Reports come AFTER GREEN, not during the loop. No mid-loop summaries. No declaring partial walks GREEN.
+## ⛔ THE EVAL CANONICAL CONTRACT — BINDING (read before touching the eval)
+
+**Source of truth: `April/April28Updates/maxAuditEval.md` §0.** Issued by CSJ on 2026-04-28 (session 108). Memory mirror: `feedback_eval_canonical_contract.md`.
+
+### Canonical 0.1 — Reset only fires when data has actually changed.
+
+A "change" means the eval wrote, edited, added, or deleted a row owned by the persona user.
+
+- **Non-mutating evals** (advice, navigation, factual, classification, information requests) **DO NOT** reset. Ever. Not pre-flight, not post-flight, not in finally, not between providers, not after the session.
+- **Mutating evals** reset **only after** the captured change + result are persisted to `eval_recording_sessions` + `eval_provider_runs`. Reset returns the persona to its pre-eval state.
+- All 10 current mitchell scenarios are non-mutating (`is_mutating: false`, `expected_db_writes.expected_count: 0`). **None of them invoke `preview:reset`.** Code on HEAD `dd2942f` is canonical-clean for all 10.
+
+### Canonical 0.2 — No mirror user, no seed, no alteration.
+
+The eval logs in as the actual seeded `peak_earners` preview user. NO mirror user. NO `EvalUserSeeder`. NO `is_eval_user` flag. The Sanctum token's `bypass-preview-mode` ability IS the mechanism that lets writes through (when needed, on mutating scenarios). Confirmed implemented in sessions 105-106 + canonical-aligned in session 108.
+
+### What this means for code
+
+- `EvalHttpDriver::run` does **not** reset (verified at HEAD `dd2942f`). It only restores the provider cache key in `finally`.
+- Reset orchestration belongs in the **caller** (`EvalRecordCommand::recordOne`), runs AFTER `EvalProviderRun::create()` persists, conditional on `! empty($result['db_writes'])`. None of the 10 current scenarios trigger it.
+- If you read CLAUDE.md "ALWAYS reseed after operations that modify or LOSE local DB data" and reach for `db:seed` — STOP. Schema-only migrations don't lose data. Non-mutating evals don't lose data.
+- If you find a FK violation in eval flow, the fix is in the reset behaviour, NOT in dropping the FK.
+
+### What was wrong in older docs (now fixed)
+
+The earlier spec sections (Doc A §3.2 step 1, §4.5, §8.1, §8.4, §11.3, §14, §13.2 decision 4) and the implementation plan Task 10 step 10.3 contained text that contradicted the canonical (pre-flight reset, "always defensively", `is_eval_user` mirror user, `EvalUserSeeder`). All 20 violating lines were edited at session-108 end. **The plan documents you read now should match the canonical** — if you find any contradicting text in `April/April27Updates/eval-http-driven-rewrite-plan.md` or `April/April27Updates/eval-http-driven-rewrite-implementation-plan.md`, treat it as a regression and fix it.
 
 ---
 
-*Last updated: 27 April 2026 — session 105 end (eval HTTP-driven rewrite — 11 of 16 tasks shipped).*
+*Last updated: 28 April 2026 — session 108 end (canonical contract issued + 3 plan docs aligned + maxAuditEval.md verified audit).*
 
-*Previous sessions today: 27 April 2026 — session 104 (designed the eval HTTP-driven rewrite — spec + 16-task implementation plan written; no code changes), session 102 (Sprint 1 S1.2.l + S1.7.d Path A), session 101 (S1.6.b + S1.8 + remove S1.6.a panel), session 100 (S1.3 + S1.4 + S1.5 + S1.6.a), session 99 (eval/live prompt divergence fix Tasks 1, 2, 3, 3b).*
+*Previous sessions: session 107 (line-by-line audit `iLovetoLeavestuffOut.md` + removed pre-flight + post-flight resets from EvalHttpDriver, commit `dd2942f`). 27 April 2026 — session 106 (Task 11 + 13 + 14 + 15 + Task 16 dashboard polish), session 105 (Tasks 1–10 + 12), session 104 (designed the eval HTTP-driven rewrite).*
 
 ---
 
 ## ⚠️ HEY NEXT AGENT — START HERE
 
-You are picking up the eval HTTP-driven rewrite mid-flight. Session 105 (this one) shipped Tasks 1–10 + 12 of the 16-task implementation plan. Your job is to ship Tasks 11, 13, 14, 15, 16. Read this whole file before touching code.
+**Read `April/April28Updates/maxAuditEval.md` end-to-end before touching the eval.** It's a 458-line verified three-way audit anchored to the canonical contract (§0). Section 5 is the priority-ordered fix list; ship P0.1 + P0.2 + P0.3 to clear all 4 Task 16 acceptance-gate blockers.
 
-**The plan you are executing:**
+**Code state on `feature/fyn-persona-split` HEAD `dd2942f`:**
 
-1. **`April/April27Updates/eval-http-driven-rewrite-plan.md`** — design spec (1046 lines).
-2. **`April/April27Updates/eval-http-driven-rewrite-implementation-plan.md`** — 16 ordered tasks with concrete code (2990 lines). **This is your primary reference.** Each task has steps with code, expected output, and a commit message.
+- ✅ Canonical-clean for all 10 current scenarios (no resets, no mirror user, real preview user, Sanctum bypass token).
+- 🚫 **3 P0 defects block Task 16 acceptance gate:**
+  1. **Trace endpoint always returns empty** — `EvalServiceProvider:20` registers `EvalTraceCollector` as `$this->app->scoped()` (per-request); trace endpoint runs in a separate request, so collector is empty. **Fix:** persist trace via `Cache::put("eval_trace:{$conversationId}", ...)` at end of chat-send OR write directly to `eval_provider_runs.engine_trace`. Recommended: the latter — drops the trace_fetch HTTP call entirely (also closes P0.3).
+  2. **`tool_calls[*].name === "unknown"`** — `EvalRecordCommand:316` reads `$event['name']` but actual SSE key is `'tool'` (verified `HasAiChat:441` + fixture line 6). **Fix:** change to `$event['tool'] ?? 'unknown'`.
+  3. **HTTP call count mismatch** — all 10 mitchell scenarios assert `expected_http_log.calls=4`, driver makes 5. **Fix:** if P0.1 takes the "drop trace_fetch" path, this resolves automatically.
 
-**Status of every task:**
+**Acceptance gate after P0 fixes:** the 7 expected events for `mitchell_advice_protection_cover` are all reachable from the current emit set (verified — see `maxAuditEval.md` §3.4). No additional fire-site work needed for the 10 current scenarios.
+
+**Status of every task (canonical-aligned):**
 
 | # | Task | Status | Commit |
 |---|---|---|---|
 | 1 | Migrations: persona, http_log, engine_trace columns | ✅ DONE | `67a0b08` |
 | 2 | preview:reset extended to all 25 persona-touched tables (+ SoftDeletes fix) | ✅ DONE | `a6531f3` |
 | 3 | 3 Eval event value-objects | ✅ DONE | `8fe5698` |
-| 4 | bypass-preview-mode wired at 3 write-block sites | ✅ DONE | `235a019` |
-| 5 | EvalTraceCollector + EvalTraceListener + EvalServiceProvider | ✅ DONE | `8e0bb16` |
-| 6 | 11 trace call sites in production gate/agent code | ✅ DONE | `5cf51d4` |
-| 7 | EvalAuthController + eval/* routes (login, reset, trace) | ✅ DONE | `84e43c7` |
+| 4 | bypass-preview-mode wired at 3 write-block sites (uses `in_array` correctly, not `can()`) | ✅ DONE | `235a019` |
+| 5 | EvalTraceCollector + EvalTraceListener + EvalServiceProvider | ✅ DONE — **but P0.1 cross-request bug. Both spec & impl plan baked it in.** | `8e0bb16` |
+| 6 | 11 trace call sites | 🔶 partial — KYC per-stage instead of per-field, `orchestrate_analysis` exit-only, 6 module-agent emits centralised, 6 recommendation-engine emits absent. **PrerequisiteGateService DOES fire at line 234 (Doc C audit was wrong).** All 10 current scenarios are still satisfiable. | `5cf51d4` |
+| 7 | EvalAuthController + eval/* routes | ✅ DONE — **both controller-level AND route-level production gates present** (Doc C audit was wrong about route-level being missing) | `84e43c7` |
 | 8 | QuerySchemas: PROTECTION_COVER → all 3 protection types | ✅ DONE | `dc76112` |
-| 9 | EvalSseConsumer (pure SSE frame parser) | ✅ DONE | `ab00ded` |
-| 10 | EvalHttpDriver (HTTP loop service file — integration test skip-marked) | ✅ DONE | `3378f03` |
-| 11 | Rewire `EvalRecordCommand` to use `EvalHttpDriver` | ⏳ NEXT | — |
-| 12 | JSON Schema for scenarios | ✅ DONE | `9b4170b` |
-| 13 | Author 10 mitchell JSON scenarios + delete 6 YAMLs | ⏳ TODO | — |
-| 14 | Wire `EvalDeltaBuilder` to JSON + add `gradeEngineTrace` | ⏳ TODO | — |
-| 15 | 5 architecture meta-tests | ⏳ TODO | — |
-| 16 | Re-record 10 scenarios + RunPanel.vue dashboard panels | ⏳ TODO (NEEDS `./dev.sh` + LIVE LLM API) | — |
+| 9 | EvalSseConsumer | ✅ DONE | `ab00ded` |
+| 10 | EvalHttpDriver — canonical-clean (no resets) | ✅ DONE | `3378f03` + `dd2942f` |
+| 11 | Rewire `EvalRecordCommand` | ✅ DONE — **P0.2 wrong-SSE-key bug at line 316** | `df51cd3` |
+| 12 | JSON Schema for scenarios | ✅ DONE — `success` path missing from timing budget enum (factual scenarios don't grade timing) | `9b4170b` |
+| 13 | Author 10 mitchell JSON scenarios + delete 6 YAMLs | 🔶 3 of 10 classifications diverge from spec §10.2 (investment_isa → investment_tax; goals_affordability → goals_progress; factual_net_worth → general). Live classifier output captured. P1 fix. | `f13208c` |
+| 14 | Wire `EvalDeltaBuilder` to JSON + add `gradeEngineTrace` | ✅ DONE | `ab89fd4` |
+| 15 | 5 architecture meta-tests | ✅ DONE — `PreviewBlockSitesCheckBypassTest` is too narrow (only checks 3 specific files); `EvalScenarioEngineTraceConsistencyTest::$validEngines` legalises engine names that never fire. P2. | `dc962f0` |
+| 16 | Live re-record + RunPanel dashboard | 🔶 dashboard engine timeline DONE (`dac1a66`); HTTP log panel NOT added; **live recording blocked by P0.1 + P0.2 + P0.3** | `dac1a66` + `dd2942f` |
 
-**11 commits on `feature/fyn-persona-split` pushed to origin this session.** Nothing merged to dev or main. The branch is now 21 commits ahead of `main` total.
-
----
-
-## Where to start (in order)
-
-### 1. Pre-flight (don't skip)
-
-```bash
-# Confirm branch
-git rev-parse --abbrev-ref HEAD            # → feature/fyn-persona-split
-
-# Reseed (mandatory — CLAUDE.md rule)
-php artisan db:seed
-
-# Confirm green baseline across THIS SESSION's new tests
-./vendor/bin/pest \
-  tests/Feature/PreviewBypassAbilityTest.php \
-  tests/Feature/PreviewResetCompletenessTest.php \
-  tests/Feature/EvalTraceListenerTest.php \
-  tests/Feature/EvalAuthControllerTest.php \
-  tests/Unit/Events/EvalEventsTest.php \
-  tests/Unit/Services/Eval/ \
-  tests/Unit/QuerySchemasProtectionScopeTest.php
-# Expect: 35-ish tests, all green.
-```
-
-### 2. Task 11 — Rewire `EvalRecordCommand` to call `EvalHttpDriver`
-
-This is the heaviest remaining task. **Source: implementation-plan.md §11 (lines 1996–2160).**
-
-**What dies (~70% of `app/Console/Commands/EvalRecordCommand.php`):**
-
-- `seedUser`, `seedChildEntities`, `seedProtectionPolicies`, `seedRows`, `seedExpenditure`
-- `createConversation`
-- `snapshotState`, `restoreToSnapshot`, `keyById`, `diffRows`
-- `extractToolCalls`
-- `SNAPSHOT_TABLES` constant
-- The `Cache::forever('ai_provider', ...)` block in `recordOne` (already moved to `EvalHttpDriver::run`)
-
-**What lives:**
-
-- `recordOne` rewritten to delegate to `app(EvalHttpDriver::class)->run(...)`. Plan provides the full code on lines 2018–2107.
-- New helpers: `extractToolCallsFromEvents`, `assembleContent`, `countEventTypes`, `detectForbiddenOutputs`, `writeFixture`. Some may already exist; reuse where possible.
-- Scenario loading switches from YAML to JSON via `json_decode` (plan lines 2127–2135). `locateScenario` glob switches `*.yaml` → `*.json` (plan line 2141).
-- `$session = EvalRecordingSession::create([...])` — add `'persona' => $scenario['persona'] ?? null,` and `'http_log' => [],` to the create call.
-
-**Side-effect updates required:**
-
-- `app/Models/EvalRecordingSession.php` → add `'persona'` and `'http_log'` to `$fillable`, `'http_log' => 'array'` to `$casts`. (NOTE: this file is currently dirty in the working tree from session 102's W1 fix work — see "Pre-existing dirty files" below before touching.)
-- `app/Models/EvalProviderRun.php` → add `'engine_trace'` to `$fillable`, `'engine_trace' => 'array'` to `$casts`.
-
-**Verification:** `./vendor/bin/pest tests/Feature/Fyn/Eval/ tests/Unit/Services/Eval/` should still pass. The command itself can't be exercised end-to-end until Task 13 ships scenario JSONs and Task 16 runs `./dev.sh`.
-
-### 3. Task 13 — Author 10 mitchell JSON scenarios
-
-**Source: implementation-plan.md §13 (lines 2303–2456). Spec: plan.md §10 (lines 783–846).**
-
-10 new files at `tests/Feature/Fyn/Eval/scenarios/01-query-types/mitchell_*.json`:
-
-1. `mitchell_advice_protection_cover.json` — implementation-plan.md §13.1 has the full template (lines 2322–2402). Copy verbatim. `expected_tool_calls` MUST include `list_records` for life_insurance + critical_illness + income_protection (Task 8 already wired the live system to require them).
-2. `mitchell_advice_savings_emergency.json`
-3. `mitchell_advice_investment_isa.json`
-4. `mitchell_advice_retirement_contribution.json`
-5. `mitchell_advice_estate_iht.json`
-6. `mitchell_advice_holistic_health.json` — `expected_engine_call_level: holistic` (only one)
-7. `mitchell_advice_tax_optimisation.json`
-8. `mitchell_advice_goals_affordability.json`
-9. `mitchell_factual_net_worth.json` — `expected_response_mode: factual`, `expected_engine_call_level: factual`, `expected_kyc_state: bypass`
-10. `mitchell_factual_income.json` — same factual shape
-
-Per-scenario authoring steps (from implementation-plan.md §13.2):
-
-- Run the question against peak_earners live to capture actual classification + tool calls. `php artisan tinker --execute="dump(app(\App\Services\AI\QueryClassifier::class)->classify('<message>'));"`
-- Copy the classification verbatim to `expected_classification_shape`.
-- Tool-call list comes from `QuerySchemas::REQUIRED_TOOLS[<primary>]` (use the `tool(args)` pattern from the constant — see `app/Constants/QuerySchemas.php:467+`).
-- Set `result_path: happy` for everything (peak_earners has full data).
-- Timing: start at `anthropic.happy: 9000`, `xai.happy: 22000` (factual: 5000 / 12000). Recalibrate after Task 16 records.
-
-**Delete the 6 superseded YAMLs:**
-```bash
-rm tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_protection_cover.yaml \
-   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_savings_emergency.yaml \
-   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_investment_isa.yaml \
-   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_retirement_contribution.yaml \
-   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_estate_iht.yaml \
-   tests/Feature/Fyn/Eval/scenarios/01-query-types/advice_goals_affordability.yaml
-```
-
-**KEEP** `tests/Feature/Fyn/Eval/scenarios/03-multi-entity/*.yaml` — out of scope per plan §11.3.
-
-**Validation:** every scenario must validate against `tests/Feature/Fyn/Eval/scenarios/_schema.json` (already shipped in Task 12). Validator install (`composer require --dev justinrainbow/json-schema`) is a Task 15 prerequisite.
-
-### 4. Task 14 — Wire `EvalDeltaBuilder` to JSON + add `gradeEngineTrace`
-
-**Source: implementation-plan.md §14 (lines 2459–2629).**
-
-- `app/Services/Eval/EvalDeltaBuilder.php` → 1 line: `Yaml::parse(...)` → `json_decode(..., true)` (~line 65 per plan).
-- `app/Http/Controllers/Api/Admin/EvalRecordingController.php` → same Yaml→JSON swap in `parseExpectations` (~line 190). File is currently dirty in the working tree — see "Pre-existing dirty files" below before touching.
-- Add `gradeEngineTrace` method (plan lines 2483–2564) — covers `must_contain`, `must_not_contain`, `ordered`. 3 new Pest tests (plan lines 2575–2614) — must_contain misses, must_not_contain hits, ordering violations.
-
-**Verification:** existing 20 tests in `EvalDeltaBuilderTest` must still pass + 3 new ones for `gradeEngineTrace`.
-
-### 5. Task 15 — 5 architecture meta-tests
-
-**Source: implementation-plan.md §15 (lines 2633–2780).**
-
-```bash
-composer require --dev justinrainbow/json-schema
-```
-
-Then create:
-
-- `tests/Architecture/EvalScenarioJsonSchemaTest.php` — validate every JSON scenario against `_schema.json`.
-- `tests/Architecture/EvalScenarioPersonaIsValidTest.php` — every scenario binds to a known persona.
-- `tests/Architecture/EvalScenarioMutatingFlagMatchesWritesTest.php` — `is_mutating: false` ⇒ `expected_db_writes.expected_count: 0`.
-- `tests/Architecture/EvalScenarioEngineTraceConsistencyTest.php` — every `expected_engine_trace.must_contain[*]` engine/gate/decisionPoint string is in the valid list.
-- `tests/Architecture/PreviewBlockSitesCheckBypassTest.php` — grep test that `bypass-preview-mode` literal appears in `PreviewWriteInterceptor.php`, `HasAiChat.php`, `CoordinatingAgent.php`. (Already does — Task 4 wired it. The test locks against drift.)
-
-### 6. Task 16 — Live re-record + dashboard polish
-
-**Source: implementation-plan.md §16 (lines 2784–2949).**
-
-This is the integration verification. **Needs `./dev.sh` running + costs LLM API calls** (anthropic + xAI per scenario × 10 scenarios).
-
-```bash
-# In a separate terminal:
-./dev.sh
-
-# Then re-record:
-php artisan eval:record mitchell_advice_protection_cover
-# Verify acceptance gate from plan §12.16 — see implementation-plan.md §16.3.
-
-# Then loop the remaining 9:
-for s in mitchell_advice_savings_emergency mitchell_advice_investment_isa \
-         mitchell_advice_retirement_contribution mitchell_advice_estate_iht \
-         mitchell_advice_holistic_health mitchell_advice_tax_optimisation \
-         mitchell_advice_goals_affordability mitchell_factual_net_worth \
-         mitchell_factual_income; do
-  php artisan eval:record "$s"
-done
-```
-
-After recording, calibrate timing budgets (plan §16.7).
-
-Dashboard polish: extend `resources/js/components/Admin/eval/RunPanel.vue` with HTTP log + engine/gate timeline panels. Plan provides full Vue snippets at lines 2854–2914. **NOTE:** RunPanel.vue may need to consume the new fields — `EvalRecordingController` already returns `persona`, `http_log`, and now `engine_trace` after Tasks 11 + 14.
-
-**Acceptance gate per plan §12.16 — every box must tick:**
-
-1. `php artisan db:seed --class=PreviewUserSeeder` produces peak_earners with full data.
-2. `php artisan eval:record mitchell_advice_protection_cover` runs end-to-end via the HTTP loop. Session row has `persona='peak_earners'`, populated `http_log`, populated `engine_trace`, `status='completed'`.
-3. Both providers' `tool_calls` contain `list_records(life_insurance)` AND `list_records(critical_illness)` AND `list_records(income_protection)` AND `get_module_analysis(protection)`.
-4. Each `list_records.result` is non-empty.
-5. `get_module_analysis(protection)` returns `happy` path.
-6. Assistant text contains FCA signposting AND references real persona data (e.g. "Aviva", "£400,000", a policy type by name).
-7. `engine_trace` contains the 7 expected events in order, with NO `EngineCalled:orchestrate_analysis`.
-8. `EvalDeltaBuilder` grades both runs as PASS.
-
-If ANY step fails: per CLAUDE.md Rule #15 (LOOP UNTIL CORRECT), diagnose, fix, re-verify, repeat until GREEN per the plan. Don't hand back partial.
+**Branch is now 28 commits ahead of `main`.** All pushed to origin. Doc edits in session 108 are local-only (April/ is gitignored).
 
 ---
 
-## Plan corrections shipped in session 105 (KEEP THESE PATTERNS)
+## What needs to land before re-recording (priority-ordered, canonical-aligned)
 
-These were bugs in the plan that surfaced during execution. Apply the same patterns going forward.
+### P0 (blockers — ship these first; clears all 4 Task 16 acceptance-gate failures)
 
-### 1. Sanctum wildcard ability — `can()` is unsafe (Task 4)
+1. ⏳ **Fix the trace cross-request persistence.** See P0.1 above. Recommended: write trace to `eval_provider_runs.engine_trace` directly from `HasAiChat::handleStream` and drop the trace_fetch HTTP call from `EvalHttpDriver::run`.
+2. ⏳ **Fix `extractToolCallsFromEvents` SSE key.** `EvalRecordCommand:316` — change `$event['name']` to `$event['tool']`. Add a unit test loading the actual fixture.
+3. ⏳ **Reconcile HTTP call count.** Falls out of P0.1 if you drop the trace_fetch. Otherwise update all 10 scenarios to `calls: 5`.
 
-The implementation plan and spec both said:
+### P1 (spec parity — not gate blockers)
 
-```php
-$token->can('bypass-preview-mode')
-```
+4. ⏳ **Decide on the 6 module-agent + 6 recommendation-engine `EngineCalled` emits.** Either implement (12 small additions) or codify the simplification (delete the engine names from `EvalScenarioEngineTraceConsistencyTest::$validEngines:16-21`). None of the 10 current scenarios assert on these — defer until needed.
+5. ⏳ **Add HTTP-log panel to `RunPanel.vue`.** Plan §3.1 / §5.7. Data is already in the API response (`session.http_log` from `EvalRecordingController:118`). ~30-40 lines of template.
+6. ⏳ **Reconcile 3 mismatched scenario classifications** (Task 13). Update spec §10.2 OR re-author user messages. Don't widen `KEYWORD_PATTERNS` without a live-product reason.
+7. ⏳ **Add the AssertionHelpers HTTP helpers** (`assertSseStreamComplete`, `assertHttpStatusCodes`, `assertNoMiddlewareBypass`). Plan §3.1.
+8. ⏳ **Convert `EvalRunner.php` to JSON-aware.** Currently scaffold-only (line 62). Plan §3.1.
 
-But Sanctum's default abilities for `createToken()` with no args is `['*']`. `PersonalAccessToken::can()` returns true if abilities contain `'*'` OR the literal string. So **every regular preview-user token would silently bypass**.
+### P2 (risk mitigations — Doc A §13)
 
-**Correct pattern (used in 4 files):**
+9. ⏳ **Add `connectTimeout(5)` to every `Http::` call** in `EvalHttpDriver`. Lines 74, 86, 117, 142, 156. Already have `->timeout(N)`; chain `->connectTimeout(5)`.
+10. ⏳ **Add Sanctum token TTL.** `EvalAuthController::login:58-61` set `expiresAt: now()->addMinutes(15)`.
+11. ⏳ **Pre-flight server health check** in `EvalHttpDriver::run`. `Http::timeout(2)->get("{$baseUrl}/api/preview/personas")` — throw if non-200.
+12. ⏳ **Token cleanup at driver setup.** Delete eval-tagged tokens older than 1h before login.
+13. ⏳ **Make `PreviewBlockSitesCheckBypassTest` actually scan** for new write-block sites instead of checking 3 hard-coded paths.
 
-```php
-$abilities = $token->abilities ?? [];
-$hasEvalBypass = in_array('bypass-preview-mode', $abilities, true);
-```
+### Future (when first mutating scenario lands)
 
-Wired in:
-- `app/Http/Middleware/PreviewWriteInterceptor.php`
-- `app/Traits/HasAiChat.php` (around line 144)
-- `app/Agents/CoordinatingAgent.php` (around line 717)
-- `app/Listeners/Eval/EvalTraceListener.php`
-
-If you add another bypass site, use the same `in_array(..., true)` pattern, NOT `can()`.
-
-### 2. SoftDeletes leak in `preview:reset` (Task 2)
-
-Pre-existing bug (not introduced by this work, but had to be fixed for Task 2 to pass):
-
-`User` model uses `SoftDeletes`, AND every child model on `peak_earners`'s persona-touched tables uses `SoftDeletes`. The old `resetPersona` called `$user->delete()` (soft) and `Property::where(...)->delete()` (soft). Result:
-- soft-deleted user kept the email row → reseed hit unique constraint
-- soft-deleted child rows kept their joint_owner_id → forceDelete on user fired FK violations
-
-**Fix:** `forceDelete()` everywhere in `ResetPreviewData::deleteUserData` and `resetPersona`. Locked by `tests/Feature/PreviewResetCompletenessTest`.
-
-### 3. AdviceFyn::handle didn't call classifyResponseMode (Task 6 deviation)
-
-The implementation plan said "after computing `$responseMode = self::classifyResponseMode($primary)`" — but `handle()` doesn't actually call those methods. They're pure helpers used by the eval delta builder.
-
-**What I did:** post-classify in `handle()`, fire the events guarded by map presence:
-
-```php
-if (isset(self::RESPONSE_MODE_MAP[$traceablePrimary])) {
-    event(new AgentDecision('AdviceFyn', 'response_mode', self::RESPONSE_MODE_MAP[...], ...));
-}
-```
-
-This avoids throwing on out-of-remit / data-entry primaries (which have no map entry).
-
-### 4. KycGateChecker per-field events (Task 6 simplified)
-
-Plan said per-FIELD KYC events (5 universal field checks). Restructuring `checkUniversalRequirements` to emit per-field would make it noisy. **What I did:** one `GateChecked('kyc', 'global', ...)` event after the universal pass + one per module check. The architecture meta-test in Task 15 only validates gate name strings, so granularity is flexible.
-
-### 5. 6 module agents' analyze events (Task 6 simplified)
-
-Plan said wrap each module agent's `analyze()` with `EngineCalled` events. Each agent has 4–12 internal return paths. **What I did:** fire one `EngineCalled('{module}_analysis', ...)` from `CoordinatingAgent::handleModuleAnalysis` (the centralised `get_module_analysis` tool dispatcher). One emit point covers all 6 modules + `holistic`. result_path inferred from `$analysis['success']`.
-
-If Task 16 acceptance gates need finer granularity, revisit this.
+14. ⏳ **Add canonical 0.1 reset orchestration** to `EvalRecordCommand::recordOne` after `EvalProviderRun::create()`. See `April/April27Updates/eval-http-driven-rewrite-implementation-plan.md` Task 11 step 11.3 (revised 2026-04-28).
 
 ---
 
-## Pre-existing dirty files (NOT mine — DO NOT include in Task 11/14 commits)
+## Session 108 (28 April 2026) — what shipped
 
-The working tree at session-105 end has these pre-existing modifications that were there at session-105 start and represent incomplete session-102 W1 work or other unmerged workstreams. **Don't claim them in your commits.**
+**Zero git-tracked code commits.** All session-108 work was on gitignored documents (`April/` is in `.gitignore`).
 
-```
-modified:   .claude/settings.json                                        ← unrelated config
-modified:   .claude/skills/session-start/SKILL.md                        ← unrelated harness change
-modified:   app/Http/Controllers/Api/Admin/EvalRecordingController.php   ← session-102 W1 in progress
-modified:   app/Models/EvalRecordingSession.php                          ← session-102 W1 in progress
-modified:   resources/js/components/Admin/EvalRecordings.vue             ← session-102 W1 in progress
-deleted:    database/migrations/2026_04_27_180000_add_remedial_report... ← rename target
-new file:   database/migrations/2026_04_27_000002_add_remedial_report... ← rename source
+### Completed this session
 
-new file:   .claude/ccstatusline/                                        ← unrelated CC config
-new file:   .claude/statusline-command.sh                                ← unrelated
-new file:   .claude/statusline-wrapper.sh                                ← unrelated
-new file:   CSJ-CAMPAIGN-LANDING-PLAN.md                                 ← separate workstream
-new file:   docs/manuals/                                                ← separate workstream
-new files:  tests/Feature/Fyn/Eval/fixtures/.../*.jsonl (18 files)       ← prior recordings
-```
+- [x] Wrote `April/April28Updates/maxAuditEval.md` — 458-line verified three-way audit comparing the rewrite plan (Doc A), the implementation plan (Doc B), the prior session-107 audit (Doc C), and the actual code on HEAD `dd2942f`. Anchored to the canonical contract issued by CSJ.
+- [x] Identified 2 factual errors in the session-107 audit (Doc C): (1) `PrerequisiteGateService::canGetRecommendations` DOES fire `GateChecked` at line 234; (2) eval routes ARE wrapped in route-level production gate at `routes/api.php:1273`. Both verified in code.
+- [x] Confirmed 4 real Task 16 blockers are all UNRELATED to the canonical: trace request-scope bug, wrong SSE key, HTTP call count mismatch, and missing fire sites (none of which block the 10 current scenarios).
+- [x] Applied 20 surgical edits across the 3 plan documents to align with the canonical:
+  - **Doc A** (`eval-http-driven-rewrite-plan.md`): 13 edits — pre-flight reset deleted from §3.2 pseudocode, finally-block reset moved out per canonical 0.1, §4.5 driver-invocation timing rewritten, §6.1 controller code switched from `is_eval_user`→`is_preview_user` and `EvalUserSeeder`→`PreviewUserSeeder`, §8.1 three-layer restoration replaced with caller-side post-recordOne layer, §8.4 "always reset-runs at start AND end defensively" sentence struck, §11.5 `EvalUserSeeder` list item struck, §13.1 risk 3 mitigation rewritten, §13.2 decisions 2 + 4 resolved per canonical, §14 acceptance criterion #2 rewritten to use `is_preview_user=true`.
+  - **Doc B** (`eval-http-driven-rewrite-implementation-plan.md`): 4 edits — Task 10 step 10.3 pre-flight + post-flight reset blocks both replaced with `[REVISED]` annotations; Task 11 step 11.3 instructional bullet added requiring caller-side reset; the actual code block in step 11.3 now captures `EvalProviderRun::create()` return as `$run`, runs the conditional reset, and `return $run`s.
+  - **Doc C** (`iLovetoLeavestuffOut.md`): 3 edits — POST-FACTO CORRECTIONS block at the top fixes the 2 factual errors and records the canonical supersession; Part E item 1 + item 4 inline corrections; footer annotated with canonical reference.
+- [x] Saved canonical contract to project memory at `feedback_eval_canonical_contract.md`.
+- [x] Updated `project_eval_http_driven_rewrite_branch.md` memory to reflect current status (16/16 tasks shipped, canonical-clean, 3 P0 blockers).
+- [x] Updated `MEMORY.md` index with both new entries.
+- [x] Updated CLAUDE.md metrics: PHP Services 269→272, Controllers 100→101.
+- [x] Synced 6 changed/new docs to vault (`Doc A`, `Doc B`, `Doc C`, `maxAuditEval.md` + 2 carry-overs).
+- [x] Created `Apr28.md` git-history file + updated Apr2026 Commits index + updated Home.md totals.
+- [x] Added April 28 sessions block + April28Updates section to `April Index.md`.
 
-**Critical for Task 11 + Task 14:** when you modify `EvalRecordingSession.php` (add fillable/casts) or `EvalRecordingController.php` (Yaml→JSON swap), MERGE your edit into the existing dirty content rather than overwriting it. Use `git diff app/Models/EvalRecordingSession.php` first to see what session-102 left there.
+### NOT done this session — outstanding
 
----
+- [ ] All P0/P1/P2 items in "What needs to land" above. None of them were touched in session 108 — this was a documentation-only session.
+- [ ] No re-recording attempted — gated on P0.1 + P0.2 + P0.3 landing first per canonical 0.1 + spec §12.16.
 
-## Test status snapshot at session 105 end
+### Context for next session
 
-All NEW tests written this session (35 cases across 8 files):
+The eval is canonical-clean in code. The plan docs are now canonical-aligned. The 4 real blockers are documented with priority-ordered fixes in `maxAuditEval.md` §5. Ship P0.1 (trace persistence), P0.2 (SSE key fix), P0.3 (call count) — that's a focused 1-2 hour chunk that clears all 4 acceptance-gate failures. Then re-record `mitchell_advice_protection_cover` to verify Task 16 §12.16 acceptance criteria 1-7. Only after that's green should you tackle P1 spec-parity items.
 
-| Suite | Tests | Status |
-|---|---|---|
-| `tests/Unit/Events/EvalEventsTest.php` | 3 | ✅ green |
-| `tests/Feature/PreviewResetCompletenessTest.php` | 2 | ✅ green |
-| `tests/Feature/PreviewBypassAbilityTest.php` | 3 | ✅ green |
-| `tests/Feature/EvalTraceListenerTest.php` | 4 | ✅ green |
-| `tests/Feature/EvalAuthControllerTest.php` | 7 | ✅ green |
-| `tests/Unit/QuerySchemasProtectionScopeTest.php` | 3 | ✅ green |
-| `tests/Unit/Services/Eval/EvalSseConsumerTest.php` | 6 | ✅ green |
-| `tests/Feature/Fyn/Eval/EvalHttpDriverTest.php` | 1 (skipped) | ⏭ needs ./dev.sh |
-
-Existing test suites — no regressions:
-
-- `tests/Unit/Agents/` — 84/84
-- `tests/Unit/Services/AI/` — 17/17 classifier + 15/15 AdviceFyn maps
-- `tests/Unit/Services/Eval/EvalDeltaBuilderTest.php` — 72/72
-- `tests/Unit/Services/Protection/Savings/Investment/Retirement/Estate/` — 583/583
-
-One transient flake observed: `SavingsAgentGoalsTest::it recommends increasing contributions` failed once and passed on retry. Test isolation issue, not deterministic. If it shows up in CI, may need `RefreshDatabase` adjustment.
-
----
-
-## Summary of what session 105 actually shipped
-
-11 commits on `feature/fyn-persona-split` (all pushed to origin):
-
-```
-3378f03 feat(eval): add EvalHttpDriver — HTTP-driven eval loop                                  [Task 10]
-9b4170b feat(eval): add JSON Schema for scenario files                                          [Task 12]
-5cf51d4 feat(eval): wire trace events at gate, agent, and engine call sites                     [Task 6]
-ab00ded feat(eval): add EvalSseConsumer for SSE frame parsing                                   [Task 9]
-dc76112 fix(query-schemas): PROTECTION_COVER must surface all 3 protection types                [Task 8]
-84e43c7 feat(eval): add EvalAuthController with login + reset + trace endpoints                 [Task 7]
-8e0bb16 feat(eval): add EvalTraceCollector + EvalTraceListener (ability-gated)                  [Task 5]
-235a019 feat(eval): add bypass-preview-mode token ability to 3 write-block sites                [Task 4]
-8fe5698 feat(eval): add GateChecked + EngineCalled + AgentDecision event classes                [Task 3]
-a6531f3 feat(preview): extend preview:reset to all persona-touched tables + fix SoftDeletes leak [Task 2]
-67a0b08 feat(eval): add persona + http_log + engine_trace columns to eval recording tables      [Task 1]
-```
-
-The HTTP loop, the eval auth surface, the trace pipeline, the bypass-ability mechanism, the persona reset, and the protection-cover scope correction are all live and tested. From here the remaining tasks connect plumbing (Tasks 11, 14), author scenarios (Task 13), add architecture meta-tests (Task 15), and run the live integration verification (Task 16).
+**Do not re-record before P0 ships.** Each recording costs LLM tokens; current bugs would produce fixtures with `tool_calls.name="unknown"` and empty `engine_trace` that have to be discarded after the fix.
 
 ---
 
@@ -366,7 +161,7 @@ The HTTP loop, the eval auth surface, the trace pipeline, the bypass-ability mec
 
 ### Tech-debt W1 from session 102 audit
 
-- [ ] **`_full` parsed YAML in API response payload** — `EvalRecordingController::parseExpectations` puts the entire parsed YAML under `_full` and that key still ships in the JSON response. Should be split into `parseExpectationsForResponse()` + `parseExpectationsForBuilder()`. **Note:** commit `a96a7d5` claimed to fix this; the file still has uncommitted changes (see "Pre-existing dirty files"). **Verify when handling Task 14.**
+- [ ] **`_full` parsed YAML in API response payload** — verified 2026-04-28: `EvalRecordingController:80` strips `_full` from response (`unset($expected['_full'])`); the internal use at line 270 is structural (controller passes `_full` to `EvalDeltaBuilder` via `$fullYaml`). No leak. Future tech-debt: split into `parseExpectationsForResponse()` + `parseExpectationsForBuilder()` for clarity. Not blocking.
 
 ### S1.7 sub-tasks — broader expansion
 
@@ -399,27 +194,41 @@ Cause: in-memory `AiConversation` whose `message_count` is null. Fix: set `messa
 
 ---
 
+## Pre-existing dirty files (NOT mine — leave them be)
+
+The working tree has these pre-existing modifications carried over from sessions 102 / earlier. None were touched in sessions 107 or 108:
+
+```
+modified:   .claude/settings.json                                        ← unrelated config
+modified:   .claude/skills/session-start/SKILL.md                        ← unrelated harness change
+modified:   resources/js/components/Admin/EvalRecordings.vue             ← session-102 W1 in progress
+deleted:    database/migrations/2026_04_27_180000_add_remedial_report... ← rename target
+new file:   database/migrations/2026_04_27_000002_add_remedial_report... ← rename source
+new file:   .claude/ccstatusline/                                        ← unrelated CC config
+new file:   .claude/statusline-command.sh                                ← unrelated
+new file:   .claude/statusline-wrapper.sh                                ← unrelated
+new file:   CSJ-CAMPAIGN-LANDING-PLAN.md                                 ← separate workstream
+new file:   docs/manuals/                                                ← separate workstream
+new files:  tests/Feature/Fyn/Eval/fixtures/.../*.jsonl (20 files)       ← prior recordings + session-107 attempt
+```
+
+CLAUDE.md was edited this session for metrics correction (PHP Services + Controllers counts) but is small and intentional — reviewer may opt to commit or leave for next session.
+
+---
+
 ## Deploy status
 
 - **Production (`fynla.org`):** main untouched.
 - **Dev (`csjones.co/fynla`):** dev untouched.
-- **`feature/fyn-persona-split`:** 11 new commits pushed to origin this session (21 total ahead of main). NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR. Tasks 11–16 must complete before any deploy.
-
-When the next deploy happens after the rewrite finishes:
-
-- 2 new migrations (Task 1) — schema-additive, safe.
-- New routes (Task 7) — eval-only, gated by `if (! app()->environment('production'))` so they don't register on prod.
-- New service provider (Task 5) — `EvalServiceProvider` registered in `config/app.php`.
-- New event listeners (Task 5) — fire only when active token has `bypass-preview-mode` ability.
-- Modified production code (Tasks 4, 6, 8) — preview-mode write blocks, gate/agent/engine code, `QuerySchemas`. Behaviour change: protection queries now surface all 3 protection types in the live LLM tool selection (Task 8 — fixes the live product, not just the eval).
+- **`feature/fyn-persona-split`:** 28 commits ahead of main, all pushed. NOT deployed anywhere yet — sits behind the deferred `feature → dev` PR. P0 + P1 items must complete before any deploy.
 
 ---
 
-## Pattern reminder for ALL BS-NN runs (do not deviate)
+## Pattern reminder for ALL re-record runs (do not deviate, canonical-aligned)
 
-1. Sign out + clear browser session storage (or use the seeded john path for advice-mode-only tests).
-2. Landing page → "Quick start with Fyn" CTA → fresh registration with a unique email (when an end-to-end onboarding walk is required).
-3. Verify MFA via the pending registration's `verification_code` from DB. Type each digit individually with `browser_press_key`.
-4. Drive bubbles + buttons via `browser_click` against the FynQuickReplies button `ref` from `browser_snapshot`. NEVER `browser_evaluate(...).click()`.
-5. Free text via `browser_type` against textarea `ref` + `submit:true`.
-6. After ANY code change, re-test from Step 1.
+1. **NEVER call `db:seed` after non-destructive migrations** (FK drops, additive columns, indexes). CLAUDE.md's reseed rule is for DESTRUCTIVE operations only.
+2. **NEVER call `preview:reset` in the eval flow for non-mutating scenarios.** The bypass-preview-mode toggle is the mechanism. (Canonical 0.1.)
+3. **If you find a FK violation in eval flow, the fix is in the reset behaviour, NOT in dropping the FK.**
+4. **If a scenario specifies `is_mutating: false`, the persona must survive the recording byte-identical.** Verify by spot-checking `users.id` before and after.
+5. **Diagnose before reverting.** When pre-flight reset wiped peak_earners between provider 1 and provider 2 in session 107, the fix was to remove the reset, not to compensate by adding more wipes / FK drops / reseeds.
+6. **Do not re-introduce mirror users / `EvalUserSeeder` / `is_eval_user`.** (Canonical 0.2.) The eval logs in as the actual seeded `peak_earners` preview user; Sanctum bypass token is the mechanism.
