@@ -43,7 +43,52 @@ CSJ provided two whiteboards (`April/April29Updates/campaignMap.jpeg` + `houuseS
 
 ### NOT Done — Outstanding for next session
 
-**No carry-over from session 113's own work** — all 6 phases shipped end-to-end. 796/796 tests green, zero regressions.
+#### TOP PRIORITY — STATE_CAMPAIGN_SPOUSE_WORK bubble click never calls `capture_spouse_work_status` tool (BS-27 / BS-28 blocker)
+
+**Found during session 113-evening's BS-26 live browser run** (same branch, same day). Surfaced *after* the original "all 6 phases shipped" claim — the unit-test path didn't exercise it.
+
+`STATE_CAMPAIGN_SPOUSE_WORK` (`OnboardingStateMachine.php:326-336`) is a `turn_type=bubbles` state with `capture_field: null`. Its `next` callable (`nextFromSpouseWork`) routes by reading `users.household_calculation_mode` — but that column is set by the `capture_spouse_work_status` tool, which is **never invoked on a bubble click**. Bubble-state handling in `OnboardingChatDirector::handleUserMessage` (line ~157+) just runs `interpretAnswer` against the bubble config and routes via the next callable; it does not dispatch tools.
+
+**Effect:** Yes / No on "Does your spouse work?" leaves `household_calculation_mode = NULL` and `marriage_allowance_eligible = NULL`. `nextFromSpouseWork` falls to its `default` arm → `STATE_CAMPAIGN_TERMINAL`, **silently skipping both `STATE_CAMPAIGN_SPOUSE_HOUSEHOLD` and `STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS`**. Path B (dual_earner) and Path C (single_earner_couple) capture nothing on the spouse side, the `tax_strategy_household_inputs` row is never created, and `/tax-strategy` falls back to single-mode rendering — `HouseholdView` and `AssetShiftingPanel` never render. **BS-27 and BS-28 are blocked until this is fixed.**
+
+**Fix shape (next session, before driving BS-27/BS-28):**
+1. Wire the bubble click through to `capture_spouse_work_status` so it persists `household_calculation_mode = 'dual_earner' | 'single_earner_couple'` and `marriage_allowance_eligible = (bubble === 'no')` based on the chosen bubble id.
+2. Cleanest option: convert the state to `turn_type=grouped_extract` with `extraction_tool = 'capture_spouse_work_status'`, mirroring how `STATE_CAMPAIGN_SPOUSE_HOUSEHOLD` and `STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS` already work — but bubbles don't currently flow through the grouped-extract path, so this needs a small handler tweak.
+3. Alternative: keep the bubble UI but add a director hook that synchronously calls `CoordinatingAgent::handleCaptureSpouseWorkStatus` with `{spouse_works: bubble_id === 'yes'}` before computing `nextFromSpouseWork`.
+4. Add Pest cases: bubble click → tool fires → DB columns set → `nextFromSpouseWork` routes correctly.
+5. Re-drive BS-27 (Yes) and BS-28 (No) via Playwright MCP to single-iteration GREEN per Rule #15.
+
+#### Session 113-evening fixes already shipped + committed (`aad29db` on `feature/fyn-persona-split`)
+
+Driving BS-26 in the live browser surfaced **four other session-113 shipped bugs** that were fixed inline before BS-26 went GREEN. All four touch the campaign delegated path that unit tests didn't cover.
+
+1. **`STATE_CAMPAIGN_INTRO` consent gate added** (`OnboardingStateMachine.php`). Bridges the jarring jump from "Looks correct" at expenditure-review straight into "Tell me about your workplace pension". CSJ-designed UX: bubble *"Thanks {first_name} for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your pensions, accounts and investments[, including {spouse}'s where it makes sense,] is that okay?"* with `Okay` / `Nope` bubbles. Spouse phrasing conditionally injected when `marital_status` is married/civil_partnership (reads spouse name from linked `User` first, falls back to `parked_facts.spouse.first_name`, falls back to "your spouse"). `Okay` → `STATE_CAMPAIGN_OCCUPATIONAL_SCHEME`; `Nope` → `STATE_DONE` (parks the campaign, sets `onboarding_completed=true`, lands on `/dashboard`). New methods: `buildCampaignIntroPrompt()`, `nextFromCampaignIntro()`. Updated `nextFromExpenditureReview()` to route campaign users to `STATE_CAMPAIGN_INTRO` instead of `STATE_CAMPAIGN_OCCUPATIONAL_SCHEME`. **+7 Pest cases** (3 routing, 4 prompt-builder).
+2. **`OnboardingPromptBuilder::toolsForFocus()` had no `'savetax'` branch** → defaulted to `['create_savings_account']` only. Inside the campaign delegated states the LLM literally could not call `create_pension`, `capture_salary_sacrifice`, `create_investment_account`, etc. Added a `'savetax'` arm with all 8 campaign tools (`create_pension`, `capture_salary_sacrifice`, `create_savings_account`, `create_investment_account`, `create_holding`, `capture_spouse_work_status`, `capture_spouse_household_data`, `capture_spouse_non_working_assets`). Also added `'savetax' => 'SaveTax'` to `focusLabel()`.
+3. **`OnboardingChatDirector::handleAssetCaptureTurn` hardcoded next state to `STATE_ADD_MORE`** (line ~1742-1744 originally). For journey/focus that's correct (their delegated state's `next` *is* `STATE_ADD_MORE`), but for campaign delegated states the user fell out of the campaign branch entirely after the first delegated turn (`campaign_occupational_scheme` → `add_more`, never reaching ISA / bank / investment / pension states). Refactored: handler now takes `$currentStateId` and `$state` and advances via `OnboardingStateMachine::getNextStateId($currentStateId, $message, $user)`, applying skip_if rules transitively. `recordProgress` records under the actual current state ID instead of always `STATE_ASSET_CAPTURE`. Journey/focus behaviour is unchanged because their `STATE_ASSET_CAPTURE.next === STATE_ADD_MORE`. The `delegated` branch in `handleUserMessage` now passes the new params through.
+4. **`STATE_CAMPAIGN_TERMINAL.navigate_to` was never read** — `emitTurnForState()` only renders `prompt_text` for terminal turn types and ignores `navigate_to`. The "All set, Verify — let me show you your tax position" bubble fired but the `navigate` SSE event never followed, so the user stayed on `/dashboard` and `users.onboarding_completed` was never set true. Added a new private method `emitTerminalNavigationTurn(User, AiConversation, string $stateId, array $state)` modelled on `emitDoneTurn()` but using `state.navigate_to` for the route. Wired into both call sites where a state advance might land on a terminal-with-navigate state: the main turn-router (line ~210 area, after the `STATE_DONE` branch) and the new delegated handler post-stream block. Sets `onboarding_completed = true`, clears `onboarding_fyn_*` scratch columns, dispatches `ConversationSummariserJob`, identical to `emitDoneTurn`.
+
+**Verification:**
+- Onboarding + Fyn Pest suite: **417 passed, 1 skipped, 0 failed** (was 410 before the +7 new cases).
+- Live BS-26 single-iteration walkthrough end-to-end on local dev with 4 separate test users (each fresh `bs26-*-2026-04-29@example.com`). Final user `bs26-final-2026-04-29@example.com`: `signup_source=tiktok`, `onboarding_completed=YES`, scratch columns cleared, `DCPension` row with `salary_sacrifice=true`, `SavingsAccount` row £3,000, `/tax-strategy` rendered with PA £12,570 used / Pension AA £5,000 used / ISA top-up slider prefilled at £11,500 (£20k − £8.5k remaining inversion). Console clean across the whole flow.
+
+**Files changed (uncommitted):**
+- `app/Services/Onboarding/OnboardingStateMachine.php` — new constant + state def + 2 new helper methods + updated routing callable.
+- `app/Services/Onboarding/OnboardingPromptBuilder.php` — `toolsForFocus()` and `focusLabel()` get the `'savetax'` arm.
+- `app/Services/Onboarding/OnboardingChatDirector.php` — new `emitTerminalNavigationTurn()` method, refactored `handleAssetCaptureTurn()` signature + advancement logic, terminal-with-navigate branch added in main turn-router and the delegated post-stream block.
+- `tests/Unit/Services/Onboarding/OnboardingStateMachineTest.php` — `STATE_CAMPAIGN_INTRO` added to expected-states array.
+- `tests/Unit/Services/Onboarding/CampaignStateMachineBranchTest.php` — `+7` cases for INTRO routing + prompt builder, expected-state from `OCCUPATIONAL_SCHEME` to `INTRO`, "all 9" → "all 10" naming.
+
+#### Drive BS-27 + BS-28 in the live browser (after the spouse_work fix)
+
+Per CLAUDE.md Rule #15 LOOP UNTIL CORRECT, fix the spouse_work blocker first, then drive each scenario via Playwright MCP on local dev:
+- [ ] **BS-27 (Path B / dual_earner)** — register married, capture spouse details, walk campaign branch, click "Yes, they work" on STATE_CAMPAIGN_SPOUSE_WORK, fill `STATE_CAMPAIGN_SPOUSE_HOUSEHOLD` (annual income / PSA band / spouse ISA balance / etc.). Verify `users.household_calculation_mode='dual_earner'`, `marriage_allowance_eligible=false`, `tax_strategy_household_inputs` row populated with working-spouse fields, `/tax-strategy` renders `HouseholdView` twin grids + cross-spouse coordination panel, AssetShiftingPanel hidden.
+- [ ] **BS-28 (Path C / single_earner_couple)** — same setup but click "No, they don't currently work", fill `STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS` with a small spouse ISA balance. Verify `household_calculation_mode='single_earner_couple'`, `marriage_allowance_eligible=true`, non-working-spouse fields populated, `/tax-strategy` renders `HouseholdView` twin grids + AssetShiftingPanel with `marriage_allowance_transfer` / `savings_to_spouse` / `isa_topup_spouse` suggestions, cross-spouse panel hidden.
+
+#### Tech-debt also surfaced during the BS-26 run (don't auto-fix)
+
+- [ ] **Vue 3 warning** — `[Vue warn]: Property "$listeners" was accessed during render but is not defined on instance` and `[Vue warn]: v-on with no argument expects an object value` from `<FynOnboardingChat docked=true onCollapse=fn<bound toggleChat> >`. Vue 2 idiom in a Vue 3 component. Non-blocking, fires on every dashboard mount during onboarding. Quick fix: replace `$listeners` references with explicit prop emits.
+- [ ] **`StructuredResponseValidator` flagged "SIPP" as a banned acronym** in an LLM ack ("Got it — no SIPP noted"). The state's prompt itself uses "SIPP" multiple times — *the user is being asked about SIPPs*, so the LLM echoing the term is correct. Either add a per-state allowlist for terms used in the prompt, or add SIPP to the canonical exceptions (alongside ISA in CLAUDE.md Rule #10).
+- [ ] **TaxStrategyCalculator under-counts pension AA usage** — captured 5% employee + 5% employer salary-sacrifice on £50k salary (£5,000/year) but `/tax-strategy` initially showed Pension AA `£0 used` until live recalc. Worth confirming the calculator includes salary-sacrifice contributions in the AA usage on initial load (the slider re-fired correctly to £5k after a state change).
 
 **Carried from session 112 (still open):**
 
@@ -94,7 +139,7 @@ Two suggestions from session 113's tech-debt sweep, neither blocking:
 
 ### Deploy status
 
-**Local dev verified end-to-end (796/796 tests green). Nothing pushed to dev or prod yet.**
+**Path A verified live end-to-end on local dev. Path B / Path C blocked on the spouse_work bubble→tool fix. Pest 417/417 in onboarding+Fyn (was 410 + 7 new INTRO cases). The 4 evening fixes are committed (`aad29db`) and pushed. Nothing pushed to dev or prod yet.**
 
 When CSJ is ready to deploy, see `April/April29Updates/savetax-section4-6-deploy-notes.md` (sections 4-6 specific) AND `April/April29Updates/deploy-notes.md` (sections 1-3 from session 112). Both can deploy in a single batch since they're on the same branch.
 
@@ -102,15 +147,16 @@ Combined upload set: 16 PHP backend + 11 frontend + 4 migrations + `public/build
 
 ### Context for next session
 
-Sections 4-6 SHIPPED locally. The big shape is now in place:
-- 9 state-machine states drive the post-expenses conversation
-- `TaxStrategyCalculator` produces the allowance grid + asset-shifting strategies
-- `/tax-strategy` dashboard renders allowance utilisation cards + sliders + recommendations
-- All 3 first-class paths (single / dual_earner / single_earner_couple) work end-to-end in tests
+Sections 4-6 SHIPPED locally + **the BS-26 live walkthrough surfaced 5 bugs in session 113's work** (4 fixed inline before BS-26 went GREEN, 1 still open). Status of the campaign branch as of 29 April evening:
 
-**Highest-value next step:** deploy to dev so CSJ can drive BS-26/27/28 in a live browser. Single-iteration GREEN per Rule #15 should be the goal. If anything fails in the live browser flow, route through dedicated bug-fix sub-tasks against the relevant Phase 1-5 file rather than batch fixes.
+- **Path A (single + employed)** — GREEN end-to-end on local dev. Covered in detail in the "Session 113-evening fixes" block above.
+- **Path B (dual_earner)** + **Path C (single_earner_couple)** — BLOCKED by the `STATE_CAMPAIGN_SPOUSE_WORK` bubble→tool wiring bug (TOP PRIORITY block above). Bubble click never invokes `capture_spouse_work_status`, so `household_calculation_mode` and `marriage_allowance_eligible` stay NULL, both spouse capture states get silently skipped, and `/tax-strategy` falls back to single-mode rendering.
 
-After deploy + live verification, return to Sprint 1: re-record mitchell scenarios → S1.7.a (AssertionHelpers extension) → S1.7.c (eval YAMLs covering the 9 new SaveTax states).
+**Highest-value next step:** fix the `STATE_CAMPAIGN_SPOUSE_WORK` bubble→tool wiring (see "TOP PRIORITY" section above), then drive BS-27 and BS-28 in the live browser to single-iteration GREEN per Rule #15. Once all three browser scenarios are green, proceed to the dev deploy that's been pending since session 112.
+
+The four 113-evening fixes (`aad29db`, pushed) plus the BS-26 walkthrough invalidate the original session 113 verification claim "Local dev verified end-to-end (796/796 tests green)." The accurate post-walkthrough state is: 417/417 in onboarding+Fyn Pest, BS-26 verified live in browser, BS-27/BS-28 still RED on the spouse_work blocker.
+
+After all three browser scenarios green, return to Sprint 1: re-record mitchell scenarios → S1.7.a (AssertionHelpers extension) → S1.7.c (eval YAMLs covering the 10 SaveTax states, now including STATE_CAMPAIGN_INTRO).
 
 ---
 
