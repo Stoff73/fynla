@@ -132,7 +132,7 @@ const FALLBACK_INCOME = [
 ];
 const FALLBACK_INVESTMENT = [
   { key: 'isa_allowance', label: 'ISA Allowance', note: 'Tax-free savings & investing', amount: 20000 },
-  { key: 'cgt_allowance', label: 'CGT Allowance', note: 'Capital gains exempt amount', amount: 3000 },
+  { key: 'cgt_allowance', label: 'Capital Gains Tax Allowance', note: 'Capital gains exempt amount', amount: 3000 },
   { key: 'dividend_allowance', label: 'Dividend Allowance', note: 'Tax-free dividend income', amount: 500 },
   { key: 'pension_annual_allowance', label: 'Pension Annual Allowance', note: 'Tax-relievable contributions', amount: 60000 },
 ];

@@ -72,7 +72,7 @@ class TaxAllowancesController extends Controller
                 ],
                 [
                     'key' => 'cgt_allowance',
-                    'label' => 'CGT Allowance',
+                    'label' => 'Capital Gains Tax Allowance',
                     'note' => 'Capital gains exempt amount',
                     'amount' => (int) $this->taxConfig->get('capital_gains_tax.annual_exempt_amount', 0),
                 ],
