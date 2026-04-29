@@ -338,18 +338,34 @@ class AiChatController extends Controller
             ],
         ]);
 
-        // INV-2.2.5 — entry-source journey map. When the request carries a
-        // `from` value (e.g. landing-page CTA, lifecycle email, deep link)
-        // and the value matches a key in config('onboarding.journey_map'),
-        // pre-select that life-stage journey and skip STATE_PATH_CHOICE +
-        // STATE_JOURNEY_SELECTION so the user lands at base personal capture.
-        // Unknown / missing `from` falls through to the default path_choice
-        // bubbles. Adding a new entry source requires only a config change.
+        // INV-2.2.5 — entry-source dispatch. When the request carries a
+        // `from` value (landing-page CTA, lifecycle email, deep link) it is
+        // looked up in two config maps in priority order:
+        //
+        //   1. config('onboarding.campaign_map') — marketing campaigns.
+        //      Match → onboarding_fyn_path='campaign', selection=<id>, lands
+        //      the user at STATE_BASE_PERSONAL with a campaign-specific
+        //      welcome (see OnboardingStateMachine::buildPersonalPrompt).
+        //   2. config('onboarding.journey_map') — life-stage journeys.
+        //      Match → onboarding_fyn_path='journey', selection=<id>, lands
+        //      at STATE_BASE_PERSONAL.
+        //
+        // Campaign check happens FIRST so a future campaign id never gets
+        // misclassified as a life-stage journey. Unknown / missing `from`
+        // falls through to STATE_PATH_CHOICE. Adding a new entry source
+        // requires only a config change — no controller change.
         $from = $request->input('from');
+        $campaignMap = (array) config('onboarding.campaign_map', []);
         $journeyMap = (array) config('onboarding.journey_map', []);
-        $matchedJourney = is_string($from) && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
+        $matchedCampaign = is_string($from) && isset($campaignMap[$from]) ? $campaignMap[$from] : null;
+        $matchedJourney = is_string($from) && $matchedCampaign === null && isset($journeyMap[$from]) ? $journeyMap[$from] : null;
 
-        if ($matchedJourney !== null) {
+        if ($matchedCampaign !== null) {
+            $user->onboarding_fyn_path = 'campaign';
+            $user->onboarding_fyn_selection = $matchedCampaign;
+            $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_PERSONAL;
+            $startStateId = OnboardingStateMachine::STATE_BASE_PERSONAL;
+        } elseif ($matchedJourney !== null) {
             $user->onboarding_fyn_path = 'journey';
             $user->onboarding_fyn_selection = $matchedJourney;
             $user->onboarding_fyn_step = OnboardingStateMachine::STATE_BASE_PERSONAL;

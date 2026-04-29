@@ -56,4 +56,23 @@ return [
         'protection' => 'protection',
         'retirement' => 'retirement',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Entry-source campaign map
+    |--------------------------------------------------------------------------
+    |
+    | Mirrors `journey_map` for marketing-driven entry points. When
+    | POST /api/ai-chat/onboarding/start arrives with a `from` value
+    | matching a key here, the controller pre-selects the campaign
+    | (path='campaign', selection=<value>) and skips path_choice +
+    | journey_selection / focus_selection. Checked BEFORE journey_map
+    | so a campaign id never gets misclassified as a journey id.
+    |
+    | Adding a new campaign requires only a new key/value pair here.
+    |
+    */
+    'campaign_map' => [
+        'savetax' => 'savetax',
+    ],
 ];
