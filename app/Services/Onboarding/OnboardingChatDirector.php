@@ -2247,6 +2247,13 @@ PROMPT;
             // ask Advice Fyn to remove a record and have the handoff dispatch
             // delete_record for them.
             'delete_record',
+            // SaveTax campaign sections 4-6 — used during the campaign-only
+            // post-expenditure state-machine branch. Always whitelisted; the
+            // state machine itself gates which states can call which tool.
+            'capture_salary_sacrifice',
+            'capture_spouse_work_status',
+            'capture_spouse_household_data',
+            'capture_spouse_non_working_assets',
         ];
     }
 

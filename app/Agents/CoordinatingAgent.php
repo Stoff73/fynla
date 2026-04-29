@@ -886,6 +886,11 @@ class CoordinatingAgent extends BaseAgent
                 'update_record' => $this->handleUpdateRecord($input, $user, $isPreviewUser),
                 'delete_record' => $this->handleDeleteRecord($input, $user, $isPreviewUser),
                 'update_profile' => $this->handleUpdateProfile($input, $user, $isPreviewUser),
+                // SaveTax campaign — sections 4-6
+                'capture_salary_sacrifice' => $this->handleCaptureSalarySacrifice($input, $user, $isPreviewUser),
+                'capture_spouse_work_status' => $this->handleCaptureSpouseWorkStatus($input, $user, $isPreviewUser),
+                'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
+                'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
@@ -3881,6 +3886,115 @@ class CoordinatingAgent extends BaseAgent
             'total_monthly' => $total,
             'total_annual' => $total * 12,
             'message' => "Expenditure updated: {$formatted}. Total: £".number_format($total, 2).'/month.',
+        ];
+    }
+
+    // ─── SaveTax campaign capture handlers ──────────────────────────────
+
+    private function handleCaptureSalarySacrifice(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('pension');
+        }
+
+        if (! isset($input['pension_id'], $input['salary_sacrifice'])) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'pension_id and salary_sacrifice are required.'];
+        }
+
+        $pension = \App\Models\DCPension::where('id', $input['pension_id'])
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $pension) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
+        }
+
+        $pension->update(['salary_sacrifice' => (bool) $input['salary_sacrifice']]);
+
+        return [
+            'updated' => true,
+            'pension_id' => $pension->id,
+            'message' => 'Salary sacrifice setting updated.',
+        ];
+    }
+
+    private function handleCaptureSpouseWorkStatus(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('household');
+        }
+
+        if (! array_key_exists('spouse_works', $input)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'spouse_works is required.'];
+        }
+
+        $works = (bool) $input['spouse_works'];
+
+        $user->update([
+            'marriage_allowance_eligible' => ! $works,
+            'household_calculation_mode' => $works ? 'dual_earner' : 'single_earner_couple',
+        ]);
+
+        return [
+            'updated' => true,
+            'household_calculation_mode' => $user->household_calculation_mode,
+            'marriage_allowance_eligible' => $user->marriage_allowance_eligible,
+            'message' => $works
+                ? 'Recorded that your spouse works — we\'ll capture more details next.'
+                : 'Recorded that your spouse doesn\'t currently work — Marriage Allowance may apply.',
+        ];
+    }
+
+    private function handleCaptureSpouseHouseholdData(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('household');
+        }
+
+        $allowed = array_intersect_key($input, array_flip([
+            'spouse_annual_income',
+            'spouse_employment_status',
+            'spouse_isa_balance',
+            'spouse_psa_band',
+            'spouse_unrealised_gains',
+            'spouse_annual_dividends',
+            'spouse_pension_input_annual',
+        ]));
+
+        \App\Models\TaxStrategyHouseholdInput::updateOrCreate(
+            ['user_id' => $user->id],
+            $allowed
+        );
+
+        return [
+            'updated' => true,
+            'fields_updated' => array_keys($allowed),
+            'message' => 'Spouse household data captured.',
+        ];
+    }
+
+    private function handleCaptureSpouseNonWorkingAssets(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('household');
+        }
+
+        $allowed = array_intersect_key($input, array_flip([
+            'spouse_existing_isa_balance',
+            'spouse_existing_savings_balance',
+            'spouse_existing_investment_balance',
+            'spouse_existing_dividend_holdings_value',
+        ]));
+
+        \App\Models\TaxStrategyHouseholdInput::updateOrCreate(
+            ['user_id' => $user->id],
+            $allowed
+        );
+
+        return [
+            'updated' => true,
+            'fields_updated' => array_keys($allowed),
+            'message' => 'Spouse standalone assets captured.',
         ];
     }
 

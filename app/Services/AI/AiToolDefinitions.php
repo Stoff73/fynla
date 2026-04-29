@@ -28,6 +28,7 @@ class AiToolDefinitions
                 $this->dataModificationTools(),
                 $this->profileTools(),
                 $this->expenditureTools(),
+                $this->campaignSaveTaxTools(),
             );
         }
 
@@ -1408,6 +1409,77 @@ class AiToolDefinitions
             'description' => $tool['description'],
             'input_schema' => $tool['parameters'],
         ], $tools);
+    }
+
+    /**
+     * SaveTax campaign — sections 4-6 capture tools.
+     *
+     * Used in the campaign-only state-machine branch after expenditure capture
+     * (path=campaign users only). All 4 tools write to existing tables (dc_pensions,
+     * users, tax_strategy_household_inputs).
+     */
+    private function campaignSaveTaxTools(): array
+    {
+        return [
+            [
+                'name' => 'capture_salary_sacrifice',
+                'description' => 'Set salary_sacrifice flag on a specific DC pension owned by the user. Use during the SaveTax campaign occupational-scheme capture state.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'pension_id' => ['type' => 'integer', 'description' => 'ID of the dc_pension row to update.'],
+                        'salary_sacrifice' => ['type' => 'boolean', 'description' => 'true if pension contributions are made via salary sacrifice.'],
+                    ],
+                    'required' => ['pension_id', 'salary_sacrifice'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'capture_spouse_work_status',
+                'description' => 'Set whether the user\'s spouse currently works. Updates household_calculation_mode (dual_earner | single_earner_couple) and marriage_allowance_eligible accordingly. The state machine routes the next state based on the result.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'spouse_works' => ['type' => 'boolean', 'description' => 'true if spouse has earned income, false otherwise.'],
+                    ],
+                    'required' => ['spouse_works'],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'capture_spouse_household_data',
+                'description' => 'Capture working-spouse data for dual_earner households (spouse_works=yes path). Writes to tax_strategy_household_inputs.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'spouse_annual_income' => ['type' => 'number', 'description' => 'Spouse gross annual income in pounds.'],
+                        'spouse_employment_status' => ['type' => 'string', 'enum' => ['full_time', 'part_time', 'self_employed', 'retired'], 'description' => 'Spouse employment status.'],
+                        'spouse_isa_balance' => ['type' => 'number', 'description' => 'Spouse current ISA balance in pounds.'],
+                        'spouse_psa_band' => ['type' => 'string', 'enum' => ['basic', 'higher', 'additional'], 'description' => 'Spouse Personal Savings Allowance band.'],
+                        'spouse_unrealised_gains' => ['type' => 'number', 'description' => 'Spouse unrealised capital gains in pounds.'],
+                        'spouse_annual_dividends' => ['type' => 'number', 'description' => 'Spouse annual dividend income in pounds.'],
+                        'spouse_pension_input_annual' => ['type' => 'number', 'description' => 'Spouse gross annual pension contribution in pounds.'],
+                    ],
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+            [
+                'name' => 'capture_spouse_non_working_assets',
+                'description' => 'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance).',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'spouse_existing_isa_balance' => ['type' => 'number', 'description' => 'Spouse\'s existing standalone ISA balance.'],
+                        'spouse_existing_savings_balance' => ['type' => 'number', 'description' => 'Spouse\'s existing standalone bank/savings balance.'],
+                        'spouse_existing_investment_balance' => ['type' => 'number', 'description' => 'Spouse\'s existing standalone investment account (GIA) balance.'],
+                        'spouse_existing_dividend_holdings_value' => ['type' => 'number', 'description' => 'Value of spouse\'s dividend-paying holdings.'],
+                    ],
+                    'required' => [],
+                    'additionalProperties' => false,
+                ],
+            ],
+        ];
     }
 
     private function expenditureTools(): array
