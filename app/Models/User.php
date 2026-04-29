@@ -144,6 +144,8 @@ class User extends Authenticatable
         'trial_ends_at' => 'datetime',
         // Lifecycle email e2e testing
         'is_lifecycle_test_user' => 'boolean',
+        // SaveTax campaign — household tax-strategy
+        'marriage_allowance_eligible' => 'boolean',
     ];
 
     /**
@@ -584,6 +586,14 @@ class User extends Authenticatable
     public function expenditureProfile(): HasOne
     {
         return $this->hasOne(ExpenditureProfile::class);
+    }
+
+    /**
+     * SaveTax campaign — household tax-strategy inputs (spouse data).
+     */
+    public function taxStrategyHouseholdInput(): HasOne
+    {
+        return $this->hasOne(TaxStrategyHouseholdInput::class);
     }
 
     /**
