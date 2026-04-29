@@ -515,3 +515,96 @@ describe('OnboardingStateMachine::buildSpousePrompt — parked first_name awaren
         expect($text)->toContain('first name');
     });
 });
+
+/**
+ * Campaign welcome — when the user arrives via the campaign_map
+ * (onboarding_fyn_path='campaign'), buildPersonalPrompt prepends a
+ * one-sentence campaign-specific opening to the existing grouped
+ * DOB+marital question. All in one bubble (option A from the spec).
+ *
+ * Welcome only fires for fresh users (neither DOB nor marital_status
+ * set) — the existing "I have you as born..." / "Got that you're
+ * married..." retry branches still take precedence on resume.
+ */
+describe('OnboardingStateMachine::buildPersonalPrompt — campaign welcome', function () {
+    it('prepends the savetax welcome for a fresh campaign user', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->toContain('tax-saving strategy')
+            ->and($text)->toContain('Verify')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->toContain('married');
+    });
+
+    it('does NOT prepend the welcome when the path is journey', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'journey',
+            'onboarding_fyn_selection' => 'protection',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->not->toContain('tax-saving strategy')
+            ->and($text)->toContain('grab a few basics');
+    });
+
+    it('does NOT prepend the welcome when the path is focus', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'focus',
+            'onboarding_fyn_selection' => 'investment',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->not->toContain('tax-saving strategy')
+            ->and($text)->toContain('grab a few basics');
+    });
+
+    it('skips the welcome on resume when DOB is already set', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Welcome suppressed; resume branch ("I have you as born...") fires.
+        expect($text)->not->toContain('tax-saving strategy')
+            ->and($text)->toContain('12 January 1985');
+    });
+
+    it('falls back to a generic campaign welcome for an unknown campaign id', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'future-campaign-id',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Generic campaign welcome — no campaign-specific phrasing — but
+        // still distinguishable from the path_choice greeting and the
+        // base "grab a few basics" opening.
+        expect($text)->toContain('Verify')
+            ->and($text)->toContain('date of birth');
+    });
+});

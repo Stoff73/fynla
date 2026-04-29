@@ -485,6 +485,21 @@ final class OnboardingStateMachine
         $hasDob = ! empty($user->date_of_birth);
         $hasMarital = ! empty($user->marital_status);
 
+        // Campaign welcome — fires only on the very first base_personal turn
+        // for users who arrived via config('onboarding.campaign_map'). The
+        // welcome is prepended to the existing grouped DOB+marital question
+        // so it lands as a single bubble. Resume branches below take
+        // precedence once DOB or marital is set.
+        $isCampaign = ($user->onboarding_fyn_path ?? '') === 'campaign';
+        if ($isCampaign && ! $hasDob && ! $hasMarital) {
+            $welcome = self::campaignWelcomeFor((string) ($user->onboarding_fyn_selection ?? ''));
+            $firstName = trim((string) ($user->first_name ?? '')) !== ''
+                ? trim((string) $user->first_name)
+                : 'there';
+
+            return "Hi {$firstName}, {$welcome} Let's start with the basics: what's your date of birth, and are you single, married, in a civil partnership, divorced, or widowed?";
+        }
+
         if (! $hasDob && ! $hasMarital) {
             return "Let me grab a few basics first, {first_name}. What's your date of birth, and are you single, married, in a civil partnership, divorced, or widowed?";
         }
@@ -741,5 +756,19 @@ final class OnboardingStateMachine
         }
 
         return $class::$method($answer, $user, $conversation);
+    }
+
+    /**
+     * One-sentence campaign-specific opening prepended to the grouped
+     * base_personal question. Keyed on users.onboarding_fyn_selection.
+     * Falls back to a generic Fynla welcome for unknown campaign ids
+     * — better than crashing or silently dropping the welcome.
+     */
+    private static function campaignWelcomeFor(string $campaignId): string
+    {
+        return match ($campaignId) {
+            'savetax' => "welcome to Fynla — I'll help you build your tax-saving strategy.",
+            default => "welcome to Fynla — let's get started.",
+        };
     }
 }
