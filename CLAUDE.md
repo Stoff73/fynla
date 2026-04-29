@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |--------|-------|
 | Vue Components | 706 |
 | PHP Services | 272 |
-| Controllers | 101 |
+| Controllers | 102 |
 | Models | 105 |
 | Vuex Stores | 33 |
 | Agents | 9 |

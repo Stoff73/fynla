@@ -1,6 +1,6 @@
-# Tech Debt Report — Session 2026-04-27
+# Tech Debt Report — Session 2026-04-29
 
-**Files analysed:** 6 (3 PHP source, 3 PHP test files; 12 YAMLs not audited — data files)
+**Files analysed:** 22 (6 commits this session)
 **Issues found:** 3
 **Severity breakdown:** 0 critical, 1 warning, 2 suggestions
 
@@ -10,49 +10,52 @@ None.
 
 ## Warnings
 
-### W1. `_full` parsed YAML included in API response payload
+### 1. CGT acronym in user-facing label — Rule #10 violation
 
-- **File:** `app/Http/Controllers/Api/Admin/EvalRecordingController.php:201-206`
-- **Category:** 4 — Complexity & Maintainability (efficiency)
-- **What's wrong:** `parseExpectations()` adds the entire parsed YAML under `_full` so `EvalDeltaBuilder` can read new-shape keys. But that key is then returned in the JSON API response under `expected._full`, doubling the YAML payload over the wire on every `/admin/eval-recordings/{id}` load. The frontend doesn't read it.
-- **Suggested fix:** In `EvalRecordingController::show()`, after building the delta, strip `_full` from the `expected` array before returning. Or split the helper: `parseExpectationsForResponse()` + `parseExpectationsForBuilder()` returning different shapes.
-
-  ```php
-  $expectedForResponse = $this->parseExpectations($session->scenario_yaml);
-  $fullYaml = $expectedForResponse['_full'];
-  unset($expectedForResponse['_full']);
-  // ... pass $fullYaml to builder, $expectedForResponse to JSON
-  ```
+- **Files:** `app/Http/Controllers/Api/Public/TaxAllowancesController.php:75`, `resources/js/views/Public/SaveTaxCampaignPage.vue:135`
+- **Category:** Convention violation (CLAUDE.md Rule #10 — acronyms must be spelled out except ISA)
+- **What's wrong:** The new public tax-allowances API returns `'label' => 'CGT Allowance'` and the Vue fallback array uses the same string. Rendered verbatim on the `/savetax` page. Per Rule #10, "CGT" must be expanded to "Capital Gains Tax" in user-facing copy.
+- **Note:** The label was hardcoded as "CGT Allowance" in the original page before this session — I carried it forward into the API and the new fallback constants without spelling it out. Pre-existing debt that was reinforced by the new code.
+- **Suggested fix:** Update both occurrences to `'Capital Gains Tax Allowance'`. The internal `key` (`cgt_allowance`) stays.
 
 ## Suggestions
 
-### S1. Mild duplication in tool-name extraction
+### 2. Inline `formatAmount` duplicates `currencyMixin.formatCurrency`
 
-- **File:** `app/Services/Eval/EvalDeltaBuilder.php:163-172, 232-235, 272`
-- **Category:** 1 — Duplicate Code
-- **What's wrong:** Three places extract tool names from a tool-call list using nearly the same pattern: `array_filter(array_map(fn($c) => is_array($c) ? ($c['tool'] ?? null) : null, $list))` + `array_unique` + `array_values`. `shellDelta` also has the same pattern reading `$c['name']` instead of `$c['tool']`.
-- **Suggested fix:** Extract a single private helper:
-  ```php
-  private function extractToolNames(array $calls, string $key = 'tool'): array
-  {
-      return array_values(array_unique(array_filter(
-          array_map(fn ($c) => is_array($c) ? ($c[$key] ?? null) : null, $calls),
-      )));
-  }
-  ```
-  Replace four call sites. Reduces cognitive load when reading.
+- **File:** `resources/js/views/Public/SaveTaxCampaignPage.vue:191-194`
+- **Category:** Cross-file duplication (Fynla convention — always use `currencyMixin`)
+- **What's wrong:** A local `formatAmount(item)` method does `'£' + item.amount.toLocaleString('en-GB')` — equivalent to `currencyMixin.formatCurrency(item.amount)` for whole-pound integers.
+- **Suggested fix:** Add `mixins: [currencyMixin]`, replace template binding with `{{ formatCurrency(item.amount) }}`, drop the local method.
+- **Why suggestion not warning:** Public marketing page with no other currency formatting; inline helper is 2 lines. But the convention is "always use currencyMixin".
 
-### S2. Long methods in `EvalDeltaBuilder`
+### 3. Hardcoded fallback allowances duplicate seeded TaxConfiguration
 
-- **File:** `app/Services/Eval/EvalDeltaBuilder.php:43-181 (build), 197-291 (buildLegacyDeltaFields), 364-419 (buildHintsAndFixes)`
-- **Category:** 4 — Complexity & Maintainability
-- **What's wrong:** `build()` is ~140 lines, `buildLegacyDeltaFields()` is ~95 lines, `buildHintsAndFixes()` is ~60 lines. All exceed the 50-line guideline. Each is structured as orchestration (sequence of sub-checks → collect failures), so the line count is from breadth of checks, not depth of logic.
-- **Suggested fix:** Optional. If the builder grows further (S1.7.a expansion adds per_turn / state_transition / parked_facts / handoff_path), split into:
-  - `EvalDeltaBuilder` — public API + orchestration (~50 lines)
-  - `LegacyDeltaProjector` — `buildLegacyDeltaFields` + helpers
-  - `DeltaDiagnoser` — `buildHintsAndFixes`
-
-  Not urgent at current size; flag if S1.7.a expansion hits.
+- **File:** `resources/js/views/Public/SaveTaxCampaignPage.vue:14-26` (`FALLBACK_TAX_YEAR`, `FALLBACK_INCOME`, `FALLBACK_INVESTMENT`)
+- **Category:** Single-source-of-truth drift
+- **What's wrong:** The fallback constants for graceful degradation are hardcoded to 2026/27 values. When the seeded `TaxConfiguration` updates for the next tax year, these will rot until manually synced.
+- **Suggested fix:** Either accept the rot risk and add a tax-year-rollover checklist item, or remove the fallback entirely and show a small "values temporarily unavailable" message if the API fails.
+- **Why suggestion not warning:** The fallback is intentional graceful-degradation behaviour. Already noted in CSJTODO and patch notes as known tech debt.
 
 ---
-*Generated by tech-debt-session skill*
+
+## Audit summary
+
+Six commits this session added 865 insertions across 22 files including a new public API endpoint, a new frontend utility module, a new migration, and 4 new test files. The code generally follows project conventions:
+
+- All PHP files have `declare(strict_types=1);` and full type hints
+- All new methods are typed
+- No `DB` facade usage in controllers
+- No hardcoded tax values in calculations (seeder is source of truth; fallback constants are display-only)
+- No banned colours, no inline hex, no `gray-*` / `amber-*` / `orange-*` / `primary-*` / `secondary-*`
+- No `console.log` / `dd` / `dump` debug statements
+- No `v-if`+`v-for` mixing; all `v-for` have `:key`
+- No `submit` events from form modals (none added)
+- Allowlist enforced at both client (`sourceCapture.js`) and server (`RegisterRequest`)
+- Tests use Pest syntax with `RefreshDatabase`, fluent `expect()`, parameterised `with()`
+- Public endpoint returns only display values, never internal rates/bands
+
+The CGT-acronym warning is the only pre-merge fix worth considering. The two suggestions are deferrable — one is a stylistic convention nudge, the other is a known design choice with documented mitigation.
+
+---
+
+*Generated by tech-debt-session skill — 2026-04-29*

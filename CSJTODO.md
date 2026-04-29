@@ -1,7 +1,115 @@
 # CSJTODO — Fynla
 
-*Last updated: 28 April 2026 — session 111 (Sprint 0+1 audit + parked-memory regression fix + SaveTax campaign brainstorm + 12-task plan).*
-*Previous sessions today: 110 (eval spec-parity emits §5.4(a) + canonical 0.1 reset orchestration §5.6); 109 (eval P0+P1+P2 ship; acceptance gate GREEN); 108 (canonical contract issued); 107 (line-by-line audit); 72 (Phailanx newsletter — separate branch).*
+*Last updated: 29 April 2026 — session 112 (SaveTax campaign onboarding shipped end-to-end + live tax allowances + utm_source channel attribution).*
+*Previous session: 111 (28 April evening — Sprint 0+1 audit + parked-memory regression fix + SaveTax campaign 12-task plan).*
+
+---
+
+## Session 112 (29 April 2026 — morning) — SaveTax campaign onboarding shipped + channel attribution
+
+**Branch:** `feature/fyn-persona-split` (43 commits ahead of `origin/main`, all pushed). **7 commits this session:** `d45f6bf`, `d910833`, `38bac32`, `2a34ee6`, `fd9fc26`, `c0f0a99`, `823d0f0`.
+
+### Completed this session
+
+#### Executed the 12-task SaveTax plan from session 111
+
+The plan was at `April/April28Updates/savetax-campaign-onboarding-plan.md`. All 12 tasks shipped across 4 commit groups exactly as planned (only deviation: Tasks 1+2 became one commit because the landing page file was already committed in `48fcdfe` from session 111).
+
+- [x] **Tasks 1-2 (`d45f6bf`)** — `SaveTaxCampaignPage.vue` verified + `/savetax` route updated to use the new component (lazy-loaded). Browser-tested via Playwright MCP — page renders with hero, allowances, examples, all CTAs link to `/register?from=savetax`. Zero console errors.
+- [x] **Tasks 3-5 (`d910833`)** — `config('onboarding.campaign_map')` added with first entry `'savetax' => 'savetax'`. `AiChatController::startOnboarding` checks campaign_map BEFORE journey_map. 5 Pest cases in `EntrySourceCampaignMapTest` (config exposed, savetax happy path, fallthrough on unknown, ordering precedence, journey non-regression). Existing `EntrySourceJourneyMapTest` 8/8 still green.
+- [x] **Task 6 (`38bac32`)** — `OnboardingStateMachine::buildPersonalPrompt` extended with campaign-welcome branch. New helper `campaignWelcomeFor(string $campaignId): string` keyed on `users.onboarding_fyn_selection`. First campaign welcome: *"welcome to Fynla — I'll help you build your tax-saving strategy"*. Unknown campaigns fall back to generic. 5 Pest cases (TDD — verified RED before implementation, then GREEN). Full state-machine test file 57/57 green post-change.
+- [x] **Tasks 7-10 (`2a34ee6`)** — Frontend `?from=` wire-through. `Register.vue` generalised to handle any non-empty `fromParam` (was hardcoded `=== 'fyn'`). `Dashboard.vue` captures `route.query.from` BEFORE the `router.replace({query: {}})` URL strip, forwards to action. `aiChat/startOnboardingConversation` accepts `{from}` payload. `aiChatService.startOnboardingStream` sends `JSON.stringify({from})` instead of hardcoded `'{}'`. **Closes BS-05 / PSP-LS gap as side benefit** — the journey_map was dead code on real browser flows because the SSE start request was hardcoded.
+- [x] **Task 11** — End-to-end Playwright MCP smoke. Drove `/savetax` → CTA click → `/register?from=savetax` → fill form (Verify/Campaign/`verify-campaign-2026-04-29@example.com`/Password1!) → submit → MFA modal → fetched code from DB → entered 6 digits → landed on `/dashboard` with Fyn open and welcome bubble: *"Hi Verify, welcome to Fynla — I'll help you build your tax-saving strategy. Let's start with the basics: what's your date of birth, and are you single, married, in a civil partnership, divorced, or widowed?"* DB confirmed `path=campaign · selection=savetax · step=base_personal`. Single-iteration GREEN per CLAUDE.md Rule #15.
+- [x] **Task 12** — Final regression sweep. Onboarding+Fyn suite **396 passed** (baseline was 386 + 10 new), 1 skipped, 0 failed. Architecture suite 95/95. As-shipped spec written at `April/April28Updates/savetax-campaign-onboarding-spec.md`.
+
+#### Then CSJ asked for 4 follow-up changes — all 4 shipped
+
+CSJ's exact ask: *"a few changes on the /savetax campaign page please, the Frontend ?from= wirethrogh, can this also include the social media platform the user entered from, so if the clicked a LinkedIn, Facebook, Instagram, TikTok or X link, this is captured as well. Also there is a slight typo on the page, in the General Investment Accounts, this should read Investment Accounts, and the tax free gains amount is £3,000 not £3,500, the last bit, is there a way that we can link the allowances above to the taxconfig file in the database, so these are updated when that file is updated? This wold inclde the tax year at the top."*
+
+- [x] **Typo fix #1** (`fd9fc26` part) — Example title "General Investment Accounts" → "Investment Accounts".
+- [x] **Typo fix #2** (`fd9fc26` part) — Example body figure £3,500 → £3,000 (matched seeded CGT annual exempt amount).
+- [x] **Live tax allowances from TaxConfigService** (`fd9fc26`) — New unauthenticated `GET /api/public/tax-allowances` controller returns the 8 headline allowances + tax year + HICBC threshold + starting-rate-for-savings income limit, sourced from `TaxConfigService` (1-hour cache keyed on tax year). SaveTax page fetches on mount + renders dynamically. Original hardcoded values retained as graceful-degradation `FALLBACK_*` constants. `marriage_allowance: 1260` added to `TaxConfigurationSeeder` income_tax block — was the only gap blocking the wire-up. 6 Pest cases (no-auth, payload shape, current 2026/27 values, HICBC, caching).
+- [x] **Channel attribution** (`c0f0a99`) — New nullable `signup_source(32)` column on both `users` and `pending_registrations` (single migration). New utility `resources/js/utils/sourceCapture.js` with `captureSourceFromUrl()` / `getCapturedSource()` / `clearCapturedSource()`. Allowlist enforced both client-side (sourceCapture.js) and server-side (RegisterRequest::ALLOWED_SIGNUP_SOURCES const + Rule::in validation): linkedin / facebook / instagram / tiktok / x / youtube. First-touch attribution to sessionStorage on first page load (no cookie — no GDPR consent prompt needed). app.js startup hook fires `captureSourceFromUrl()` once before Vue mount. Register.vue reads sessionStorage on submit, includes in payload, clears post-success. AuthController persists on `pending_registrations.signup_source` then copies to `users.signup_source` on MFA verify. 10 Pest cases. End-to-end browser-verified via Playwright MCP — `/savetax?utm_source=linkedin` → register → MFA → `users.signup_source = 'linkedin'`. SessionStorage cleared post-registration as designed.
+
+#### Documentation + tech-debt sweep
+
+- [x] **Patch notes** at `April/April29Updates/savetax-feature-patch-notes.md` covering all session 112 work — what's new, **URL recipe table for all 6 social platforms with copy-paste examples**, allowlist + how to add a new platform, DevTools test snippet, SQL queries for channel-conversion analysis, deployment instructions.
+- [x] **Deploy notes** at `April/April29Updates/deploy-notes.md` — file list (8 PHP / 2 DB / 8 frontend), build commands per environment, **mandatory `db:seed --class=TaxConfigurationSeeder --force`** for the marriage_allowance row, 5-step smoke test, rollback procedure.
+- [x] **Tech-debt session sweep** (`tech-debt-report.md`) — 1 warning + 2 suggestions. The warning ("CGT Allowance" violating Rule #10) was fixed in same session via `823d0f0` ("CGT Allowance" → "Capital Gains Tax Allowance" in both API controller and Vue fallback constant). The two remaining suggestions (currencyMixin nudge + fallback-constants drift) are deferred — see "Tech-debt deferred" below.
+
+### NOT Done — Outstanding for next session
+
+**No carry-over from session 112's own work** — everything CSJ asked for shipped, plus the 4 follow-up tweaks, plus the tech-debt warning fix.
+
+**Carry-over from session 111 (still open):**
+
+#### After SaveTax — return to Sprint 1 work
+
+- [ ] **Re-record the other 9 mitchell scenarios** with the new EngineCalled emits captured in `engine_trace`. Run `php artisan eval:record mitchell_advice_<x>` (no flag, both providers default) per scenario. ~$1.80 total.
+- [ ] **S1.7.a** — Extend `tests/Feature/Fyn/Eval/AssertionHelpers.php` with new keys per `April/April27Updates/eval-expectations-rewrite.md` §3. **Blocks every other S1.7 sub-task.**
+- [ ] **S1.7.b** — 6th architecture meta-test (5 of 6 already shipped in `dc962f0`).
+- [ ] **S1.7.c-i** — All gated on S1.7.a. 4 canonical-behaviour YAMLs, EvalProviderRun column additions + dashboard, 14 state-machine YAMLs, 14 handoff YAMLs, 16 resume YAMLs, hard-gate verification doc.
+- [ ] **S1.9** — Browser matrix: BS-03, BS-08, BS-09, BS-24 + BS-01–BS-23 regression.
+- [ ] **S1.10** — Sprint 1 verification rollup (Rubric-A ≥17/40 🟠).
+
+#### SaveTax campaign — sections 4-6 (still deferred awaiting CSJ's planned conversation map)
+
+- [ ] **Section 4** — post-expenses state-machine branch ("Hello {name}, in order to generate your tax savings strategies, there are some additional details I need to gather. Does {spouse_name} work?")
+- [ ] **Section 5** — `capture_spouse_work_details` tool + the deterministic "no, doesn't work" write path
+- [ ] **Section 6** — terminal page / strategy outcome (CSJ note: *"the actions tab is a good spot, but I need to think this through properly, as we would need to create a dashboard on the fly with the user's information"*)
+- [ ] **BS-26 / BS-27** Playwright scenario stubs — author once sections 4-6 land
+
+### Tech-debt deferred (don't auto-fix)
+
+Two suggestions from session 112's tech-debt sweep, neither blocking:
+
+- [ ] **`SaveTaxCampaignPage.vue:191-194` — inline `formatAmount(item)` duplicates `currencyMixin.formatCurrency`.** Two-line helper does `'£' + item.amount.toLocaleString('en-GB')` — equivalent to the mixin for whole-pound integers. Cleaner to add `mixins: [currencyMixin]` and call `formatCurrency(item.amount)`. Minor convention drift, acceptable for a marketing-only page.
+- [ ] **`SaveTaxCampaignPage.vue:14-26` — hardcoded fallback allowances duplicate seeded `TaxConfiguration` values.** When the next tax year is seeded, the `FALLBACK_TAX_YEAR` / `FALLBACK_INCOME` / `FALLBACK_INVESTMENT` constants will rot until manually synced. Intentional graceful-degradation behavior — the alternative (no fallback, blank table on API failure) is worse for a marketing page. Add to a tax-year-rollover checklist instead of fixing.
+
+### Carried tech-debt from earlier sessions
+
+- [ ] **§5.4 spec-parity — codify simplification (option b) decision.** §5.4(a) shipped via session 110; option (b) (trim `*_recommendation` strings from `EvalScenarioEngineTraceConsistencyTest::$validEngines:16-21`) now moot. Mark §5.4 closed.
+- [ ] **`Auditable::shouldAudit` must gate on `bypass-preview-mode`** when first mutating scenario lands. Currently in `PreviewBlockSitesCheckBypassTest` ignore-list with TODO.
+
+### Deploy status
+
+**Local dev verified end-to-end. Nothing pushed to dev or prod yet.**
+
+When CSJ is ready to deploy, see `April/April29Updates/deploy-notes.md` for the full recipe. Highlights:
+
+- 18 files to upload (8 PHP backend + 2 database + 8 frontend — frontend requires rebuild via `./deploy/csjones-fynla/build.sh` for dev, `./deploy/fynla-org/build.sh` for prod)
+- 1 new migration (`2026_04_29_000001_add_signup_source_to_users_and_pending_registrations.php`)
+- **Mandatory** `php artisan db:seed --class=TaxConfigurationSeeder --force` after migrations on each environment, otherwise the Marriage Allowance row on `/savetax` will display £0
+- 5-step smoke test including a full `?utm_source=linkedin` end-to-end with throwaway email + DB query to confirm `users.signup_source` is populated
+
+### Context for next session
+
+The SaveTax campaign feature is the highest-leverage win shipped this week — first marketing-driven onboarding entry point AND first marketing-channel attribution mechanism, both end-to-end on a real browser flow. Sections 4-6 of the campaign (post-expenses divergence, spouse-work tool, terminal page) await CSJ's planned conversation map.
+
+Once CSJ has decided on the conversation map, the next campaign-onboarding plan should cover those sections plus the matching BS-26 / BS-27 Playwright scenario stubs.
+
+If CSJ wants to deploy session 112 to dev before starting that planning work, the deploy notes are ready to paste.
+
+If CSJ wants to return to Sprint 1, the top item is re-recording the 9 mitchell scenarios (~$1.80 LLM cost) followed by S1.7.a (the AssertionHelpers extension that gates every other S1.7 sub-task).
+
+The Sprint 0+1 audit report from session 111 (`April/April28Updates/sprint-0-and-1-audit-report.md`) contains the full architectural picture if CSJ wants to revisit Sprint priorities.
+
+### New social-media URL recipe (for marketing)
+
+When posting Fynla links on social, append `?utm_source=<platform>` so signups are credited:
+
+| Platform | Example URL |
+| --- | --- |
+| LinkedIn | `https://fynla.org/savetax?utm_source=linkedin` |
+| Facebook | `https://fynla.org/savetax?utm_source=facebook` |
+| Instagram | `https://fynla.org/savetax?utm_source=instagram` |
+| TikTok | `https://fynla.org/savetax?utm_source=tiktok` |
+| X / Twitter | `https://fynla.org/savetax?utm_source=x` |
+| YouTube | `https://fynla.org/savetax?utm_source=youtube` |
+
+Pattern works for any Fynla URL, not just `/savetax`. Combines freely with `?from=`. Test by opening in incognito + running `sessionStorage.getItem('fynla.signup_source')` in DevTools console.
+
+Adding a new platform = update the allowlist in BOTH `resources/js/utils/sourceCapture.js` AND `app/Http/Requests/RegisterRequest.php`. The `SignupSourceCaptureTest` will fail until both lists match — intentional contract.
 
 ---
 
