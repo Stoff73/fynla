@@ -283,6 +283,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{userId}/expenditure', [UserProfileController::class, 'updateSpouseExpenditure']);
 });
 
+// SaveTax campaign — Tax Strategy dashboard (sections 4-6)
+Route::middleware('auth:sanctum')->prefix('tax-strategy')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\TaxStrategyController::class, 'show']);
+    Route::post('/calculate', [\App\Http\Controllers\Api\TaxStrategyController::class, 'calculate']);
+});
+
 // Net Worth routes (Phase 3)
 Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
     Route::get('/overview', [NetWorthController::class, 'getOverview']);
