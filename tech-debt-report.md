@@ -1,59 +1,58 @@
-# Tech Debt Report — Session 113 (29 April 2026 PM)
+# Tech Debt Report — Session 114 (2026-04-29 evening)
 
-**Files analysed:** 42 (changed in 6 commits since session 112 end)
-**Issues found:** 2 minor
-**Severity breakdown:** 0 critical, 0 warnings, 2 suggestions
+**Files analysed:** 7 (1 commit `34b9915`)
+**Issues found:** 0 critical, 0 warnings, 1 suggestion
+**Severity breakdown:** Clean bill — surgical fixes, no convention drift
+
+## Files audited
+
+- `app/Agents/CoordinatingAgent.php` — capture handler return-shape change
+- `app/Services/AI/AiToolDefinitions.php` — campaign tools merged into onboardingExtractionTools
+- `app/Services/Onboarding/OnboardingChatDirector.php` — `dispatchBubbleCapture` method + grouped-extract terminal-navigate branch
+- `app/Services/Onboarding/OnboardingStateMachine.php` — `bubble_capture` config on STATE_CAMPAIGN_SPOUSE_WORK
+- `tests/Feature/AI/DirectWrite/CaptureSpouseHouseholdDataTest.php` — assertions updated for new receipt
+- `tests/Feature/AI/DirectWrite/CaptureSpouseNonWorkingAssetsTest.php` — assertions updated for new receipt
+- `tests/Unit/Services/Onboarding/CampaignBubbleCaptureTest.php` — new (3 cases)
+
+## Critical Issues
+
+None.
+
+## Warnings
+
+None.
 
 ## Suggestions
 
-### S1 — Hardcoded £500 dividend allowance in GIA-to-spouse description
+### S1: `dispatchBubbleCapture` guard clause has four chained `!` conditions
 
-**File:** `app/Services/Tax/TaxStrategyCalculator.php:314`
-**Category:** Convention violation (Rule #11 — no hardcoded tax values)
+**File:** `app/Services/Onboarding/OnboardingChatDirector.php:786`
+**Category:** Complexity & Maintainability
 
-The GIA-to-spouse asset-shifting suggestion's `description` string and the
-returned `available_dividend_allowance` field both hardcode £500:
+The early-return guard on the new method:
 
 ```php
-'description' => 'Their unused CGT allowance (£'.number_format((int) $cgtAllowance).'/yr) and Dividend Allowance (£500/yr) can absorb gains and dividends tax-free.',
-'available_dividend_allowance' => 500.0,
+if (! is_string($tool) || ! is_string($bubbleId) || ! isset($inputMap[$bubbleId]) || ! is_array($inputMap[$bubbleId])) {
+    return;
+}
 ```
 
-`$cgtAllowance` correctly sources from `TaxConfigService::getCapitalGainsTax()['annual_exempt_amount']`, but the dividend allowance value next to it is a literal. If HMRC changes the dividend allowance (it dropped from £1,000 → £500 in 2024/25), this string and the returned field will rot until manually synced.
+Four negated conditions on one line is at the edge of readable. Acceptable here because all four guard the same "config is malformed" condition and the method is only ~15 lines, but if a fifth bubble-capture state ever needs different guards, factor into a small `validateBubbleCaptureConfig()` helper.
 
-**Suggested fix:** Source from `$this->taxConfig->getDividendTax()['allowance']` once at the top of `buildAssetShiftingSuggestions`, then interpolate into both the description and the returned field. Same pattern used elsewhere in this file for CGT.
+**Defer.** Not blocking; only worth touching if a second bubble→tool wiring is added.
 
-**Why suggestion not warning:** the architecture test (`HardcodedValuesArchitectureTest`) only flags `12570|50270|125140` band thresholds, not £500. Existing arch test passes.
+## Convention compliance
 
-### S2 — TaxStrategyCalculator buildUserAllowanceGrid is 60+ lines
-
-**File:** `app/Services/Tax/TaxStrategyCalculator.php:79–138`
-**Category:** Complexity (method >50 lines)
-
-`buildUserAllowanceGrid` currently does 8 separate per-allowance computations inline — each pulling values, applying overrides, computing used amounts. While each step is small, the method weighs in at ~60 lines of arithmetic.
-
-**Suggested fix:** Extract per-allowance helpers (`personalAllowancePosition`, `savingsAllowancePosition`, etc.) so the orchestrator method just composes them. Improves readability + makes it easier to unit-test edge cases per allowance.
-
-**Why suggestion not warning:** The complexity is in the volume of allowances (8) not in any single piece of logic. Method is linear, no nested conditionals, well-commented. Acceptable for v1.
-
----
-
-## Confirmed clean
-
-- All 13 changed PHP files declare `strict_types=1`
-- All 7 new Vue components that use `formatCurrency` correctly import `currencyMixin`
-- No hardcoded hex codes in Vue style blocks
-- No banned colour classes (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*`)
-- No icons on banned dashboard surfaces (Rule #14)
-- Status colours from approved palette only (`spring | violet | raspberry`)
-- Tax band thresholds sourced from `TaxConfigService` (no hardcoded 12570/50270/125140)
-- PSA values sourced from `TaxConfigService` (no hardcoded 1000/500/0 constants)
-- Both Anthropic + xAI tool catalogues have parity (architecture test green)
-- All 4 new capture tools whitelisted in `OnboardingChatDirector::captureToolSet()`
-- State machine supports all turn types (no new types added)
-- Architecture suite: 95/95
-- Onboarding + Fyn + Auth + AI + TaxStrategy + tax services suites: 796/796 (zero regressions)
+- ✅ `declare(strict_types=1);` present in all PHP files (none removed)
+- ✅ Type hints on every new method parameter + return type
+- ✅ No hardcoded tax values introduced (TaxConfigService still owns rates)
+- ✅ No banned colours / scores / icons (no UI changes)
+- ✅ No DB facade introduced
+- ✅ Receipt shape (`onboarding_capture`/`field_group`/`summary`/`details`) matches the canonical pattern used by `handleCapturePersonalDetails` — no new pattern introduced
+- ✅ Tests follow Pest conventions (`describe()`/`it()`, `RefreshDatabase`, `TaxConfigurationSeeder` in beforeEach)
+- ✅ No new acronyms in user-facing text (none changed)
+- ✅ Architecture parity test 95/95 still green after changes
+- ✅ Onboarding + Fyn + architecture suite 608/608 green
 
 ---
-
-*Generated by tech-debt-session skill — session 113*
+*Generated by tech-debt-session skill — session 114, 2026-04-29*
