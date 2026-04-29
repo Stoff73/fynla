@@ -37,6 +37,7 @@ class PendingRegistration extends Model
         'plan',
         'billing_cycle',
         'referral_code',
+        'signup_source',
         'expires_at',
     ];
 
@@ -76,6 +77,7 @@ class PendingRegistration extends Model
                 'plan' => $data['plan'] ?? null,
                 'billing_cycle' => $data['billing_cycle'] ?? null,
                 'referral_code' => $data['referral_code'] ?? null,
+                'signup_source' => $data['signup_source'] ?? null,
                 'expires_at' => now()->addHours(self::EXPIRY_HOURS),
             ]
         );

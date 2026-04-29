@@ -194,6 +194,7 @@ import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
 import { hasConsent, acceptCookies } from '@/utils/cookieConsent';
+import { getCapturedSource, clearCapturedSource } from '@/utils/sourceCapture';
 
 export default {
   name: 'RegisterView',
@@ -276,7 +277,21 @@ export default {
           payload.referral_code = referralCode;
         }
 
+        // Marketing-channel attribution captured at first page load
+        // (e.g. /savetax?utm_source=linkedin) and stashed in
+        // sessionStorage by sourceCapture.js. Send it through; backend
+        // validates against an allowlist before persisting.
+        const capturedSource = getCapturedSource();
+        if (capturedSource) {
+          payload.signup_source = capturedSource;
+        }
+
         const response = await api.post('/auth/register', payload);
+
+        // Source has been persisted to PendingRegistration; clear so a
+        // second registration attempt in the same browser session does
+        // not silently inherit it.
+        if (capturedSource) clearCapturedSource();
 
         // Check if verification is required
         if (response.data.requires_verification) {

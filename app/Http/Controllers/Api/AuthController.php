@@ -79,6 +79,7 @@ class AuthController extends Controller
             'plan' => $request->plan ?? null,
             'billing_cycle' => $request->billing_cycle ?? null,
             'referral_code' => $request->referral_code ?? null,
+            'signup_source' => $request->validated('signup_source'),
         ]);
 
         Log::info('Pending registration created', [
@@ -475,6 +476,7 @@ class AuthController extends Controller
                 'password' => $pending->password, // Already hashed
                 'role_id' => $role?->id,
                 'referred_by_code' => $pending->referral_code,
+                'signup_source' => $pending->signup_source,
             ]);
 
             // Sync is_admin flag (bypasses guarded)
