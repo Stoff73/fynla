@@ -123,9 +123,14 @@ final class OnboardingChatDirector
             return;
         }
 
-        // Asset capture is the delegated turn.
+        // Asset capture is the delegated turn. Both the journey/focus
+        // STATE_ASSET_CAPTURE and the SaveTax campaign STATE_CAMPAIGN_*
+        // delegated states share the same handler — it advances via
+        // state.next, which gives campaign users the linear walk through
+        // OCCUPATIONAL → ISA → BANK → INVESTMENT → PENSION → SPOUSE_WORK
+        // while keeping STATE_ASSET_CAPTURE → STATE_ADD_MORE unchanged.
         if (($state['turn_type'] ?? '') === 'delegated') {
-            yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute);
+            yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
         }
@@ -227,6 +232,14 @@ final class OnboardingChatDirector
             'from_step' => $currentStateId,
             'to_step' => $nextStateId,
         ];
+
+        // Terminal-with-navigate states (e.g. STATE_CAMPAIGN_TERMINAL → /tax-strategy)
+        // own their own route. Treat them like a done turn.
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
 
         yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
     }
@@ -1594,11 +1607,16 @@ PROMPT;
      * After the delegation completes, the director advances state to
      * add_more so the next user turn routes back through handleUserMessage.
      */
+    /**
+     * @param  array<string, mixed>  $state
+     */
     private function handleAssetCaptureTurn(
         User $user,
         AiConversation $conversation,
         string $message,
-        ?string $currentRoute
+        ?string $currentRoute,
+        string $currentStateId = OnboardingStateMachine::STATE_ASSET_CAPTURE,
+        array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
 
@@ -1732,27 +1750,107 @@ PROMPT;
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
-        // that actually created records already persisted their own rows)
+        // that actually created records already persisted their own rows).
+        // Records under the actual state ID so campaign delegated states
+        // (campaign_occupational_scheme, campaign_isa_holdings, etc.) appear
+        // as their own rows, not as STATE_ASSET_CAPTURE.
         $this->recordProgress(
             $user,
-            OnboardingStateMachine::STATE_ASSET_CAPTURE,
+            $currentStateId,
             ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
         );
 
-        // Advance the user's step to add_more for the next turn.
-        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_ADD_MORE;
+        // Advance via state.next so the journey/focus path stays at
+        // STATE_ASSET_CAPTURE → STATE_ADD_MORE while the campaign branch
+        // walks through its 5 delegated states sequentially.
+        $nextStateId = OnboardingStateMachine::getNextStateId(
+            $currentStateId,
+            $message,
+            $user->refresh()
+        );
+
+        if ($nextStateId === null) {
+            return;
+        }
+
+        $user->onboarding_fyn_step = $nextStateId;
         $user->save();
 
         yield [
             'type' => 'onboarding_advance',
-            'from_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
-            'to_step' => OnboardingStateMachine::STATE_ADD_MORE,
+            'from_step' => $currentStateId,
+            'to_step' => $nextStateId,
         ];
 
-        $nextState = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_ADD_MORE);
-        if ($nextState !== null) {
-            yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_ADD_MORE, $nextState);
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState === null) {
+            return;
         }
+
+        // SaveTax campaign terminal: emit the celebration text, fire the
+        // navigate SSE event using state.navigate_to, mark onboarding
+        // complete. emitTurnForState alone only renders the prompt — it
+        // doesn't know about navigate_to or onboarding_complete chains.
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Emit a terminal turn that owns its own navigation route via
+     * state.navigate_to (currently used by STATE_CAMPAIGN_TERMINAL → /tax-strategy).
+     * Mirrors emitDoneTurn but uses the state's own navigate_to so a campaign
+     * branch can land the user on a bespoke route while still triggering the
+     * onboarding_complete chain that flips users.onboarding_completed.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function emitTerminalNavigationTurn(
+        User $user,
+        AiConversation $conversation,
+        string $stateId,
+        array $state
+    ): \Generator {
+        $selection = $user->onboarding_fyn_selection ?? '';
+        $nextRoute = (string) $state['navigate_to'];
+        $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        yield ['type' => 'content', 'text' => $celebration];
+
+        $assistantMessage = $this->saveMessage(
+            $conversation,
+            'assistant',
+            $celebration,
+            ['metadata' => ['onboarding_step' => $stateId]]
+        );
+
+        yield [
+            'type' => 'navigation',
+            'route_path' => $nextRoute,
+            'description' => $stateId,
+        ];
+
+        yield [
+            'type' => 'onboarding_complete',
+            'selection' => $selection,
+            'nextRoute' => $nextRoute,
+        ];
+
+        yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+        $user->onboarding_completed = true;
+        $user->onboarding_completed_at = now();
+        $user->onboarding_fyn_step = null;
+        $user->onboarding_fyn_path = null;
+        $user->onboarding_fyn_selection = null;
+        $user->onboarding_fyn_context = null;
+        $user->save();
+
+        $this->recordProgress($user, $stateId, ['next_route' => $nextRoute]);
     }
 
     /**

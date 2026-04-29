@@ -75,6 +75,10 @@ final class OnboardingStateMachine
 
     // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign).
     // Hangs off STATE_PROFILE_REVIEW_EXPENDITURE; bypasses STATE_ASSET_CAPTURE.
+    // STATE_CAMPAIGN_INTRO is the consent gate before the asset/liability capture
+    // flow begins — explains why we're shifting topic and asks "Okay" / "Nope".
+    public const STATE_CAMPAIGN_INTRO = 'campaign_intro';
+
     public const STATE_CAMPAIGN_OCCUPATIONAL_SCHEME = 'campaign_occupational_scheme';
 
     public const STATE_CAMPAIGN_ISA_HOLDINGS = 'campaign_isa_holdings';
@@ -270,7 +274,7 @@ final class OnboardingStateMachine
             // ProfileReviewPanel with expenditure alongside the earlier fields.
             //
             // Branches on users.onboarding_fyn_path:
-            //   - 'campaign' → STATE_CAMPAIGN_OCCUPATIONAL_SCHEME (savetax flow)
+            //   - 'campaign' → STATE_CAMPAIGN_INTRO (savetax consent gate)
             //   - 'journey' / 'focus' → STATE_ASSET_CAPTURE (existing behaviour)
             self::STATE_PROFILE_REVIEW_EXPENDITURE => [
                 'turn_type' => 'bubbles',
@@ -283,6 +287,22 @@ final class OnboardingStateMachine
                 'next' => self::class.'::nextFromExpenditureReview',
             ],
             // ─── SaveTax campaign branch (sections 4-6) ─────────────────────
+            // Consent gate before asset/liability capture begins. Explains the
+            // topic shift and asks for explicit acknowledgement so the jump from
+            // expenditure-review to "tell me about your workplace pension" no
+            // longer feels jarring. Spouse phrasing is conditionally injected.
+            //   - 'okay' → STATE_CAMPAIGN_OCCUPATIONAL_SCHEME (continue)
+            //   - 'nope' → STATE_DONE (parks campaign, sets onboarding_completed)
+            self::STATE_CAMPAIGN_INTRO => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => self::class.'::buildCampaignIntroPrompt',
+                'bubbles' => [
+                    ['id' => 'okay', 'label' => 'Okay'],
+                    ['id' => 'nope', 'label' => 'Nope'],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromCampaignIntro',
+            ],
             //
             // 9 states forming the post-expenditure tax-strategy capture flow.
             // Reachable only when onboarding_fyn_path === 'campaign'.
@@ -753,14 +773,76 @@ final class OnboardingStateMachine
 
     /**
      * Branch from STATE_PROFILE_REVIEW_EXPENDITURE based on onboarding_fyn_path.
-     * path=campaign users enter the savetax tax-strategy capture flow;
-     * journey/focus users continue to the existing asset_capture flow.
+     * path=campaign users hit the consent gate (STATE_CAMPAIGN_INTRO) before
+     * the asset/liability capture; journey/focus users continue to the existing
+     * asset_capture flow.
      */
     public static function nextFromExpenditureReview(string $answer, User $user): string
     {
         return $user->onboarding_fyn_path === 'campaign'
-            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            ? self::STATE_CAMPAIGN_INTRO
             : self::STATE_ASSET_CAPTURE;
+    }
+
+    /**
+     * Builds the campaign intro prompt that explains why the conversation is
+     * shifting from personal/employment data to assets and liabilities. Spouse
+     * phrasing is included when the user is married or in a civil partnership;
+     * the spouse first name is sourced from the linked spouse User if present,
+     * else from `conversation.onboarding_parked_facts.spouse.first_name`, else
+     * falls back to "your spouse".
+     */
+    public static function buildCampaignIntroPrompt(string $answer, User $user, ?\App\Models\AiConversation $conversation = null): string
+    {
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $firstName = 'there';
+        }
+
+        $isMarried = in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
+        $spousePhrase = '';
+
+        if ($isMarried) {
+            $spouseFirstName = null;
+
+            if ($user->spouse_id !== null && $user->spouse !== null) {
+                $candidate = trim((string) $user->spouse->first_name);
+                if ($candidate !== '') {
+                    $spouseFirstName = $candidate;
+                }
+            }
+
+            if ($spouseFirstName === null && $conversation !== null) {
+                $parked = (array) ($conversation->onboarding_parked_facts ?? []);
+                $parkedSpouse = is_array($parked['spouse'] ?? null) ? $parked['spouse'] : [];
+                $candidate = trim((string) ($parkedSpouse['first_name'] ?? ''));
+                if ($candidate !== '') {
+                    $spouseFirstName = $candidate;
+                }
+            }
+
+            $spousePhrase = $spouseFirstName !== null
+                ? ", including {$spouseFirstName}'s where it makes sense,"
+                : ", including your spouse's where it makes sense,";
+        }
+
+        return "Thanks {$firstName} for that information. Now, in order to personalise your tax strategy and make sure I give you the right detail, I'd like to ask about your pensions, accounts and investments{$spousePhrase} is that okay?";
+    }
+
+    /**
+     * Branch from STATE_CAMPAIGN_INTRO based on the user's bubble choice.
+     * "okay" continues into the asset/liability capture flow; anything else
+     * (including "nope") routes to STATE_DONE so onboarding_completed is set
+     * and the user lands on /dashboard. They can revisit the campaign via the
+     * Tax Strategy tile on /actions whenever they're ready.
+     */
+    public static function nextFromCampaignIntro(string $answer, User $user): string
+    {
+        $matched = self::matchBubble(self::STATE_CAMPAIGN_INTRO, $answer);
+
+        return $matched === 'okay'
+            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            : self::STATE_DONE;
     }
 
     /**

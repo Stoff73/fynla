@@ -13,7 +13,7 @@ beforeEach(function () {
 });
 
 describe('STATE_PROFILE_REVIEW_EXPENDITURE branching', function () {
-    it('routes path=campaign users to STATE_CAMPAIGN_OCCUPATIONAL_SCHEME', function () {
+    it('routes path=campaign users to STATE_CAMPAIGN_INTRO (consent gate)', function () {
         $user = User::factory()->create([
             'onboarding_fyn_path' => 'campaign',
             'onboarding_fyn_selection' => 'savetax',
@@ -22,7 +22,7 @@ describe('STATE_PROFILE_REVIEW_EXPENDITURE branching', function () {
 
         $next = OnboardingStateMachine::nextFromExpenditureReview('looks correct', $user);
 
-        expect($next)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+        expect($next)->toBe(OnboardingStateMachine::STATE_CAMPAIGN_INTRO);
     });
 
     it('routes path=journey users to STATE_ASSET_CAPTURE (regression — unchanged behaviour)', function () {
@@ -137,9 +137,97 @@ describe('STATE_CAMPAIGN_TERMINAL', function () {
     });
 });
 
-describe('all 9 campaign states are reachable from getState()', function () {
+describe('STATE_CAMPAIGN_INTRO routing', function () {
+    it('routes "okay" answers to STATE_CAMPAIGN_OCCUPATIONAL_SCHEME', function () {
+        $user = User::factory()->create([
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+
+        expect(OnboardingStateMachine::nextFromCampaignIntro('Okay', $user))
+            ->toBe(OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME);
+    });
+
+    it('routes "nope" answers to STATE_DONE so onboarding completes', function () {
+        $user = User::factory()->create([
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+
+        expect(OnboardingStateMachine::nextFromCampaignIntro('Nope', $user))
+            ->toBe(OnboardingStateMachine::STATE_DONE);
+    });
+
+    it('falls back to STATE_DONE for unrecognised answers', function () {
+        $user = User::factory()->create([
+            'onboarding_fyn_path' => 'campaign',
+        ]);
+
+        expect(OnboardingStateMachine::nextFromCampaignIntro('not a bubble', $user))
+            ->toBe(OnboardingStateMachine::STATE_DONE);
+    });
+});
+
+describe('STATE_CAMPAIGN_INTRO prompt builder', function () {
+    it('thanks the user by first_name and omits spouse phrasing for single users', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'marital_status' => 'single',
+        ]);
+
+        $prompt = OnboardingStateMachine::buildCampaignIntroPrompt('', $user, null);
+
+        expect($prompt)->toStartWith('Thanks Verify for that information.')
+            ->and($prompt)->not->toContain('spouse')
+            ->and($prompt)->toEndWith('is that okay?');
+    });
+
+    it('includes the linked spouse first name for married users', function () {
+        $spouse = User::factory()->create(['first_name' => 'Angela']);
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'marital_status' => 'married',
+            'spouse_id' => $spouse->id,
+        ]);
+
+        $prompt = OnboardingStateMachine::buildCampaignIntroPrompt('', $user, null);
+
+        expect($prompt)->toContain("including Angela's where it makes sense");
+    });
+
+    it('falls back to parked spouse first name when spouse User is not linked', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'marital_status' => 'married',
+            'spouse_id' => null,
+        ]);
+        $conversation = \App\Models\AiConversation::factory()->create([
+            'user_id' => $user->id,
+            'onboarding_parked_facts' => ['spouse' => ['first_name' => 'Maya']],
+        ]);
+
+        $prompt = OnboardingStateMachine::buildCampaignIntroPrompt('', $user, $conversation);
+
+        expect($prompt)->toContain("including Maya's where it makes sense");
+    });
+
+    it('uses "your spouse" generic phrasing when no spouse name is known', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'marital_status' => 'civil_partnership',
+            'spouse_id' => null,
+        ]);
+
+        $prompt = OnboardingStateMachine::buildCampaignIntroPrompt('', $user, null);
+
+        expect($prompt)->toContain("including your spouse's where it makes sense");
+    });
+});
+
+describe('all 10 campaign states are reachable from getState()', function () {
     it('returns a defined state config for each new constant', function () {
         $constants = [
+            OnboardingStateMachine::STATE_CAMPAIGN_INTRO,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,

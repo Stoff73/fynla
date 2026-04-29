@@ -98,6 +98,20 @@ final class OnboardingPromptBuilder
             'estate' => ['create_asset', 'create_liability', 'create_estate_gift', 'create_property', 'create_chattel'],
             'business' => ['create_business_interest'],
             'goals' => ['create_goal'],
+            // SaveTax campaign covers all asset/liability families across the
+            // 5 STATE_CAMPAIGN_* delegated states (occupational scheme, ISAs,
+            // bank, investment, SIPP) plus the 4 spouse-related tools used
+            // later in the branch.
+            'savetax' => [
+                'create_pension',
+                'capture_salary_sacrifice',
+                'create_savings_account',
+                'create_investment_account',
+                'create_holding',
+                'capture_spouse_work_status',
+                'capture_spouse_household_data',
+                'capture_spouse_non_working_assets',
+            ],
             default => ['create_savings_account'],
         };
 
@@ -188,6 +202,7 @@ PROMPT;
             'business' => 'Business',
             'goals' => 'Goals',
             'budgeting' => 'Budgeting',
+            'savetax' => 'SaveTax',
             default => ucfirst($focus),
         };
     }

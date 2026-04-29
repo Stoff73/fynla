@@ -32,6 +32,7 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_ADD_MORE,
             OnboardingStateMachine::STATE_DONE,
             // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign)
+            OnboardingStateMachine::STATE_CAMPAIGN_INTRO,
             OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
             OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
