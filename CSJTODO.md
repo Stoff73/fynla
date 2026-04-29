@@ -1,7 +1,116 @@
 # CSJTODO — Fynla
 
-*Last updated: 29 April 2026 — session 112 (SaveTax campaign onboarding shipped end-to-end + live tax allowances + utm_source channel attribution).*
-*Previous session: 111 (28 April evening — Sprint 0+1 audit + parked-memory regression fix + SaveTax campaign 12-task plan).*
+*Last updated: 29 April 2026 — session 113 (SaveTax sections 4-6 shipped end-to-end: 9 new state-machine states + 4 capture tools + TaxStrategyCalculator + /tax-strategy dashboard + 3 first-class household paths).*
+*Previous session: 112 (29 April morning — SaveTax sections 1-3 shipped: landing page, ?from= wire-through, channel attribution).*
+
+---
+
+## Session 113 (29 April 2026 — afternoon/evening) — SaveTax sections 4-6 (post-expenses + terminal dashboard)
+
+**Branch:** `feature/fyn-persona-split` (49 commits ahead of `origin/main`, all pushed). **6 commits this session:** `6e75afc`, `eb7761c`, `612952c`, `9c5cdf8`, `560313e`, `916a0f4`.
+
+### Completed this session
+
+#### Plan written + approved
+
+CSJ provided two whiteboards (`April/April29Updates/campaignMap.jpeg` + `houuseSpouse.jpeg`) defining the post-expenses conversation flow + asset-shifting strategy for non-working spouses. Comprehensive plan written to `April/April29Updates/savetax-campaign-post-expenses-plan.md` covering all 7 phases (38 explicit tasks, TDD discipline). 4 design decisions locked in via AskUserQuestion (campaign-only branch / new /tax-strategy route / lightweight calculator / three first-class household paths). 10 conflicts resolved or escalated.
+
+#### All 6 implementation phases shipped
+
+- [x] **Phase 1 (`6e75afc`)** — schema for sections 4-6: `users.marriage_allowance_eligible` + `users.household_calculation_mode`, `dc_pensions.salary_sacrifice`, new `tax_strategy_household_inputs` table (12 nullable fields covering both dual_earner and single_earner_couple paths). New `TaxStrategyHouseholdInput` model with `belongsTo(User)` + Auditable trait. Architecture suite stays 95/95.
+
+- [x] **Phase 2 (`eb7761c`)** — 4 new capture tools (TDD, all RED → GREEN):
+  - `capture_salary_sacrifice` (validates pension ownership)
+  - `capture_spouse_work_status` (sets `marriage_allowance_eligible` + `household_calculation_mode`)
+  - `capture_spouse_household_data` (writes working-spouse fields, dual_earner)
+  - `capture_spouse_non_working_assets` (writes non-working-spouse standalone fields, single_earner_couple)
+
+  All registered in `AiToolDefinitions::campaignSaveTaxTools()`; whitelisted in `OnboardingChatDirector::captureToolSet()`; dispatched from `CoordinatingAgent::executeTool()` with `previewBlocked()` gating. 8 new Pest cases.
+
+- [x] **Phase 3 (`612952c`)** — 9 new `STATE_CAMPAIGN_*` states forming the post-expenditure tax-strategy capture flow. `STATE_PROFILE_REVIEW_EXPENDITURE.next` is now a callable (`nextFromExpenditureReview`) that branches `path=campaign → STATE_CAMPAIGN_OCCUPATIONAL_SCHEME`, else `STATE_ASSET_CAPTURE` (existing flow unchanged). `STATE_CAMPAIGN_SPOUSE_WORK.next` callable (`nextFromSpouseWork`) routes by `household_calculation_mode`: dual_earner → `SPOUSE_HOUSEHOLD`, single_earner_couple → `SPOUSE_NON_WORKING_ASSETS`. 4 skip_if helpers (`skipIfNotEmployed` / `skipIfNotMarried` / `skipIfNotDualEarner` / `skipIfNotSingleEarnerCouple`). `STATE_CAMPAIGN_TERMINAL` is `turn_type=terminal` with `navigate_to=/tax-strategy`. 12 new Pest cases.
+
+- [x] **Phase 4 (`9c5cdf8`)** — `TaxStrategyCalculator` (430 lines, stateless, sub-50ms benchmark) composing `TaxConfigService` allowances + per-user data; branches on `household_calculation_mode` for all 3 paths. Path C emits asset-shifting suggestions sized to lesser of (user's at-risk holdings, spouse's unused capacity ~£40k = PA + Starting Rate + PSA + ISA + CGT + Dividend allowances). Marriage Allowance auto-suggested only when recipient is basic-rate (HMRC rule). `TaxStrategyService` orchestrator + `TaxStrategyController` (`show` + `calculate`). 2 endpoints under `auth:sanctum`. 2 DTOs (`TaxStrategyOverridesDTO` / `TaxStrategyOutputDTO`). 13 new Pest cases including <50ms benchmark + override semantics + edge cases. Status colours per Rule #9: `spring | violet | raspberry` only — no amber.
+
+- [x] **Phase 5 (`560313e`)** — `/tax-strategy` route + `TaxStrategyDashboard.vue` view + 7 sub-components (TaxYearHeader, AllowanceGrid, AllowanceCard, HouseholdView, AssetShiftingPanel, StrategySliderPanel, StrategyRecommendationList). Vuex `taxStrategy` module with debounced (200ms) recalculate action. Tax Strategy tile on `/actions` for savetax users. **Architecture fixes:** TaxStrategyCalculator now reads tax-band thresholds from `TaxConfigService` (was hardcoded 12570/50270/125140); PSA values from `getIncomeTax()['personal_savings_allowance']`. **Tool catalogue parity restored:** `XaiToolDefinitions::campaignSaveTaxTools()` mirrors AiToolDefinitions for all 4 new tools. Architecture suite back to 95/95. Final regression: 791/791 across architecture + auth + onboarding + Fyn + AI + tax-strategy + tax services.
+
+- [x] **Phase 6 (`916a0f4`)** — 3 Playwright scenario stubs (BS-26 single+employed Path A / BS-27 married+spouse-works Path B / BS-28 married+spouse-no-work Path C) following the canonical `markPendingInteractiveRun` pattern. Each docblock documents exact step-by-step Playwright script + DB assertions per path + expected dashboard rendering + fail-loop diagnosis hints.
+
+#### Documentation
+
+- [x] **As-shipped spec** at `April/April29Updates/savetax-section4-6-spec.md` — full architecture, 3 paths breakdown, schema additions, test coverage delta (~55 new Pest cases), out-of-scope items.
+- [x] **Deploy notes** at `April/April29Updates/savetax-section4-6-deploy-notes.md` — file list (16 PHP / 10 frontend / 3 modified files), build commands per environment, smoke test plan with DB queries per path, rollback procedure.
+- [x] **Tech-debt session sweep** (`tech-debt-report.md` regenerated) — 0 critical, 0 warnings, 2 suggestions (S1: hardcoded £500 dividend allowance string in one suggestion's description text — minor convention nit; S2: `buildUserAllowanceGrid` is 60+ lines, candidate for extraction). Both deferred — neither blocking.
+
+### NOT Done — Outstanding for next session
+
+**No carry-over from session 113's own work** — all 6 phases shipped end-to-end. 796/796 tests green, zero regressions.
+
+**Carried from session 112 (still open):**
+
+#### Deploy session 112 + 113 to dev (csjones.co/fynla)
+
+- [ ] Open PR `feature/fyn-persona-split → dev`, merge after Stoff73 approval
+- [ ] Build with `./deploy/csjones-fynla/build.sh`, upload `public/build/` + 16 modified PHP + 4 migrations (1 from session 112 + 3 from session 113)
+- [ ] SSH: `php artisan migrate --force && php artisan db:seed --class=TaxConfigurationSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan optimize`
+- [ ] Smoke test all 3 paths per `April/April29Updates/savetax-section4-6-deploy-notes.md`
+
+#### After dev deploy — drive BS-26/27/28 in live browser
+
+Per CLAUDE.md Rule #15 LOOP UNTIL CORRECT, drive each scenario via Playwright MCP against `csjones.co/fynla`:
+- [ ] BS-26: single+employed Path A — confirm single AllowanceGrid + slider live recalc
+- [ ] BS-27: married+spouse-works Path B — confirm twin grids + cross-spouse coordination panel
+- [ ] BS-28: married+spouse-no-work Path C — confirm twin grids + AssetShiftingPanel + Marriage Allowance card
+
+#### After dev green — production deploy
+
+- [ ] Open PR `dev → main`, merge, repeat with `./deploy/fynla-org/build.sh`
+- [ ] Monitor `storage/logs/laravel.log` for 10-15 minutes post-deploy
+
+#### After SaveTax — return to Sprint 1 work
+
+- [ ] **Re-record the 9 mitchell scenarios** with the new EngineCalled emits captured in `engine_trace`. ~$1.80 total.
+- [ ] **S1.7.a** — Extend `tests/Feature/Fyn/Eval/AssertionHelpers.php` with new keys per `April/April27Updates/eval-expectations-rewrite.md` §3. **Blocks every other S1.7 sub-task.**
+- [ ] **S1.7.b–i** — Architecture meta-test #6, 4 canonical-behaviour YAMLs, EvalProviderRun column additions + dashboard, 14 state-machine YAMLs, 14 handoff YAMLs, 16 resume YAMLs, hard-gate verification doc.
+- [ ] **S1.9** — Browser matrix: BS-03, BS-08, BS-09, BS-24 + BS-01–BS-23 regression.
+- [ ] **S1.10** — Sprint 1 verification rollup (Rubric-A ≥17/40 🟠).
+
+#### Sprint 1 follow-up specifically for SaveTax sections 4-6
+
+- [ ] **Eval YAML scenarios for the 9 new states** (`STATE_CAMPAIGN_*`) — once S1.7.a lands, 9 state-machine + 3 handoff + ~3 resume YAMLs. Out of scope for v1; add to S1.7.c sub-task list.
+
+### Tech-debt deferred (don't auto-fix)
+
+Two suggestions from session 113's tech-debt sweep, neither blocking:
+
+- [ ] **`TaxStrategyCalculator.php:314` — hardcoded £500 dividend allowance** in the GIA-to-spouse suggestion's `description` string + `available_dividend_allowance` field. Should source from `TaxConfigService::getDividendTax()['allowance']`. Architecture test passes (only flags 12570/50270/125140 band thresholds, not £500). Will rot when HMRC changes the allowance again. Quick fix.
+- [ ] **`TaxStrategyCalculator::buildUserAllowanceGrid` (line 79–138) is 60+ lines.** Linear, no nested conditionals, well-commented; the complexity is in the volume of allowances (8). Extract per-allowance helpers when next adding a new allowance.
+
+### Carried tech-debt from earlier sessions
+
+- [ ] **§5.4 spec-parity — codify simplification (option b) decision.** §5.4(a) shipped via session 110; option (b) (trim `*_recommendation` strings) now moot. Mark §5.4 closed.
+- [ ] **`Auditable::shouldAudit` must gate on `bypass-preview-mode`** when first mutating scenario lands. Currently in `PreviewBlockSitesCheckBypassTest` ignore-list with TODO.
+- [ ] **`SaveTaxCampaignPage.vue:191-194`** inline `formatAmount` duplicates `currencyMixin.formatCurrency` (session 112 carry).
+- [ ] **`SaveTaxCampaignPage.vue:14-26`** hardcoded fallback allowances (session 112 carry — intentional graceful degradation).
+
+### Deploy status
+
+**Local dev verified end-to-end (796/796 tests green). Nothing pushed to dev or prod yet.**
+
+When CSJ is ready to deploy, see `April/April29Updates/savetax-section4-6-deploy-notes.md` (sections 4-6 specific) AND `April/April29Updates/deploy-notes.md` (sections 1-3 from session 112). Both can deploy in a single batch since they're on the same branch.
+
+Combined upload set: 16 PHP backend + 11 frontend + 4 migrations + `public/build/`. Mandatory `php artisan db:seed --class=TaxConfigurationSeeder --force` (carried from session 112 — for the marriage_allowance row). Sections 4-6 migrations are non-destructive (additive columns + new table); rollback safe.
+
+### Context for next session
+
+Sections 4-6 SHIPPED locally. The big shape is now in place:
+- 9 state-machine states drive the post-expenses conversation
+- `TaxStrategyCalculator` produces the allowance grid + asset-shifting strategies
+- `/tax-strategy` dashboard renders allowance utilisation cards + sliders + recommendations
+- All 3 first-class paths (single / dual_earner / single_earner_couple) work end-to-end in tests
+
+**Highest-value next step:** deploy to dev so CSJ can drive BS-26/27/28 in a live browser. Single-iteration GREEN per Rule #15 should be the goal. If anything fails in the live browser flow, route through dedicated bug-fix sub-tasks against the relevant Phase 1-5 file rather than batch fixes.
+
+After deploy + live verification, return to Sprint 1: re-record mitchell scenarios → S1.7.a (AssertionHelpers extension) → S1.7.c (eval YAMLs covering the 9 new SaveTax states).
 
 ---
 

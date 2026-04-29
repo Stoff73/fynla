@@ -1,61 +1,59 @@
-# Tech Debt Report — Session 2026-04-29
+# Tech Debt Report — Session 113 (29 April 2026 PM)
 
-**Files analysed:** 22 (6 commits this session)
-**Issues found:** 3
-**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
-
-## Critical Issues
-
-None.
-
-## Warnings
-
-### 1. CGT acronym in user-facing label — Rule #10 violation
-
-- **Files:** `app/Http/Controllers/Api/Public/TaxAllowancesController.php:75`, `resources/js/views/Public/SaveTaxCampaignPage.vue:135`
-- **Category:** Convention violation (CLAUDE.md Rule #10 — acronyms must be spelled out except ISA)
-- **What's wrong:** The new public tax-allowances API returns `'label' => 'CGT Allowance'` and the Vue fallback array uses the same string. Rendered verbatim on the `/savetax` page. Per Rule #10, "CGT" must be expanded to "Capital Gains Tax" in user-facing copy.
-- **Note:** The label was hardcoded as "CGT Allowance" in the original page before this session — I carried it forward into the API and the new fallback constants without spelling it out. Pre-existing debt that was reinforced by the new code.
-- **Suggested fix:** Update both occurrences to `'Capital Gains Tax Allowance'`. The internal `key` (`cgt_allowance`) stays.
+**Files analysed:** 42 (changed in 6 commits since session 112 end)
+**Issues found:** 2 minor
+**Severity breakdown:** 0 critical, 0 warnings, 2 suggestions
 
 ## Suggestions
 
-### 2. Inline `formatAmount` duplicates `currencyMixin.formatCurrency`
+### S1 — Hardcoded £500 dividend allowance in GIA-to-spouse description
 
-- **File:** `resources/js/views/Public/SaveTaxCampaignPage.vue:191-194`
-- **Category:** Cross-file duplication (Fynla convention — always use `currencyMixin`)
-- **What's wrong:** A local `formatAmount(item)` method does `'£' + item.amount.toLocaleString('en-GB')` — equivalent to `currencyMixin.formatCurrency(item.amount)` for whole-pound integers.
-- **Suggested fix:** Add `mixins: [currencyMixin]`, replace template binding with `{{ formatCurrency(item.amount) }}`, drop the local method.
-- **Why suggestion not warning:** Public marketing page with no other currency formatting; inline helper is 2 lines. But the convention is "always use currencyMixin".
+**File:** `app/Services/Tax/TaxStrategyCalculator.php:314`
+**Category:** Convention violation (Rule #11 — no hardcoded tax values)
 
-### 3. Hardcoded fallback allowances duplicate seeded TaxConfiguration
+The GIA-to-spouse asset-shifting suggestion's `description` string and the
+returned `available_dividend_allowance` field both hardcode £500:
 
-- **File:** `resources/js/views/Public/SaveTaxCampaignPage.vue:14-26` (`FALLBACK_TAX_YEAR`, `FALLBACK_INCOME`, `FALLBACK_INVESTMENT`)
-- **Category:** Single-source-of-truth drift
-- **What's wrong:** The fallback constants for graceful degradation are hardcoded to 2026/27 values. When the seeded `TaxConfiguration` updates for the next tax year, these will rot until manually synced.
-- **Suggested fix:** Either accept the rot risk and add a tax-year-rollover checklist item, or remove the fallback entirely and show a small "values temporarily unavailable" message if the API fails.
-- **Why suggestion not warning:** The fallback is intentional graceful-degradation behaviour. Already noted in CSJTODO and patch notes as known tech debt.
+```php
+'description' => 'Their unused CGT allowance (£'.number_format((int) $cgtAllowance).'/yr) and Dividend Allowance (£500/yr) can absorb gains and dividends tax-free.',
+'available_dividend_allowance' => 500.0,
+```
 
----
+`$cgtAllowance` correctly sources from `TaxConfigService::getCapitalGainsTax()['annual_exempt_amount']`, but the dividend allowance value next to it is a literal. If HMRC changes the dividend allowance (it dropped from £1,000 → £500 in 2024/25), this string and the returned field will rot until manually synced.
 
-## Audit summary
+**Suggested fix:** Source from `$this->taxConfig->getDividendTax()['allowance']` once at the top of `buildAssetShiftingSuggestions`, then interpolate into both the description and the returned field. Same pattern used elsewhere in this file for CGT.
 
-Six commits this session added 865 insertions across 22 files including a new public API endpoint, a new frontend utility module, a new migration, and 4 new test files. The code generally follows project conventions:
+**Why suggestion not warning:** the architecture test (`HardcodedValuesArchitectureTest`) only flags `12570|50270|125140` band thresholds, not £500. Existing arch test passes.
 
-- All PHP files have `declare(strict_types=1);` and full type hints
-- All new methods are typed
-- No `DB` facade usage in controllers
-- No hardcoded tax values in calculations (seeder is source of truth; fallback constants are display-only)
-- No banned colours, no inline hex, no `gray-*` / `amber-*` / `orange-*` / `primary-*` / `secondary-*`
-- No `console.log` / `dd` / `dump` debug statements
-- No `v-if`+`v-for` mixing; all `v-for` have `:key`
-- No `submit` events from form modals (none added)
-- Allowlist enforced at both client (`sourceCapture.js`) and server (`RegisterRequest`)
-- Tests use Pest syntax with `RefreshDatabase`, fluent `expect()`, parameterised `with()`
-- Public endpoint returns only display values, never internal rates/bands
+### S2 — TaxStrategyCalculator buildUserAllowanceGrid is 60+ lines
 
-The CGT-acronym warning is the only pre-merge fix worth considering. The two suggestions are deferrable — one is a stylistic convention nudge, the other is a known design choice with documented mitigation.
+**File:** `app/Services/Tax/TaxStrategyCalculator.php:79–138`
+**Category:** Complexity (method >50 lines)
+
+`buildUserAllowanceGrid` currently does 8 separate per-allowance computations inline — each pulling values, applying overrides, computing used amounts. While each step is small, the method weighs in at ~60 lines of arithmetic.
+
+**Suggested fix:** Extract per-allowance helpers (`personalAllowancePosition`, `savingsAllowancePosition`, etc.) so the orchestrator method just composes them. Improves readability + makes it easier to unit-test edge cases per allowance.
+
+**Why suggestion not warning:** The complexity is in the volume of allowances (8) not in any single piece of logic. Method is linear, no nested conditionals, well-commented. Acceptable for v1.
 
 ---
 
-*Generated by tech-debt-session skill — 2026-04-29*
+## Confirmed clean
+
+- All 13 changed PHP files declare `strict_types=1`
+- All 7 new Vue components that use `formatCurrency` correctly import `currencyMixin`
+- No hardcoded hex codes in Vue style blocks
+- No banned colour classes (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*`)
+- No icons on banned dashboard surfaces (Rule #14)
+- Status colours from approved palette only (`spring | violet | raspberry`)
+- Tax band thresholds sourced from `TaxConfigService` (no hardcoded 12570/50270/125140)
+- PSA values sourced from `TaxConfigService` (no hardcoded 1000/500/0 constants)
+- Both Anthropic + xAI tool catalogues have parity (architecture test green)
+- All 4 new capture tools whitelisted in `OnboardingChatDirector::captureToolSet()`
+- State machine supports all turn types (no new types added)
+- Architecture suite: 95/95
+- Onboarding + Fyn + Auth + AI + TaxStrategy + tax services suites: 796/796 (zero regressions)
+
+---
+
+*Generated by tech-debt-session skill — session 113*
