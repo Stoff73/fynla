@@ -164,6 +164,12 @@ Route::prefix('insights')->group(function () {
         ->where('slug', '[a-z0-9-]+');
 });
 
+// Public tax allowances — read-only, served from cached TaxConfigService.
+// Used by marketing campaign pages (e.g. /savetax) to keep headline
+// figures in sync with the seeded tax-year configuration.
+Route::get('public/tax-allowances', [\App\Http\Controllers\Api\Public\TaxAllowancesController::class, 'show'])
+    ->middleware('throttle:60,1');
+
 // Preview Mode routes (allows unauthenticated preview access)
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)

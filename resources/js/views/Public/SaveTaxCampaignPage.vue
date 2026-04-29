@@ -13,11 +13,11 @@
         </div>
       </div>
 
-      <!-- Allowances 2026/27 -->
+      <!-- Allowances (live values from active TaxConfiguration) -->
       <div class="bg-eggshell-500 py-14 lg:py-16">
         <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="mb-10 lg:mb-12">
-            <span class="inline-block text-xs font-mono uppercase tracking-widest text-raspberry-500 mb-2">Tax year 2026/27</span>
+            <span class="inline-block text-xs font-mono uppercase tracking-widest text-raspberry-500 mb-2">Tax year {{ taxYear }}</span>
             <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-horizon-500 leading-tight">Your allowances</h2>
           </div>
 
@@ -37,7 +37,7 @@
                     <p class="text-sm font-semibold text-horizon-500">{{ item.label }}</p>
                     <p class="text-xs text-neutral-500 mt-0.5">{{ item.note }}</p>
                   </div>
-                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap font-mono">{{ item.amount }}</span>
+                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap font-mono">{{ formatAmount(item) }}</span>
                 </li>
               </ul>
             </div>
@@ -57,7 +57,7 @@
                     <p class="text-sm font-semibold text-horizon-500">{{ item.label }}</p>
                     <p class="text-xs text-neutral-500 mt-0.5">{{ item.note }}</p>
                   </div>
-                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap font-mono">{{ item.amount }}</span>
+                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap font-mono">{{ formatAmount(item) }}</span>
                 </li>
               </ul>
             </div>
@@ -115,9 +115,27 @@
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import StaticFynChat from '@/components/Public/StaticFynChat.vue';
+import api from '@/services/api';
 
 const META_TITLE = 'Save Tax — Maximise Your Allowances | Fynla';
 const META_DESC = 'Maximise ISA allowances, pension tax relief, and Marriage Allowance. See your full tax position with Fynla.';
+
+// Fallback values shown if /api/public/tax-allowances is unreachable.
+// Kept in sync manually with the active TaxConfiguration so the page never
+// renders a blank table — graceful degradation only.
+const FALLBACK_TAX_YEAR = '2026/27';
+const FALLBACK_INCOME = [
+  { key: 'personal_allowance', label: 'Personal Allowance', note: 'Tax-free income each year', amount: 12570 },
+  { key: 'savings_allowance', label: 'Savings Allowance', note: 'Basic-rate taxpayers', amount: 1000 },
+  { key: 'starting_rate_for_savings', label: 'Starting Rate for Savings', note: 'If non-savings income < £17,570', amount: 5000 },
+  { key: 'marriage_allowance', label: 'Marriage Allowance', note: 'Transferable to spouse', amount: 1260 },
+];
+const FALLBACK_INVESTMENT = [
+  { key: 'isa_allowance', label: 'ISA Allowance', note: 'Tax-free savings & investing', amount: 20000 },
+  { key: 'cgt_allowance', label: 'CGT Allowance', note: 'Capital gains exempt amount', amount: 3000 },
+  { key: 'dividend_allowance', label: 'Dividend Allowance', note: 'Tax-free dividend income', amount: 500 },
+  { key: 'pension_annual_allowance', label: 'Pension Annual Allowance', note: 'Tax-relievable contributions', amount: 60000 },
+];
 
 export default {
   name: 'SaveTaxCampaignPage',
@@ -126,18 +144,9 @@ export default {
   data() {
     return {
       campaignRegistrationLink: { path: '/register', query: { from: 'savetax' } },
-      incomeAllowances: [
-        { label: 'Personal Allowance', note: 'Tax-free income each year', amount: '£12,570' },
-        { label: 'Savings Allowance', note: 'Basic-rate taxpayers', amount: '£1,000' },
-        { label: 'Starting Rate for Savings', note: 'If non-savings income < £17,570', amount: '£5,000' },
-        { label: 'Marriage Allowance', note: 'Transferable to spouse', amount: '£1,260' },
-      ],
-      investmentAllowances: [
-        { label: 'ISA Allowance', note: 'Tax-free savings & investing', amount: '£20,000' },
-        { label: 'CGT Allowance', note: 'Capital gains exempt amount', amount: '£3,000' },
-        { label: 'Dividend Allowance', note: 'Tax-free dividend income', amount: '£500' },
-        { label: 'Pension Annual Allowance', note: 'Tax-relievable contributions', amount: '£60,000' },
-      ],
+      taxYear: FALLBACK_TAX_YEAR,
+      incomeAllowances: FALLBACK_INCOME,
+      investmentAllowances: FALLBACK_INVESTMENT,
       examples: [
         {
           title: 'Non-working spouse',
@@ -148,8 +157,8 @@ export default {
           body: 'If you earn above <span class="font-bold text-horizon-500 font-mono">£100,000</span> per year, you may have some of your income taxed at an effective rate of <span class="font-bold text-horizon-500 font-mono">60%</span> due to the tapered withdrawal of your Personal Allowance.',
         },
         {
-          title: 'General Investment Accounts',
-          body: 'Just using these, you can take up to <span class="font-bold text-horizon-500 font-mono">£3,500</span> per year of tax-free gains and <span class="font-bold text-horizon-500 font-mono">£500</span> per year of tax-free dividend income — on top of your ISA.',
+          title: 'Investment Accounts',
+          body: 'Just using these, you can take up to <span class="font-bold text-horizon-500 font-mono">£3,000</span> per year of tax-free gains and <span class="font-bold text-horizon-500 font-mono">£500</span> per year of tax-free dividend income — on top of your ISA.',
         },
         {
           title: "National Insurance payments (NIC's)",
@@ -163,6 +172,30 @@ export default {
     document.title = META_TITLE;
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute('content', META_DESC);
+    this.loadLiveAllowances();
+  },
+
+  methods: {
+    formatAmount(item) {
+      if (item == null || typeof item.amount !== 'number') return '';
+      return '£' + item.amount.toLocaleString('en-GB');
+    },
+
+    async loadLiveAllowances() {
+      try {
+        const { data } = await api.get('/public/tax-allowances');
+        if (data?.tax_year) this.taxYear = data.tax_year;
+        if (Array.isArray(data?.income_allowances) && data.income_allowances.length) {
+          this.incomeAllowances = data.income_allowances;
+        }
+        if (Array.isArray(data?.investment_allowances) && data.investment_allowances.length) {
+          this.investmentAllowances = data.investment_allowances;
+        }
+      } catch {
+        // Silently fall back to the hardcoded constants — this is a marketing
+        // page and a momentary network blip should not show a broken UI.
+      }
+    },
   },
 };
 </script>
