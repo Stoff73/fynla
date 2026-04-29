@@ -919,6 +919,18 @@ const routes = [
     },
   },
   {
+    path: '/tax-strategy',
+    name: 'TaxStrategy',
+    component: () => import('@/views/TaxStrategy/TaxStrategyDashboard.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Tax Strategy', path: '/tax-strategy' },
+      ],
+    },
+  },
+  {
     path: '/actions/:planType/:actionId',
     name: 'ActionDetail',
     component: () => import('@/views/Actions/ActionDetailView.vue'),

@@ -28,15 +28,43 @@ use App\Services\TaxConfigService;
  */
 final class TaxStrategyCalculator
 {
-    private const PSA_BASIC = 1000.0;
-
-    private const PSA_HIGHER = 500.0;
-
-    private const PSA_ADDITIONAL = 0.0;
-
     public function __construct(
         private readonly TaxConfigService $taxConfig,
     ) {}
+
+    /**
+     * Personal Savings Allowance amount for a given band, sourced from
+     * TaxConfigService['income_tax']['personal_savings_allowance'].
+     */
+    private function psaForBand(string $band): float
+    {
+        $psa = $this->taxConfig->getIncomeTax()['personal_savings_allowance'] ?? [];
+
+        return (float) ($psa[$band] ?? 0);
+    }
+
+    /**
+     * Tax-band thresholds sourced from TaxConfigService — basic/higher/additional
+     * boundaries. Returns the lower bounds: basic = 0, higher band lower_limit,
+     * additional band lower_limit.
+     */
+    private function bandThresholds(): array
+    {
+        $bands = $this->taxConfig->getIncomeTax()['bands'] ?? [];
+        $higher = 0.0;
+        $additional = 0.0;
+        foreach ($bands as $band) {
+            $name = strtolower((string) ($band['name'] ?? ''));
+            if (str_contains($name, 'higher')) {
+                $higher = (float) ($band['lower_limit'] ?? 0);
+            }
+            if (str_contains($name, 'additional')) {
+                $additional = (float) ($band['lower_limit'] ?? 0);
+            }
+        }
+
+        return ['higher' => $higher, 'additional' => $additional];
+    }
 
     public function calculate(User $user, ?TaxStrategyOverridesDTO $overrides = null): TaxStrategyOutputDTO
     {
@@ -86,7 +114,7 @@ final class TaxStrategyCalculator
         $personalSavingsAllowanceAmount = $this->personalSavingsAllowanceFor($employmentIncome);
         $estimatedAnnualInterest = $this->estimateAnnualInterest($user);
 
-        $startingRateForSavingsAmount = (float) ($income['starting_rate_for_savings']['amount'] ?? 5000);
+        $startingRateForSavingsAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
         // Starting rate for savings tapers when non-savings income > £12,570 — full amount only when income ≤ PA
         $nonSavingsIncomeAbovePa = max(0, $employmentIncome - $personalAllowanceAmount);
         $startingRateForSavingsRemaining = max(0, $startingRateForSavingsAmount - $nonSavingsIncomeAbovePa);
@@ -139,7 +167,7 @@ final class TaxStrategyCalculator
 
         $spouseIncome = (float) ($household->spouse_annual_income ?? 0);
         $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
-        $startingRateAmount = (float) ($income['starting_rate_for_savings']['amount'] ?? 5000);
+        $startingRateAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
         $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
         $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
         $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
@@ -147,11 +175,7 @@ final class TaxStrategyCalculator
         $divAmount = is_array($divAmountRaw) ? (float) ($divAmountRaw['amount'] ?? 500) : (float) $divAmountRaw;
         $aaAmount = (float) ($pension['annual_allowance'] ?? 60000);
 
-        $psa = match ((string) ($household->spouse_psa_band ?? 'basic')) {
-            'higher' => self::PSA_HIGHER,
-            'additional' => self::PSA_ADDITIONAL,
-            default => self::PSA_BASIC,
-        };
+        $psa = $this->psaForBand((string) ($household->spouse_psa_band ?? 'basic'));
 
         $isaUsed = (float) ($household->spouse_isa_balance ?? 0);
         $unrealised = (float) ($household->spouse_unrealised_gains ?? 0);
@@ -180,7 +204,7 @@ final class TaxStrategyCalculator
 
         // Non-working spouse — assume basic-rate band by default.
         $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
-        $startingRateAmount = (float) ($income['starting_rate_for_savings']['amount'] ?? 5000);
+        $startingRateAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
         $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
         $isaAmount = (float) ($isa['annual_allowance'] ?? 20000);
         $cgtAmount = (float) ($cgt['annual_exempt_amount'] ?? 3000);
@@ -193,8 +217,8 @@ final class TaxStrategyCalculator
         return [
             // Spouse has no income → PA fully unused
             $this->position('personal_allowance', 'Personal Allowance', $personalAllowance, 0.0, 'spouse'),
-            // Basic-rate PSA: £1,000
-            $this->position('savings_allowance', 'Savings Allowance', self::PSA_BASIC, 0.0, 'spouse'),
+            // Basic-rate PSA from TaxConfigService
+            $this->position('savings_allowance', 'Savings Allowance', $this->psaForBand('basic'), 0.0, 'spouse'),
             $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateAmount, 0.0, 'spouse'),
             // Marriage Allowance N/A on spouse's grid (it transfers FROM them TO the working spouse)
             $this->position('marriage_allowance', 'Marriage Allowance', $marriageAmount, 0.0, 'spouse'),
@@ -230,7 +254,7 @@ final class TaxStrategyCalculator
             ];
         }
 
-        // 2. Savings → spouse: capacity = PA + Starting Rate + PSA basic = £18,570/yr interest tax-free
+        // 2. Savings → spouse: capacity = PA + Starting Rate + PSA basic
         $userSavings = SavingsAccount::query()
             ->where('user_id', $user->id)
             ->where('is_isa', false)
@@ -240,7 +264,9 @@ final class TaxStrategyCalculator
             ? (float) $userSavings->avg('interest_rate')
             : 0.035;
 
-        $spouseInterestCapacity = 18570.0; // 12570 + 5000 + 1000
+        $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
+        $startingRate = (float) ($income['starting_rate_for_savings']['band'] ?? 5000);
+        $spouseInterestCapacity = $personalAllowance + $startingRate + $this->psaForBand('basic');
         $existingSpouseSavings = (float) ($household?->spouse_existing_savings_balance ?? 0);
         $spouseUsedInterest = $existingSpouseSavings * $userAvgRate;
         $spouseRemainingInterestCapacity = max(0, $spouseInterestCapacity - $spouseUsedInterest);
@@ -349,18 +375,16 @@ final class TaxStrategyCalculator
 
     private function personalSavingsAllowanceFor(float $income): float
     {
-        return match ($this->bandFromIncome($income)) {
-            'basic' => self::PSA_BASIC,
-            'higher' => self::PSA_HIGHER,
-            'additional' => self::PSA_ADDITIONAL,
-        };
+        return $this->psaForBand($this->bandFromIncome($income));
     }
 
     private function bandFromIncome(float $income): string
     {
+        $thresholds = $this->bandThresholds();
+
         return match (true) {
-            $income >= 125140 => 'additional',
-            $income >= 50270 => 'higher',
+            $income >= $thresholds['additional'] && $thresholds['additional'] > 0 => 'additional',
+            $income >= $thresholds['higher'] && $thresholds['higher'] > 0 => 'higher',
             default => 'basic',
         };
     }

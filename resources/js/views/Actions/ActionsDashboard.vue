@@ -1,6 +1,16 @@
 <template>
   <AppLayout>
     <div class="py-8">
+      <!-- SaveTax campaign — Tax Strategy tile (visible to all savetax users) -->
+      <router-link
+        v-if="onboardingSelection === 'savetax'"
+        to="/tax-strategy"
+        class="block rounded-lg border border-raspberry-200 bg-light-pink-100 p-4 mb-5 hover:border-raspberry-500 transition-colors"
+      >
+        <h3 class="text-body-sm font-bold text-horizon-500 mb-1">Your tax strategy</h3>
+        <p class="text-caption text-neutral-500">View allowance utilisation, model what-if scenarios, and see recommended actions.</p>
+      </router-link>
+
       <!-- Loading -->
       <div v-if="loading" class="flex items-center justify-center h-64">
         <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
@@ -101,6 +111,9 @@ export default {
   },
 
   computed: {
+    onboardingSelection() {
+      return this.$store.state.auth?.user?.onboarding_fyn_selection ?? null;
+    },
     moduleSections() {
       const config = [
         { type: 'protection', label: 'Protection' },

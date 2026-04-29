@@ -41,6 +41,7 @@ class XaiToolDefinitions
                 $this->additionalCreationTools(),
                 $this->dataModificationTools(),
                 $this->profileTools(),
+                $this->campaignSaveTaxTools(),
             );
         }
 
@@ -865,6 +866,67 @@ class XaiToolDefinitions
                     'clothing_personal_care', 'entertainment_dining', 'holidays_travel', 'pets',
                     'childcare', 'school_fees', 'school_lunches', 'school_extras', 'university_fees', 'children_activities',
                     'gifts_charity', 'charitable_donations', 'other_expenditure',
+                ]
+            ),
+        ];
+    }
+
+    // ─── SaveTax campaign — sections 4-6 capture tools ──────────────────
+
+    /**
+     * SaveTax campaign capture tools (xAI-format mirror of AiToolDefinitions::campaignSaveTaxTools).
+     * Used in the path=campaign post-expenditure state-machine branch.
+     */
+    private function campaignSaveTaxTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'capture_salary_sacrifice',
+                'Set salary_sacrifice flag on a specific DC pension owned by the user. Use during the SaveTax campaign occupational-scheme capture state.',
+                [
+                    'pension_id' => ['type' => 'integer', 'description' => 'ID of the dc_pension row to update.'],
+                    'salary_sacrifice' => ['type' => 'boolean', 'description' => 'true if pension contributions are made via salary sacrifice.'],
+                ],
+                ['pension_id', 'salary_sacrifice']
+            ),
+            $this->wrapTool(
+                'capture_spouse_work_status',
+                'Set whether the user\'s spouse currently works. Updates household_calculation_mode (dual_earner | single_earner_couple) and marriage_allowance_eligible accordingly.',
+                [
+                    'spouse_works' => ['type' => 'boolean', 'description' => 'true if spouse has earned income, false otherwise.'],
+                ],
+                ['spouse_works']
+            ),
+            $this->wrapTool(
+                'capture_spouse_household_data',
+                'Capture working-spouse data for dual_earner households (spouse_works=yes path). Writes to tax_strategy_household_inputs.',
+                [
+                    'spouse_annual_income' => ['type' => ['number', 'null'], 'description' => 'Spouse gross annual income in pounds.'],
+                    'spouse_employment_status' => $this->nullableEnum(['full_time', 'part_time', 'self_employed', 'retired'], 'Spouse employment status.'),
+                    'spouse_isa_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse current ISA balance in pounds.'],
+                    'spouse_psa_band' => $this->nullableEnum(['basic', 'higher', 'additional'], 'Spouse Personal Savings Allowance band.'),
+                    'spouse_unrealised_gains' => ['type' => ['number', 'null'], 'description' => 'Spouse unrealised capital gains.'],
+                    'spouse_annual_dividends' => ['type' => ['number', 'null'], 'description' => 'Spouse annual dividend income.'],
+                    'spouse_pension_input_annual' => ['type' => ['number', 'null'], 'description' => 'Spouse gross annual pension contribution.'],
+                ],
+                [
+                    'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                    'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+                    'spouse_pension_input_annual',
+                ]
+            ),
+            $this->wrapTool(
+                'capture_spouse_non_working_assets',
+                'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies.',
+                [
+                    'spouse_existing_isa_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone ISA balance.'],
+                    'spouse_existing_savings_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone bank/savings balance.'],
+                    'spouse_existing_investment_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone investment account balance.'],
+                    'spouse_existing_dividend_holdings_value' => ['type' => ['number', 'null'], 'description' => 'Value of spouse\'s dividend-paying holdings.'],
+                ],
+                [
+                    'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                    'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
                 ]
             ),
         ];
