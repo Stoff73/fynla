@@ -23,6 +23,7 @@ const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
 const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
+const SaveTaxCampaignPage = () => import('@/views/Public/SaveTaxCampaignPage.vue');
 const NotFoundPage = () => import('@/views/Public/NotFoundPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
@@ -226,7 +227,7 @@ const routes = [
   {
     path: '/savetax',
     name: 'CampaignSaveTax',
-    component: CampaignPage,
+    component: SaveTaxCampaignPage,
     meta: { public: true },
   },
   {
