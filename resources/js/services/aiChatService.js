@@ -108,9 +108,17 @@ const aiChatService = {
      * Returns a ReadableStream reader — the caller consumes the SSE
      * stream the same way sendMessageStream does.
      */
-    async startOnboardingStream({ signal } = {}) {
+    async startOnboardingStream({ signal, from } = {}) {
         const token = await getToken();
         const isCapacitor = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+
+        // Forward the `from` entry-source identifier (e.g. 'savetax',
+        // 'protection') to the backend so the onboarding director can
+        // pre-select the matching campaign or life-stage journey via
+        // config('onboarding.campaign_map') / journey_map.
+        const body = (typeof from === 'string' && from.length > 0)
+            ? JSON.stringify({ from })
+            : '{}';
 
         const response = await fetch(`${apiBaseURL}/api/ai-chat/onboarding/start`, {
             method: 'POST',
@@ -119,7 +127,7 @@ const aiChatService = {
                 'Accept': 'text/event-stream',
                 'Authorization': `Bearer ${token}`,
             },
-            body: '{}',
+            body,
             credentials: isCapacitor ? 'omit' : 'same-origin',
             signal,
         });

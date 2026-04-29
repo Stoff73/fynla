@@ -851,7 +851,12 @@ const actions = {
      * conversation. If onboarding is already complete or the feature flag
      * is off, falls back to a normal startNewConversation.
      */
-    async startOnboardingConversation({ commit, dispatch, state, rootState }) {
+    async startOnboardingConversation({ commit, dispatch, state, rootState }, payload = {}) {
+        // Forward the optional `from` entry-source identifier so the
+        // onboarding director can pre-select the campaign / journey via
+        // config('onboarding.campaign_map') / journey_map.
+        const fromParam = (payload && typeof payload.from === 'string') ? payload.from : null;
+
         // Reset chat state before starting
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
@@ -895,7 +900,10 @@ const actions = {
 
         let reader;
         try {
-            reader = await aiChatService.startOnboardingStream({ signal: abortController.signal });
+            reader = await aiChatService.startOnboardingStream({
+                signal: abortController.signal,
+                from: fromParam,
+            });
         } catch (error) {
             // 503 disabled / 409 already_completed / 403 preview_mode — fall back
             // to a normal empty chat so the user can still talk to Fyn.

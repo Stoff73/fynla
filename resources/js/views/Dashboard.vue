@@ -2162,6 +2162,10 @@ export default {
         window.addEventListener('fyn-chat-interaction', this._clearBlur, { once: true });
       }
 
+      // Capture the from query param BEFORE stripping it so the
+      // campaign / journey identifier reaches the onboarding director.
+      const fromParam = this.$route.query.from;
+
       // Clean the query param first so a page reload doesn't re-trigger.
       this.$router.replace({ query: {} });
 
@@ -2173,7 +2177,7 @@ export default {
         // And open the floating/mobile chat panel.
         this.$store.dispatch('aiChat/open');
       };
-      this.$store.dispatch('aiChat/startOnboardingConversation')
+      this.$store.dispatch('aiChat/startOnboardingConversation', { from: fromParam })
         .then(expandDockedChat)
         .catch((err) => {
           // Fall back to just opening an empty chat if the director fails.
