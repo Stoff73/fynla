@@ -30,7 +30,8 @@ it('creates household_inputs row with working-spouse fields', function () {
         'spouse_pension_input_annual' => 3600,
     ], $user);
 
-    expect($result['updated'] ?? false)->toBeTrue();
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and($result['field_group'])->toBe('campaign_spouse_household');
     $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
     expect($row)->not->toBeNull();
     expect((float) $row->spouse_annual_income)->toBe(45000.0);

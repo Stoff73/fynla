@@ -3967,9 +3967,10 @@ class CoordinatingAgent extends BaseAgent
         );
 
         return [
-            'updated' => true,
-            'fields_updated' => array_keys($allowed),
-            'message' => 'Spouse household data captured.',
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_spouse_household',
+            'summary' => 'Spouse household data captured.',
+            'details' => $allowed,
         ];
     }
 
@@ -3992,9 +3993,10 @@ class CoordinatingAgent extends BaseAgent
         );
 
         return [
-            'updated' => true,
-            'fields_updated' => array_keys($allowed),
-            'message' => 'Spouse standalone assets captured.',
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_spouse_non_working_assets',
+            'summary' => 'Spouse standalone assets captured.',
+            'details' => $allowed,
         ];
     }
 

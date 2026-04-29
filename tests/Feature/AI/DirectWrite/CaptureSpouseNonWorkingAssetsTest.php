@@ -28,7 +28,8 @@ it('creates household_inputs row with non-working-spouse fields', function () {
         'spouse_existing_dividend_holdings_value' => 0,
     ], $user);
 
-    expect($result['updated'] ?? false)->toBeTrue();
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and($result['field_group'])->toBe('campaign_spouse_non_working_assets');
     $row = TaxStrategyHouseholdInput::where('user_id', $user->id)->first();
     expect($row)->not->toBeNull();
     expect((float) $row->spouse_existing_isa_balance)->toBe(5000.0);
@@ -50,6 +51,6 @@ it('accepts the all-zero case (spouse has no standalone assets)', function () {
         'spouse_existing_dividend_holdings_value' => 0,
     ], $user);
 
-    expect($result['updated'] ?? false)->toBeTrue();
+    expect($result['onboarding_capture'] ?? false)->toBeTrue();
     expect(TaxStrategyHouseholdInput::where('user_id', $user->id)->count())->toBe(1);
 });

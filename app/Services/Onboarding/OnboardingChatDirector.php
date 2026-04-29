@@ -177,6 +177,13 @@ final class OnboardingChatDirector
         // FamilyMember row, or scratch-pad context).
         $this->persistCapture($user, $state, $interpretation);
 
+        // Bubble→tool wiring: when the state declares `bubble_capture`,
+        // dispatch the named tool synchronously so its DB writes are
+        // visible to the routing callable below. Without this, bubble
+        // states with capture_field=null can't influence next-state
+        // routing because nothing writes to the user model.
+        $this->dispatchBubbleCapture($user, $conversation, $state, $interpretation);
+
         // INV-2.2.6 — flush the matching parked-facts bucket so the
         // <known_facts> block on the next prompt does not list the same
         // field twice (the values now live on users.* / family_members /
@@ -743,6 +750,46 @@ final class OnboardingChatDirector
     }
 
     // ─── Persistence ──────────────────────────────────────────────────────
+
+    /**
+     * Dispatch a side-effect tool when a bubble state declares `bubble_capture`.
+     *
+     * State config shape:
+     *   'bubble_capture' => [
+     *       'tool' => 'capture_spouse_work_status',
+     *       'input_for_bubble' => [
+     *           'yes' => ['spouse_works' => true],
+     *           'no'  => ['spouse_works' => false],
+     *       ],
+     *   ]
+     *
+     * Runs synchronously after persistCapture so the tool's DB writes are
+     * visible to the routing callable in getNextStateId. Goes through
+     * CoordinatingAgent::executeTool to keep preview gating + audit + xAI
+     * parity intact. No-op when bubble_capture is absent or the bubble id
+     * doesn't appear in input_for_bubble.
+     */
+    private function dispatchBubbleCapture(
+        User $user,
+        AiConversation $conversation,
+        array $state,
+        array $interpretation
+    ): void {
+        $config = $state['bubble_capture'] ?? null;
+        if (! is_array($config)) {
+            return;
+        }
+
+        $tool = $config['tool'] ?? null;
+        $inputMap = $config['input_for_bubble'] ?? [];
+        $bubbleId = $interpretation['captured_value'] ?? null;
+
+        if (! is_string($tool) || ! is_string($bubbleId) || ! isset($inputMap[$bubbleId]) || ! is_array($inputMap[$bubbleId])) {
+            return;
+        }
+
+        $this->coordinatingAgent->executeTool($tool, $inputMap[$bubbleId], $user, $conversation->id);
+    }
 
     /**
      * Write the captured value to the right place:
@@ -1416,6 +1463,17 @@ final class OnboardingChatDirector
             'from_step' => $currentStateId,
             'to_step' => $nextStateId,
         ];
+
+        // Terminal-with-navigate states (e.g. STATE_CAMPAIGN_TERMINAL → /tax-strategy)
+        // own their own route and must mark onboarding_completed. Free-text
+        // path has the same branch at the main turn-router (handleUserMessage);
+        // grouped_extract needs its own copy because it returns from inside
+        // this private method.
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
 
         yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
     }

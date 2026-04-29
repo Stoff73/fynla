@@ -1381,6 +1381,13 @@ class AiToolDefinitions
             ],
         ];
 
+        // SaveTax campaign extraction tools live alongside the base tools so
+        // the grouped_extract path in OnboardingChatDirector can find them
+        // when STATE_CAMPAIGN_SPOUSE_HOUSEHOLD / SPOUSE_NON_WORKING_ASSETS
+        // run. Without this, the LLM is offered the tool by the prompt but
+        // the director's filter rejects the tool call as "not found".
+        $tools = array_merge($tools, $this->campaignSaveTaxTools());
+
         if ($provider === 'xai') {
             // xAI / OpenAI function-calling format: wrap in function object
             // with strict mode. Matches the shape XaiToolDefinitions emits.

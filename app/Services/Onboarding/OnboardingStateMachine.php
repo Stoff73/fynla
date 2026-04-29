@@ -351,6 +351,16 @@ final class OnboardingStateMachine
                     ['id' => 'no', 'label' => "No, they don't currently work"],
                 ],
                 'capture_field' => null,
+                // Bubble click dispatches capture_spouse_work_status synchronously
+                // before nextFromSpouseWork reads household_calculation_mode.
+                // Without this the column stays NULL and routing falls to TERMINAL.
+                'bubble_capture' => [
+                    'tool' => 'capture_spouse_work_status',
+                    'input_for_bubble' => [
+                        'yes' => ['spouse_works' => true],
+                        'no' => ['spouse_works' => false],
+                    ],
+                ],
                 'next' => self::class.'::nextFromSpouseWork',
                 'skip_if' => [self::class, 'skipIfNotMarried'],
             ],
