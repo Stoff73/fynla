@@ -73,6 +73,26 @@ final class OnboardingStateMachine
 
     public const STATE_DONE = 'done';
 
+    // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign).
+    // Hangs off STATE_PROFILE_REVIEW_EXPENDITURE; bypasses STATE_ASSET_CAPTURE.
+    public const STATE_CAMPAIGN_OCCUPATIONAL_SCHEME = 'campaign_occupational_scheme';
+
+    public const STATE_CAMPAIGN_ISA_HOLDINGS = 'campaign_isa_holdings';
+
+    public const STATE_CAMPAIGN_BANK_ACCOUNTS = 'campaign_bank_accounts';
+
+    public const STATE_CAMPAIGN_INVESTMENT_ACCOUNTS = 'campaign_investment_accounts';
+
+    public const STATE_CAMPAIGN_PENSION_CONTRIBS = 'campaign_pension_contribs';
+
+    public const STATE_CAMPAIGN_SPOUSE_WORK = 'campaign_spouse_work';
+
+    public const STATE_CAMPAIGN_SPOUSE_HOUSEHOLD = 'campaign_spouse_household';
+
+    public const STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS = 'campaign_spouse_non_working_assets';
+
+    public const STATE_CAMPAIGN_TERMINAL = 'campaign_terminal';
+
     /**
      * Complete state table. See fynOnboardFix.md §5.2 for the reference
      * table this was built from.
@@ -248,6 +268,10 @@ final class OnboardingStateMachine
             ],
             // Phase 10 — profile-review pause after expenditure. Shows the
             // ProfileReviewPanel with expenditure alongside the earlier fields.
+            //
+            // Branches on users.onboarding_fyn_path:
+            //   - 'campaign' → STATE_CAMPAIGN_OCCUPATIONAL_SCHEME (savetax flow)
+            //   - 'journey' / 'focus' → STATE_ASSET_CAPTURE (existing behaviour)
             self::STATE_PROFILE_REVIEW_EXPENDITURE => [
                 'turn_type' => 'bubbles',
                 'prompt_text' => 'Your expenditure is noted. Confirm the full profile looks right — or tell me what to change.',
@@ -256,7 +280,90 @@ final class OnboardingStateMachine
                 ],
                 'capture_field' => null,
                 'layout' => 'standard',
-                'next' => self::STATE_ASSET_CAPTURE,
+                'next' => self::class.'::nextFromExpenditureReview',
+            ],
+            // ─── SaveTax campaign branch (sections 4-6) ─────────────────────
+            //
+            // 9 states forming the post-expenditure tax-strategy capture flow.
+            // Reachable only when onboarding_fyn_path === 'campaign'.
+            // Each state uses grouped_extract or bubbles; tools whitelisted in
+            // OnboardingChatDirector::captureToolSet().
+            // Five LLM-delegated capture states — each lets Claude call multiple
+            // existing create_* tools (create_savings_account, create_pension,
+            // create_investment_account, capture_salary_sacrifice, etc.) to
+            // populate the user's tax position from natural-language input.
+            self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME => [
+                'turn_type' => 'delegated',
+                'prompt_text' => "Tell me about your workplace pension. What percentage of your salary do you contribute, does your employer match it, and is it via salary sacrifice? If you don't have a workplace pension, just say so and we'll move on.",
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_ISA_HOLDINGS,
+                'skip_if' => [self::class, 'skipIfNotEmployed'],
+            ],
+            self::STATE_CAMPAIGN_ISA_HOLDINGS => [
+                'turn_type' => 'delegated',
+                'prompt_text' => "Let's look at your ISAs. Do you have a Cash ISA or Stocks & Shares ISA? If so, what's the current balance and how much have you put in this tax year?",
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            ],
+            self::STATE_CAMPAIGN_BANK_ACCOUNTS => [
+                'turn_type' => 'delegated',
+                'prompt_text' => "Now your savings outside an ISA — bank accounts, savings accounts, premium bonds. For each, what's the balance and the interest rate?",
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            ],
+            self::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS => [
+                'turn_type' => 'delegated',
+                'prompt_text' => 'Any investment accounts outside an ISA — General Investment Accounts, share trading platforms? If so, current value, your purchase cost, and any annual dividend income.',
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_PENSION_CONTRIBS,
+            ],
+            self::STATE_CAMPAIGN_PENSION_CONTRIBS => [
+                'turn_type' => 'delegated',
+                'prompt_text' => 'Beyond the workplace pension we covered, do you make any personal pension or SIPP contributions? If so, how much per year (gross)?',
+                'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_SPOUSE_WORK,
+            ],
+            self::STATE_CAMPAIGN_SPOUSE_WORK => [
+                'turn_type' => 'bubbles',
+                'prompt_text' => 'Does your spouse work?',
+                'bubbles' => [
+                    ['id' => 'yes', 'label' => 'Yes, they work'],
+                    ['id' => 'no', 'label' => "No, they don't currently work"],
+                ],
+                'capture_field' => null,
+                'next' => self::class.'::nextFromSpouseWork',
+                'skip_if' => [self::class, 'skipIfNotMarried'],
+            ],
+            // Two structured grouped_extract states — each uses ONE bespoke
+            // composite tool that captures multiple fields in a single call,
+            // mirroring the capture_personal_details / capture_dependants pattern.
+            self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => 'Great. How much does your spouse earn annually, and do they have ISAs, investments, or pension contributions of their own?',
+                'capture_field' => null,
+                'extraction_tool' => 'capture_spouse_household_data',
+                'retry_text' => 'I need their annual income and whatever you know about their ISA / investment / pension balances. Could you share what you have?',
+                'next' => self::STATE_CAMPAIGN_TERMINAL,
+                'skip_if' => [self::class, 'skipIfNotDualEarner'],
+            ],
+            self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?",
+                'capture_field' => null,
+                'extraction_tool' => 'capture_spouse_non_working_assets',
+                'retry_text' => "Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say \"nothing\".",
+                'next' => self::STATE_CAMPAIGN_TERMINAL,
+                'skip_if' => [self::class, 'skipIfNotSingleEarnerCouple'],
+            ],
+            // Terminal state for the campaign branch. turn_type=terminal mirrors
+            // STATE_DONE; the OnboardingChatDirector reads `navigate_to` and emits
+            // a `navigate` SSE event when this state is reached.
+            self::STATE_CAMPAIGN_TERMINAL => [
+                'turn_type' => 'terminal',
+                'prompt_text' => "All set, {first_name} — let me show you your tax position.",
+                'capture_field' => null,
+                'navigate_to' => '/tax-strategy',
+                'next' => self::STATE_DONE,
             ],
             self::STATE_ASSET_CAPTURE => [
                 'turn_type' => 'delegated',
@@ -640,6 +747,72 @@ final class OnboardingStateMachine
     {
         return (float) ($user->monthly_expenditure ?? 0) > 0
             || (float) ($user->annual_expenditure ?? 0) > 0;
+    }
+
+    // ─── SaveTax campaign branch helpers (sections 4-6) ─────────────────
+
+    /**
+     * Branch from STATE_PROFILE_REVIEW_EXPENDITURE based on onboarding_fyn_path.
+     * path=campaign users enter the savetax tax-strategy capture flow;
+     * journey/focus users continue to the existing asset_capture flow.
+     */
+    public static function nextFromExpenditureReview(string $answer, User $user): string
+    {
+        return $user->onboarding_fyn_path === 'campaign'
+            ? self::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME
+            : self::STATE_ASSET_CAPTURE;
+    }
+
+    /**
+     * Branch from STATE_CAMPAIGN_SPOUSE_WORK based on the household_calculation_mode
+     * set by capture_spouse_work_status. Falls back to TERMINAL if mode is unset
+     * (defensive — should never happen if the tool ran).
+     */
+    public static function nextFromSpouseWork(string $answer, User $user): string
+    {
+        return match ($user->household_calculation_mode) {
+            'dual_earner' => self::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+            'single_earner_couple' => self::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
+            default => self::STATE_CAMPAIGN_TERMINAL,
+        };
+    }
+
+    /**
+     * Skip the occupational-scheme state for users who aren't in employment.
+     * Self-employed, retired, and unemployed users have no workplace pension
+     * to capture.
+     */
+    public static function skipIfNotEmployed(User $user): bool
+    {
+        return ! in_array((string) $user->employment_status, ['full_time', 'part_time'], true);
+    }
+
+    /**
+     * Skip all 3 spouse states for users who aren't married or in a civil
+     * partnership.
+     */
+    public static function skipIfNotMarried(User $user): bool
+    {
+        return ! in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
+    }
+
+    /**
+     * Defensive guard on STATE_CAMPAIGN_SPOUSE_HOUSEHOLD — only enter if
+     * household_calculation_mode is 'dual_earner'. Keeps the state strictly
+     * isolated to its path even if the routing callable misbehaves.
+     */
+    public static function skipIfNotDualEarner(User $user): bool
+    {
+        return (string) $user->household_calculation_mode !== 'dual_earner';
+    }
+
+    /**
+     * Defensive guard on STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS — only
+     * enter if household_calculation_mode is 'single_earner_couple'.
+     */
+    public static function skipIfNotSingleEarnerCouple(User $user): bool
+    {
+        return (string) $user->household_calculation_mode !== 'single_earner_couple';
     }
 
     /**
