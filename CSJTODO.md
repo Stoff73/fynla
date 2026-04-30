@@ -70,40 +70,9 @@ New from session 121:
 - [ ] **Session 121 V-1** — `thresholdIncomeFor` does NOT add salary-sacrifice contributions back. HMRC anti-forestalling rule for sacrifices on/after 9 July 2015 says you SHOULD add those back. Currently safe because (a) the dual-gate has a £200k threshold floor and salary-sacrifice users above £200k are rare, and (b) we don't yet track per-pension sacrifice start-dates. Revisit if a persona-driven false-negative appears.
 - [ ] **Session 121 V-2** — `employerPensionContributionsFor` uses `annual_salary ?? annual_employment_income` as the contribution base. For users with multiple DCPensions where `annual_salary` is null, this would over-attribute the same income to multiple pensions. Current personas don't trigger this; flag if it shows up.
 
-### Deploy combined sessions 112+113+114+115+117+118+119+120+121 to dev (csjones.co/fynla)
+### Deploy — NOT a near-term step
 
-Session 121 adds **0 migrations + 4 PHP files** (no new tables, no new tools, no new states — Phase 5 reuses `pension.tapered_annual_allowance` config that was already seeded). Cumulative file set unchanged from session 120 plus the 4 Phase 5 files + 6 tech-debt files.
-
-- [ ] Open PR `feature/fyn-persona-split → dev`, merge after Stoff73 approval
-- [ ] Build with `./deploy/csjones-fynla/build.sh` (Phase 2 frontend rebuild requirement still carries; Phases A/B/C/5 added no JS/CSS but the cumulative build still needs to ship Phase 2 assets)
-- [ ] Upload `public/build/` + cumulative file set: ~50 PHP backend (incl. session 121's 1 new strategy + 4 modified backend) + ~12 frontend (no change since Phase 2)
-- [ ] SSH: `php artisan migrate --force && php artisan db:seed --class=TaxConfigurationSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan optimize`
-- [ ] Re-drive BS-26/27/28 against `csjones.co/fynla` per Rule #15
-- [ ] Smoke test SaveTax dashboard with the 6-profile Phase-3+4+5 trigger matrix:
-  - Employed + workplace pension not on sacrifice → expects #4 surfaces (Phase 3)
-  - Holds non-ISA gains + ISA capacity → expects #6 surfaces (Phase 3)
-  - `single_earner_couple` mode + spouse < 75 → expects #12 surfaces (Phase 3)
-  - Higher-rate user with prior 3-yr unused AA + current input < £60k → expects #3 surfaces (Phase 4-B)
-  - Higher- or additional-rate user with `annual_charitable_donations > 0` → expects #13 surfaces (Phase 4-C)
-  - **Threshold > £200k AND adjusted > £260k (employer-pension addback) → expects #14 surfaces FIRST under "Watch out" (Phase 5)**
-- [ ] Verify `GET /api/tax-strategy` JSON includes `tapered_annual_allowance` under `data.recommendations[]` for the high-income profile
-
-### After dev green — production deploy
-
-- [ ] Open PR `dev → main`, merge, repeat with `./deploy/fynla-org/build.sh`
-- [ ] Smoke test fynla.org
-- [ ] Re-drive the same 6-profile Phase-3+4+5 matrix on prod, plus the existing Phase-2 personas
-
-### Sprint 0 verification rollup (S0.17) — branch readiness
-
-Once the cumulative deploy lands and BS-26/27/28 stay green:
-
-- [ ] Full Pest sweep `./vendor/bin/pest` (expect 815+ pass with 1 pre-existing time-flake)
-- [ ] Architecture suite green
-- [ ] `php artisan ai:audit:verify-chain` returns `chain_valid: true`
-- [ ] BS-NN browser matrix: 20/20 PASS with screenshots committed
-- [ ] Rubric-A re-score: target 13-15/40 per S0.17 plan
-- [ ] PR body links to verification evidence
+Branch is nowhere near deploy-ready. **Do NOT propose deploy as a next step**. The cumulative file set across sessions 112-121 will be relevant when the branch is actually ready to ship — that decision is CSJ's, made explicitly, not by recommendation. Until CSJ says "deploy", treat all sessions as feature/refactor work on `feature/fyn-persona-split`.
 
 ### Sprint 1 — INV-2.3.5 structured `advice_response` SSE event
 
@@ -160,15 +129,17 @@ Session 121 closed the SaveTax catalogue strategy work entirely. **All 17 determ
 
 Plus the tech-debt sweep that landed alongside Phase 5 — band rates and dividend rates now flow through `TaxStrategyMath` config-sourced helpers, dead vars removed, and the Junior Pension comment cites the HMRC source.
 
-**Three clear paths for the next session:**
+**Deploy is NOT in scope.** Do not suggest it as a next step. The branch has a long way to go before shipping; CSJ will signal explicitly when deploy is on the table.
 
-1. **Cumulative dev deploy** (sessions 112+113+114+115+117+118+119+120+121 to csjones.co/fynla). Now 9 sessions deep; queue includes 4 SaveTax migrations from Phase 4 (none new in 121). Full file lists and SSH commands ready in `April/April30Updates/deploy.md` (will need a session 121 addendum). After dev verification, production deploy follows. **Strong recommendation** — the queue has stopped growing now that Phase 5 lands without new migrations or frontend, this is the natural moment to ship.
+**Candidate paths for the next session (CSJ to direct):**
 
-2. **Frontend polish for the SaveTax dashboard** — Phase 5's "Watch out" group now has a single tapered-AA card with a dense narrative. Worth checking whether the existing recommendation-card component handles the longer body copy gracefully across breakpoints. Also: the `extra.tapered_annual_allowance` figure (£50,003) gets formatted as "£50,000" in the title via `round() / 1000 × 1000` rounding — fine for prose, but the dashboard might want to surface the precise figure somewhere too (currently only in the JSON `extra` block).
+1. **Frontend polish for the SaveTax dashboard** — Phase 5's "Watch out" group now has a single tapered-AA card with a dense narrative. Worth checking whether the existing recommendation-card component handles the longer body copy gracefully across breakpoints. Also: the `extra.tapered_annual_allowance` figure (£50,003) gets formatted as "£50,000" in the title via `round() / 1000 × 1000` rounding — fine for prose, but the dashboard might want to surface the precise figure somewhere too (currently only in the JSON `extra` block).
 
-3. **Sprint 1 follow-ups** — `INV-2.3.5` structured `advice_response` SSE event remains carried from Sprint 0. Independent of SaveTax; would unblock advice-side polish.
+2. **Sprint 1 follow-ups** — `INV-2.3.5` structured `advice_response` SSE event remains carried from Sprint 0. Independent of SaveTax.
 
-CSJ to choose. Path (1) is the highest-leverage given the deploy queue depth; (2) is opportunistic frontend work that sits naturally on Phase 5; (3) is unrelated AI-side work.
+3. **Tech-debt sweep** — S-3 (Junior Pension config exposure), S-4 / S-5 (V1 simplifications in Phase 5 helpers), `StrategyRecommendation` extras serialisation. See "Outstanding — Tech Debt Deferred" below.
+
+4. **Other module work** — Fynla has many modules outside SaveTax (Estate, Protection, Retirement, Investment, Goals, Coordination). CSJ to direct.
 
 ---
 
