@@ -1,92 +1,130 @@
-# Tech Debt Report — Session 117 (30 April 2026)
+# Tech Debt Report — Session 118 (30 April 2026)
 
-**Files analysed:** 6
-**Issues found:** 3
-**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
+**Files analysed:** 10 (8 modified + 2 new enums)
+**Issues found:** 6
+**Severity breakdown:** 0 critical, 2 warnings, 4 suggestions
 
-Files in scope (Phase 1 — calculator refactor to flat `recommendations[]` DTO):
-
-- `app/DataTransferObjects/StrategyRecommendation.php` (new)
-- `app/DataTransferObjects/TaxStrategyOutputDTO.php` (modified)
-- `app/Services/Tax/TaxStrategyCalculator.php` (modified)
-- `tests/Unit/DataTransferObjects/StrategyRecommendationTest.php` (new)
-- `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php` (modified)
-- `tests/Feature/Api/TaxStrategy/ShowEndpointTest.php` (modified)
+---
 
 ## Critical Issues
 
 None.
 
+---
+
 ## Warnings
 
-None. All conventions intact:
+### W-1. Duplicate dividend-rate match across three call sites
 
-- `declare(strict_types=1);` present in every PHP file changed/created
-- All method parameters and return types type-hinted
-- No tax values hardcoded in production code (test fixtures use literals — acceptable per `tests/CLAUDE.md`)
-- No `DB` facade usage in controllers / services touched
-- No banned colour classes, acronym leaks, score badges, or other Rule violations (none of these surfaces were touched anyway — backend-only refactor)
-- No duplication: the new `StrategyRecommendation::fromArray` / `toArray` pair follows the same pattern as `TaxStrategyOutputDTO::toArray` and the rest of `app/DataTransferObjects/`
-- 22/22 unit + feature tests green; 95/95 architecture suite green; Pint clean
-- `calculate()` method is 50 lines — at the soft threshold but stays well-structured (variable assignments + one return)
+**File / lines:** `app/Services/Tax/TaxStrategyCalculator.php:362-367`, `:403-407`, `:837-842`
+**Category:** Duplicate Code
+
+The same `match(band) → dividend rate` block is repeated three times across `buildAssetShiftingSuggestions`, `buildCrossSpouseSuggestions`, and `buildAllowanceRecommendations`. Each lifts `basic_rate` / `higher_rate` / `additional_rate` from `getDividendTax()` with the same fallbacks.
+
+**Suggested fix:** Extract a private helper:
+```php
+private function dividendRateForBand(string $band): float
+{
+    $div = $this->taxConfig->getDividendTax();
+    return match ($band) {
+        'higher' => (float) ($div['higher_rate'] ?? 0.3375),
+        'additional' => (float) ($div['additional_rate'] ?? 0.3935),
+        default => (float) ($div['basic_rate'] ?? 0.0875),
+    };
+}
+```
+Replace the three sites with `$this->dividendRateForBand($band)`.
+
+### W-2. Hardcoded marginal income-tax rates in `bandRateFor()` and income-band generators
+
+**File / lines:** `app/Services/Tax/TaxStrategyCalculator.php:950-957` (existing pre-Phase 2), `:487, :522` (new Phase 2)
+**Category:** Convention Violation (Rule #3 — no hardcoded tax values, use TaxConfigService)
+
+```php
+return match (...) {
+    'basic' => 0.20,
+    'higher' => 0.40,
+    'additional' => 0.45,
+};
+```
+
+`getIncomeTax()['bands']` already carries `rate` per band — this match could iterate the bands and pull the appropriate rate from config. Rule #3 says zero hardcoded tax. The new income-band strategies #1 / #2 also use literal `0.60` / `0.45` / `0.40` (lines 487, 522) — same root cause.
+
+**Suggested fix:** Add a `bandRateFromConfig(string $band): float` helper that maps the band key to `$bands[*]['rate']`. The 60% effective rate could be derived as `higher_rate + (personal_allowance_taper_rate)` instead of literal `0.60`.
+
+---
 
 ## Suggestions
 
-### 1. `StrategyRecommendation::category` is an unenforced string
+### S-1. `TaxStrategyCalculator.php` is 988 lines — candidate for split
 
-- **File:** `app/DataTransferObjects/StrategyRecommendation.php:37`
-- **Category:** Convention / Maintainability
-- **What's wrong:** `$category` is typed as `string` with no validation. The PHPDoc lists 5 allowed values (`'income_band'`, `'allowance'`, `'household'`, `'lifecycle'`, `'warning'`) but a typo at a future call site silently accepts. Phase 2 introduces ~10 new emitters across categories, increasing the surface for typos.
-- **Suggested fix (defer to Phase 2):** Convert to a PHP backed enum:
+**File:** `app/Services/Tax/TaxStrategyCalculator.php`
+**Category:** Complexity & Maintainability
 
-  ```php
-  enum StrategyCategory: string {
-      case IncomeBand = 'income_band';
-      case Allowance = 'allowance';
-      case Household = 'household';
-      case Lifecycle = 'lifecycle';
-      case Warning = 'warning';
-  }
-  ```
+The calculator now hosts four strategy generators (income-band, allowance, lifecycle, joint-savings) plus two legacy household builders, four allowance-grid builders, and helpers. At 988 lines it's well past the 500-line threshold and growing — Phase 3-5 will add more.
 
-  Then type `$category` as `StrategyCategory` in the constructor and `toArray()` writes `->value`. Single point of truth, IDE autocomplete, breaks on typos. Not worth doing in Phase 1 with one category in active use.
+**Suggested fix (deferrable to Phase 4-5):** Extract per-category strategy classes:
+- `App\Services\Tax\Strategies\IncomeBandStrategy`
+- `App\Services\Tax\Strategies\AllowanceStrategy`
+- `App\Services\Tax\Strategies\LifecycleStrategy`
+- `App\Services\Tax\Strategies\JointSavingsStrategy`
+- `App\Services\Tax\Strategies\HouseholdStrategy` (collapses `buildAssetShiftingSuggestions` + `buildCrossSpouseSuggestions`)
 
-### 2. `StrategyRecommendation::priority` is an unenforced string
+Each implements a small interface (e.g., `recommend(User $user, Context $ctx): array`); `TaxStrategyCalculator` becomes an orchestrator that fans out to the strategy classes and merges results.
 
-- **File:** `app/DataTransferObjects/StrategyRecommendation.php:38`
-- **Category:** Convention / Maintainability
-- **What's wrong:** Same critique as #1 — `$priority` accepts any string but is documented as `'high' | 'medium' | 'low'`. The frontend `StrategyRecommendationList.vue` sorts/filters on this field; an unrecognised value would cluster oddly without raising an error.
-- **Suggested fix (defer to Phase 2):** Backed enum, paired with #1.
+### S-2. Magic threshold `> 1000` for "worth recommending"
 
-### 3. `calculate()` two-step `array_map` could collapse to one
+**File / lines:** `app/Services/Tax/TaxStrategyCalculator.php:306, 791`
+**Category:** Convention Violation (no magic numbers)
 
-- **File:** `app/Services/Tax/TaxStrategyCalculator.php:97-107`
-- **Category:** Complexity / Maintainability (minor)
-- **What's wrong:** The current code maps each raw array → typed object, then immediately maps each typed object → array. The intermediate `$assetShiftingObjs` / `$crossSpouseObjs` are discarded. Slightly wasteful on a sub-50ms hot path that runs on every slider drag.
-- **Suggested fix:** Collapse to a single map per collection:
+Both the existing `savings_to_spouse` and the new `isa_topup_vs_psa` use `if ($transferable > 1000)` to decide whether to surface. Same value, two sites, no shared constant.
 
-  ```php
-  $assetShiftingSuggestions = array_map(
-      fn (array $arr) => StrategyRecommendation::fromArray('household', $arr)->toArray(),
-      $assetShiftingRaw,
-  );
-  $crossSpouseSuggestions = array_map(
-      fn (array $arr) => StrategyRecommendation::fromArray('household', $arr)->toArray(),
-      $crossSpouseRaw,
-  );
-  $recommendations = array_merge($assetShiftingSuggestions, $crossSpouseSuggestions);
-  ```
+**Suggested fix:** Add a class-level `private const MIN_TRANSFER_TO_RECOMMEND = 1000.0;` and reference it.
 
-  Reads as cleanly and skips one allocation pass. Defer if Phase 2 is going to refactor this site anyway — Phase 2 builders will return `StrategyRecommendation[]` directly, eliminating the wrapping step entirely.
+### S-3. Hardcoded Junior Pension £2,880 / £720 values
+
+**File / lines:** `app/Services/Tax/TaxStrategyCalculator.php:644-645`
+**Category:** Convention Violation (Rule #3) / Maintainability
+
+```php
+$juniorPensionNet = 2880.0;
+$juniorPensionUplift = 720.0;
+```
+
+These are HMRC-fixed values (£2,880 net + 25% basic-rate relief = £3,600 gross). Could be derived from `pension_allowances` config, or at minimum carry an inline comment citing the HMRC source.
+
+**Suggested fix:** Add a comment explaining the derivation (basic-rate relief × £3,600 gross = £720 uplift, £3,600 − £720 = £2,880 net), or expose them via TaxConfigService as `pension_allowances.junior_pension_net_cap` + `junior_pension_uplift`.
+
+### S-4. `availableAnnualAllowance` ignores tapered AA (deliberate Phase 5 gap)
+
+**File / lines:** `app/Services/Tax/TaxStrategyCalculator.php:906-913`
+**Category:** Known limitation (already documented in docblock)
+
+The helper docblock explicitly notes: "does not currently account for tapered AA (Phase 5) or carry-forward (Phase 4)." For high earners (adjusted income > £260k) the actual allowance can be as low as £10k. Strategies #1 / #2 may currently over-suggest contribution sizes for this segment.
+
+**Suggested fix:** No action this session — Phase 5 (#14 Tapered AA) is the deliberate landing place. The docblock already flags it. Mention in CSJTODO so it isn't forgotten.
+
+---
+
+## Frontend / Tests / Enums — Clean
+
+- `StrategyCategory.php` + `StrategyPriority.php` — both `declare(strict_types=1)`, backed string enums with `sortWeight()` helpers. No issues.
+- `StrategyRecommendation.php` — clean enum-or-string ctor, public properties remain string-typed for back-compat. No issues.
+- `taxStrategy.js` — new getters `recommendations`, `recommendationsByCategory`, `individualRecommendations`, `householdRecommendations`. Legacy getters dropped cleanly.
+- `StrategyRecommendationList.vue` + `HouseholdView.vue` — multi-word component names, no hardcoded hex, no banned colours, no icons on banned surfaces. Use `eggshell-500`, `horizon-500`, `neutral-500`, `light-gray`, `spring-600` — all design-system tokens. ISA spelled out as "ISA" (allowed exception). All other acronyms expanded.
+- Test files — `declare(strict_types=1)`, `RefreshDatabase` trait, Pest `it()` / `describe()` style. No issues.
+
+---
 
 ## Top 3 Most Impactful
 
-All three suggestions are deliberately deferred to Phase 2, which will:
+1. **W-1** — Extract `dividendRateForBand()` helper. 3 call sites → 1. ~15 min fix, high value (DRY).
+2. **W-2** — Read marginal income-tax rates from `getIncomeTax()['bands']` rather than hardcoded `0.20/0.40/0.45`. Rule #3 compliance. ~30 min fix.
+3. **S-1** — File split into per-strategy classes. Larger refactor but de-risks Phase 3-5 growth.
 
-- Add ~10 new strategy generators across `income_band`, `allowance`, `household`, `lifecycle`, `warning` categories — at which point the enum (#1, #2) becomes load-bearing
-- Refactor builders to emit `StrategyRecommendation[]` directly rather than raw arrays — eliminating the two-step map (#3) entirely
+## Critical issues blocking commit
 
-No critical issues need fixing before commit. Phase 1 is shippable as-is.
+None. All changes are committable as-is. The two warnings are DRY/convention improvements; the four suggestions are deferred refactors.
 
 ---
-*Generated by tech-debt-session skill*
+*Generated by tech-debt-session skill — session 118, 30 April 2026*
