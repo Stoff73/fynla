@@ -1,7 +1,38 @@
 # CSJTODO — Fynla
 
-*Last updated: 30 April 2026 — session 115 (Fyn AI audit + 15-finding fix cycle, all P1/P2 closed).*
-*Previous session: 114 (29 April — BS-27 + BS-28 root-cause fixes shipped, both live GREEN).*
+*Last updated: 30 April 2026 — session 116 (architecture map post-fix rewrite + new tool catalogue; no code changes).*
+*Previous session: 115 (30 April — Fyn AI audit + 15-finding fix cycle, all P1/P2 closed, commit `0434fa1`).*
+
+---
+
+## Session 116 (30 April 2026) — Architecture map post-fix rewrite + tool catalogue
+
+**Branch:** `feature/fyn-persona-split`. **Commits:** 0 (all docs in gitignored `/April/`).
+
+CSJ asked: (a) compare `April/April30pdates/auditFixes.md` with `fyn-ai-audit.md` and the codebase; (b) update `fyn-ai-and-savetax-architecture-map.md` to reflect what's actually in the code now; (c) produce a full detailed list of every tool both AI systems use.
+
+### Completed this session
+
+- [x] **Verified all 15 fixes line-by-line in code** — file:line evidence for F-1 (`AdviceFyn.php:394-447` + `aiChat.js:542-557`), F-2 (`UserContentSanitiser.php:68`), F-3 (`HasAiChat.php:615, 891-954`), F-4 (`HasAiChat.php:368-374`), F-5 (`OnboardingPromptBuilder.php:79-88`), F-6 (`WriteIntentClassifier.php:100-134, 169-182`), F-7 (`FcaProcessInstructions.php:24-33` comment-only), F-8 (`HasAiChat.php:711`), F-9 (`AdvicePromptCacheInvalidator.php` + `CoordinatingAgent.php:987-989`), F-10 (`AdviceFyn.php:142`), F-11 (`OnboardingChatDirector.php:49, 1693-1717`), F-12 (`EvalBypassGate.php` + `HasAiChat.php:166-167` + `PreviewWriteInterceptor.php:142-147` + `EvalHttpDriver.php:84-85`), F-13 (`HasAiChat.php:431-444, 1110-1142`), F-14 (`AdvicePromptBuilder.php:124-151`), F-15 (`HasAiChat.php:59-63, 187-193, 654-665`). All 15 confirmed shipped exactly as `auditFixes.md` claimed.
+- [x] **Rewrote `April/April30pdates/fyn-ai-and-savetax-architecture-map.md`** — surgical updates to §1.2 (F-5 cache-first prompt order + F-11 onboarding duplicate guard subsection with focus → entity_type mapping table + the SaveTax/estate/business fall-through caveat), §1.3 (F-6 interrogative guard on write-intent short-circuit, F-1 two-stage `HandoffPayloadValidator` flow with hard/soft branches + `handoff_error` SSE handler, F-10 default-`factual` engine fallback, F-14 Layer 5/6 skip on factual queries with token estimate), §1.4 (side-by-side table updated: prompt cache row, dynamic tool-cap row, transient retry row, pre-LLM dedup row), §1.5 (new sub-sections for F-3 tool-result compression, F-4 Anthropic cache telemetry, F-7 dead-method removal, F-8 system-prompt hash, F-9 cache invalidation on capture, F-12 EvalBypassGate defence-in-depth, F-13 transient retry, F-15 dynamic tool-cap; F-2 denylist sanitiser update), §2.5–2.7 (SaveTax now caches Layers 1-3 across 6-8 turns; **explicit note that F-11 does NOT activate for SaveTax — `default => null` in focus match falls through to handler-level idempotency**). Top header now references `auditFixes.md` and notes 34/35 invariants conformant.
+- [x] **Created `April/April30pdates/fyn-ai-tool-catalogue.md`** — companion catalogue of all **47 distinct tools + 2 internal handoff stubs** the LLM ever sees. 12 functional sections: read tools (12), direct-write life records (12), direct-write estate (6), goals & scenarios (3), modification & deletion (2), profile & expenditure (2), onboarding base-flow extraction (4), SaveTax campaign-specific capture (4), internal handoff (2), per-Fyn matrix, preview-mode behaviour, tool result shape contract. Each tool entry has: parameters, multi-call semantics, anti-patterns, and per-persona/turn-type visibility (Advice / Onboarding-asset_capture / Onboarding-grouped_extract / Onboarding-inline-capture). Includes `toolsForFocus` map and `WRITE_TOOLS` blacklist explainer.
+- [x] **Vault synced** — both updated/new docs copied to `/Users/CSJ/Desktop/fynlaBrain/April/April30Updates/`. Apr30.md commit log updated to 2 commits (added `f8bb90c` session-end docs commit). April Index `April30Updates` section updated with the new tool catalogue link + revised architecture-map description. April Index `Sessions` section now shows "April 30 (2 sessions — 1 commit)" with both Session 115 + Session 116 entries. Apr2026 Commits.md total 736 → 737 + Apr30 row 1 → 2. Home.md April 2026 row 736 → 737 + total 2,955 → 2,956.
+- [x] **Dev server running in background** — Laravel on `:8000` (200 OK), Vite on `:5174` (5173 was occupied at boot; HMR responding, Chrome attached). Background task `bu5771ozs`. Two pre-existing Vite warnings unrelated to this session: `hover-blue-gradient` Tailwind utility invalid theme value, `<button>` inside `<button>` in `resources/js/components/Shared/AiChatPanel.vue:131-139`.
+
+### Session 116 deliverables
+
+| Artefact | Path | Size |
+|---|---|---|
+| Architecture map (rewritten) | `April/April30pdates/fyn-ai-and-savetax-architecture-map.md` | 38 KB |
+| Tool catalogue (new) | `April/April30pdates/fyn-ai-tool-catalogue.md` | 28 KB |
+| Architecture map PDF | `April/April30pdates/fyn-ai-and-savetax-architecture-map.pdf` | 566 KB |
+| Tool catalogue PDF | `April/April30pdates/fyn-ai-tool-catalogue.pdf` | 582 KB |
+
+All four also live at the equivalent path under `/Users/CSJ/Desktop/fynlaBrain/April/April30Updates/`.
+
+### Out-of-scope notes for next session
+
+- Cosmetic markdownlint warnings on `fyn-ai-tool-catalogue.md` (multiple H1s — section dividers `# 1.` through `# 12.` should be `## 1.`; some MD022 blank-lines-around-headings nits). Doc renders fine in Obsidian/GitHub. Skipped this session as cosmetic-only; clean up if/when the doc gets reused.
 
 ---
 
