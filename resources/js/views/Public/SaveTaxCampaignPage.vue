@@ -91,7 +91,7 @@
                 :to="campaignRegistrationLink"
                 class="mt-5 inline-block px-5 py-2.5 bg-raspberry-500 hover:bg-raspberry-600 text-white text-sm font-semibold rounded-lg transition-colors text-left"
               >
-                Ask Fyn how →
+                Register now to ask Fyn
               </router-link>
             </article>
           </div>
@@ -102,13 +102,16 @@
               :to="campaignRegistrationLink"
               class="inline-block px-8 py-3 bg-spring-500 hover:bg-spring-600 text-white text-base font-semibold rounded-lg transition-colors"
             >
-              Start your free 7-day trial
+              Register now to ask Fyn
             </router-link>
           </div>
         </div>
       </div>
     </div>
-    <StaticFynChat />
+    <StaticFynChat
+      source="savetax"
+      response-message="I can give you a personalised tax strategy once you register."
+    />
   </PublicLayout>
 </template>
 
