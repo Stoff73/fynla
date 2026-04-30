@@ -952,6 +952,14 @@ class XaiToolDefinitions
                 ],
                 ['history']
             ),
+            $this->wrapTool(
+                'capture_charitable_giving',
+                'Capture the user\'s annual charitable donations covered by Gift Aid. Used by the Gift Aid Higher-Rate Relief strategy to compute the personal tax relief the user can reclaim via Self Assessment when they donate at the higher or additional rate.',
+                [
+                    'annual_donations' => ['type' => 'number', 'description' => 'Total annual Gift-Aid-eligible donations in pounds.'],
+                ],
+                ['annual_donations']
+            ),
         ];
     }
 

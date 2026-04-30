@@ -892,6 +892,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
                 'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
                 'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser),
+                'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
@@ -4056,6 +4057,30 @@ class CoordinatingAgent extends BaseAgent
             'field_group' => 'campaign_pension_history',
             'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
             'details' => $written,
+        ];
+    }
+
+    private function handleCaptureCharitableGiving(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('profile');
+        }
+
+        if (! array_key_exists('annual_donations', $input)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'annual_donations is required.'];
+        }
+
+        $amount = (float) $input['annual_donations'];
+        if ($amount < 0) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'annual_donations must be >= 0.'];
+        }
+
+        $user->update(['annual_charitable_donations' => $amount]);
+
+        return [
+            'updated' => true,
+            'annual_charitable_donations' => $amount,
+            'message' => 'Annual charitable donations recorded.',
         ];
     }
 

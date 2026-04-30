@@ -1005,6 +1005,88 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
     });
 });
 
+describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
+    it('does not fire for basic-rate users', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 30000,
+            'annual_charitable_donations' => 500,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief');
+        expect($rec)->toBeNull();
+    });
+
+    it('does not fire when donations are zero or null', function () {
+        $userZero = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'annual_charitable_donations' => 0,
+        ]);
+        $userNull = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'annual_charitable_donations' => null,
+        ]);
+
+        $outputZero = app(TaxStrategyCalculator::class)->calculate($userZero);
+        $outputNull = app(TaxStrategyCalculator::class)->calculate($userNull);
+
+        expect(collect($outputZero->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
+        expect(collect($outputNull->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief'))->toBeNull();
+    });
+
+    it('fires for higher-rate user with correct 25% factor', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'annual_charitable_donations' => 1000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief');
+        expect($rec)->not->toBeNull()
+            ->and($rec['estimated_annual_tax_saved'])->toBe(250.0)
+            ->and($rec['reclaim_factor'])->toBe(0.25)
+            ->and($rec['tax_band'])->toBe('higher')
+            ->and($rec['annual_donations'])->toBe(1000.0)
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['category'])->toBe('allowance');
+    });
+
+    it('fires for additional-rate user with correct 31.25% factor', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 200000,
+            'annual_charitable_donations' => 1000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief');
+        expect($rec)->not->toBeNull()
+            ->and($rec['estimated_annual_tax_saved'])->toBe(312.5)
+            ->and($rec['reclaim_factor'])->toBe(0.3125)
+            ->and($rec['tax_band'])->toBe('additional');
+    });
+
+    it('omits when saving below £1 floor', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'annual_charitable_donations' => 2.0, // 2 × 0.25 = 0.50 — below £1
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'gift_aid_higher_rate_relief');
+        expect($rec)->toBeNull();
+    });
+});
+
 describe('overrides applied in-memory', function () {
     it('applies pension_contribution_percent override without DB write', function () {
         $user = User::factory()->create([

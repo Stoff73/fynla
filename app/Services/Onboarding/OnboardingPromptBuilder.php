@@ -119,6 +119,7 @@ final class OnboardingPromptBuilder
                 'create_pension',
                 'capture_salary_sacrifice',
                 'capture_pension_history',
+                'capture_charitable_giving',
                 'create_savings_account',
                 'create_investment_account',
                 'create_holding',
