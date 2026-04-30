@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
+use App\DataTransferObjects\StrategyRecommendation;
 use App\DataTransferObjects\TaxStrategyOutputDTO;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\Investment\InvestmentAccount;
@@ -75,24 +76,45 @@ final class TaxStrategyCalculator
         $userAllowances = $this->buildUserAllowanceGrid($user, $overrides);
 
         $spouseAllowances = null;
-        $assetShifting = [];
-        $crossSpouse = [];
+        $assetShiftingRaw = [];
+        $crossSpouseRaw = [];
 
         if ($mode === 'dual_earner' && $household instanceof TaxStrategyHouseholdInput) {
             $spouseAllowances = $this->buildSpouseAllowanceGridDualEarner($household);
-            $crossSpouse = $this->buildCrossSpouseSuggestions($user, $household);
+            $crossSpouseRaw = $this->buildCrossSpouseSuggestions($user, $household);
         } elseif ($mode === 'single_earner_couple') {
             $spouseAllowances = $this->buildSpouseAllowanceGridNonWorking($household);
-            $assetShifting = $this->buildAssetShiftingSuggestions($user, $household, $overrides);
+            $assetShiftingRaw = $this->buildAssetShiftingSuggestions($user, $household, $overrides);
         }
+
+        // Phase 1 (April30Updates) — unify both legacy collections into a flat
+        // `recommendations` array tagged by category. The legacy arrays remain
+        // populated as filtered views over the same items for back-compat with
+        // the existing HouseholdView / StrategyRecommendationList consumers.
+        // Both existing builders emit household-category strategies (Marriage
+        // Allowance, savings → spouse, GIA → spouse, ISA top-up, GIA rebalance,
+        // ISA coordination); Phase 2 introduces additional categories.
+        $assetShiftingObjs = array_map(
+            fn (array $arr) => StrategyRecommendation::fromArray('household', $arr),
+            $assetShiftingRaw,
+        );
+        $crossSpouseObjs = array_map(
+            fn (array $arr) => StrategyRecommendation::fromArray('household', $arr),
+            $crossSpouseRaw,
+        );
+
+        $assetShiftingSuggestions = array_map(fn (StrategyRecommendation $r) => $r->toArray(), $assetShiftingObjs);
+        $crossSpouseSuggestions = array_map(fn (StrategyRecommendation $r) => $r->toArray(), $crossSpouseObjs);
+        $recommendations = array_merge($assetShiftingSuggestions, $crossSpouseSuggestions);
 
         return new TaxStrategyOutputDTO(
             taxYear: $taxYear,
             calculationMode: $mode,
             userAllowances: $userAllowances,
             spouseAllowances: $spouseAllowances,
-            assetShiftingSuggestions: $assetShifting,
-            crossSpouseSuggestions: $crossSpouse,
+            recommendations: $recommendations,
+            assetShiftingSuggestions: $assetShiftingSuggestions,
+            crossSpouseSuggestions: $crossSpouseSuggestions,
             deltaVsBaseline: [],
         );
     }

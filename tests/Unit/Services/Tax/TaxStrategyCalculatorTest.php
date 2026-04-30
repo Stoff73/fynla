@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\DataTransferObjects\TaxStrategyOutputDTO;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
@@ -197,6 +196,96 @@ describe('benchmark', function () {
         $elapsedMs = (hrtime(true) - $start) / 1_000_000;
 
         expect($elapsedMs)->toBeLessThan(50);
+    });
+});
+
+describe('recommendations contract (Phase 1)', function () {
+    it('exposes an empty recommendations array for single-mode users', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 50000,
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect($output->recommendations)->toBe([])
+            ->and($output->assetShiftingSuggestions)->toBe([])
+            ->and($output->crossSpouseSuggestions)->toBe([]);
+    });
+
+    it('mirrors crossSpouseSuggestions into recommendations for dual_earner mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 30000,
+            'spouse_employment_status' => 'full_time',
+            'spouse_isa_balance' => 5000,
+            'spouse_psa_band' => 'basic',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect($output->recommendations)->toHaveCount(count($output->crossSpouseSuggestions))
+            ->and($output->assetShiftingSuggestions)->toBe([])
+            ->and($output->recommendations)->not->toBe([]);
+
+        // Every recommendation carries the canonical Phase 1 fields
+        foreach ($output->recommendations as $rec) {
+            expect($rec)->toHaveKeys(['type', 'category', 'priority', 'title', 'description', 'requires_advice'])
+                ->and($rec['category'])->toBe('household');
+        }
+    });
+
+    it('mirrors assetShiftingSuggestions into recommendations for single_earner_couple mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 100000,
+            'marital_status' => 'married',
+            'marriage_allowance_eligible' => true,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_isa_balance' => 0,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 200000,
+            'interest_rate' => 0.035,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect($output->recommendations)->toHaveCount(count($output->assetShiftingSuggestions))
+            ->and($output->crossSpouseSuggestions)->toBe([])
+            ->and($output->recommendations)->not->toBe([]);
+
+        // Strategy-specific extras still surfaced at the top level (back-compat)
+        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
+        expect($shift)->not->toBeNull()
+            ->and($shift['suggested_transfer_amount'])->toBeGreaterThan(0)
+            ->and($shift['category'])->toBe('household');
+    });
+
+    it('serialises recommendations through TaxStrategyOutputDTO::toArray()', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 100000,
+            'marriage_allowance_eligible' => true,
+        ]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+
+        $payload = app(TaxStrategyCalculator::class)->calculate($user)->toArray();
+
+        expect($payload)->toHaveKey('recommendations')
+            ->and($payload['recommendations'])->toBeArray()
+            ->and($payload)->toHaveKey('asset_shifting_suggestions')   // legacy preserved
+            ->and($payload)->toHaveKey('cross_spouse_suggestions');    // legacy preserved
     });
 });
 

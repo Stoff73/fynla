@@ -1,18 +1,17 @@
-# Tech Debt Report — Session 114 (2026-04-29 evening)
+# Tech Debt Report — Session 117 (30 April 2026)
 
-**Files analysed:** 7 (1 commit `34b9915`)
-**Issues found:** 0 critical, 0 warnings, 1 suggestion
-**Severity breakdown:** Clean bill — surgical fixes, no convention drift
+**Files analysed:** 6
+**Issues found:** 3
+**Severity breakdown:** 0 critical, 0 warnings, 3 suggestions
 
-## Files audited
+Files in scope (Phase 1 — calculator refactor to flat `recommendations[]` DTO):
 
-- `app/Agents/CoordinatingAgent.php` — capture handler return-shape change
-- `app/Services/AI/AiToolDefinitions.php` — campaign tools merged into onboardingExtractionTools
-- `app/Services/Onboarding/OnboardingChatDirector.php` — `dispatchBubbleCapture` method + grouped-extract terminal-navigate branch
-- `app/Services/Onboarding/OnboardingStateMachine.php` — `bubble_capture` config on STATE_CAMPAIGN_SPOUSE_WORK
-- `tests/Feature/AI/DirectWrite/CaptureSpouseHouseholdDataTest.php` — assertions updated for new receipt
-- `tests/Feature/AI/DirectWrite/CaptureSpouseNonWorkingAssetsTest.php` — assertions updated for new receipt
-- `tests/Unit/Services/Onboarding/CampaignBubbleCaptureTest.php` — new (3 cases)
+- `app/DataTransferObjects/StrategyRecommendation.php` (new)
+- `app/DataTransferObjects/TaxStrategyOutputDTO.php` (modified)
+- `app/Services/Tax/TaxStrategyCalculator.php` (modified)
+- `tests/Unit/DataTransferObjects/StrategyRecommendationTest.php` (new)
+- `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php` (modified)
+- `tests/Feature/Api/TaxStrategy/ShowEndpointTest.php` (modified)
 
 ## Critical Issues
 
@@ -20,39 +19,74 @@ None.
 
 ## Warnings
 
-None.
+None. All conventions intact:
+
+- `declare(strict_types=1);` present in every PHP file changed/created
+- All method parameters and return types type-hinted
+- No tax values hardcoded in production code (test fixtures use literals — acceptable per `tests/CLAUDE.md`)
+- No `DB` facade usage in controllers / services touched
+- No banned colour classes, acronym leaks, score badges, or other Rule violations (none of these surfaces were touched anyway — backend-only refactor)
+- No duplication: the new `StrategyRecommendation::fromArray` / `toArray` pair follows the same pattern as `TaxStrategyOutputDTO::toArray` and the rest of `app/DataTransferObjects/`
+- 22/22 unit + feature tests green; 95/95 architecture suite green; Pint clean
+- `calculate()` method is 50 lines — at the soft threshold but stays well-structured (variable assignments + one return)
 
 ## Suggestions
 
-### S1: `dispatchBubbleCapture` guard clause has four chained `!` conditions
+### 1. `StrategyRecommendation::category` is an unenforced string
 
-**File:** `app/Services/Onboarding/OnboardingChatDirector.php:786`
-**Category:** Complexity & Maintainability
+- **File:** `app/DataTransferObjects/StrategyRecommendation.php:37`
+- **Category:** Convention / Maintainability
+- **What's wrong:** `$category` is typed as `string` with no validation. The PHPDoc lists 5 allowed values (`'income_band'`, `'allowance'`, `'household'`, `'lifecycle'`, `'warning'`) but a typo at a future call site silently accepts. Phase 2 introduces ~10 new emitters across categories, increasing the surface for typos.
+- **Suggested fix (defer to Phase 2):** Convert to a PHP backed enum:
 
-The early-return guard on the new method:
+  ```php
+  enum StrategyCategory: string {
+      case IncomeBand = 'income_band';
+      case Allowance = 'allowance';
+      case Household = 'household';
+      case Lifecycle = 'lifecycle';
+      case Warning = 'warning';
+  }
+  ```
 
-```php
-if (! is_string($tool) || ! is_string($bubbleId) || ! isset($inputMap[$bubbleId]) || ! is_array($inputMap[$bubbleId])) {
-    return;
-}
-```
+  Then type `$category` as `StrategyCategory` in the constructor and `toArray()` writes `->value`. Single point of truth, IDE autocomplete, breaks on typos. Not worth doing in Phase 1 with one category in active use.
 
-Four negated conditions on one line is at the edge of readable. Acceptable here because all four guard the same "config is malformed" condition and the method is only ~15 lines, but if a fifth bubble-capture state ever needs different guards, factor into a small `validateBubbleCaptureConfig()` helper.
+### 2. `StrategyRecommendation::priority` is an unenforced string
 
-**Defer.** Not blocking; only worth touching if a second bubble→tool wiring is added.
+- **File:** `app/DataTransferObjects/StrategyRecommendation.php:38`
+- **Category:** Convention / Maintainability
+- **What's wrong:** Same critique as #1 — `$priority` accepts any string but is documented as `'high' | 'medium' | 'low'`. The frontend `StrategyRecommendationList.vue` sorts/filters on this field; an unrecognised value would cluster oddly without raising an error.
+- **Suggested fix (defer to Phase 2):** Backed enum, paired with #1.
 
-## Convention compliance
+### 3. `calculate()` two-step `array_map` could collapse to one
 
-- ✅ `declare(strict_types=1);` present in all PHP files (none removed)
-- ✅ Type hints on every new method parameter + return type
-- ✅ No hardcoded tax values introduced (TaxConfigService still owns rates)
-- ✅ No banned colours / scores / icons (no UI changes)
-- ✅ No DB facade introduced
-- ✅ Receipt shape (`onboarding_capture`/`field_group`/`summary`/`details`) matches the canonical pattern used by `handleCapturePersonalDetails` — no new pattern introduced
-- ✅ Tests follow Pest conventions (`describe()`/`it()`, `RefreshDatabase`, `TaxConfigurationSeeder` in beforeEach)
-- ✅ No new acronyms in user-facing text (none changed)
-- ✅ Architecture parity test 95/95 still green after changes
-- ✅ Onboarding + Fyn + architecture suite 608/608 green
+- **File:** `app/Services/Tax/TaxStrategyCalculator.php:97-107`
+- **Category:** Complexity / Maintainability (minor)
+- **What's wrong:** The current code maps each raw array → typed object, then immediately maps each typed object → array. The intermediate `$assetShiftingObjs` / `$crossSpouseObjs` are discarded. Slightly wasteful on a sub-50ms hot path that runs on every slider drag.
+- **Suggested fix:** Collapse to a single map per collection:
+
+  ```php
+  $assetShiftingSuggestions = array_map(
+      fn (array $arr) => StrategyRecommendation::fromArray('household', $arr)->toArray(),
+      $assetShiftingRaw,
+  );
+  $crossSpouseSuggestions = array_map(
+      fn (array $arr) => StrategyRecommendation::fromArray('household', $arr)->toArray(),
+      $crossSpouseRaw,
+  );
+  $recommendations = array_merge($assetShiftingSuggestions, $crossSpouseSuggestions);
+  ```
+
+  Reads as cleanly and skips one allocation pass. Defer if Phase 2 is going to refactor this site anyway — Phase 2 builders will return `StrategyRecommendation[]` directly, eliminating the wrapping step entirely.
+
+## Top 3 Most Impactful
+
+All three suggestions are deliberately deferred to Phase 2, which will:
+
+- Add ~10 new strategy generators across `income_band`, `allowance`, `household`, `lifecycle`, `warning` categories — at which point the enum (#1, #2) becomes load-bearing
+- Refactor builders to emit `StrategyRecommendation[]` directly rather than raw arrays — eliminating the two-step map (#3) entirely
+
+No critical issues need fixing before commit. Phase 1 is shippable as-is.
 
 ---
-*Generated by tech-debt-session skill — session 114, 2026-04-29*
+*Generated by tech-debt-session skill*
