@@ -1430,12 +1430,13 @@ class AiToolDefinitions
         return [
             [
                 'name' => 'capture_salary_sacrifice',
-                'description' => 'Set salary_sacrifice flag on a specific DC pension owned by the user. Use during the SaveTax campaign occupational-scheme capture state.',
+                'description' => 'Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'pension_id' => ['type' => 'integer', 'description' => 'ID of the dc_pension row to update.'],
                         'salary_sacrifice' => ['type' => 'boolean', 'description' => 'true if pension contributions are made via salary sacrifice.'],
+                        'employer_ni_rebate_pct' => ['type' => 'number', 'description' => 'Optional. Share of the employer National Insurance saving rebated back into the pension as a fraction between 0 and 1 (e.g. 0.5 for 50%).'],
                     ],
                     'required' => ['pension_id', 'salary_sacrifice'],
                     'additionalProperties' => false,
@@ -1473,7 +1474,7 @@ class AiToolDefinitions
             ],
             [
                 'name' => 'capture_spouse_non_working_assets',
-                'description' => 'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance).',
+                'description' => 'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies (Personal Allowance, Starting Rate for Savings, Personal Savings Allowance, ISA, CGT, Dividend allowance) and to size a non-earner spouse pension contribution.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -1481,6 +1482,7 @@ class AiToolDefinitions
                         'spouse_existing_savings_balance' => ['type' => 'number', 'description' => 'Spouse\'s existing standalone bank/savings balance.'],
                         'spouse_existing_investment_balance' => ['type' => 'number', 'description' => 'Spouse\'s existing standalone investment account (GIA) balance.'],
                         'spouse_existing_dividend_holdings_value' => ['type' => 'number', 'description' => 'Value of spouse\'s dividend-paying holdings.'],
+                        'spouse_existing_pension_balance' => ['type' => 'number', 'description' => 'Spouse\'s existing personal-pension pot value (used to size the non-earner pension top-up suggestion).'],
                     ],
                     'required' => [],
                     'additionalProperties' => false,

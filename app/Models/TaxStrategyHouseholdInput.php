@@ -16,7 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - dual_earner: spouse_annual_income / spouse_employment_status / spouse_isa_balance / spouse_psa_band /
  *                spouse_unrealised_gains / spouse_annual_dividends / spouse_pension_input_annual
  * - single_earner_couple: spouse_existing_isa_balance / spouse_existing_savings_balance /
- *                         spouse_existing_investment_balance / spouse_existing_dividend_holdings_value
+ *                         spouse_existing_investment_balance / spouse_existing_dividend_holdings_value /
+ *                         spouse_existing_pension_balance
  */
 class TaxStrategyHouseholdInput extends Model
 {
@@ -37,6 +38,7 @@ class TaxStrategyHouseholdInput extends Model
         'spouse_existing_savings_balance',
         'spouse_existing_investment_balance',
         'spouse_existing_dividend_holdings_value',
+        'spouse_existing_pension_balance',
     ];
 
     protected $casts = [
@@ -49,6 +51,7 @@ class TaxStrategyHouseholdInput extends Model
         'spouse_existing_savings_balance' => 'decimal:2',
         'spouse_existing_investment_balance' => 'decimal:2',
         'spouse_existing_dividend_holdings_value' => 'decimal:2',
+        'spouse_existing_pension_balance' => 'decimal:2',
     ];
 
     public function user(): BelongsTo

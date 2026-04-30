@@ -9,7 +9,9 @@ use App\DataTransferObjects\TaxStrategyOutputDTO;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
+use App\Models\DCPension;
 use App\Models\FamilyMember;
+use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
@@ -87,6 +89,8 @@ final class TaxStrategyCalculator
         $userLevelRecs = array_merge(
             $this->buildIncomeBandRecommendations($user, $overrides),
             $this->buildAllowanceRecommendations($user),
+            $this->buildSalarySacrificeRecommendation($user),
+            $this->buildBedAndIsaRecommendation($user),
             $this->buildLifecycleRecommendations($user),
             $this->buildJointSavingsRecommendations($user, $household, $mode),
         );
@@ -105,6 +109,11 @@ final class TaxStrategyCalculator
         $householdRecs = array_map(
             fn (array $arr) => StrategyRecommendation::fromArray(StrategyCategory::Household, $arr),
             $householdLegacyRaw,
+        );
+
+        $householdRecs = array_merge(
+            $householdRecs,
+            $this->buildNonEarnerSpousePensionRecommendation($user, $household, $mode),
         );
 
         $allRecs = array_merge($userLevelRecs, $householdRecs);
@@ -861,6 +870,310 @@ final class TaxStrategyCalculator
         }
 
         return $recommendations;
+    }
+
+    /**
+     * Strategy #4 — Salary Sacrifice for National Insurance Relief.
+     *
+     * Fires for an employed user who has a workplace DC pension where
+     * salary_sacrifice is null or false. Saving = annual_contribution × the
+     * employee's marginal NI rate, plus (if the employer rebates a share of
+     * their NI saving) annual_contribution × employer_NI_rate × rebate_pct.
+     * NI rates and the upper-earnings-limit are read from TaxConfigService.
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildSalarySacrificeRecommendation(User $user): array
+    {
+        if ((string) ($user->employment_status ?? '') !== 'employed') {
+            return [];
+        }
+
+        $eligiblePensions = DCPension::query()
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('salary_sacrifice')->orWhere('salary_sacrifice', false);
+            })
+            ->where('monthly_contribution_amount', '>', 0)
+            ->get(['id', 'monthly_contribution_amount', 'employer_ni_rebate_pct']);
+
+        if ($eligiblePensions->isEmpty()) {
+            return [];
+        }
+
+        $annualContribution = (float) $eligiblePensions->sum(fn ($p) => (float) $p->monthly_contribution_amount * 12);
+        if ($annualContribution <= 0) {
+            return [];
+        }
+
+        $ni = $this->taxConfig->getNationalInsurance();
+        $employee = $ni['class_1']['employee'] ?? [];
+        $employer = $ni['class_1']['employer'] ?? [];
+        $uel = (float) ($employee['upper_earnings_limit'] ?? 50270);
+        $mainRate = (float) ($employee['main_rate'] ?? 0.08);
+        $additionalRate = (float) ($employee['additional_rate'] ?? 0.02);
+        $employerRate = (float) ($employer['rate'] ?? 0.15);
+
+        $income = (float) ($user->annual_employment_income ?? 0);
+        $afterSacrifice = $income - $annualContribution;
+
+        // NI saving applies on the slice between (income − contribution) and income.
+        if ($income <= $uel) {
+            $employeeSaving = $annualContribution * $mainRate;
+        } elseif ($afterSacrifice >= $uel) {
+            $employeeSaving = $annualContribution * $additionalRate;
+        } else {
+            $belowUelSlice = $uel - $afterSacrifice;
+            $aboveUelSlice = $income - $uel;
+            $employeeSaving = $belowUelSlice * $mainRate + $aboveUelSlice * $additionalRate;
+        }
+
+        $rebatePct = (float) $eligiblePensions->max('employer_ni_rebate_pct');
+        $employerSaving = 0.0;
+        if ($rebatePct > 0) {
+            $employerSaving = $annualContribution * $employerRate * $rebatePct;
+        }
+
+        $totalSaving = $employeeSaving + $employerSaving;
+        if ($totalSaving < 1) {
+            return [];
+        }
+
+        $description = $rebatePct > 0
+            ? sprintf(
+                'Switching your £%s annual workplace pension contribution to salary sacrifice saves £%s in National Insurance every year. Your employer rebates %d%% of their NI saving back into the pot on top.',
+                number_format((int) $annualContribution),
+                number_format((int) round($totalSaving)),
+                (int) round($rebatePct * 100),
+            )
+            : sprintf(
+                'Switching your £%s annual workplace pension contribution to salary sacrifice saves £%s in National Insurance every year, with no change to your take-home pay.',
+                number_format((int) $annualContribution),
+                number_format((int) round($totalSaving)),
+            );
+
+        return [new StrategyRecommendation(
+            type: 'salary_sacrifice_ni',
+            category: StrategyCategory::Allowance,
+            priority: StrategyPriority::Medium,
+            title: sprintf(
+                'Save around £%s a year by moving your pension contributions to salary sacrifice',
+                number_format((int) round($totalSaving)),
+            ),
+            description: $description,
+            estimatedAnnualTaxSaved: round($totalSaving, 2),
+            extra: [
+                'annual_contribution' => round($annualContribution, 2),
+                'employee_ni_saving' => round($employeeSaving, 2),
+                'employer_ni_rebate_pct' => $rebatePct,
+                'employer_ni_rebate_saving' => round($employerSaving, 2),
+            ],
+        )];
+    }
+
+    /**
+     * Strategy #6 — Bed & ISA Capital Gains Harvest within the Annual Exempt Amount.
+     *
+     * Fires when the user has non-ISA holdings with positive unrealised gains
+     * AND remaining ISA allowance to absorb the proceeds. Saving =
+     * min(total_unrealised_gain, AEA) × CGT rate for the user's band, sized
+     * by the proceeds that fit inside the remaining ISA allowance.
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildBedAndIsaRecommendation(User $user): array
+    {
+        $isa = $this->taxConfig->getISAAllowances();
+        $cgt = $this->taxConfig->getCapitalGainsTax();
+        $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
+        $aea = (float) ($cgt['annual_exempt_amount'] ?? 3000);
+
+        $isaUsed = $this->estimateIsaSubscriptionsThisYear($user);
+        $isaRemaining = max(0, $isaAllowance - $isaUsed);
+
+        if ($isaRemaining <= 0 || $aea <= 0) {
+            return [];
+        }
+
+        $userBand = $this->bandFromIncome($this->taxableIncomeFor($user));
+        $cgtRate = match ($userBand) {
+            'basic' => (float) ($cgt['basic_rate'] ?? 0.18),
+            'higher', 'additional' => (float) ($cgt['higher_rate'] ?? 0.24),
+            default => 0.18,
+        };
+
+        $nonIsaAccountIds = InvestmentAccount::query()
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
+            })
+            ->pluck('id')
+            ->all();
+
+        if (empty($nonIsaAccountIds)) {
+            return [];
+        }
+
+        $holdings = Holding::query()
+            ->where('holdable_type', InvestmentAccount::class)
+            ->whereIn('holdable_id', $nonIsaAccountIds)
+            ->get(['quantity', 'purchase_price', 'current_price', 'current_value', 'cost_basis']);
+
+        if ($holdings->isEmpty()) {
+            return [];
+        }
+
+        $totalUnrealisedGain = 0.0;
+        $totalCurrentValueWithGain = 0.0;
+        foreach ($holdings as $h) {
+            $current = (float) ($h->current_value ?? 0);
+            if ($current <= 0 && $h->quantity && $h->current_price) {
+                $current = (float) $h->quantity * (float) $h->current_price;
+            }
+            $costBasis = (float) ($h->cost_basis ?? 0);
+            if ($costBasis <= 0 && $h->quantity && $h->purchase_price) {
+                $costBasis = (float) $h->quantity * (float) $h->purchase_price;
+            }
+            if ($current <= 0 || $costBasis <= 0) {
+                continue;
+            }
+            $gain = $current - $costBasis;
+            if ($gain > 0) {
+                $totalUnrealisedGain += $gain;
+                $totalCurrentValueWithGain += $current;
+            }
+        }
+
+        if ($totalUnrealisedGain <= 0) {
+            return [];
+        }
+
+        $realisableGains = min($totalUnrealisedGain, $aea);
+        $proceeds = min(
+            $isaRemaining,
+            $totalCurrentValueWithGain * ($realisableGains / $totalUnrealisedGain),
+        );
+
+        $saving = $realisableGains * $cgtRate;
+        if ($saving < 1) {
+            return [];
+        }
+
+        return [new StrategyRecommendation(
+            type: 'bed_and_isa',
+            category: StrategyCategory::Allowance,
+            priority: StrategyPriority::Medium,
+            title: sprintf(
+                'Bed & ISA — shelter £%s of gains tax-free this year',
+                number_format((int) round($realisableGains)),
+            ),
+            description: sprintf(
+                'You hold £%s of unrealised gains outside your ISA. Selling around £%s of holdings and rebuying them inside the ISA crystallises gains within your £%s tax-free Capital Gains allowance — saving roughly £%s on a future sale and sheltering all future growth.',
+                number_format((int) round($totalUnrealisedGain)),
+                number_format((int) round($proceeds)),
+                number_format((int) $aea),
+                number_format((int) round($saving)),
+            ),
+            estimatedAnnualTaxSaved: round($saving, 2),
+            extra: [
+                'total_unrealised_gain' => round($totalUnrealisedGain, 2),
+                'realisable_within_aea' => round($realisableGains, 2),
+                'estimated_proceeds_to_transfer' => round($proceeds, 2),
+                'cgt_rate' => $cgtRate,
+                'isa_remaining' => round($isaRemaining, 2),
+                'annual_exempt_amount' => $aea,
+            ],
+        )];
+    }
+
+    /**
+     * Strategy #12 — Pension contribution for a non-earning spouse.
+     *
+     * Fires when household_calculation_mode = single_earner_couple AND the
+     * spouse is under 75. £2,880 net contribution → £3,600 gross via 25%
+     * basic-rate uplift = £720/yr direct saving. Spouse age is resolved from
+     * a family_members row (relationship in spouse/partner/wife/husband/
+     * civil_partner) or, failing that, a linked spouse user — when no DOB is
+     * known we keep firing because single_earner_couple normally implies a
+     * working-age partner.
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildNonEarnerSpousePensionRecommendation(
+        User $user,
+        ?TaxStrategyHouseholdInput $household,
+        string $mode,
+    ): array {
+        if ($mode !== 'single_earner_couple') {
+            return [];
+        }
+
+        $spouseAge = $this->resolveSpouseAge($user);
+        if ($spouseAge !== null && $spouseAge >= 75) {
+            return [];
+        }
+
+        $netContribution = 2880.0;
+        $governmentUplift = 720.0;
+        $existingBalance = (float) ($household?->spouse_existing_pension_balance ?? 0);
+
+        $balanceLine = $existingBalance > 0
+            ? sprintf(' On top of their existing £%s pot.', number_format((int) $existingBalance))
+            : '';
+
+        return [new StrategyRecommendation(
+            type: 'non_earner_spouse_pension',
+            category: StrategyCategory::Household,
+            priority: StrategyPriority::Medium,
+            title: sprintf(
+                'Top up your spouse\'s pension by £%s — instant £%s of free money',
+                number_format((int) $netContribution),
+                number_format((int) $governmentUplift),
+            ),
+            description: sprintf(
+                'A £%s contribution to your spouse\'s personal pension is grossed up to £%s by the government, even though they have no earnings. That\'s £%s a year of free uplift, plus a separate 25%% tax-free lump sum and another Personal Allowance in retirement.%s',
+                number_format((int) $netContribution),
+                number_format((int) ($netContribution + $governmentUplift)),
+                number_format((int) $governmentUplift),
+                $balanceLine,
+            ),
+            estimatedAnnualTaxSaved: round($governmentUplift, 2),
+            extra: [
+                'net_contribution' => $netContribution,
+                'gross_contribution' => $netContribution + $governmentUplift,
+                'government_uplift' => $governmentUplift,
+                'spouse_existing_pension_balance' => round($existingBalance, 2),
+                'spouse_age' => $spouseAge,
+            ],
+        )];
+    }
+
+    /**
+     * Resolve the spouse's age in whole years, or null when unknown. Looks at
+     * family_members (any spouse-class relationship) first, then falls back
+     * to a linked spouse user when present on the User model.
+     */
+    private function resolveSpouseAge(User $user): ?int
+    {
+        $member = FamilyMember::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('date_of_birth')
+            ->whereIn('relationship', ['spouse', 'partner', 'wife', 'husband', 'civil_partner'])
+            ->first(['date_of_birth']);
+
+        if ($member !== null) {
+            return $this->ageOf($member->date_of_birth);
+        }
+
+        $spouseId = $user->spouse_id ?? null;
+        if (! empty($spouseId)) {
+            $spouseUser = User::find($spouseId);
+            if ($spouseUser instanceof User) {
+                return $this->ageOf($spouseUser->date_of_birth);
+            }
+        }
+
+        return null;
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────

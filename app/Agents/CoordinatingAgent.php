@@ -3918,7 +3918,14 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
         }
 
-        $pension->update(['salary_sacrifice' => (bool) $input['salary_sacrifice']]);
+        $payload = ['salary_sacrifice' => (bool) $input['salary_sacrifice']];
+
+        if (array_key_exists('employer_ni_rebate_pct', $input) && $input['employer_ni_rebate_pct'] !== null) {
+            $rebate = (float) $input['employer_ni_rebate_pct'];
+            $payload['employer_ni_rebate_pct'] = max(0.0, min(1.0, $rebate));
+        }
+
+        $pension->update($payload);
 
         return [
             'updated' => true,
@@ -3994,6 +4001,7 @@ class CoordinatingAgent extends BaseAgent
             'spouse_existing_savings_balance',
             'spouse_existing_investment_balance',
             'spouse_existing_dividend_holdings_value',
+            'spouse_existing_pension_balance',
         ]));
 
         \App\Models\TaxStrategyHouseholdInput::updateOrCreate(

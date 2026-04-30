@@ -882,12 +882,13 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'capture_salary_sacrifice',
-                'Set salary_sacrifice flag on a specific DC pension owned by the user. Use during the SaveTax campaign occupational-scheme capture state.',
+                'Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.',
                 [
                     'pension_id' => ['type' => 'integer', 'description' => 'ID of the dc_pension row to update.'],
                     'salary_sacrifice' => ['type' => 'boolean', 'description' => 'true if pension contributions are made via salary sacrifice.'],
+                    'employer_ni_rebate_pct' => ['type' => ['number', 'null'], 'description' => 'Optional. Share of the employer National Insurance saving rebated back into the pension as a fraction between 0 and 1 (e.g. 0.5 for 50%).'],
                 ],
-                ['pension_id', 'salary_sacrifice']
+                ['pension_id', 'salary_sacrifice', 'employer_ni_rebate_pct']
             ),
             $this->wrapTool(
                 'capture_spouse_work_status',
@@ -917,16 +918,18 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'capture_spouse_non_working_assets',
-                'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies.',
+                'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies and to size a non-earner spouse pension contribution.',
                 [
                     'spouse_existing_isa_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone ISA balance.'],
                     'spouse_existing_savings_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone bank/savings balance.'],
                     'spouse_existing_investment_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone investment account balance.'],
                     'spouse_existing_dividend_holdings_value' => ['type' => ['number', 'null'], 'description' => 'Value of spouse\'s dividend-paying holdings.'],
+                    'spouse_existing_pension_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing personal-pension pot value.'],
                 ],
                 [
                     'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
                     'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
+                    'spouse_existing_pension_balance',
                 ]
             ),
         ];

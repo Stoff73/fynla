@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\DataTransferObjects\TaxStrategyOutputDTO;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
+use App\Models\DCPension;
 use App\Models\FamilyMember;
+use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
@@ -605,6 +607,257 @@ describe('Phase 2 — sort order in recommendations[]', function () {
         $sorted = $observed;
         usort($sorted, fn ($a, $b) => $firstSeen[$a] <=> $firstSeen[$b]);
         expect($observed)->toBe($sorted);
+    });
+});
+
+describe('Phase 3 — salary sacrifice NI relief (#4)', function () {
+    it('emits salary_sacrifice_ni for an employed user with a workplace pension not on sacrifice', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'employment_status' => 'employed',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        DCPension::factory()->for($user)->create([
+            'monthly_contribution_amount' => 500, // £6,000/yr
+            'salary_sacrifice' => false,
+            'employer_ni_rebate_pct' => null,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'salary_sacrifice_ni');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('allowance')
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0)
+            ->and($rec['annual_contribution'])->toBe(6000.0)
+            ->and($rec['employer_ni_rebate_saving'])->toBe(0.0);
+    });
+
+    it('adds the employer NI rebate saving on top when employer_ni_rebate_pct is set', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'employment_status' => 'employed',
+            'annual_employment_income' => 45000, // below UEL → 8% main rate
+            'marital_status' => 'single',
+        ]);
+        DCPension::factory()->for($user)->create([
+            'monthly_contribution_amount' => 400, // £4,800/yr
+            'salary_sacrifice' => false,
+            'employer_ni_rebate_pct' => 0.5, // 50% of employer NI rebated back
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'salary_sacrifice_ni');
+        // Employee saving: 4800 × 8% = 384. Employer saving: 4800 × 15% × 0.5 = 360. Total ≈ 744.
+        expect($rec)->not->toBeNull()
+            ->and($rec['employer_ni_rebate_pct'])->toBe(0.5)
+            ->and($rec['employee_ni_saving'])->toBe(384.0)
+            ->and($rec['employer_ni_rebate_saving'])->toBe(360.0)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(744.0);
+    });
+
+    it('skips salary_sacrifice_ni when the pension is already on salary sacrifice', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'employment_status' => 'employed',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        DCPension::factory()->for($user)->create([
+            'monthly_contribution_amount' => 500,
+            'salary_sacrifice' => true,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'salary_sacrifice_ni'))->toBeNull();
+    });
+
+    it('skips salary_sacrifice_ni when the user is not employed', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'employment_status' => 'self_employed',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        DCPension::factory()->for($user)->create([
+            'monthly_contribution_amount' => 500,
+            'salary_sacrifice' => false,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'salary_sacrifice_ni'))->toBeNull();
+    });
+});
+
+describe('Phase 3 — bed & ISA capital gains harvest (#6)', function () {
+    it('emits bed_and_isa when the user has unrealised gains and ISA headroom', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        Holding::factory()->forAccount($gia)->create([
+            'quantity' => 100,
+            'purchase_price' => 50,    // cost basis £5,000
+            'current_price' => 100,    // current value £10,000
+            'cost_basis' => 5000,
+            'current_value' => 10000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'bed_and_isa');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('allowance')
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['total_unrealised_gain'])->toBe(5000.0)
+            ->and($rec['realisable_within_aea'])->toBe(3000.0) // capped at AEA
+            ->and($rec['estimated_annual_tax_saved'])->toBe(720.0); // £3,000 × 24% higher-rate CGT
+    });
+
+    it('skips bed_and_isa when there are no unrealised gains', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        Holding::factory()->forAccount($gia)->create([
+            'quantity' => 100,
+            'purchase_price' => 100,
+            'current_price' => 90, // loss
+            'cost_basis' => 10000,
+            'current_value' => 9000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'bed_and_isa'))->toBeNull();
+    });
+
+    it('skips bed_and_isa when the user holds only ISA accounts', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000,
+            'marital_status' => 'single',
+        ]);
+        $isa = InvestmentAccount::factory()->for($user)->create(['account_type' => 'isa']);
+        Holding::factory()->forAccount($isa)->create([
+            'cost_basis' => 5000,
+            'current_value' => 10000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'bed_and_isa'))->toBeNull();
+    });
+
+    it('uses the basic-rate CGT band for a basic-rate taxpayer', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 30000,
+            'marital_status' => 'single',
+        ]);
+        $gia = InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+        Holding::factory()->forAccount($gia)->create([
+            'cost_basis' => 5000,
+            'current_value' => 10000,
+            'quantity' => 100,
+            'purchase_price' => 50,
+            'current_price' => 100,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'bed_and_isa');
+        expect($rec)->not->toBeNull()
+            ->and($rec['cgt_rate'])->toBe(0.18)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(540.0); // £3,000 × 18%
+    });
+});
+
+describe('Phase 3 — non-earner spouse pension (#12)', function () {
+    it('emits non_earner_spouse_pension in single_earner_couple mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'married',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('household')
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['estimated_annual_tax_saved'])->toBe(720.0)
+            ->and($rec['net_contribution'])->toBe(2880.0)
+            ->and($rec['gross_contribution'])->toBe(3600.0);
+    });
+
+    it('skips non_earner_spouse_pension in single (non-coupled) mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension'))->toBeNull();
+    });
+
+    it('skips non_earner_spouse_pension in dual_earner mode', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'married',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension'))->toBeNull();
+    });
+
+    it('skips non_earner_spouse_pension when the spouse family member is 75 or older', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'married',
+        ]);
+        FamilyMember::factory()->for($user)->create([
+            'relationship' => 'spouse',
+            'date_of_birth' => now()->subYears(76),
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension'))->toBeNull();
+    });
+
+    it('surfaces existing pension balance from tax_strategy_household_inputs in the description', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_pension_balance' => 25000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'non_earner_spouse_pension');
+        expect($rec)->not->toBeNull()
+            ->and($rec['spouse_existing_pension_balance'])->toBe(25000.0)
+            ->and($rec['description'])->toContain('£25,000');
     });
 });
 
