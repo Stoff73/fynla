@@ -1,66 +1,73 @@
-# Tech Debt Report — Session 119 (30 April 2026, evening)
+# Tech Debt Report — Session 120 (30 April 2026, evening)
 
-**Files analysed:** 9 (7 modified + 2 new migrations)
+**Files analysed:** 28 (12 new strategy/math/contract files + 1 model + 2 migrations + 1 strategy + 1 calculator slim + 5 wiring touches + 3 test files + 3 already-tracked auxiliaries)
 **Issues found:** 5
-**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
-
-Phase 3 of the SaveTax strategy expansion (#4 salary_sacrifice_ni, #6 bed_and_isa, #12 non_earner_spouse_pension). Mostly additive — capture-tool extensions, two schema migrations, three calculator generators, 13 unit tests.
+**Severity breakdown:** 0 critical, 0 warnings, 5 suggestions
 
 ## Critical Issues
 
-None.
+None. Phase A refactor preserved behaviour exactly (81 existing tests pass unchanged), Phase B + C added 12 new green tests, parity test green, architecture suite green, Pint clean. No security or correctness concerns. No banned colors / DB facade / raw queries. All new files declare `strict_types=1` and have full type hints.
 
 ## Warnings
 
-### W-1 — Hardcoded non-earner spouse pension figures (£2,880 / £720)
-
-- **File:** `app/Services/Tax/TaxStrategyCalculator.php:~1175-1206`
-- **Category:** Convention Violations (tax hardcoding) + Duplicate Code
-- **What's wrong:** `buildNonEarnerSpousePensionRecommendation` hardcodes `$netContribution = 2880.0` and `$governmentUplift = 720.0`. These are the same figures already hardcoded in `buildLifecycleRecommendations` for `junior_pension` at lines 644-645 (`$juniorPensionNet = 2880.0`, `$juniorPensionUplift = 720.0`). The CSJTODO already flags the junior-pension instance under tech-debt item **S-3**; this commit adds a second instance.
-- **Suggested fix:** When S-3 is actioned, expose both as TaxConfigService keys: `pension_allowances.non_earner_relievable_net_cap` and `pension_allowances.non_earner_uplift`. Both call sites use the same constants. Defer until next opportunistic touch — out of scope for Phase 3.
-
-### W-2 — CGT-rate band match adds a third instance of band → rate mapping
-
-- **File:** `app/Services/Tax/TaxStrategyCalculator.php:~937-941`
-- **Category:** Duplicate Code
-- **What's wrong:** `buildBedAndIsaRecommendation` introduces a `match($userBand) → cgt_rate` block. The codebase already has the same shape three times: `bandRateFor()` at line 950 (income-tax marginal rate), `dividend_allowance_harvest` at line 838 (dividend rate), and now CGT here. CSJTODO **W-1** already calls out the dividend-rate duplication as needing a `dividendRateForBand(string $band): float` helper. Same pattern fits CGT — a `cgtRateForBand(string $band, bool $residential = false): float` helper would unify it.
-- **Suggested fix:** When the dividend helper is extracted (CSJTODO W-1, ~15 min), extract the CGT helper alongside it for negligible marginal cost. Defer.
+None.
 
 ## Suggestions
 
-### S-1 — `resolveSpouseAge` uses an inline relationship list
+### S-1 — Dead `$personalAllowance` variable in `IncomeBandStrategy`
+**File:** `app/Services/Tax/Strategies/IncomeBandStrategy.php:33`
+**Category:** Dead & Redundant Code
+**What's wrong:** `$personalAllowance = (float) ($income['personal_allowance'] ?? 12570);` is assigned but never read. Carried verbatim from the original `buildIncomeBandRecommendations` (pre-existing debt). Rule #1 (preserve behaviour) meant we kept it; rule against adding cleanup beyond scope meant we didn't fix it.
+**Suggested fix:** Delete the line. `$additionalRateThreshold` is the only PA-related value the method uses, and it's read directly from `bandThresholds()`.
 
-- **File:** `app/Services/Tax/TaxStrategyCalculator.php:~1217`
-- **Category:** Inconsistency
-- **What's wrong:** `whereIn('relationship', ['spouse', 'partner', 'wife', 'husband', 'civil_partner'])` is inlined. Anywhere else in the codebase that needs to find a spouse via `family_members` would re-list the same enum subset.
-- **Suggested fix:** Promote to a class constant (`private const SPOUSE_RELATIONSHIPS = [...]`) when a second caller appears. Not worth extracting on first use.
+### S-2 — Dead `$pension` variable in `LifecycleStrategy`
+**File:** `app/Services/Tax/Strategies/LifecycleStrategy.php:30`
+**Category:** Dead & Redundant Code
+**What's wrong:** `$pension = $this->taxConfig->getPensionAllowances();` is assigned but never read. Same pre-existing debt — the Junior Pension constants are hard-coded as `2880.0` / `720.0` rather than reading from `$pension`. Carried verbatim from the original method.
+**Suggested fix:** Either delete the line OR swap the hardcoded `2880.0` / `720.0` for `$pension['junior_pension']['net_cap'] ?? 2880` and `$pension['junior_pension']['government_uplift'] ?? 720`. The CSJTODO already tracks this as **Phase 3 S-3** ("Hardcoded Junior Pension £2,880 / £720 — add a comment citing HMRC source or expose via TaxConfigService"). Phase 3 added a second instance for `non_earner_spouse_pension` (now also at `NonEarnerSpousePensionStrategy.php:53-54`); Phase 4 didn't make this worse but didn't address it.
 
-### S-2 — NI piecewise calculation could be extracted
+### S-3 — Bundle strategies share legacy-array-to-DTO conversion
+**Files:** `app/Services/Tax/Strategies/AssetShiftingBundleStrategy.php:153-156`, `app/Services/Tax/Strategies/CrossSpouseBundleStrategy.php:81-84`
+**Category:** Duplicate Code (within the new Strategies namespace)
+**What's wrong:** Both bundle classes end with the same conversion:
+```php
+return array_map(
+    fn (array $arr) => StrategyRecommendation::fromArray(StrategyCategory::Household, $arr),
+    $suggestions,
+);
+```
+**Suggested fix:** Extract an `AbstractHouseholdBundle` base class with a protected `wrapAsHouseholdRecs(array $suggestions): array` helper, OR keep the duplication (only 2 callers, both household-mode bundles, low growth pressure). Defer until a 3rd bundle class appears.
 
-- **File:** `app/Services/Tax/TaxStrategyCalculator.php:~915-925`
-- **Category:** Complexity
-- **What's wrong:** The salary-sacrifice generator has an inline 3-branch piecewise NI saving calculation (entirely below UEL / entirely above UEL / mixed). It's correct and well-commented but adds visual weight. ~10 lines of cognitive load.
-- **Suggested fix:** Extract to `private function employeeNiSavingFor(float $income, float $contribution): float` if the pattern recurs (e.g. when Phase 5 tapered AA needs NI calculations). Single use is fine inline.
+### S-4 — `TaxStrategyMath::bandRateFor()` still hardcodes marginal rates
+**File:** `app/Services/Tax/TaxStrategyMath.php:75-82`
+**Category:** Convention Violations (CLAUDE.md Rule #3 — no hardcoded tax values)
+**What's wrong:**
+```php
+return match ($this->bandFromIncome((float) ($user->annual_employment_income ?? 0))) {
+    'basic' => 0.20,
+    'higher' => 0.40,
+    'additional' => 0.45,
+};
+```
+Pre-existing debt; was in the calculator's `bandRateFor()`. Carried verbatim into `TaxStrategyMath`. The CSJTODO already tracks this as **W-2** ("Read marginal income-tax rates from `getIncomeTax()['bands']` rather than hardcoding"). Phase 4 didn't make this worse but didn't address it either.
+**Suggested fix:** Read from `$this->taxConfig->getIncomeTax()['bands']` and look up by band name. Same fix that the dividend-rate / CGT-rate match-statements need (CSJTODO **W-1** + Phase 3 W-1). Bundle when actioning.
 
-### S-3 — `bed_and_isa` proceeds estimation lacks a comment on the gain-to-value ratio
-
-- **File:** `app/Services/Tax/TaxStrategyCalculator.php:~990-993`
-- **Category:** Complexity
-- **What's wrong:** `proceeds = totalCurrentValueWithGain * (realisableGains / totalUnrealisedGain)` is the right scaling — sell enough of the gain-bearing stock to crystallise £AEA of gain — but a reader has to derive that. The early return guarantees `totalUnrealisedGain > 0` so the division is safe, but the safety isn't stated.
-- **Suggested fix:** One-line comment: `// Scale proceeds by the share of total gain we're crystallising — guaranteed safe because we early-return when totalUnrealisedGain == 0.` Or accept that the surrounding lines already convey it.
+### S-5 — `PensionAACarryForwardStrategy` assumes constant AA across the lookback window
+**File:** `app/Services/Tax/Strategies/PensionAACarryForwardStrategy.php:55-67`
+**Category:** Complexity & Maintainability
+**What's wrong:** The strategy uses today's `annual_allowance` (£60,000) for every prior year in the carry-forward calculation. For 2025/26 → 2022/23 this matches HMRC (AA was £40,000 in 2022/23 then £60,000 from 2023/24, so over-counts unused AA for the 2022/23 entry by up to £20k). The class docblock acknowledges this:
+> "AA is held at the current value across the window — a conservative simplification (AA was the same £40k/£60k over the relevant period); refine if HMRC changes mid-window."
+**Suggested fix:** Either (a) read AA per-year from `TaxConfigService` if a `historical_annual_allowances` table is added, or (b) leave as-is and revisit if HMRC changes the AA mid-window. Conservative behaviour is in the user's favour today (we may slightly over-state available carry-forward by £20k for users who pre-date 2023/24, recouping ~£8k at 40% rate). No action needed unless CSJ wants exact historical figures.
 
 ---
 
-## Notes on what was NOT flagged
+## Notes
 
-- **Calculator file length** — now 1,252 lines after Phase 3, up from 988. CSJTODO **S-1** already tracks this with a deferral until start of Phase 3 or 4. Phase 3 has landed; Phase 4 is the natural moment to extract per-strategy classes (`App\Services\Tax\Strategies\IncomeBandStrategy` etc.). Not a new issue — already on the books.
-- **Migration future-dating** — `2026_05_04_*` is two days ahead of today (2026-04-30). Existing pattern from sessions 117/118 (e.g. `2026_05_03_*`) — intentional sequencing, not a regression.
-- **xAI/Anthropic tool parity** — verified by the architecture suite (`ToolCatalogueParityTest`). Both files extended in lockstep.
-- **Unit-test file length** — 870 lines after additions. Long but well-structured by `describe()` blocks; splitting per-phase would not improve readability.
-
-## Recommendation
-
-**No critical issues — Phase 3 is safe to commit.** The two warnings extend existing CSJTODO tech-debt items rather than creating new ones, and would be best addressed in a single sweep when CSJTODO **W-1** / **W-2** / **S-1** / **S-3** are actioned together (~45 min total).
+- **Phase 4 introduced three new constants correctly** — `GiftAidHigherRateReliefStrategy::HIGHER_RATE_FACTOR` (0.25), `::ADDITIONAL_RATE_FACTOR` (0.3125), `PensionAACarryForwardStrategy::LOOKBACK_YEARS` (3). These follow the "magic numbers → named constants" pattern.
+- **No new hardcoded tax values added.** All UK figures (PA, AA, ISA cap, CGT AEA, dividend allowance, NI rates) read from `TaxConfigService`. Only the marginal-rate match (S-4) and the Junior Pension £2,880/£720 (S-2) remain pre-existing.
+- **Strategy classes have clean dependency injection** — Math, TaxConfig, no Eloquent reaches across module boundaries (each strategy only queries its own module's models: DCPension, SavingsAccount, InvestmentAccount, Holding, FamilyMember, PensionInputHistory).
+- **Two of five suggestions (S-2, S-4) are already tracked in CSJTODO.** Recommendation: bundle S-1 + S-2 + S-4 into a single ~30-min tech-debt sweep before Phase 5 starts.
+- **Calculator file size dropped 81%** (1301 → 250 lines). Next-largest file in the new Strategies namespace is `AssetShiftingBundleStrategy.php` at 163 lines — well under the 500-line guideline. The S-1 refactor goal of "no file pushed past 1500 lines as Phase 4 lands" is not just met but exceeded.
 
 ---
-*Generated by tech-debt-session skill — session 119*
+*Generated by tech-debt-session skill*

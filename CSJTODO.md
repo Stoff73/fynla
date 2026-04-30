@@ -1,49 +1,48 @@
 # CSJTODO — Fynla
 
-*Last updated: 30 April 2026 — session 119 (SaveTax Phase 3 shipped, commit `2fbb4c5`).*
-*Previous session: 118 (30 April — SaveTax Phase 2).*
+*Last updated: 30 April 2026 — session 120 (S-1 refactor + SaveTax Phase 4 — #3 + #13 shipped, commits `2a210e0` + `f007fce` + `94c880a`).*
+*Previous session: 119 (30 April — SaveTax Phase 3).*
 
 ---
 
-## Session 119 (30 April 2026, evening) — SaveTax Phase 3
+## Session 120 (30 April 2026, evening) — S-1 refactor + SaveTax Phase 4 (#3 + #13)
 
-**Branch:** `feature/fyn-persona-split`. **Commits:** 1 (`2fbb4c5`).
+**Branch:** `feature/fyn-persona-split`. **Commits:** 3 (`2a210e0`, `f007fce`, `94c880a`).
 
-CSJ asked for Phase 3 — the capture extensions for #4 (salary sacrifice NI), #6 (bed & ISA), #12 (non-earner spouse pension). All three landed end-to-end with two forward-only schema migrations, capture-tool extensions in Anthropic + xAI lockstep, three new calculator generators, 13 new tests, and a live browser walk on `john@example.com` confirming the strategies render correctly without regressing Phase 2.
+CSJ chose option (a) "S-1 refactor first, then Phase 4" from the start-of-session brief. Three commits executed via `superpowers:writing-plans` + `superpowers:executing-plans` skills (plan saved at `April/April30Updates/savetax-phase4-plan.md`, 36 tasks). Phase A landed the long-overdue per-strategy-class extraction; Phases B and C added the two new strategies on top.
 
 ### Completed this session
 
-- [x] **Schema migrations (2 new, both ran cleanly with `Schema::hasColumn` early-return guards):**
-  - `dc_pensions.employer_ni_rebate_pct` decimal(5,4) nullable (`2026_05_04_000001`)
-  - `tax_strategy_household_inputs.spouse_existing_pension_balance` decimal(12,2) nullable (`2026_05_04_000002`)
-- [x] **Models updated:** `DCPension` and `TaxStrategyHouseholdInput` extended (fillable + casts + docblock)
-- [x] **Capture tool extensions** (Anthropic + xAI parity validated by `ToolCatalogueParityTest`):
-  - `capture_salary_sacrifice` accepts optional `employer_ni_rebate_pct` (number)
-  - `capture_spouse_non_working_assets` accepts optional `spouse_existing_pension_balance` (number)
-- [x] **Handlers updated** in `CoordinatingAgent`: rebate clamped to [0, 1] before persistence, household-inputs allow-list expanded
-- [x] **3 new calculator generators in `TaxStrategyCalculator`** (now 1252 lines, up from 988):
-  - **#4 `salary_sacrifice_ni`** (allowance, medium) — fires for an employed user whose workplace DC pension is not on salary sacrifice. Saving = `annual_contribution × employee_NI_rate` (8% main / 2% above UEL, piecewise across the slice between (income − contribution) and income), plus (if `employer_ni_rebate_pct` set) `× employer_NI_rate × rebate_pct`. NI rates and the upper-earnings-limit are read from `TaxConfigService->getNationalInsurance()`.
-  - **#6 `bed_and_isa`** (allowance, medium) — fires when non-ISA holdings have positive unrealised gains AND remaining ISA allowance. Computes per-holding gain from `cost_basis` + `current_value` (with `quantity × purchase_price / current_price` as a fallback when cost basis is null), caps at the £3,000 Annual Exempt Amount, scales proceeds by the gain-to-value ratio, and prices the saving at the user-band CGT rate (18% basic / 24% higher and additional, from `getCapitalGainsTax()`).
-  - **#12 `non_earner_spouse_pension`** (household, medium) — fires in `single_earner_couple` mode unless a captured spouse age ≥ 75. £2,880 net contribution → £3,600 gross via 25% basic-rate uplift = £720/yr. New `resolveSpouseAge()` helper looks at `family_members` (relationship in spouse/partner/wife/husband/civil_partner) then falls back to a linked spouse user.
-- [x] **`calculate()` wiring** — #4 and #6 added to `userLevelRecs` (fire across all modes); #12 merged into household recs in the `single_earner_couple` branch
-- [x] **Tests:** 13 new Phase 3 cases across 3 describe blocks. 91/91 SaveTax tax-module tests pass; 95/95 architecture green; Pint clean on 9 files
-- [x] **Live browser verification** on `john@example.com` after seeding the test user with a workplace pension, GIA holding with positive unrealised gain, and a spouse family member. All three strategies rendered with correct copy + tax-saving badges in the canonical category order
-- [x] **Repo hygiene:** renamed local folder `April/April30pdates` → `April/April30Updates` (the typo crept in during session 117 mkdir; canonical name is `April30Updates` and matches the vault)
-
-### Session 119 deliverables
-
-| Artefact | Path | Status |
-|---|---|---|
-| Migration #1 | `database/migrations/2026_05_04_000001_add_employer_ni_rebate_pct_to_dc_pensions.php` | New |
-| Migration #2 | `database/migrations/2026_05_04_000002_add_spouse_existing_pension_balance_to_tax_strategy_household_inputs.php` | New |
-| Models | `app/Models/DCPension.php`, `app/Models/TaxStrategyHouseholdInput.php` | Modified (fillable + cast + docblock) |
-| Tool defs | `app/Services/AI/AiToolDefinitions.php`, `app/Services/AI/XaiToolDefinitions.php` | Modified (extended 2 tools each) |
-| Handler | `app/Agents/CoordinatingAgent.php` | Modified (handleCaptureSalarySacrifice + handleCaptureSpouseNonWorkingAssets) |
-| Calculator | `app/Services/Tax/TaxStrategyCalculator.php` | Modified (now 1252 lines, +3 generators + resolveSpouseAge helper) |
-| Tests | `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php` | Modified (+13 Phase 3 cases) |
-| Phase 3 commit | `2fbb4c5` (`feature/fyn-persona-split`) | Pushed to origin |
-| Tech-debt report | `tech-debt-report.md` | Updated (0 critical / 2 warnings / 3 suggestions) |
-| Deploy notes | `April/April30Updates/deploy.md` | Session 119 addendum added |
+- [x] **Phase A (S-1) — `2a210e0`** — `TaxStrategyCalculator` 1301 → **250 lines** (81% rewrite). Extracted into:
+  - `App\Services\Tax\TaxStrategyMath` — public stateless helper service (band lookups, PSA, taxable income, available AA, age-of, ISA estimation, pension contribution estimation)
+  - `App\Services\Tax\Strategies\Contract\TaxStrategy` interface — `generate(TaxStrategyContext): list<StrategyRecommendation>`
+  - `App\Services\Tax\Strategies\TaxStrategyContext` — immutable value object holding User, ?Overrides, ?Household, mode
+  - **10 strategy classes**: `IncomeBandStrategy` (#1+#2), `LifecycleStrategy` (#16/#17/#18), `JointSavingsStrategy` (#15), `IsaTopUpStrategy` (#5), `DividendAllowanceHarvestStrategy` (#7), `SalarySacrificeNiStrategy` (#4), `BedAndIsaStrategy` (#6), `NonEarnerSpousePensionStrategy` (#12 with `resolveSpouseAge` co-located), `AssetShiftingBundleStrategy` (single_earner_couple bundle), `CrossSpouseBundleStrategy` (dual_earner bundle)
+  - Calculator constructor now injects all 10 strategies + math; `calculate()` is a thin composer. Grid builders + `position()` helper retained (tightly coupled to output DTO shape).
+  - Architecture-suite ignore list updated to allow `App\Services\Tax\Strategies\Contract\TaxStrategy` interface (alongside existing `FieldMapperInterface` + `LifecycleCampaign`).
+  - **Behaviour preserved exactly**: 81 existing tax tests pass unchanged.
+- [x] **Phase B (#3 Pension AA Carry-Forward) — `f007fce`**:
+  - Migration `2026_05_05_000001_create_pension_input_history_table` — `(user_id FK cascade, tax_year string(9), pension_input_amount decimal(12,2))` with unique (user_id, tax_year) and FK index
+  - Model `PensionInputHistory` (decimal:2 cast, belongsTo User)
+  - Tool `capture_pension_history` accepting `history[]` array of `{tax_year, pension_input_amount}` entries (Anthropic + xAI parity)
+  - Handler `handleCapturePensionHistory` in `CoordinatingAgent` — `updateOrCreate` per (user, tax_year), filters negatives, blocks preview
+  - State `STATE_CAMPAIGN_PENSION_HISTORY` slotted between `PENSION_CONTRIBS` and `SPOUSE_WORK`
+  - Strategy `PensionAACarryForwardStrategy` — fires for higher/additional band when current input < AA AND prior 3-year unused AA > 0; saving = `unused_carry_forward × marginal_rate`; `LOOKBACK_YEARS = 3` constant
+- [x] **Phase C (#13 Gift Aid Higher-Rate Relief) — `94c880a`**:
+  - Migration `2026_05_05_000002_add_charitable_donations_to_users` — `users.annual_charitable_donations` decimal(12,2) nullable (column added; cast was already in User model)
+  - Tool `capture_charitable_giving` with single `annual_donations` property (Anthropic + xAI parity)
+  - Handler `handleCaptureCharitableGiving` — non-negative validation, `User::update`, blocks preview
+  - State `STATE_CAMPAIGN_CHARITABLE_GIVING` slotted between `PENSION_HISTORY` and `SPOUSE_WORK`
+  - Strategy `GiftAidHigherRateReliefStrategy` — fires for higher/additional band with positive `annual_charitable_donations`; saving = donations × `HIGHER_RATE_FACTOR` (0.25) or × `ADDITIONAL_RATE_FACTOR` (0.3125)
+- [x] **Tests:**
+  - 7 new strategy unit tests in Phase B + 5 new handler feature tests
+  - 5 new strategy unit tests in Phase C + 4 new handler feature tests
+  - **190/190** in Tax + DirectWrite + Architecture sweep (608 assertions); ToolCatalogueParityTest green; Pint clean
+- [x] **Live browser verification on `john@example.com`** (Rule #15):
+  - Card **"Carry forward up to £120,000 of unused Pension Allowance"** with **£48,000/yr** badge — figure = 3 × (60,000 − 20,000) × 0.40 ✓
+  - Card **"Reclaim £300 on your Gift Aid donations via Self Assessment"** with **£300/yr** badge — figure = 1,200 × 0.25 ✓
+  - API JSON includes both new types under `data.recommendations[]` with full extras
+  - No regressions on Phase 1/2/3 strategies for the same user
 
 ### Phase progression (5-phase plan from session 117)
 
@@ -51,20 +50,17 @@ CSJ asked for Phase 3 — the capture extensions for #4 (salary sacrifice NI), #
 |---|---|---|
 | 1 | Calculator refactor → flat `recommendations[]` DTO | ✅ session 117 (`7b31508`) |
 | 2 | 11 strategies needing no new capture + frontend migration + legacy fields dropped | ✅ session 118 (`ab3df47`) |
-| **3** | **Capture extensions for #4 (salary sacrifice NI), #6 (bed & ISA), #12 (non-earner spouse pension)** | **✅ session 119 (`2fbb4c5`)** |
-| 4 | New tools for #3 (pension AA carry-forward), #13 (Gift Aid) | ⏳ next |
-| 5 | Composed-income view for #14 (tapered AA warning, requires `adjusted_income` AND `threshold_income`) | ⏳ |
+| 3 | Capture extensions for #4 (salary sacrifice NI), #6 (bed & ISA), #12 (non-earner spouse pension) | ✅ session 119 (`2fbb4c5`) |
+| **A (S-1)** | **Per-strategy class extraction (calculator 1301 → 250 lines)** | **✅ session 120 (`2a210e0`)** |
+| **B** | **#3 Pension AA Carry-Forward (new tool, state, migration, strategy)** | **✅ session 120 (`f007fce`)** |
+| **C** | **#13 Gift Aid Higher-Rate Relief (new tool, state, migration, strategy)** | **✅ session 120 (`94c880a`)** |
+| 5 | Composed-income view for #14 (tapered AA warning, requires `adjusted_income` AND `threshold_income`) | ⏳ next |
+
+**SaveTax dashboard now surfaces 16 deterministic strategies** (was 14 after Phase 3, was 4 + 2 hardcoded household before session 117).
 
 ---
 
 ## NOT Done — Outstanding for next session
-
-### Phase 4 — New states / tools (#3, #13)
-
-- [ ] **#3 Pension AA Carry-Forward** — New tool `capture_pension_history` (last 3 years' pension input amounts), insert in a new `STATE_CAMPAIGN_PENSION_HISTORY` state. Schema migration for the historical fields on `dc_pensions` or new `pension_input_history` table. Calculator generator: fires when `current_year_pension_input < £60,000` AND `prior_3_years_unused_AA > 0` AND `user_band ∈ {higher, additional}` AND surplus disposable income. Saving: `unused_carry_forward × user_marginal_rate`.
-- [ ] **#13 Gift Aid Higher-Rate Relief** — New tool `capture_charitable_giving` (annual £ donations) — either as a new `STATE_CAMPAIGN_*` state or as an optional dashboard input. New field on `users` (or new `charitable_giving_records` table). Calculator generator: fires when `user_band ∈ {higher, additional}` AND `annual_charitable_donations > 0`. Saving: `gross_donations × 0.25` (higher) or `× 0.3125` (additional) reclaimable.
-- [ ] Add the new capture tools to `OnboardingPromptBuilder::toolsForFocus('savetax')` (currently lines 118-127)
-- [ ] Migrations as needed; live browser walk; green Pest
 
 ### Phase 5 — Composed-income warnings (#14 Tapered Annual Allowance)
 
@@ -72,43 +68,46 @@ CSJ asked for Phase 3 — the capture extensions for #4 (salary sacrifice NI), #
 - [ ] Compose `threshold_income` view (employment + bonus, employee pension contributions excluded)
 - [ ] Tapered Annual Allowance warning generator — fires only when **BOTH** `adjusted_income > £260,000` AND `threshold_income > £200,000` (per CSJ redline — both gates required by HMRC)
 - [ ] Promote priority to `high` per redline (warning class — surfaces ahead of normal suggestions because the downside of missing the taper is a £20k+ HMRC charge)
+- [ ] New `TaperedAnnualAllowanceStrategy` class (Phase 5 will be the cleanest test of the new per-strategy structure — it slots in alongside the existing 11 entries in the registry)
 - [ ] Live browser walk on a high-income persona; green Pest
 
 ### Tech-debt items carried forward
 
-From session 118:
-- [ ] **W-1** — Extract `dividendRateForBand(string $band): float` helper to remove the 3-site `match(band) → dividend rate` duplication (~15 min, high DRY value). After Phase 3, the same shape duplication now exists 3-way: dividend rate, income-tax marginal rate, and CGT rate. **Bundle** with W-2 and the new session-119 CGT extraction below.
-- [ ] **W-2** — Read marginal income-tax rates (`0.20/0.40/0.45`) from `getIncomeTax()['bands']` rather than hardcoding in `bandRateFor()` and the income-band generators. Rule #3 compliance (~30 min).
-- [ ] **S-1** — Calculator now 1252 lines after Phase 3 — extract per-strategy classes (`App\Services\Tax\Strategies\IncomeBandStrategy`, etc.) so Phases 4-5 don't push the file past 1,500 lines. **Now overdue** — was deferred to start of Phase 3 or 4. Strong recommendation: do this BEFORE Phase 4.
-- [ ] **S-2** — Magic threshold `> 1000` for "worth recommending" — extract `private const MIN_TRANSFER_TO_RECOMMEND = 1000.0;`.
-- [ ] **S-3** — Hardcoded Junior Pension £2,880 / £720 — add a comment citing HMRC source or expose via TaxConfigService as `pension_allowances.junior_pension_net_cap` + `junior_pension_uplift`. **Phase 3 added a second instance** for `non_earner_spouse_pension` — both call sites use the same constants and would benefit from a single TaxConfig key.
+From sessions 118-119 (still outstanding):
+- [ ] **W-1** — Extract `dividendRateForBand(string $band): float` helper to remove the 3-site `match(band) → dividend rate` duplication. Now after Phase 4 the same shape duplication exists across 3 strategy classes (`DividendAllowanceHarvestStrategy`, `AssetShiftingBundleStrategy`, `CrossSpouseBundleStrategy`).
+- [ ] **W-2** — Read marginal income-tax rates (`0.20/0.40/0.45`) from `getIncomeTax()['bands']` rather than hardcoding in `TaxStrategyMath::bandRateFor()`. Rule #3 compliance (~30 min). After Phase A only one site has this hardcoding (good — math helper consolidated it from the previous calculator copy).
+- [ ] **S-2 (carried)** — Magic threshold `> 1000` for "worth recommending" — extract `private const MIN_TRANSFER_TO_RECOMMEND = 1000.0;`.
+- [ ] **S-3 (carried)** — Hardcoded Junior Pension £2,880 / £720 — both in `LifecycleStrategy::generate` (junior pension) and `NonEarnerSpousePensionStrategy::generate` (non-earner spouse). Add a comment citing HMRC source OR expose via TaxConfigService as `pension_allowances.junior_pension_net_cap` + `junior_pension_uplift`.
 
-New from session 119:
-- [ ] **Phase 3 W-1** — `cgtRateForBand(string $band, bool $residential = false): float` helper to bundle with the existing dividend-rate / income-tax-rate extraction work (CSJTODO **W-1** + **W-2**). One sweep, ~20 min total when actioned.
-- [ ] **Phase 3 S-1** — Promote `whereIn('relationship', [...])` spouse list in `resolveSpouseAge()` to a class constant when a second caller appears. Defer.
-- [ ] **Phase 3 S-2** — Extract `employeeNiSavingFor(float $income, float $contribution): float` helper if Phase 5 tapered-AA work needs NI calculations. Otherwise leave inline.
-- [ ] **Phase 3 S-3** — One-line comment on the `bed_and_isa` proceeds scaling formula explaining the gain-to-value ratio. Or accept that surrounding lines convey it.
+New from session 120:
+- [ ] **Session 120 S-1** — Dead `$personalAllowance = ...;` variable in `IncomeBandStrategy.php:33`. Carried verbatim from original. Delete the line.
+- [ ] **Session 120 S-2** — Dead `$pension = $this->taxConfig->getPensionAllowances();` variable in `LifecycleStrategy.php:30`. Either delete OR swap the hardcoded `2880.0`/`720.0` Junior Pension constants for `$pension['junior_pension']['net_cap'] ?? 2880` etc. Combines with W-2 / S-3 above.
+- [ ] **Session 120 S-3** — Bundle strategies share `array_map(fn → fromArray)` conversion at the end. Defer until a 3rd household-bundle class appears.
 
-### Deploy combined sessions 112+113+114+115+117+118+119 to dev (csjones.co/fynla)
+**Recommendation**: bundle Phase A S-1 + S-2 + W-2 into a single ~30-min tech-debt sweep before Phase 5 starts. Phase 5's composed-income view will need clean band-rate helpers anyway (the tapered AA warning sizes itself by marginal rate).
 
-Session 119 adds **2 new migrations + 6 modified PHP** to the cumulative deploy set. **No new frontend** (Phase 2 already migrated the Vuex store + components; Phase 3 reuses existing categories).
+### Deploy combined sessions 112+113+114+115+117+118+119+120 to dev (csjones.co/fynla)
+
+Session 120 adds **2 new migrations + 32 PHP/test files** to the cumulative deploy set. **Still no new frontend** (Phase 2 already migrated the Vuex store + components; Phases 3/A/B/C reuse existing categories and don't add Vue/JS code).
 
 - [ ] Open PR `feature/fyn-persona-split → dev`, merge after Stoff73 approval
-- [ ] Build with `./deploy/csjones-fynla/build.sh` (Phase 2 frontend rebuild requirement carries; Phase 3 added no JS/CSS but the cumulative build still needs to ship Phase 2 assets)
-- [ ] Upload `public/build/` + cumulative file set: ~36 PHP backend (incl. session 119's 2 migrations + 6 modified files) + ~12 frontend (no change since Phase 2)
+- [ ] Build with `./deploy/csjones-fynla/build.sh` (Phase 2 frontend rebuild requirement still carries; Phases A/B/C added no JS/CSS but the cumulative build still needs to ship Phase 2 assets)
+- [ ] Upload `public/build/` + cumulative file set: ~46 PHP backend (incl. session 120's 16 new files in `app/Services/Tax/` + 4 SaveTax migrations cumulative + 8 modified backend) + ~12 frontend (no change since Phase 2)
 - [ ] SSH: `php artisan migrate --force && php artisan db:seed --class=TaxConfigurationSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan optimize`
 - [ ] Re-drive BS-26/27/28 against `csjones.co/fynla` per Rule #15
-- [ ] Smoke test SaveTax dashboard with the 3 Phase-3 trigger profiles:
-  - Employed + workplace pension not on sacrifice → expects #4 surfaces with NI saving badge
-  - Holds non-ISA investments with positive unrealised gain + ISA capacity → expects #6 surfaces with £720/yr at higher-rate or £540/yr at basic
-  - `single_earner_couple` mode with spouse < 75 → expects #12 surfaces under "Asset-shifting opportunities"
-- [ ] Verify `GET /api/tax-strategy` JSON includes `salary_sacrifice_ni`, `bed_and_isa`, `non_earner_spouse_pension` types in the recommendations array
+- [ ] Smoke test SaveTax dashboard with the 5-profile Phase-3+4 trigger matrix (per `April/April30Updates/deploy.md` "Smoke-test matrix"):
+  - Employed + workplace pension not on sacrifice → expects #4 surfaces (Phase 3)
+  - Holds non-ISA gains + ISA capacity → expects #6 surfaces (Phase 3)
+  - `single_earner_couple` mode + spouse < 75 → expects #12 surfaces (Phase 3)
+  - **Higher-rate user with prior 3-yr unused AA + current input < £60k → expects #3 surfaces (Phase 4-B)**
+  - **Higher- or additional-rate user with `annual_charitable_donations > 0` → expects #13 surfaces (Phase 4-C)**
+- [ ] Verify `GET /api/tax-strategy` JSON includes `salary_sacrifice_ni`, `bed_and_isa`, `non_earner_spouse_pension`, `pension_aa_carry_forward`, `gift_aid_higher_rate_relief` types under `data.recommendations[]`
 
 ### After dev green — production deploy
 
 - [ ] Open PR `dev → main`, merge, repeat with `./deploy/fynla-org/build.sh`
 - [ ] Smoke test fynla.org
-- [ ] Re-drive the same 3-profile Phase-3 matrix on prod, plus the existing Phase-2 personas
+- [ ] Re-drive the same 5-profile Phase-3+4 matrix on prod, plus the existing Phase-2 personas
 
 ### Sprint 0 verification rollup (S0.17) — branch readiness
 
@@ -140,39 +139,41 @@ Carried over from Sprint 0 deferral. Required schema in `April/April24Updates/sp
 
 ## Outstanding — Tech Debt Deferred
 
-- **`StrategyRecommendation` extras serialisation strategy** — currently spreads top-level via `array_merge`. Works but couples extras to the same namespace as canonical fields. If `extra` keys ever collide with canonical (`type`, `category`, `priority`, `title`, `description`, `requires_advice`), the canonical wins via `array_merge` order — silent bug risk. Consider explicit nesting under `extras` or per-strategy typed extension classes when Phase 4-5 add more strategy-specific fields.
-- **`TaxStrategyCalculator::handleModuleAnalysis` summarisation** — INV-2.6.1 says "no `summariseToolAnalysis` stripping for this handler" but the S0.15 delivery note acknowledged it still wraps via `summariseToolAnalysis` at line 1512. Behaviour change with broader test surface; deferred follow-up.
+- **`StrategyRecommendation` extras serialisation strategy** — currently spreads top-level via `array_merge`. Works but couples extras to the same namespace as canonical fields. If `extra` keys ever collide with canonical (`type`, `category`, `priority`, `title`, `description`, `requires_advice`), the canonical wins via `array_merge` order — silent bug risk. Consider explicit nesting under `extras` or per-strategy typed extension classes when Phase 5 adds more strategy-specific fields.
+- **`TaxStrategyCalculator::handleModuleAnalysis` summarisation** — INV-2.6.1 says "no `summariseToolAnalysis` stripping for this handler" but the S0.15 delivery note acknowledged it still wraps via `summariseToolAnalysis` at a deeper line. Behaviour change with broader test surface; deferred follow-up.
 - **Vue 3 `$listeners` warning on `<FynOnboardingChat>`** (carried from session 113-evening). Minor.
 - **`StructuredResponseValidator` flagging "SIPP" as banned acronym** in LLM acks where the state's own prompt uses SIPP (carried from session 113-evening). Needs per-state allowlist or canonical exception.
-- **TaxStrategyCalculator under-counts pension AA usage on initial load** — slider re-fires correctly. (Carried from session 113-evening; will be touched anyway during Phase 4-5 — fix opportunistically.)
+- **`PensionAACarryForwardStrategy` constant-AA simplification** — uses today's £60k AA for every prior year. AA was £40k in 2022/23; over-counts unused AA by up to £20k for users who pre-date 2023/24. Documented in class. Acceptable today; revisit if HMRC changes mid-window.
 
 ---
 
 ## Known Issues
 
-- **Pre-existing time-flake** in `AdviceReviewServiceTest::annual review due` — `subMonths(14)` followed by `diffInMonths(now())` can return 13 across month-end boundaries. Confirmed unrelated to any Phase 3 changes by stash-and-rerun against `2e36222`.
-- **Pre-existing eval-rewrite branch failures** — `EvalAuthControllerTest::reset endpoint` and `PreviewBypassAbilityTest::preview user WITH bypass`. Tracked under memory `project_eval_http_driven_rewrite_branch.md` as part of the 4 P0/P1 defects blocking Task 16. Not Phase 3 territory.
+- **Pre-existing time-flake** in `AdviceReviewServiceTest::annual review due` — `subMonths(14)` followed by `diffInMonths(now())` can return 13 across month-end boundaries. Confirmed unrelated to Phase 4 by session 119 stash-and-rerun against `2e36222`; a transient single-test flake observed during session 120's full sweep is consistent with this.
+- **Pre-existing eval-rewrite branch failures** — `EvalAuthControllerTest::reset endpoint` and `PreviewBypassAbilityTest::preview user WITH bypass`. Tracked under memory `project_eval_http_driven_rewrite_branch.md` as part of the 4 P0/P1 defects blocking Task 16. Not Phase 4 territory.
 
 ---
 
 ## Deploy Status
 
-- **`feature/fyn-persona-split`** — 247 commits ahead of `origin/main`, all pushed (incl. today's `2fbb4c5`). **Not yet deployed anywhere.**
-- **`dev` branch** — last deployed commit unknown — needs catch-up to combined sessions 112+113+114+115+117+118+119 work.
-- **`main` / production fynla.org** — last deployed somewhere mid-April (sessions 105-107). All Sprint 0 + SaveTax Phases 1+2+3 + audit-fix work pending.
+- **`feature/fyn-persona-split`** — 250 commits ahead of `origin/main`, all pushed (incl. today's `2a210e0` + `f007fce` + `94c880a`). **Not yet deployed anywhere.**
+- **`dev` branch** — last deployed commit unknown — needs catch-up to combined sessions 112+113+114+115+117+118+119+120 work.
+- **`main` / production fynla.org** — last deployed somewhere mid-April (sessions 105-107). All Sprint 0 + SaveTax Phases 1+2+3+A+B+C + audit-fix work pending.
 
 ---
 
 ## Context for Next Session
 
-Session 119 closed Phase 3 of the SaveTax strategy expansion. The dashboard now surfaces **14 deterministic strategies** (8 user-level new in Phase 2 + 3 capture-extension new in Phase 3 + 6 refined household ones from Phase 2), all sorted by category + priority, all rendered with section headers in the live UI. Backend canonical contract is `recommendations[]`; legacy fields are gone end-to-end. Phase 3 strategies live-verified on `john@example.com` — #4 / #6 / #12 all surface with correct savings.
+Session 120 closed the SaveTax catalogue's strategy-side delivery: **16 deterministic strategies** now surface on the dashboard (was 14 after Phase 3, was 4 + 2 hardcoded household before session 117). The calculator was also extracted into 10 per-strategy classes, dropping from 1301 → 250 lines (81% rewrite) — Phase 5's tapered-AA warning will slot in cleanly as an 11th strategy class without touching the calculator's body.
 
-**Two clear paths for the next session:**
+**Three clear paths for the next session:**
 
-1. **Phase 4 — new tools (#3 pension AA carry-forward, #13 Gift Aid).** This is the natural next step in the catalogue's phase plan. Phase 4 needs new `STATE_CAMPAIGN_*` states (or dashboard-side optional inputs), new tools, schema migrations, and calculator generators. Bigger scope than Phase 3 because it adds capture-side state-machine work on top of new generators. **Strong recommendation: extract per-strategy classes (CSJTODO S-1) FIRST** — the calculator hit 1252 lines after Phase 3 and Phase 4 will push it past 1,500 if we don't refactor first.
+1. **Phase 5 — composed-income view for #14 (tapered AA warning).** Last outstanding strategy in the catalogue and architecturally interesting — requires composing `adjusted_income` and `threshold_income` views from existing user data (employment + bonus ± employer/employee pension contributions). Per CSJ's redline, the warning fires only when BOTH thresholds (`adjusted_income > £260k` AND `threshold_income > £200k`) are crossed. Promote priority to `high` (warning class). Should fit cleanly into the new strategy registry as `TaperedAnnualAllowanceStrategy`.
 
-2. **Cumulative dev deploy** (sessions 112+113+114+115+117+118+119 to csjones.co/fynla). The deploy is queued in the NOT Done section with full file lists and SSH commands ready. Phase 3 is the first session to add migrations to the cumulative queue — make sure `php artisan migrate --force` runs on the dev server. After dev verification, production deploy follows.
+2. **Cumulative dev deploy** (sessions 112+113+114+115+117+118+119+120 to csjones.co/fynla). Now 8 sessions deep; queue includes 4 SaveTax migrations. Full file lists and SSH commands ready in `April/April30Updates/deploy.md` (session 120 addendum added). After dev verification, production deploy follows.
 
-**Alternative**: tech-debt sweep (W-1 / W-2 / S-1 bundle ~45 min). The CGT-rate extraction from session 119 is a natural moment to bundle this.
+3. **Tech-debt sweep** (~30 min). Bundle session 120 S-1 + S-2 + carried W-2 + W-1 into one commit. Phase 5's tapered-AA strategy will size its warning by marginal rate, so a clean `bandRateFor` helper sourced from `TaxConfigService` would land naturally before Phase 5 starts.
 
-CSJ to choose. Phase 4 is the highest-value next step but the deploy queue is starting to mature (now 7 sessions deep) and a draining cycle would be prudent before Phase 4 lands.
+**Strong recommendation:** if energy is high, do **(3)** then **(1)** in the same session — they nest perfectly. The tech-debt sweep is small enough to land first, and Phase 5 immediately benefits from the cleaner band-rate helper. Save **(2)** for a dedicated deploy session given the queue is now substantial.
+
+CSJ to choose. Phase 5 is the natural next strategy step; the deploy queue is starting to accumulate but no urgent driver yet. Tech-debt sweep is opportunistic — bundle it with whichever path you pick.
