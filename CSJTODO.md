@@ -1,7 +1,39 @@
 # CSJTODO — Fynla
 
-*Last updated: 30 April 2026 — session 121 (Tech-debt sweep + SaveTax Phase 5 — #14 shipped, commits `4b7981a` + `73fa312`).*
-*Previous session: 120 (30 April evening — S-1 refactor + Phase 4 #3 + #13).*
+*Last updated: 30 April 2026 — session 122 (SaveTax public-page chat unification + register-gated CTAs — commit `da6fa89`).*
+*Previous session: 121 (30 April late — Tech-debt sweep + SaveTax Phase 5 #14).*
+
+---
+
+## Session 122 (30 April 2026, late) — SaveTax public-page chat unification + register-gated CTAs
+
+**Branch:** `feature/fyn-persona-split`. **Commit:** 1 (`da6fa89`).
+
+CSJ asked: "make changes to /savetax — fyn chat window, remove the how can i help and the how much / am I using / what is bubbles from the end of the conversation. If a user types anything into the input Fyn will respond with 'I can give you a personalised tax strategy once you register' linking to /register?from=savetax, and the same for any CTA on the page." Then a follow-up: "we also need a register link in the chat, and change all the CTAs to read 'Register now to ask Fyn', remove the arrow."
+
+### Completed this session
+
+- [x] **`StaticFynChat.vue` parameterised** with two new props:
+  - `source` (default `'fyn'`) — replaces the hardcoded `?from=fyn` on every register link inside the panel. `SaveTaxCampaignPage` passes `source="savetax"` so post-register routing follows the SaveTax campaign branch.
+  - `responseMessage` (default `null`) — when set, the panel switches to interactive mode: hides the "How can I help with your finances?" suggested prompts, makes the input editable, and on submit appends a user/Fyn turn pair plus a Register CTA pointing at `/register?from=<source>`.
+- [x] **Empty Send still navigates** to `/register?from=<source>` even in interactive mode — keeps the rule "every CTA on the page routes to register" honest.
+- [x] **`SaveTaxCampaignPage.vue`** passes both new props and unifies all 7 CTAs to **"Register now to ask Fyn"** (no arrows). Page-level CTAs already routed through `?from=savetax`; the chat panel was the only outlier and is now aligned.
+- [x] **Default behaviour preserved** for the other 2 public pages using `StaticFynChat` (`CampaignPage`, `QuickStartPage`) — they don't pass `responseMessage`, so they keep the suggested prompts and route to `?from=fyn`.
+- [x] **Live browser verification (Rule #15)**:
+  - `/savetax` chat — typed "How can I cut my pension tax?" → user bubble + Fyn reply with **"I can give you a personalised tax strategy once you register."** + **"Register now to ask Fyn"** CTA → routes to `/register?from=savetax`.
+  - All 7 page CTAs (4 example cards + 1 bottom CTA + 2 chat CTAs after typing) confirmed routing to `/register?from=savetax`. No arrow remnants anywhere.
+  - `/quickstart` regression check — suggested prompts visible, input readonly, empty Send → `/register?from=fyn`. No regression.
+- [x] **Three CSJ course corrections** folded into one renamed feedback memory (`feedback_dont_invent_cta_labels.md` → "User-facing text — read literal, proofread, then ship"):
+  1. Don't split a single CTA label phrase into two — `Register now to Ask Fyn` was one label.
+  2. Don't ship grammar errors — `Ask` was wrong (verb, lowercase) so all CTAs corrected to `Register now to ask Fyn`.
+  3. Proofread CSJ's pasted prose — `personalised tax strategy` was missing the article `a`.
+
+### Tech-debt findings (deferred — not auto-fixed)
+
+- [ ] **W-1 (Rule #14)** — `StaticFynChat.vue` lines 26, 30, 34 (3 checkmark SVGs in welcome list) and 101–103 (paper-plane SVG on Send button) violate Rule #14's ban on icons inside the Fyn chat window. All pre-existing. Replace with text bullets / "Send" label when the cleanup is in scope.
+- [ ] **W-2** — `SaveTaxCampaignPage.vue` lines 102–106 — bottom CTA renders green (`bg-spring-500`) while the other 6 CTAs render raspberry. Now that all 7 share the same label and destination, the colour split is visually inconsistent. Either align to raspberry or give that CTA a distinct label.
+- [ ] **S-1** — Duplicated register-CTA markup at `StaticFynChat.vue` lines 38–43 and 71–76 (identical class, destination, label). Defer until a 3rd instance appears, then extract to `<RegisterCta>`.
+- [ ] **S-2** — `turns` array in `StaticFynChat.vue` has no persistence; acceptable for the placebo chat on /savetax but flagged so it's not mistaken for a real message store later.
 
 ---
 
