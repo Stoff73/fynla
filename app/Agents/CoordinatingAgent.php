@@ -4078,9 +4078,12 @@ class CoordinatingAgent extends BaseAgent
         $user->update(['annual_charitable_donations' => $amount]);
 
         return [
-            'updated' => true,
-            'annual_charitable_donations' => $amount,
-            'message' => 'Annual charitable donations recorded.',
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_charitable_giving',
+            'summary' => $amount > 0
+                ? sprintf('Annual Gift Aid donations recorded as £%s.', number_format($amount, 0))
+                : 'No Gift Aid donations recorded.',
+            'details' => ['annual_charitable_donations' => $amount],
         ];
     }
 
