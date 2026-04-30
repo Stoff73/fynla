@@ -8,6 +8,7 @@ use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\PensionInputHistory;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
@@ -858,6 +859,149 @@ describe('Phase 3 — non-earner spouse pension (#12)', function () {
         expect($rec)->not->toBeNull()
             ->and($rec['spouse_existing_pension_balance'])->toBe(25000.0)
             ->and($rec['description'])->toContain('£25,000');
+    });
+});
+
+describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
+    it('does not fire for basic-rate users', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 30000,
+        ]);
+        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+            PensionInputHistory::create([
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'pension_input_amount' => 5000,
+            ]);
+        }
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        expect($rec)->toBeNull();
+    });
+
+    it('does not fire when current year contributions already exceed AA', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'monthly_contribution_amount' => 6000, // £72k/yr — over the £60k AA
+        ]);
+        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+            PensionInputHistory::create([
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'pension_input_amount' => 0,
+            ]);
+        }
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        expect($rec)->toBeNull();
+    });
+
+    it('does not fire when no pension_input_history rows exist', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        expect($rec)->toBeNull();
+    });
+
+    it('does not fire when all 3 prior years used the full AA', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+        ]);
+        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+            PensionInputHistory::create([
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'pension_input_amount' => 60000,
+            ]);
+        }
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        expect($rec)->toBeNull();
+    });
+
+    it('fires with correct unused_carry_forward and saving for higher-rate user', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+        ]);
+        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+            PensionInputHistory::create([
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'pension_input_amount' => 20000,
+            ]);
+        }
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        expect($rec)->not->toBeNull()
+            ->and($rec['unused_carry_forward'])->toBe(120000.0)
+            ->and($rec['marginal_rate'])->toBe(0.4)
+            ->and($rec['lookback_years'])->toBe(3)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(48000.0)
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['category'])->toBe('allowance');
+    });
+
+    it('fires with correct saving for additional-rate user', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 200000,
+        ]);
+        foreach (['2024/25', '2023/24', '2022/23'] as $year) {
+            PensionInputHistory::create([
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'pension_input_amount' => 20000,
+            ]);
+        }
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        expect($rec)->not->toBeNull()
+            ->and($rec['marginal_rate'])->toBe(0.45)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(54000.0);
+    });
+
+    it('only counts the most recent 3 history entries', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+        ]);
+        // 4 years of history; oldest one (2021/22) must be ignored
+        foreach (['2024/25', '2023/24', '2022/23', '2021/22'] as $year) {
+            PensionInputHistory::create([
+                'user_id' => $user->id,
+                'tax_year' => $year,
+                'pension_input_amount' => $year === '2021/22' ? 0 : 30000,
+            ]);
+        }
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
+        // 3 × (60k - 30k) = 90k unused; the 60k from 2021/22 is dropped
+        expect($rec)->not->toBeNull()
+            ->and($rec['unused_carry_forward'])->toBe(90000.0);
     });
 });
 

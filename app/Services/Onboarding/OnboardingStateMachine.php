@@ -89,6 +89,8 @@ final class OnboardingStateMachine
 
     public const STATE_CAMPAIGN_PENSION_CONTRIBS = 'campaign_pension_contribs';
 
+    public const STATE_CAMPAIGN_PENSION_HISTORY = 'campaign_pension_history';
+
     public const STATE_CAMPAIGN_SPOUSE_WORK = 'campaign_spouse_work';
 
     public const STATE_CAMPAIGN_SPOUSE_HOUSEHOLD = 'campaign_spouse_household';
@@ -341,6 +343,14 @@ final class OnboardingStateMachine
                 'turn_type' => 'delegated',
                 'prompt_text' => 'Beyond the workplace pension we covered, do you make any personal pension or SIPP contributions? If so, how much per year (gross)?',
                 'capture_field' => null,
+                'next' => self::STATE_CAMPAIGN_PENSION_HISTORY,
+            ],
+            self::STATE_CAMPAIGN_PENSION_HISTORY => [
+                'turn_type' => 'grouped_extract',
+                'prompt_text' => 'Quick one — to check if you have any unused pension allowance to top up, what did you contribute (gross) in each of the last 3 tax years? If you don\'t know exact numbers, rough figures are fine, and "zero" is a valid answer.',
+                'capture_field' => null,
+                'extraction_tool' => 'capture_pension_history',
+                'retry_text' => 'I just need a rough gross figure for each of the last three tax years (2024/25, 2023/24, 2022/23). Even "I think it was about 5,000 each year" works.',
                 'next' => self::STATE_CAMPAIGN_SPOUSE_WORK,
             ],
             self::STATE_CAMPAIGN_SPOUSE_WORK => [

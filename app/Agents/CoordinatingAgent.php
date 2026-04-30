@@ -891,6 +891,7 @@ class CoordinatingAgent extends BaseAgent
                 'capture_spouse_work_status' => $this->handleCaptureSpouseWorkStatus($input, $user, $isPreviewUser),
                 'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
                 'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
+                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
@@ -4014,6 +4015,47 @@ class CoordinatingAgent extends BaseAgent
             'field_group' => 'campaign_spouse_non_working_assets',
             'summary' => 'Spouse standalone assets captured.',
             'details' => $allowed,
+        ];
+    }
+
+    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('pension');
+        }
+
+        $history = $input['history'] ?? null;
+        if (! is_array($history) || $history === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'history must be a non-empty array.'];
+        }
+
+        $written = [];
+        foreach ($history as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+            $taxYear = isset($entry['tax_year']) ? (string) $entry['tax_year'] : null;
+            $amount = isset($entry['pension_input_amount']) ? (float) $entry['pension_input_amount'] : null;
+            if ($taxYear === null || $taxYear === '' || $amount === null || $amount < 0) {
+                continue;
+            }
+
+            \App\Models\PensionInputHistory::updateOrCreate(
+                ['user_id' => $user->id, 'tax_year' => $taxYear],
+                ['pension_input_amount' => $amount],
+            );
+            $written[$taxYear] = $amount;
+        }
+
+        if ($written === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No valid history entries provided.'];
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_pension_history',
+            'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
+            'details' => $written,
         ];
     }
 

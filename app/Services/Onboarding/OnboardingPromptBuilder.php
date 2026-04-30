@@ -118,6 +118,7 @@ final class OnboardingPromptBuilder
             'savetax' => [
                 'create_pension',
                 'capture_salary_sacrifice',
+                'capture_pension_history',
                 'create_savings_account',
                 'create_investment_account',
                 'create_holding',
