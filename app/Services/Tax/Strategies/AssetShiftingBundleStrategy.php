@@ -57,8 +57,15 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
             ->where('is_isa', false)
             ->get(['current_balance', 'interest_rate']);
         $userSavingsTotal = (float) $userSavings->sum('current_balance');
-        $userAvgRate = $userSavings->count() > 0
-            ? (float) $userSavings->avg('interest_rate')
+        // Normalise interest_rate (stored as either percent 4.0 or decimal 0.04)
+        // before averaging so spouse-shift calculations stay realistic.
+        $normalisedRates = $userSavings->map(function ($acc) {
+            $r = (float) $acc->interest_rate;
+
+            return $r > 1 ? $r / 100 : $r;
+        });
+        $userAvgRate = $normalisedRates->count() > 0
+            ? (float) $normalisedRates->avg()
             : 0.035;
 
         $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);

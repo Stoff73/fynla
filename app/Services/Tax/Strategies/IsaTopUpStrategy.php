@@ -40,24 +40,26 @@ final class IsaTopUpStrategy implements TaxStrategy
             return [];
         }
 
-        $nonIsaSavings = SavingsAccount::query()
+        $nonIsaBalance = (float) SavingsAccount::query()
             ->where('user_id', $user->id)
             ->where('is_isa', false)
-            ->get(['current_balance', 'interest_rate']);
-        $nonIsaBalance = (float) $nonIsaSavings->sum('current_balance');
-        $avgRate = $nonIsaSavings->count() > 0
-            ? (float) $nonIsaSavings->avg('interest_rate')
-            : 0.0;
-        $annualInterest = $nonIsaBalance * $avgRate;
+            ->sum('current_balance');
+
+        // Use the centralised helper — it normalises the interest_rate
+        // column convention (decimals 0.04 vs. percents 4.0) the same way
+        // every other strategy does, so the resulting interest figure is
+        // comparable across the dashboard.
+        $annualInterest = $this->math->estimateAnnualInterest($user);
+        $effectiveAvgRate = $nonIsaBalance > 0 ? $annualInterest / $nonIsaBalance : 0.0;
         $psa = $this->math->psaForBand($userBand);
 
         // Only fire when interest exceeds PSA — otherwise no tax to save.
-        if ($annualInterest <= $psa || $avgRate <= 0) {
+        if ($annualInterest <= $psa || $effectiveAvgRate <= 0) {
             return [];
         }
 
         $excessInterest = $annualInterest - $psa;
-        $excessBalance = $excessInterest / $avgRate;
+        $excessBalance = $excessInterest / $effectiveAvgRate;
         $transferable = min($isaRemaining, $nonIsaBalance, $excessBalance);
 
         if ($transferable <= 1000) {
@@ -65,7 +67,7 @@ final class IsaTopUpStrategy implements TaxStrategy
         }
 
         $marginalRate = $this->math->bandRateFor($user);
-        $saving = $transferable * $avgRate * $marginalRate;
+        $saving = $transferable * $effectiveAvgRate * $marginalRate;
 
         return [new StrategyRecommendation(
             type: 'isa_topup_vs_psa',

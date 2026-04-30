@@ -8,6 +8,7 @@ use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
 use App\Models\PensionInputHistory;
+use App\Models\SavingsAccount;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -28,6 +29,14 @@ use App\Services\TaxConfigService;
 final class PensionAACarryForwardStrategy implements TaxStrategy
 {
     private const LOOKBACK_YEARS = 3;
+
+    /**
+     * Minimum non-ISA liquid wealth (cash + non-ISA savings) before we
+     * recommend carry-forward. Below this the user almost certainly cannot
+     * deploy meaningful amounts into a pension, so the recommendation is
+     * just noise. £10k is a soft heuristic — refine with persona evidence.
+     */
+    private const MIN_LIQUID_WEALTH_TO_RECOMMEND = 10000.0;
 
     public function __construct(
         private readonly TaxStrategyMath $math,
@@ -68,8 +77,45 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
+        // Cap by HMRC tax-relief rule: pension contributions only attract
+        // tax relief up to the user's gross UK earnings for the year.
+        // Carry-forward of £162k means nothing to a £75k earner — they can
+        // only get tax relief on (gross_income − current_year_input).
+        $grossIncome = (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0);
+        $taxReliefHeadroom = max(0, $grossIncome - $currentInput);
+        $usableThisYear = min($unused, $taxReliefHeadroom);
+
+        if ($usableThisYear <= 0) {
+            return [];
+        }
+
+        // Gate by liquid wealth — recommending carry-forward to someone who
+        // has < £10k of non-ISA liquid savings is non-actionable advice.
+        $liquidWealth = (float) SavingsAccount::query()
+            ->where('user_id', $user->id)
+            ->where('is_isa', false)
+            ->sum('current_balance');
+
+        if ($liquidWealth < self::MIN_LIQUID_WEALTH_TO_RECOMMEND) {
+            return [];
+        }
+
+        // Cap the headline figure by both the tax-relief rule and a
+        // conservative slice of the user's liquid wealth (1/2 of cash —
+        // leaves room for emergency fund, won't suggest emptying their
+        // bank account into a pension).
+        $affordableCap = $liquidWealth * 0.5;
+        $recommended = min($usableThisYear, $affordableCap);
+
+        // Round DOWN to the nearest £1,000 so the headline never overstates.
+        $recommended = floor($recommended / 1000) * 1000;
+        if ($recommended <= 0) {
+            return [];
+        }
+
         $marginalRate = $this->math->bandRateFor($user);
-        $saving = $unused * $marginalRate;
+        $saving = $recommended * $marginalRate;
 
         if ($saving < 1) {
             return [];
@@ -80,18 +126,22 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             category: StrategyCategory::Allowance,
             priority: StrategyPriority::Medium,
             title: sprintf(
-                'Carry forward up to £%s of unused Pension Allowance',
-                number_format((int) round($unused / 1000) * 1000),
+                'Top up your pension by up to £%s using carry-forward',
+                number_format((int) $recommended),
             ),
             description: sprintf(
-                'You contributed below the £%s Pension Annual Allowance in each of the last 3 tax years, leaving around £%s of headroom you can still use. At your marginal rate that\'s a potential £%s of income-tax relief if you have surplus income to contribute.',
+                'You\'ve contributed below the £%s Pension Annual Allowance in each of the last 3 tax years. Based on your current earnings and savings you could put up to £%s into your pension this year and reclaim around £%s in income tax. Your full unused allowance over the lookback window is £%s, but contributions only get tax relief up to your gross UK earnings.',
                 number_format((int) $aa),
-                number_format((int) round($unused / 1000) * 1000),
+                number_format((int) $recommended),
                 number_format((int) round($saving)),
+                number_format((int) round($unused / 1000) * 1000),
             ),
             estimatedAnnualTaxSaved: round($saving, 2),
             extra: [
-                'unused_carry_forward' => round($unused, 2),
+                'unused_carry_forward_total' => round($unused, 2),
+                'recommended_contribution' => round($recommended, 2),
+                'tax_relief_headroom' => round($taxReliefHeadroom, 2),
+                'liquid_wealth' => round($liquidWealth, 2),
                 'marginal_rate' => $marginalRate,
                 'lookback_years' => self::LOOKBACK_YEARS,
                 'current_year_input' => round($currentInput, 2),

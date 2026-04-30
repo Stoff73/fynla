@@ -146,7 +146,17 @@ final class TaxStrategyMath
             ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->get()
-            ->sum(fn ($acc) => (float) $acc->current_balance * (float) $acc->interest_rate);
+            ->sum(function ($acc) {
+                // interest_rate convention is mixed across the codebase
+                // (factory writes decimals 0.04, seeders + onboarding write
+                // percent 4.0). Normalise: anything > 1 is treated as percent.
+                $rate = (float) $acc->interest_rate;
+                if ($rate > 1) {
+                    $rate /= 100;
+                }
+
+                return (float) $acc->current_balance * $rate;
+            });
     }
 
     public function estimateIsaSubscriptionsThisYear(User $user): float
@@ -165,9 +175,27 @@ final class TaxStrategyMath
             return (float) ($user->annual_employment_income ?? 0) * ($overrides->pensionContributionPercent / 100);
         }
 
-        $monthlyTotal = (float) DCPension::where('user_id', $user->id)->sum('monthly_contribution_amount');
+        $userIncome = (float) ($user->annual_employment_income ?? 0);
 
-        return $monthlyTotal * 12;
+        // Sum each pension's input separately. monthly_contribution_amount
+        // takes precedence when set; otherwise fall back to the captured
+        // employee+employer percentages applied to the pension's
+        // annual_salary (the user's earnings at that employer) — the
+        // SaveTax onboarding writes %s, not a £ monthly figure.
+        return (float) DCPension::where('user_id', $user->id)
+            ->get()
+            ->sum(function ($pension) use ($userIncome) {
+                $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
+                if ($monthly > 0) {
+                    return $monthly * 12;
+                }
+
+                $salary = (float) ($pension->annual_salary ?? 0) ?: $userIncome;
+                $employee = (float) ($pension->employee_contribution_percent ?? 0);
+                $employer = (float) ($pension->employer_contribution_percent ?? 0);
+
+                return $salary * (($employee + $employer) / 100);
+            });
     }
 
     /**

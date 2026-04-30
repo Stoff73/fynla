@@ -55,7 +55,16 @@ final class JointSavingsStrategy implements TaxStrategy
         }
 
         $balance = (float) $soleSavings->sum('current_balance');
-        $avgRate = $soleSavings->count() > 0 ? (float) $soleSavings->avg('interest_rate') : 0.0;
+        // Mixed convention guard: interest_rate is stored as percent (4.0)
+        // by onboarding/seeders and as decimal (0.04) by the factory.
+        // Normalise then average so the £ figures line up with the rest
+        // of the dashboard.
+        $normalisedRates = $soleSavings->map(function ($acc) {
+            $r = (float) $acc->interest_rate;
+
+            return $r > 1 ? $r / 100 : $r;
+        });
+        $avgRate = $normalisedRates->count() > 0 ? (float) $normalisedRates->avg() : 0.0;
         $interest = $balance * $avgRate;
         $userPsa = $this->math->psaForBand($userBand);
 

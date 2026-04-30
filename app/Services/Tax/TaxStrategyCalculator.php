@@ -122,12 +122,16 @@ final class TaxStrategyCalculator
         $estimatedAnnualInterest = $this->math->estimateAnnualInterest($user);
 
         $startingRateForSavingsAmount = (float) ($income['starting_rate_for_savings']['band'] ?? $income['starting_rate_for_savings']['amount'] ?? 5000);
-        // Starting rate for savings tapers when non-savings income > £12,570 — full amount only when income ≤ PA
+        // Starting rate for savings tapers £-for-£ once non-savings income exceeds the
+        // Personal Allowance and disappears entirely once it exceeds PA + £5,000. We only
+        // surface the position when the user could actually use some of it.
         $nonSavingsIncomeAbovePa = max(0, $employmentIncome - $personalAllowanceAmount);
-        $startingRateForSavingsRemaining = max(0, $startingRateForSavingsAmount - $nonSavingsIncomeAbovePa);
-        $startingRateForSavingsUsed = $startingRateForSavingsAmount - $startingRateForSavingsRemaining;
+        $startingRateForSavingsAvailable = max(0, $startingRateForSavingsAmount - $nonSavingsIncomeAbovePa);
+        $startingRateForSavingsUsed = min($startingRateForSavingsAvailable, $this->math->estimateAnnualInterest($user));
 
         $marriageAllowanceAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
+        $maritalStatus = (string) ($user->marital_status ?? '');
+        $isPartnered = in_array($maritalStatus, ['married', 'civil_partnership'], true);
         // Recipient (the working spouse) "uses" the MA only when eligible
         $marriageAllowanceUsed = ($overrides?->marriageAllowanceClaimed === true || $user->marriage_allowance_eligible === true)
             ? $marriageAllowanceAmount
@@ -152,16 +156,31 @@ final class TaxStrategyCalculator
         $aaAmount = (float) ($pension['annual_allowance'] ?? 60000);
         $aaUsed = $this->math->estimatePensionContributionThisYear($user, $overrides);
 
-        return [
+        $positions = [
             $this->position('personal_allowance', 'Personal Allowance', $personalAllowanceAmount, $personalAllowanceUsed, 'user'),
             $this->position('savings_allowance', 'Savings Allowance', $personalSavingsAllowanceAmount, min($personalSavingsAllowanceAmount, $estimatedAnnualInterest), 'user'),
-            $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateForSavingsAmount, $startingRateForSavingsUsed, 'user'),
-            $this->position('marriage_allowance', 'Marriage Allowance', $marriageAllowanceAmount, $marriageAllowanceUsed, 'user'),
             $this->position('isa_allowance', 'ISA Allowance', $isaAmount, $isaUsed, 'user'),
             $this->position('cgt_allowance', 'Capital Gains Tax Allowance', $cgtAmount, $cgtUsed, 'user'),
             $this->position('dividend_allowance', 'Dividend Allowance', $divAmount, min($divAmount, $divUsed), 'user'),
             $this->position('pension_annual_allowance', 'Pension Annual Allowance', $aaAmount, $aaUsed, 'user'),
         ];
+
+        // Only surface Starting Rate for Savings when the user actually has
+        // some of it (non-savings income < £17,570 in 2026/27). Tapered to
+        // zero for higher earners — hiding it avoids the misleading
+        // "£5,000 fully used" framing.
+        if ($startingRateForSavingsAvailable > 0) {
+            $positions[] = $this->position('starting_rate_for_savings', 'Starting Rate for Savings', $startingRateForSavingsAvailable, $startingRateForSavingsUsed, 'user');
+        }
+
+        // Marriage Allowance is only available when the user is married or
+        // in a civil partnership. Don't show it to single / divorced / widowed
+        // users — there's no spouse to transfer the allowance from.
+        if ($isPartnered) {
+            $positions[] = $this->position('marriage_allowance', 'Marriage Allowance', $marriageAllowanceAmount, $marriageAllowanceUsed, 'user');
+        }
+
+        return $positions;
     }
 
     private function buildSpouseAllowanceGridDualEarner(TaxStrategyHouseholdInput $household): array
