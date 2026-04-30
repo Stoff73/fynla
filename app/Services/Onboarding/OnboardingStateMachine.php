@@ -179,7 +179,7 @@ final class OnboardingStateMachine
                 'turn_type' => 'grouped_extract',
                 'prompt_text' => self::class.'::buildSpousePrompt',
                 'extraction_tool' => 'capture_spouse_details',
-                'retry_text' => "I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?",
+                'retry_text' => 'I need a first name, date of birth, and email address for your partner so I can create and link their account. Could you share those again?',
                 'next' => self::STATE_BASE_DEPENDANTS,
                 // Phase 10 — surface a raspberry-500 inline skip link alongside
                 // the prompt. Frontend posts {action: 'skip'} to the action
@@ -381,7 +381,7 @@ final class OnboardingStateMachine
                 'prompt_text' => "Got it — your spouse doesn't currently earn an income. That's actually useful for your tax strategy, because they have around £40,000 of unused tax allowances we can put to work. Do they have any savings, ISAs, or investment accounts in their own name today, or is it all in yours?",
                 'capture_field' => null,
                 'extraction_tool' => 'capture_spouse_non_working_assets',
-                'retry_text' => "Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say \"nothing\".",
+                'retry_text' => 'Just give me rough numbers — savings balance, ISA balance, investment balance. If they have nothing in their own name, just say "nothing".',
                 'next' => self::STATE_CAMPAIGN_TERMINAL,
                 'skip_if' => [self::class, 'skipIfNotSingleEarnerCouple'],
             ],
@@ -390,7 +390,7 @@ final class OnboardingStateMachine
             // a `navigate` SSE event when this state is reached.
             self::STATE_CAMPAIGN_TERMINAL => [
                 'turn_type' => 'terminal',
-                'prompt_text' => "All set, {first_name} — let me show you your tax position.",
+                'prompt_text' => 'All set, {first_name} — let me show you your tax position.',
                 'capture_field' => null,
                 'navigate_to' => '/tax-strategy',
                 'next' => self::STATE_DONE,
@@ -422,7 +422,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_DONE => [
                 'turn_type' => 'terminal',
-                'prompt_text' => "All set, {first_name}. Your {selection} module is ready to explore.",
+                'prompt_text' => 'All set, {first_name}. Your {selection} module is ready to explore.',
                 'capture_field' => null,
                 'next' => null,
             ],
@@ -707,14 +707,14 @@ final class OnboardingStateMachine
         $status = $user->employment_status ?? 'employed';
 
         if ($status === 'self_employed') {
-            return "Brilliant. Let me know your trade or business name, your main role, and your gross annual self-employment income — all in one go is fine.";
+            return 'Brilliant. Let me know your trade or business name, your main role, and your gross annual self-employment income — all in one go is fine.';
         }
 
         if ($status === 'part_time') {
-            return "Lovely. Share the company you work for part-time, your position, and your gross annual income from that role.";
+            return 'Lovely. Share the company you work for part-time, your position, and your gross annual income from that role.';
         }
 
-        return "Brilliant. Share the company you work for, your position, and your gross annual income — all in one go is fine.";
+        return 'Brilliant. Share the company you work for, your position, and your gross annual income — all in one go is fine.';
     }
 
     public static function nextFromAddMore(string $answer, User $user): string

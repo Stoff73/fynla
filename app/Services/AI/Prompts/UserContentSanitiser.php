@@ -12,9 +12,11 @@ namespace App\Services\AI\Prompts;
  * for user-controlled free-text fields (names, account names, goal
  * names, employer / institution / provider strings, addresses, etc.):
  *
- *   1. clean()  — strip everything outside [A-Za-z0-9\s'.,\-] so an
- *      attacker cannot smuggle template braces, angle brackets,
- *      semicolons, backticks, or prompt-override punctuation into the
+ *   1. clean()  — strip injection-relevant characters (angle brackets,
+ *      curly braces, square brackets, parens, semicolons, quotes,
+ *      backticks, pipes, backslashes, control characters, zero-width
+ *      separators) so an attacker cannot smuggle template injection,
+ *      shell metacharacters, or prompt-override punctuation into the
  *      system prompt.
  *
  *   2. wrap()   — surround the cleaned value with
@@ -23,21 +25,51 @@ namespace App\Services\AI\Prompts;
  *      content begins. The markers themselves are stripped from any
  *      attacker payload by clean(), so they remain a reliable boundary.
  *
- * Out of scope (per spec): widening the allowed character set (locks
- * out non-ASCII names like "François" by design — we accept that
- * trade-off for the prompt-injection floor); sanitising at the DB
- * layer or in the UI; structural separation for non-prompt contexts.
- *
- * Punctuation set is fixed by spec — apostrophe, period, comma, hyphen
- * are the only allowed non-alphanumeric characters (plus whitespace).
- * That intentionally permits "O'Brien" and "Smith-Jones" while blocking
- * `{` `}` `<` `>` `;` `"` `(` `)` `[` `]` `{{ }}` etc.
+ * Charset policy (April30Updates F-2): we now use a denylist rather
+ * than the original whitelist. The whitelist locked out non-ASCII names
+ * (François → Franois, Müller → Mller, 李 → empty) which is a
+ * real inclusivity bug AND a memory-consistency risk — the LLM saw a
+ * different name than the DB stores, breaking the "do not re-ask known
+ * facts" contract. The denylist preserves Unicode letters and accepted
+ * punctuation while still blocking every character used in known
+ * injection vectors.
  */
 final class UserContentSanitiser
 {
+    /**
+     * Characters we strip — injection-relevant punctuation, shell
+     * metacharacters, control chars (except tab/LF/CR), and zero-width
+     * / format / symbol characters commonly used to disguise payloads.
+     *
+     * Stripped:
+     *   < >  — XML/HTML tag delimiters (incl. our own <user_provided> wrapper)
+     *   { }  — Jinja/Twig/Mustache template injection
+     *   [ ]  — Markdown link / array index injection
+     *   ( )  — function-call disguise
+     *   ;    — statement terminator (SQL/JS)
+     *   "    — string-close + escape
+     *   `    — backtick / template-literal / shell command
+     *   |    — shell pipe
+     *   \    — escape character
+     *   $    — variable / template marker
+     *
+     *   @ # &  — directive / preprocessor / HTML-entity markers
+     *   = +  — assignment / concat used in some injection chains
+     *   * ^ ~ — wildcards / format specifiers
+     *   / : ? — URL components used in link injection
+     *   \x00-\x08\x0B\x0C\x0E-\x1F\x7F — control chars except \t \n \r
+     *   \p{Cf} \p{Co} \p{Cn}  — format, private-use, unassigned
+     *   \p{So}                 — emoji & other symbols
+     *
+     * Preserved (whitelisted from \p{C}):
+     *   \t \n \r — tab, line feed, carriage return — needed for
+     *   multi-line address fields and similar legit content.
+     */
+    private const DENYLIST_PATTERN = '/[<>{}\[\]();"`|\\\\$@#&=+*^~\/:?]|[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]|\p{Cf}|\p{Co}|\p{Cn}|\p{So}/u';
+
     public static function clean(string $value): string
     {
-        return preg_replace("/[^A-Za-z0-9\s'.,\-]/u", '', $value) ?? '';
+        return preg_replace(self::DENYLIST_PATTERN, '', $value) ?? '';
     }
 
     public static function wrap(string $value): string

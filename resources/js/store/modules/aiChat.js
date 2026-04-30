@@ -533,9 +533,27 @@ const actions = {
                                 break;
 
                             case 'handoff':
-                                // Should never reach here — FynPersonaInvoker strips
-                                // handoff events from the outbound SSE. Log only.
+                                // Should never reach here — AdviceFyn::wrapStream strips
+                                // handoff events from the outbound SSE per INV-2.4.1.
+                                // Log only.
                                 logger.debug('[chat] handoff leaked', event);
+                                break;
+
+                            case 'handoff_error':
+                                // April30Updates F-1 / INV-2.4.5 — the LLM emitted a
+                                // delegate_to_capture with a malformed payload. Surface
+                                // a single short message so the user knows the request
+                                // didn't land. Render as a normal assistant content
+                                // bubble (per INV-2.4.3 styling rule — no special chrome).
+                                commit('ADD_MESSAGE', {
+                                    id: 'handoff_error_' + Date.now(),
+                                    role: 'assistant',
+                                    content: event.message || "I couldn't pick up that request — could you try again?",
+                                    created_at: new Date().toISOString(),
+                                });
+                                logger.warn('[chat] handoff_error', {
+                                    reason: event.reason,
+                                });
                                 break;
 
                             case 'skip_link':

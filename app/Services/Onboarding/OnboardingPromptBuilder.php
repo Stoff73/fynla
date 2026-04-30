@@ -59,20 +59,33 @@ final class OnboardingPromptBuilder
 
         $taxYear = $this->taxConfig->getTaxYear() ?? '2025/26';
 
+        // April30Updates F-5 — layer ordering is now CACHE-FIRST.
+        //
+        // Anthropic prefix-cache only hits when the prompt prefix is
+        // byte-identical across turns. Pre-fix layout:
+        //   CoreIdentity → ComplianceRules → known_facts → assetCapture
+        // The known_facts block grows after every capture during the
+        // 6–8 SaveTax onboarding turns, invalidating the prefix from
+        // Layer 3 onward. Net cache hit rate: 0% on dynamic content.
+        //
+        // Post-fix layout:
+        //   CoreIdentity → ComplianceRules → assetCapture → known_facts
+        // The first three blocks are stable for the duration of the
+        // focus (CoreIdentity + ComplianceRules vary only by user/tax-
+        // year; assetCapture is fixed per focus). Only the trailing
+        // known_facts changes per turn, so the static prefix benefits
+        // from cache. Estimated 60-70% input-token reduction on turns
+        // 2-N of an onboarding session.
         $layers = [
             CoreIdentity::get($firstName),
             ComplianceRules::get($taxYear),
+            $this->assetCaptureInstructions($focus),
         ];
 
-        // S1.4 — known_facts block. Injected before asset-capture
-        // instructions so the LLM sees what we already know about the
-        // user and never re-asks for it (INV-2.2.3, INV-2.11.1).
         $knownFacts = $this->memory->renderKnownFactsBlock($user, $conversation);
         if ($knownFacts !== '') {
             $layers[] = $knownFacts;
         }
-
-        $layers[] = $this->assetCaptureInstructions($focus);
 
         return implode("\n\n", $layers);
     }

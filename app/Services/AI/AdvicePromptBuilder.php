@@ -121,22 +121,34 @@ class AdvicePromptBuilder
         $profile = $this->buildUserProfile($user);
         $layers[] = "<user_profile>\n{$profile}\n</user_profile>";
 
-        // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification.
-        // buildFinancialContext is defensive: empty modules render no lines, missing
-        // values guarded with `?? 0 > 0`. The historical hallucination bug
-        // (April/April9Updates/fynQuickStartBugs.md) that originally motivated the
-        // EmptyDataGuard substitution is closed by those guards plus the KYC BLOCKED
-        // block at Layer 9 (KycGateChecker emits MANDATORY instructions stronger than
-        // EmptyDataGuard ever did, with field-level missing data and exact navigation
-        // routes). The structural prompt swap was the root of the eval/live divergence
-        // captured in April27Updates/eval-system-vs-live-flow-audit.md — same code
-        // path is now guaranteed to assemble the same prompt structure for every user.
-        $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
-        $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
+        // April30Updates F-14 — skip the heavy financial-context and
+        // existing-records layers on factual queries (BILLING, NAVIGATION,
+        // DATA_ENTRY, OUT_OF_REMIT, INCOME, GENERAL). They are irrelevant
+        // noise for "where's my invoice?" or "take me to the goals page"
+        // and crowd the cache window for module + holistic queries that
+        // genuinely need the data. Reduces input tokens by ~500-1000 per
+        // factual turn.
+        $isFactual = isset($classification['primary'])
+            && \App\Services\AI\AdviceFyn::engineCallLevelFor($classification['primary']) === 'factual';
 
-        // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification.
-        $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
-        $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
+        if (! $isFactual) {
+            // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification.
+            // buildFinancialContext is defensive: empty modules render no lines, missing
+            // values guarded with `?? 0 > 0`. The historical hallucination bug
+            // (April/April9Updates/fynQuickStartBugs.md) that originally motivated the
+            // EmptyDataGuard substitution is closed by those guards plus the KYC BLOCKED
+            // block at Layer 9 (KycGateChecker emits MANDATORY instructions stronger than
+            // EmptyDataGuard ever did, with field-level missing data and exact navigation
+            // routes). The structural prompt swap was the root of the eval/live divergence
+            // captured in April27Updates/eval-system-vs-live-flow-audit.md — same code
+            // path is now guaranteed to assemble the same prompt structure for every user.
+            $financialContext = $this->buildFinancialContext($user, $orchestrateAnalysis, $classification);
+            $layers[] = "<financial_context>\n{$financialContext}\n</financial_context>";
+
+            // Layer 6: Existing Records (DYNAMIC/query) — filtered by classification.
+            $existingRecords = $this->buildExistingRecordsSummary($user, $classification);
+            $layers[] = "<existing_records>\n{$existingRecords}\n</existing_records>";
+        }
 
         // Layer 7: Data Completeness (DYNAMIC/user) — per-module READY/BLOCKED via
         // PrerequisiteGateService → 5 × DataReadinessService. Field-level tracking

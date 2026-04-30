@@ -121,17 +121,25 @@ final class AdviceFyn
 
     /**
      * Public lookup for the engine-call level of a primary classification.
-     * Defaults to 'holistic' for unknown primaries (safe fallback — when
-     * we don't know what the user is asking, prefer full context to a
-     * truncated one).
+     *
+     * April30Updates F-10 — defaults to 'factual' for unknown primaries
+     * rather than 'holistic'. The previous default ran the most expensive
+     * engine path on any unmapped query type, including non-financial
+     * messages that slipped past the classifier. The strict variant
+     * `engineCallLevel()` (used in tests) still throws on unmapped types
+     * so exhaustive coverage is enforced; this lenient variant exists
+     * only so production cannot regress to 'holistic' if a new query
+     * type lands without being mapped. Factual is also the right default
+     * because an unmapped primary is more likely to be a low-signal
+     * non-advice message than a holistic-health query.
      */
     public static function engineCallLevelFor(?string $primary): string
     {
         if ($primary === null) {
-            return 'holistic';
+            return 'factual';
         }
 
-        return self::ENGINE_CALL_LEVEL_MAP[$primary] ?? 'holistic';
+        return self::ENGINE_CALL_LEVEL_MAP[$primary] ?? 'factual';
     }
 
     /**
@@ -371,31 +379,72 @@ final class AdviceFyn
             if ($type === 'handoff' && $handoffType === HandoffContract::DELEGATE_TO_CAPTURE) {
                 $payload = (array) ($event['payload'] ?? []);
 
+                // April30Updates F-1 / INV-2.4.5 — payload-shape validation
+                // BEFORE we let CaptureContext synthesise a fallback. The
+                // validator returns a typed error key on malformed input;
+                // we surface a single user-facing `handoff_error` SSE event
+                // so the user is told their request didn't land instead of
+                // seeing a half-response with no explanation.
+                //
+                // Note: the validator requires `reason` strictly; we check
+                // its result independently from CaptureContext::fromArray
+                // (which is now resilient and synthesises a reason) so the
+                // two layers can diverge on policy without one masking the
+                // other.
+                $validationError = HandoffPayloadValidator::validateDelegateToCapture($payload);
+                if ($validationError !== null && $validationError !== 'missing_or_invalid_reason') {
+                    // Hard malformed payload (entity_types missing or wrong
+                    // type). The handoff cannot proceed — emit handoff_error
+                    // and fall through to terminate this Advice Fyn turn.
+                    Log::warning('[AdviceFyn] delegate_to_capture payload failed validation', [
+                        'user_id' => $user->id,
+                        'conversation_id' => $conversation->id,
+                        'validation_error' => $validationError,
+                        'payload_keys' => array_keys($payload),
+                    ]);
+
+                    yield [
+                        'type' => 'handoff_error',
+                        'reason' => $validationError,
+                        'message' => "I couldn't pick up that request — could you try again?",
+                    ];
+                    yield ['type' => 'done'];
+
+                    return;
+                }
+
+                if ($validationError === 'missing_or_invalid_reason') {
+                    // Soft malformed — `reason` is missing but `entity_types`
+                    // is present. Log at notice level so the rate of LLM
+                    // prompt-non-compliance is visible in logs but recover
+                    // via the resilient CaptureContext::fromArray path.
+                    Log::notice('[AdviceFyn] delegate_to_capture payload missing reason — recovering via CaptureContext synthesis', [
+                        'user_id' => $user->id,
+                        'conversation_id' => $conversation->id,
+                        'entity_types' => $payload['entity_types'] ?? [],
+                    ]);
+                }
+
                 try {
                     $context = CaptureContext::fromArray($payload);
                 } catch (\InvalidArgumentException $e) {
-                    Log::warning('[AdviceFyn] Malformed delegate_to_capture payload — dropping handoff', [
+                    // Should be unreachable now that validator catches the
+                    // hard cases, but keep as a defensive last line.
+                    Log::warning('[AdviceFyn] CaptureContext rejected delegate_to_capture payload', [
                         'user_id' => $user->id,
                         'conversation_id' => $conversation->id,
                         'error' => $e->getMessage(),
                         'payload_keys' => array_keys($payload),
                     ]);
 
-                    continue;
-                }
+                    yield [
+                        'type' => 'handoff_error',
+                        'reason' => 'capture_context_rejected',
+                        'message' => "I couldn't pick up that request — could you try again?",
+                    ];
+                    yield ['type' => 'done'];
 
-                // S0.5.t — observability: log when the LLM omitted `reason`
-                // and CaptureContext::fromArray synthesised one from
-                // entity_types. Tracking how often this fires tells us
-                // whether the prompt-side fix to require `reason` has
-                // landed with the model.
-                if (! isset($payload['reason']) || trim((string) ($payload['reason'] ?? '')) === '') {
-                    Log::notice('[AdviceFyn] delegate_to_capture payload missing reason — auto-synthesised', [
-                        'user_id' => $user->id,
-                        'conversation_id' => $conversation->id,
-                        'synthesised_reason' => $context->reason,
-                        'entity_types' => $context->entityTypes,
-                    ]);
+                    return;
                 }
 
                 yield from $this->onboardingChatDirector->handleInlineCapture(

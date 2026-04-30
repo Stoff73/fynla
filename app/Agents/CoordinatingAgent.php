@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\QuerySchemas;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -17,9 +18,9 @@ use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
-use App\Models\Invoice;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Invoice;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
@@ -27,7 +28,6 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
-use App\Constants\QuerySchemas;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
@@ -783,9 +783,9 @@ class CoordinatingAgent extends BaseAgent
         }, $input);
 
         // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
-        // (eval flow). Wildcard `['*']` tokens (default Sanctum) don't bypass.
-        $tokenAbilities = $user->currentAccessToken()?->abilities ?? [];
-        $hasEvalBypass = in_array('bypass-preview-mode', $tokenAbilities, true);
+        // (eval flow) AND the X-Eval-Run-Id header is set
+        // (April30Updates F-12 — defence-in-depth on the eval bypass).
+        $hasEvalBypass = \App\Services\Eval\EvalBypassGate::isActive($user);
         $isPreviewUser = (bool) $user->is_preview_user && ! $hasEvalBypass;
 
         // S0.12 — append a chain row at dispatch. Replaces the [AI-AUDIT] file
@@ -978,6 +978,15 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => is_string($entityType) ? $entityType : null,
             'entity_id' => is_numeric($entityId) ? (int) $entityId : null,
         ]);
+
+        // April30Updates F-9 — invalidate the user's prompt caches on any
+        // successful write. The next advice turn rebuilds the prompt with
+        // the latest existing-records / financial-context state instead
+        // of seeing up to 120s of stale data. Read-tool calls and failed
+        // writes don't change DB state, so they don't need invalidation.
+        if (! $hasError && self::operationFor($toolName) === 'write') {
+            \App\Services\AI\AdvicePromptCacheInvalidator::forUser($user->id);
+        }
     }
 
     /**

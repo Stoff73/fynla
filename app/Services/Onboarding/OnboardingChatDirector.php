@@ -46,6 +46,7 @@ final class OnboardingChatDirector
         private readonly AssetCaptureEntityExtractor $entityExtractor,
         private readonly HouseholdProvisioner $householdProvisioner,
         private readonly \App\Services\AI\MemoryRetrieverService $memory,
+        private readonly \App\Services\AI\RecordDuplicateChecker $duplicateChecker,
     ) {}
 
     /**
@@ -1096,7 +1097,7 @@ final class OnboardingChatDirector
         // Emit the same shape handleGroupedExtractTurn produces on a
         // successful capture so downstream consumers (frontend store) see
         // no difference.
-        return (function () use ($user, $conversation, $currentStateId, $state, $result) {
+        return (function () use ($user, $conversation, $currentStateId, $result) {
             if (($result['onboarding_capture'] ?? false) === true) {
                 yield [
                     'type' => 'onboarding_field_captured',
@@ -1515,7 +1516,7 @@ final class OnboardingChatDirector
     ): \Generator {
         $text = $captureError['message'] !== ''
             ? $captureError['message']
-            : "Something went wrong. Could you try again?";
+            : 'Something went wrong. Could you try again?';
 
         $message = $this->saveMessage($conversation, 'assistant', $text, [
             'metadata' => [
@@ -1591,7 +1592,7 @@ final class OnboardingChatDirector
         )));
 
         if (count($friendly) === 0) {
-            return "I still need a couple of things to move on — could you share them again?";
+            return 'I still need a couple of things to move on — could you share them again?';
         }
 
         $list = match (count($friendly)) {
@@ -1677,6 +1678,43 @@ PROMPT;
         array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
+
+        // April30Updates F-11 — duplicate-check guard.
+        //
+        // During multi-turn onboarding (especially the SaveTax 6-8 turn flow)
+        // the user may re-mention records they already described in an earlier
+        // turn ("the Aviva life cover I told you about"). The known_facts
+        // block reduces re-asking, but the LLM is not perfectly disciplined at
+        // 0.7 temperature and can still re-emit a create_* tool. The advice
+        // path is protected by RecordDuplicateChecker; until now the onboarding
+        // path was not. Mirror the same guard here so multi-turn capture cannot
+        // create duplicates. We map the focus to the entity_type the checker
+        // recognises; estate / business / savetax fall through (no checker
+        // mapping — handler-level dedup remains the floor for those).
+        $entityType = match ($selection) {
+            'savings', 'budgeting' => 'savings_account',
+            'investment' => 'investment_account',
+            'retirement' => 'pension',
+            'protection' => 'protection_policy',
+            'goals' => 'goal',
+            default => null,
+        };
+        if ($entityType !== null) {
+            $intent = ['entity_type' => $entityType];
+            if ($this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+                Log::info('[OnboardingChatDirector] Duplicate capture suppressed', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'focus' => $selection,
+                    'entity_type' => $entityType,
+                ]);
+
+                yield ['type' => 'content', 'text' => 'Already on file — nothing to add there.'];
+                yield ['type' => 'done'];
+
+                return;
+            }
+        }
 
         // Swap the coordinating agent's system prompt for this turn only.
         // We do this by calling chat() with a short-lived prompt override —
@@ -1801,7 +1839,7 @@ PROMPT;
 
             yield [
                 'type' => 'content',
-                'text' => "I had trouble reading that. Could you try listing them one at a time?",
+                'text' => 'I had trouble reading that. Could you try listing them one at a time?',
             ];
 
             return;
@@ -1959,7 +1997,7 @@ PROMPT;
             return 'Got it.';
         }
         if ($count === 1) {
-            return "Got it — 1 dependant added.";
+            return 'Got it — 1 dependant added.';
         }
 
         return "Got it — {$count} dependants added.";

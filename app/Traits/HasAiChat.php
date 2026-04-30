@@ -19,9 +19,9 @@ use App\Models\AiConversation;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\KycGateChecker;
 use App\Services\AI\QueryClassifier;
-use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
 use App\Services\PrerequisiteGateService;
@@ -42,7 +42,25 @@ use Illuminate\Support\Facades\Log;
  */
 trait HasAiChat
 {
+    /**
+     * Default tool-call cap when no engine-level signal is available.
+     * Used by code paths outside AdviceFyn (e.g. onboarding asset_capture
+     * delegations) where module-tier intensity is the right floor.
+     */
     private const MAX_TOOL_CALLS_PER_TURN = 5;
+
+    /**
+     * April30Updates F-15 — engine-level-aware caps. Holistic chats need
+     * more tools (orchestrate + 3 module analyses + 1 calculation can
+     * easily reach 5+) so capping at 5 truncated genuine reasoning chains.
+     * Factual queries are capped lower because they shouldn't need many
+     * tool calls — burning 5 on a billing query is a sign of confusion.
+     */
+    private const TOOL_CALL_CAPS_BY_LEVEL = [
+        'holistic' => 8,
+        'module' => 5,
+        'factual' => 3,
+    ];
 
     private const MAX_HISTORY_MESSAGES = 20;
 
@@ -142,9 +160,10 @@ trait HasAiChat
             $tools = $this->toolsListOverride;
         } else {
             // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
-            // (eval flow). Wildcard `['*']` tokens (default Sanctum) don't bypass.
-            $tokenAbilities = $user->currentAccessToken()?->abilities ?? [];
-            $hasEvalBypass = in_array('bypass-preview-mode', $tokenAbilities, true);
+            // (eval flow) AND the X-Eval-Run-Id header is present
+            // (April30Updates F-12 — defence-in-depth so a leaked token
+            // alone is not enough to bypass preview filtering).
+            $hasEvalBypass = \App\Services\Eval\EvalBypassGate::isActive($user);
             $tools = $toolDefinitions->getTools($user->is_preview_user && ! $hasEvalBypass);
 
             if ($this->allowedToolsOverride !== null) {
@@ -164,6 +183,14 @@ trait HasAiChat
             $conversation->update(['title' => $title]);
             yield ['type' => 'title', 'title' => $title];
         }
+
+        // April30Updates F-15 — engine-level-aware tool call cap.
+        // Holistic queries need more tools, factual queries fewer.
+        $engineLevel = \App\Services\AI\AdviceFyn::engineCallLevelFor(
+            $classification['primary'] ?? null
+        );
+        $toolCallCap = self::TOOL_CALL_CAPS_BY_LEVEL[$engineLevel]
+            ?? self::MAX_TOOL_CALLS_PER_TURN;
 
         // API call loop — handles tool calls and text responses
         $fullResponse = '';
@@ -330,6 +357,21 @@ trait HasAiChat
                     foreach ($stream as $event) {
                         if ($event instanceof RawMessageStartEvent) {
                             $totalInputTokens += $event->message->usage->inputTokens ?? 0;
+
+                            // April30Updates F-4 — capture Anthropic prompt-cache
+                            // hit rate. The SDK exposes cache_read_input_tokens
+                            // (existing-cache hits) and cache_creation_input_tokens
+                            // (write-through on first turn) on the message usage
+                            // object. Without this, the cache_hit_rate metric on
+                            // ai_messages.metadata was always 0 for Anthropic,
+                            // which means we couldn't tell if caching was working.
+                            $usage = $event->message->usage ?? null;
+                            if ($usage !== null) {
+                                $cacheRead = $usage->cacheReadInputTokens
+                                    ?? $usage->cache_read_input_tokens
+                                    ?? 0;
+                                $totalCachedTokens += (int) $cacheRead;
+                            }
                         } elseif ($event instanceof RawContentBlockStartEvent) {
                             if ($event->contentBlock instanceof TextBlock) {
                                 $currentTextBlock = '';
@@ -377,6 +419,30 @@ trait HasAiChat
                 }
             } catch (\Exception $e) {
                 $provider = $isXai ? 'xAI' : 'Anthropic';
+
+                // April30Updates F-13 — retry once per turn on transient
+                // errors. 429 (rate limit), 529 (overloaded), and network
+                // timeout are common in production; a single 1.5s backoff
+                // masks most of them. Non-retriable errors (auth, config,
+                // context-length) fall through to the user-facing error.
+                // Only retry on the FIRST iteration with no partial output —
+                // mid-turn failures after tool calls have run are not safe
+                // to replay (the model would re-do completed tool work).
+                $retryable = $this->isRetriableLlmError($e);
+                $turnRetried = $turnRetried ?? false;
+
+                if ($retryable && ! $turnRetried && $toolCallCount === 0 && $fullResponse === '') {
+                    Log::warning("[CoordinatingAgent] {$provider} transient error — retrying once", [
+                        'conversation_id' => $conversation->id,
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    usleep(1_500_000); // 1.5s — covers most rate-limit windows
+                    $turnRetried = true;
+
+                    continue;
+                }
+
                 Log::error("[CoordinatingAgent] {$provider} API streaming failed", [
                     'conversation_id' => $conversation->id,
                     'user_id' => $user->id,
@@ -537,7 +603,17 @@ trait HasAiChat
                     ];
 
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
-                    $toolResultJson = json_encode($toolResult);
+
+                    // April30Updates F-3 — compress the tool result before
+                    // re-injecting into the LLM context. Some tools (notably
+                    // get_module_analysis) return ~5-10KB of structured JSON;
+                    // un-summarised, every subsequent loop iteration eats
+                    // those tokens again. The compressed shape preserves all
+                    // the hooks the model actually uses to reason (entity_id,
+                    // entity_type, top-level metrics, error state, fingerprints)
+                    // while trimming verbose nested payloads.
+                    $toolResultForModel = $this->compressToolResultForModel($functionName, $toolResult);
+                    $toolResultJson = json_encode($toolResultForModel);
 
                     if ($isXai) {
                         // OpenAI format: each tool result is a separate message
@@ -575,15 +651,16 @@ trait HasAiChat
                 }
             }
 
-            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount < self::MAX_TOOL_CALLS_PER_TURN) {
+            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount < $toolCallCap) {
                 continue;
             }
 
             // If we hit the tool call limit but still have tool_use stop reason,
             // make one final pass with tools disabled to force a text response
-            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= self::MAX_TOOL_CALLS_PER_TURN && $fullResponse === '') {
+            if ($hasToolCalls && $stopReason === 'tool_use' && $toolCallCount >= $toolCallCap && $fullResponse === '') {
                 $xaiTools = [];
                 $tools = [];
+
                 continue;
             }
 
@@ -612,11 +689,26 @@ trait HasAiChat
                 : 0;
         }
 
+        // April30Updates F-8 — persist a SHA-256 hash of the system prompt
+        // rather than the full text. The full prompt embeds user PII
+        // (income, family names, financial position) and is ~10KB per
+        // assistant message — duplicating it across every row of a long
+        // conversation creates needless DB bloat and a redundant copy
+        // of data already in the canonical user/records tables. The
+        // hash is enough to confirm whether the prompt structure changed
+        // between turns when debugging.
+        //
+        // The column is still named `system_prompt` (renaming requires a
+        // migration that's out of audit scope) — we just write a hash to
+        // it going forward instead of the full text. Legacy rows retain
+        // the full prompt and can be migrated separately. The hash is
+        // prefixed with `sha256:` so a future reader can tell hashes
+        // from legacy full-prompt rows at a glance.
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
-            'system_prompt' => $systemPrompt,
+            'system_prompt' => 'sha256:'.hash('sha256', $systemPrompt),
         ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
 
         if ($this->personaOverride !== null) {
@@ -773,6 +865,93 @@ trait HasAiChat
         return $title;
     }
 
+    /**
+     * April30Updates F-3 — compress a tool result before sending it back
+     * into the LLM message history.
+     *
+     * Without compression, the JSON payload of `get_module_analysis`,
+     * `get_recommendations`, `list_records`, etc. (5-10 KB each) re-enters
+     * the input stream on every subsequent tool-call iteration in the
+     * same turn, multiplying input tokens. The model only needs the
+     * decision-shaped fields (top-level metrics, recommendations, entity
+     * IDs) to reason about the next step.
+     *
+     * Strategy:
+     *  - Errors pass through verbatim (the model needs the full message
+     *    to surface it honestly per FcaProcessInstructions WRITE-failure
+     *    rule).
+     *  - Direct-write results (entity_created shape) trim to the keys
+     *    the model uses for chaining: success, entity_type, entity_id,
+     *    persisted_fields (metrics only).
+     *  - Read tools (get_*, list_*, calculate_*) trim arrays > 10 items
+     *    to a head + tail + count summary, drop nested arrays > 3 levels
+     *    deep, and truncate strings > 200 chars.
+     *  - Anything else passes through unchanged.
+     */
+    private function compressToolResultForModel(string $toolName, array $result): array
+    {
+        // Errors must be visible verbatim so the model surfaces them.
+        if (isset($result['error']) && $result['error'] === true) {
+            return $result;
+        }
+
+        // Handoff and confirmation results are tiny — pass through.
+        if (isset($result['action']) && in_array($result['action'], ['handoff', 'navigate', 'fill_form'], true)) {
+            return $result;
+        }
+
+        // Direct-write results — keep the chaining surface, drop verbose
+        // persisted_fields that the model cannot use anyway.
+        if ((isset($result['created']) && $result['created'] === true)
+            || (isset($result['success']) && $result['success'] === true && isset($result['entity_id']))) {
+            return [
+                'success' => true,
+                'entity_type' => $result['entity_type'] ?? null,
+                'entity_id' => $result['entity_id'] ?? null,
+                'name' => $result['name'] ?? null,
+            ];
+        }
+
+        // General compression — recursively trim oversized nested data.
+        return $this->trimForModel($result, depth: 0);
+    }
+
+    /**
+     * Recursively trim a value tree for LLM consumption. List arrays
+     * over 10 items are summarised; strings over 200 chars are
+     * truncated; depth over 3 collapses to a placeholder.
+     */
+    private function trimForModel(mixed $value, int $depth): mixed
+    {
+        if ($depth >= 3) {
+            if (is_array($value)) {
+                return '[nested '.count($value).' items]';
+            }
+
+            return $value;
+        }
+
+        if (is_string($value)) {
+            return mb_strlen($value) > 200 ? mb_substr($value, 0, 200).'…' : $value;
+        }
+
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value) && count($value) > 10) {
+            $head = array_slice($value, 0, 5);
+            $tail = array_slice($value, -2);
+
+            return [
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $head),
+                '__truncated__' => count($value) - 7 .' items omitted',
+                ...array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $tail),
+            ];
+        }
+
+        return array_map(fn ($v) => $this->trimForModel($v, $depth + 1), $value);
+    }
 
     /**
      * Summarise tool input.
@@ -913,6 +1092,53 @@ trait HasAiChat
     protected function wasConnectionAborted(): bool
     {
         return connection_aborted() === 1;
+    }
+
+    /**
+     * April30Updates F-13 — classify an LLM exception as transient.
+     *
+     * Retriable: 429 (rate limit), 529 (overloaded), network timeouts,
+     * "service unavailable", connection-refused, "overloaded".
+     * Not retriable: 401/403 (auth), 400 (bad request), context-length,
+     * malformed-tool-schema, anything where retry would fail identically.
+     *
+     * Conservative on purpose — false positives (treating non-transient
+     * as transient) just mean a small extra latency before the same
+     * error surfaces. False negatives (treating transient as fatal) mean
+     * the user sees an error they didn't need to.
+     */
+    protected function isRetriableLlmError(\Throwable $e): bool
+    {
+        $msg = strtolower($e->getMessage());
+
+        // Auth / configuration / API-key errors — never retry, will fail again.
+        if (str_contains($msg, 'api_key')
+            || str_contains($msg, 'authentication')
+            || str_contains($msg, 'invalid_api_key')
+            || str_contains($msg, '401')
+            || str_contains($msg, '403')) {
+            return false;
+        }
+
+        // Bad request, unsupported model, malformed schema — not transient.
+        if (str_contains($msg, 'invalid_request')
+            || str_contains($msg, 'context_length')
+            || str_contains($msg, 'max_tokens')
+            || str_contains($msg, 'tool_use_id')) {
+            return false;
+        }
+
+        // Transient — retry.
+        return str_contains($msg, '429')
+            || str_contains($msg, '529')
+            || str_contains($msg, 'rate_limit')
+            || str_contains($msg, 'overloaded')
+            || str_contains($msg, 'capacity')
+            || str_contains($msg, 'timeout')
+            || str_contains($msg, 'timed out')
+            || str_contains($msg, 'connection')
+            || str_contains($msg, 'service_unavailable')
+            || str_contains($msg, 'temporarily');
     }
 
     /**

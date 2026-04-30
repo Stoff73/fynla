@@ -88,12 +88,48 @@ final class WriteIntentClassifier
     ];
 
     /**
+     * Interrogative prefixes that indicate the user is ASKING about an
+     * entity rather than asserting they have one. Matched at the start
+     * of the (lowercased, trimmed) message. Without this guard the
+     * classifier mis-routed advice questions like "Should I add to my
+     * Cash ISA?" as write intents because they contain a verb+entity
+     * pair (April30Updates F-6).
+     *
+     * Order doesn't matter — any match disables the classifier.
+     */
+    private const INTERROGATIVE_PREFIXES = [
+        'should i', 'should we', 'shall i', 'shall we',
+        'can i', 'can we', 'could i', 'could we',
+        'may i', 'may we',
+        'do i', 'do we', 'does it', 'does this',
+        'how do i', 'how do we', 'how can i', 'how can we',
+        'how much', 'how many', 'how often',
+        'what should', 'what could', 'what would', 'what is', 'what are', 'what about',
+        'why should', 'why would', 'why is',
+        'when should', 'when can', 'when do', 'when will',
+        'where should', 'where can', 'where do',
+        'which is', 'which should', 'which would',
+        'is it', 'is there', 'is this', 'are there',
+        'tell me', 'explain', 'show me',
+        'would it', 'would i', 'would we',
+    ];
+
+    /**
      * @return array{entity_type: string, matched_verb: string, matched_entity_keyword: string, fields_needed: list<string>, reason: string}|null
      */
     public function classify(string $userMessage): ?array
     {
         $normalised = strtolower(trim($userMessage));
         if ($normalised === '') {
+            return null;
+        }
+
+        // April30Updates F-6 — the message ends with `?` OR starts with an
+        // interrogative phrase => it's an advice question, not a write
+        // intent. Do not bypass the LLM. False negatives (missing a real
+        // imperative phrased as "I have" with no question mark) are still
+        // recoverable via the LLM's own delegate_to_capture path.
+        if ($this->looksLikeQuestion($normalised)) {
             return null;
         }
 
@@ -125,6 +161,26 @@ final class WriteIntentClassifier
         return null;
     }
 
+    /**
+     * Does the message look like an advice question rather than a write
+     * intent? Two signals: (1) ends with `?`, (2) starts with one of the
+     * interrogative prefixes above. Either is sufficient.
+     */
+    private function looksLikeQuestion(string $normalised): bool
+    {
+        if (str_ends_with($normalised, '?')) {
+            return true;
+        }
+
+        foreach (self::INTERROGATIVE_PREFIXES as $prefix) {
+            if (str_starts_with($normalised, $prefix.' ') || $normalised === $prefix) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function firstMatch(string $haystack, array $needles): ?string
     {
         foreach ($needles as $needle) {
@@ -137,11 +193,12 @@ final class WriteIntentClassifier
                 if (str_contains($haystack, $needleLower)) {
                     return $needle;
                 }
+
                 continue;
             }
 
             // Single-word verb — require word boundary
-            $pattern = '/\b' . preg_quote($needleLower, '/') . '\b/';
+            $pattern = '/\b'.preg_quote($needleLower, '/').'\b/';
             if (preg_match($pattern, $haystack) === 1) {
                 return $needle;
             }

@@ -108,7 +108,7 @@ final class AssetCaptureEntityExtractor
      * gap-fill tool calls that re-persist duplicate rows — the
      * in-message dedup only protects within a single turn.
      *
-     * @param  list<array<string, mixed>>  $extracted   output of extractForFocus()
+     * @param  list<array<string, mixed>>  $extracted  output of extractForFocus()
      * @param  list<array<string, mixed>>  $llmEmitted  fields[] from each fill_form event the LLM emitted
      * @return list<array<string, mixed>>
      */

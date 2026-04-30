@@ -11,7 +11,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
-use App\Services\Eval\EvalTraceCollector;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -77,6 +76,14 @@ final class EvalHttpDriver
         $startState = [];
         $endState = [];
 
+        // April30Updates F-12 — every authenticated eval request must
+        // carry the X-Eval-Run-Id header. The PreviewWriteInterceptor
+        // and EvalBypassGate now require both the Sanctum ability AND
+        // the header, so a leaked token alone cannot bypass preview
+        // protections. We mint one run-id per evaluate() call.
+        $evalRunId = 'eval-'.bin2hex(random_bytes(8));
+        $evalHeaders = ['X-Eval-Run-Id' => $evalRunId];
+
         try {
             // 0. Pre-flight — fail fast if the dev server is not responding.
             // /api/preview/personas is unauthenticated and cheap; a non-200
@@ -108,6 +115,7 @@ final class EvalHttpDriver
             // 2. Create conversation.
             $t0 = microtime(true);
             $convResp = Http::withToken($token)
+                ->withHeaders($evalHeaders)
                 ->connectTimeout(5)
                 ->timeout(5)
                 ->post("{$baseUrl}/api/ai-chat/conversations", [
@@ -140,7 +148,7 @@ final class EvalHttpDriver
 
                 $t0 = microtime(true);
                 $sendResp = Http::withToken($token)
-                    ->withHeaders(['Accept' => 'text/event-stream'])
+                    ->withHeaders(array_merge(['Accept' => 'text/event-stream'], $evalHeaders))
                     ->connectTimeout(5)
                     ->timeout(120)
                     ->post(
@@ -176,6 +184,7 @@ final class EvalHttpDriver
             // 6. Logout.
             $t0 = microtime(true);
             $logoutResp = Http::withToken($token)
+                ->withHeaders($evalHeaders)
                 ->connectTimeout(5)
                 ->timeout(5)
                 ->post("{$baseUrl}/api/auth/logout");

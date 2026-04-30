@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Eval;
 
-use App\Constants\QuerySchemas;
 use App\Models\EvalProviderRun;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\QueryClassifier;

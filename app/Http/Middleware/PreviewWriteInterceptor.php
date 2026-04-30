@@ -135,8 +135,14 @@ class PreviewWriteInterceptor
         // token would silently let writes through. The ability is issued by
         // EvalAuthController::login, gated to non-production environments.
         // See April/April27Updates/eval-http-driven-rewrite-plan.md §4.
+        //
+        // April30Updates F-12 — additionally require the X-Eval-Run-Id
+        // header so a leaked token alone cannot use the bypass. The eval
+        // harness already sets this header (`EvalHttpDriver`).
         $accessToken = PersonalAccessToken::findToken($request->bearerToken() ?? '');
-        if ($accessToken && in_array('bypass-preview-mode', $accessToken->abilities ?? [], true)) {
+        $hasAbility = $accessToken && in_array('bypass-preview-mode', $accessToken->abilities ?? [], true);
+        $hasEvalHeader = is_string($request->header('X-Eval-Run-Id')) && trim((string) $request->header('X-Eval-Run-Id')) !== '';
+        if ($hasAbility && $hasEvalHeader) {
             return $next($request);
         }
 
