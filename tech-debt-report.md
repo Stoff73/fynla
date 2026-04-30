@@ -1,54 +1,122 @@
-# Tech Debt Report — Session 122 (30 April 2026)
+# Tech Debt Report — Session 123 (30 April 2026, evening)
 
-**Files analysed:** 2 (StaticFynChat.vue, SaveTaxCampaignPage.vue)
-**Issues found:** 4
-**Severity breakdown:** 0 critical, 2 warnings, 2 suggestions
+**Files analysed:** 7 (the `/tax-strategy` redesign commit `fad6e88`)
+**Issues found:** 3 (1 medium, 2 low)
+**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
 
-## Critical Issues
+---
 
-None.
+## Files audited
+
+| File | Lines | Result |
+|---|---|---|
+| `resources/js/components/TaxStrategy/AllowanceCard.vue` | 62 | Clean |
+| `resources/js/components/TaxStrategy/AllowanceGrid.vue` | 60 | Clean |
+| `resources/js/components/TaxStrategy/AssetShiftingPanel.vue` | 38 | Clean |
+| `resources/js/components/TaxStrategy/HouseholdView.vue` | 77 | Clean |
+| `resources/js/components/TaxStrategy/StrategyRecommendationList.vue` | 133 | 1 suggestion |
+| `resources/js/components/TaxStrategy/TaxYearHeader.vue` | 67 | Clean |
+| `resources/js/views/TaxStrategy/TaxStrategyDashboard.vue` | 49 | Clean |
+
+All files well under the 500-line refactor threshold. Total 486 lines across 7 files.
+
+---
 
 ## Warnings
 
-### W-1 — Rule #14 violation: decorative icons inside Fyn chat window
-**File:** `resources/js/components/Public/StaticFynChat.vue`
-**Lines:** 26, 30, 34 (checkmark SVGs in welcome list), 101–103 (paper-plane Send icon)
-**Category:** Convention violation (CLAUDE.md Rule #14)
+### W-1 (medium) — Orphaned slider backend pipework after frontend removal
 
-The welcome bullet list contains three inline green-checkmark SVGs and the Send button has a paper-plane SVG. CLAUDE.md Rule #14 explicitly bans icons inside the Fyn chat window: *"Fyn chat window — Fyn's message text, quick reply bubbles, chat header chrome, system messages, streaming indicators, delete/collapse/new-conversation buttons. Fyn speaks in plain text with no decorative glyphs."*
+**Files:**
+- `resources/js/services/taxStrategyService.js:12` — `recalculate: (overrides) => api.post('/tax-strategy/calculate', overrides)`
+- `resources/js/store/modules/taxStrategy.js` — `recalculate` action and `setRecalculating` mutation
+- `app/Http/Controllers/Api/TaxStrategyController.php::calculate`
+- `app/Http/Requests/TaxStrategyCalculateRequest.php`
+- `app/DataTransferObjects/TaxStrategyOverridesDTO.php`
+- `app/Services/Tax/TaxStrategyService.php::recalculate`
+- `routes/api.php` — `POST /api/tax-strategy/calculate` (auth:sanctum)
+- `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php` + `tests/Feature/Api/TaxStrategy/` (9 cases)
 
-These were pre-existing before this session — I left them per scope discipline — but the rule applies to this component too (StaticFynChat is a Fyn chat surface, just on the public page).
+**Category:** Dead & Redundant Code (Cat 2) + Inconsistency (Cat 6)
 
-**Suggested fix:** Drop the four SVGs entirely. Replace the bullet checkmarks with `–` or a plain `<li>` marker; replace the Send paper-plane with a text label "Send" (or remove the icon and rely on the button title).
+**What's wrong:** The `StrategySliderPanel.vue` was deleted in `fad6e88`, removing the only consumer of `taxStrategy/recalculate` Vuex action and `POST /tax-strategy/calculate`. The entire pipeline — frontend service method, store action, mutation, validation request, controller method, DTO, service method, route, and 9+ Pest tests — is now unreachable from the UI.
 
-### W-2 — Inconsistent CTA visual treatment after relabel
-**File:** `resources/js/views/Public/SaveTaxCampaignPage.vue`
-**Lines:** 102–106 (bottom CTA uses `bg-spring-500`, all other CTAs use `bg-raspberry-500`)
-**Category:** Convention violation (design system consistency)
+**Note:** `TaxStrategyMath::availableAnnualAllowance()` and `estimatePensionContributionThisYear()` still accept `?TaxStrategyOverridesDTO` as an *optional* parameter, and the strategies pass `null` through. So the DTO type isn't fully dead — it's still on the type signature of methods called with `null` from `TaxStrategyCalculator`. But the override behaviour itself is unreachable.
 
-The bottom "Got a different question?" CTA renders green (`bg-spring-500`) while the 4 example-card CTAs and the 2 chat-panel CTAs all render raspberry. Now that all 7 CTAs share the same label ("Register now to ask Fyn") and the same destination, the colour split is visually inconsistent — it implies the green button does something different.
+**Suggested fix — two options for next session to choose:**
 
-**Suggested fix:** Change the bottom CTA from `bg-spring-500 hover:bg-spring-600` to `bg-raspberry-500 hover:bg-raspberry-600` so all 7 CTAs are visually uniform. Or, if the green is deliberate to highlight a primary action, give that CTA a distinct label.
+- **(a) Leave intact** if a future "what-if" UI is on the roadmap. Cost: ~9 dead Pest cases, ~250 lines of unused PHP/Vue/JS. Risk: none — endpoint requires `auth:sanctum` and validates inputs.
+- **(b) Rip out** if the slider concept is permanently dead per CSJ's "get rid of these fucking things" directive. Cost: delete the 7 files/symbols above + 9 test cases + `setRecalculating`/`recalculating` from the Vuex store. Mechanical refactor — strategy classes already work with `null` overrides so the math service signatures simplify.
+
+**Recommendation:** confirm option (b) with CSJ at the start of the next session (he was emphatic about removing sliders — likely wants the backend gone too).
+
+---
 
 ## Suggestions
 
-### S-1 — Duplicated register-CTA markup
-**File:** `resources/js/components/Public/StaticFynChat.vue`
-**Lines:** 38–43 and 71–76
-**Category:** Duplicate code
+### S-1 (low) — Hardcoded route paths in `NEXT_STEPS` map
 
-Two `<router-link>` blocks have identical class strings, identical `:to="registerLink"`, and identical label. Acceptable at two instances, but if a third register-CTA appears in this component (or another `StaticFynChat`-style panel), extract to a small `<RegisterCta>` child component or a computed slot.
+**File:** `resources/js/components/TaxStrategy/StrategyRecommendationList.vue:73-93`
 
-**Suggested fix:** Defer until a third instance appears. No action now.
+**Category:** Convention / Magic-strings
 
-### S-2 — In-component conversation state with no persistence
-**File:** `resources/js/components/Public/StaticFynChat.vue`
-**Lines:** 132–141 (data), 166–167 (push to `turns`)
-**Category:** Maintainability / UX awareness
+**What's wrong:** The `NEXT_STEPS` constant at module level maps 17 strategy types to `{ label, path }` objects with paths like `/pension`, `/savings`, `/investments`, `/profile` written as raw strings.
 
-`turns` is a plain reactive array on the component. If the user navigates away and back to `/savetax`, their typed messages and Fyn's replies are lost. Acceptable here — the component is a static placebo that funnels every typed message to the same single "register to continue" reply, not a real chat — but flagging so it is not mistaken for a real message store later.
+```js
+const NEXT_STEPS = {
+  pa_taper_rescue: { label: 'Open a pension', path: '/pension' },
+  isa_topup_vs_psa: { label: 'Open savings & ISAs', path: '/savings' },
+  bed_and_isa: { label: 'Open investments', path: '/investments' },
+  ...
+};
+```
 
-**Suggested fix:** No action. Document expectation if a future feature wants real chat persistence on this page (would use the `aiChat` Vuex module instead).
+**Suggested fix:** Defer until a 2nd consumer appears. If/when another component starts mapping strategy types to module routes, extract to `resources/js/constants/strategyNextSteps.js`. For now, the locality is fine — one component, one map.
+
+### S-2 (low) — `formatCurrency(Math.round(...))` repeated 5 times across the changed components
+
+**Files:**
+- `AllowanceGrid.vue:8`
+- `AssetShiftingPanel.vue:18`
+- `HouseholdView.vue:38`
+- `StrategyRecommendationList.vue:33`
+- `TaxYearHeader.vue:39`
+
+**Category:** Duplication (Cat 1)
+
+**What's wrong:** Every recommendation/headroom currency display does `formatCurrency(Math.round(value))` to drop pence. The pattern is a 1-line idiom but appears in 5 files now.
+
+**Suggested fix:** Add `formatCurrencyRounded(value)` to `resources/js/mixins/currencyMixin.js`. Single 5-line addition; replaces 5 call sites with cleaner intent. Defer to a tech-debt sweep — not worth its own commit.
 
 ---
-*Generated by tech-debt-session skill*
+
+## Clean bill of health on these checks
+
+- ✅ Zero `"Your "` headings in any changed file (CSJ scrub directive complied with)
+- ✅ Zero hardcoded hex in `<style>` or template colour classes
+- ✅ Zero banned colours (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*`)
+- ✅ Zero `'sole'` instead of `'individual'`
+- ✅ Zero `console.log` / `dd()` / `dump()` left behind
+- ✅ Zero hardcoded tax values — all live config or consumed via `currencyMixin`
+- ✅ Zero icons on banned surfaces (cards, detail views) per Rule #14
+- ✅ Zero scores / "X/100" in user-facing UI per Rule #13
+- ✅ Zero acronyms — all spelled out (Personal Allowance, Capital Gains Tax, etc.); only `ISA` retained per the exception
+- ✅ All Tailwind type tokens used (`text-h1`, `text-h3`, `text-h4`, `text-h5`, `text-body`, `text-body-sm`, `text-caption`) — verified in `tailwind.config.js`
+- ✅ All component names multi-word
+- ✅ Every `v-for` has `:key`; no `v-if`+`v-for` collisions
+- ✅ `formatCurrency` consumed exclusively via `currencyMixin` — no local methods
+- ✅ No new local spinner / scrollbar / animation CSS
+- ✅ Vuex auth getter used correctly for personalisation
+
+---
+
+## Top 3 most impactful issues
+
+1. **W-1** — orphan slider backend (medium) — confirmation needed from CSJ on rip-out vs preserve
+2. **S-1** — hardcoded route paths in NEXT_STEPS — micro, defer
+3. **S-2** — duplicated `formatCurrency(Math.round(...))` — micro, defer
+
+**No critical issues. No fixes required before merge to dev.**
+
+---
+
+*Generated by tech-debt-session skill on 30 April 2026 evening.*
