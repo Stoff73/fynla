@@ -171,6 +171,56 @@ final class TaxStrategyMath
     }
 
     /**
+     * Threshold income for tapered AA — sum of all taxable income fields on
+     * the User row, with no pension-contribution deduction. V1 simplification:
+     * does not handle salary-sacrifice anti-forestalling addback (HMRC rule
+     * for sacrifices on/after 9 July 2015). Acceptable today; revisit if a
+     * persona-driven false-negative appears.
+     */
+    public function thresholdIncomeFor(User $user): float
+    {
+        return (float) ($user->annual_employment_income ?? 0)
+            + (float) ($user->annual_self_employment_income ?? 0)
+            + (float) ($user->annual_rental_income ?? 0)
+            + (float) ($user->annual_dividend_income ?? 0)
+            + $this->estimateAnnualInterest($user)
+            + (float) ($user->annual_other_income ?? 0)
+            + (float) ($user->annual_trust_income ?? 0);
+    }
+
+    /**
+     * Adjusted income for tapered AA — threshold income plus employer
+     * pension contributions added back. Used as the £260k gate for the
+     * tapered Annual Allowance.
+     */
+    public function adjustedIncomeFor(User $user): float
+    {
+        return $this->thresholdIncomeFor($user) + $this->employerPensionContributionsFor($user);
+    }
+
+    /**
+     * Total annual employer pension contributions across all DC pensions,
+     * estimated as (annual_salary ?? user employment income) × employer_pct.
+     * Pensions with null employer_contribution_percent contribute 0.
+     */
+    public function employerPensionContributionsFor(User $user): float
+    {
+        $userIncome = (float) ($user->annual_employment_income ?? 0);
+
+        return (float) DCPension::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('employer_contribution_percent')
+            ->get(['annual_salary', 'employer_contribution_percent'])
+            ->sum(function ($p) use ($userIncome) {
+                $base = (float) ($p->annual_salary ?? 0) > 0
+                    ? (float) $p->annual_salary
+                    : $userIncome;
+
+                return $base * ((float) $p->employer_contribution_percent / 100);
+            });
+    }
+
+    /**
      * Dividend tax rate for a given band, sourced from
      * TaxConfigService['dividend_tax']. Centralises the match block previously
      * duplicated across DividendAllowanceHarvestStrategy, AssetShiftingBundle-

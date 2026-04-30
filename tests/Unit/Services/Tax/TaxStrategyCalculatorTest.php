@@ -1087,6 +1087,140 @@ describe('Phase 4 — Gift Aid Higher-Rate Relief (#13)', function () {
     });
 });
 
+describe('Phase 5 — Tapered Annual Allowance (#14)', function () {
+    it('does not fire when threshold income is at or below £200k', function () {
+        // adjusted = £270k (employer pension addback) but threshold = £180k → no taper
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 180000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 180000,
+            'employer_contribution_percent' => 50, // 90k addback → adjusted = 270k
+            'employee_contribution_percent' => 0,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'tapered_annual_allowance');
+        expect($rec)->toBeNull();
+    });
+
+    it('does not fire when adjusted income is at or below £260k', function () {
+        // threshold = £210k but no employer pension → adjusted = threshold = 210k
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 210000,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'tapered_annual_allowance');
+        expect($rec)->toBeNull();
+    });
+
+    it('does not fire when both gates are exactly equal to thresholds', function () {
+        // strict > comparison — gate equality should not fire
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 200000, // threshold = 200000 (gate)
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 200000,
+            'employer_contribution_percent' => 30, // +60k → adjusted = 260000 (gate)
+            'employee_contribution_percent' => 0,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'tapered_annual_allowance');
+        expect($rec)->toBeNull();
+    });
+
+    it('fires when both gates are breached and reports the tapered AA', function () {
+        // threshold = 220k (>200k) AND adjusted = 280k (>260k)
+        // taper = max(60k - 0.5 × (280k - 260k), 10k) = max(60k - 10k, 10k) = 50k
+        // aa_reduction = 60k - 50k = 10k; marginal rate = 0.45 (additional)
+        // avoided charge = 10k × 0.45 = 4500
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 220000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 220000,
+            'employer_contribution_percent' => round(60000 / 220000 * 100, 4), // ~27.2727 → 60k addback
+            'employee_contribution_percent' => 0,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'tapered_annual_allowance');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('warning')
+            ->and($rec['priority'])->toBe('high')
+            ->and((float) $rec['tapered_annual_allowance'])->toBeGreaterThan(49000.0)
+            ->and((float) $rec['tapered_annual_allowance'])->toBeLessThan(51000.0)
+            ->and($rec['threshold_income_gate'])->toBe(200000.0)
+            ->and($rec['adjusted_income_gate'])->toBe(260000.0)
+            ->and($rec['standard_annual_allowance'])->toBe(60000.0)
+            ->and($rec['minimum_allowance'])->toBe(10000.0)
+            ->and($rec['taper_rate'])->toBe(0.5)
+            ->and($rec['marginal_rate'])->toBe(0.45);
+    });
+
+    it('floors at the £10k minimum allowance for very high adjusted income', function () {
+        // adjusted = 600k → untapered AA reduction = 0.5 × (600k - 260k) = 170k
+        // 60k - 170k would go negative — floor at 10k minimum_allowance.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 500000,
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 500000,
+            'employer_contribution_percent' => 20, // 100k addback → adjusted = 600k
+            'employee_contribution_percent' => 0,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'tapered_annual_allowance');
+        expect($rec)->not->toBeNull()
+            ->and($rec['tapered_annual_allowance'])->toBe(10000.0)
+            ->and($rec['aa_reduction'])->toBe(50000.0); // 60k - 10k floor
+    });
+
+    it('surfaces with sortWeight 0 — appears first in recommendations[]', function () {
+        // High-income persona that ALSO triggers other strategies; verify the
+        // tapered-AA warning sorts ahead of all others.
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 220000,
+            'annual_charitable_donations' => 1000, // also fires gift_aid_higher_rate_relief
+        ]);
+        DCPension::factory()->create([
+            'user_id' => $user->id,
+            'annual_salary' => 220000,
+            'employer_contribution_percent' => round(60000 / 220000 * 100, 4),
+            'employee_contribution_percent' => 0,
+            'monthly_contribution_amount' => 0,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(count($output->recommendations))->toBeGreaterThan(1);
+        expect($output->recommendations[0]['type'])->toBe('tapered_annual_allowance');
+        expect($output->recommendations[0]['category'])->toBe('warning');
+    });
+});
+
 describe('overrides applied in-memory', function () {
     it('applies pension_contribution_percent override without DB write', function () {
         $user = User::factory()->create([
