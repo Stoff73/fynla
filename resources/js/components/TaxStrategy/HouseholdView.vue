@@ -1,14 +1,14 @@
 <template>
   <div>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      <div>
-        <h3 class="text-body-sm uppercase tracking-wide text-neutral-500 mb-2">You</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <section>
+        <h2 class="text-h4 font-bold text-horizon-500 mb-3">{{ firstName }}'s allowances</h2>
         <AllowanceGrid :allowances="userAllowances" />
-      </div>
-      <div>
-        <h3 class="text-body-sm uppercase tracking-wide text-neutral-500 mb-2">Your spouse</h3>
+      </section>
+      <section>
+        <h2 class="text-h4 font-bold text-horizon-500 mb-3">{{ spouseLabel }}</h2>
         <AllowanceGrid :allowances="spouseAllowances" />
-      </div>
+      </section>
     </div>
 
     <AssetShiftingPanel
@@ -18,9 +18,12 @@
 
     <section
       v-if="calculationMode === 'dual_earner' && householdRecommendations.length"
-      class="rounded-lg bg-eggshell-500 p-6"
+      class="rounded-card bg-eggshell-500 p-6 mb-6"
     >
-      <h2 class="text-body font-bold text-horizon-500 mb-3">Coordinate as a household</h2>
+      <h2 class="text-h4 font-bold text-horizon-500 mb-3">Coordinate as a household</h2>
+      <p class="text-body-sm text-neutral-500 mb-4">
+        These actions only work because both partners contribute. Spousal transfers between UK-domiciled spouses are exempt from Capital Gains Tax and Inheritance Tax.
+      </p>
       <ul class="space-y-3">
         <li
           v-for="suggestion in householdRecommendations"
@@ -33,10 +36,10 @@
               v-if="suggestion.estimated_annual_tax_saved"
               class="text-body-sm font-semibold text-spring-600 whitespace-nowrap"
             >
-              {{ formatCurrency(suggestion.estimated_annual_tax_saved) }}/yr
+              {{ formatCurrency(Math.round(suggestion.estimated_annual_tax_saved)) }}/yr
             </span>
           </div>
-          <p class="text-caption text-neutral-500">{{ suggestion.description }}</p>
+          <p class="text-caption text-neutral-500 leading-relaxed">{{ suggestion.description }}</p>
         </li>
       </ul>
     </section>
@@ -60,6 +63,15 @@ export default {
       'calculationMode',
       'householdRecommendations',
     ]),
+    ...mapGetters('auth', ['currentUser']),
+    firstName() {
+      return this.currentUser?.first_name || 'You';
+    },
+    spouseLabel() {
+      return this.calculationMode === 'single_earner_couple'
+        ? "Spouse's allowances (non-working)"
+        : "Spouse's allowances";
+    },
   },
 };
 </script>
