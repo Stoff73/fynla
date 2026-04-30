@@ -12,6 +12,10 @@
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+            <!-- The Eval suite below targets tests/Feature/Fyn/Eval; without
+                 this exclude, pest loads those files twice (once per suite)
+                 and TestRepository throws "already uses Tests\TestCase". -->
+            <exclude>tests/Feature/Fyn/Eval</exclude>
         </testsuite>
         <testsuite name="Architecture">
             <directory>tests/Architecture</directory>
