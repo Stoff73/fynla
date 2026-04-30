@@ -32,8 +32,6 @@ it('returns full payload for an authenticated single user', function () {
                 'user_allowances',
                 'spouse_allowances',
                 'recommendations',
-                'asset_shifting_suggestions',
-                'cross_spouse_suggestions',
                 'delta_vs_baseline',
             ],
         ]);
@@ -43,7 +41,7 @@ it('returns full payload for an authenticated single user', function () {
     expect($response->json('data.recommendations'))->toBe([]);
 });
 
-it('returns recommendations for single_earner_couple users matching the legacy asset-shifting array', function () {
+it('returns household-category recommendations for single_earner_couple users', function () {
     $user = User::factory()->create([
         'household_calculation_mode' => 'single_earner_couple',
         'annual_employment_income' => 100000,
@@ -54,14 +52,14 @@ it('returns recommendations for single_earner_couple users matching the legacy a
     $response = $this->actingAs($user)->getJson('/api/tax-strategy');
 
     $recommendations = $response->json('data.recommendations');
-    $legacy = $response->json('data.asset_shifting_suggestions');
+    $household = collect($recommendations)->where('category', 'household')->values()->all();
 
     expect($recommendations)->not->toBe([])
-        ->and(count($recommendations))->toBe(count($legacy));
+        ->and($household)->not->toBe([]);
 
     foreach ($recommendations as $rec) {
         expect($rec)->toHaveKeys(['type', 'category', 'priority', 'title', 'description'])
-            ->and($rec['category'])->toBe('household');
+            ->and($rec['category'])->toBeIn(['income_band', 'allowance', 'household', 'lifecycle', 'warning']);
     }
 });
 
@@ -79,7 +77,7 @@ it('returns spouse_allowances for dual_earner users', function () {
     expect($response->json('data.spouse_allowances'))->toHaveCount(8);
 });
 
-it('returns asset_shifting_suggestions for single_earner_couple users', function () {
+it('returns household-category recommendations under recommendations[] for single_earner_couple users', function () {
     $user = User::factory()->create([
         'household_calculation_mode' => 'single_earner_couple',
         'annual_employment_income' => 100000,
@@ -90,5 +88,9 @@ it('returns asset_shifting_suggestions for single_earner_couple users', function
     $response = $this->actingAs($user)->getJson('/api/tax-strategy');
 
     expect($response->json('data.calculation_mode'))->toBe('single_earner_couple');
-    expect($response->json('data.asset_shifting_suggestions'))->not->toBe([]);
+    expect($response->json('data'))->not->toHaveKey('asset_shifting_suggestions') // dropped Phase 2
+        ->not->toHaveKey('cross_spouse_suggestions');
+
+    $household = collect($response->json('data.recommendations'))->where('category', 'household')->values()->all();
+    expect($household)->not->toBe([]);
 });

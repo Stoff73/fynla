@@ -7,6 +7,9 @@ namespace App\Services\Tax;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\DataTransferObjects\TaxStrategyOutputDTO;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
+use App\Enums\StrategyCategory;
+use App\Enums\StrategyPriority;
+use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
@@ -76,36 +79,43 @@ final class TaxStrategyCalculator
         $userAllowances = $this->buildUserAllowanceGrid($user, $overrides);
 
         $spouseAllowances = null;
-        $assetShiftingRaw = [];
-        $crossSpouseRaw = [];
+        $householdLegacyRaw = [];
 
+        // User-level strategies (income-band, allowance harvesting, lifecycle,
+        // joint-savings) fire across all calculation modes — they don't
+        // depend on a spouse grid or household input row.
+        $userLevelRecs = array_merge(
+            $this->buildIncomeBandRecommendations($user, $overrides),
+            $this->buildAllowanceRecommendations($user),
+            $this->buildLifecycleRecommendations($user),
+            $this->buildJointSavingsRecommendations($user, $household, $mode),
+        );
+
+        // Household-level strategies (Marriage Allowance, savings → spouse,
+        // GIA coordination, ISA top-up in spouse name, ISA coordination) fire
+        // only in the two coupled modes. They emit category=household.
         if ($mode === 'dual_earner' && $household instanceof TaxStrategyHouseholdInput) {
             $spouseAllowances = $this->buildSpouseAllowanceGridDualEarner($household);
-            $crossSpouseRaw = $this->buildCrossSpouseSuggestions($user, $household);
+            $householdLegacyRaw = $this->buildCrossSpouseSuggestions($user, $household);
         } elseif ($mode === 'single_earner_couple') {
             $spouseAllowances = $this->buildSpouseAllowanceGridNonWorking($household);
-            $assetShiftingRaw = $this->buildAssetShiftingSuggestions($user, $household, $overrides);
+            $householdLegacyRaw = $this->buildAssetShiftingSuggestions($user, $household, $overrides);
         }
 
-        // Phase 1 (April30Updates) — unify both legacy collections into a flat
-        // `recommendations` array tagged by category. The legacy arrays remain
-        // populated as filtered views over the same items for back-compat with
-        // the existing HouseholdView / StrategyRecommendationList consumers.
-        // Both existing builders emit household-category strategies (Marriage
-        // Allowance, savings → spouse, GIA → spouse, ISA top-up, GIA rebalance,
-        // ISA coordination); Phase 2 introduces additional categories.
-        $assetShiftingObjs = array_map(
-            fn (array $arr) => StrategyRecommendation::fromArray('household', $arr),
-            $assetShiftingRaw,
-        );
-        $crossSpouseObjs = array_map(
-            fn (array $arr) => StrategyRecommendation::fromArray('household', $arr),
-            $crossSpouseRaw,
+        $householdRecs = array_map(
+            fn (array $arr) => StrategyRecommendation::fromArray(StrategyCategory::Household, $arr),
+            $householdLegacyRaw,
         );
 
-        $assetShiftingSuggestions = array_map(fn (StrategyRecommendation $r) => $r->toArray(), $assetShiftingObjs);
-        $crossSpouseSuggestions = array_map(fn (StrategyRecommendation $r) => $r->toArray(), $crossSpouseObjs);
-        $recommendations = array_merge($assetShiftingSuggestions, $crossSpouseSuggestions);
+        $allRecs = array_merge($userLevelRecs, $householdRecs);
+
+        usort($allRecs, function (StrategyRecommendation $a, StrategyRecommendation $b): int {
+            $cat = $a->categoryEnum()->sortWeight() <=> $b->categoryEnum()->sortWeight();
+
+            return $cat !== 0 ? $cat : ($a->priorityEnum()->sortWeight() <=> $b->priorityEnum()->sortWeight());
+        });
+
+        $recommendations = array_map(fn (StrategyRecommendation $r) => $r->toArray(), $allRecs);
 
         return new TaxStrategyOutputDTO(
             taxYear: $taxYear,
@@ -113,8 +123,6 @@ final class TaxStrategyCalculator
             userAllowances: $userAllowances,
             spouseAllowances: $spouseAllowances,
             recommendations: $recommendations,
-            assetShiftingSuggestions: $assetShiftingSuggestions,
-            crossSpouseSuggestions: $crossSpouseSuggestions,
             deltaVsBaseline: [],
         );
     }
@@ -298,13 +306,28 @@ final class TaxStrategyCalculator
         if ($suggestedTransfer > 1000) {
             $userBandRate = $this->bandRateFor($user);
             $estimatedAnnualTaxSaved = $suggestedTransfer * $userAvgRate * $userBandRate;
+            $psaBasic = $this->psaForBand('basic');
+            $stackedCapacity = $personalAllowance + $startingRate + $psaBasic;
             $suggestions[] = [
                 'type' => 'savings_to_spouse',
                 'priority' => 'high',
-                'title' => 'Gift £'.number_format(round($suggestedTransfer / 1000) * 1000).' of savings to your spouse',
-                'description' => 'Their unused Personal Allowance + Starting Rate for Savings + Personal Savings Allowance can absorb up to £'.number_format((int) $spouseRemainingInterestCapacity).'/year of interest income tax-free. Spousal transfers are exempt from CGT and IHT.',
+                'title' => sprintf(
+                    'Gift £%s of savings to your spouse for up to £%s of interest tax-free every year',
+                    number_format((int) round($suggestedTransfer / 1000) * 1000),
+                    number_format((int) $stackedCapacity),
+                ),
+                'description' => sprintf(
+                    'Their Personal Allowance (£%s), Starting Rate for Savings (£%s) and Personal Savings Allowance (£%s) stack — and spousal transfers are exempt from Capital Gains Tax and Inheritance Tax.',
+                    number_format((int) $personalAllowance),
+                    number_format((int) $startingRate),
+                    number_format((int) $psaBasic),
+                ),
                 'suggested_transfer_amount' => round($suggestedTransfer / 1000) * 1000,
                 'estimated_annual_tax_saved' => round($estimatedAnnualTaxSaved, 2),
+                'spouse_personal_allowance' => $personalAllowance,
+                'spouse_starting_rate_for_savings' => $startingRate,
+                'spouse_personal_savings_allowance' => $psaBasic,
+                'spouse_stacked_interest_capacity' => $stackedCapacity,
             ];
         }
 
@@ -329,13 +352,39 @@ final class TaxStrategyCalculator
             ->exists();
         if ($hasGia) {
             $cgtAllowance = (float) ($this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000);
+            $div = $this->taxConfig->getDividendTax();
+            $divAllowanceRaw = $div['allowance'] ?? 500;
+            $divAllowance = is_array($divAllowanceRaw)
+                ? (float) ($divAllowanceRaw['amount'] ?? 500)
+                : (float) $divAllowanceRaw;
+
+            $userDividends = (float) ($user->annual_dividend_income ?? 0);
+            $userDivRate = match ($this->bandFromIncome((float) ($user->annual_employment_income ?? 0))) {
+                'basic' => (float) ($div['basic_rate'] ?? 0.0875),
+                'higher' => (float) ($div['higher_rate'] ?? 0.3375),
+                'additional' => (float) ($div['additional_rate'] ?? 0.3935),
+                default => 0.0875,
+            };
+            $spouseDivRate = (float) ($div['basic_rate'] ?? 0.0875);
+            $rateDelta = max(0.0, $userDivRate - $spouseDivRate);
+            // Only the portion above the spouse's own dividend allowance carries any tax.
+            $shiftableDividends = max(0, $userDividends - $divAllowance);
+            $estimatedSaving = $shiftableDividends * $rateDelta;
+
             $suggestions[] = [
                 'type' => 'gia_to_spouse',
-                'priority' => 'medium',
+                'priority' => $estimatedSaving > 0 ? 'high' : 'medium',
                 'title' => 'Hold non-ISA investments in your spouse\'s name',
-                'description' => 'Their unused CGT allowance (£'.number_format((int) $cgtAllowance).'/yr) and Dividend Allowance (£500/yr) can absorb gains and dividends tax-free.',
+                'description' => sprintf(
+                    'Their unused Capital Gains Tax allowance (£%s/yr) and Dividend Allowance (£%s/yr) absorb gains and dividends tax-free, then anything above is taxed at the basic rate rather than yours.',
+                    number_format((int) $cgtAllowance),
+                    number_format((int) $divAllowance),
+                ),
                 'available_cgt_allowance' => $cgtAllowance,
-                'available_dividend_allowance' => 500.0,
+                'available_dividend_allowance' => $divAllowance,
+                'estimated_annual_tax_saved' => $estimatedSaving > 0 ? round($estimatedSaving, 2) : null,
+                'shiftable_dividends' => round($shiftableDividends, 2),
+                'rate_delta' => round($rateDelta, 4),
             ];
         }
 
@@ -350,11 +399,36 @@ final class TaxStrategyCalculator
 
         // Recommend rebalancing GIA / dividend-bearing holdings to the lower-earner spouse
         if ($userBand !== 'basic' && $spouseBand === 'basic') {
+            $div = $this->taxConfig->getDividendTax();
+            $userDivRate = match ($userBand) {
+                'higher' => (float) ($div['higher_rate'] ?? 0.3375),
+                'additional' => (float) ($div['additional_rate'] ?? 0.3935),
+                default => (float) ($div['basic_rate'] ?? 0.0875),
+            };
+            $spouseDivRate = (float) ($div['basic_rate'] ?? 0.0875);
+            $rateDelta = max(0.0, $userDivRate - $spouseDivRate);
+            $userDividends = (float) ($user->annual_dividend_income ?? 0);
+            $estimatedSaving = $userDividends * $rateDelta;
+
             $suggestions[] = [
                 'type' => 'gia_rebalance',
                 'priority' => 'high',
-                'title' => "Hold GIA in your spouse's name",
-                'description' => "Your spouse's lower tax band means dividend and capital-gains income is taxed less in their name. Spousal transfers are exempt from CGT and IHT.",
+                'title' => $estimatedSaving > 0
+                    ? sprintf(
+                        'Move £%s of dividends into your spouse\'s name, saving around £%s a year',
+                        number_format((int) $userDividends),
+                        number_format((int) round($estimatedSaving)),
+                    )
+                    : "Hold GIA in your spouse's name",
+                'description' => sprintf(
+                    'Your dividends are currently taxed at %s%%. Moving them into your spouse\'s name drops the rate to %s%% — capital gains are taxed less too. Spousal transfers are exempt from Capital Gains Tax and Inheritance Tax.',
+                    number_format($userDivRate * 100, 2),
+                    number_format($spouseDivRate * 100, 2),
+                ),
+                'estimated_annual_tax_saved' => $estimatedSaving > 0 ? round($estimatedSaving, 2) : null,
+                'user_dividend_rate' => $userDivRate,
+                'spouse_dividend_rate' => $spouseDivRate,
+                'rate_delta' => round($rateDelta, 4),
             ];
         }
 
@@ -374,7 +448,469 @@ final class TaxStrategyCalculator
         return $suggestions;
     }
 
+    // ─── Phase 2 strategy generators (April30Updates §A-E) ─────────────
+
+    /**
+     * Strategies #1 (Personal Allowance Taper Rescue) + #2 (Additional-Rate Avoidance).
+     *
+     * Both are pension-led income-band strategies — a relievable pension
+     * contribution shifts taxable income out of a high-marginal-rate band.
+     * #1 recovers the £12,570 Personal Allowance withdrawn at the 60%
+     * effective rate between £100k-£125,140. #2 trims the slice above
+     * £125,140 from 45% into the 40%/60% bands below.
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildIncomeBandRecommendations(User $user, ?TaxStrategyOverridesDTO $overrides): array
+    {
+        $income = $this->taxConfig->getIncomeTax();
+        $taperThreshold = (float) ($income['personal_allowance_taper_threshold'] ?? 100000);
+        $personalAllowance = (float) ($income['personal_allowance'] ?? 12570);
+        $additionalRateThreshold = $this->bandThresholds()['additional'] ?: 125140;
+
+        $taxableIncome = $this->taxableIncomeFor($user);
+        $availableAA = $this->availableAnnualAllowance($user, $overrides);
+        if ($availableAA <= 0) {
+            return [];
+        }
+
+        $recommendations = [];
+
+        // #1 — Personal Allowance Taper Rescue (60% effective rate band).
+        // Effective only when contributing to drop income BELOW the taper
+        // threshold, i.e. only the slice between £100k and the user's income
+        // counts. Cap by both the in-band slice and the available AA.
+        if ($taxableIncome > $taperThreshold && $taxableIncome <= $additionalRateThreshold) {
+            $inBandSlice = $taxableIncome - $taperThreshold;
+            $contribution = min($inBandSlice, $availableAA);
+            if ($contribution > 0) {
+                $saving = $contribution * 0.60;
+                $recommendations[] = new StrategyRecommendation(
+                    type: 'pa_taper_rescue',
+                    category: StrategyCategory::IncomeBand,
+                    priority: StrategyPriority::High,
+                    title: 'Reclaim your Personal Allowance with a pension contribution',
+                    description: sprintf(
+                        'Income between £%s and £%s is taxed at 60%% because the Personal Allowance tapers in this band. A £%s pension contribution drops you below £%s and saves around £%s in tax this year.',
+                        number_format((int) $taperThreshold),
+                        number_format((int) $additionalRateThreshold),
+                        number_format((int) round($contribution / 100) * 100),
+                        number_format((int) $taperThreshold),
+                        number_format((int) round($saving)),
+                    ),
+                    estimatedAnnualTaxSaved: round($saving, 2),
+                    extra: [
+                        'suggested_contribution' => round($contribution, 2),
+                        'effective_marginal_rate' => 0.60,
+                    ],
+                );
+            }
+        }
+
+        // #2 — Additional-Rate Avoidance (45% → 40%/60% bands).
+        // Piecewise saving: top slice 45 → 40 (5pp), middle slice 40 → 60 swing
+        // (gain), but the gain only materialises when contribution dips into
+        // the £100k-£125,140 band. Approximate as: above-AR slice × 5pp +
+        // continuation into taper band × 60pp differential vs nothing.
+        if ($taxableIncome > $additionalRateThreshold) {
+            $additionalSlice = min($taxableIncome - $additionalRateThreshold, $availableAA);
+            $remaining = max(0, $availableAA - $additionalSlice);
+            $taperSlice = min($remaining, $additionalRateThreshold - $taperThreshold);
+            $remainingAfterTaper = max(0, $remaining - $taperSlice);
+            $belowTaperSlice = min($remainingAfterTaper, max(0, $taperThreshold - max(0, $taxableIncome - $availableAA)));
+
+            $saving = ($additionalSlice * 0.45) + ($taperSlice * 0.60) + ($belowTaperSlice * 0.40);
+            $contribution = $additionalSlice + $taperSlice + $belowTaperSlice;
+
+            if ($contribution > 0) {
+                $recommendations[] = new StrategyRecommendation(
+                    type: 'additional_rate_avoidance',
+                    category: StrategyCategory::IncomeBand,
+                    priority: StrategyPriority::High,
+                    title: 'Shift income out of the 45% additional-rate band',
+                    description: sprintf(
+                        'Income above £%s is taxed at 45%%. A £%s pension contribution moves that slice into the 40%% band and reclaims part of your Personal Allowance, saving around £%s in tax this year.',
+                        number_format((int) $additionalRateThreshold),
+                        number_format((int) round($contribution / 100) * 100),
+                        number_format((int) round($saving)),
+                    ),
+                    estimatedAnnualTaxSaved: round($saving, 2),
+                    extra: [
+                        'suggested_contribution' => round($contribution, 2),
+                        'additional_rate_slice' => round($additionalSlice, 2),
+                        'taper_band_slice' => round($taperSlice, 2),
+                    ],
+                );
+            }
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Strategies #16 (Lifetime ISA, under-40s) + #17 (Junior ISA) + #18 (Junior Pension).
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildLifecycleRecommendations(User $user): array
+    {
+        $recommendations = [];
+        $isa = $this->taxConfig->getISAAllowances();
+        $pension = $this->taxConfig->getPensionAllowances();
+
+        // #16 — Lifetime ISA (under-40s)
+        $userAge = $this->ageOf($user->date_of_birth);
+        $lisa = $isa['lifetime_isa'] ?? [];
+        $lisaMaxAgeToOpen = (int) ($lisa['max_age_to_open'] ?? 39);
+        $lisaAnnual = (float) ($lisa['annual_allowance'] ?? 4000);
+        $lisaBonusRate = (float) ($lisa['government_bonus_rate'] ?? 0.25);
+
+        if ($userAge !== null && $userAge >= 18 && $userAge <= $lisaMaxAgeToOpen) {
+            $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
+            $isaUsed = $this->estimateIsaSubscriptionsThisYear($user);
+            $isaRemaining = max(0, $isaAllowance - $isaUsed);
+            $contribution = min($lisaAnnual, $isaRemaining);
+
+            if ($contribution > 0) {
+                $bonus = $contribution * $lisaBonusRate;
+                $recommendations[] = new StrategyRecommendation(
+                    type: 'lifetime_isa',
+                    category: StrategyCategory::Lifecycle,
+                    priority: StrategyPriority::Medium,
+                    title: sprintf('Open a Lifetime ISA for a £%s government bonus every year', number_format((int) $bonus)),
+                    description: sprintf(
+                        'You\'re under %d. Contributing £%s a year to a Lifetime ISA unlocks a £%s government top-up — usable for a first home (up to £450,000) or from age 60. The contribution counts toward your £%s overall ISA allowance.',
+                        $lisaMaxAgeToOpen + 1,
+                        number_format((int) $contribution),
+                        number_format((int) $bonus),
+                        number_format((int) $isaAllowance),
+                    ),
+                    estimatedAnnualTaxSaved: round($bonus, 2),
+                    extra: [
+                        'suggested_contribution' => round($contribution, 2),
+                        'government_bonus' => round($bonus, 2),
+                        'user_age' => $userAge,
+                    ],
+                );
+            }
+        }
+
+        // #17 + #18 — count dependant children under 18
+        $juniorIsa = $isa['junior_isa'] ?? [];
+        $juniorIsaMaxAge = (int) ($juniorIsa['max_age'] ?? 17);
+        $juniorIsaAnnual = (float) ($juniorIsa['annual_allowance'] ?? 9000);
+
+        $children = FamilyMember::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('date_of_birth')
+            ->whereIn('relationship', ['child', 'son', 'daughter'])
+            ->get(['date_of_birth']);
+
+        $childrenUnder18 = $children->filter(function ($child) use ($juniorIsaMaxAge) {
+            $age = $this->ageOf($child->date_of_birth);
+
+            return $age !== null && $age <= $juniorIsaMaxAge;
+        });
+        $childCount = $childrenUnder18->count();
+
+        if ($childCount > 0) {
+            $totalJisaCapacity = $childCount * $juniorIsaAnnual;
+            $recommendations[] = new StrategyRecommendation(
+                type: 'junior_isa',
+                category: StrategyCategory::Lifecycle,
+                priority: StrategyPriority::Medium,
+                title: sprintf(
+                    '%s — up to £%s of Junior ISA capacity a year',
+                    $childCount === 1
+                        ? 'You have 1 child under 18 in your household'
+                        : sprintf('You have %d children under 18 in your household', $childCount),
+                    number_format((int) $totalJisaCapacity),
+                ),
+                description: sprintf(
+                    'Each child under 18 has a £%s annual Junior ISA allowance — separate from your own £%s. All interest, dividends and capital gains inside the wrapper are tax-free until they turn 18.',
+                    number_format((int) $juniorIsaAnnual),
+                    number_format((int) ($isa['annual_allowance'] ?? 20000)),
+                ),
+                estimatedAnnualTaxSaved: null,
+                extra: [
+                    'children_under_18' => $childCount,
+                    'total_jisa_capacity' => $totalJisaCapacity,
+                ],
+            );
+
+            // #18 — Junior Pension. £2,880 net per child grossed up to £3,600
+            // (25% tax relief). Use auto_enrolment / pension config; spec
+            // gives £2,880 net + £720 uplift per child.
+            $juniorPensionNet = 2880.0;
+            $juniorPensionUplift = 720.0;
+            $totalUplift = $childCount * $juniorPensionUplift;
+            $recommendations[] = new StrategyRecommendation(
+                type: 'junior_pension',
+                category: StrategyCategory::Lifecycle,
+                priority: StrategyPriority::Medium,
+                title: sprintf(
+                    'Open a pension for each child — instant £%s a year of free money',
+                    number_format((int) $totalUplift),
+                ),
+                description: sprintf(
+                    'Anyone, including a child with no income, can hold a personal pension. £%s contributed per child is topped up to £%s by the government — that\'s £%s of free money per child, every year. Decades of compounding sheltered from tax.',
+                    number_format((int) $juniorPensionNet),
+                    number_format((int) ($juniorPensionNet + $juniorPensionUplift)),
+                    number_format((int) $juniorPensionUplift),
+                ),
+                estimatedAnnualTaxSaved: round($totalUplift, 2),
+                extra: [
+                    'children_under_18' => $childCount,
+                    'net_contribution_per_child' => $juniorPensionNet,
+                    'gross_contribution_per_child' => $juniorPensionNet + $juniorPensionUplift,
+                    'total_government_uplift' => $totalUplift,
+                ],
+            );
+        }
+
+        return $recommendations;
+    }
+
+    /**
+     * Strategy #15 — Joint Savings Split for Personal Savings Allowance
+     * Doubling. Fires when a married user holds sole-name non-ISA savings
+     * generating interest above their own Personal Savings Allowance, AND
+     * their spouse has at least basic-rate band PSA capacity unused. Skipped
+     * for additional-rate taxpayers because PSA = £0 at that band.
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildJointSavingsRecommendations(User $user, ?TaxStrategyHouseholdInput $household, string $mode): array
+    {
+        $isMarried = $user->marital_status === 'married'
+            || in_array($mode, ['dual_earner', 'single_earner_couple'], true);
+        if (! $isMarried) {
+            return [];
+        }
+
+        $userBand = $this->bandFromIncome((float) ($user->annual_employment_income ?? 0));
+        if ($userBand === 'additional') {
+            return [];
+        }
+
+        // Sole-name non-ISA savings — joint accounts (joint_owner_id set) are
+        // already split 50/50 by HMRC default and cannot benefit further.
+        $soleSavings = SavingsAccount::query()
+            ->where('user_id', $user->id)
+            ->whereNull('joint_owner_id')
+            ->where('is_isa', false)
+            ->get(['current_balance', 'interest_rate']);
+
+        if ($soleSavings->isEmpty()) {
+            return [];
+        }
+
+        $balance = (float) $soleSavings->sum('current_balance');
+        $avgRate = $soleSavings->count() > 0 ? (float) $soleSavings->avg('interest_rate') : 0.0;
+        $interest = $balance * $avgRate;
+        $userPsa = $this->psaForBand($userBand);
+
+        if ($interest <= $userPsa || $avgRate <= 0) {
+            return [];
+        }
+
+        $spouseBand = (string) ($household?->spouse_psa_band ?? 'basic');
+        $spousePsa = $this->psaForBand($spouseBand);
+        if ($spousePsa <= 0) {
+            return [];
+        }
+
+        // Slice currently taxed in user's name that would slot into spouse's PSA on splitting.
+        $taxableSlice = $interest - $userPsa;
+        $shelterableSlice = min($taxableSlice, $spousePsa);
+        $marginalRate = $this->bandRateFor($user);
+        $saving = $shelterableSlice * $marginalRate;
+
+        if ($saving < 1) {
+            return [];
+        }
+
+        return [new StrategyRecommendation(
+            type: 'joint_savings_psa_split',
+            category: StrategyCategory::Household,
+            priority: StrategyPriority::Low,
+            title: 'Split your savings between you and your spouse to use both Savings Allowances',
+            description: sprintf(
+                'Holding £%s of cash in one name uses only your £%s Personal Savings Allowance. Putting half in your spouse\'s name claims their £%s allowance too — saving around £%s a year.',
+                number_format((int) $balance),
+                number_format((int) $userPsa),
+                number_format((int) $spousePsa),
+                number_format((int) round($saving)),
+            ),
+            estimatedAnnualTaxSaved: round($saving, 2),
+            extra: [
+                'sole_balance' => round($balance, 2),
+                'user_psa' => $userPsa,
+                'spouse_psa' => $spousePsa,
+                'shelterable_interest' => round($shelterableSlice, 2),
+            ],
+        )];
+    }
+
+    /**
+     * Strategy #5 (ISA Top-Up From Cash Earning Beyond the Savings Allowance)
+     * + #7 (Dividend Allowance Harvest).
+     *
+     * @return list<StrategyRecommendation>
+     */
+    private function buildAllowanceRecommendations(User $user): array
+    {
+        $recommendations = [];
+        $isa = $this->taxConfig->getISAAllowances();
+        $div = $this->taxConfig->getDividendTax();
+        $isaAllowance = (float) ($isa['annual_allowance'] ?? 20000);
+        $userBand = $this->bandFromIncome($this->taxableIncomeFor($user));
+
+        // #5 — ISA Top-Up From Cash Earning Beyond the Savings Allowance
+        $isaUsed = $this->estimateIsaSubscriptionsThisYear($user);
+        $isaRemaining = max(0, $isaAllowance - $isaUsed);
+
+        if ($isaRemaining > 0) {
+            $nonIsaSavings = SavingsAccount::query()
+                ->where('user_id', $user->id)
+                ->where('is_isa', false)
+                ->get(['current_balance', 'interest_rate']);
+            $nonIsaBalance = (float) $nonIsaSavings->sum('current_balance');
+            $avgRate = $nonIsaSavings->count() > 0
+                ? (float) $nonIsaSavings->avg('interest_rate')
+                : 0.0;
+            $annualInterest = $nonIsaBalance * $avgRate;
+            $psa = $this->psaForBand($userBand);
+
+            // Only fire when interest exceeds PSA — otherwise no tax to save.
+            if ($annualInterest > $psa && $avgRate > 0) {
+                $excessInterest = $annualInterest - $psa;
+                $excessBalance = $excessInterest / $avgRate;
+                $transferable = min($isaRemaining, $nonIsaBalance, $excessBalance);
+
+                if ($transferable > 1000) {
+                    $marginalRate = $this->bandRateFor($user);
+                    $saving = $transferable * $avgRate * $marginalRate;
+
+                    $recommendations[] = new StrategyRecommendation(
+                        type: 'isa_topup_vs_psa',
+                        category: StrategyCategory::Allowance,
+                        priority: StrategyPriority::High,
+                        title: sprintf(
+                            'Wrap £%s of cash savings inside an ISA before April 5',
+                            number_format((int) round($transferable / 1000) * 1000),
+                        ),
+                        description: sprintf(
+                            'You hold £%s of non-ISA cash earning interest above your £%s Savings Allowance. Wrapping £%s in an ISA removes that interest from tax permanently — saving around £%s a year going forward.',
+                            number_format((int) $nonIsaBalance),
+                            number_format((int) $psa),
+                            number_format((int) round($transferable / 1000) * 1000),
+                            number_format((int) round($saving)),
+                        ),
+                        estimatedAnnualTaxSaved: round($saving, 2),
+                        extra: [
+                            'suggested_transfer_amount' => round($transferable / 1000) * 1000,
+                            'isa_remaining' => round($isaRemaining, 2),
+                            'non_isa_balance' => round($nonIsaBalance, 2),
+                            'personal_savings_allowance' => $psa,
+                        ],
+                    );
+                }
+            }
+        }
+
+        // #7 — Dividend Allowance Harvest
+        $dividendAllowanceRaw = $div['allowance'] ?? 500;
+        $dividendAllowance = is_array($dividendAllowanceRaw)
+            ? (float) ($dividendAllowanceRaw['amount'] ?? 500)
+            : (float) $dividendAllowanceRaw;
+        $userDividends = (float) ($user->annual_dividend_income ?? 0);
+        $hasNonIsaInvestments = InvestmentAccount::query()
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('account_type')->orWhere('account_type', '!=', 'isa');
+            })
+            ->exists();
+
+        if ($userDividends < $dividendAllowance && $hasNonIsaInvestments) {
+            $headroom = $dividendAllowance - $userDividends;
+            $divRate = match ($userBand) {
+                'basic' => (float) ($div['basic_rate'] ?? 0.0875),
+                'higher' => (float) ($div['higher_rate'] ?? 0.3375),
+                'additional' => (float) ($div['additional_rate'] ?? 0.3935),
+                default => 0.0875,
+            };
+            $saving = $headroom * $divRate;
+
+            $recommendations[] = new StrategyRecommendation(
+                type: 'dividend_allowance_harvest',
+                category: StrategyCategory::Allowance,
+                priority: StrategyPriority::Low,
+                title: sprintf('You have £%s of unused Dividend Allowance', number_format((int) $headroom)),
+                description: sprintf(
+                    'The first £%s of dividend income is tax-free. Holding income-paying shares outside your ISA up to that amount returns the full payout — about £%s a year at your tax band.',
+                    number_format((int) $dividendAllowance),
+                    number_format((int) round($saving)),
+                ),
+                estimatedAnnualTaxSaved: round($saving, 2),
+                extra: [
+                    'unused_allowance' => round($headroom, 2),
+                    'dividend_rate' => $divRate,
+                ],
+            );
+        }
+
+        return $recommendations;
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Age in whole years from a date_of_birth, or null when DOB is unknown.
+     * Mirrors FamilyMember::getAgeAttribute. Used by lifecycle strategies.
+     */
+    private function ageOf(mixed $dateOfBirth): ?int
+    {
+        if ($dateOfBirth === null) {
+            return null;
+        }
+
+        $dob = $dateOfBirth instanceof \DateTimeInterface
+            ? \Carbon\Carbon::instance($dateOfBirth)
+            : \Carbon\Carbon::parse((string) $dateOfBirth);
+
+        return (int) $dob->diffInYears(now());
+    }
+
+    /**
+     * Composed taxable-income view: employment income + dividend income +
+     * estimated savings interest. Acts as a best-effort proxy for HMRC
+     * taxable income above the Personal Allowance — refines as more income
+     * sources are captured. Used by income-band strategies.
+     */
+    private function taxableIncomeFor(User $user): float
+    {
+        $employment = (float) ($user->annual_employment_income ?? 0);
+        $dividends = (float) ($user->annual_dividend_income ?? 0);
+        $interest = $this->estimateAnnualInterest($user);
+
+        return $employment + $dividends + $interest;
+    }
+
+    /**
+     * Remaining Pension Annual Allowance for the current tax year, after the
+     * user's existing contributions and any in-flight slider override.
+     * Floored at 0; does not currently account for tapered AA (Phase 5) or
+     * carry-forward (Phase 4).
+     */
+    private function availableAnnualAllowance(User $user, ?TaxStrategyOverridesDTO $overrides): float
+    {
+        $pension = $this->taxConfig->getPensionAllowances();
+        $aa = (float) ($pension['annual_allowance'] ?? 60000);
+        $used = $this->estimatePensionContributionThisYear($user, $overrides);
+
+        return max(0, $aa - $used);
+    }
 
     private function position(string $key, string $label, float $amount, float $used, string $owner): array
     {

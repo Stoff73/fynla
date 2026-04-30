@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\DataTransferObjects;
 
+use App\Enums\StrategyCategory;
+use App\Enums\StrategyPriority;
+
 /**
  * One recommended tax-optimisation action surfaced on the SaveTax dashboard.
  *
@@ -12,14 +15,10 @@ namespace App\DataTransferObjects;
  * full list (`recommendations` on TaxStrategyOutputDTO) sorted by `priority`
  * within `category`.
  *
- * Categories:
- *   - 'income_band' — strategies driven by user's tax band (taper rescue, additional-rate avoidance)
- *   - 'allowance'   — under-used allowances harvested at year end (ISA top-up, dividend allowance)
- *   - 'household'   — spouse / joint asset coordination
- *   - 'lifecycle'   — life-stage strategies (Lifetime ISA under 40, Junior ISA, Junior Pension)
- *   - 'warning'     — tapered Annual Allowance, MPAA gates — surfaces a downside risk, not a saving
- *
- * Priorities: 'high' | 'medium' | 'low'.
+ * `category` and `priority` accept either a backed-enum case or its string
+ * value; both are validated against StrategyCategory / StrategyPriority at
+ * construction. The public properties remain string-typed so existing
+ * array-shape consumers (frontend, tests) keep working unchanged.
  *
  * `extra` carries strategy-specific fields (e.g. `suggested_transfer_amount`,
  * `available_allowance`, `amount_transferred`) and is merged into the
@@ -29,19 +28,41 @@ namespace App\DataTransferObjects;
  */
 final class StrategyRecommendation
 {
+    public readonly string $category;
+
+    public readonly string $priority;
+
     /**
      * @param  array<string, mixed>  $extra
      */
     public function __construct(
         public readonly string $type,
-        public readonly string $category,
-        public readonly string $priority,
+        StrategyCategory|string $category,
+        StrategyPriority|string $priority,
         public readonly string $title,
         public readonly string $description,
         public readonly ?float $estimatedAnnualTaxSaved = null,
         public readonly bool $requiresAdvice = false,
         public readonly array $extra = [],
-    ) {}
+    ) {
+        $this->category = $category instanceof StrategyCategory
+            ? $category->value
+            : StrategyCategory::from($category)->value;
+
+        $this->priority = $priority instanceof StrategyPriority
+            ? $priority->value
+            : StrategyPriority::from($priority)->value;
+    }
+
+    public function categoryEnum(): StrategyCategory
+    {
+        return StrategyCategory::from($this->category);
+    }
+
+    public function priorityEnum(): StrategyPriority
+    {
+        return StrategyPriority::from($this->priority);
+    }
 
     /**
      * Wrap a legacy suggestion array (as built by the pre-Phase-1 calculator
@@ -51,7 +72,7 @@ final class StrategyRecommendation
      *
      * @param  array<string, mixed>  $arr
      */
-    public static function fromArray(string $category, array $arr): self
+    public static function fromArray(StrategyCategory|string $category, array $arr): self
     {
         $reservedKeys = [
             'type', 'category', 'priority', 'title', 'description',

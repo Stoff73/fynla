@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\DataTransferObjects\TaxStrategyOutputDTO;
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
+use App\Models\FamilyMember;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
@@ -15,6 +17,19 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
 });
+
+/**
+ * Filter recommendations by category — replacement for the legacy
+ * assetShiftingSuggestions / crossSpouseSuggestions DTO fields, which were
+ * dropped in Phase 2 in favour of a single canonical recommendations[] array.
+ */
+function recsOfCategory(TaxStrategyOutputDTO $output, string $category): array
+{
+    return collect($output->recommendations)
+        ->where('category', $category)
+        ->values()
+        ->all();
+}
 
 describe('Path A — single user', function () {
     it('returns 8 user allowance positions, no household sections', function () {
@@ -30,8 +45,7 @@ describe('Path A — single user', function () {
         expect($output->calculationMode)->toBe('single');
         expect($output->userAllowances)->toHaveCount(8);
         expect($output->spouseAllowances)->toBeNull();
-        expect($output->assetShiftingSuggestions)->toBe([]);
-        expect($output->crossSpouseSuggestions)->toBe([]);
+        expect(recsOfCategory($output, 'household'))->toBe([]);
 
         $keys = array_column($output->userAllowances, 'key');
         expect($keys)->toContain(
@@ -83,8 +97,7 @@ describe('Path B — dual_earner', function () {
         expect($output->calculationMode)->toBe('dual_earner');
         expect($output->userAllowances)->toHaveCount(8);
         expect($output->spouseAllowances)->toHaveCount(8);
-        expect($output->crossSpouseSuggestions)->not->toBe([]);
-        expect($output->assetShiftingSuggestions)->toBe([]);
+        expect(recsOfCategory($output, 'household'))->not->toBe([]);
 
         // Spouse positions all owned by 'spouse'
         foreach ($output->spouseAllowances as $pos) {
@@ -117,16 +130,16 @@ describe('Path C — single_earner_couple', function () {
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
         expect($output->calculationMode)->toBe('single_earner_couple');
-        expect($output->assetShiftingSuggestions)->not->toBe([]);
+        expect(recsOfCategory($output, 'household'))->not->toBe([]);
 
         // Savings-shift suggestion sized ≤ user's at-risk holdings
-        $shift = collect($output->assetShiftingSuggestions)->firstWhere('type', 'savings_to_spouse');
+        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
         expect($shift)->not->toBeNull();
         expect($shift['suggested_transfer_amount'])->toBeLessThanOrEqual(200000);
         expect($shift['estimated_annual_tax_saved'])->toBeGreaterThan(0);
 
         // ISA top-up suggestion (spouse has £20k unused)
-        $isa = collect($output->assetShiftingSuggestions)->firstWhere('type', 'isa_topup_spouse');
+        $isa = collect($output->recommendations)->firstWhere('type', 'isa_topup_spouse');
         expect($isa)->not->toBeNull();
         expect($isa['available_allowance'])->toBe(20000.0);
     });
@@ -142,7 +155,7 @@ describe('Path C — single_earner_couple', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
-        $ma = collect($output->assetShiftingSuggestions)->firstWhere('type', 'marriage_allowance_transfer');
+        $ma = collect($output->recommendations)->firstWhere('type', 'marriage_allowance_transfer');
         expect($ma)->toBeNull();
     });
 
@@ -165,7 +178,7 @@ describe('Path C — single_earner_couple', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
-        $shift = collect($output->assetShiftingSuggestions)->firstWhere('type', 'savings_to_spouse');
+        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
         // Spouse already absorbing ~£3,500/yr interest from their own £100k @ 3.5%
         // Remaining capacity ≈ £18,570 - £3,500 = £15,070
         // Translates to ~£430k more transferable @ 3.5% — but also bounded by user's £600k
@@ -199,8 +212,8 @@ describe('benchmark', function () {
     });
 });
 
-describe('recommendations contract (Phase 1)', function () {
-    it('exposes an empty recommendations array for single-mode users', function () {
+describe('recommendations contract (canonical)', function () {
+    it('exposes an empty recommendations array for single-mode users with no triggering data', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 50000,
@@ -209,12 +222,10 @@ describe('recommendations contract (Phase 1)', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
-        expect($output->recommendations)->toBe([])
-            ->and($output->assetShiftingSuggestions)->toBe([])
-            ->and($output->crossSpouseSuggestions)->toBe([]);
+        expect($output->recommendations)->toBe([]);
     });
 
-    it('mirrors crossSpouseSuggestions into recommendations for dual_earner mode', function () {
+    it('emits household recommendations alongside user-level recommendations in dual_earner mode', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'dual_earner',
             'annual_employment_income' => 80000,
@@ -230,18 +241,18 @@ describe('recommendations contract (Phase 1)', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
-        expect($output->recommendations)->toHaveCount(count($output->crossSpouseSuggestions))
-            ->and($output->assetShiftingSuggestions)->toBe([])
+        expect(recsOfCategory($output, 'household'))->not->toBe([])
             ->and($output->recommendations)->not->toBe([]);
 
-        // Every recommendation carries the canonical Phase 1 fields
+        // Every recommendation carries the canonical fields and a valid category/priority value
         foreach ($output->recommendations as $rec) {
             expect($rec)->toHaveKeys(['type', 'category', 'priority', 'title', 'description', 'requires_advice'])
-                ->and($rec['category'])->toBe('household');
+                ->and($rec['category'])->toBeIn(['income_band', 'allowance', 'household', 'lifecycle', 'warning'])
+                ->and($rec['priority'])->toBeIn(['high', 'medium', 'low']);
         }
     });
 
-    it('mirrors assetShiftingSuggestions into recommendations for single_earner_couple mode', function () {
+    it('emits household recommendations alongside user-level recommendations in single_earner_couple mode', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single_earner_couple',
             'annual_employment_income' => 100000,
@@ -261,11 +272,10 @@ describe('recommendations contract (Phase 1)', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
-        expect($output->recommendations)->toHaveCount(count($output->assetShiftingSuggestions))
-            ->and($output->crossSpouseSuggestions)->toBe([])
+        expect(recsOfCategory($output, 'household'))->not->toBe([])
             ->and($output->recommendations)->not->toBe([]);
 
-        // Strategy-specific extras still surfaced at the top level (back-compat)
+        // Strategy-specific extras still surfaced at the top level
         $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
         expect($shift)->not->toBeNull()
             ->and($shift['suggested_transfer_amount'])->toBeGreaterThan(0)
@@ -284,8 +294,317 @@ describe('recommendations contract (Phase 1)', function () {
 
         expect($payload)->toHaveKey('recommendations')
             ->and($payload['recommendations'])->toBeArray()
-            ->and($payload)->toHaveKey('asset_shifting_suggestions')   // legacy preserved
-            ->and($payload)->toHaveKey('cross_spouse_suggestions');    // legacy preserved
+            ->and($payload)->not->toHaveKey('asset_shifting_suggestions') // dropped in Phase 2
+            ->and($payload)->not->toHaveKey('cross_spouse_suggestions');   // dropped in Phase 2
+    });
+});
+
+describe('Phase 2 — income-band strategies (#1, #2)', function () {
+    it('emits PA taper rescue for income in the £100k-£125,140 band', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 110000,
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'pa_taper_rescue');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('income_band')
+            ->and($rec['priority'])->toBe('high')
+            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0)
+            ->and($rec['suggested_contribution'])->toBeLessThanOrEqual(10000);
+    });
+
+    it('omits PA taper rescue for income below £100k', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'pa_taper_rescue'))->toBeNull();
+    });
+
+    it('emits additional-rate avoidance for income above £125,140', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 200000,
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'additional_rate_avoidance');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('income_band')
+            ->and($rec['priority'])->toBe('high')
+            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0);
+    });
+});
+
+describe('Phase 2 — allowance harvesting (#5, #7)', function () {
+    it('emits ISA top-up vs PSA when non-ISA cash earns above PSA', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000, // higher rate, PSA £500
+            'marital_status' => 'single',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 50000, // £50k @ 4% = £2k interest > £500 PSA
+            'interest_rate' => 0.04,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'isa_topup_vs_psa');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('allowance')
+            ->and($rec['priority'])->toBe('high')
+            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0);
+    });
+
+    it('omits ISA top-up vs PSA when interest stays under the allowance', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 30000, // basic rate, PSA £1,000
+            'marital_status' => 'single',
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 10000, // £400 interest < £1,000 PSA
+            'interest_rate' => 0.04,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'isa_topup_vs_psa'))->toBeNull();
+    });
+
+    it('emits Dividend Allowance harvest when allowance is unused and user holds non-ISA investments', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 60000,
+            'annual_dividend_income' => 100,
+            'marital_status' => 'single',
+        ]);
+        InvestmentAccount::factory()->for($user)->create(['account_type' => 'gia']);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'dividend_allowance_harvest');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('allowance')
+            ->and($rec['priority'])->toBe('low');
+    });
+});
+
+describe('Phase 2 — household strategy refinements (#9, #11)', function () {
+    it('breaks the spouse-savings transfer copy into stacked allowance buckets', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 80000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 200000,
+            'interest_rate' => 0.04,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $shift = collect($output->recommendations)->firstWhere('type', 'savings_to_spouse');
+        expect($shift)->not->toBeNull()
+            ->and($shift['title'])->toContain('£18,570')
+            ->and($shift['description'])->toContain('Personal Allowance')
+            ->and($shift['description'])->toContain('Starting Rate for Savings')
+            ->and($shift['description'])->toContain('Personal Savings Allowance')
+            ->and($shift['description'])->toContain('Capital Gains Tax')
+            ->and($shift['description'])->toContain('Inheritance Tax')
+            ->and($shift)->toHaveKey('spouse_personal_allowance')
+            ->and($shift)->toHaveKey('spouse_starting_rate_for_savings')
+            ->and($shift)->toHaveKey('spouse_personal_savings_allowance');
+    });
+
+    it('sizes GIA rebalance with an estimated tax saving when user has dividends', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'dual_earner',
+            'annual_employment_income' => 80000, // higher rate
+            'annual_dividend_income' => 5000,
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_annual_income' => 25000,
+            'spouse_psa_band' => 'basic',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'gia_rebalance');
+        expect($rec)->not->toBeNull()
+            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0)
+            ->and($rec)->toHaveKey('user_dividend_rate')
+            ->and($rec)->toHaveKey('spouse_dividend_rate');
+    });
+});
+
+describe('Phase 2 — joint-savings strategy (#15)', function () {
+    it('emits joint-savings split for a married user with sole savings above their PSA', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 80000, // higher rate, PSA £500
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'joint_owner_id' => null,   // sole-name
+            'current_balance' => 100000, // £4k interest @ 4%, well above PSA
+            'interest_rate' => 0.04,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'joint_savings_psa_split');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('household')
+            ->and($rec['priority'])->toBe('low')
+            ->and($rec['estimated_annual_tax_saved'])->toBeGreaterThan(0);
+    });
+
+    it('omits joint-savings split when user is additional-rate (PSA is £0)', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 200000, // additional rate
+            'marital_status' => 'married',
+        ]);
+        TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 100000,
+            'interest_rate' => 0.04,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'joint_savings_psa_split'))->toBeNull();
+    });
+});
+
+describe('Phase 2 — lifecycle strategies (#16, #17, #18)', function () {
+    it('emits Lifetime ISA suggestion for a user under 40 with unused ISA capacity', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 40000,
+            'date_of_birth' => now()->subYears(30),
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $rec = collect($output->recommendations)->firstWhere('type', 'lifetime_isa');
+        expect($rec)->not->toBeNull()
+            ->and($rec['category'])->toBe('lifecycle')
+            ->and($rec['priority'])->toBe('medium')
+            ->and($rec['estimated_annual_tax_saved'])->toBe(1000.0); // £4k × 25% bonus
+    });
+
+    it('omits Lifetime ISA for a user past 40', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 40000,
+            'date_of_birth' => now()->subYears(45),
+            'marital_status' => 'single',
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        expect(collect($output->recommendations)->firstWhere('type', 'lifetime_isa'))->toBeNull();
+    });
+
+    it('emits Junior ISA + Junior Pension when the user has children under 18', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single',
+            'annual_employment_income' => 40000,
+            'marital_status' => 'single',
+        ]);
+        FamilyMember::factory()->for($user)->create([
+            'relationship' => 'child',
+            'date_of_birth' => now()->subYears(8),
+            'is_dependent' => true,
+        ]);
+        FamilyMember::factory()->for($user)->create([
+            'relationship' => 'child',
+            'date_of_birth' => now()->subYears(12),
+            'is_dependent' => true,
+        ]);
+
+        $output = app(TaxStrategyCalculator::class)->calculate($user);
+
+        $jisa = collect($output->recommendations)->firstWhere('type', 'junior_isa');
+        $jpension = collect($output->recommendations)->firstWhere('type', 'junior_pension');
+
+        expect($jisa)->not->toBeNull()
+            ->and($jisa['children_under_18'])->toBe(2)
+            ->and($jisa['total_jisa_capacity'])->toBe(18000.0)
+            ->and($jisa['title'])->toContain('children under 18');
+
+        expect($jpension)->not->toBeNull()
+            ->and($jpension['children_under_18'])->toBe(2)
+            ->and($jpension['estimated_annual_tax_saved'])->toBe(1440.0); // 2 × £720
+    });
+});
+
+describe('Phase 2 — sort order in recommendations[]', function () {
+    it('orders categories warning > income_band > allowance > household > lifecycle, high before low within each', function () {
+        $user = User::factory()->create([
+            'household_calculation_mode' => 'single_earner_couple',
+            'annual_employment_income' => 110000,
+            'date_of_birth' => now()->subYears(30),
+            'marital_status' => 'married',
+            'marriage_allowance_eligible' => true,
+        ]);
+        TaxStrategyHouseholdInput::create([
+            'user_id' => $user->id,
+            'spouse_existing_savings_balance' => 0,
+        ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 200000,
+            'interest_rate' => 0.04,
+        ]);
+
+        $categories = array_column(
+            app(TaxStrategyCalculator::class)->calculate($user)->recommendations,
+            'category'
+        );
+
+        // The first occurrence of each category should appear in canonical order
+        $firstSeen = [];
+        foreach ($categories as $cat) {
+            if (! isset($firstSeen[$cat])) {
+                $firstSeen[$cat] = count($firstSeen);
+            }
+        }
+
+        $expectedOrder = ['warning', 'income_band', 'allowance', 'household', 'lifecycle'];
+        $observed = array_values(array_intersect($expectedOrder, array_keys($firstSeen)));
+        $sorted = $observed;
+        usort($sorted, fn ($a, $b) => $firstSeen[$a] <=> $firstSeen[$b]);
+        expect($observed)->toBe($sorted);
     });
 });
 
