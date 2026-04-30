@@ -32,6 +32,9 @@ uses(
 // BaseAgentTest is pure unit tests, no database needed
 uses(Tests\TestCase::class)->in('Unit/Agents/BaseAgentTest.php');
 
+// Mail render tests need Laravel app (config/url helpers) but no DB — factory()->make() only.
+uses(Tests\TestCase::class)->in('Unit/Mail');
+
 uses(
     Tests\TestCase::class,
     Illuminate\Foundation\Testing\RefreshDatabase::class,

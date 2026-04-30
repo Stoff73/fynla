@@ -361,7 +361,7 @@
             <h3 class="text-sm font-bold text-white mb-4">About Fynla</h3>
             <ul class="space-y-2">
               <li><router-link to="/about" class="text-sm text-white/70 hover:text-white transition-colors">About us</router-link></li>
-              <li><router-link to="/about" class="text-sm text-white/70 hover:text-white transition-colors">Accreditations</router-link></li>
+              <li><router-link to="/news" class="text-sm text-white/70 hover:text-white transition-colors">News</router-link></li>
               <li><a href="https://www.fca.org.uk" target="_blank" class="text-sm text-white/70 hover:text-white transition-colors">FCA website</a></li>
             </ul>
           </div>
