@@ -37,13 +37,8 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
 
         // Recommend rebalancing GIA / dividend-bearing holdings to the lower-earner spouse
         if ($userBand !== 'basic' && $spouseBand === 'basic') {
-            $div = $this->taxConfig->getDividendTax();
-            $userDivRate = match ($userBand) {
-                'higher' => (float) ($div['higher_rate'] ?? 0.3375),
-                'additional' => (float) ($div['additional_rate'] ?? 0.3935),
-                default => (float) ($div['basic_rate'] ?? 0.0875),
-            };
-            $spouseDivRate = (float) ($div['basic_rate'] ?? 0.0875);
+            $userDivRate = $this->math->dividendRateForBand($userBand);
+            $spouseDivRate = $this->math->dividendRateForBand('basic');
             $rateDelta = max(0.0, $userDivRate - $spouseDivRate);
             $userDividends = (float) ($user->annual_dividend_income ?? 0);
             $estimatedSaving = $userDividends * $rateDelta;

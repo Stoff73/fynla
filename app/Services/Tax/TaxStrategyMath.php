@@ -75,10 +75,34 @@ final class TaxStrategyMath
 
     public function bandRateFor(User $user): float
     {
-        return match ($this->bandFromIncome((float) ($user->annual_employment_income ?? 0))) {
+        return $this->bandRateForBand(
+            $this->bandFromIncome((float) ($user->annual_employment_income ?? 0))
+        );
+    }
+
+    /**
+     * Marginal income-tax rate for a given band ('basic' / 'higher' /
+     * 'additional'), sourced from TaxConfigService['income_tax']['bands'].
+     * Falls back to HMRC 2025/26 defaults only if the band can't be matched
+     * (defensive — config seeder always populates all three bands).
+     */
+    public function bandRateForBand(string $band): float
+    {
+        $bands = $this->taxConfig->getIncomeTax()['bands'] ?? [];
+        $needle = strtolower($band);
+
+        foreach ($bands as $row) {
+            $name = strtolower((string) ($row['name'] ?? ''));
+            if (str_contains($name, $needle)) {
+                return (float) ($row['rate'] ?? 0);
+            }
+        }
+
+        return match ($needle) {
             'basic' => 0.20,
             'higher' => 0.40,
             'additional' => 0.45,
+            default => 0.20,
         };
     }
 
@@ -144,6 +168,23 @@ final class TaxStrategyMath
         $monthlyTotal = (float) DCPension::where('user_id', $user->id)->sum('monthly_contribution_amount');
 
         return $monthlyTotal * 12;
+    }
+
+    /**
+     * Dividend tax rate for a given band, sourced from
+     * TaxConfigService['dividend_tax']. Centralises the match block previously
+     * duplicated across DividendAllowanceHarvestStrategy, AssetShiftingBundle-
+     * Strategy, and CrossSpouseBundleStrategy.
+     */
+    public function dividendRateForBand(string $band): float
+    {
+        $div = $this->taxConfig->getDividendTax();
+
+        return match (strtolower($band)) {
+            'higher' => (float) ($div['higher_rate'] ?? 0.3375),
+            'additional' => (float) ($div['additional_rate'] ?? 0.3935),
+            default => (float) ($div['basic_rate'] ?? 0.0875),
+        };
     }
 
     /**

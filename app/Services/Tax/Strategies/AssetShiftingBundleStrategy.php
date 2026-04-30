@@ -126,13 +126,9 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 : (float) $divAllowanceRaw;
 
             $userDividends = (float) ($user->annual_dividend_income ?? 0);
-            $userDivRate = match ($this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0))) {
-                'basic' => (float) ($div['basic_rate'] ?? 0.0875),
-                'higher' => (float) ($div['higher_rate'] ?? 0.3375),
-                'additional' => (float) ($div['additional_rate'] ?? 0.3935),
-                default => 0.0875,
-            };
-            $spouseDivRate = (float) ($div['basic_rate'] ?? 0.0875);
+            $userBand = $this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0));
+            $userDivRate = $this->math->dividendRateForBand($userBand);
+            $spouseDivRate = $this->math->dividendRateForBand('basic');
             $rateDelta = max(0.0, $userDivRate - $spouseDivRate);
             // Only the portion above the spouse's own dividend allowance carries any tax.
             $shiftableDividends = max(0, $userDividends - $divAllowance);

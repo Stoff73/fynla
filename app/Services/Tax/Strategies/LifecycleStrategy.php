@@ -27,7 +27,6 @@ final class LifecycleStrategy implements TaxStrategy
         $user = $context->user;
         $recommendations = [];
         $isa = $this->taxConfig->getISAAllowances();
-        $pension = $this->taxConfig->getPensionAllowances();
 
         // #16 — Lifetime ISA (under-40s)
         $userAge = $this->math->ageOf($user->date_of_birth);
@@ -110,8 +109,10 @@ final class LifecycleStrategy implements TaxStrategy
             );
 
             // #18 — Junior Pension. £2,880 net per child grossed up to £3,600
-            // (25% tax relief). Use auto_enrolment / pension config; spec
-            // gives £2,880 net + £720 uplift per child.
+            // by HMRC (£720 = 20% basic-rate relief grossed onto an £2,880 net
+            // contribution; HMRC pension input cap for non-earners). Hardcoded
+            // here as TaxConfigService doesn't yet expose junior_pension caps —
+            // surface via config in a future sprint (CSJTODO S-3).
             $juniorPensionNet = 2880.0;
             $juniorPensionUplift = 720.0;
             $totalUplift = $childCount * $juniorPensionUplift;

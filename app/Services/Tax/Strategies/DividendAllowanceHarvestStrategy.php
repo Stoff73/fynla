@@ -48,12 +48,7 @@ final class DividendAllowanceHarvestStrategy implements TaxStrategy
         }
 
         $headroom = $dividendAllowance - $userDividends;
-        $divRate = match ($userBand) {
-            'basic' => (float) ($div['basic_rate'] ?? 0.0875),
-            'higher' => (float) ($div['higher_rate'] ?? 0.3375),
-            'additional' => (float) ($div['additional_rate'] ?? 0.3935),
-            default => 0.0875,
-        };
+        $divRate = $this->math->dividendRateForBand($userBand);
         $saving = $headroom * $divRate;
 
         return [new StrategyRecommendation(
