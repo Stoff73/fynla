@@ -720,7 +720,7 @@ trait HasAiChat
         // structured tool_use API. We never want that leaking into a
         // persisted assistant message (it breaks the chat bubble + the
         // BS-20 visible-text contract).
-        $sanitisedResponse = \App\Support\AssistantContentSanitiser::stripLeakedToolCallMarkup($fullResponse);
+        $sanitisedResponse = \App\Support\XaiFunctionCallLeakStripper::stripLeakedToolCallMarkup($fullResponse);
 
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
 

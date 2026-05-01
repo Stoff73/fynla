@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace App\Support;
 
 /**
- * Defence-in-depth scrubber for assistant-generated content.
+ * Strips leaked `<function_call>` markup from assistant-generated content.
  *
- * Some LLM providers occasionally emit tool-call markup as plain text
- * inside the content stream (e.g. `<function_call name="x">...</function_call>`)
- * instead of using the structured tool_use API. When that happens the
- * markup leaks into the SSE wire AND into the persisted ai_messages row,
- * which (a) shows the user XML in their chat bubble and (b) breaks any
- * downstream assertion that visible chat text contains no `<` / `>`.
+ * xAI's chat completions API occasionally emits tool-call markup as plain
+ * text inside the content stream (e.g.
+ * `<function_call name="x">...</function_call>`) instead of via the
+ * structured tool_use channel. When that happens the markup leaks into the
+ * SSE wire AND into the persisted ai_messages row, which (a) shows the user
+ * XML in their chat bubble and (b) breaks any downstream assertion that
+ * visible chat text contains no `<` / `>`.
  *
- * This sanitiser strips those leaked tool-call blocks deterministically.
- * It does NOT try to recover the intended tool call — that's the
- * write-intent classifier's job. This is purely a "if it leaked through,
- * don't render it to the user" guard.
+ * Scope is narrow on purpose: this class strips the specific xAI leak
+ * pattern from assistant OUTPUT and nothing else. It is NOT a prompt-
+ * injection guard, NOT a general HTML sanitiser, and does NOT validate
+ * user INPUT. Renamed from AssistantContentSanitiser (P0.10) so the name
+ * matches what the class actually does — the old name implied a broader
+ * threat-model coverage that did not exist.
  */
-final class AssistantContentSanitiser
+final class XaiFunctionCallLeakStripper
 {
     /**
      * Strip leaked `<function_call ...>...</function_call>` blocks from
@@ -46,7 +49,7 @@ final class AssistantContentSanitiser
             return $content;
         }
 
-        // Collapse the double-newlines the strip leaves behind without
+        // Collapse the triple-plus newlines the strip leaves behind without
         // mangling intentional paragraph breaks elsewhere in the content.
         return trim(preg_replace('/\n{3,}/', "\n\n", $stripped) ?? $stripped);
     }
