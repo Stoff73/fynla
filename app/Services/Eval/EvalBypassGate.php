@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Eval;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 /**
  * April30Updates F-12 — defence-in-depth on the eval-only Sanctum
@@ -60,6 +61,21 @@ final class EvalBypassGate
         $header = request()->header('X-Eval-Run-Id');
         if (! is_string($header) || trim($header) === '') {
             return false;
+        }
+
+        // M20 — audit log first time the gate opens for a request. The
+        // request bag holds a one-shot flag so subsequent calls in the
+        // same request don't spam (every event listener calls isActive).
+        $request = request();
+        if ($request !== null && ! $request->attributes->getBoolean('eval_bypass_logged')) {
+            Log::channel(config('logging.eval_audit_channel', 'stack'))->notice('[EvalBypassGate] bypass-preview-mode honoured for request', [
+                'user_id' => $user->id,
+                'eval_run_id' => trim($header),
+                'environment' => app()->environment(),
+                'route' => $request->path(),
+                'method' => $request->method(),
+            ]);
+            $request->attributes->set('eval_bypass_logged', true);
         }
 
         return true;

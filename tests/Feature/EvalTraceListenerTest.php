@@ -19,11 +19,17 @@ beforeEach(function () {
  * resolve during event dispatch (matching what happens during a real HTTP
  * request hitting auth:sanctum).
  */
-function evalTraceActingAs(\App\Models\User $user, array $abilities): void
+function evalTraceActingAs(\App\Models\User $user, array $abilities, bool $withEvalRunIdHeader = true): void
 {
     $token = $user->createToken('eval-trace-test', $abilities);
     $user->withAccessToken($token->accessToken);
     test()->actingAs($user);
+    // M21 — EvalTraceListener now routes through EvalBypassGate, which
+    // requires X-Eval-Run-Id alongside the bypass-preview-mode ability.
+    // Set the header on the test request so event dispatch picks it up.
+    if ($withEvalRunIdHeader) {
+        request()->headers->set('X-Eval-Run-Id', 'test-run-id');
+    }
 }
 
 it('captures all 3 event types when token has bypass-preview-mode ability', function () {
@@ -56,6 +62,16 @@ it('does NOT capture when token has only the default wildcard ability', function
 
 it('does NOT capture for unauthenticated requests', function () {
     // No actingAs — Auth::user() returns null. Listener short-circuits.
+    event(new GateChecked('kyc', 'protection', true, [], microtime(true)));
+
+    expect(app(EvalTraceCollector::class)->all())->toBeEmpty();
+});
+
+it('does NOT capture when bypass-preview-mode token is present without X-Eval-Run-Id (M21)', function () {
+    $user = User::where('preview_persona_id', 'peak_earners')->firstOrFail();
+    // Mint the right ability but skip the header — EvalBypassGate must deny.
+    evalTraceActingAs($user, ['bypass-preview-mode'], withEvalRunIdHeader: false);
+
     event(new GateChecked('kyc', 'protection', true, [], microtime(true)));
 
     expect(app(EvalTraceCollector::class)->all())->toBeEmpty();

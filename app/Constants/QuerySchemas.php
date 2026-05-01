@@ -673,17 +673,45 @@ final class QuerySchemas
 
     /**
      * Priority order for holistic health reviews (section F of the plan).
+     *
+     * The PA-taper band labels were previously a `const` array with the
+     * £100,000-£125,140 figures hardcoded into a string. M16 — replaced
+     * with a static method so the bands are sourced from
+     * TaxConfigService/TaxDefaults and the prompt copy stays in sync with
+     * whatever HMRC publishes for the active tax year. Returns the same
+     * shape (1-indexed map → string) the prompt assemblers expect.
+     *
+     * @return array<int, string>
      */
-    public const HOLISTIC_PRIORITY = [
-        1 => 'Liquidity — emergency fund adequacy (liquid assets vs 3-6 months expenses)',
-        2 => 'High-interest debt — repayment before investment',
-        3 => 'Protection gaps — life, income, critical illness coverage',
-        4 => 'Pension contributions — employer match, tax relief, Personal Allowance reclaim at £100,000-£125,140',
-        5 => 'Individual Savings Account allowance — use it or lose it (tax year sensitive)',
-        6 => 'Further investment/pension — surplus allocation beyond Individual Savings Account',
-        7 => 'Estate planning — Inheritance Tax, wills, Lasting Powers of Attorney, gifting strategies',
-        8 => 'Goal funding — savings targets and life event preparation',
-    ];
+    public static function holisticPriority(): array
+    {
+        $taperLower = (int) (\App\Constants\TaxDefaults::PERSONAL_ALLOWANCE_TAPER ?? 100000);
+        $taperUpper = (int) (\App\Constants\TaxDefaults::ADDITIONAL_RATE_THRESHOLD ?? 125140);
+
+        $income = (array) (app(\App\Services\TaxConfigService::class)->getIncomeTax() ?? []);
+        if (isset($income['personal_allowance_taper_threshold'])) {
+            $taperLower = (int) $income['personal_allowance_taper_threshold'];
+        }
+        $thresholds = app(\App\Services\Tax\TaxStrategyMath::class)->bandThresholds();
+        if (($thresholds['additional'] ?? 0) > 0) {
+            $taperUpper = (int) $thresholds['additional'];
+        }
+
+        return [
+            1 => 'Liquidity — emergency fund adequacy (liquid assets vs 3-6 months expenses)',
+            2 => 'High-interest debt — repayment before investment',
+            3 => 'Protection gaps — life, income, critical illness coverage',
+            4 => sprintf(
+                'Pension contributions — employer match, tax relief, Personal Allowance reclaim at £%s-£%s',
+                number_format($taperLower),
+                number_format($taperUpper),
+            ),
+            5 => 'Individual Savings Account allowance — use it or lose it (tax year sensitive)',
+            6 => 'Further investment/pension — surplus allocation beyond Individual Savings Account',
+            7 => 'Estate planning — Inheritance Tax, wills, Lasting Powers of Attorney, gifting strategies',
+            8 => 'Goal funding — savings targets and life event preparation',
+        ];
+    }
 
     // ─── Helper Methods ──────────────────────────────────────────────
 

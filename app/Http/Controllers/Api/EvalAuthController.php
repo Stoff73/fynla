@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Eval-only HTTP surface — issues `bypass-preview-mode` Sanctum tokens for
@@ -59,6 +60,18 @@ final class EvalAuthController extends Controller
             abilities: ['bypass-preview-mode'],
             expiresAt: now()->addMinutes((int) config('fyn_eval.token_ttl_minutes', 15)),
         )->plainTextToken;
+
+        // M20 — audit log at mint. The bypass-preview-mode token sidesteps
+        // PreviewWriteInterceptor; even though minting is gated to
+        // non-production environments, every mint should be visible in the
+        // audit trail so an unexpected eval login on staging is detectable.
+        Log::channel(config('logging.eval_audit_channel', 'stack'))->notice('[EvalAuthController] bypass-preview-mode token minted', [
+            'user_id' => $user->id,
+            'persona' => $personaId,
+            'environment' => app()->environment(),
+            'ttl_minutes' => (int) config('fyn_eval.token_ttl_minutes', 15),
+            'request_ip' => $request->ip(),
+        ]);
 
         return response()->json([
             'token' => $token,

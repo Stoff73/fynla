@@ -7,15 +7,16 @@ namespace App\Listeners\Eval;
 use App\Events\Eval\AgentDecision;
 use App\Events\Eval\EngineCalled;
 use App\Events\Eval\GateChecked;
+use App\Services\Eval\EvalBypassGate;
 use App\Services\Eval\EvalTraceCollector;
 use Illuminate\Support\Facades\Auth;
-use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Subscribes to the 3 Eval events. Only captures when the active
- * Sanctum token EXPLICITLY lists `bypass-preview-mode` — same security
- * semantics as PreviewWriteInterceptor, so non-eval requests pay zero
- * overhead beyond an early-return.
+ * Subscribes to the 3 Eval events. Only captures when the active request
+ * has both the bypass-preview-mode Sanctum ability AND an X-Eval-Run-Id
+ * header. Routing via EvalBypassGate gives uniform defence-in-depth with
+ * PreviewWriteInterceptor — a stolen token alone cannot trigger trace
+ * capture without the harness header (M21 — F-12 closure).
  */
 final class EvalTraceListener
 {
@@ -23,25 +24,10 @@ final class EvalTraceListener
 
     public function handle(GateChecked|EngineCalled|AgentDecision $event): void
     {
-        if (! $this->shouldCapture()) {
+        if (! EvalBypassGate::isActive(Auth::user())) {
             return;
         }
 
         $this->collector->record($event);
-    }
-
-    private function shouldCapture(): bool
-    {
-        $user = Auth::user();
-        if ($user === null) {
-            return false;
-        }
-
-        $token = method_exists($user, 'currentAccessToken') ? $user->currentAccessToken() : null;
-        if (! $token instanceof PersonalAccessToken) {
-            return false;
-        }
-
-        return in_array('bypass-preview-mode', $token->abilities ?? [], true);
     }
 }

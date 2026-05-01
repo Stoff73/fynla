@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Agents\CoordinatingAgent;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Models\UserConsent;
@@ -139,13 +140,8 @@ class AiChatController extends Controller
      * Preview users are handled via tool restrictions (getTools(true) excludes write tools)
      * and the preview mode section in the system prompt.
      */
-    public function sendMessage(Request $request, int $id): StreamedResponse|JsonResponse
+    public function sendMessage(SendAiChatMessageRequest $request, int $id): StreamedResponse|JsonResponse
     {
-        $request->validate([
-            'message' => 'required|string|max:2000',
-            'current_route' => 'nullable|string|max:255',
-        ]);
-
         $user = $request->user();
 
         // S0.9 — runtime consent gate (INV-2.10.3). Block at entry so the

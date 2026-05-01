@@ -51,27 +51,19 @@ class AiAuditRetentionJob implements ShouldQueue
 
     private const SEVEN_YEARS_DAYS = 2555;
     private const TWO_YEARS_DAYS = 730;
+    private const DELETE_BATCH_SIZE = 5000;
 
     public function handle(): array
     {
         $longCutoff = now()->subDays(self::SEVEN_YEARS_DAYS);
         $shortCutoff = now()->subDays(self::TWO_YEARS_DAYS);
 
-        // Long-retention rows that have themselves aged out.
-        $longRetained = AiAuditEvent::query()
-            ->where('created_at', '<', $longCutoff)
-            ->where(function ($q): void {
-                $q->where('operation', 'write')
-                    ->orWhere('tool_name', 'get_recommendations');
-            })
-            ->delete();
-
-        // Short-retention rows: aged out AND not in the long-retention class.
-        $shortRetained = AiAuditEvent::query()
-            ->where('created_at', '<', $shortCutoff)
-            ->where('operation', '!=', 'write')
-            ->where('tool_name', '!=', 'get_recommendations')
-            ->delete();
+        // M15 — chunk the delete loop so the retention job never holds a
+        // single multi-million-row DELETE transaction. Each chunk releases
+        // the row locks before the next batch claims them, so concurrent
+        // append() writes don't block the live audit chain.
+        $longRetained = $this->pruneLongRetention($longCutoff);
+        $shortRetained = $this->pruneShortRetention($shortCutoff);
 
         Log::info('[AiAuditRetentionJob] Pruned aged audit rows', [
             'long_retention_pruned' => $longRetained,
@@ -84,5 +76,39 @@ class AiAuditRetentionJob implements ShouldQueue
             'long_retention_pruned' => $longRetained,
             'short_retention_pruned' => $shortRetained,
         ];
+    }
+
+    private function pruneLongRetention(\Illuminate\Support\Carbon $cutoff): int
+    {
+        $total = 0;
+        do {
+            $deleted = AiAuditEvent::query()
+                ->where('created_at', '<', $cutoff)
+                ->where(function ($q): void {
+                    $q->where('operation', 'write')
+                        ->orWhere('tool_name', 'get_recommendations');
+                })
+                ->limit(self::DELETE_BATCH_SIZE)
+                ->delete();
+            $total += $deleted;
+        } while ($deleted >= self::DELETE_BATCH_SIZE);
+
+        return $total;
+    }
+
+    private function pruneShortRetention(\Illuminate\Support\Carbon $cutoff): int
+    {
+        $total = 0;
+        do {
+            $deleted = AiAuditEvent::query()
+                ->where('created_at', '<', $cutoff)
+                ->where('operation', '!=', 'write')
+                ->where('tool_name', '!=', 'get_recommendations')
+                ->limit(self::DELETE_BATCH_SIZE)
+                ->delete();
+            $total += $deleted;
+        } while ($deleted >= self::DELETE_BATCH_SIZE);
+
+        return $total;
     }
 }
