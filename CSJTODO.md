@@ -1,11 +1,69 @@
 # CSJTODO — Fynla
 
-*Last updated: 1 May 2026 (session 125 context-clear wrap) — skill migration + full-branch review (FAIL).*
-*Previous session: 124 (30 April → 1 May late evening — dev deploy + 4 critical fixes shipped during smoke).*
+*Last updated: 1 May 2026 (session 2 context-clear wrap) — review-fix sweep on `fix/persona-split-review-fixes`, PR #239 open back to `feature/fyn-persona-split`.*
+*Previous session: 125 / session 1 (1 May morning — full-branch review compiled, FAIL).*
 
 ---
 
-## Session 125 (1 May 2026, morning) — Skill migration + full-branch review
+## Session 2 (1 May 2026, evening) — Review-fix sweep
+
+**Branch:** `fix/persona-split-review-fixes` @ `5320f64` (HEAD), pushed. **PR #239** open to `feature/fyn-persona-split`.
+
+### Completed this session
+
+14 commits resolving 9 P0s + 18 P1s from `branch-review-fyn-persona-split.md`:
+
+- [x] **All 5 RED `TaxStrategyCalculatorTest` assertions** (P0.5) — aligned with 23f68ec strategy contract (`353e863`).
+- [x] **AdviceFyn write-tool leak** (P0.2) — 6 `capture_*` tools added to `WRITE_TOOLS`; `AdviceFynToolListTest` now auto-enumerates from `getTools(false)` regex (`b1965b9`).
+- [x] **`is_eval_user` dead column dropped + `eval_user_id` renamed → `preview_user_id` + `EvalPurgeCommand` repointed** to operate on `eval_recording_sessions` (P0.1, `80c4189`).
+- [x] **`resetPersonaIfMutating` shape-aware** for both flat and canonical `{created,updated,deleted}` shapes (P0.4, `1874e98`).
+- [x] **`AdviceFyn::wrapStream` drops every non-DELEGATE handoff event** (P0.9, `48d0cc0`).
+- [x] **Spouse email lowercased before lookup** in `SpouseLinkingService` + `CoordinatingAgent` (P0.8, `00a52ab`).
+- [x] **Vue-3 `v-on="$listeners"` removed** from `FynOnboardingChat.vue` (P0.7, `65f22f4`).
+- [x] **`estimateIsaSubscriptionsThisYear` scoped to current tax year** via `created_at >= getEffectiveFrom()` (P0.6, `65f22f4`).
+- [x] **`EvalDeltaBuilder result_path` back-fills tool results** from `ai_messages.metadata.tool_calls.result_summary` (P0.3, `9a89f44`).
+- [x] **`AssistantContentSanitiser` → `XaiFunctionCallLeakStripper`** rename (P0.10, `7ff64b3`).
+- [x] **User-copy acronyms expanded**: NIC's → National Insurance contributions, SIPP → Self-Invested Personal Pension, "tapered AA" → "tapered Annual Allowance" (M1, M5, M6).
+- [x] **`SaveTaxCampaignPage` mixes in currencyMixin** (M2); aiChat consent error reworded to point at support not non-existent Settings toggle (M3); admin eval glyphs (`✓✗×→←`) text-replaced (M4).
+- [x] **`IncomeBandStrategy` + `AssetShiftingBundleStrategy` band rates from `TaxConfigService`** (M7, M8).
+- [x] **Junior pension `£2,880`/`£720` lifted to `TaxDefaults::NON_EARNER_PENSION_*`** (M9, partial — promote to `TaxConfigService` schema still deferred under S-3).
+- [x] **`JointSavingsStrategy` honours `civil_partnership`** (M10).
+- [x] **`Protection::hasIncome()` includes `annual_interest_income`** (M14).
+- [x] **HMAC key fail-loud** — `AuditChainService::hmacKey()` throws if config empty (M19).
+- [x] **`EvalRecordCommand::locateScenario` validates id before `glob()`** (M22).
+- [x] **`completeness_percent` aligned across 5 readiness services** + Investment `loadMissing` guard (M12, M13).
+- [x] **`AiAuditRetentionJob` chunks DELETE in 5k batches + new `(operation, created_at)` covering index** (M15).
+- [x] **`QuerySchemas::HOLISTIC_PRIORITY` const → static method** sourcing PA-taper bands from `TaxConfigService`/`TaxDefaults` (M16).
+- [x] **`PensionInputHistory` uses `Auditable` trait** (M17).
+- [x] **`AiChatController::sendMessage` → `SendAiChatMessageRequest` FormRequest** (M18).
+- [x] **Bypass-preview-mode token mint + use logged** via configurable `eval_audit_channel` (M20).
+- [x] **`EvalTraceListener` routes through `EvalBypassGate::isActive`** — F-12 closure (M21).
+- [x] **Every SVG icon stripped from Fyn chat surfaces** (`AiChatPanel`, `AiMessageContent`, `StaticFynChat`) per Rule #14 (M24).
+- [x] **`unused_carry_forward` rename downstream impact audit complete** — only the strategy class itself referenced the old key (M23).
+
+### NOT Done — Outstanding for next session
+
+- [ ] **M11 — income-basis inconsistency** in `AssetShifting`, `CrossSpouse`, `JointSavings` strategies (raw `annual_employment_income` vs composed `taxableIncomeFor`). Deliberately deferred — needs HMRC-rule analysis per strategy. Marriage Allowance in particular keys off TAXABLE income at HMRC, so `AssetShifting:42` may need updating.
+- [ ] **Browser smoke** — drive £75k persona on `/tax-strategy` via Playwright, verify £ amounts (per `feedback_smoke_must_verify_amounts.md`). Reviewers can't substitute.
+- [ ] **Full `./vendor/bin/pest` sweep** — only touched-area tests run (143/143 GREEN). 3 migrations + multiple service rewrites warrant full suite before PR merges.
+- [ ] **Re-record any eval recordings** whose `result_path` previously graded falsely-`success` — P0.3 fix changes the recorded shape; old fixtures may now mismatch.
+- [ ] **Pre-existing red noted, not regressed by this branch** — `EvalAuthControllerTest > "reset endpoint runs preview:reset for the persona"` was already RED on parent `614867bc`. Separate issue.
+- [ ] **PR #239 review + merge** into `feature/fyn-persona-split`. CSJ owns the merge timing.
+
+### Branch / deploy status
+
+| Environment | Branch | Status |
+|---|---|---|
+| Production (`fynla.org`) | `main` | NOT touched |
+| Dev / staging (`csjones.co/fynla`) | `feature/fyn-persona-split` @ `23f68ec` | LIVE — does NOT include the review-fix work yet |
+| Feature branch | `feature/fyn-persona-split` @ `97b21a3` | Parent of fix branch; 14 review-fixes pending in PR #239 |
+| Fix branch | `fix/persona-split-review-fixes` @ `5320f64` | Pushed, PR #239 open |
+
+**Nothing to deploy this session.** Per `feedback_no_deploy_recommendations.md`, CSJ owns merge + deploy timing. The fix branch is structurally correct but not yet browser-smoked.
+
+---
+
+## Session 125 / session 1 (1 May 2026, morning) — Skill migration + full-branch review
 
 **Branch:** `feature/fyn-persona-split` @ `41eed00` (HEAD), pushed to origin. 259 ahead of `origin/dev`, 0 behind.
 
