@@ -77,7 +77,7 @@
             <ul v-else class="space-y-1">
               <li v-for="t in run.delta.expected_tools" :key="t" class="font-mono">
                 <span :class="run.delta.actual_tools.includes(t) ? 'text-spring-700' : 'text-raspberry-700'">
-                  {{ run.delta.actual_tools.includes(t) ? '✓' : '✗' }} {{ t }}
+                  [{{ run.delta.actual_tools.includes(t) ? 'called' : 'missed' }}] {{ t }}
                 </span>
               </li>
             </ul>
@@ -88,7 +88,7 @@
             <ul v-else class="space-y-1">
               <li v-for="t in run.delta.actual_tools" :key="t" class="font-mono">
                 <span :class="run.delta.expected_tools.includes(t) ? 'text-spring-700' : 'text-violet-700'">
-                  {{ run.delta.expected_tools.includes(t) ? '✓' : '+' }} {{ t }}
+                  [{{ run.delta.expected_tools.includes(t) ? 'expected' : 'extra' }}] {{ t }}
                 </span>
               </li>
             </ul>

@@ -66,7 +66,7 @@
                 @click="openSession(s.id)"
                 class="text-raspberry-500 hover:text-raspberry-600 text-sm font-medium"
               >
-                View →
+                View
               </button>
             </td>
           </tr>
@@ -82,7 +82,7 @@
             @click="closeDetail()"
             class="text-sm text-raspberry-500 hover:text-raspberry-600 font-medium mb-2"
           >
-            ← Back to all recordings
+            Back to all recordings
           </button>
           <h3 class="font-display text-h3 text-horizon-500">{{ selectedSession.session.scenario_id }}</h3>
           <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-neutral-500 font-mono">

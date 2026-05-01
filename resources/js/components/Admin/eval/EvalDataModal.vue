@@ -12,9 +12,9 @@
         </div>
         <button
           @click="$emit('close')"
-          class="text-neutral-400 hover:text-horizon-500 text-2xl leading-none"
+          class="text-neutral-400 hover:text-horizon-500 text-sm font-bold uppercase tracking-wide leading-none"
         >
-          ×
+          close
         </button>
       </div>
       <div class="flex-1 overflow-auto p-6 bg-savannah-50">

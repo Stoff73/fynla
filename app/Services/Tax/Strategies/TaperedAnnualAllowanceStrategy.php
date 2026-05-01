@@ -85,7 +85,7 @@ final class TaperedAnnualAllowanceStrategy implements TaxStrategy
                 number_format((int) round($taperedAa / 1000) * 1000),
             ),
             description: sprintf(
-                'Your adjusted income of £%s exceeds the £%s tapered AA threshold and your threshold income of £%s exceeds £%s, so HMRC reduces your Pension Annual Allowance by £1 for every £2 over £%s — down to £%s this year (floor £%s). Contributing the standard £%s allowance would trigger an Annual Allowance charge of around £%s at your marginal rate.',
+                'Your adjusted income of £%s exceeds the £%s tapered Annual Allowance threshold and your threshold income of £%s exceeds £%s, so HMRC reduces your Pension Annual Allowance by £1 for every £2 over £%s — down to £%s this year (floor £%s). Contributing the standard £%s allowance would trigger an Annual Allowance charge of around £%s at your marginal rate.',
                 number_format((int) $adjusted),
                 number_format((int) $adjustedGate),
                 number_format((int) $threshold),

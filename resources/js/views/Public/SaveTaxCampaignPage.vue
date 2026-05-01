@@ -119,6 +119,7 @@
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import StaticFynChat from '@/components/Public/StaticFynChat.vue';
 import api from '@/services/api';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 const META_TITLE = 'Save Tax — Maximise Your Allowances | Fynla';
 const META_DESC = 'Maximise ISA allowances, pension tax relief, and Marriage Allowance. See your full tax position with Fynla.';
@@ -143,6 +144,7 @@ const FALLBACK_INVESTMENT = [
 export default {
   name: 'SaveTaxCampaignPage',
   components: { PublicLayout, StaticFynChat },
+  mixins: [currencyMixin],
 
   data() {
     return {
@@ -164,8 +166,8 @@ export default {
           body: 'Just using these, you can take up to <span class="font-bold text-horizon-500 font-mono">£3,000</span> per year of tax-free gains and <span class="font-bold text-horizon-500 font-mono">£500</span> per year of tax-free dividend income — on top of your ISA.',
         },
         {
-          title: "National Insurance payments (NIC's)",
-          body: 'When you pay into your pension, both you and your employer pay <span class="font-bold text-horizon-500">NICs</span> on those contributions. But if your employer pays directly into your pension, neither side pays NICs at all. A <span class="font-bold text-horizon-500">salary sacrifice</span> scheme makes tax-efficient use of this difference.',
+          title: 'National Insurance contributions',
+          body: 'When you pay into your pension, both you and your employer pay <span class="font-bold text-horizon-500">National Insurance contributions</span> on those contributions. But if your employer pays directly into your pension, neither side pays them at all. A <span class="font-bold text-horizon-500">salary sacrifice</span> scheme makes tax-efficient use of this difference.',
         },
       ],
     };
@@ -181,7 +183,10 @@ export default {
   methods: {
     formatAmount(item) {
       if (item == null || typeof item.amount !== 'number') return '';
-      return '£' + item.amount.toLocaleString('en-GB');
+      // Use currencyMixin's formatCurrency for the £ formatting (CLAUDE.md
+      // Rule #6 — never define a local formatter); preserve the null-guard
+      // since the live API may return items without an amount field.
+      return this.formatCurrency(item.amount);
     },
 
     async loadLiveAllowances() {

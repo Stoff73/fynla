@@ -611,7 +611,12 @@ const actions = {
                                 // re-consent prompt and stop streaming locally.
                                 commit('SET_CONSENT_REQUIRED', true);
                                 commit('SET_STREAMING', false);
-                                commit('SET_ERROR', 'AI chat consent was withdrawn. Re-grant in Settings to continue.');
+                                // No user-facing consent toggle exists — AI chat
+                                // consent is granted at registration via the
+                                // privacy policy. If consent has been withdrawn
+                                // (e.g. by support action or a GDPR request),
+                                // the user has to contact support to restore it.
+                                commit('SET_ERROR', 'AI chat consent has been withdrawn. Contact Fynla support to restore your AI features.');
                                 break;
 
                             case 'error':

@@ -343,7 +343,7 @@ final class OnboardingStateMachine
             ],
             self::STATE_CAMPAIGN_PENSION_CONTRIBS => [
                 'turn_type' => 'delegated',
-                'prompt_text' => 'Beyond the workplace pension we covered, do you make any personal pension or SIPP contributions? If so, how much per year (gross)?',
+                'prompt_text' => 'Beyond the workplace pension we covered, do you make any personal pension or Self-Invested Personal Pension contributions? If so, how much per year (gross)?',
                 'capture_field' => null,
                 'next' => self::STATE_CAMPAIGN_PENSION_HISTORY,
             ],
