@@ -35,7 +35,7 @@ function recsOfCategory(TaxStrategyOutputDTO $output, string $category): array
 }
 
 describe('Path A — single user', function () {
-    it('returns 8 user allowance positions, no household sections', function () {
+    it('returns 6 user allowance positions for a single £50k earner, no household sections', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 50000,
@@ -46,7 +46,9 @@ describe('Path A — single user', function () {
 
         expect($output)->toBeInstanceOf(TaxStrategyOutputDTO::class);
         expect($output->calculationMode)->toBe('single');
-        expect($output->userAllowances)->toHaveCount(8);
+        // Starting Rate for Savings tapers to £0 once non-savings income > £17,570;
+        // Marriage Allowance is hidden for non-partnered users — both omitted here.
+        expect($output->userAllowances)->toHaveCount(6);
         expect($output->spouseAllowances)->toBeNull();
         expect(recsOfCategory($output, 'household'))->toBe([]);
 
@@ -54,15 +56,14 @@ describe('Path A — single user', function () {
         expect($keys)->toContain(
             'personal_allowance',
             'savings_allowance',
-            'starting_rate_for_savings',
-            'marriage_allowance',
             'isa_allowance',
             'cgt_allowance',
             'dividend_allowance',
             'pension_annual_allowance',
         );
+        expect($keys)->not->toContain('starting_rate_for_savings');
+        expect($keys)->not->toContain('marriage_allowance');
 
-        // Every position must have status in {spring, violet, raspberry} (no amber)
         foreach ($output->userAllowances as $pos) {
             expect($pos['status'])->toBeIn(['spring', 'violet', 'raspberry']);
             expect($pos['owner'])->toBe('user');
@@ -98,7 +99,10 @@ describe('Path B — dual_earner', function () {
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
         expect($output->calculationMode)->toBe('dual_earner');
-        expect($output->userAllowances)->toHaveCount(8);
+        // User grid: 7 positions (Starting Rate omitted — £80k > £17,570 floor).
+        // Marriage Allowance is included because user is married.
+        expect($output->userAllowances)->toHaveCount(7);
+        // Spouse grid (dual_earner): always 8 fixed positions.
         expect($output->spouseAllowances)->toHaveCount(8);
         expect(recsOfCategory($output, 'household'))->not->toBe([]);
 
@@ -936,10 +940,18 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
         expect($rec)->toBeNull();
     });
 
-    it('fires with correct unused_carry_forward and saving for higher-rate user', function () {
+    it('fires with correct unused_carry_forward_total and saving for higher-rate user', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
+        ]);
+        // Liquid-wealth gate (≥£10k non-ISA cash) and the affordable cap
+        // (½ of liquid wealth) require a SavingsAccount fixture for the
+        // strategy to fire. £200k @ 0% interest avoids any band shift.
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 200000,
+            'interest_rate' => 0,
         ]);
         foreach (['2024/25', '2023/24', '2022/23'] as $year) {
             PensionInputHistory::create([
@@ -951,12 +963,19 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
 
         $output = app(TaxStrategyCalculator::class)->calculate($user);
 
+        // Unused total: 3 × (60k AA − 20k input) = 120k.
+        // HMRC tax-relief cap: gross_income (80k) − current_input (0) = 80k.
+        // Affordable cap: liquid (200k) × 0.5 = 100k.
+        // Recommended: min(120k, 80k, 100k) = 80k.
+        // Saving: 80k × 0.4 = 32k.
         $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
         expect($rec)->not->toBeNull()
-            ->and($rec['unused_carry_forward'])->toBe(120000.0)
+            ->and($rec['unused_carry_forward_total'])->toBe(120000.0)
+            ->and($rec['recommended_contribution'])->toBe(80000.0)
+            ->and($rec['tax_relief_headroom'])->toBe(80000.0)
             ->and($rec['marginal_rate'])->toBe(0.4)
             ->and($rec['lookback_years'])->toBe(3)
-            ->and($rec['estimated_annual_tax_saved'])->toBe(48000.0)
+            ->and($rec['estimated_annual_tax_saved'])->toBe(32000.0)
             ->and($rec['priority'])->toBe('medium')
             ->and($rec['category'])->toBe('allowance');
     });
@@ -965,6 +984,13 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
         $user = User::factory()->create([
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 200000,
+        ]);
+        // £250k liquid → afford cap = 125k; tax-relief = 200k; usable = 120k.
+        // Recommended = min(120k, 200k, 125k) = 120k. Saving = 120k × 0.45 = 54k.
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 250000,
+            'interest_rate' => 0,
         ]);
         foreach (['2024/25', '2023/24', '2022/23'] as $year) {
             PensionInputHistory::create([
@@ -987,6 +1013,11 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
             'household_calculation_mode' => 'single',
             'annual_employment_income' => 80000,
         ]);
+        SavingsAccount::factory()->for($user)->create([
+            'is_isa' => false,
+            'current_balance' => 100000,
+            'interest_rate' => 0,
+        ]);
         // 4 years of history; oldest one (2021/22) must be ignored
         foreach (['2024/25', '2023/24', '2022/23', '2021/22'] as $year) {
             PensionInputHistory::create([
@@ -1001,7 +1032,7 @@ describe('Phase 4 — Pension AA Carry-Forward (#3)', function () {
         $rec = collect($output->recommendations)->firstWhere('type', 'pension_aa_carry_forward');
         // 3 × (60k - 30k) = 90k unused; the 60k from 2021/22 is dropped
         expect($rec)->not->toBeNull()
-            ->and($rec['unused_carry_forward'])->toBe(90000.0);
+            ->and($rec['unused_carry_forward_total'])->toBe(90000.0);
     });
 });
 
