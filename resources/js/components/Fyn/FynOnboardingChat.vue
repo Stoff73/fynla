@@ -52,7 +52,7 @@ export default {
         :class="[chatContainerClasses, docked ? 'overflow-hidden' : 'items-center mx-auto']"
     >
         <div :class="docked ? 'flex-1 min-h-0' : 'w-full'">
-            <AiChatPanel v-bind="$attrs" v-on="$listeners" :docked="docked" />
+            <AiChatPanel v-bind="$attrs" :docked="docked" />
         </div>
     </div>
 </template>

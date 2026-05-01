@@ -161,12 +161,29 @@ final class TaxStrategyMath
 
     public function estimateIsaSubscriptionsThisYear(User $user): float
     {
-        // V1: use ISA balances as a proxy for current-year subscriptions when
-        // no per-subscription record exists. Conservative approximation.
-        return (float) SavingsAccount::query()
+        // P0.6 — only count ISAs OPENED in the current tax year as
+        // current-year subscriptions. Older ISAs hold balances from prior
+        // years' allowances; counting their full balance against this
+        // year's £20,000 cap makes a £25k old-ISA holder look "fully
+        // subscribed" and suppresses legitimate top-up / LISA / Bed&ISA
+        // suggestions for the current year.
+        //
+        // This is still a proxy (a user might top up an old ISA mid-year
+        // without opening a new account), but it's strictly conservative —
+        // we under-estimate rather than over-estimate, and the strategy
+        // layer caps the suggestion at the £20k allowance regardless.
+        // Replace with a per-subscription log when one exists.
+        $taxYearStart = $this->taxConfig->getEffectiveFrom();
+
+        $query = SavingsAccount::query()
             ->where('user_id', $user->id)
-            ->where('is_isa', true)
-            ->sum('current_balance');
+            ->where('is_isa', true);
+
+        if ($taxYearStart !== '') {
+            $query->where('created_at', '>=', $taxYearStart);
+        }
+
+        return (float) $query->sum('current_balance');
     }
 
     public function estimatePensionContributionThisYear(User $user, ?TaxStrategyOverridesDTO $overrides): float
