@@ -62,3 +62,38 @@ it('calls preview:reset with the persona when db_writes is non-empty', function 
         ->with('preview:reset', ['persona' => 'peak_earners']);
     expect(true)->toBeTrue();
 });
+
+/**
+ * Regression for P0.4 — the canonical {created, updated, deleted} shape with
+ * three empty arrays must NOT trigger reset. The naive `empty($writes)` check
+ * returns false on this shape (an array of three keys is non-empty) and would
+ * fire preview:reset on every non-mutating scenario, breaking the forensic
+ * chain that canonical 0.1 protects.
+ */
+it('does NOT call preview:reset when canonical shape has only empty buckets', function () {
+    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    Artisan::swap($spy);
+
+    $this->command->resetPersonaIfMutating(
+        ['created' => [], 'updated' => [], 'deleted' => []],
+        'peak_earners',
+    );
+
+    $spy->shouldNotHaveReceived('call');
+    expect(true)->toBeTrue();
+});
+
+it('calls preview:reset when canonical shape has any populated bucket', function () {
+    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    Artisan::swap($spy);
+
+    $this->command->resetPersonaIfMutating(
+        ['created' => ['User: 1'], 'updated' => [], 'deleted' => []],
+        'peak_earners',
+    );
+
+    $spy->shouldHaveReceived('call')
+        ->once()
+        ->with('preview:reset', ['persona' => 'peak_earners']);
+    expect(true)->toBeTrue();
+});

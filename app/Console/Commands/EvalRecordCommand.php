@@ -290,8 +290,8 @@ final class EvalRecordCommand extends Command
             $this->info("Run #{$run->id} persisted; fixture: {$fixturePath}");
 
             $writes = $result['db_writes'] ?? [];
-            if (! empty($writes)) {
-                $this->line('DB writes:  '.count($writes).' diff entries.');
+            if ($this->hasMutations($writes)) {
+                $this->line('DB writes:  '.$this->countMutations($writes).' diff entries.');
             } else {
                 $this->line('DB writes:  none.');
             }
@@ -324,12 +324,64 @@ final class EvalRecordCommand extends Command
      */
     public function resetPersonaIfMutating(array $writes, string $persona): void
     {
-        if (empty($writes) || $persona === '') {
+        if ($persona === '' || ! $this->hasMutations($writes)) {
             return;
         }
 
-        $this->info('Mutating recording detected '.count($writes)." diff entries — resetting persona '{$persona}'.");
+        $count = $this->countMutations($writes);
+        $this->info("Mutating recording detected {$count} diff entries — resetting persona '{$persona}'.");
         \Illuminate\Support\Facades\Artisan::call('preview:reset', ['persona' => $persona]);
+    }
+
+    /**
+     * Detect whether a db_writes payload represents real mutations.
+     *
+     * Two shapes flow through this command and we must treat both correctly:
+     *
+     *   - Canonical {created:[], updated:[], deleted:[]}: an empty array of
+     *     three empty arrays is non-empty under PHP's `empty()`, so the naive
+     *     check would fire `preview:reset` on every non-mutating scenario and
+     *     break the forensic chain (canonical 0.1).
+     *   - Flat diff shape produced by EvalHttpDriver::diffSnapshots, e.g.
+     *     `['savings_count' => ['from' => 1, 'to' => 2]]`: any non-empty key
+     *     indicates a real change.
+     *
+     * @param  array<string, mixed>  $writes
+     */
+    private function hasMutations(array $writes): bool
+    {
+        if ($writes === []) {
+            return false;
+        }
+
+        if (array_key_exists('created', $writes)
+            || array_key_exists('updated', $writes)
+            || array_key_exists('deleted', $writes)) {
+            return ! empty($writes['created'] ?? [])
+                || ! empty($writes['updated'] ?? [])
+                || ! empty($writes['deleted'] ?? []);
+        }
+
+        return true;
+    }
+
+    /**
+     * Total mutation count across either supported shape — used purely for
+     * the operator-facing log line. Returns 0 when there are no mutations.
+     *
+     * @param  array<string, mixed>  $writes
+     */
+    private function countMutations(array $writes): int
+    {
+        if (array_key_exists('created', $writes)
+            || array_key_exists('updated', $writes)
+            || array_key_exists('deleted', $writes)) {
+            return count($writes['created'] ?? [])
+                + count($writes['updated'] ?? [])
+                + count($writes['deleted'] ?? []);
+        }
+
+        return count($writes);
     }
 
     /**
