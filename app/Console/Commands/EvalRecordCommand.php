@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\AiMessage;
 use App\Models\EvalProviderRun;
 use App\Models\EvalRecordingSession;
 use App\Models\User;
@@ -272,7 +273,10 @@ final class EvalRecordCommand extends Command
                 'conversation_id' => (int) ($result['conversation_id'] ?? 0),
                 'user_message' => implode("\n---\n", $userMessages),
                 'assistant_text' => $assembledContent,
-                'tool_calls' => $this->extractToolCallsFromEvents($events),
+                'tool_calls' => $this->enrichToolCallsWithResults(
+                    $this->extractToolCallsFromEvents($events),
+                    (int) ($result['conversation_id'] ?? 0),
+                ),
                 'sse_event_count' => count($events),
                 'sse_event_types' => $this->countEventTypes($events),
                 'forbidden_hits' => $this->detectForbiddenOutputs($assembledContent, $forbiddenOutputs),
@@ -403,6 +407,77 @@ final class EvalRecordCommand extends Command
         }
 
         return $calls;
+    }
+
+    /**
+     * P0.3 — back-fill the `result` field on every captured tool call by
+     * reading `ai_messages.metadata.tool_calls` (the in-process record
+     * HasAiChat persists when it executes the tool against the agent).
+     *
+     * SSE `tool_use` events carry only `{type, tool, input}` — the actual
+     * tool result is computed locally and fed back to the LLM via a
+     * `tool_result` block, so the SSE stream is incomplete by design.
+     * Without this back-fill, every recorded call had `result => null`,
+     * `EvalDeltaBuilder::detectResultPathFromString('')` returned 'success',
+     * and any scenario asserting `success_false` / `readiness_blocked` /
+     * `empty_state` could never grade GREEN.
+     *
+     * Matching is by tool-name + sequential occurrence — the LLM may emit
+     * the same tool multiple times in a turn (e.g. two get_module_analysis
+     * calls), and we need to align them with the metadata array which is
+     * stored in dispatch order.
+     *
+     * @param  list<array<string, mixed>>  $sseCalls
+     * @return list<array<string, mixed>>
+     */
+    private function enrichToolCallsWithResults(array $sseCalls, int $conversationId): array
+    {
+        if ($sseCalls === [] || $conversationId === 0) {
+            return $sseCalls;
+        }
+
+        $assistantMessage = AiMessage::query()
+            ->where('conversation_id', $conversationId)
+            ->where('role', 'assistant')
+            ->whereNotNull('metadata')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($assistantMessage === null) {
+            return $sseCalls;
+        }
+
+        $metadata = is_array($assistantMessage->metadata) ? $assistantMessage->metadata : [];
+        $metaCalls = is_array($metadata['tool_calls'] ?? null) ? $metadata['tool_calls'] : [];
+        if ($metaCalls === []) {
+            return $sseCalls;
+        }
+
+        // Index metadata calls by tool name → ordered list of result_summary
+        // strings. Pop from the front as we consume each one so duplicate
+        // tool names align by occurrence.
+        $resultsByTool = [];
+        foreach ($metaCalls as $mc) {
+            if (! is_array($mc)) {
+                continue;
+            }
+            $name = (string) ($mc['tool'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $resultsByTool[$name] ??= [];
+            $resultsByTool[$name][] = is_string($mc['result_summary'] ?? null) ? $mc['result_summary'] : '';
+        }
+
+        foreach ($sseCalls as $i => $call) {
+            $name = (string) ($call['name'] ?? '');
+            if ($name === '' || empty($resultsByTool[$name])) {
+                continue;
+            }
+            $sseCalls[$i]['result'] = array_shift($resultsByTool[$name]);
+        }
+
+        return $sseCalls;
     }
 
     /**
