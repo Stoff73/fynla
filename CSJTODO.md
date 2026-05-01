@@ -1,7 +1,86 @@
 # CSJTODO — Fynla
 
-*Last updated: 1 May 2026 (post-midnight, session 124 wrap) — dev deploy of `feature/fyn-persona-split` complete + 4 critical fixes shipped during smoke.*
-*Previous session: 123 (30 April 2026 evening — `/tax-strategy` redesign + fynPersona deploy guide).*
+*Last updated: 1 May 2026 (session 125 context-clear wrap) — skill migration + full-branch review (FAIL).*
+*Previous session: 124 (30 April → 1 May late evening — dev deploy + 4 critical fixes shipped during smoke).*
+
+---
+
+## Session 125 (1 May 2026, morning) — Skill migration + full-branch review
+
+**Branch:** `feature/fyn-persona-split` @ `41eed00` (HEAD), pushed to origin. 259 ahead of `origin/dev`, 0 behind.
+
+### Completed this session
+
+- [x] **Moved session-start / session-end / vault-sync skills to `~/.claude/skills/`** (`97b21a3`). Project-level copies deleted on this branch. session-end upgraded to onboardingFyn version (context-clear vs end-of-day mode, dated handover, planning-with-files mirror). vault-sync wrapped to dispatch via Haiku 4.5 subagent at high effort.
+- [x] **Full-branch eval review** (`41eed00`) via 6 parallel `eval-reviewer` agents covering 212 of 213 non-doc/non-test files in `feature/fyn-persona-split` vs `origin/dev` (259 commits, +157,628 / -3,887 lines). Aggregated FAIL verdict: **8 critical, 32 major, 45 minor, 37 nit**. Full report at `May/May1Updates/branch-review-fyn-persona-split.md` (also synced to vault).
+
+### NOT Done — Outstanding for next session
+
+#### TOP PRIORITY — branch is FAIL, need P0 fix pass before merge to dev
+
+Full prioritised list in `May/May1Updates/branch-review-fyn-persona-split.md`. Headline P0s:
+
+- [ ] **5 RED tests** in `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php` from fix commit `23f68ec` — assertions need updating to match new gates (Marriage Allowance hidden for single users, carry-forward gated by liquid wealth, field rename `unused_carry_forward` → `unused_carry_forward_total`).
+- [ ] **AdviceFyn leaks 6 capture_* tools** to LLM — Two-Fyn contract violation. Add to `WRITE_TOOLS`: `capture_salary_sacrifice`, `capture_spouse_work_status`, `capture_spouse_household_data`, `capture_spouse_non_working_assets`, `capture_pension_history`, `capture_charitable_giving`. AND replace `AdviceFynToolListTest` fixture with auto-enumeration (current fixture omits same 6 tools so test gives false assurance).
+- [ ] **`is_eval_user` dead column + `EvalPurgeCommand`** violate canonical 0.2 (triple-confirmed by 3 reviewers). Drop column + index in new migration; remove command or repoint to `eval_recording_sessions`/`eval_provider_runs` rows.
+- [ ] **`EvalDeltaBuilder result_path` always returns `'success'`** — SSE doesn't carry tool result strings. Any scenario asserting `result_path: success_false` cannot grade GREEN. Same shape as P0.2 regression.
+- [ ] **`EvalRecordCommand::resetPersonaIfMutating`** uses `empty($writes)` against `{created:[],updated:[],deleted:[]}` shape — fires reset on every scenario (canonical 0.1). Replace with `! ($writes['created'] || $writes['updated'] || $writes['deleted'])`.
+- [ ] **`estimateIsaSubscriptionsThisYear` returns LIFETIME ISA balance** — root cause of yesterday's £75k user defects only suppressed at one site. Restrict to current-tax-year subscriptions.
+- [ ] **`v-on="$listeners"` in `FynOnboardingChat.vue:55`** is Vue 3 incorrect (`$listeners` removed in v3). Drop it; `v-bind="$attrs"` already covers events.
+- [ ] **Spouse email lookup is case-sensitive** — `SpouseLinkingService.php:95` + `CoordinatingAgent.php:1186`. Add `strtolower(trim(...))` to prevent duplicate accounts.
+- [ ] **`capture_complete` handoff event can leak to frontend** (INV-2.4.1). Drop ALL `type === 'handoff'` events in `AdviceFyn::wrapStream`, not just `DELEGATE_TO_CAPTURE`.
+- [ ] **`AssistantContentSanitiser` is misnamed** — only strips xAI `<function_call>` tags, not a prompt-injection guard. Rename to `XaiFunctionCallLeakStripper` or expand scope.
+
+#### P1 (should fix before merge to dev — full list in branch review)
+
+Headlines: NIC's / SIPP / "tapered AA" acronyms (Rule #10), local `formatAmount` in SaveTaxCampaignPage (Rule #6), Unicode glyphs in admin eval components (Rule #14), hardcoded tax rates 0.40/0.45/0.20/0.60 in IncomeBandStrategy + AssetShiftingBundleStrategy (Rule #3), JointSavingsStrategy missing civil_partnership, inconsistent income basis across 4 strategies, 5 DataReadiness services have drifted return shapes, Investment DataReadinessService missing `loadMissing` guards, Protection `hasIncome()` missing `annual_interest_income`, AiAuditRetentionJob will lock production at scale, HMAC key triple-fallback to literal string, "Re-grant in Settings" message conflicts with memory law, etc.
+
+#### Skill migration follow-up
+
+- [ ] **Cherry-pick `97b21a3` (project-level skill deletion) to `dev`** — until this lands on dev, checking out dev or main will restore the old project-level files which override user-level. The migration is functionally complete on this branch only.
+- [ ] **Plugin fallback asymmetry accepted knowingly** — `plugins/fynla-dev-skills/skills/` has session-start + session-end fallbacks but NOT vault-sync. If `~/.claude/skills/vault-sync/` is ever lost, `session-end` Phase 7 has no fallback. Decision: live with it (CSJ chose option B over adding the stub).
+
+#### Carried forward from session 124 (still open)
+
+- [ ] **Cleanup `public/build.old/` on csjones.co** after 24h rollback window expires (1 May evening).
+- [ ] **Tail `storage/logs/laravel.log`** for any post-deploy errors over the next 12-24h.
+- [ ] **`interest_rate` column convention drift** — patched inline in tax-strategy code; deeper fix is to pick decimal vs percent and migrate data + factory + seeders + UI.
+- [ ] **Pension % → £ conversion** — onboarding never derives `monthly_contribution_amount`; audit other consumers.
+- [ ] **PSA "Fully used" wording** — review for equal/over-PSA cases.
+- [ ] **Sanity-check OTHER strategies** for implausible recommendations on persona-realistic data: `LifecycleStrategy`, `GiftAidHigherRateReliefStrategy`, `BedAndIsaStrategy`, `DividendAllowanceHarvestStrategy`, `SalarySacrificeNiStrategy`, `NonEarnerSpousePensionStrategy`, `CrossSpouseBundleStrategy`, `TaperedAnnualAllowanceStrategy`. Top priority before dev → main release PR.
+- [ ] **Liquid wealth threshold for carry-forward** — currently hardcoded `MIN_LIQUID_WEALTH_TO_RECOMMEND = 10000.0`; tune with persona evidence.
+- [ ] **W-1 (session 123)** — orphaned slider backend pipework (`taxStrategy/recalculate` Vuex, `TaxStrategyController::calculate`, etc.) all unreachable from UI. Rip out.
+- [ ] **S-3 (sessions 118-120)** — hardcoded £2,880 / £720 Junior Pension in `LifecycleStrategy::generate` — expose via `TaxConfigService`.
+- [ ] **W-1 (session 122 / Rule #14)** — `StaticFynChat.vue` lines 26/30/34/101 violate icon ban in Fyn chat window.
+- [ ] **W-2 (session 122)** — `SaveTaxCampaignPage.vue` bottom CTA green vs the other 6 raspberry — visually inconsistent.
+- [ ] **Rate-normalisation duplication** — `if ($r > 1) $r /= 100` in 3 places; extract once data convention is settled.
+
+### Context for Next Session
+
+- **Branch is FAIL** — do NOT merge to dev. Fix path is at minimum 6–10 commits before mergeable. See branch review for prioritised order.
+- **Recommended next steps:** (1) Get tests GREEN (5 RED Tax tests), (2) batch the P0 contract fixes into one commit (no behaviour change for happy path, just close holes), (3) real-money fixes (`estimateIsaSubscriptionsThisYear`, `EvalDeltaBuilder result_path`, etc.) into separate commit with browser smoke verification, (4) user-copy fixes (acronyms), (5) UI cleanups.
+- **Per `feedback_smoke_must_verify_amounts.md` (issued today)** — after real-money fixes, drive Playwright against £75k user persona and verify £ amounts on `/tax-strategy` against actual profile.
+- **Per `feedback_no_deploy_recommendations.md`** — branch is nowhere near deploy-ready. Don't suggest deploy; CSJ decides.
+- **Skill canonical source** is now `~/.claude/skills/`. Don't add project-level copies. dev/main still have stale project-level files that need cleanup.
+
+### Deploy Status
+
+| Environment | Branch | Status |
+|---|---|---|
+| Production (`fynla.org`) | `main` | NOT touched — gated on full P0 fix pass + dev verification |
+| Dev / staging (`csjones.co/fynla`) | `feature/fyn-persona-split` @ `23f68ec` | LIVE from session 124 — has the same defects this branch review surfaced |
+| Feature branch local | `feature/fyn-persona-split` @ `41eed00` | Pushed, branch review committed, NOT mergeable yet |
+
+### Memory laws relevant to next session
+
+- `feedback_loop_until_correct.md` — Don't stop until GREEN per plan.
+- `critical_browser_testing_law.md` — "Browser tested" = clicked / filled / submitted in Playwright.
+- `feedback_smoke_must_verify_amounts.md` — Verify £ amounts against user's actual profile.
+- `feedback_no_deploy_recommendations.md` — Don't suggest deploy as next step.
+- `feedback_main_via_dev_only.md` — Production gated on dev first.
+- `feedback_advice_fyn_is_read_only.md` — Two-Fyn contract; AdviceFyn has zero write tools.
+- `feedback_eval_canonical_contract.md` — Canonical 0.1 + 0.2 (no mirror user / no `is_eval_user`).
+- `feedback_evals_surface_engineering_issues.md` — Failing eval = real bug, fix code not test.
 
 ---
 
