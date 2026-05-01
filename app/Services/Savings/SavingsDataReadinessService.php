@@ -63,13 +63,21 @@ class SavingsDataReadinessService
             atMicrotime: microtime(true),
         ));
 
+        $totalChecks = count($checks);
+        $passedChecks = $collection->where('passed', true)->count();
+
         return [
             'can_proceed' => $canProceed,
             'blocking' => array_values($blocking->toArray()),
             'warnings' => array_values($warnings->toArray()),
             'info' => array_values($info->toArray()),
-            'total_checks' => count($checks),
-            'passed_checks' => $collection->where('passed', true)->count(),
+            'total_checks' => $totalChecks,
+            'passed_checks' => $passedChecks,
+            // M12 — canonical key shared with Estate / Investment / Protection
+            // / Retirement readiness services.
+            'completeness_percent' => $totalChecks > 0
+                ? round(($passedChecks / $totalChecks) * 100, 1)
+                : 0.0,
         ];
     }
 

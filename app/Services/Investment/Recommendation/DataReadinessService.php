@@ -28,11 +28,19 @@ class DataReadinessService
      *     info: array<int, array{key: string, level: string, passed: bool, message: string, form_link: string}>,
      *     total_checks: int,
      *     passed_checks: int,
-     *     completion_percent: float
+     *     completeness_percent: float
      * }
      */
     public function assess(User $user): array
     {
+        // M13 — eager-load every relationship the checks read so a global
+        // Model::preventLazyLoading() guard doesn't throw mid-assess. The
+        // checks touch protectionProfile, statePension, and the dc/dbPensions
+        // existence queries; the latter use the relationship method so they
+        // don't trigger lazy loads, but loading the singular relationships
+        // explicitly avoids per-check round-trips.
+        $user->loadMissing(['protectionProfile', 'statePension']);
+
         $checks = $this->runAllChecks($user);
 
         $blocking = array_values(array_filter($checks, fn (array $check): bool => $check['level'] === 'blocking' && ! $check['passed']));
@@ -62,7 +70,11 @@ class DataReadinessService
             'info' => $info,
             'total_checks' => $totalChecks,
             'passed_checks' => $passedChecks,
-            'completion_percent' => $totalChecks > 0
+            // M12 — canonical key is `completeness_percent` (matches Estate,
+            // Protection, and PrerequisiteGateService:311). Was historically
+            // `completion_percent`; renamed here so all five readiness
+            // services agree.
+            'completeness_percent' => $totalChecks > 0
                 ? round(($passedChecks / $totalChecks) * 100, 1)
                 : 0.0,
         ];
