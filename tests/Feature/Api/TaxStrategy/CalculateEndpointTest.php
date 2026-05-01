@@ -63,5 +63,8 @@ it('accepts an empty payload (no overrides) and returns the baseline', function 
     $response = $this->actingAs($user)->postJson('/api/tax-strategy/calculate', []);
 
     $response->assertOk();
-    expect($response->json('data.user_allowances'))->toHaveCount(8);
+    // Canonical: 6 base allowances + Starting Rate for Savings (factory user
+    // has no employment income, so SRS is fully available). Marriage
+    // Allowance hidden — factory default marital_status is 'single'.
+    expect($response->json('data.user_allowances'))->toHaveCount(7);
 });

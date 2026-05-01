@@ -83,11 +83,16 @@ final class TaxStrategyMath
         };
     }
 
+    /**
+     * Marginal income-tax rate for the user, derived from their HMRC band on
+     * TOTAL taxable income (employment + dividends + savings interest), not
+     * employment alone. This is the right basis for the marginal rate on
+     * savings interest, AA charges, and pension tax relief — all of which
+     * stack on top of the user's other income at HMRC.
+     */
     public function bandRateFor(User $user): float
     {
-        return $this->bandRateForBand(
-            $this->bandFromIncome((float) ($user->annual_employment_income ?? 0))
-        );
+        return $this->bandRateForBand($this->bandFromIncome($this->taxableIncomeFor($user)));
     }
 
     /**

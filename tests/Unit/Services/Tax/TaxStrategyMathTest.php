@@ -22,6 +22,42 @@ beforeEach(function () {
  * Lifetime ISA, and Bed-and-ISA suggestions. Captures the £75k smoke-test
  * defect surfaced on 2026-04-30.
  */
+/**
+ * M11 follow-up regression — bandRateFor() must derive its band from TOTAL
+ * taxable income (employment + dividends + savings interest), not employment
+ * alone. Pre-fix a £45k employee with £20k of dividend income was returned
+ * 0.20 (basic-rate marginal) when HMRC would tax additional savings interest
+ * at 0.40. Affects IsaTopUp, TaperedAA, PensionAACarryForward marginal rates.
+ */
+describe('bandRateFor', function () {
+    it('returns higher-rate marginal when dividends push total taxable income above basic-rate', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 45000, // basic-by-employment
+            'annual_dividend_income' => 20000,   // pushes total to £65k → higher
+        ]);
+
+        expect($this->math->bandRateFor($user))->toBe(0.40);
+    });
+
+    it('returns additional-rate marginal when employment+dividends crosses £125,140', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 100000,
+            'annual_dividend_income' => 30000, // total £130k > £125,140
+        ]);
+
+        expect($this->math->bandRateFor($user))->toBe(0.45);
+    });
+
+    it('still returns basic-rate when total taxable income stays under £50,270', function () {
+        $user = User::factory()->create([
+            'annual_employment_income' => 30000,
+            'annual_dividend_income' => 5000, // total £35k → basic
+        ]);
+
+        expect($this->math->bandRateFor($user))->toBe(0.20);
+    });
+});
+
 describe('estimateIsaSubscriptionsThisYear', function () {
     it('counts ISAs opened in the current tax year', function () {
         $user = User::factory()->create();

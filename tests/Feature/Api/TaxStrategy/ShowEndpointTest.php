@@ -37,7 +37,10 @@ it('returns full payload for an authenticated single user', function () {
         ]);
     expect($response->json('data.calculation_mode'))->toBe('single');
     expect($response->json('data.spouse_allowances'))->toBeNull();
-    expect($response->json('data.user_allowances'))->toHaveCount(8);
+    // Canonical: 6 base allowances. SRS tapered to £0 (£50k > £17,570 floor),
+    // Marriage Allowance hidden for non-partnered users. See
+    // TaxStrategyCalculatorTest 'Path A' for the same contract.
+    expect($response->json('data.user_allowances'))->toHaveCount(6);
     expect($response->json('data.recommendations'))->toBe([]);
 });
 
