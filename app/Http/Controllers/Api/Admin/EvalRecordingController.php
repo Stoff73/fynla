@@ -31,7 +31,7 @@ final class EvalRecordingController extends Controller
     public function index(Request $request): JsonResponse
     {
         $sessions = EvalRecordingSession::query()
-            ->with(['evalUser:id,email', 'providerRuns:id,eval_recording_session_id,provider,model,duration_ms,sse_event_count,assistant_text,fixture_path,tool_calls,forbidden_hits'])
+            ->with(['previewUser:id,email', 'providerRuns:id,eval_recording_session_id,provider,model,duration_ms,sse_event_count,assistant_text,fixture_path,tool_calls,forbidden_hits'])
             ->orderByDesc('started_at')
             ->limit((int) $request->query('limit', 200))
             ->get();
@@ -55,9 +55,9 @@ final class EvalRecordingController extends Controller
                 'status' => $s->status,
                 'fynla_branch' => $s->fynla_branch,
                 'fynla_sha' => $s->fynla_sha,
-                'eval_user' => $s->evalUser ? [
-                    'id' => $s->evalUser->id,
-                    'email' => $s->evalUser->email,
+                'preview_user' => $s->previewUser ? [
+                    'id' => $s->previewUser->id,
+                    'email' => $s->previewUser->email,
                 ] : null,
                 'started_at' => optional($s->started_at)->toIso8601String(),
                 'completed_at' => optional($s->completed_at)->toIso8601String(),
@@ -71,7 +71,7 @@ final class EvalRecordingController extends Controller
     public function show(int $sessionId): JsonResponse
     {
         $session = EvalRecordingSession::with([
-            'evalUser:id,email,first_name,surname,marital_status,onboarding_completed',
+            'previewUser:id,email,first_name,surname,marital_status,onboarding_completed',
             'providerRuns',
         ])->findOrFail($sessionId);
 
@@ -119,7 +119,7 @@ final class EvalRecordingController extends Controller
                 'status' => $session->status,
                 'fynla_branch' => $session->fynla_branch,
                 'fynla_sha' => $session->fynla_sha,
-                'eval_user' => $session->evalUser,
+                'preview_user' => $session->previewUser,
                 'start_state_snapshot' => $session->start_state_snapshot,
                 'remedial_report' => $session->remedial_report,
                 'started_at' => optional($session->started_at)->toIso8601String(),

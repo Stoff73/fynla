@@ -38,7 +38,7 @@ final class EvalShowCommand extends Command
         $full = (bool) $this->option('full');
 
         if ($sessionId !== null) {
-            $session = EvalRecordingSession::with(['providerRuns', 'evalUser'])->find($sessionId);
+            $session = EvalRecordingSession::with(['providerRuns', 'previewUser'])->find($sessionId);
             if ($session === null) {
                 $this->error("Session #{$sessionId} not found.");
 
@@ -53,7 +53,7 @@ final class EvalShowCommand extends Command
         if ($scenarioId !== null) {
             $query = EvalRecordingSession::where('scenario_id', $scenarioId)
                 ->orderByDesc('started_at')
-                ->with(['providerRuns', 'evalUser']);
+                ->with(['providerRuns', 'previewUser']);
 
             if ($this->option('latest')) {
                 $session = $query->first();
@@ -114,7 +114,7 @@ final class EvalShowCommand extends Command
         $this->line('Started:     '.$session->started_at?->toDateTimeString());
         $this->line('Completed:   '.($session->completed_at?->toDateTimeString() ?? '—'));
         $this->line('Branch / SHA: '.$session->fynla_branch.' @ '.$session->fynla_sha);
-        $this->line('Eval user:   id='.$session->eval_user_id.' email='.($session->evalUser?->email ?? '?'));
+        $this->line('Preview user: id='.$session->preview_user_id.' email='.($session->previewUser?->email ?? '?'));
 
         $this->newLine();
         $this->info('— Start state (the data Fyn was working from) —');

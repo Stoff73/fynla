@@ -42,7 +42,7 @@
               <div class="text-xs text-neutral-400">#{{ s.id }}</div>
             </td>
             <td class="px-4 py-3 text-sm text-neutral-500">
-              <span v-if="s.eval_user">{{ s.eval_user.email }}</span>
+              <span v-if="s.preview_user">{{ s.preview_user.email }}</span>
               <span v-else class="text-neutral-300 italic">—</span>
             </td>
             <td class="px-4 py-3 text-sm">

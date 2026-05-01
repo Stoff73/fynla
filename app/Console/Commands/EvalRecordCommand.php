@@ -138,7 +138,7 @@ final class EvalRecordCommand extends Command
             'scenario_id' => $scenarioId,
             'scenario_path' => $scenarioPath,
             'scenario_yaml' => $scenarioJson,
-            'eval_user_id' => $personaUser->id,
+            'preview_user_id' => $personaUser->id,
             'persona' => $persona,
             'start_state_snapshot' => [],
             'http_log' => [],

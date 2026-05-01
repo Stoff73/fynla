@@ -4,30 +4,32 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Models\User;
+use App\Models\EvalProviderRun;
+use App\Models\EvalRecordingSession;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 
 /**
- * Permanently delete eval users (and their cascaded recording sessions,
- * provider runs, conversations, messages) older than a threshold.
+ * Permanently delete eval recording sessions (and their cascaded provider
+ * runs) older than a threshold. Operates on eval_recording_sessions, NOT on
+ * users — per canonical contract 0.2 there are no separate "eval users"; eval
+ * runs target preview personas, which we never delete.
  *
- * Defaults to a dry-run that lists what would go — pass --confirm to
- * actually delete.
+ * Defaults to a dry-run that lists what would go — pass --confirm to actually
+ * delete.
  *
  * Usage:
  *   php artisan eval:purge                     # dry-run, default 90d
  *   php artisan eval:purge --older-than=30d
  *   php artisan eval:purge --older-than=90d --confirm
- *   php artisan eval:purge --older-than=0d --confirm     # delete ALL eval users
+ *   php artisan eval:purge --older-than=0d --confirm     # delete ALL recordings
  */
 final class EvalPurgeCommand extends Command
 {
     protected $signature = 'eval:purge
-        {--older-than=90d : Threshold (e.g. 30d, 90d, 180d). Eval users created before now() minus this are eligible.}
+        {--older-than=90d : Threshold (e.g. 30d, 90d, 180d). Sessions started before now() minus this are eligible.}
         {--confirm : Actually delete. Without this flag, the command is a dry-run.}';
 
-    protected $description = 'Purge old eval users (is_eval_user=true) and their cascaded recordings.';
+    protected $description = 'Purge old eval_recording_sessions and their cascaded provider runs.';
 
     public function handle(): int
     {
@@ -43,11 +45,11 @@ final class EvalPurgeCommand extends Command
 
         $cutoff = now()->subDays($threshold);
 
-        $query = User::where('is_eval_user', true)
-            ->where('created_at', '<', $cutoff);
+        $query = EvalRecordingSession::query()
+            ->where('started_at', '<', $cutoff);
 
         $count = (clone $query)->count();
-        $this->info('Eval users older than '.$cutoff->toDateTimeString().": {$count}");
+        $this->info('Eval recording sessions started before '.$cutoff->toDateTimeString().": {$count}");
 
         if ($count === 0) {
             $this->line('Nothing to purge.');
@@ -55,11 +57,14 @@ final class EvalPurgeCommand extends Command
             return self::SUCCESS;
         }
 
-        $sample = (clone $query)->orderBy('created_at')->limit(10)->get(['id', 'email', 'created_at']);
+        $sample = (clone $query)
+            ->orderBy('started_at')
+            ->limit(10)
+            ->get(['id', 'scenario_id', 'persona', 'started_at']);
         $this->newLine();
         $this->line('Sample (up to 10):');
-        foreach ($sample as $u) {
-            $this->line('  id='.$u->id.' email='.$u->email.' created_at='.$u->created_at?->toDateTimeString());
+        foreach ($sample as $s) {
+            $this->line('  id='.$s->id.' scenario='.$s->scenario_id.' persona='.($s->persona ?? '?').' started='.$s->started_at?->toDateTimeString());
         }
 
         if (! $confirm) {
@@ -70,29 +75,19 @@ final class EvalPurgeCommand extends Command
         }
 
         $this->newLine();
-        $this->info("Deleting {$count} eval user(s)...");
+        $this->info("Deleting {$count} session(s) and their cascaded provider runs...");
 
-        $deleted = 0;
-        // Order matters because eval_provider_runs.conversation_id has
-        // ON DELETE RESTRICT to keep the conversation alive alongside the
-        // run. Tear down the eval rows BEFORE the user/conversations get
-        // cascaded.
-        $query->orderBy('id')->chunkById(100, function ($users) use (&$deleted): void {
-            foreach ($users as $user) {
-                $sessionIds = \App\Models\EvalRecordingSession::where('eval_user_id', $user->id)->pluck('id');
-                if ($sessionIds->isNotEmpty()) {
-                    \App\Models\EvalProviderRun::whereIn('eval_recording_session_id', $sessionIds)->delete();
-                    \App\Models\EvalRecordingSession::whereIn('id', $sessionIds)->delete();
-                }
-
-                $user->forceDelete();
-                $deleted++;
-            }
-            $this->line("  deleted {$deleted} so far...");
+        $deletedSessions = 0;
+        $deletedRuns = 0;
+        $query->orderBy('id')->chunkById(100, function ($sessions) use (&$deletedSessions, &$deletedRuns): void {
+            $sessionIds = $sessions->pluck('id')->all();
+            $deletedRuns += EvalProviderRun::whereIn('eval_recording_session_id', $sessionIds)->delete();
+            $deletedSessions += EvalRecordingSession::whereIn('id', $sessionIds)->delete();
+            $this->line("  deleted {$deletedSessions} sessions / {$deletedRuns} runs so far...");
         });
 
         $this->newLine();
-        $this->info("Purged {$deleted} eval user(s) and their cascaded recordings.");
+        $this->info("Purged {$deletedSessions} session(s) and {$deletedRuns} provider run(s).");
 
         return self::SUCCESS;
     }

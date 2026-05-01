@@ -11,8 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One row per `php artisan eval:record` invocation. Captures the scenario,
- * the seeded eval user, and the start state Fyn was working from. The
- * paired EvalProviderRun rows hold the per-(provider, model) results.
+ * the preview persona user it ran against, and the start state Fyn was
+ * working from. The paired EvalProviderRun rows hold the per-(provider,
+ * model) results.
  */
 final class EvalRecordingSession extends Model
 {
@@ -22,7 +23,7 @@ final class EvalRecordingSession extends Model
         'scenario_id',
         'scenario_path',
         'scenario_yaml',
-        'eval_user_id',
+        'preview_user_id',
         'persona',
         'start_state_snapshot',
         'http_log',
@@ -41,9 +42,9 @@ final class EvalRecordingSession extends Model
         'completed_at' => 'datetime',
     ];
 
-    public function evalUser(): BelongsTo
+    public function previewUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'eval_user_id');
+        return $this->belongsTo(User::class, 'preview_user_id');
     }
 
     public function providerRuns(): HasMany
