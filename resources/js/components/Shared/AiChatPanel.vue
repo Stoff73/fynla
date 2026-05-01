@@ -24,17 +24,13 @@
     <div :class="headerOuterClasses">
       <div class="flex items-center justify-between">
 
-        <!-- Mobile-modal: left-aligned close button with text label -->
+        <!-- Mobile-modal: left-aligned close button. Rule #14: text only, no icon. -->
         <button
           v-if="!docked && isMobile"
           @click="closePanel"
-          class="p-2 -ml-2 text-neutral-500 hover:text-horizon-500 rounded-full transition-colors inline-flex items-center gap-1"
-          title="Close"
+          class="p-2 -ml-2 text-neutral-500 hover:text-horizon-500 rounded-md transition-colors text-sm font-medium"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          <span class="text-sm font-medium">Close</span>
+          Close
         </button>
 
         <!-- Title cluster (Fyn icon shown only in docked mode) -->
@@ -45,47 +41,38 @@
 
         <!-- Right-side controls -->
         <div class="flex items-center gap-1">
+          <!-- Rule #14: chat header chrome uses text labels, no icons. -->
           <button
             @click="startNew"
             :class="headerButtonClasses"
-            title="New conversation"
+            class="text-xs font-medium px-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" :class="headerButtonIconClasses">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+            New
           </button>
           <button
             @click="toggleHistory"
             :class="[headerButtonClasses, { 'bg-savannah-100 text-neutral-500': showHistory }]"
-            title="Conversation history"
+            class="text-xs font-medium px-2"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" :class="headerButtonIconClasses">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            History
           </button>
 
-          <!-- Modal desktop: close (X) -->
+          <!-- Modal desktop: close -->
           <button
             v-if="!docked && !isMobile"
             @click="closePanel"
-            class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-full transition-colors"
-            title="Close"
+            class="p-1.5 text-horizon-400 hover:text-neutral-500 hover:bg-savannah-100 rounded-md transition-colors text-xs font-medium"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            Close
           </button>
 
-          <!-- Docked: collapse to icon strip (»») -->
+          <!-- Docked: collapse to icon strip -->
           <button
             v-if="docked"
             @click="$emit('collapse')"
-            class="ml-1 w-7 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors"
-            title="Collapse Fyn chat"
+            class="ml-1 px-2 h-7 flex items-center justify-center rounded-md bg-light-blue-100 text-horizon-500 hover:bg-light-blue-500 hover:text-white transition-colors text-xs font-medium"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M6 5l7 7-7 7" />
-            </svg>
+            Collapse
           </button>
         </div>
       </div>
@@ -130,12 +117,9 @@
             </div>
             <button
               @click.stop="deleteConversation(conv.id)"
-              class="p-1 text-horizon-400 hover:text-raspberry-500 opacity-0 group-hover:opacity-100 transition-all"
-              title="Delete conversation"
+              class="px-2 py-1 text-horizon-400 hover:text-raspberry-500 opacity-0 group-hover:opacity-100 transition-all text-xs font-medium"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-              </svg>
+              Delete
             </button>
           </button>
         </div>
@@ -309,14 +293,8 @@
         @click="suggestionsCollapsed = !suggestionsCollapsed"
         class="w-full flex items-center justify-between px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider hover:bg-savannah-100 transition-colors"
       >
-        Suggestions
-        <svg
-          class="w-3 h-3 transition-transform duration-200"
-          :class="{ 'rotate-180': suggestionsCollapsed }"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <span>Suggestions</span>
+        <span class="text-[10px] font-medium normal-case tracking-normal">{{ suggestionsCollapsed ? 'show' : 'hide' }}</span>
       </button>
       <div v-if="!suggestionsCollapsed" class="px-4 pb-3 space-y-1.5">
         <button
@@ -392,13 +370,11 @@
             @click="send"
             :disabled="!canSend"
             :class="[
-              'bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center',
-              docked ? 'flex-shrink-0 p-2.5' : 'px-3 py-2'
+              'bg-raspberry-600 text-white rounded-lg hover:bg-raspberry-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm font-semibold',
+              docked ? 'flex-shrink-0 px-4 py-2.5' : 'px-4 py-2'
             ]"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-            </svg>
+            Send
           </button>
         </div>
 
