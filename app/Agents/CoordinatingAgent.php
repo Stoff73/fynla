@@ -1183,7 +1183,12 @@ class CoordinatingAgent extends BaseAgent
     private function handleCaptureSpouseDetails(array $input, User $user): array
     {
         $firstName = trim((string) ($input['first_name'] ?? ''));
-        $email = trim((string) ($input['email'] ?? ''));
+        // Lowercase the email at the entry point so every downstream
+        // lookup (SpouseLinkingService, account creation, FamilyMember
+        // linkage) sees the canonical form. P0.8 — case-mismatched emails
+        // were either rejecting the legitimate spouse's existing account or
+        // creating a duplicate one on case-sensitive collations.
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
         $dob = trim((string) ($input['date_of_birth'] ?? ''));
 
         if ($firstName === '' || $email === '' || $dob === '') {

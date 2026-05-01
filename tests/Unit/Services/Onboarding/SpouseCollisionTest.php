@@ -49,6 +49,30 @@ describe('SpouseLinkingService::linkOrCreateSpouse (collision path)', function (
             'date_of_birth' => '1990-01-01',
         ]))->toThrow(SpouseCollisionException::class);
     });
+
+    /**
+     * Regression for P0.8 — the spouse email lookup must be case-insensitive.
+     * Previously a mixed-case input ("Busy@Example.com") did not match a
+     * lowercase stored email and either fell through to creating a duplicate
+     * account or, on case-mismatched collations, surfaced confusing collision
+     * errors against the wrong row.
+     */
+    it('matches a stored lowercase email when the input is mixed-case', function () {
+        $currentUser = User::factory()->create(['marital_status' => 'married']);
+        $thirdParty = User::factory()->create();
+        User::factory()->create([
+            'email' => 'busy@example.com',
+            'spouse_id' => $thirdParty->id,
+        ]);
+
+        $service = app(SpouseLinkingService::class);
+
+        expect(fn () => $service->linkOrCreateSpouse($currentUser, [
+            'first_name' => 'Pat',
+            'email' => 'Busy@Example.COM',
+            'date_of_birth' => '1990-01-01',
+        ]))->toThrow(SpouseCollisionException::class);
+    });
 });
 
 describe('CoordinatingAgent::handleCaptureSpouseDetails (collision branch)', function () {

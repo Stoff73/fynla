@@ -65,10 +65,18 @@ final class SpouseLinkingService
      */
     public function linkOrCreateSpouse(User $currentUser, array $data): array
     {
-        $spouseEmail = (string) ($data['email'] ?? '');
+        // Lowercase + trim before any lookup. Email comparisons in PHP/MySQL
+        // can be case-sensitive depending on collation; "Jane@Example.com"
+        // and "jane@example.com" must resolve to the same account or we
+        // either (a) tell a legitimate user "that email belongs to another
+        // household" or, on case-mismatch DBs, (b) create a parallel
+        // duplicate account. Normalise once here so every downstream
+        // lookup, INSERT, and email send uses the canonical form.
+        $spouseEmail = strtolower(trim((string) ($data['email'] ?? '')));
         if ($spouseEmail === '') {
             throw new \InvalidArgumentException('Spouse email is required for linking.');
         }
+        $data['email'] = $spouseEmail;
 
         // B-2 — make sure the current user has a household_id before we
         // propagate it to the newly-linked spouse and the FamilyMember row.
