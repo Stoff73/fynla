@@ -40,6 +40,27 @@ final class AuditChainService
     private const ZERO_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
     /**
+     * M19 — fail loud rather than HMAC-signing with a constant fallback.
+     * If neither AI_AUDIT_HMAC_KEY nor APP_KEY is set, the audit chain is
+     * forgeable by anyone who can read the codebase. Throw on the first
+     * audit-write so a broken deploy is caught immediately instead of
+     * silently corrupting the chain.
+     */
+    private static function hmacKey(): string
+    {
+        $key = (string) config('app.ai_audit_hmac_key');
+        if ($key === '') {
+            throw new \RuntimeException(
+                'app.ai_audit_hmac_key is not configured. Set AI_AUDIT_HMAC_KEY '
+                .'(preferred) or APP_KEY in the environment before invoking the '
+                .'audit chain.'
+            );
+        }
+
+        return $key;
+    }
+
+    /**
      * Fields included in the SHA-256 row hash. Order matters — both
      * `append()` and `verifyChain()` must produce the same JSON.
      */
@@ -76,7 +97,7 @@ final class AuditChainService
             ];
 
             $rowHash = self::computeRowHash($prevHash, $payload, $signedAt->toIso8601String());
-            $signature = hash_hmac('sha256', $rowHash, (string) config('app.ai_audit_hmac_key'));
+            $signature = hash_hmac('sha256', $rowHash, self::hmacKey());
 
             return AiAuditEvent::create([
                 ...$payload,
@@ -134,7 +155,7 @@ final class AuditChainService
      */
     public function verifySignature(AiAuditEvent $row): bool
     {
-        $expected = hash_hmac('sha256', (string) $row->row_hash, (string) config('app.ai_audit_hmac_key'));
+        $expected = hash_hmac('sha256', (string) $row->row_hash, self::hmacKey());
 
         return hash_equals($expected, (string) $row->signature);
     }

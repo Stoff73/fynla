@@ -31,9 +31,13 @@ final class JointSavingsStrategy implements TaxStrategy
         $household = $context->household;
         $mode = $context->mode;
 
-        $isMarried = $user->marital_status === 'married'
+        // M10 — civil partners are tax-equivalent to married couples for
+        // joint-savings interest splits. Treat 'civil_partnership' the same
+        // as 'married' so partners aren't excluded from joint-savings
+        // suggestions.
+        $isPartnered = in_array($user->marital_status, ['married', 'civil_partnership'], true)
             || in_array($mode, ['dual_earner', 'single_earner_couple'], true);
-        if (! $isMarried) {
+        if (! $isPartnered) {
             return [];
         }
 

@@ -40,7 +40,9 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
 
         // 1. Marriage Allowance transfer (basic-rate recipients only)
         if ($user->marriage_allowance_eligible && $this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0)) === 'basic') {
-            $estimatedSaving = $marriageAmount * 0.20;
+            // M8 — basic-rate from TaxConfigService, not hardcoded 0.20.
+            $basicRate = $this->math->bandRateForBand('basic');
+            $estimatedSaving = $marriageAmount * $basicRate;
             $suggestions[] = [
                 'type' => 'marriage_allowance_transfer',
                 'priority' => 'medium',

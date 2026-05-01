@@ -38,6 +38,14 @@ final class IncomeBandStrategy implements TaxStrategy
             return [];
         }
 
+        // M7 — source band rates from TaxConfigService rather than hardcoding.
+        // The 60% effective rate in the PA-taper band is the higher rate
+        // multiplied by 1.5 (every £1 earned = £0.40 tax + £0.50 PA reduction
+        // taxed at higher rate = £0.40 + £0.20 = £0.60).
+        $higherRate = $this->math->bandRateForBand('higher');
+        $additionalRate = $this->math->bandRateForBand('additional');
+        $taperEffectiveRate = $higherRate * 1.5;
+
         $recommendations = [];
 
         // #1 — Personal Allowance Taper Rescue (60% effective rate band).
@@ -48,7 +56,7 @@ final class IncomeBandStrategy implements TaxStrategy
             $inBandSlice = $taxableIncome - $taperThreshold;
             $contribution = min($inBandSlice, $availableAA);
             if ($contribution > 0) {
-                $saving = $contribution * 0.60;
+                $saving = $contribution * $taperEffectiveRate;
                 $recommendations[] = new StrategyRecommendation(
                     type: 'pa_taper_rescue',
                     category: StrategyCategory::IncomeBand,
@@ -65,7 +73,7 @@ final class IncomeBandStrategy implements TaxStrategy
                     estimatedAnnualTaxSaved: round($saving, 2),
                     extra: [
                         'suggested_contribution' => round($contribution, 2),
-                        'effective_marginal_rate' => 0.60,
+                        'effective_marginal_rate' => round($taperEffectiveRate, 4),
                     ],
                 );
             }
@@ -83,7 +91,7 @@ final class IncomeBandStrategy implements TaxStrategy
             $remainingAfterTaper = max(0, $remaining - $taperSlice);
             $belowTaperSlice = min($remainingAfterTaper, max(0, $taperThreshold - max(0, $taxableIncome - $availableAA)));
 
-            $saving = ($additionalSlice * 0.45) + ($taperSlice * 0.60) + ($belowTaperSlice * 0.40);
+            $saving = ($additionalSlice * $additionalRate) + ($taperSlice * $taperEffectiveRate) + ($belowTaperSlice * $higherRate);
             $contribution = $additionalSlice + $taperSlice + $belowTaperSlice;
 
             if ($contribution > 0) {

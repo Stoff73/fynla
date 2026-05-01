@@ -569,6 +569,16 @@ final class EvalRecordCommand extends Command
 
     private function locateScenario(string $id): string
     {
+        // M22 — validate before interpolating into glob(). Without this, an
+        // id like '*' or '../{root}' would expand against arbitrary
+        // filesystem paths under SCENARIO_ROOT and either cross-match an
+        // unintended scenario or throw a confusing ambiguity error.
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $id) !== 1) {
+            throw new RuntimeException(
+                "Scenario id '{$id}' must match [A-Za-z0-9_-]+ — refusing to interpolate into glob()."
+            );
+        }
+
         $matches = glob(base_path(self::SCENARIO_ROOT)."/*/{$id}.json") ?: [];
 
         if ($matches === []) {

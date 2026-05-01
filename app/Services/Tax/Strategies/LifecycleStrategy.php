@@ -110,11 +110,12 @@ final class LifecycleStrategy implements TaxStrategy
 
             // #18 — Junior Pension. £2,880 net per child grossed up to £3,600
             // by HMRC (£720 = 20% basic-rate relief grossed onto an £2,880 net
-            // contribution; HMRC pension input cap for non-earners). Hardcoded
-            // here as TaxConfigService doesn't yet expose junior_pension caps —
-            // surface via config in a future sprint (CSJTODO S-3).
-            $juniorPensionNet = 2880.0;
-            $juniorPensionUplift = 720.0;
+            // contribution; HMRC pension input cap for non-earners). Sourced
+            // from TaxDefaults so every strategy that quotes the figure
+            // updates together; CSJTODO S-3 promotes this to TaxConfigService
+            // once the schema has a non_earner_pension key.
+            $juniorPensionNet = (float) \App\Constants\TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
+            $juniorPensionUplift = (float) \App\Constants\TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
             $totalUplift = $childCount * $juniorPensionUplift;
             $recommendations[] = new StrategyRecommendation(
                 type: 'junior_pension',

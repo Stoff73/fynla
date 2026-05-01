@@ -45,7 +45,11 @@ return [
     |
     */
 
-    'ai_audit_hmac_key' => env('AI_AUDIT_HMAC_KEY', env('APP_KEY', 'unset-ai-audit-hmac-key')),
+    // M19 — fail loud rather than silently falling back to a constant
+    // literal. AuditChainService throws RuntimeException when this is empty,
+    // so a misconfigured deploy is detected on the first audit-write attempt
+    // instead of corrupting the chain with a forgeable hardcoded key.
+    'ai_audit_hmac_key' => env('AI_AUDIT_HMAC_KEY', env('APP_KEY', '')),
 
     /*
     |--------------------------------------------------------------------------

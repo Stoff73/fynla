@@ -239,6 +239,7 @@ class ProtectionDataReadinessService
             || ($user->annual_self_employment_income ?? 0) > 0
             || ($user->annual_rental_income ?? 0) > 0
             || ($user->annual_dividend_income ?? 0) > 0
+            || ($user->annual_interest_income ?? 0) > 0
             || ($user->annual_other_income ?? 0) > 0
             || ($user->annual_trust_income ?? 0) > 0;
     }
