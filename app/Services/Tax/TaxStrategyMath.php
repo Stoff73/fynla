@@ -22,6 +22,16 @@ use Carbon\Carbon;
  */
 final class TaxStrategyMath
 {
+    /**
+     * Per-instance memo keyed by user id for taxableIncomeFor(), which fires
+     * a SavingsAccount query via estimateAnnualInterest. Strategies that call
+     * the helper repeatedly (or via composed paths after M11) would otherwise
+     * issue one query each — benchmarked to flake the 50ms calculator budget.
+     *
+     * @var array<int, float>
+     */
+    private array $taxableIncomeCache = [];
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
     ) {}
@@ -118,11 +128,15 @@ final class TaxStrategyMath
      */
     public function taxableIncomeFor(User $user): float
     {
-        $employment = (float) ($user->annual_employment_income ?? 0);
-        $dividends = (float) ($user->annual_dividend_income ?? 0);
-        $interest = $this->estimateAnnualInterest($user);
+        $key = (int) $user->id;
+        if (! isset($this->taxableIncomeCache[$key])) {
+            $employment = (float) ($user->annual_employment_income ?? 0);
+            $dividends = (float) ($user->annual_dividend_income ?? 0);
+            $interest = $this->estimateAnnualInterest($user);
+            $this->taxableIncomeCache[$key] = $employment + $dividends + $interest;
+        }
 
-        return $employment + $dividends + $interest;
+        return $this->taxableIncomeCache[$key];
     }
 
     /**

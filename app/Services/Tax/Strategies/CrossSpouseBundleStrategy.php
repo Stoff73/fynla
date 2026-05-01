@@ -32,7 +32,11 @@ final class CrossSpouseBundleStrategy implements TaxStrategy
         $user = $context->user;
         $household = $context->household;
         $suggestions = [];
-        $userBand = $this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0));
+        // M11 — gate user on HMRC band over total taxable income (employment
+        // + dividends + interest). A user with basic-rate employment but
+        // significant dividends/interest IS a higher-rate payer for the
+        // dividend rate-delta calculation below.
+        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
         $spouseBand = (string) ($household->spouse_psa_band ?? 'basic');
 
         // Recommend rebalancing GIA / dividend-bearing holdings to the lower-earner spouse

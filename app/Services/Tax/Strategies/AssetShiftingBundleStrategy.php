@@ -38,8 +38,15 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         $marriageAmount = (float) ($income['marriage_allowance']['amount'] ?? 1260);
         $isaAmount = (float) ($this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000);
 
-        // 1. Marriage Allowance transfer (basic-rate recipients only)
-        if ($user->marriage_allowance_eligible && $this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0)) === 'basic') {
+        // M11 — HMRC band uses TOTAL taxable income (employment + dividends +
+        // savings interest), not employment alone. Computed once because
+        // taxableIncomeFor() runs a SavingsAccount query.
+        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
+
+        // 1. Marriage Allowance transfer (basic-rate recipients only). A £45k
+        // employee with £10k of dividend income is a higher-rate taxpayer for
+        // MA purposes and must not see this suggestion.
+        if ($user->marriage_allowance_eligible && $userBand === 'basic') {
             // M8 — basic-rate from TaxConfigService, not hardcoded 0.20.
             $basicRate = $this->math->bandRateForBand('basic');
             $estimatedSaving = $marriageAmount * $basicRate;
@@ -80,7 +87,10 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         $suggestedTransfer = min($userSavingsTotal, $maxTransferableByCapacity);
 
         if ($suggestedTransfer > 1000) {
-            $userBandRate = $this->math->bandRateFor($user);
+            // Marginal rate on savings interest follows the same total-income
+            // band as MA above. bandRateFor() uses raw employment so we resolve
+            // via the cached $userBand instead.
+            $userBandRate = $this->math->bandRateForBand($userBand);
             $estimatedAnnualTaxSaved = $suggestedTransfer * $userAvgRate * $userBandRate;
             $psaBasic = $this->math->psaForBand('basic');
             $stackedCapacity = $personalAllowance + $startingRate + $psaBasic;
@@ -135,7 +145,9 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
                 : (float) $divAllowanceRaw;
 
             $userDividends = (float) ($user->annual_dividend_income ?? 0);
-            $userBand = $this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0));
+            // Dividend marginal rate uses the same total-income band as above
+            // (a £45k earner with £15k of dividends is a higher-rate dividend
+            // payer, not basic-rate).
             $userDivRate = $this->math->dividendRateForBand($userBand);
             $spouseDivRate = $this->math->dividendRateForBand('basic');
             $rateDelta = max(0.0, $userDivRate - $spouseDivRate);

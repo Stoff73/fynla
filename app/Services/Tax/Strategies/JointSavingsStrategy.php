@@ -41,7 +41,12 @@ final class JointSavingsStrategy implements TaxStrategy
             return [];
         }
 
-        $userBand = $this->math->bandFromIncome((float) ($user->annual_employment_income ?? 0));
+        // M11 — PSA depends on HMRC band over TOTAL taxable income, not
+        // employment alone. A £100k employee with £40k of dividends is an
+        // additional-rate taxpayer (£140k > £125,140) and gets PSA = £0, so
+        // the strategy must skip them even if their employment-only band is
+        // 'higher'.
+        $userBand = $this->math->bandFromIncome($this->math->taxableIncomeFor($user));
         if ($userBand === 'additional') {
             return [];
         }
@@ -85,7 +90,8 @@ final class JointSavingsStrategy implements TaxStrategy
         // Slice currently taxed in user's name that would slot into spouse's PSA on splitting.
         $taxableSlice = $interest - $userPsa;
         $shelterableSlice = min($taxableSlice, $spousePsa);
-        $marginalRate = $this->math->bandRateFor($user);
+        // Marginal rate uses the same total-income band as the gate above.
+        $marginalRate = $this->math->bandRateForBand($userBand);
         $saving = $shelterableSlice * $marginalRate;
 
         if ($saving < 1) {
