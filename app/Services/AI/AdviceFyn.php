@@ -158,6 +158,14 @@ final class AdviceFyn
         'update_record', 'delete_record', 'update_profile', 'set_expenditure',
         'capture_personal_details', 'capture_spouse_details',
         'capture_dependants', 'capture_work_details',
+        // P0.2 — every capture_* tool that writes to persistent storage. All
+        // six persist on dispatch via CoordinatingAgent::handleCapture* (e.g.
+        // capture_salary_sacrifice writes dc_pensions.salary_sacrifice;
+        // capture_spouse_work_status writes users.household_calculation_mode;
+        // capture_spouse_household_data writes tax_strategy_household_inputs).
+        'capture_salary_sacrifice', 'capture_spouse_work_status',
+        'capture_spouse_household_data', 'capture_spouse_non_working_assets',
+        'capture_pension_history', 'capture_charitable_giving',
         // S0.5.r — every persistent record-creation tool now flows through
         // the delegate_to_capture handoff. No analytics carve-out:
         // create_what_if_scenario persists a WhatIfScenario row and must

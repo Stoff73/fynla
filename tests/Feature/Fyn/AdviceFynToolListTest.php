@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\XaiToolDefinitions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -12,30 +14,54 @@ beforeEach(function () {
     $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
 });
 
-$writeTools = [
-    'create_savings_account', 'create_investment_account', 'create_holding',
-    'create_pension', 'create_property', 'create_mortgage',
-    'create_protection_policy', 'create_asset', 'create_liability',
-    'create_estate_gift', 'create_chattel', 'create_business_interest',
-    'create_trust', 'create_family_member', 'create_will', 'update_will',
-    'create_power_of_attorney', 'update_power_of_attorney',
-    'update_record', 'delete_record', 'update_profile', 'set_expenditure',
-    'capture_personal_details', 'capture_spouse_details',
-    'capture_dependants', 'capture_work_details',
-    // S0.5.r — every persistent record-creation tool flows through the
-    // delegate_to_capture handoff. Onboarding Fyn is the only writer.
-    'create_goal', 'create_life_event', 'create_what_if_scenario',
-];
+/**
+ * Auto-enumerate every persistent-write tool a provider exposes.
+ *
+ * Catches new write-shaped tools the moment they're defined — no hand-edit of
+ * a fixture required. Anything matching the create_/update_/delete_/capture_/
+ * set_ convention is treated as a write, except the two handoff signals
+ * (delegate_to_capture is ALLOWED in advice mode and routes writes to
+ * Onboarding Fyn; capture_complete is ALSO allowed because it's a meta-handoff
+ * signal for closing onboarding turns, not a record write).
+ *
+ * @return list<string>
+ */
+function adviceFynWriteTools(string $provider): array
+{
+    $defs = $provider === 'xai'
+        ? app(XaiToolDefinitions::class)
+        : app(AiToolDefinitions::class);
 
-it('AdviceFyn tool list excludes every DB-mutating tool on Anthropic', function () use ($writeTools): void {
+    $tools = $defs->getTools(false);
+    $names = array_filter(array_map(
+        fn (array $t) => $t['name'] ?? ($t['function']['name'] ?? null),
+        $tools,
+    ));
+
+    $handoffExceptions = ['delegate_to_capture', 'capture_complete'];
+
+    return array_values(array_filter(
+        $names,
+        fn (string $name) => ! in_array($name, $handoffExceptions, true)
+            && preg_match('/^(create_|update_|delete_|capture_|set_)/', $name) === 1,
+    ));
+}
+
+it('AdviceFyn tool list excludes every DB-mutating tool on Anthropic', function (): void {
     cache()->forever('ai_provider', 'anthropic');
+    $writeTools = adviceFynWriteTools('anthropic');
+    expect($writeTools)->not->toBeEmpty(); // sanity — auto-enumeration is finding tools
+
     $user = User::factory()->create();
     $tools = app(AdviceFyn::class)->buildToolList($user);
     expect(array_intersect($tools, $writeTools))->toBeEmpty();
 });
 
-it('AdviceFyn tool list excludes every DB-mutating tool on xAI', function () use ($writeTools): void {
+it('AdviceFyn tool list excludes every DB-mutating tool on xAI', function (): void {
     cache()->forever('ai_provider', 'xai');
+    $writeTools = adviceFynWriteTools('xai');
+    expect($writeTools)->not->toBeEmpty();
+
     $user = User::factory()->create();
     $tools = app(AdviceFyn::class)->buildToolList($user);
     expect(array_intersect($tools, $writeTools))->toBeEmpty();
