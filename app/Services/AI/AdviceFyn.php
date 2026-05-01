@@ -477,6 +477,25 @@ final class AdviceFyn
                 return;
             }
 
+            if ($type === 'handoff') {
+                // INV-2.4.1 — no `handoff` event may reach the frontend.
+                // The DELEGATE_TO_CAPTURE branch above is the only handoff
+                // type that has a defined consumer in advice mode; every
+                // other handoff_type (e.g. `capture_complete` exposed via
+                // handoffTools() so the LLM can signal end-of-capture) is
+                // an internal contract with no UI representation. Drop the
+                // event with a warning so we'd notice if a misrouted
+                // handoff started leaking, instead of letting it slip
+                // through silently.
+                Log::warning('[AdviceFyn] dropped non-delegate handoff event', [
+                    'handoff_type' => $handoffType,
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                ]);
+
+                continue;
+            }
+
             yield $event;
         }
     }
