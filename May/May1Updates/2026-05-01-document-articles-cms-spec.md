@@ -384,7 +384,7 @@ These items are explicitly **out of scope for v1** but flagged for future sprint
 | FI-16 | **Public listing performance / caching** | If listing/feed pages get traffic, add view caching + ETag. |
 | FI-17 | **Admin analytics on articles** | Page views, time on page, top articles. Needs an analytics pipeline. |
 | FI-18 | **A/B testing on titles or covers** | Way out of scope. |
-| FI-19 | **Undo deleted articles (soft delete)** | v1 is hard delete. Easy to flip later by adding `SoftDeletes`. |
+| FI-19 | **Undo deleted articles (soft delete)** | v1 is hard delete. Easy to flip later by adding `SoftDeletes`. **When this lands, revisit `imported_by` cascade-on-delete (Task 3 migration). Currently `cascadeOnDelete()` — published public articles disappear when their importing admin is removed. Alternatives: `nullOnDelete()` (article survives, audit lost) or `restrictOnDelete()` (block admin removal while articles exist). Decision deferred to FI-19 sprint so soft-delete + cascade behaviour are designed together.** |
 | FI-20 | **Custom URL structure / nested slugs** | v1 is flat `/articles/{slug}`. Could later support `/articles/{category}/{slug}`. |
 
 ## Acceptance Criteria
