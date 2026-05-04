@@ -39,7 +39,7 @@ return [
         ],
         'custom_definition' => [
             'id'  => 'html5-definitions',
-            'rev' => 1,
+            'rev' => 2,
             'debug' => false,
             'elements' => [
                 // http://developers.whatwg.org/sections.html
@@ -93,6 +93,7 @@ return [
                 ['tr', 'width', 'Text'],
                 ['tr', 'height', 'Text'],
                 ['tr', 'border', 'Text'],
+                ['img', 'data-pending-image', 'Text'],
             ],
         ],
         'custom_attributes' => [
