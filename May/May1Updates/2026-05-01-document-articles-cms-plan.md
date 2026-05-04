@@ -526,6 +526,9 @@ class DocxMetadataExtractor
 
         $doc = @simplexml_load_string($xml);
         if ($doc === false) {
+            Log::warning('[DocxMetadataExtractor] core.xml is malformed XML, falling back to client metadata', [
+                'path' => $docxPath,
+            ]);
             return $this->emptyMeta();
         }
 

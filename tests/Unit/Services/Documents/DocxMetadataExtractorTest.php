@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Documents\DocxMetadataExtractor;
+use Illuminate\Support\Facades\Log;
 
 it('extracts title, subject, description, creator, keywords from core.xml', function () {
     $extractor = new DocxMetadataExtractor();
@@ -44,6 +45,35 @@ it('throws when the file is not a valid zip', function () {
 
     expect(fn () => (new DocxMetadataExtractor())->extract($tmp))
         ->toThrow(\RuntimeException::class, 'not a valid docx');
+
+    unlink($tmp);
+});
+
+it('logs a warning when core.xml is malformed XML', function () {
+    Log::spy();
+
+    $tmp = tempnam(sys_get_temp_dir(), 'docx');
+    $zip = new ZipArchive();
+    $zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    $zip->addFromString('docProps/core.xml', 'this is not xml at all <<<<');
+    $zip->close();
+
+    $meta = (new DocxMetadataExtractor())->extract($tmp);
+
+    expect($meta)->toBe([
+        'title' => null,
+        'subject' => null,
+        'description' => null,
+        'creator' => null,
+        'keywords' => null,
+    ]);
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->with(
+            \Mockery::pattern('/DocxMetadataExtractor/'),
+            \Mockery::on(fn (array $ctx) => isset($ctx['path']))
+        );
 
     unlink($tmp);
 });
