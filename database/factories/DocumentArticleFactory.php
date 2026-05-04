@@ -15,23 +15,23 @@ class DocumentArticleFactory extends Factory
 
     public function definition(): array
     {
-        $title = $this->faker->sentence(6);
+        $title = fake()->sentence(6);
 
         return [
-            'slug' => Str::slug($title).'-'.$this->faker->unique()->numberBetween(1000, 99999),
+            'slug' => Str::slug($title).'-'.fake()->unique()->numberBetween(1000, 99999),
             'title' => $title,
-            'subtitle' => $this->faker->sentence(10),
-            'description' => $this->faker->paragraph(2),
-            'keywords' => implode(',', $this->faker->words(5)),
-            'author_name' => $this->faker->name(),
-            'author_byline' => $this->faker->name(),
+            'subtitle' => fake()->sentence(10),
+            'description' => fake()->paragraph(2),
+            'keywords' => implode(',', fake()->words(5)),
+            'author_name' => fake()->name(),
+            'author_byline' => fake()->name(),
             'cover_image_path' => null,
-            'html_body' => '<p>'.$this->faker->paragraph(5).'</p>',
+            'html_body' => '<p>'.fake()->paragraph(5).'</p>',
             'status' => 'draft',
             'published_at' => null,
             'imported_by' => User::factory(),
             'original_filename' => 'sample.docx',
-            'original_doc_hash' => hash('sha256', $this->faker->uuid()),
+            'original_doc_hash' => hash('sha256', fake()->uuid()),
         ];
     }
 
