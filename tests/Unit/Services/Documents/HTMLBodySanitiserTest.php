@@ -90,3 +90,17 @@ it('preserves data-pending-image attribute on img placeholders', function () {
 
     expect($clean)->toContain('data-pending-image="0"');
 });
+
+it('does not corrupt body text that resembles the placeholder sentinel', function () {
+    // Sentinels are randomised per-call so user text containing the legacy
+    // "FYNLA_PENDING_IMAGE_0" string is preserved verbatim, not rewritten
+    // into an img tag.
+    $html = '<p>The build constant is FYNLA_PENDING_IMAGE_0</p>'
+        .'<img data-pending-image="0" alt="">';
+
+    $clean = $this->sanitiser->sanitise($html);
+
+    expect($clean)->toContain('<p>The build constant is FYNLA_PENDING_IMAGE_0</p>')
+        ->and($clean)->toContain('<img data-pending-image="0"')
+        ->and(substr_count($clean, '<img data-pending-image='))->toBe(1);
+});

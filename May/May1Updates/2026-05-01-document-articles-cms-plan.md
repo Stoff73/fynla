@@ -719,6 +719,28 @@ class HTMLBodySanitiser
 {
     public function sanitise(string $html): string
     {
+        // Pre-pass: hoist <img data-pending-image="..."> tags out of the HTML before
+        // HTMLPurifier sees them. Purifier's HTML 4.01 doctype requires <img src>, so
+        // any <img> without a src is stripped. We replace placeholder tags with text
+        // sentinels that pass through Purifier intact, then restore them after.
+        //
+        // The sentinel embeds a per-call random nonce so user-authored text can never
+        // collide with it (e.g. a docx body that literally contains "FYNLA_PENDING_IMAGE_0"
+        // would otherwise be rewritten as a tag — a content-integrity bug).
+        $nonce = bin2hex(random_bytes(8));
+        $placeholderToken = static fn (int $index): string => "FYNLA_PENDING_IMAGE_{$nonce}_{$index}";
+
+        $placeholders = [];
+        $html = preg_replace_callback(
+            '/<img\b([^>]*\bdata-pending-image\b[^>]*)>/i',
+            function (array $m) use (&$placeholders, $placeholderToken): string {
+                $index = count($placeholders);
+                $placeholders[] = '<img' . $m[1] . '>';
+                return $placeholderToken($index);
+            },
+            $html
+        );
+
         // Pass 1: HTMLPurifier with our profile.
         $clean = Purifier::clean($html, 'document_article');
 
@@ -740,33 +762,32 @@ class HTMLBodySanitiser
             $clean
         );
 
-        // Pass 3: re-inject data-pending-image attribute (Purifier strips unknown
-        // attributes; we treat the placeholder as a known marker).
-        $clean = preg_replace_callback(
-            '/<img\b([^>]*)>/i',
-            function (array $m) use ($html): string {
-                $attrs = $m[1];
-                // Look up the matching original tag by index — naive but fine
-                // because mammoth emits images in document order.
-                return '<img'.$attrs.'>';
-            },
-            $clean
-        );
+        // Post-pass: restore the original <img data-pending-image="..."> tags from
+        // their sentinels. The nonce guarantees no collision with body text.
+        foreach ($placeholders as $index => $tag) {
+            $clean = str_replace($placeholderToken($index), $tag, $clean);
+        }
 
         return $clean;
     }
 }
 ```
 
-> **Note on Pass 3:** Purifier strips `data-*` attributes by default. We have to add them to the profile. Update `config/purifier.php` `document_article.HTML.Allowed` to include `img[src|alt|width|height|data-pending-image]`. (The plan's Task 2 baseline did not include this — we add it in the next step before re-running.)
+> **Note on Pass 3 removal:** The original plan included a no-op "Pass 3" callback that captured `$html` but returned the tag unchanged. This was dead code and has been dropped. The actual placeholder preservation is handled by the Pre-pass sentinel + Post-pass restore pattern above.
 
-- [ ] **Step 4: Update Purifier config to allow `data-pending-image`**
+- [ ] **Step 4: Register `data-pending-image` in the Purifier custom definition**
 
-Edit `config/purifier.php` `document_article` profile — change the `img` clause inside `HTML.Allowed`:
+Purifier strips `data-*` attributes by default — `HTML.Allowed` cannot express custom data attributes. Register the attribute via `custom_definition.attributes` in `config/purifier.php` `document_article` profile:
 
-```diff
-- 'img[src|alt|width|height],br,'
-+ 'img[src|alt|width|height|data-pending-image],br,'
+```php
+'custom_definition' => [
+    'id' => 'document_article',
+    'rev' => 1,
+    'debug' => false,
+    'attributes' => [
+        ['img', 'data-pending-image', 'Text'],
+    ],
+],
 ```
 
 - [ ] **Step 5: Re-run tests — all should pass**
