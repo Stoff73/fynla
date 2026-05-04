@@ -1129,6 +1129,18 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/in
     Route::delete('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'destroy']);
 });
 
+// Admin Documents CMS
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/documents')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'store']);
+    Route::get('{document}', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'show']);
+    Route::put('{document}', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'update']);
+    Route::delete('{document}', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'destroy']);
+    Route::post('{document}/publish', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'publish']);
+    Route::post('{document}/unpublish', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'unpublish']);
+    Route::get('{document}/preview-url', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'previewUrl']);
+});
+
 // News subscribers (admin)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     Route::get('news-subscribers', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
