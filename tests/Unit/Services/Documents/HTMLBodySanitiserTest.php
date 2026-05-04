@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Services\Documents\HTMLBodySanitiser;
 
 beforeEach(function () {
-    $this->sanitiser = new HTMLBodySanitiser();
+    $this->sanitiser = new HTMLBodySanitiser;
 });
 
 it('preserves headings, paragraphs, lists, links and images from our storage path', function () {

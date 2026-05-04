@@ -6,7 +6,7 @@ use App\Services\Documents\DocxMetadataExtractor;
 use Illuminate\Support\Facades\Log;
 
 it('extracts title, subject, description, creator, keywords from core.xml', function () {
-    $extractor = new DocxMetadataExtractor();
+    $extractor = new DocxMetadataExtractor;
 
     $meta = $extractor->extract(base_path('tests/fixtures/documents/sample-minimal.docx'));
 
@@ -21,12 +21,12 @@ it('extracts title, subject, description, creator, keywords from core.xml', func
 
 it('returns nulls when core.xml is missing', function () {
     $tmp = tempnam(sys_get_temp_dir(), 'docx');
-    $zip = new ZipArchive();
+    $zip = new ZipArchive;
     $zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE);
     $zip->addFromString('word/document.xml', '<x/>');
     $zip->close();
 
-    $meta = (new DocxMetadataExtractor())->extract($tmp);
+    $meta = (new DocxMetadataExtractor)->extract($tmp);
 
     expect($meta)->toBe([
         'title' => null,
@@ -43,7 +43,7 @@ it('throws when the file is not a valid zip', function () {
     $tmp = tempnam(sys_get_temp_dir(), 'notdocx');
     file_put_contents($tmp, 'not a zip');
 
-    expect(fn () => (new DocxMetadataExtractor())->extract($tmp))
+    expect(fn () => (new DocxMetadataExtractor)->extract($tmp))
         ->toThrow(\RuntimeException::class, 'not a valid docx');
 
     unlink($tmp);
@@ -53,12 +53,12 @@ it('logs a warning when core.xml is malformed XML', function () {
     Log::spy();
 
     $tmp = tempnam(sys_get_temp_dir(), 'docx');
-    $zip = new ZipArchive();
+    $zip = new ZipArchive;
     $zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE);
     $zip->addFromString('docProps/core.xml', 'this is not xml at all <<<<');
     $zip->close();
 
-    $meta = (new DocxMetadataExtractor())->extract($tmp);
+    $meta = (new DocxMetadataExtractor)->extract($tmp);
 
     expect($meta)->toBe([
         'title' => null,

@@ -11,6 +11,7 @@ use ZipArchive;
 class DocxMetadataExtractor
 {
     private const NS_DC = 'http://purl.org/dc/elements/1.1/';
+
     private const NS_CP = 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties';
 
     /**
@@ -18,7 +19,7 @@ class DocxMetadataExtractor
      */
     public function extract(string $docxPath): array
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $opened = $zip->open($docxPath);
         if ($opened !== true) {
             throw new RuntimeException("File at {$docxPath} is not a valid docx (zip open failed: {$opened})");
@@ -39,6 +40,7 @@ class DocxMetadataExtractor
             Log::warning('[DocxMetadataExtractor] core.xml is malformed XML, falling back to client metadata', [
                 'path' => $docxPath,
             ]);
+
             return $this->emptyMeta();
         }
 

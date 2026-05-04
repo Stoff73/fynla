@@ -26,7 +26,8 @@ class HTMLBodySanitiser
             '/<img\b([^>]*\bdata-pending-image\b[^>]*)>/i',
             function (array $m) use (&$placeholders, $placeholderToken): string {
                 $index = count($placeholders);
-                $placeholders[] = '<img' . $m[1] . '>';
+                $placeholders[] = '<img'.$m[1].'>';
+
                 return $placeholderToken($index);
             },
             $html
@@ -47,6 +48,7 @@ class HTMLBodySanitiser
                         return ''; // strip the whole tag
                     }
                 }
+
                 // No src attribute — keep (placeholder may rely on data-pending-image).
                 return '<img'.$attrs.'>';
             },

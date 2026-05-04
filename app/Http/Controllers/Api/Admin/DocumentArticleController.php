@@ -10,7 +10,6 @@ use App\Http\Requests\Admin\DocumentArticleUpdateRequest;
 use App\Models\DocumentArticle;
 use App\Services\Documents\DocumentArticleImporter;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
