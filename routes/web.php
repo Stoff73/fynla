@@ -13,12 +13,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Public document articles — full Blade server-render with SEO chrome.
-// MUST be declared BEFORE the SPA catch-all so the slug resolves to the
-// Blade view rather than falling through to app.blade.php.
-Route::get('/articles/{slug}', [\App\Http\Controllers\PublicDocumentArticleController::class, 'show'])
-    ->name('document-articles.show');
-
 // Server-render per-article SEO meta tags for DB-driven insights.
 // MUST be declared BEFORE the SPA catch-all below so /insights/{slug}
 // runs the InsightsSeoMetaInjector middleware before returning app.blade.php.

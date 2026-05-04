@@ -16,13 +16,15 @@ declare(strict_types=1);
  *        - meta description contains "A rich fixture"
  *        - body canvas shows "Big Heading" and a 2-column table with "Left" and "Right".
  *   6. Click "Publish" → success message "Published."
- *   7. Open new tab to /articles/rich-sample-title.
- *   8. Page <title> contains "Rich Sample Title — Fynla".
- *   9. <meta name="description"> present with the description text.
- *  10. og:image meta is set.
- *  11. JSON-LD <script type="application/ld+json"> present and parses to an Article object.
- *  12. Page body contains "Big Heading" and the 2-column table.
- *  13. view-source shows NO <script> outside the JSON-LD block.
+ *   7. Open new tab to /insights/rich-sample-title.
+ *   8. Page renders inside PublicLayout — top nav, hero header, and footer all present.
+ *   9. Page <title> contains "Rich Sample Title".
+ *  10. <meta name="description"> present with the description text.
+ *  11. og:image meta is set.
+ *  12. JSON-LD <script type="application/ld+json"> present and parses to an Article object.
+ *  13. Page body contains "Big Heading" and the 2-column table inside .article-html-body.
+ *  14. The article surfaces in the /insights hub list (page 1, no category filter).
+ *  15. view-source shows NO <script> outside the SPA bundle and JSON-LD blocks.
  *
  * Drop the malicious fixture in a second pass (sample-with-malicious-html.docx); after publish,
  * confirm "Hello" is rendered but "alert(1)" is NOT in the served HTML.

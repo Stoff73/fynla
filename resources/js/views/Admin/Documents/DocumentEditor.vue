@@ -14,7 +14,7 @@
             <div>
                 <label class="block text-sm font-bold text-horizon-700 mb-1">Slug</label>
                 <input v-model="form.slug" type="text" class="w-full border border-horizon-200 rounded px-3 py-2 font-mono text-sm" />
-                <p class="text-xs text-horizon-500 mt-1">Public URL: <code>/articles/{{ form.slug }}</code></p>
+                <p class="text-xs text-horizon-500 mt-1">Public URL: <code>/insights/{{ form.slug }}</code></p>
             </div>
 
             <div>

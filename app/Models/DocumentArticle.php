@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\URL;
 
 class DocumentArticle extends Model
 {
@@ -52,10 +51,9 @@ class DocumentArticle extends Model
 
     public function previewUrl(): string
     {
-        return URL::temporarySignedRoute(
-            'document-articles.show',
-            now()->addMinutes(30),
-            ['slug' => $this->slug, 'preview' => 1]
-        );
+        // Drafts surface through the existing /insights SPA pipeline. Admin
+        // auth is the access gate (Api\Public\InsightController::show checks
+        // for is_admin + preview=true), so no signed URL is needed.
+        return rtrim(config('app.url'), '/')."/insights/{$this->slug}?preview=true";
     }
 }
