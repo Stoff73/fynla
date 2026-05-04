@@ -27,7 +27,14 @@ class SanitizeInput
      * Add field names here if they need to allow HTML content
      */
     protected array $htmlAllowedFields = [
-        // 'content', 'description', 'body' - add as needed
+        // Document article CMS — `html` (import) and `html_body` (update) carry
+        // mammoth-converted Word document HTML. Downstream sanitisation runs
+        // via HTMLPurifier in HTMLBodySanitiser using the `document_article`
+        // profile, which is the appropriate defence-in-depth layer for rich
+        // article content; middleware-level strip_tags here would erase the
+        // structure HTMLPurifier is meant to validate.
+        'html',
+        'html_body',
     ];
 
     /**

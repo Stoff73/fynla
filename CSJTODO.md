@@ -1,7 +1,109 @@
 # CSJTODO — Fynla
 
-*Last updated: 28 April 2026 — session 72 (news subscriber email-list signup + PR #238)*
-*Previous session: 27 April 2026 — session 71 (RSS news hub + landing-page restoration + PR #237)*
+*Last updated: 4 May 2026 — session 74 context-clear (CSP fix, Tiptap fix, dev deploy, PR #240, deployCMS guide)*
+*Previous session: 4 May 2026 — session 73 context-clear (Document Articles CMS implementation)*
+
+---
+
+## Session 74 (4 May 2026, context-clear) — CSP fix + dev deploy + PR #240
+
+**Branch:** `CMSFix` (sync'd with `origin/CMSFix` — all pushed).
+**PR:** [#240](https://github.com/Stoff73/fynla/pull/240) `CMSFix → dev` **open**, awaiting CSJ review/merge. Branch-naming caveat flagged in body (CMSFix vs `feature/csj/<task>`).
+**Handover:** `May/May4Updates/handover-2026-05-04-session-2-clear.md` (mirrored to fynlaBrain vault).
+**Deploy guide:** `May/May4Updates/deployCMS.md` (covers dev + prod, file lists generated from `git diff`).
+
+### Completed this session
+
+#### Bug fixes (3 commits, all on CMSFix)
+
+- [x] **`5fc22ee` fix(documents): CSP/cross-origin Network Error on .docx upload.** Root cause: new `documentArticleService.js` imported bare global `axios` (whose `bootstrap.js:27` baseURL is hardcoded `http://127.0.0.1:8000`) instead of `@/services/api`. Page loaded at `localhost:8000` → cross-origin → CSP `connect-src 'self'` blocked. Aligned with project's API Services Pattern.
+- [x] **`4a55043` fix(documents): Tiptap default-imports broke production build.** Tiptap v3 packages publish ESM with named exports only; `import Default from '@tiptap/extension-table'` works in dev (esbuild CJS interop) but Rollup's strict ESM rejects it. Converted all 10 extension imports to named form.
+- [x] **`9d50768` docs(deploy): wrote `May/May4Updates/deployCMS.md`** — file lists generated from `git diff` against origin/dev (42 files) and origin/main (142 files), server-path corrections for csjones sibling-dir layout, composer install step, rollback procedure, smoke checklists.
+
+#### Verification
+
+- [x] Browser-tested locally on `http://localhost:8000` — login → upload → 201 → publish 200 → public render. Console clean.
+- [x] Browser-tested on dev (`https://csjones.co/fynla`) — same flow plus editor view. Console clean except pre-existing top-level `/favicon.ico` 404 (unrelated, csjones serves at `/fynla/favicon.ico`).
+- [x] Vite production build succeeds after Tiptap fix; rsync deploy completed; composer install / migrate / cache:clear / build.old merge all green.
+
+#### Session 73 carry-overs ticked off here
+
+- [x] ~~`git push -u origin CMSFix`~~ — pushed at `5fc22ee`, `9d50768`, `4a55043`.
+- [x] ~~Decide on PR `CMSFix → dev`~~ — PR #240 opened.
+- [x] **Drive Playwright browser scenario** — driven against local + dev servers. The `tests/Browser/scenarios/document-articles-end-to-end.php` Pest scenario file itself wasn't executed (it's a contract document; manual Playwright run covered the same 13 GREEN conditions minus malicious-fixture path).
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **CSJ review + merge PR #240** (`CMSFix → dev`). Branch-naming caveat: `CMSFix` doesn't follow `feature/csj/<task>` — rename + reopen, or override.
+- [ ] **Verify `/admin/insights` still works** (session 73 carry-over Task 23.2) — not browser-verified yet.
+- [ ] **Drive malicious-fixture path on dev** — `sample-with-malicious-html.docx` should publish with `<script>` and event handlers stripped. Pest feature tests cover it; live browser path not yet driven.
+- [ ] **Eventually merge `dev → main`** — will carry the news/RSS/lifecycle bundle from PR #238 too (origin/dev is 42 commits ahead of origin/main). Three migrations will run on prod, not one. Documented in `deployCMS.md`.
+
+### Tech debt + follow-ups
+
+- [ ] **`bootstrap.js:27` latent hardcode** — `'http://127.0.0.1:8000'` regardless of page hostname. Every existing service routes around it via `services/api.js`; this session's CMS fix made it the convention. One-line cleanup PR worth opening: change to `window.location.origin`. Not blocking.
+- [ ] **Memory candidate** — "Tiptap v3 publishes ESM with named exports only — never default-import". Vault-sync flagged; not auto-saved. Worth saving if it bites again.
+- [ ] **Test artefact on dev** — "Rich Sample Title" published article id=1 sits in csjones DB. Deletable from `/admin/documents` admin UI.
+- [ ] **`build.old/`** at `~/www/csjones.co/fynla-app/public/build.old/` (~78M) — preserved per `feedback_warn_before_spa_rebuild.md`. Deletable once confidence high.
+
+### Known issues / blockers
+
+None. Everything green on dev; nothing broken.
+
+---
+
+## Session 73 (4 May 2026, context-clear) — Document Articles CMS
+
+**Branch:** `CMSFix` (28 commits ahead of `origin/CMSFix`, **not yet pushed** — awaiting CSJ).
+**Plan + spec:** `May/May1Updates/2026-05-01-document-articles-cms-{plan,spec}.md`. Both amended in flight to reflect as-built; spec FI section captures deferred decisions.
+**Handover:** `May/May4Updates/handover-2026-05-04-session-1-clear.md` (mirrored to fynlaBrain vault).
+
+### Completed this session
+
+#### Implementation — 22 of 23 plan tasks done
+
+- [x] **Phase 0 (deps):** Tasks 1–2 — installed `mammoth`, `jszip`, 7 tiptap extensions; installed `mews/purifier` with `document_article` profile.
+- [x] **Phase 1 (DB + model):** Tasks 3–4 — `document_articles` migration; `DocumentArticle` Eloquent model + factory.
+- [x] **Phase 2 (services, TDD):** Tasks 5–7 — `DocxMetadataExtractor`, `HTMLBodySanitiser`, `DocumentArticleImporter`, `SlugGenerator`. 16 unit tests + 3 feature tests, all green.
+- [x] **Phase 3 (HTTP):** Tasks 8–11 — `DocumentArticleImportRequest`, `DocumentArticleUpdateRequest`, admin `DocumentArticleController` (8 endpoints, 8 tests), public `PublicDocumentArticleController` + Blade with full SEO chrome (4 tests).
+- [x] **Phase 4 (frontend state):** Tasks 12–13 — `documentArticleService.js`, `documentArticles` Vuex module registered in `store/index.js`.
+- [x] **Phase 5 (components):** Tasks 14–17 — `DropZone.vue` (mammoth + JSZip), `CoverImagePicker.vue`, `DocumentListPage.vue`, `DocumentEditor.vue` (Tiptap canvas with 11 extensions wired).
+- [x] **Phase 6 (wire-up):** Tasks 18–19 — router routes lazy-loaded, Documents sidebar entry with icon path.
+- [x] **Phase 7 (polish, partial):** Tasks 20 (rich + malicious fixtures), 21 (full pest suite + pint + parallel run), 22 (browser scenario contract committed).
+
+#### Spec amendments approved by CSJ in flight
+
+- [x] Add `<pre>`, `<sub>`, `<sup>` to `document_article` HTMLPurifier allow-list (mammoth fidelity).
+- [x] Defer `imported_by` cascade-on-delete decision to FI-19 sprint (recorded in spec FI table).
+- [x] Plan's `data-pending-image` mechanism corrected: register via `custom_definition.attributes`, NOT `HTML.Allowed` (HTMLPurifier API constraint the plan missed).
+- [x] Sentinel collision-resistance: `HTMLBodySanitiser` uses per-call random nonce (`bin2hex(random_bytes(8))`).
+- [x] `putFileAs` silent-failure guard + new test that genuinely covers mid-transaction rollback (replaced misleading test).
+- [x] `DocxMetadataExtractor` adds `Log::warning` on malformed core.xml per spec line 307.
+- [x] `DocumentArticleFactory` aligned with `fake()` (project convention).
+- [x] Plan's `with('importer:id,name,email')` → `id,first_name,surname,email` (`name` is a User accessor; controller selection corrected to load source columns).
+
+#### Verification
+
+- [x] Documents suite: 53 tests passed, 141 assertions.
+- [x] Full Pest parallel suite: 2425 tests passed, 9632 assertions, **0 regressions**.
+- [x] `php artisan migrate:rollback --step=1 && php artisan migrate` round-trips cleanly.
+- [x] Pint clean across all touched paths after one formatting commit.
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **Drive Playwright browser scenario** — `tests/Browser/scenarios/document-articles-end-to-end.php` documents 13 GREEN conditions; driver needs to actually execute against the running dev server (login → upload `sample-with-images-and-tables.docx` → publish → assert SEO chrome on `/articles/rich-sample-title` → repeat with malicious fixture). Per CLAUDE.md Rule #15 LOOP UNTIL CORRECT.
+- [ ] **`git push -u origin CMSFix`** — 28 commits unpushed. Don't auto-push per `feedback_no_deploy_recommendations`.
+- [ ] **Verify `/admin/insights` still works** (Task 23.2) — needs browser; can roll into the Playwright run.
+- [ ] **Decide on PR `CMSFix → dev`** — only after browser test green.
+
+### Tech debt + FI follow-ups (not blocking)
+
+- [ ] FI-19 sprint: revisit `imported_by` cascade behaviour alongside soft-delete design. Logged in spec.
+- [ ] Plan author note: three real defects in the plan (`data-pending-image` mechanism, misleading test name, `name` column reference) — worth a plan-quality pass before the next CMS feature uses similar templates.
+
+### Known issues / blockers
+
+None. Everything green; nothing broken.
 
 ---
 
