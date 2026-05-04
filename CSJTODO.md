@@ -1,7 +1,54 @@
 # CSJTODO — Fynla
 
-*Last updated: 4 May 2026 — session 73 context-clear (Document Articles CMS implementation, CMSFix branch)*
-*Previous session: 28 April 2026 — session 72 (news subscriber email-list signup + PR #238)*
+*Last updated: 4 May 2026 — session 74 context-clear (CSP fix, Tiptap fix, dev deploy, PR #240, deployCMS guide)*
+*Previous session: 4 May 2026 — session 73 context-clear (Document Articles CMS implementation)*
+
+---
+
+## Session 74 (4 May 2026, context-clear) — CSP fix + dev deploy + PR #240
+
+**Branch:** `CMSFix` (sync'd with `origin/CMSFix` — all pushed).
+**PR:** [#240](https://github.com/Stoff73/fynla/pull/240) `CMSFix → dev` **open**, awaiting CSJ review/merge. Branch-naming caveat flagged in body (CMSFix vs `feature/csj/<task>`).
+**Handover:** `May/May4Updates/handover-2026-05-04-session-2-clear.md` (mirrored to fynlaBrain vault).
+**Deploy guide:** `May/May4Updates/deployCMS.md` (covers dev + prod, file lists generated from `git diff`).
+
+### Completed this session
+
+#### Bug fixes (3 commits, all on CMSFix)
+
+- [x] **`5fc22ee` fix(documents): CSP/cross-origin Network Error on .docx upload.** Root cause: new `documentArticleService.js` imported bare global `axios` (whose `bootstrap.js:27` baseURL is hardcoded `http://127.0.0.1:8000`) instead of `@/services/api`. Page loaded at `localhost:8000` → cross-origin → CSP `connect-src 'self'` blocked. Aligned with project's API Services Pattern.
+- [x] **`4a55043` fix(documents): Tiptap default-imports broke production build.** Tiptap v3 packages publish ESM with named exports only; `import Default from '@tiptap/extension-table'` works in dev (esbuild CJS interop) but Rollup's strict ESM rejects it. Converted all 10 extension imports to named form.
+- [x] **`9d50768` docs(deploy): wrote `May/May4Updates/deployCMS.md`** — file lists generated from `git diff` against origin/dev (42 files) and origin/main (142 files), server-path corrections for csjones sibling-dir layout, composer install step, rollback procedure, smoke checklists.
+
+#### Verification
+
+- [x] Browser-tested locally on `http://localhost:8000` — login → upload → 201 → publish 200 → public render. Console clean.
+- [x] Browser-tested on dev (`https://csjones.co/fynla`) — same flow plus editor view. Console clean except pre-existing top-level `/favicon.ico` 404 (unrelated, csjones serves at `/fynla/favicon.ico`).
+- [x] Vite production build succeeds after Tiptap fix; rsync deploy completed; composer install / migrate / cache:clear / build.old merge all green.
+
+#### Session 73 carry-overs ticked off here
+
+- [x] ~~`git push -u origin CMSFix`~~ — pushed at `5fc22ee`, `9d50768`, `4a55043`.
+- [x] ~~Decide on PR `CMSFix → dev`~~ — PR #240 opened.
+- [x] **Drive Playwright browser scenario** — driven against local + dev servers. The `tests/Browser/scenarios/document-articles-end-to-end.php` Pest scenario file itself wasn't executed (it's a contract document; manual Playwright run covered the same 13 GREEN conditions minus malicious-fixture path).
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **CSJ review + merge PR #240** (`CMSFix → dev`). Branch-naming caveat: `CMSFix` doesn't follow `feature/csj/<task>` — rename + reopen, or override.
+- [ ] **Verify `/admin/insights` still works** (session 73 carry-over Task 23.2) — not browser-verified yet.
+- [ ] **Drive malicious-fixture path on dev** — `sample-with-malicious-html.docx` should publish with `<script>` and event handlers stripped. Pest feature tests cover it; live browser path not yet driven.
+- [ ] **Eventually merge `dev → main`** — will carry the news/RSS/lifecycle bundle from PR #238 too (origin/dev is 42 commits ahead of origin/main). Three migrations will run on prod, not one. Documented in `deployCMS.md`.
+
+### Tech debt + follow-ups
+
+- [ ] **`bootstrap.js:27` latent hardcode** — `'http://127.0.0.1:8000'` regardless of page hostname. Every existing service routes around it via `services/api.js`; this session's CMS fix made it the convention. One-line cleanup PR worth opening: change to `window.location.origin`. Not blocking.
+- [ ] **Memory candidate** — "Tiptap v3 publishes ESM with named exports only — never default-import". Vault-sync flagged; not auto-saved. Worth saving if it bites again.
+- [ ] **Test artefact on dev** — "Rich Sample Title" published article id=1 sits in csjones DB. Deletable from `/admin/documents` admin UI.
+- [ ] **`build.old/`** at `~/www/csjones.co/fynla-app/public/build.old/` (~78M) — preserved per `feedback_warn_before_spa_rebuild.md`. Deletable once confidence high.
+
+### Known issues / blockers
+
+None. Everything green on dev; nothing broken.
 
 ---
 
