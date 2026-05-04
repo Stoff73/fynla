@@ -64,11 +64,14 @@ class DocumentArticleImporter
                 foreach ($imageBlobs as $index => $blob) {
                     $ext = strtolower($blob->getClientOriginalExtension() ?: 'png');
                     $path = "document-articles/{$article->id}/img-{$index}.{$ext}";
-                    Storage::disk('public')->putFileAs(
+                    $stored = Storage::disk('public')->putFileAs(
                         "document-articles/{$article->id}",
                         $blob,
                         "img-{$index}.{$ext}"
                     );
+                    if ($stored === false) {
+                        throw new RuntimeException("Failed to write image index {$index} for article {$article->id}.");
+                    }
                     $writtenPaths[$index] = $path;
                 }
             } catch (\Throwable $e) {

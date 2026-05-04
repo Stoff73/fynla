@@ -51,7 +51,7 @@ it('creates a draft row + writes images + rewrites placeholders', function () {
     Storage::disk('public')->assertExists('document-articles/'.$article->id.'/img-0.png');
 });
 
-it('rolls back the row when image write fails', function () {
+it('rejects import when html references an image index with no matching blob', function () {
     $docx = new UploadedFile(
         base_path('tests/fixtures/documents/sample-minimal.docx'),
         'sample-minimal.docx',
@@ -73,5 +73,45 @@ it('rolls back the row when image write fails', function () {
         importedBy: $this->admin,
     ))->toThrow(\RuntimeException::class);
 
+    expect(DocumentArticle::count())->toBe($beforeCount);
+});
+
+it('rolls back the article row when image write fails inside the transaction', function () {
+    $docx = new UploadedFile(
+        base_path('tests/fixtures/documents/sample-minimal.docx'),
+        'sample-minimal.docx',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        null,
+        true
+    );
+
+    // Override the fake disk installed in beforeEach with a mock that returns false from putFileAs.
+    Storage::shouldReceive('disk')
+        ->with('public')
+        ->andReturnSelf();
+    Storage::shouldReceive('putFileAs')
+        ->andReturn(false);
+    // Allow delete() calls during cleanup.
+    Storage::shouldReceive('delete')->andReturn(true);
+
+    $beforeCount = DocumentArticle::count();
+
+    expect(fn () => app(DocumentArticleImporter::class)->import(
+        docxFile: $docx,
+        html: '<p>Hi</p><img data-pending-image="0" alt="">',
+        imageBlobs: [
+            0 => UploadedFile::fake()->image('img-0.png', 100, 80),
+        ],
+        clientMetadata: [
+            'title' => 'Will Roll Back',
+            'subtitle' => null,
+            'description' => null,
+            'keywords' => null,
+            'author_name' => null,
+        ],
+        importedBy: $this->admin,
+    ))->toThrow(\RuntimeException::class, 'Failed to write image');
+
+    // The DB::transaction must have rolled back the create.
     expect(DocumentArticle::count())->toBe($beforeCount);
 });
