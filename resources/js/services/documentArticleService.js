@@ -1,14 +1,14 @@
-import axios from 'axios';
+import api from '@/services/api';
 
-const base = '/api/admin/documents';
+const base = '/admin/documents';
 
 export default {
     list() {
-        return axios.get(base);
+        return api.get(base);
     },
 
     get(id) {
-        return axios.get(`${base}/${id}`);
+        return api.get(`${base}/${id}`);
     },
 
     import({ docx, html, images, metadata }) {
@@ -24,28 +24,28 @@ export default {
             const file = new File([blob], name, { type: blob.type || 'image/png' });
             form.append(`images[${index}]`, file);
         });
-        return axios.post(base, form, {
+        return api.post(base, form, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
     },
 
     update(id, payload) {
-        return axios.put(`${base}/${id}`, payload);
+        return api.put(`${base}/${id}`, payload);
     },
 
     destroy(id) {
-        return axios.delete(`${base}/${id}`);
+        return api.delete(`${base}/${id}`);
     },
 
     publish(id) {
-        return axios.post(`${base}/${id}/publish`);
+        return api.post(`${base}/${id}/publish`);
     },
 
     unpublish(id) {
-        return axios.post(`${base}/${id}/unpublish`);
+        return api.post(`${base}/${id}/unpublish`);
     },
 
     previewUrl(id) {
-        return axios.get(`${base}/${id}/preview-url`);
+        return api.get(`${base}/${id}/preview-url`);
     },
 };
