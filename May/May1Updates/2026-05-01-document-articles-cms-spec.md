@@ -289,8 +289,8 @@ Styled with the existing design system (eggshell page background, horizon-blue h
 
 | Element class | Allowed |
 |---|---|
-| **Block tags** | `h1, h2, h3, h4, h5, h6, p, ul, ol, li, blockquote, table, thead, tbody, tr, td, th, hr, figure, figcaption, div` |
-| **Inline tags** | `strong, em, u, a[href|target|rel], img[src|alt|width|height], br, span[style], code` |
+| **Block tags** | `h1, h2, h3, h4, h5, h6, p, ul, ol, li, blockquote, table, thead, tbody, tr, td, th, hr, figure, figcaption, div, pre` |
+| **Inline tags** | `strong, em, u, a[href|target|rel], img[src|alt|width|height], br, span[style], code, sub, sup` |
 | **Attributes** | `style` on `span` and inline elements only |
 | **CSS properties** | `color, background-color, text-align, font-weight, font-style, text-decoration` only |
 | **`a[href]`** | Must start with `http://`, `https://`, or `/` |

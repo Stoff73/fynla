@@ -105,9 +105,9 @@ return [
             'HTML.Doctype'             => 'HTML 4.01 Transitional',
             'HTML.Allowed'             => 'h1,h2,h3,h4,h5,h6,p,ul,ol,li,blockquote,'
                 .'table,thead,tbody,tr,td[colspan|rowspan],th[colspan|rowspan|scope],'
-                .'hr,figure,figcaption,div,'
+                .'hr,figure,figcaption,div,pre,'
                 .'strong,em,u,a[href|target|rel],img[src|alt|width|height],br,'
-                .'span[style],code',
+                .'span[style],code,sub,sup',
             'CSS.AllowedProperties'    => 'color,background-color,text-align,font-weight,font-style,text-decoration',
             'AutoFormat.AutoParagraph' => false,
             'AutoFormat.RemoveEmpty'   => true,
