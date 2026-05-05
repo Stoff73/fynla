@@ -17,12 +17,13 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 /**
@@ -55,7 +56,9 @@ it('every direct-write handler fires the model `created` event', function (): vo
 
     foreach ($cases as [$model, $tool, $input]) {
         $fired = false;
-        $model::created(function () use (&$fired) { $fired = true; });
+        $model::created(function () use (&$fired) {
+            $fired = true;
+        });
         $result = app(CoordinatingAgent::class)->executeTool($tool, $input, $user);
         expect($result['success'] ?? false)->toBeTrue();
         expect($fired)->toBeTrue("{$tool} did not fire {$model}::created event");

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Coordination;
 
+use App\Services\Plans\PlanConfigService;
+
 /**
  * HolisticPlanner
  *
@@ -13,7 +15,7 @@ namespace App\Services\Coordination;
 class HolisticPlanner
 {
     public function __construct(
-        private readonly \App\Services\Plans\PlanConfigService $planConfig
+        private readonly PlanConfigService $planConfig
     ) {}
 
     /**

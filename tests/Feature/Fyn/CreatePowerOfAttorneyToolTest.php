@@ -6,6 +6,8 @@ use App\Agents\CoordinatingAgent;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\LpaAttorney;
 use App\Models\User;
+use App\Services\AI\AiToolDefinitions;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -24,7 +26,7 @@ uses(RefreshDatabase::class);
  * AiToolDefinitions.php + XaiToolDefinitions.php — see Report 1 §B-7.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('persists is_registered_with_opg when status=registered is provided', function () {
@@ -58,7 +60,7 @@ it('persists is_registered_with_opg when status=registered is provided', functio
 });
 
 it('defaults to draft and does not set registration_date when status is omitted', function () {
-    $user = User::factory()->create(['is_preview_user' => false,'first_name' => 'Draft', 'surname' => 'User']);
+    $user = User::factory()->create(['is_preview_user' => false, 'first_name' => 'Draft', 'surname' => 'User']);
 
     $agent = app(CoordinatingAgent::class);
 
@@ -96,7 +98,7 @@ it('accepts both lpa_type values and creates a primary attorney row per LPA', fu
 });
 
 it('includes status-extraction signal words in the create_power_of_attorney tool description', function () {
-    $toolDefs = app(\App\Services\AI\AiToolDefinitions::class);
+    $toolDefs = app(AiToolDefinitions::class);
 
     // Locate the create_power_of_attorney tool in the full tool list.
     $method = new ReflectionMethod($toolDefs, 'estateCreationTools');

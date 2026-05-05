@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console;
 
+use App\Jobs\AiAuditRetentionJob;
+use App\Jobs\AiIdempotencyCleanupJob;
+use App\Jobs\PublishScheduledInsightsJob;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -31,13 +34,13 @@ class Kernel extends ConsoleKernel
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
 
-        $schedule->job(new \App\Jobs\PublishScheduledInsightsJob())->everyFiveMinutes();
+        $schedule->job(new PublishScheduledInsightsJob)->everyFiveMinutes();
 
         // S0.11.3 — clean up expired idempotency rows once a day.
-        $schedule->job(new \App\Jobs\AiIdempotencyCleanupJob())->dailyAt('03:30');
+        $schedule->job(new AiIdempotencyCleanupJob)->dailyAt('03:30');
 
         // S0.12 — weekly retention sweep + chain-integrity health check.
-        $schedule->job(new \App\Jobs\AiAuditRetentionJob())->weeklyOn(0, '04:00');
+        $schedule->job(new AiAuditRetentionJob)->weeklyOn(0, '04:00');
         $schedule->command('ai:audit:verify-chain')->weeklyOn(0, '04:30');
 
         // S1.3 — every 30 minutes, dispatch summariser jobs for any

@@ -24,7 +24,7 @@ describe('ShareContentGenerator', function () {
         $generator = new ShareContentGenerator;
 
         expect(fn () => $generator->generate('invalid'))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 
     it('never includes currency symbols in any content', function () {

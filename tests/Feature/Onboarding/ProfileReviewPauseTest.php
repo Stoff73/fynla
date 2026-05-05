@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -20,7 +21,7 @@ uses(RefreshDatabase::class);
  * onboarding_layout_change SSE events.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('emits onboarding_layout_change=standard when entering STATE_PROFILE_REVIEW_FAMILY', function () {

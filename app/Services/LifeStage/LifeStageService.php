@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\LifeStage;
 
+use App\Models\Estate\Will;
+use App\Models\ExpenditureProfile;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -376,7 +378,7 @@ class LifeStageService
                 || $this->hasProperty($user),
             'has_goals' => $user->goals()->exists(),
             'has_liabilities' => $user->liabilities()->exists(),
-            'has_will' => \App\Models\Estate\Will::where('user_id', $user->id)->exists(),
+            'has_will' => Will::where('user_id', $user->id)->exists(),
             'has_protection' => $user->lifeInsurancePolicies()->exists()
                 || $user->criticalIllnessPolicies()->exists()
                 || $user->incomeProtectionPolicies()->exists(),
@@ -536,6 +538,6 @@ class LifeStageService
      */
     private function hasExpenditureProfile(User $user): bool
     {
-        return \App\Models\ExpenditureProfile::where('user_id', $user->id)->exists();
+        return ExpenditureProfile::where('user_id', $user->id)->exists();
     }
 }

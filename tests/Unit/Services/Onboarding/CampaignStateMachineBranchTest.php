@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 describe('STATE_PROFILE_REVIEW_EXPENDITURE branching', function () {
@@ -201,7 +203,7 @@ describe('STATE_CAMPAIGN_INTRO prompt builder', function () {
             'marital_status' => 'married',
             'spouse_id' => null,
         ]);
-        $conversation = \App\Models\AiConversation::factory()->create([
+        $conversation = AiConversation::factory()->create([
             'user_id' => $user->id,
             'onboarding_parked_facts' => ['spouse' => ['first_name' => 'Maya']],
         ]);

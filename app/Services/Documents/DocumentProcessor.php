@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Documents;
 
+use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Document;
+use App\Models\DocumentExtraction;
 use App\Models\DocumentExtractionLog;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Documents\FieldMappers\DBPensionMapper;
 use App\Services\Documents\FieldMappers\DCPensionMapper;
@@ -275,7 +281,7 @@ class DocumentProcessor
                         $sheet['content'],
                     );
 
-                    $extraction = \App\Models\DocumentExtraction::create([
+                    $extraction = DocumentExtraction::create([
                         'document_id' => $document->id,
                         'extraction_version' => 1,
                         'model_used' => config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning'),
@@ -395,7 +401,7 @@ class DocumentProcessor
                     $mapper = new FieldMappers\SavingsAccountMapper;
                     $mapped = $mapper->map($sheet['account'] ?? []);
                     $mapped['user_id'] = $user->id;
-                    $model = \App\Models\SavingsAccount::create($mapped);
+                    $model = SavingsAccount::create($mapped);
                     $results[] = [
                         'sheet_name' => $sheet['sheet_name'],
                         'category' => $category,
@@ -407,7 +413,7 @@ class DocumentProcessor
                     foreach ($sheet['properties'] ?? [$sheet['account'] ?? []] as $propertyData) {
                         $mapped = $mapper->map($propertyData);
                         $mapped['user_id'] = $user->id;
-                        $model = \App\Models\Property::create($mapped);
+                        $model = Property::create($mapped);
                         $results[] = [
                             'sheet_name' => $sheet['sheet_name'],
                             'category' => $category,
@@ -466,13 +472,13 @@ class DocumentProcessor
     private function registerMappers(): void
     {
         $this->mappers = [
-            \App\Models\DCPension::class => new DCPensionMapper,
-            \App\Models\DBPension::class => new DBPensionMapper,
-            \App\Models\LifeInsurancePolicy::class => new LifeInsuranceMapper,
-            \App\Models\Investment\InvestmentAccount::class => new InvestmentAccountMapper,
-            \App\Models\Property::class => new FieldMappers\PropertyMapper,
-            \App\Models\SavingsAccount::class => new FieldMappers\SavingsAccountMapper,
-            \App\Models\Mortgage::class => new FieldMappers\MortgageMapper,
+            DCPension::class => new DCPensionMapper,
+            DBPension::class => new DBPensionMapper,
+            LifeInsurancePolicy::class => new LifeInsuranceMapper,
+            InvestmentAccount::class => new InvestmentAccountMapper,
+            Property::class => new FieldMappers\PropertyMapper,
+            SavingsAccount::class => new FieldMappers\SavingsAccountMapper,
+            Mortgage::class => new FieldMappers\MortgageMapper,
         ];
     }
 }

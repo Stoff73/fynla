@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Recommendation;
 
+use App\Events\Eval\GateChecked;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\LifeEvent;
@@ -51,7 +52,7 @@ class DataReadinessService
         $passedChecks = count(array_filter($checks, fn (array $check): bool => $check['passed']));
         $canProceed = count($blocking) === 0;
 
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'data_readiness',
             module: 'investment',
             passed: $canProceed,

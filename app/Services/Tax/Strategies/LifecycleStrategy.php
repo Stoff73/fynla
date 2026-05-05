@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Strategies;
 
+use App\Constants\TaxDefaults;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
@@ -114,8 +115,8 @@ final class LifecycleStrategy implements TaxStrategy
             // from TaxDefaults so every strategy that quotes the figure
             // updates together; CSJTODO S-3 promotes this to TaxConfigService
             // once the schema has a non_earner_pension key.
-            $juniorPensionNet = (float) \App\Constants\TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
-            $juniorPensionUplift = (float) \App\Constants\TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
+            $juniorPensionNet = (float) TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
+            $juniorPensionUplift = (float) TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
             $totalUplift = $childCount * $juniorPensionUplift;
             $recommendations[] = new StrategyRecommendation(
                 type: 'junior_pension',

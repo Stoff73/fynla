@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\Analytics\CorrelationMatrixCalculator;
 use App\Services\Investment\Analytics\CovarianceMatrixCalculator;
 use App\Services\Investment\Analytics\EfficientFrontierCalculator;
@@ -109,7 +110,7 @@ class PortfolioOptimizationController extends Controller
             $expectedReturns = $data['expected_returns'];
 
             // Calculate covariance matrix from holdings
-            $accounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            $accounts = InvestmentAccount::where('user_id', $user->id)
                 ->with('holdings')
                 ->get();
             $holdings = $accounts->flatMap->holdings;
@@ -173,7 +174,7 @@ class PortfolioOptimizationController extends Controller
             $expectedReturns = $data['expected_returns'];
 
             // Calculate covariance matrix from holdings
-            $accounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            $accounts = InvestmentAccount::where('user_id', $user->id)
                 ->with('holdings')
                 ->get();
             $holdings = $accounts->flatMap->holdings;
@@ -239,7 +240,7 @@ class PortfolioOptimizationController extends Controller
             $expectedReturns = $data['expected_returns'];
 
             // Calculate covariance matrix from holdings
-            $accounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            $accounts = InvestmentAccount::where('user_id', $user->id)
                 ->with('holdings')
                 ->get();
             $holdings = $accounts->flatMap->holdings;
@@ -302,7 +303,7 @@ class PortfolioOptimizationController extends Controller
             $expectedReturns = $data['expected_returns'];
 
             // Calculate covariance matrix and volatilities from holdings
-            $accounts = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+            $accounts = InvestmentAccount::where('user_id', $user->id)
                 ->with('holdings')
                 ->get();
             $holdings = $accounts->flatMap->holdings;
@@ -385,7 +386,7 @@ class PortfolioOptimizationController extends Controller
         try {
             $result = Cache::remember($cacheKey, 86400, function () use ($user, $validated) {
                 // Get user's investment accounts
-                $query = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+                $query = InvestmentAccount::where('user_id', $user->id)
                     ->with('holdings');
 
                 if (isset($validated['account_ids'])) {

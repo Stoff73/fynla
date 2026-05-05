@@ -34,13 +34,13 @@ abstract class LifecycleMail extends Mailable
     protected function utm(string $url, string $content): string
     {
         $params = [
-            'utm_source'   => 'email',
-            'utm_medium'   => 'lifecycle',
+            'utm_source' => 'email',
+            'utm_medium' => 'lifecycle',
             'utm_campaign' => $this->utmCampaign(),
-            'utm_content'  => $content,
+            'utm_content' => $content,
         ];
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url . $separator . http_build_query($params);
+        return $url.$separator.http_build_query($params);
     }
 }

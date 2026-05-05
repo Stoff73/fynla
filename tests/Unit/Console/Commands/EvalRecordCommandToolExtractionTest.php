@@ -14,7 +14,6 @@ use App\Console\Commands\EvalRecordCommand;
  * a real recorded fixture and asserts that the names round-trip back to
  * the actual tool names.
  */
-
 function callExtractToolCalls(array $events): array
 {
     $reflection = new ReflectionClass(EvalRecordCommand::class);

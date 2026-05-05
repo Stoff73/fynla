@@ -3,31 +3,21 @@
 declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
-use App\Models\BusinessInterest;
-use App\Models\Chattel;
-use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
-use App\Models\Estate\Asset as EstateAsset;
-use App\Models\Estate\Gift as EstateGift;
-use App\Models\Estate\Liability as EstateLiability;
 use App\Models\Estate\Trust;
 use App\Models\FamilyMember;
 use App\Models\Goal;
-use App\Models\IncomeProtectionPolicy;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
-use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 // ─── Allowlist enforcement: forbidden fields rejected ──────────────────

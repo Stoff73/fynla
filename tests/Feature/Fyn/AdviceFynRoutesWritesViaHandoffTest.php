@@ -8,6 +8,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\QueryClassifier;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -26,14 +27,14 @@ uses(RefreshDatabase::class);
  *            DO surface (the user sees the record being created).
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
     Mockery::close();
 });
 
-function fynStubChatStream(string $persona): \Closure
+function fynStubChatStream(string $persona): Closure
 {
     return match ($persona) {
         'advice_savings' => function () {
@@ -46,10 +47,10 @@ function fynStubChatStream(string $persona): \Closure
         'inline_savings' => function () {
             yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
             yield ['type' => 'entity_created',
-                   'entity_type' => 'savings_account',
-                   'entity_id' => 99,
-                   'name' => 'Nationwide Cash ISA'];
-            yield ['type' => 'content', 'text' => "Saved your Nationwide Cash ISA — £5,000 at 4.5%."];
+                'entity_type' => 'savings_account',
+                'entity_id' => 99,
+                'name' => 'Nationwide Cash ISA'];
+            yield ['type' => 'content', 'text' => 'Saved your Nationwide Cash ISA — £5,000 at 4.5%.'];
             yield ['type' => 'done'];
         },
         'advice_what_if' => function () {
@@ -82,8 +83,11 @@ function fynBindMocks(string $adviceStub, string $inlineStub): void
             $stream = match ($persona) {
                 'advice' => fynStubChatStream($adviceStub),
                 'data_capture' => fynStubChatStream($inlineStub),
-                default => function () { yield ['type' => 'done']; },
+                default => function () {
+                    yield ['type' => 'done'];
+                },
             };
+
             return $stream();
         });
     app()->instance(CoordinatingAgent::class, $agent);

@@ -23,7 +23,7 @@ class ReferralInvitationEmail extends Mailable
 
     public function envelope(): Envelope
     {
-        $name = trim(($this->referrer->first_name ?? '') . ' ' . ($this->referrer->surname ?? ''));
+        $name = trim(($this->referrer->first_name ?? '').' '.($this->referrer->surname ?? ''));
 
         return new Envelope(
             from: new Address('noreply@fynla.org', 'Fynla'),
@@ -33,12 +33,12 @@ class ReferralInvitationEmail extends Mailable
 
     public function content(): Content
     {
-        $registerUrl = config('app.url') . '/register?ref=' . $this->referralCode;
+        $registerUrl = config('app.url').'/register?ref='.$this->referralCode;
 
         return new Content(
             view: 'emails.referral-invitation',
             with: [
-                'referrerName' => trim(($this->referrer->first_name ?? '') . ' ' . ($this->referrer->surname ?? '')),
+                'referrerName' => trim(($this->referrer->first_name ?? '').' '.($this->referrer->surname ?? '')),
                 'referralCode' => $this->referralCode,
                 'registerUrl' => $registerUrl,
             ],

@@ -114,7 +114,7 @@ describe('OnboardingValueInterpreter sentence-embedded amounts', function () {
     it('extracts amounts from a natural phrase with a pound sign', function () {
         expect(OnboardingValueInterpreter::parseIncomeAmount('About £75,000 gross'))->toBe(75000.0)
             ->and(OnboardingValueInterpreter::parseExpenditureAmount('About £2,800 per month'))->toBe(2800.0)
-            ->and(OnboardingValueInterpreter::parseIncomeAmount("I earn roughly £42,000 per year"))->toBe(42000.0);
+            ->and(OnboardingValueInterpreter::parseIncomeAmount('I earn roughly £42,000 per year'))->toBe(42000.0);
     });
 
     it('extracts amounts from a natural phrase with a k suffix', function () {

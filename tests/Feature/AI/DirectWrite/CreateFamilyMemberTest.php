@@ -5,12 +5,13 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\FamilyMember;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('create_family_member persists a child FamilyMember', function (): void {

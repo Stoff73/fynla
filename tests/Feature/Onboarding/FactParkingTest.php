@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingFactExtractor;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -16,7 +17,7 @@ uses(RefreshDatabase::class);
  * expenditure) so the director can drive targeted hydration later.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('parks a DOB and marital_status volunteered mid-conversation', function () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Estate\Asset;
 use App\Models\FamilyMember;
+use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\UserProfile\ProfileCompletenessChecker;
@@ -61,7 +62,7 @@ describe('ProfileCompletenessChecker - Married Users', function () {
         ]);
 
         // Add at least one policy for protection_plans check
-        \App\Models\LifeInsurancePolicy::create([
+        LifeInsurancePolicy::create([
             'user_id' => $user->id,
             'provider' => 'Test Provider',
             'policy_number' => 'TEST123',
@@ -217,7 +218,7 @@ describe('ProfileCompletenessChecker - Single Users', function () {
         ]);
 
         // Add at least one policy for protection_plans check
-        \App\Models\LifeInsurancePolicy::create([
+        LifeInsurancePolicy::create([
             'user_id' => $user->id,
             'provider' => 'Test Provider',
             'policy_number' => 'TEST123',

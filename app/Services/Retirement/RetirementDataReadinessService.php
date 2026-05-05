@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Events\Eval\GateChecked;
 use App\Models\ExpenditureProfile;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
@@ -53,7 +54,7 @@ class RetirementDataReadinessService
 
         $canProceed = count($blocking) === 0;
 
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'data_readiness',
             module: 'retirement',
             passed: $canProceed,

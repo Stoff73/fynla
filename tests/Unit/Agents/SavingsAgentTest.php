@@ -12,6 +12,7 @@ use App\Services\Savings\ISATracker;
 use App\Services\Savings\LiquidityAnalyzer;
 use App\Services\Savings\RateComparator;
 use App\Services\Savings\SavingsDataReadinessService;
+use Illuminate\Database\Eloquent\Collection;
 
 beforeEach(function () {
     $this->emergencyFundCalculator = Mockery::mock(EmergencyFundCalculator::class);
@@ -152,7 +153,7 @@ describe('analyze', function () {
         $this->goalProgressCalculator
             ->shouldReceive('prioritizeGoals')
             ->once()
-            ->andReturn(new \Illuminate\Database\Eloquent\Collection([$goal]));
+            ->andReturn(new Collection([$goal]));
 
         $result = $this->agent->analyze($user->id);
 
@@ -252,7 +253,7 @@ describe('analyze', function () {
         $this->goalProgressCalculator
             ->shouldReceive('prioritizeGoals')
             ->once()
-            ->andReturn(new \Illuminate\Database\Eloquent\Collection);
+            ->andReturn(new Collection);
 
         $result = $this->agent->analyze($user->id);
 

@@ -24,12 +24,12 @@ class FeedController extends Controller
             ->get();
 
         $items = $articles->map(fn (NewsArticle $a) => [
-            'title'       => $a->title,
-            'link'        => url("/news/{$a->slug}"),
-            'guid'        => url("/news/{$a->slug}"),
+            'title' => $a->title,
+            'link' => url("/news/{$a->slug}"),
+            'guid' => url("/news/{$a->slug}"),
             'description' => $a->summary,
-            'pubDate'     => optional($a->published_at)->toRssString(),
-            'author'      => $a->author_name,
+            'pubDate' => optional($a->published_at)->toRssString(),
+            'author' => $a->author_name,
         ]);
 
         return $this->renderRss(
@@ -56,16 +56,16 @@ class FeedController extends Controller
                 ->take(50)
                 ->get();
         } catch (QueryException) {
-            $articles = new Collection();
+            $articles = new Collection;
         }
 
         $items = $articles->map(fn (InsightArticle $a) => [
-            'title'       => $a->title,
-            'link'        => url("/insights/{$a->slug}"),
-            'guid'        => url("/insights/{$a->slug}"),
+            'title' => $a->title,
+            'link' => url("/insights/{$a->slug}"),
+            'guid' => url("/insights/{$a->slug}"),
             'description' => $a->summary,
-            'pubDate'     => optional($a->published_at)->toRssString(),
-            'author'      => $this->insightAuthorLabel($a),
+            'pubDate' => optional($a->published_at)->toRssString(),
+            'author' => $this->insightAuthorLabel($a),
         ]);
 
         return $this->renderRss(
@@ -99,7 +99,7 @@ class FeedController extends Controller
     }
 
     /**
-     * @param array<int,array<string,?string>> $items
+     * @param  array<int,array<string,?string>>  $items
      */
     private function renderRss(
         string $channelTitle,
@@ -143,7 +143,7 @@ class FeedController extends Controller
         $xml .= "</rss>\n";
 
         return response($xml, 200, [
-            'Content-Type'  => 'application/rss+xml; charset=UTF-8',
+            'Content-Type' => 'application/rss+xml; charset=UTF-8',
             'Cache-Control' => 'public, max-age=600',
         ]);
     }

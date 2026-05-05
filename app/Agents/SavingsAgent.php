@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Events\Eval\EngineCalled;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
@@ -21,7 +22,9 @@ use App\Services\Savings\PSACalculator;
 use App\Services\Savings\RateComparator;
 use App\Services\Savings\SavingsActionDefinitionService;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
+use Carbon\Carbon;
 
 class SavingsAgent extends BaseAgent
 {
@@ -54,144 +57,144 @@ class SavingsAgent extends BaseAgent
     {
         $analyzeStart = microtime(true);
         $result = (function () use ($userId): array {
-        // Data readiness gate — return early if blocking checks fail
-        $user = User::with('savingsAccounts')->find($userId);
-        if ($user) {
-            $readiness = $this->readinessService->assess($user);
-            if (! $readiness['can_proceed']) {
-                return [
-                    'can_proceed' => false,
-                    'readiness_checks' => $readiness,
-                    'summary' => null,
-                    'emergency_fund' => null,
-                    'isa_allowance' => null,
-                    'liquidity' => null,
-                    'rate_comparisons' => null,
-                    'goals' => null,
-                ];
-            }
-        }
-
-        return $this->remember("savings_analysis_{$userId}", function () use ($userId, $user) {
-            // User already loaded above with savings accounts eager-loaded
-            $accounts = $user?->savingsAccounts ?? collect();
-            $goals = SavingsGoal::where('user_id', $userId)->get();
-
-            $totalSavings = $accounts->sum('current_balance');
-
-            // Resolve monthly expenditure using standardised fallback chain
-            $resolved = $user ? $this->resolveMonthlyExpenditure($user) : ['amount' => 0.0, 'source' => 'none', 'label' => 'Not Set'];
-            $monthlyExpenditure = $resolved['amount'];
-
-            // Emergency Fund Analysis
-            $runway = $this->emergencyFundCalculator->calculateRunway(
-                $totalSavings,
-                $monthlyExpenditure
-            );
-            $adequacy = $this->emergencyFundCalculator->calculateAdequacy($runway, 6);
-            $adequacyCategory = $this->emergencyFundCalculator->categorizeAdequacy($runway);
-
-            // ISA Allowance Status
-            $taxYear = $this->isaTracker->getCurrentTaxYear();
-            $isaAllowance = $this->isaTracker->getISAAllowanceStatus($userId, $taxYear);
-
-            // Liquidity Profile
-            $liquidityProfile = $this->liquidityAnalyzer->categorizeLiquidity($accounts);
-            $liquiditySummary = $this->liquidityAnalyzer->getLiquiditySummary($accounts);
-            $liquidityLadder = $this->liquidityAnalyzer->buildLiquidityLadder($accounts);
-
-            // Rate Comparison
-            $rateComparisons = $accounts->map(function ($account) {
-                return [
-                    'account_id' => $account->id,
-                    'institution' => $account->institution,
-                    'comparison' => $this->rateComparator->compareToMarketRates($account),
-                    'potential_gain' => $this->rateComparator->calculateInterestDifference(
-                        $account,
-                        $this->rateComparator->compareToMarketRates($account)['market_rate']
-                    ),
-                ];
-            });
-
-            // Goals Progress
-            $goalsProgress = $goals->map(function ($goal) {
-                return [
-                    'goal_id' => $goal->id,
-                    'goal_name' => $goal->goal_name,
-                    'priority' => $goal->priority,
-                    'progress' => $this->goalProgressCalculator->calculateProgress($goal),
-                ];
-            });
-
-            $prioritizedGoals = $this->goalProgressCalculator->prioritizeGoals($goals);
-
-            // PSA position (Personal Savings Allowance)
-            $psaPosition = null;
-            if ($this->psaCalculator && $user) {
-                try {
-                    $psaPosition = $this->psaCalculator->assessPSAPosition($user);
-                } catch (\Throwable $e) {
-                    report($e);
+            // Data readiness gate — return early if blocking checks fail
+            $user = User::with('savingsAccounts')->find($userId);
+            if ($user) {
+                $readiness = $this->readinessService->assess($user);
+                if (! $readiness['can_proceed']) {
+                    return [
+                        'can_proceed' => false,
+                        'readiness_checks' => $readiness,
+                        'summary' => null,
+                        'emergency_fund' => null,
+                        'isa_allowance' => null,
+                        'liquidity' => null,
+                        'rate_comparisons' => null,
+                        'goals' => null,
+                    ];
                 }
             }
 
-            // FSCS exposure
-            $fscsExposure = null;
-            if ($this->fscsAssessor && $accounts->isNotEmpty()) {
-                try {
-                    $fscsExposure = $this->fscsAssessor->assessExposure($accounts);
-                } catch (\Throwable $e) {
-                    report($e);
+            return $this->remember("savings_analysis_{$userId}", function () use ($userId, $user) {
+                // User already loaded above with savings accounts eager-loaded
+                $accounts = $user?->savingsAccounts ?? collect();
+                $goals = SavingsGoal::where('user_id', $userId)->get();
+
+                $totalSavings = $accounts->sum('current_balance');
+
+                // Resolve monthly expenditure using standardised fallback chain
+                $resolved = $user ? $this->resolveMonthlyExpenditure($user) : ['amount' => 0.0, 'source' => 'none', 'label' => 'Not Set'];
+                $monthlyExpenditure = $resolved['amount'];
+
+                // Emergency Fund Analysis
+                $runway = $this->emergencyFundCalculator->calculateRunway(
+                    $totalSavings,
+                    $monthlyExpenditure
+                );
+                $adequacy = $this->emergencyFundCalculator->calculateAdequacy($runway, 6);
+                $adequacyCategory = $this->emergencyFundCalculator->categorizeAdequacy($runway);
+
+                // ISA Allowance Status
+                $taxYear = $this->isaTracker->getCurrentTaxYear();
+                $isaAllowance = $this->isaTracker->getISAAllowanceStatus($userId, $taxYear);
+
+                // Liquidity Profile
+                $liquidityProfile = $this->liquidityAnalyzer->categorizeLiquidity($accounts);
+                $liquiditySummary = $this->liquidityAnalyzer->getLiquiditySummary($accounts);
+                $liquidityLadder = $this->liquidityAnalyzer->buildLiquidityLadder($accounts);
+
+                // Rate Comparison
+                $rateComparisons = $accounts->map(function ($account) {
+                    return [
+                        'account_id' => $account->id,
+                        'institution' => $account->institution,
+                        'comparison' => $this->rateComparator->compareToMarketRates($account),
+                        'potential_gain' => $this->rateComparator->calculateInterestDifference(
+                            $account,
+                            $this->rateComparator->compareToMarketRates($account)['market_rate']
+                        ),
+                    ];
+                });
+
+                // Goals Progress
+                $goalsProgress = $goals->map(function ($goal) {
+                    return [
+                        'goal_id' => $goal->id,
+                        'goal_name' => $goal->goal_name,
+                        'priority' => $goal->priority,
+                        'progress' => $this->goalProgressCalculator->calculateProgress($goal),
+                    ];
+                });
+
+                $prioritizedGoals = $this->goalProgressCalculator->prioritizeGoals($goals);
+
+                // PSA position (Personal Savings Allowance)
+                $psaPosition = null;
+                if ($this->psaCalculator && $user) {
+                    try {
+                        $psaPosition = $this->psaCalculator->assessPSAPosition($user);
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
                 }
-            }
 
-            // Employment-based emergency fund target
-            $emergencyFundTarget = $this->calculateEmploymentBasedTarget($user, $monthlyExpenditure);
+                // FSCS exposure
+                $fscsExposure = null;
+                if ($this->fscsAssessor && $accounts->isNotEmpty()) {
+                    try {
+                        $fscsExposure = $this->fscsAssessor->assessExposure($accounts);
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                }
 
-            // Per-child Junior ISA status
-            $childrenSavings = $this->buildChildrenSavingsStatus($user, $accounts);
+                // Employment-based emergency fund target
+                $emergencyFundTarget = $this->calculateEmploymentBasedTarget($user, $monthlyExpenditure);
 
-            // S1.6.b — structured gap list for the LLM to ask about,
-            // computed from already-loaded data (no extra queries).
-            $missingForQualityAdvice = $this->findMissingForQualityAdvice($user, $resolved, $accounts);
+                // Per-child Junior ISA status
+                $childrenSavings = $this->buildChildrenSavingsStatus($user, $accounts);
 
-            return [
-                'summary' => [
-                    'total_savings' => $this->roundToPenny($totalSavings),
-                    'total_accounts' => $accounts->count(),
-                    'total_goals' => $goals->count(),
-                    'monthly_expenditure' => $this->roundToPenny($monthlyExpenditure),
-                    'expenditure_source' => $resolved['source'],
-                    'expenditure_label' => $resolved['label'],
-                ],
-                'emergency_fund' => [
-                    'runway_months' => $runway,
-                    'adequacy' => $adequacy,
-                    'category' => $adequacyCategory,
-                    'recommendation' => $this->getEmergencyFundRecommendation($adequacy),
-                    'target' => $emergencyFundTarget,
-                ],
-                'isa_allowance' => $isaAllowance,
-                'psa_position' => $psaPosition,
-                'fscs_exposure' => $fscsExposure,
-                'liquidity' => [
-                    'summary' => $liquiditySummary,
-                    'ladder' => $liquidityLadder,
-                ],
-                'rate_comparisons' => $rateComparisons,
-                'goals' => [
-                    'progress' => $goalsProgress,
-                    'prioritized' => $prioritizedGoals->map(fn ($g) => [
-                        'id' => $g->id,
-                        'name' => $g->goal_name,
-                        'priority' => $g->priority,
-                        'target_date' => $g->target_date->format('Y-m-d'),
-                    ]),
-                ],
-                'children_savings' => $childrenSavings,
-                'missing_for_quality_advice' => $missingForQualityAdvice,
-            ];
-        }, null, ['savings', 'user_'.$userId]);
+                // S1.6.b — structured gap list for the LLM to ask about,
+                // computed from already-loaded data (no extra queries).
+                $missingForQualityAdvice = $this->findMissingForQualityAdvice($user, $resolved, $accounts);
+
+                return [
+                    'summary' => [
+                        'total_savings' => $this->roundToPenny($totalSavings),
+                        'total_accounts' => $accounts->count(),
+                        'total_goals' => $goals->count(),
+                        'monthly_expenditure' => $this->roundToPenny($monthlyExpenditure),
+                        'expenditure_source' => $resolved['source'],
+                        'expenditure_label' => $resolved['label'],
+                    ],
+                    'emergency_fund' => [
+                        'runway_months' => $runway,
+                        'adequacy' => $adequacy,
+                        'category' => $adequacyCategory,
+                        'recommendation' => $this->getEmergencyFundRecommendation($adequacy),
+                        'target' => $emergencyFundTarget,
+                    ],
+                    'isa_allowance' => $isaAllowance,
+                    'psa_position' => $psaPosition,
+                    'fscs_exposure' => $fscsExposure,
+                    'liquidity' => [
+                        'summary' => $liquiditySummary,
+                        'ladder' => $liquidityLadder,
+                    ],
+                    'rate_comparisons' => $rateComparisons,
+                    'goals' => [
+                        'progress' => $goalsProgress,
+                        'prioritized' => $prioritizedGoals->map(fn ($g) => [
+                            'id' => $g->id,
+                            'name' => $g->goal_name,
+                            'priority' => $g->priority,
+                            'target_date' => $g->target_date->format('Y-m-d'),
+                        ]),
+                    ],
+                    'children_savings' => $childrenSavings,
+                    'missing_for_quality_advice' => $missingForQualityAdvice,
+                ];
+            }, null, ['savings', 'user_'.$userId]);
         })();
 
         $resultPath = match (true) {
@@ -199,7 +202,7 @@ class SavingsAgent extends BaseAgent
             isset($result['success']) && $result['success'] === false => 'success_false',
             default => 'happy',
         };
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'savings_analysis',
             params: ['user_id' => $userId],
             resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
@@ -265,38 +268,38 @@ class SavingsAgent extends BaseAgent
     {
         $start = microtime(true);
         $result = (function () use ($analysisData): array {
-        // Delegate to DB-driven action definition service if available
-        if ($this->actionDefinitionService) {
-            $userId = $analysisData['user_id'] ?? 0;
+            // Delegate to DB-driven action definition service if available
+            if ($this->actionDefinitionService) {
+                $userId = $analysisData['user_id'] ?? 0;
 
-            $savingsAccounts = $userId > 0
-                ? SavingsAccount::forUserOrJoint($userId)->get()
-                : collect();
-            $investmentAccounts = $userId > 0
-                ? InvestmentAccount::forUserOrJoint($userId)->get()
-                : collect();
+                $savingsAccounts = $userId > 0
+                    ? SavingsAccount::forUserOrJoint($userId)->get()
+                    : collect();
+                $investmentAccounts = $userId > 0
+                    ? InvestmentAccount::forUserOrJoint($userId)->get()
+                    : collect();
 
-            $investmentAnalysis = $analysisData['investment_analysis'] ?? [];
+                $investmentAnalysis = $analysisData['investment_analysis'] ?? [];
 
-            $result = $this->actionDefinitionService->evaluateAgentActions(
-                $analysisData,
-                $investmentAnalysis,
-                $savingsAccounts,
-                $investmentAccounts,
-                $userId
-            );
+                $result = $this->actionDefinitionService->evaluateAgentActions(
+                    $analysisData,
+                    $investmentAnalysis,
+                    $savingsAccounts,
+                    $investmentAccounts,
+                    $userId
+                );
 
-            $recommendations = $result['recommendations'] ?? [];
-            $goalRecommendations = $this->buildGoalRecommendations($analysisData, $userId);
+                $recommendations = $result['recommendations'] ?? [];
+                $goalRecommendations = $this->buildGoalRecommendations($analysisData, $userId);
 
-            return array_merge($recommendations, $goalRecommendations);
-        }
+                return array_merge($recommendations, $goalRecommendations);
+            }
 
-        // Fallback: inline recommendation logic for backward compatibility
-        return $this->generateInlineRecommendations($analysisData);
+            // Fallback: inline recommendation logic for backward compatibility
+            return $this->generateInlineRecommendations($analysisData);
         })();
 
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'savings_recommendation',
             params: [],
             resultSummary: ['result_path' => 'happy', 'count' => count($result)],
@@ -518,7 +521,7 @@ class SavingsAgent extends BaseAgent
 
         // Try to get from tax config
         try {
-            $isaAllowances = app(\App\Services\TaxConfigService::class)->getISAAllowances();
+            $isaAllowances = app(TaxConfigService::class)->getISAAllowances();
             $jisaAllowance = (float) ($isaAllowances['junior_isa']['annual_allowance'] ?? 9000);
         } catch (\Throwable $e) {
             // Use default
@@ -526,7 +529,7 @@ class SavingsAgent extends BaseAgent
 
         return $children->map(function ($child) use ($accounts, $jisaAllowance) {
             $dob = $child->date_of_birth;
-            $age = $dob ? (int) \Carbon\Carbon::parse($dob)->age : null;
+            $age = $dob ? (int) Carbon::parse($dob)->age : null;
             $isUnder18 = $age !== null && $age < 18;
 
             // Find JISA accounts for this child

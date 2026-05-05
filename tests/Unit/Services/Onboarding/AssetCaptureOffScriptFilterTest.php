@@ -8,12 +8,13 @@ use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 /**
@@ -220,7 +221,7 @@ describe('OnboardingChatDirector::handleAssetCaptureTurn content filter (FR-M14)
         // The legitimate acknowledgment must survive.
         $assetCaptureContent = array_filter(
             $contentTexts,
-            fn (string $t): bool => str_contains($t, 'recording those now') || str_contains($t, "added your mum")
+            fn (string $t): bool => str_contains($t, 'recording those now') || str_contains($t, 'added your mum')
         );
         expect(array_values($assetCaptureContent))->not->toBeEmpty();
     });
@@ -314,7 +315,7 @@ describe('OnboardingChatDirector::handleAssetCaptureTurn content filter (FR-M14)
         $received = runAssetCapture($user, $conversation, [
             ['type' => 'tool_use', 'tool' => 'create_family_member'],
             ['type' => 'tool_success', 'tool' => 'create_family_member', 'summary' => 'Jane added'],
-            ['type' => 'content', 'text' => "Thanks, added Jane. With your income and home mortgage you may need more cover."],
+            ['type' => 'content', 'text' => 'Thanks, added Jane. With your income and home mortgage you may need more cover.'],
             ['type' => 'done', 'message_id' => 1],
         ]);
 

@@ -7,6 +7,7 @@ namespace App\Mail;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -27,7 +28,7 @@ class TrialExpirationReminder extends Mailable
             : "Your Fynla trial ends in {$this->daysRemaining} days";
 
         return new Envelope(
-            from: new \Illuminate\Mail\Mailables\Address('noreply@fynla.org', 'Fynla'),
+            from: new Address('noreply@fynla.org', 'Fynla'),
             subject: $subject,
         );
     }

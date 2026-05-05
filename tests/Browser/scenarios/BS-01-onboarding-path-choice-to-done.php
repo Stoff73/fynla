@@ -161,6 +161,7 @@ declare(strict_types=1);
  *   7. base_personal grouped_extract → typed "My date of birth is
  *      12 January 1985 and I am married." → captured DOB+marital
  *   8. base_spouse → typed "Angela, 12 January 1985, angela-bs01s95
+ *
  *      @example.com" → captured. Director ack: "Got it — I've added
  *      Angela and linked the two of you."
  *   9. base_dependants → click "No"

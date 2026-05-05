@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\TaxDefaults;
+use App\Events\Eval\EngineCalled;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
@@ -43,135 +44,135 @@ class InvestmentAgent extends BaseAgent
     {
         $analyzeStart = microtime(true);
         $result = (function () use ($userId): array {
-        // Data readiness gate — return early if blocking checks fail
-        $gateUser = User::find($userId);
-        if ($gateUser) {
-            $readiness = $this->readinessService->assess($gateUser);
-            if (! $readiness['can_proceed']) {
-                return [
-                    'can_proceed' => false,
-                    'readiness_checks' => $readiness,
-                    'portfolio_summary' => null,
-                    'returns' => null,
-                    'asset_allocation' => null,
-                    'diversification_score' => null,
-                    'risk_metrics' => null,
-                    'fee_analysis' => null,
-                    'low_cost_comparison' => null,
-                    'tax_efficiency' => null,
-                    'tax_wrappers' => null,
-                    'allocation_deviation' => null,
-                    'goals' => null,
-                ];
-            }
-        }
-
-        return $this->remember("investment_analysis_{$userId}", function () use ($userId) {
-            // Get all user data (eager load holdings to avoid lazy loading)
-            $accounts = InvestmentAccount::where('user_id', $userId)->with('holdings')->get();
-            $holdings = $accounts->flatMap->holdings;
-            $riskProfile = RiskProfile::where('user_id', $userId)->first();
-            $goals = InvestmentGoal::where('user_id', $userId)->get();
-
-            if ($accounts->isEmpty()) {
-                return [
-                    'message' => 'No investment accounts found',
-                    'accounts_count' => 0,
-                ];
-            }
-
-            // Portfolio analysis
-            $totalValue = $this->portfolioAnalyzer->calculateTotalValue($accounts);
-            $returns = $this->portfolioAnalyzer->calculateReturns($holdings);
-            $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($holdings);
-            $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($holdings);
-            $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($holdings, $riskProfile);
-
-            // Fee analysis
-            $feeAnalysis = $this->feeAnalyzer->calculateTotalFees($accounts, $holdings);
-            $lowCostComparison = $this->feeAnalyzer->compareToLowCostAlternatives($holdings);
-            $highFeeHoldings = $this->feeAnalyzer->identifyHighFeeHoldings($holdings);
-            $feeAnalysis['high_fee_holdings'] = $highFeeHoldings['holdings'];
-
-            // Tax efficiency
-            $unrealizedGains = $this->taxCalculator->calculateUnrealizedGains($holdings);
-            $taxEfficiencyScore = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
-            $harvestingOpportunities = $this->taxCalculator->identifyHarvestingOpportunities($userId);
-
-            // Asset allocation vs target
-            $allocationDeviation = null;
-            if ($riskProfile) {
-                $targetAllocation = $this->allocationOptimizer->getTargetAllocation($riskProfile);
-                $allocationDeviation = $this->allocationOptimizer->calculateDeviation($allocation, $targetAllocation);
-            }
-
-            // Tax wrapper summary — include both investment and savings ISAs
-            $isaAccounts = $accounts->where('account_type', 'isa');
-            $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
-            $investmentIsaUsed = $isaAccounts->sum('isa_subscription_current_year');
-
-            // Include savings ISA subscriptions for accurate allowance remaining
-            $taxYear = $this->taxConfig->getTaxYear();
-            $savingsIsaUsed = SavingsAccount::where('user_id', $userId)
-                ->whereIn('account_type', ['isa', 'cash_isa'])
-                ->where('isa_subscription_year', $taxYear)
-                ->sum('isa_subscription_amount');
-
-            $isaUsedThisYear = $investmentIsaUsed + $savingsIsaUsed;
-            $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);
-
-            $taxWrappers = [
-                'has_isa' => $isaAccounts->isNotEmpty(),
-                'isa_allowance' => $isaAllowance,
-                'isa_used_this_year' => round($isaUsedThisYear, 2),
-                'isa_remaining' => round($isaRemaining, 2),
-                'has_gia' => $accounts->where('account_type', 'gia')->isNotEmpty(),
-                'gia_value' => round($accounts->where('account_type', 'gia')->sum('current_value'), 2),
-                'has_onshore_bond' => $accounts->where('account_type', 'onshore_bond')->isNotEmpty(),
-                'has_offshore_bond' => $accounts->where('account_type', 'offshore_bond')->isNotEmpty(),
-            ];
-
-            // S1.6.b — structured gap list for the LLM to ask about.
-            $missingForQualityAdvice = $this->findMissingForQualityAdvice(
-                $riskProfile,
-                $holdings,
-                $goals,
-                $accounts,
-            );
-
-            return [
-                'portfolio_summary' => [
-                    'total_value' => round($totalValue, 2),
-                    'accounts_count' => $accounts->count(),
-                    'holdings_count' => $holdings->count(),
-                ],
-                'returns' => $returns,
-                'asset_allocation' => $allocation,
-                'diversification_score' => $diversificationScore,
-                'risk_metrics' => $riskMetrics,
-                'fee_analysis' => $feeAnalysis,
-                'low_cost_comparison' => $lowCostComparison,
-                'tax_efficiency' => [
-                    'unrealized_gains' => $unrealizedGains,
-                    'efficiency_score' => $taxEfficiencyScore,
-                    'harvesting_opportunities' => $harvestingOpportunities,
-                ],
-                'tax_wrappers' => $taxWrappers,
-                'allocation_deviation' => $allocationDeviation,
-                'goals' => $goals->map(function ($goal) use ($totalValue) {
-                    $progress = $totalValue > 0 ? ($totalValue / $goal->target_amount) * 100 : 0;
-
+            // Data readiness gate — return early if blocking checks fail
+            $gateUser = User::find($userId);
+            if ($gateUser) {
+                $readiness = $this->readinessService->assess($gateUser);
+                if (! $readiness['can_proceed']) {
                     return [
-                        'goal_name' => $goal->goal_name,
-                        'target_amount' => $goal->target_amount,
-                        'current_value' => $totalValue,
-                        'progress_percent' => round($progress, 2),
-                        'target_date' => $goal->target_date->format('Y-m-d'),
+                        'can_proceed' => false,
+                        'readiness_checks' => $readiness,
+                        'portfolio_summary' => null,
+                        'returns' => null,
+                        'asset_allocation' => null,
+                        'diversification_score' => null,
+                        'risk_metrics' => null,
+                        'fee_analysis' => null,
+                        'low_cost_comparison' => null,
+                        'tax_efficiency' => null,
+                        'tax_wrappers' => null,
+                        'allocation_deviation' => null,
+                        'goals' => null,
                     ];
-                }),
-                'missing_for_quality_advice' => $missingForQualityAdvice,
-            ];
-        }, null, ['investment', 'user_'.$userId]);
+                }
+            }
+
+            return $this->remember("investment_analysis_{$userId}", function () use ($userId) {
+                // Get all user data (eager load holdings to avoid lazy loading)
+                $accounts = InvestmentAccount::where('user_id', $userId)->with('holdings')->get();
+                $holdings = $accounts->flatMap->holdings;
+                $riskProfile = RiskProfile::where('user_id', $userId)->first();
+                $goals = InvestmentGoal::where('user_id', $userId)->get();
+
+                if ($accounts->isEmpty()) {
+                    return [
+                        'message' => 'No investment accounts found',
+                        'accounts_count' => 0,
+                    ];
+                }
+
+                // Portfolio analysis
+                $totalValue = $this->portfolioAnalyzer->calculateTotalValue($accounts);
+                $returns = $this->portfolioAnalyzer->calculateReturns($holdings);
+                $allocation = $this->portfolioAnalyzer->calculateAssetAllocation($holdings);
+                $diversificationScore = $this->diversificationAnalyzer->calculateScoreFromHoldings($holdings);
+                $riskMetrics = $this->portfolioAnalyzer->calculatePortfolioRisk($holdings, $riskProfile);
+
+                // Fee analysis
+                $feeAnalysis = $this->feeAnalyzer->calculateTotalFees($accounts, $holdings);
+                $lowCostComparison = $this->feeAnalyzer->compareToLowCostAlternatives($holdings);
+                $highFeeHoldings = $this->feeAnalyzer->identifyHighFeeHoldings($holdings);
+                $feeAnalysis['high_fee_holdings'] = $highFeeHoldings['holdings'];
+
+                // Tax efficiency
+                $unrealizedGains = $this->taxCalculator->calculateUnrealizedGains($holdings);
+                $taxEfficiencyScore = $this->taxCalculator->calculateTaxShelterRatio($accounts, $holdings);
+                $harvestingOpportunities = $this->taxCalculator->identifyHarvestingOpportunities($userId);
+
+                // Asset allocation vs target
+                $allocationDeviation = null;
+                if ($riskProfile) {
+                    $targetAllocation = $this->allocationOptimizer->getTargetAllocation($riskProfile);
+                    $allocationDeviation = $this->allocationOptimizer->calculateDeviation($allocation, $targetAllocation);
+                }
+
+                // Tax wrapper summary — include both investment and savings ISAs
+                $isaAccounts = $accounts->where('account_type', 'isa');
+                $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? TaxDefaults::ISA_ALLOWANCE;
+                $investmentIsaUsed = $isaAccounts->sum('isa_subscription_current_year');
+
+                // Include savings ISA subscriptions for accurate allowance remaining
+                $taxYear = $this->taxConfig->getTaxYear();
+                $savingsIsaUsed = SavingsAccount::where('user_id', $userId)
+                    ->whereIn('account_type', ['isa', 'cash_isa'])
+                    ->where('isa_subscription_year', $taxYear)
+                    ->sum('isa_subscription_amount');
+
+                $isaUsedThisYear = $investmentIsaUsed + $savingsIsaUsed;
+                $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);
+
+                $taxWrappers = [
+                    'has_isa' => $isaAccounts->isNotEmpty(),
+                    'isa_allowance' => $isaAllowance,
+                    'isa_used_this_year' => round($isaUsedThisYear, 2),
+                    'isa_remaining' => round($isaRemaining, 2),
+                    'has_gia' => $accounts->where('account_type', 'gia')->isNotEmpty(),
+                    'gia_value' => round($accounts->where('account_type', 'gia')->sum('current_value'), 2),
+                    'has_onshore_bond' => $accounts->where('account_type', 'onshore_bond')->isNotEmpty(),
+                    'has_offshore_bond' => $accounts->where('account_type', 'offshore_bond')->isNotEmpty(),
+                ];
+
+                // S1.6.b — structured gap list for the LLM to ask about.
+                $missingForQualityAdvice = $this->findMissingForQualityAdvice(
+                    $riskProfile,
+                    $holdings,
+                    $goals,
+                    $accounts,
+                );
+
+                return [
+                    'portfolio_summary' => [
+                        'total_value' => round($totalValue, 2),
+                        'accounts_count' => $accounts->count(),
+                        'holdings_count' => $holdings->count(),
+                    ],
+                    'returns' => $returns,
+                    'asset_allocation' => $allocation,
+                    'diversification_score' => $diversificationScore,
+                    'risk_metrics' => $riskMetrics,
+                    'fee_analysis' => $feeAnalysis,
+                    'low_cost_comparison' => $lowCostComparison,
+                    'tax_efficiency' => [
+                        'unrealized_gains' => $unrealizedGains,
+                        'efficiency_score' => $taxEfficiencyScore,
+                        'harvesting_opportunities' => $harvestingOpportunities,
+                    ],
+                    'tax_wrappers' => $taxWrappers,
+                    'allocation_deviation' => $allocationDeviation,
+                    'goals' => $goals->map(function ($goal) use ($totalValue) {
+                        $progress = $totalValue > 0 ? ($totalValue / $goal->target_amount) * 100 : 0;
+
+                        return [
+                            'goal_name' => $goal->goal_name,
+                            'target_amount' => $goal->target_amount,
+                            'current_value' => $totalValue,
+                            'progress_percent' => round($progress, 2),
+                            'target_date' => $goal->target_date->format('Y-m-d'),
+                        ];
+                    }),
+                    'missing_for_quality_advice' => $missingForQualityAdvice,
+                ];
+            }, null, ['investment', 'user_'.$userId]);
         })();
 
         $resultPath = match (true) {
@@ -179,7 +180,7 @@ class InvestmentAgent extends BaseAgent
             isset($result['accounts_count']) && $result['accounts_count'] === 0 => 'empty_state',
             default => 'happy',
         };
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'investment_analysis',
             params: ['user_id' => $userId],
             resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
@@ -264,7 +265,7 @@ class InvestmentAgent extends BaseAgent
             'recommendations' => $result['recommendations'],
         ];
 
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'investment_recommendation',
             params: [],
             resultSummary: ['result_path' => 'happy', 'count' => $output['recommendation_count']],

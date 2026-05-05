@@ -36,12 +36,12 @@ class CountdownMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.countdown',
             with: [
-                'firstName'        => $this->firstName,
-                'daysRemaining'    => $this->daysRemaining,
-                'trialEndDate'     => $this->trialEndDate,
-                'discountCode'     => $this->discountCode,
-                'discountPercent'  => $this->discountPercent,
-                'subscribeUrl'     => $this->utm('https://fynla.org/subscribe?code=' . $this->discountCode, 'discount-code-cta'),
+                'firstName' => $this->firstName,
+                'daysRemaining' => $this->daysRemaining,
+                'trialEndDate' => $this->trialEndDate,
+                'discountCode' => $this->discountCode,
+                'discountPercent' => $this->discountPercent,
+                'subscribeUrl' => $this->utm('https://fynla.org/subscribe?code='.$this->discountCode, 'discount-code-cta'),
             ],
         );
     }

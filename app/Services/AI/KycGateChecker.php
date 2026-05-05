@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Constants\QuerySchemas;
+use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\PrerequisiteGateService;
 
@@ -48,7 +49,7 @@ class KycGateChecker
 
         // Check universal requirements
         $universalMissing = $this->checkUniversalRequirements($user);
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'kyc',
             module: 'global',
             passed: empty($universalMissing),
@@ -64,7 +65,7 @@ class KycGateChecker
         $modules = QuerySchemas::getModulesForClassification($classification);
         foreach ($modules as $module) {
             $moduleMissing = $this->checkModuleRequirements($user, $module);
-            event(new \App\Events\Eval\GateChecked(
+            event(new GateChecked(
                 gate: 'kyc',
                 module: $module,
                 passed: empty($moduleMissing),

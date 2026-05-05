@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Requests\RegisterRequest;
 use App\Models\PendingRegistration;
 use App\Models\User;
+use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -19,7 +20,7 @@ uses(RefreshDatabase::class);
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->seed(\Database\Seeders\SubscriptionPlanSeeder::class);
+    $this->seed(SubscriptionPlanSeeder::class);
 });
 
 function buildRegistrationPayload(array $overrides = []): array
@@ -27,7 +28,7 @@ function buildRegistrationPayload(array $overrides = []): array
     return array_merge([
         'first_name' => 'Source',
         'surname' => 'Test',
-        'email' => 'source-test-' . uniqid() . '@example.com',
+        'email' => 'source-test-'.uniqid().'@example.com',
         'password' => 'Password123!',
         'password_confirmation' => 'Password123!',
     ], $overrides);

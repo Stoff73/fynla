@@ -62,7 +62,7 @@ class RecommendationOutputFormatter
             'pipeline_version' => '1.0',
             'readiness' => [
                 'can_proceed' => $readiness['can_proceed'] ?? true,
-                'completeness_percent' => $readiness['completeness_percent'] ??100,
+                'completeness_percent' => $readiness['completeness_percent'] ?? 100,
                 'blocking' => $readiness['blocking'] ?? [],
                 'warnings' => $readiness['warnings'] ?? [],
                 'info' => $readiness['info'] ?? [],
@@ -124,7 +124,7 @@ class RecommendationOutputFormatter
             'pipeline_version' => '1.0',
             'readiness' => [
                 'can_proceed' => false,
-                'completeness_percent' => $readiness['completeness_percent'] ??0,
+                'completeness_percent' => $readiness['completeness_percent'] ?? 0,
                 'blocking' => $readiness['blocking'] ?? [],
                 'warnings' => $readiness['warnings'] ?? [],
                 'info' => $readiness['info'] ?? [],

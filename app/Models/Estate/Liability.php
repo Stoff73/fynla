@@ -65,7 +65,7 @@ class Liability extends Model
      */
     public function trust(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Estate\Trust::class);
+        return $this->belongsTo(Trust::class);
     }
 
     /**

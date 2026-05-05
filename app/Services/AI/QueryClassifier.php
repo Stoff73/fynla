@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Constants\QuerySchemas;
+use App\Events\Eval\AgentDecision;
 
 /**
  * Classifies user messages into query types for the FCA 6-step process.
@@ -232,7 +233,7 @@ class QueryClassifier
             'modules' => $modules,
         ];
 
-        event(new \App\Events\Eval\AgentDecision(
+        event(new AgentDecision(
             agent: 'CoordinatingAgent',
             decisionPoint: 'classify_query',
             outcome: 'success',

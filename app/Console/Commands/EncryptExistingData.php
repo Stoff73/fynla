@@ -4,6 +4,17 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\CashAccount;
+use App\Models\DBPension;
+use App\Models\DCPension;
+use App\Models\Estate\Liability;
+use App\Models\FamilyMember;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
+use App\Models\StatePension;
+use App\Models\User;
 use Illuminate\Console\Command;
 
 class EncryptExistingData extends Command
@@ -30,7 +41,7 @@ class EncryptExistingData extends Command
      */
     private array $modelsToEncrypt = [
         'User' => [
-            'class' => \App\Models\User::class,
+            'class' => User::class,
             'fields' => [
                 'annual_employment_income',
                 'annual_self_employment_income',
@@ -42,43 +53,43 @@ class EncryptExistingData extends Command
             ],
         ],
         'CashAccount' => [
-            'class' => \App\Models\CashAccount::class,
+            'class' => CashAccount::class,
             'fields' => ['account_number', 'sort_code'],
         ],
         'SavingsAccount' => [
-            'class' => \App\Models\SavingsAccount::class,
+            'class' => SavingsAccount::class,
             'fields' => ['current_balance'],
         ],
         'InvestmentAccount' => [
-            'class' => \App\Models\Investment\InvestmentAccount::class,
+            'class' => InvestmentAccount::class,
             'fields' => ['current_value', 'account_number'],
         ],
         'FamilyMember' => [
-            'class' => \App\Models\FamilyMember::class,
+            'class' => FamilyMember::class,
             'fields' => ['national_insurance_number'],
         ],
         'DCPension' => [
-            'class' => \App\Models\DCPension::class,
+            'class' => DCPension::class,
             'fields' => ['current_fund_value', 'monthly_contribution_amount', 'employer_contribution_amount'],
         ],
         'DBPension' => [
-            'class' => \App\Models\DBPension::class,
+            'class' => DBPension::class,
             'fields' => ['accrued_annual_pension', 'lump_sum_entitlement'],
         ],
         'StatePension' => [
-            'class' => \App\Models\StatePension::class,
+            'class' => StatePension::class,
             'fields' => ['current_annual_amount', 'forecast_full_amount'],
         ],
         'Property' => [
-            'class' => \App\Models\Property::class,
+            'class' => Property::class,
             'fields' => ['current_value', 'purchase_price'],
         ],
         'Mortgage' => [
-            'class' => \App\Models\Mortgage::class,
+            'class' => Mortgage::class,
             'fields' => ['current_balance', 'original_amount', 'monthly_payment', 'mortgage_account_number'],
         ],
         'Liability' => [
-            'class' => \App\Models\Estate\Liability::class,
+            'class' => Liability::class,
             'fields' => ['current_balance', 'original_amount', 'monthly_payment'],
         ],
     ];

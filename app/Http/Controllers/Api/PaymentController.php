@@ -12,14 +12,15 @@ use App\Mail\PaymentConfirmation;
 use App\Mail\SubscriptionCancellation;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\Marketing\AwinTrackingService;
 use App\Services\Payment\DataPurgeService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\InvoiceService;
-use App\Services\Payment\RevolutService;
 use App\Services\Payment\ReferralService;
+use App\Services\Payment\RevolutService;
 use App\Services\Payment\RevolutSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 
 class PaymentController extends Controller
 {
@@ -680,7 +682,7 @@ class PaymentController extends Controller
             }
 
             $accessUntil = DB::transaction(function () use ($subscription, $request) {
-                $locked = \App\Models\Subscription::where('id', $subscription->id)->lockForUpdate()->first();
+                $locked = Subscription::where('id', $subscription->id)->lockForUpdate()->first();
 
                 if (! in_array($locked->status, ['active', 'past_due'])) {
                     return null;
@@ -924,7 +926,7 @@ class PaymentController extends Controller
      *
      * GET /api/payment/invoices/{invoice}/download
      */
-    public function downloadInvoice(Request $request, Invoice $invoice): \Symfony\Component\HttpFoundation\Response
+    public function downloadInvoice(Request $request, Invoice $invoice): Response
     {
         $user = $request->user();
 
@@ -950,7 +952,7 @@ class PaymentController extends Controller
     /**
      * Send a cancellation confirmation email to the user.
      */
-    private function sendCancellationEmail(User $user, \App\Models\Subscription $subscription): void
+    private function sendCancellationEmail(User $user, Subscription $subscription): void
     {
         try {
             Mail::to($user->email)->send(new SubscriptionCancellation($user, $subscription));

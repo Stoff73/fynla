@@ -2,20 +2,24 @@
 
 declare(strict_types=1);
 
+use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\RolesPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 it('preserves HTML inside body_blocks paragraph for admin insights endpoint', function () {
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
-    $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
+    $this->seed(RolesPermissionsSeeder::class);
+    $adminRole = Role::findByName(Role::ROLE_ADMIN);
     $admin = User::factory()->create([
         'role_id' => $adminRole->id,
         'is_admin' => true,
     ]);
 
     // Paragraph blocks allow only inline tags: <strong><em><a><br>
-    \Laravel\Sanctum\Sanctum::actingAs($admin);
+    Sanctum::actingAs($admin);
 
     $this->postJson('/api/admin/insights/articles', [
         'title' => 'HTML test',
@@ -30,14 +34,14 @@ it('preserves HTML inside body_blocks paragraph for admin insights endpoint', fu
 });
 
 it('preserves <p> inside callout blocks (block tag allowlist)', function () {
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
-    $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
+    $this->seed(RolesPermissionsSeeder::class);
+    $adminRole = Role::findByName(Role::ROLE_ADMIN);
     $admin = User::factory()->create([
         'role_id' => $adminRole->id,
         'is_admin' => true,
     ]);
 
-    \Laravel\Sanctum\Sanctum::actingAs($admin);
+    Sanctum::actingAs($admin);
 
     $this->postJson('/api/admin/insights/articles', [
         'title' => 'Callout test',

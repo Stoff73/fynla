@@ -7,12 +7,13 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('create_protection_policy persists a LifeInsurancePolicy for level_term', function (): void {

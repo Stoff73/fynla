@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Documents\FieldMappers;
 
+use App\Models\Mortgage;
+
 class MortgageMapper extends AbstractFieldMapper
 {
     protected array $fieldMappings = [
@@ -39,7 +41,7 @@ class MortgageMapper extends AbstractFieldMapper
 
     public function getModelClass(): string
     {
-        return \App\Models\Mortgage::class;
+        return Mortgage::class;
     }
 
     public function getSubtype(): string

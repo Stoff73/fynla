@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -15,7 +16,7 @@ uses(RefreshDatabase::class);
  * `created: true` so HasAiChat fires the `entity_created` SSE event.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('create_savings_account persists a SavingsAccount row directly', function (): void {

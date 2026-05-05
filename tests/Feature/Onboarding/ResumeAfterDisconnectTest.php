@@ -7,6 +7,7 @@ use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -25,7 +26,7 @@ uses(RefreshDatabase::class);
  * and action=resume, what does the director emit?
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 function makeStaleOnboardingUser(string $stateId, ?string $selection = null): array

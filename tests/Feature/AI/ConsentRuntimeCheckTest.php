@@ -7,12 +7,14 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 /**
@@ -29,7 +31,7 @@ function grantAiChatConsent(User $user): void
  * AdviceFyn calls. Yields the supplied event sequence so tests don't
  * have to spin up the LLM stack.
  *
- * @param  callable():\Generator  $generatorFactory
+ * @param  callable():Generator  $generatorFactory
  */
 function bindAdviceFynStubGenerator(callable $generatorFactory): void
 {
@@ -42,7 +44,7 @@ function bindAdviceFynStubGenerator(callable $generatorFactory): void
 /**
  * Parse a `data: ...\n\n` SSE byte stream into a Collection of decoded events.
  */
-function parseSseEvents(string $raw): \Illuminate\Support\Collection
+function parseSseEvents(string $raw): Collection
 {
     return collect(explode("\n\n", $raw))
         ->filter(fn ($c) => str_starts_with(trim($c), 'data:'))

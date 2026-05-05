@@ -9,6 +9,7 @@ use App\Http\Requests\StorePersonalAccountLineItemRequest;
 use App\Http\Requests\UpdatePersonalAccountLineItemRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\PersonalAccount;
+use App\Models\User;
 use App\Services\UserProfile\PersonalAccountsService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -87,7 +88,7 @@ class PersonalAccountsController extends Controller
         // Check if user is married and has permission to view spouse data
         $spouseData = null;
         if ($user->spouse_id && $user->hasAcceptedSpousePermission()) {
-            $spouse = \App\Models\User::find($user->spouse_id);
+            $spouse = User::find($user->spouse_id);
             if ($spouse) {
                 $spouseData = [
                     'profit_and_loss' => $this->personalAccountsService->calculateProfitAndLoss(

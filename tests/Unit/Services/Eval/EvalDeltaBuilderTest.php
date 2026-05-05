@@ -14,7 +14,6 @@ use App\Services\Eval\EvalDeltaBuilder;
  * RefreshDatabase. The QueryClassifier dependency is real (it's
  * stateless and cheap).
  */
-
 beforeEach(function () {
     $this->builder = app(EvalDeltaBuilder::class);
 });

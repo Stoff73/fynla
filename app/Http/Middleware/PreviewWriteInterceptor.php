@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -157,7 +158,7 @@ class PreviewWriteInterceptor
      * Since this middleware runs before auth:sanctum, we need to manually
      * resolve the user from the Authorization header.
      */
-    private function resolveUserFromToken(Request $request): ?\App\Models\User
+    private function resolveUserFromToken(Request $request): ?User
     {
         $token = $request->bearerToken();
 

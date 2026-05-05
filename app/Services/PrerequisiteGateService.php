@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Investment\Recommendation\DataReadinessService as InvestmentDataReadinessService;
@@ -231,7 +232,7 @@ class PrerequisiteGateService
 
         $canProceed = ! empty($readyModules);
 
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'recommendation_eligibility',
             module: 'global',
             passed: $canProceed,

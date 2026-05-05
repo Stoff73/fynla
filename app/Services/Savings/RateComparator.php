@@ -6,6 +6,7 @@ namespace App\Services\Savings;
 
 use App\Models\SavingsAccount;
 use App\Models\SavingsMarketRate;
+use Illuminate\Support\Collection;
 
 class RateComparator
 {
@@ -141,7 +142,7 @@ class RateComparator
      * Groups accounts by banking licence group and calculates per-institution totals.
      * Used by FSCSAssessor for FSCS protection analysis.
      */
-    public function getInstitutionExposure(\Illuminate\Support\Collection $accounts): array
+    public function getInstitutionExposure(Collection $accounts): array
     {
         $licenceGroups = config('banking_licence_groups', []);
 

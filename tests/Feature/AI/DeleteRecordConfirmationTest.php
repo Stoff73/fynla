@@ -6,13 +6,14 @@ use App\Agents\CoordinatingAgent;
 use App\Models\Goal;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 // ─── First call: returns confirmation token ─────────────────────────────
@@ -110,7 +111,7 @@ it("rejects another user's token (user_id is part of the hash)", function (): vo
     expect(Goal::find($goalB->id))->not->toBeNull();
 });
 
-it("rejects a token issued for a different entity_id", function (): void {
+it('rejects a token issued for a different entity_id', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
     $goalA = Goal::factory()->create(['user_id' => $user->id]);
     $goalB = Goal::factory()->create(['user_id' => $user->id]);
@@ -131,7 +132,7 @@ it("rejects a token issued for a different entity_id", function (): void {
     expect(Goal::find($goalB->id))->not->toBeNull();
 });
 
-it("rejects a token issued for a different entity_type", function (): void {
+it('rejects a token issued for a different entity_type', function (): void {
     $user = User::factory()->create(['is_preview_user' => false]);
     $goal = Goal::factory()->create(['user_id' => $user->id, 'id' => 999]);
     $savings = SavingsAccount::factory()->create(['user_id' => $user->id, 'id' => 999]);

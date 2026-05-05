@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Exceptions\SpouseCollisionException;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -162,7 +163,7 @@ describe('OnboardingChatDirector::handleGroupedExtractTurn (spouse collision)', 
 
         // The "is_terminal_error" assistant message row is persisted with
         // the error_type metadata so the audit trail captures the branch.
-        $terminalMessage = \App\Models\AiMessage::where('conversation_id', $conversation->id)
+        $terminalMessage = AiMessage::where('conversation_id', $conversation->id)
             ->where('role', 'assistant')
             ->latest('id')
             ->first();

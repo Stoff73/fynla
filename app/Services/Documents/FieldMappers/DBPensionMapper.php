@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Documents\FieldMappers;
 
+use App\Models\DBPension;
+
 class DBPensionMapper extends AbstractFieldMapper
 {
     protected array $fieldMappings = [
@@ -37,7 +39,7 @@ class DBPensionMapper extends AbstractFieldMapper
 
     public function getModelClass(): string
     {
-        return \App\Models\DBPension::class;
+        return DBPension::class;
     }
 
     public function getSubtype(): string

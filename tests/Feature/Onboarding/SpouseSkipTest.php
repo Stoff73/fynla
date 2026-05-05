@@ -7,6 +7,7 @@ use App\Models\OnboardingProgress;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -17,7 +18,7 @@ uses(RefreshDatabase::class);
  * recording the skip on onboarding_progress so resume can see it.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('advances from base_spouse to base_dependants when skip is invoked', function () {

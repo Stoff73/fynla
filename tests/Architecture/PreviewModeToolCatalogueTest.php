@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\XaiToolDefinitions;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class);
+uses(TestCase::class);
 
 /**
  * INV-2.7.4 — preview-mode tool filtering must be consistent across

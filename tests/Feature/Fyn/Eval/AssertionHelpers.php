@@ -291,7 +291,7 @@ final class AssertionHelpers
                     return [false, 'kyc_state passed expected actual.passed=true, got '.var_export($passed, true)];
                 }
                 if (! empty($missing)) {
-                    return [false, "kyc_state passed expected empty missing, got ".json_encode($missing)];
+                    return [false, 'kyc_state passed expected empty missing, got '.json_encode($missing)];
                 }
 
                 return [true, ''];
@@ -301,7 +301,7 @@ final class AssertionHelpers
                     return [false, 'kyc_state bypass expected actual.passed=true, got '.var_export($passed, true)];
                 }
                 if ($promptText !== '') {
-                    return [false, "kyc_state bypass expected empty prompt_text, got ".substr($promptText, 0, 80).'…'];
+                    return [false, 'kyc_state bypass expected empty prompt_text, got '.substr($promptText, 0, 80).'…'];
                 }
 
                 return [true, ''];
@@ -520,7 +520,7 @@ final class AssertionHelpers
     {
         if (isset($rules['exact_match'])) {
             if ($actualText !== $rules['exact_match']) {
-                return [false, "assistant_text exact_match failed (expected length ".strlen($rules['exact_match']).", got ".strlen($actualText).')'];
+                return [false, 'assistant_text exact_match failed (expected length '.strlen($rules['exact_match']).', got '.strlen($actualText).')'];
             }
         }
 
@@ -542,7 +542,7 @@ final class AssertionHelpers
                 }
             }
             if (! $hit) {
-                return [false, "assistant_text none of group ".json_encode($group)." matched"];
+                return [false, 'assistant_text none of group '.json_encode($group).' matched'];
             }
         }
 
@@ -555,14 +555,14 @@ final class AssertionHelpers
         if (isset($rules['minimum_length_chars'])) {
             $min = (int) $rules['minimum_length_chars'];
             if (strlen($actualText) < $min) {
-                return [false, "assistant_text length ".strlen($actualText)." below minimum {$min}"];
+                return [false, 'assistant_text length '.strlen($actualText)." below minimum {$min}"];
             }
         }
 
         if (isset($rules['maximum_length_chars'])) {
             $max = (int) $rules['maximum_length_chars'];
             if (strlen($actualText) > $max) {
-                return [false, "assistant_text length ".strlen($actualText)." above maximum {$max}"];
+                return [false, 'assistant_text length '.strlen($actualText)." above maximum {$max}"];
             }
         }
 
@@ -620,11 +620,11 @@ final class AssertionHelpers
         }
 
         if (isset($payload['timing_budget_ms']) && (is_int($payload['timing_budget_ms']) || is_string($payload['timing_budget_ms']))) {
-            return [false, "deprecated shape: timing_budget_ms must be a per-provider per-path map { anthropic: {path: ms}, xai: {path: ms} }"];
+            return [false, 'deprecated shape: timing_budget_ms must be a per-provider per-path map { anthropic: {path: ms}, xai: {path: ms} }'];
         }
 
         if (isset($payload['expected_sse_events']) && is_array($payload['expected_sse_events']) && array_is_list($payload['expected_sse_events'])) {
-            return [false, "deprecated shape: expected_sse_events must be a structural rules block (must_contain_types, must_emit_exactly_once, etc.), not a list of events"];
+            return [false, 'deprecated shape: expected_sse_events must be a structural rules block (must_contain_types, must_emit_exactly_once, etc.), not a list of events'];
         }
 
         return [true, ''];

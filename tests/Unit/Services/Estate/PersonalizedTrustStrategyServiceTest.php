@@ -10,6 +10,7 @@ use App\Services\Estate\AssetLiquidityAnalyzer;
 use App\Services\Estate\PersonalizedTrustStrategyService;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\Settings\AssumptionsService;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
     // Ensure active tax configuration exists
@@ -18,7 +19,7 @@ beforeEach(function () {
     }
 
     $this->liquidityAnalyzer = new AssetLiquidityAnalyzer;
-    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $taxConfig = app(TaxConfigService::class);
     $assumptionsService = app(AssumptionsService::class);
     $riskPreferenceService = app(RiskPreferenceService::class);
     $this->service = new PersonalizedTrustStrategyService($this->liquidityAnalyzer, $taxConfig, $assumptionsService, $riskPreferenceService);

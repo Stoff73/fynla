@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -33,7 +34,7 @@ function grantAiChatConsentForOnboardingEndpointTest(User $user): void
  *   503       — kill switch off
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 describe('POST /api/ai-chat/onboarding/start', function () {

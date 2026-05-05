@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Symfony\Component\Yaml\Yaml;
 use Tests\Feature\Fyn\Eval\AssertionHelpers;
 
 describe('AssertionHelpers — new YAML key support (S1.2.l)', function () {
@@ -371,7 +372,7 @@ describe('AssertionHelpers — new YAML key support (S1.2.l)', function () {
             $payload = ['expected_advice_response' => ['signposting_suffix_present' => true]];
             [$ok, $msg] = AssertionHelpers::assertNoDeprecatedKeys($payload);
             expect($ok)->toBeFalse();
-            expect($msg)->toContain("expected_advice_response");
+            expect($msg)->toContain('expected_advice_response');
             expect($msg)->toContain('S1.6.a');
         });
 
@@ -408,7 +409,7 @@ describe('AssertionHelpers — new YAML key support (S1.2.l)', function () {
             expect($paths)->not->toBeEmpty();
 
             foreach ($paths as $path) {
-                $payload = Symfony\Component\Yaml\Yaml::parseFile($path);
+                $payload = Yaml::parseFile($path);
                 [$ok, $msg] = AssertionHelpers::assertNoDeprecatedKeys($payload);
                 expect($ok)->toBeTrue("{$path}: {$msg}");
             }

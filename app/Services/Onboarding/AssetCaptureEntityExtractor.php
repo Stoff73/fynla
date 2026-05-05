@@ -16,6 +16,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 
 /**
  * Deterministic entity extractor for onboarding asset_capture turns.
@@ -174,7 +175,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function protectionPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function protectionPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -218,7 +219,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function savingsPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function savingsPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -239,7 +240,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function retirementPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function retirementPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -271,7 +272,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function investmentPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function investmentPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -292,7 +293,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function propertyPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function propertyPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -315,7 +316,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function goalPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function goalPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -337,7 +338,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function mortgagePersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function mortgagePersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 
@@ -359,7 +360,7 @@ final class AssetCaptureEntityExtractor
     /**
      * @return list<string>
      */
-    private function liabilityPersistedKeys(User $user, \Illuminate\Support\Carbon $cutoff): array
+    private function liabilityPersistedKeys(User $user, Carbon $cutoff): array
     {
         $keys = [];
 

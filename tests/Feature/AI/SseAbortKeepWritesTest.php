@@ -7,6 +7,7 @@ use App\Models\AiAbortEvent;
 use App\Models\AiConversation;
 use App\Models\Goal;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -22,7 +23,7 @@ uses(RefreshDatabase::class);
  * in its own DB::transaction and what landed is real.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 function callRecordAbort(AiConversation $conv, ?string $tool, int $count): void
@@ -78,7 +79,7 @@ describe('SSE abort recording (S0.11.2)', function () {
         // The default in unit-test runs is false (no real client connection).
         // The chat loop relies on this hook being mockable so abort-flow
         // tests can simulate disconnect without an actual TCP drop.
-        expect(method_exists(\App\Agents\CoordinatingAgent::class, 'wasConnectionAborted'))
+        expect(method_exists(CoordinatingAgent::class, 'wasConnectionAborted'))
             ->toBeTrue();
 
         $agent = app(CoordinatingAgent::class);

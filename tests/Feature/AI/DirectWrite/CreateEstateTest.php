@@ -7,12 +7,13 @@ use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 // 0.5.h create_asset

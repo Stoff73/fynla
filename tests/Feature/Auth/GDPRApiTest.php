@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Models\UserConsent;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
@@ -360,7 +361,7 @@ describe('Immediate Self-Service Deletion', function () {
     it('rejects execution with wrong confirmation phrase', function () {
         // For this test, we need to manually set up a verified session in cache
         $sessionToken = str_repeat('a', 64);
-        \Illuminate\Support\Facades\Cache::put("deletion_session:{$this->user->id}", [
+        Cache::put("deletion_session:{$this->user->id}", [
             'token' => $sessionToken,
             'type' => 'account',
             'verified' => true,
@@ -383,7 +384,7 @@ describe('Immediate Self-Service Deletion', function () {
 
     it('validates confirmation phrase is case-sensitive', function () {
         $sessionToken = str_repeat('b', 64);
-        \Illuminate\Support\Facades\Cache::put("deletion_session:{$this->user->id}", [
+        Cache::put("deletion_session:{$this->user->id}", [
             'token' => $sessionToken,
             'type' => 'account',
             'verified' => true,

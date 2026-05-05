@@ -33,10 +33,10 @@ class EndOfTrialMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.end-of-trial',
             with: [
-                'firstName'        => $this->firstName,
-                'discountPercent'  => $this->discountPercent,
-                'reassureUrl'      => $this->utm('https://fynla.org/subscribe', 'but-dont-worry-cta'),
-                'finalSubscribeUrl'=> $this->utm('https://fynla.org/subscribe', 'final-subscribe-cta'),
+                'firstName' => $this->firstName,
+                'discountPercent' => $this->discountPercent,
+                'reassureUrl' => $this->utm('https://fynla.org/subscribe', 'but-dont-worry-cta'),
+                'finalSubscribeUrl' => $this->utm('https://fynla.org/subscribe', 'final-subscribe-cta'),
             ],
         );
     }

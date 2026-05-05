@@ -10,6 +10,7 @@ use App\Models\EvalRecordingSession;
 use App\Models\User;
 use App\Services\Eval\EvalHttpDriver;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use RuntimeException;
 
 /**
@@ -334,7 +335,7 @@ final class EvalRecordCommand extends Command
 
         $count = $this->countMutations($writes);
         $this->info("Mutating recording detected {$count} diff entries — resetting persona '{$persona}'.");
-        \Illuminate\Support\Facades\Artisan::call('preview:reset', ['persona' => $persona]);
+        Artisan::call('preview:reset', ['persona' => $persona]);
     }
 
     /**

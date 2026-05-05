@@ -467,7 +467,7 @@ class AiChatController extends Controller
             try {
                 $generator = $inOnboarding
                     ? $this->onboardingDirector->handleAction($user, $conversation, $action)
-                    : (function () use ($action) {
+                    : (function () {
                         // Post-onboarding currently has no action semantics beyond
                         // the director's onboarding-specific ones. Emit a no-op
                         // acknowledgement so the client gets a clean response.
@@ -511,5 +511,4 @@ class AiChatController extends Controller
             'X-Accel-Buffering' => 'no',
         ]);
     }
-
 }

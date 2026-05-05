@@ -5,12 +5,13 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\PensionInputHistory;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('writes pension_input_history rows for each entry', function () {

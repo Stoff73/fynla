@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Events\Eval\EngineCalled;
 use App\Models\Goal;
 use App\Models\User;
 use App\Services\Goals\GoalAffordabilityService;
@@ -88,7 +89,7 @@ class GoalsAgent extends BaseAgent
         });
 
         $resultPath = (isset($result['has_goals']) && $result['has_goals'] === false) ? 'empty_state' : 'happy';
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'goals_analysis',
             params: ['user_id' => $userId],
             resultSummary: ['result_path' => $resultPath, 'keys_returned' => is_array($result) ? array_keys($result) : []],
@@ -147,85 +148,85 @@ class GoalsAgent extends BaseAgent
     {
         $start = microtime(true);
         $result = (function () use ($analysisData): array {
-        $recommendations = [];
-        $priority = 1;
+            $recommendations = [];
+            $priority = 1;
 
-        if (! ($analysisData['has_goals'] ?? false)) {
+            if (! ($analysisData['has_goals'] ?? false)) {
+                return [
+                    'recommendation_count' => 1,
+                    'recommendations' => [[
+                        'category' => 'Getting Started',
+                        'priority' => 1,
+                        'title' => 'Set Your First Financial Goal',
+                        'description' => 'People with clear financial goals are more likely to feel financially secure. Start with an emergency fund goal.',
+                        'action' => 'Create an emergency fund goal for 3-6 months of expenses.',
+                    ]],
+                ];
+            }
+
+            $summary = $analysisData['summary'] ?? [];
+            $affordability = $analysisData['affordability'] ?? [];
+
+            // Check for goals behind schedule
+            $behindCount = $summary['behind_count'] ?? 0;
+            if ($behindCount > 0) {
+                $recommendations[] = [
+                    'category' => 'Progress',
+                    'priority' => $priority++,
+                    'title' => "{$behindCount} goal(s) falling behind schedule",
+                    'description' => 'Some goals are not on track to be achieved by their target date.',
+                    'action' => 'Review these goals and consider increasing contributions or extending timelines.',
+                ];
+            }
+
+            // Check affordability
+            if (($affordability['status'] ?? '') === 'overcommitted') {
+                $recommendations[] = [
+                    'category' => 'Affordability',
+                    'priority' => $priority++,
+                    'title' => 'Goal commitments exceed available surplus',
+                    'description' => 'Your planned monthly contributions exceed your available savings capacity.',
+                    'action' => 'Prioritise essential goals and consider pausing or reducing others.',
+                ];
+            }
+
+            // Check for no emergency fund
+            $byModule = $analysisData['by_module'] ?? [];
+            $savingsGoals = $byModule['savings']['goals'] ?? [];
+            $hasEmergencyFund = collect($savingsGoals)->contains(fn ($g) => ($g['goal_type'] ?? '') === 'emergency_fund');
+
+            if (! $hasEmergencyFund) {
+                $recommendations[] = [
+                    'category' => 'Safety Net',
+                    'priority' => $priority++,
+                    'title' => 'No Emergency Fund Goal',
+                    'description' => 'An emergency fund provides financial security against unexpected expenses.',
+                    'action' => 'Create an emergency fund goal for 3-6 months of living expenses.',
+                ];
+            }
+
+            // Check contribution streaks
+            $bestStreak = $analysisData['streaks']['best_current_streak'] ?? 0;
+            if ($bestStreak >= 3) {
+                $recommendations[] = [
+                    'category' => 'Momentum',
+                    'priority' => $priority++,
+                    'title' => "Excellent! {$bestStreak}-month contribution streak",
+                    'description' => 'Consistency is key to achieving your financial goals.',
+                    'action' => 'Keep up the great work and maintain your contribution schedule.',
+                ];
+            }
+
+            // Sort by priority
+            usort($recommendations, fn ($a, $b) => $a['priority'] <=> $b['priority']);
+
             return [
-                'recommendation_count' => 1,
-                'recommendations' => [[
-                    'category' => 'Getting Started',
-                    'priority' => 1,
-                    'title' => 'Set Your First Financial Goal',
-                    'description' => 'People with clear financial goals are more likely to feel financially secure. Start with an emergency fund goal.',
-                    'action' => 'Create an emergency fund goal for 3-6 months of expenses.',
-                ]],
+                'recommendation_count' => count($recommendations),
+                'recommendations' => $recommendations,
             ];
-        }
-
-        $summary = $analysisData['summary'] ?? [];
-        $affordability = $analysisData['affordability'] ?? [];
-
-        // Check for goals behind schedule
-        $behindCount = $summary['behind_count'] ?? 0;
-        if ($behindCount > 0) {
-            $recommendations[] = [
-                'category' => 'Progress',
-                'priority' => $priority++,
-                'title' => "{$behindCount} goal(s) falling behind schedule",
-                'description' => 'Some goals are not on track to be achieved by their target date.',
-                'action' => 'Review these goals and consider increasing contributions or extending timelines.',
-            ];
-        }
-
-        // Check affordability
-        if (($affordability['status'] ?? '') === 'overcommitted') {
-            $recommendations[] = [
-                'category' => 'Affordability',
-                'priority' => $priority++,
-                'title' => 'Goal commitments exceed available surplus',
-                'description' => 'Your planned monthly contributions exceed your available savings capacity.',
-                'action' => 'Prioritise essential goals and consider pausing or reducing others.',
-            ];
-        }
-
-        // Check for no emergency fund
-        $byModule = $analysisData['by_module'] ?? [];
-        $savingsGoals = $byModule['savings']['goals'] ?? [];
-        $hasEmergencyFund = collect($savingsGoals)->contains(fn ($g) => ($g['goal_type'] ?? '') === 'emergency_fund');
-
-        if (! $hasEmergencyFund) {
-            $recommendations[] = [
-                'category' => 'Safety Net',
-                'priority' => $priority++,
-                'title' => 'No Emergency Fund Goal',
-                'description' => 'An emergency fund provides financial security against unexpected expenses.',
-                'action' => 'Create an emergency fund goal for 3-6 months of living expenses.',
-            ];
-        }
-
-        // Check contribution streaks
-        $bestStreak = $analysisData['streaks']['best_current_streak'] ?? 0;
-        if ($bestStreak >= 3) {
-            $recommendations[] = [
-                'category' => 'Momentum',
-                'priority' => $priority++,
-                'title' => "Excellent! {$bestStreak}-month contribution streak",
-                'description' => 'Consistency is key to achieving your financial goals.',
-                'action' => 'Keep up the great work and maintain your contribution schedule.',
-            ];
-        }
-
-        // Sort by priority
-        usort($recommendations, fn ($a, $b) => $a['priority'] <=> $b['priority']);
-
-        return [
-            'recommendation_count' => count($recommendations),
-            'recommendations' => $recommendations,
-        ];
         })();
 
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'goals_recommendation',
             params: [],
             resultSummary: ['result_path' => 'happy', 'count' => $result['recommendation_count'] ?? 0],

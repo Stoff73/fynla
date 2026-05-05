@@ -89,7 +89,7 @@ final class EvalShowCommand extends Command
                 }
                 $this->table(['ID', 'Started', 'Status', 'Branch', 'SHA', 'Runs'], $rows);
                 $this->newLine();
-                $this->line("View one: php artisan eval:show --session={\$ID}");
+                $this->line('View one: php artisan eval:show --session={$ID}');
 
                 return self::SUCCESS;
             }

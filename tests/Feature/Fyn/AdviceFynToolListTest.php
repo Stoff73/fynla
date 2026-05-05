@@ -6,12 +6,13 @@ use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\XaiToolDefinitions;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 /**

@@ -7,6 +7,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -23,7 +24,7 @@ uses(RefreshDatabase::class);
  * the top-priority bug would come back.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
@@ -66,7 +67,7 @@ it('synthesises fill_form events for entities the LLM dropped on protection', fu
             'entity_id' => null,
         ],
         ['type' => 'tool_use', 'tool' => 'create_protection_policy', 'status' => 'complete'],
-        ['type' => 'content', 'text' => "Got it — both recorded."],
+        ['type' => 'content', 'text' => 'Got it — both recorded.'],
         ['type' => 'done', 'message_id' => 1],
     ];
 
@@ -248,7 +249,7 @@ it('is a no-op when the user message contains no extractable entity', function (
     // User says "I don't have any" — the LLM emits no tool calls; the
     // extractor finds no entities; the gap-fill must emit nothing too.
     $llmEmptyTurn = [
-        ['type' => 'content', 'text' => "Got it — nothing to add."],
+        ['type' => 'content', 'text' => 'Got it — nothing to add.'],
         ['type' => 'done', 'message_id' => 3],
     ];
 

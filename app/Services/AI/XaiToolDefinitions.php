@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Constants\UpdateRecordAllowlist;
+
 /**
  * xAI-optimised tool definitions with strict function calling.
  *
@@ -787,7 +789,7 @@ class XaiToolDefinitions
     {
         return [
             $this->wrapTool(
-                \App\Services\AI\HandoffContract::DELEGATE_TO_CAPTURE,
+                HandoffContract::DELEGATE_TO_CAPTURE,
                 'Internal. Emit when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture. Never shown to the user.',
                 [
                     'reason' => ['type' => 'string', 'description' => 'Why capture is needed.'],
@@ -797,7 +799,7 @@ class XaiToolDefinitions
                 ['reason', 'entity_types', 'fields_needed']
             ),
             $this->wrapTool(
-                \App\Services\AI\HandoffContract::CAPTURE_COMPLETE,
+                HandoffContract::CAPTURE_COMPLETE,
                 'Internal. Emit when you (data-capture Fyn) have finished capturing. Orchestrator returns control to advice Fyn.',
                 [
                     'summary' => ['type' => 'string', 'description' => 'Short user-facing recap.'],
@@ -1050,7 +1052,7 @@ class XaiToolDefinitions
         // so we expose the union of all allowed field names with
         // additionalProperties:false. The runtime handler enforces the
         // per-entity allowlist (UpdateRecordAllowlist::allowedFields).
-        $allFields = \App\Constants\UpdateRecordAllowlist::allFieldNames();
+        $allFields = UpdateRecordAllowlist::allFieldNames();
         $fieldProps = [];
         foreach ($allFields as $field) {
             $fieldProps[$field] = ['type' => ['string', 'number', 'boolean', 'null']];
@@ -1063,7 +1065,7 @@ class XaiToolDefinitions
                 [
                     'entity_type' => [
                         'type' => 'string',
-                        'enum' => \App\Constants\UpdateRecordAllowlist::entityTypes(),
+                        'enum' => UpdateRecordAllowlist::entityTypes(),
                         'description' => 'The type of record to update',
                     ],
                     'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update'],

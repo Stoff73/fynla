@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 
 describe('Journey Flow', function () {
     beforeEach(function () {
-        $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+        $this->seed(TaxConfigurationSeeder::class);
         $this->user = User::factory()->create();
     });
 

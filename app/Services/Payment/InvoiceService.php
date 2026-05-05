@@ -49,7 +49,7 @@ class InvoiceService
             'period_end' => $subscription->current_period_end,
             'next_renewal_date' => $subscription->auto_renew ? $nextRenewalDate : null,
             'issued_at' => now(),
-            'billing_name' => trim(($user->first_name ?? '') . ' ' . ($user->surname ?? '')),
+            'billing_name' => trim(($user->first_name ?? '').' '.($user->surname ?? '')),
             'billing_address' => $this->buildAddress($user),
             'billing_email' => $user->email,
         ]);
@@ -141,7 +141,7 @@ class InvoiceService
     {
         return match ($discount->type) {
             'percentage' => "{$discount->value}% off",
-            'fixed_amount' => '£' . number_format($discount->value / 100, 2) . ' off',
+            'fixed_amount' => '£'.number_format($discount->value / 100, 2).' off',
             'trial_extension' => "{$discount->value} extra trial days",
             default => 'Discount applied',
         };

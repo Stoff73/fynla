@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use Anthropic\Client;
 use Anthropic\Client as AnthropicClient;
 use Anthropic\Messages\InputJSONDelta;
 use Anthropic\Messages\RawContentBlockDeltaEvent;
@@ -14,17 +15,23 @@ use Anthropic\Messages\RawMessageStartEvent;
 use Anthropic\Messages\TextBlock;
 use Anthropic\Messages\TextDelta;
 use Anthropic\Messages\ToolUseBlock;
-use App\Models\AiAbortEvent;
-use App\Models\AiConversation;
+use App\Constants\QuerySchemas;
 // Anthropic SDK imports — only used when AI_PROVIDER=anthropic
+use App\Models\AiAbortEvent;
+use App\Models\AiAdviceLog;
+use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\KycGateChecker;
 use App\Services\AI\QueryClassifier;
+use App\Services\AI\StructuredResponseValidator;
 use App\Services\AI\XaiClient;
 use App\Services\AI\XaiToolDefinitions;
+use App\Services\Eval\EvalBypassGate;
 use App\Services\PrerequisiteGateService;
+use App\Support\XaiFunctionCallLeakStripper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -133,8 +140,8 @@ trait HasAiChat
         $classification = $classifier->classify($message, $currentRoute);
 
         $kycResult = null;
-        if (! \App\Constants\QuerySchemas::isBypassType($classification['primary'])
-            && $classification['primary'] !== \App\Constants\QuerySchemas::GENERAL) {
+        if (! QuerySchemas::isBypassType($classification['primary'])
+            && $classification['primary'] !== QuerySchemas::GENERAL) {
             $kycChecker = app(KycGateChecker::class);
             $kycResult = $kycChecker->check($user, $classification);
         }
@@ -163,7 +170,7 @@ trait HasAiChat
             // (eval flow) AND the X-Eval-Run-Id header is present
             // (April30Updates F-12 — defence-in-depth so a leaked token
             // alone is not enough to bypass preview filtering).
-            $hasEvalBypass = \App\Services\Eval\EvalBypassGate::isActive($user);
+            $hasEvalBypass = EvalBypassGate::isActive($user);
             $tools = $toolDefinitions->getTools($user->is_preview_user && ! $hasEvalBypass);
 
             if ($this->allowedToolsOverride !== null) {
@@ -186,7 +193,7 @@ trait HasAiChat
 
         // April30Updates F-15 — engine-level-aware tool call cap.
         // Holistic queries need more tools, factual queries fewer.
-        $engineLevel = \App\Services\AI\AdviceFyn::engineCallLevelFor(
+        $engineLevel = AdviceFyn::engineCallLevelFor(
             $classification['primary'] ?? null
         );
         $toolCallCap = self::TOOL_CALL_CAPS_BY_LEVEL[$engineLevel]
@@ -338,7 +345,7 @@ trait HasAiChat
                     $currentToolUseBlock = null;
                     $accumulatedToolJson = '';
 
-                    $anthropicClient = app(\Anthropic\Client::class);
+                    $anthropicClient = app(Client::class);
                     $stream = $anthropicClient->messages->createStream(
                         maxTokens: $maxTokens,
                         messages: $messages,
@@ -668,7 +675,7 @@ trait HasAiChat
         }
 
         // Validate and sanitise AI response
-        $validator = app(\App\Services\AI\StructuredResponseValidator::class);
+        $validator = app(StructuredResponseValidator::class);
         $fullResponse = $validator->sanitise($fullResponse);
         $violations = $validator->validateAndLog($fullResponse, $classification, $user->id);
 
@@ -720,7 +727,7 @@ trait HasAiChat
         // structured tool_use API. We never want that leaking into a
         // persisted assistant message (it breaks the chat bubble + the
         // BS-20 visible-text contract).
-        $sanitisedResponse = \App\Support\XaiFunctionCallLeakStripper::stripLeakedToolCallMarkup($fullResponse);
+        $sanitisedResponse = XaiFunctionCallLeakStripper::stripLeakedToolCallMarkup($fullResponse);
 
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
 
@@ -735,9 +742,9 @@ trait HasAiChat
 
         // Log advice for review system (only for advice query types)
         if ($classification !== null
-            && \App\Constants\QuerySchemas::isAdviceType($classification['primary'])) {
+            && QuerySchemas::isAdviceType($classification['primary'])) {
             try {
-                \App\Models\AiAdviceLog::create([
+                AiAdviceLog::create([
                     'user_id' => $user->id,
                     'conversation_id' => $conversation->id,
                     'message_id' => $assistantMessage->id,

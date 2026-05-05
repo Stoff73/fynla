@@ -5,7 +5,12 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\AI\AdviceFyn;
+use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\XaiToolDefinitions;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -16,7 +21,7 @@ uses(RefreshDatabase::class);
  * excluding the active conversation when the dispatcher passes its id.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 function callSearchConversationIndex(array $input, User $user, ?int $conversationId = null): array
@@ -243,15 +248,15 @@ it('with no filters returns all summarised conversations for the user (still cap
 });
 
 it('search_conversation_index is NOT in AdviceFyn::WRITE_TOOLS — naturally permitted in advice mode', function () {
-    $reflection = new ReflectionClass(\App\Services\AI\AdviceFyn::class);
+    $reflection = new ReflectionClass(AdviceFyn::class);
     $writeTools = $reflection->getReflectionConstant('WRITE_TOOLS')->getValue();
 
     expect($writeTools)->not->toContain('search_conversation_index');
 });
 
 it('AiToolDefinitions registers search_conversation_index with topic_keywords + entity_types arrays', function () {
-    $defs = app(\App\Services\AI\AiToolDefinitions::class);
-    \Illuminate\Support\Facades\Cache::put('ai_provider', 'anthropic');
+    $defs = app(AiToolDefinitions::class);
+    Cache::put('ai_provider', 'anthropic');
     $tools = $defs->getTools(false);
 
     $tool = collect($tools)->firstWhere('name', 'search_conversation_index');
@@ -263,8 +268,8 @@ it('AiToolDefinitions registers search_conversation_index with topic_keywords + 
 });
 
 it('XaiToolDefinitions registers search_conversation_index with strict mode', function () {
-    $defs = app(\App\Services\AI\XaiToolDefinitions::class);
-    \Illuminate\Support\Facades\Cache::put('ai_provider', 'xai');
+    $defs = app(XaiToolDefinitions::class);
+    Cache::put('ai_provider', 'xai');
     $tools = $defs->getTools(false);
 
     $tool = collect($tools)->first(fn ($t) => ($t['function']['name'] ?? null) === 'search_conversation_index');

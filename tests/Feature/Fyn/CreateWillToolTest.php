@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\Estate\Will;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -15,7 +16,7 @@ uses(RefreshDatabase::class);
  * create fallback when no prior will exists.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('creates a Will row with the provided fields and returns its id', function () {

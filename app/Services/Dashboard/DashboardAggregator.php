@@ -9,6 +9,7 @@ use App\Agents\InvestmentAgent;
 use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
+use App\Constants\TaxDefaults;
 
 class DashboardAggregator
 {
@@ -264,7 +265,7 @@ class DashboardAggregator
 
         // ISA usage: calculate percentage of allowance used
         $isaUsed = (float) ($data['isa_allowance']['used'] ?? 0);
-        $isaAllowance = (float) ($data['isa_allowance']['total_allowance'] ?? \App\Constants\TaxDefaults::ISA_ALLOWANCE);
+        $isaAllowance = (float) ($data['isa_allowance']['total_allowance'] ?? TaxDefaults::ISA_ALLOWANCE);
         $isaUsagePercent = $isaAllowance > 0 ? round(($isaUsed / $isaAllowance) * 100, 2) : 0;
 
         // Count goals on track (progress >= 75% indicates on track)

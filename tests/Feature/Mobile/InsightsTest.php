@@ -71,7 +71,7 @@ describe('Daily Insights API', function () {
 
     it('returns fallback insight when analysis fails', function () {
         $failingMock = Mockery::mock(CoordinatingAgent::class);
-        $failingMock->shouldReceive('analyze')->andThrow(new \RuntimeException('Analysis failed'));
+        $failingMock->shouldReceive('analyze')->andThrow(new RuntimeException('Analysis failed'));
         $this->app->instance(CoordinatingAgent::class, $failingMock);
 
         $user = User::factory()->create();

@@ -7,8 +7,9 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 /**
  * Regression for P0.3 — `EvalDeltaBuilder::detectResultPathFromString` was
@@ -21,7 +22,6 @@ uses(Tests\TestCase::class, RefreshDatabase::class);
  * (the in-process record HasAiChat persists when it executes the tool).
  * These tests exercise the back-fill helper directly via reflection.
  */
-
 function callEnrichToolCallsWithResults(array $sseCalls, int $conversationId): array
 {
     $reflection = new ReflectionClass(EvalRecordCommand::class);

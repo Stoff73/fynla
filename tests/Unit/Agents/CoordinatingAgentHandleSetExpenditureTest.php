@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\ExpenditureProfile;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class, RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 /**
  * Covers PRD FR-M12 (F1) — post-onboarding `handleSetExpenditure` must sync
@@ -31,7 +33,7 @@ function invokeSetExpenditure(User $user, array $input, bool $isPreview = false)
 }
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 describe('handleSetExpenditure → ExpenditureProfile sync (FR-M12)', function () {

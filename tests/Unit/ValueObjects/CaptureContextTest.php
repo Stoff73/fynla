@@ -36,7 +36,7 @@ it('constructs with all five fields supplied', function () {
 it('is immutable — readonly properties reject reassignment', function () {
     $ctx = new CaptureContext(reason: 'x', entityTypes: ['savings_account']);
 
-    expect(fn () => $ctx->reason = 'y')->toThrow(\Error::class);
+    expect(fn () => $ctx->reason = 'y')->toThrow(Error::class);
 });
 
 it('serialises to snake_case array', function () {
@@ -107,15 +107,15 @@ it('synthesises a default reason when both reason and entity_types-derived label
 
 it('throws when entity_types is missing from fromArray payload', function () {
     expect(fn () => CaptureContext::fromArray(['reason' => 'r']))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('rejects an empty reason in the constructor', function () {
     expect(fn () => new CaptureContext(reason: '', entityTypes: ['goal']))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('rejects an empty entity_types list in the constructor', function () {
     expect(fn () => new CaptureContext(reason: 'r', entityTypes: []))
-        ->toThrow(\InvalidArgumentException::class);
+        ->toThrow(InvalidArgumentException::class);
 });

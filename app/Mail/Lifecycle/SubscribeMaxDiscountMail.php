@@ -34,11 +34,11 @@ class SubscribeMaxDiscountMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.subscribe-max-discount',
             with: [
-                'firstName'       => $this->firstName,
-                'daysRemaining'   => $this->daysRemaining,
-                'trialEndDate'    => $this->trialEndDate,
-                'countdownUrl'    => $this->utm('https://fynla.org/subscribe', 'countdown-cta'),
-                'discountUrl'     => $this->utm('https://fynla.org/subscribe', 'discount-panel-cta'),
+                'firstName' => $this->firstName,
+                'daysRemaining' => $this->daysRemaining,
+                'trialEndDate' => $this->trialEndDate,
+                'countdownUrl' => $this->utm('https://fynla.org/subscribe', 'countdown-cta'),
+                'discountUrl' => $this->utm('https://fynla.org/subscribe', 'discount-panel-cta'),
             ],
         );
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
+use App\Models\AiConversation;
 use App\Models\User;
 
 /**
@@ -696,7 +697,7 @@ final class OnboardingStateMachine
      * though the user has already volunteered it, breaking the canonical
      * "no repeat-asks" contract (INV-2.2.3 + INV-2.11.1).
      */
-    public static function buildSpousePrompt(string $answer, User $user, ?\App\Models\AiConversation $conversation = null): string
+    public static function buildSpousePrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $isCivilPartnership = ($user->marital_status ?? '') === 'civil_partnership';
         $word = $isCivilPartnership ? 'partner' : 'spouse';
@@ -822,7 +823,7 @@ final class OnboardingStateMachine
      * else from `conversation.onboarding_parked_facts.spouse.first_name`, else
      * falls back to "your spouse".
      */
-    public static function buildCampaignIntroPrompt(string $answer, User $user, ?\App\Models\AiConversation $conversation = null): string
+    public static function buildCampaignIntroPrompt(string $answer, User $user, ?AiConversation $conversation = null): string
     {
         $firstName = trim((string) ($user->first_name ?? ''));
         if ($firstName === '') {
@@ -992,7 +993,7 @@ final class OnboardingStateMachine
      * reference. Strings are interpolated; callables receive (answer, user)
      * and return a fresh string.
      */
-    public static function resolvePromptText(array $state, User $user, string $answer = '', ?\App\Models\AiConversation $conversation = null): string
+    public static function resolvePromptText(array $state, User $user, string $answer = '', ?AiConversation $conversation = null): string
     {
         $promptText = $state['prompt_text'] ?? '';
 
@@ -1018,7 +1019,7 @@ final class OnboardingStateMachine
         return str_contains($value, '::');
     }
 
-    private static function invokeCallableString(string $reference, string $answer, User $user, ?\App\Models\AiConversation $conversation = null): mixed
+    private static function invokeCallableString(string $reference, string $answer, User $user, ?AiConversation $conversation = null): mixed
     {
         [$class, $method] = explode('::', $reference, 2);
         if (! class_exists($class) || ! method_exists($class, $method)) {

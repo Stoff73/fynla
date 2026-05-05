@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -50,7 +51,9 @@ class AiAuditRetentionJob implements ShouldQueue
     use SerializesModels;
 
     private const SEVEN_YEARS_DAYS = 2555;
+
     private const TWO_YEARS_DAYS = 730;
+
     private const DELETE_BATCH_SIZE = 5000;
 
     public function handle(): array
@@ -78,7 +81,7 @@ class AiAuditRetentionJob implements ShouldQueue
         ];
     }
 
-    private function pruneLongRetention(\Illuminate\Support\Carbon $cutoff): int
+    private function pruneLongRetention(Carbon $cutoff): int
     {
         $total = 0;
         do {
@@ -96,7 +99,7 @@ class AiAuditRetentionJob implements ShouldQueue
         return $total;
     }
 
-    private function pruneShortRetention(\Illuminate\Support\Carbon $cutoff): int
+    private function pruneShortRetention(Carbon $cutoff): int
     {
         $total = 0;
         do {

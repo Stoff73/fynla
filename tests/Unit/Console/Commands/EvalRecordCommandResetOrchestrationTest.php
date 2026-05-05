@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 use App\Console\Commands\EvalRecordCommand;
+use Illuminate\Console\OutputStyle;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * Unit test for canonical 0.1 reset orchestration in EvalRecordCommand.
@@ -13,13 +17,12 @@ use Illuminate\Support\Facades\Artisan;
  * diff is non-empty, AFTER the EvalProviderRun row is persisted. Empty
  * diff -> no reset (non-mutating scenarios must never reset).
  */
-
 beforeEach(function () {
-    $this->command = new EvalRecordCommand();
+    $this->command = new EvalRecordCommand;
     // Wire a buffered output so $this->info() does not throw.
-    $output = new \Symfony\Component\Console\Output\BufferedOutput();
-    $this->command->setOutput(new \Illuminate\Console\OutputStyle(
-        new \Symfony\Component\Console\Input\ArrayInput([]),
+    $output = new BufferedOutput;
+    $this->command->setOutput(new OutputStyle(
+        new ArrayInput([]),
         $output,
     ));
 });
@@ -29,7 +32,7 @@ afterEach(function () {
 });
 
 it('does NOT call preview:reset when db_writes is empty (non-mutating scenario)', function () {
-    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    $spy = Mockery::spy(Kernel::class);
     Artisan::swap($spy);
 
     $this->command->resetPersonaIfMutating([], 'peak_earners');
@@ -39,7 +42,7 @@ it('does NOT call preview:reset when db_writes is empty (non-mutating scenario)'
 });
 
 it('does NOT call preview:reset when persona is empty', function () {
-    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    $spy = Mockery::spy(Kernel::class);
     Artisan::swap($spy);
 
     $this->command->resetPersonaIfMutating(['savings_count' => ['from' => 1, 'to' => 2]], '');
@@ -49,7 +52,7 @@ it('does NOT call preview:reset when persona is empty', function () {
 });
 
 it('calls preview:reset with the persona when db_writes is non-empty', function () {
-    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    $spy = Mockery::spy(Kernel::class);
     Artisan::swap($spy);
 
     $this->command->resetPersonaIfMutating(
@@ -71,7 +74,7 @@ it('calls preview:reset with the persona when db_writes is non-empty', function 
  * chain that canonical 0.1 protects.
  */
 it('does NOT call preview:reset when canonical shape has only empty buckets', function () {
-    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    $spy = Mockery::spy(Kernel::class);
     Artisan::swap($spy);
 
     $this->command->resetPersonaIfMutating(
@@ -84,7 +87,7 @@ it('does NOT call preview:reset when canonical shape has only empty buckets', fu
 });
 
 it('calls preview:reset when canonical shape has any populated bucket', function () {
-    $spy = Mockery::spy(\Illuminate\Contracts\Console\Kernel::class);
+    $spy = Mockery::spy(Kernel::class);
     Artisan::swap($spy);
 
     $this->command->resetPersonaIfMutating(

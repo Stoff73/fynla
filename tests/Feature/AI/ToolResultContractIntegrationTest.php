@@ -8,6 +8,7 @@ use App\Agents\SavingsAgent;
 use App\Models\Goal;
 use App\Models\Household;
 use App\Models\SavingsAccount;
+use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\AI\ToolResultContract;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +25,7 @@ uses(RefreshDatabase::class);
  * yields a structured error tool result rather than a malformed shape.
  */
 beforeEach(function () {
-    \App\Models\TaxConfiguration::factory()->create(['is_active' => true]);
+    TaxConfiguration::factory()->create(['is_active' => true]);
     $this->household = Household::factory()->create();
     $this->user = User::factory()->create([
         'household_id' => $this->household->id,

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -22,7 +23,7 @@ uses(RefreshDatabase::class);
  * Adding a new entry source must require only a config change.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 function grantAiChatConsentForJourneyMapTest(User $user): void

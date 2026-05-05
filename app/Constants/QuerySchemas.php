@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Constants;
 
+use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
+
 /**
  * Defines all AI query types, their classifications, KYC requirements,
  * mandatory tool sequences, and decision tree trigger mappings.
@@ -685,14 +688,14 @@ final class QuerySchemas
      */
     public static function holisticPriority(): array
     {
-        $taperLower = (int) (\App\Constants\TaxDefaults::PERSONAL_ALLOWANCE_TAPER ?? 100000);
-        $taperUpper = (int) (\App\Constants\TaxDefaults::ADDITIONAL_RATE_THRESHOLD ?? 125140);
+        $taperLower = (int) (TaxDefaults::PERSONAL_ALLOWANCE_TAPER ?? 100000);
+        $taperUpper = (int) (TaxDefaults::ADDITIONAL_RATE_THRESHOLD ?? 125140);
 
-        $income = (array) (app(\App\Services\TaxConfigService::class)->getIncomeTax() ?? []);
+        $income = (array) (app(TaxConfigService::class)->getIncomeTax() ?? []);
         if (isset($income['personal_allowance_taper_threshold'])) {
             $taperLower = (int) $income['personal_allowance_taper_threshold'];
         }
-        $thresholds = app(\App\Services\Tax\TaxStrategyMath::class)->bandThresholds();
+        $thresholds = app(TaxStrategyMath::class)->bandThresholds();
         if (($thresholds['additional'] ?? 0) > 0) {
             $taperUpper = (int) $thresholds['additional'];
         }

@@ -9,6 +9,7 @@ use App\Models\RetirementProfile;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Annual Allowance Checker Service
@@ -256,7 +257,7 @@ class AnnualAllowanceChecker
      * Calculate total annual pension contributions from all DC pensions.
      * Includes both employee and employer contributions as both count towards annual allowance.
      *
-     * @param  \Illuminate\Support\Collection  $dcPensions
+     * @param  Collection  $dcPensions
      */
     private function calculateTotalAnnualContributions($dcPensions): float
     {

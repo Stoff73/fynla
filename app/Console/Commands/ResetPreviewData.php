@@ -32,6 +32,7 @@ use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\PreviewUserSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -135,7 +136,7 @@ class ResetPreviewData extends Command
         });
 
         // Re-run the seeder for this persona
-        $seeder = new \Database\Seeders\PreviewUserSeeder;
+        $seeder = new PreviewUserSeeder;
         $seeder->setCommand($this);
 
         // Create a temporary seeder that only seeds this persona

@@ -6,6 +6,8 @@ namespace App\Services\Plans;
 
 use App\Agents\GoalsAgent;
 use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Goals\GoalAffordabilityService;
 use App\Services\Goals\GoalProgressService;
@@ -199,13 +201,13 @@ class GoalPlanService extends BasePlanService
         // Linked accounts
         $linkedParts = [];
         if ($goal->linked_savings_account_id) {
-            $savingsAccount = \App\Models\SavingsAccount::find($goal->linked_savings_account_id);
+            $savingsAccount = SavingsAccount::find($goal->linked_savings_account_id);
             if ($savingsAccount) {
                 $linkedParts[] = sprintf('your savings account at %s', $savingsAccount->institution ?: 'your bank');
             }
         }
         if ($goal->linked_investment_account_id) {
-            $investmentAccount = \App\Models\Investment\InvestmentAccount::find($goal->linked_investment_account_id);
+            $investmentAccount = InvestmentAccount::find($goal->linked_investment_account_id);
             if ($investmentAccount) {
                 $linkedParts[] = sprintf('your %s investment account', $investmentAccount->provider ?: 'linked');
             }

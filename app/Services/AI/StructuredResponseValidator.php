@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Constants\QuerySchemas;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -135,7 +136,7 @@ class StructuredResponseValidator
 
         // For advice responses, check for £ amounts (should have specific figures)
         if ($classification !== null
-            && \App\Constants\QuerySchemas::isAdviceType($classification['primary'] ?? '')
+            && QuerySchemas::isAdviceType($classification['primary'] ?? '')
             && ! preg_match('/£[\d,]+/', $response)) {
             $violations[] = [
                 'rule' => 'missing_amounts',

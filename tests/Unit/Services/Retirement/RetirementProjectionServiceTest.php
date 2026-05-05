@@ -6,6 +6,7 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Retirement\RequiredCapitalCalculator;
@@ -89,7 +90,7 @@ beforeEach(function () {
         $this->mockRiskService,
         $this->mockTaxConfig,
         $this->mockLifeEventCashFlowService,
-        app(\App\Services\Cache\CacheInvalidationService::class),
+        app(CacheInvalidationService::class),
         $this->mockRequiredCapitalCalculator
     );
 });

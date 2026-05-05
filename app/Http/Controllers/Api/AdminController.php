@@ -19,8 +19,12 @@ use App\Services\Admin\DatabaseMetricsService;
 use App\Services\Admin\UserModuleTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminController extends Controller
 {
@@ -114,14 +118,14 @@ class AdminController extends Controller
         }
     }
 
-    private function resolvePreviousLoginAt(?User $user): ?\Illuminate\Support\Carbon
+    private function resolvePreviousLoginAt(?User $user): ?Carbon
     {
         if (! $user) {
             return null;
         }
 
         $token = $user->currentAccessToken();
-        $currentTokenId = $token instanceof \Laravel\Sanctum\PersonalAccessToken ? $token->id : null;
+        $currentTokenId = $token instanceof PersonalAccessToken ? $token->id : null;
 
         $query = UserSession::where('user_id', $user->id);
         if ($currentTokenId) {
@@ -647,10 +651,10 @@ class AdminController extends Controller
         // S0.11.4 — read via the versioned-key path so the admin UI sees
         // the same provider as in-flight chat loops resolved through
         // HasAiGuardrails::getAiProviderForLoop().
-        $version = (int) \Illuminate\Support\Facades\Cache::get('ai_provider_version', 0);
+        $version = (int) Cache::get('ai_provider_version', 0);
         $provider = $version > 0
-            ? \Illuminate\Support\Facades\Cache::get("ai_provider:v{$version}", config('services.ai_provider', 'anthropic'))
-            : \Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+            ? Cache::get("ai_provider:v{$version}", config('services.ai_provider', 'anthropic'))
+            : Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
 
         return response()->json([
             'success' => true,
@@ -700,13 +704,13 @@ class AdminController extends Controller
         // provider; new requests see the new provider atomically.
         // Also keep writing the legacy unversioned key for backward
         // compatibility with any reader that hasn't migrated yet.
-        $currentVersion = (int) \Illuminate\Support\Facades\Cache::get('ai_provider_version', 0);
+        $currentVersion = (int) Cache::get('ai_provider_version', 0);
         $newVersion = $currentVersion + 1;
-        \Illuminate\Support\Facades\Cache::forever("ai_provider:v{$newVersion}", $provider);
-        \Illuminate\Support\Facades\Cache::forever('ai_provider_version', $newVersion);
-        \Illuminate\Support\Facades\Cache::forever('ai_provider', $provider);
+        Cache::forever("ai_provider:v{$newVersion}", $provider);
+        Cache::forever('ai_provider_version', $newVersion);
+        Cache::forever('ai_provider', $provider);
 
-        \Illuminate\Support\Facades\Log::info('[Admin] AI provider switched', [
+        Log::info('[Admin] AI provider switched', [
             'provider' => $provider,
             'version' => $newVersion,
             'changed_by' => $request->user()->id,

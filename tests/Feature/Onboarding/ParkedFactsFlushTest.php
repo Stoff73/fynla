@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -19,7 +20,7 @@ uses(RefreshDatabase::class);
  * for clearing exactly its own bucket — siblings stay intact.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 function makeUserAtState(string $stateId, ?string $selection = null): array
@@ -110,7 +111,7 @@ it('replaces the parked-facts column with null when the last surviving bucket is
     ]);
 
     $director = app(OnboardingChatDirector::class);
-    $reflection = new \ReflectionClass($director);
+    $reflection = new ReflectionClass($director);
     $method = $reflection->getMethod('flushParkedFactsForState');
     $method->setAccessible(true);
     $method->invoke($director, $conversation, OnboardingStateMachine::STATE_BASE_EXPENDITURE);
@@ -126,7 +127,7 @@ it('is a no-op when there are no parked facts to flush', function () {
     expect($conversation->onboarding_parked_facts)->toBeNull();
 
     $director = app(OnboardingChatDirector::class);
-    $reflection = new \ReflectionClass($director);
+    $reflection = new ReflectionClass($director);
     $method = $reflection->getMethod('flushParkedFactsForState');
     $method->setAccessible(true);
     $method->invoke($director, $conversation, OnboardingStateMachine::STATE_BASE_EXPENDITURE);

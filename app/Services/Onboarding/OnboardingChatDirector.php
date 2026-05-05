@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
+use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\RecordDuplicateChecker;
 use App\ValueObjects\CaptureContext;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -45,8 +50,8 @@ final class OnboardingChatDirector
         private readonly OnboardingFactExtractor $factExtractor,
         private readonly AssetCaptureEntityExtractor $entityExtractor,
         private readonly HouseholdProvisioner $householdProvisioner,
-        private readonly \App\Services\AI\MemoryRetrieverService $memory,
-        private readonly \App\Services\AI\RecordDuplicateChecker $duplicateChecker,
+        private readonly MemoryRetrieverService $memory,
+        private readonly RecordDuplicateChecker $duplicateChecker,
     ) {}
 
     /**
@@ -1252,11 +1257,11 @@ final class OnboardingChatDirector
             return;
         }
 
-        $toolDefinitions = app(\App\Services\AI\AiToolDefinitions::class);
+        $toolDefinitions = app(AiToolDefinitions::class);
         // Match the active provider so the tools ship in the correct
         // format. xAI expects the OpenAI function-calling wrapper,
         // Anthropic expects the flattened input_schema shape.
-        $provider = \Illuminate\Support\Facades\Cache::get(
+        $provider = Cache::get(
             'ai_provider',
             config('services.ai_provider', 'anthropic')
         );
@@ -2232,7 +2237,7 @@ PROMPT;
 
         $this->recordProgress($user, OnboardingStateMachine::STATE_DONE, ['next_route' => $nextRoute]);
 
-        \App\Jobs\ConversationSummariserJob::dispatch($conversation->id);
+        ConversationSummariserJob::dispatch($conversation->id);
     }
 
     private function routeForSelection(string $selection): string

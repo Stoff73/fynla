@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tax\Strategies;
 
+use App\Constants\TaxDefaults;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
@@ -45,8 +46,8 @@ final class NonEarnerSpousePensionStrategy implements TaxStrategy
 
         // M9 — sourced from TaxDefaults; promote to TaxConfigService once
         // the schema gains a non_earner_pension key (CSJTODO S-3).
-        $netContribution = (float) \App\Constants\TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
-        $governmentUplift = (float) \App\Constants\TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
+        $netContribution = (float) TaxDefaults::NON_EARNER_PENSION_NET_CONTRIBUTION;
+        $governmentUplift = (float) TaxDefaults::NON_EARNER_PENSION_GOVERNMENT_UPLIFT;
         $existingBalance = (float) ($household?->spouse_existing_pension_balance ?? 0);
 
         $balanceLine = $existingBalance > 0

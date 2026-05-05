@@ -2,19 +2,23 @@
 
 declare(strict_types=1);
 
+use App\Models\CriticalIllnessPolicy;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\LifeInsurancePolicy;
 use App\Models\User;
 use App\Services\Admin\UserModuleTrackingService;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->service = new UserModuleTrackingService;
 });
 
 it('returns complete status for user with all protection data', function () {
     $user = User::factory()->create();
-    \App\Models\LifeInsurancePolicy::factory()->create(['user_id' => $user->id]);
-    \App\Models\CriticalIllnessPolicy::factory()->create(['user_id' => $user->id]);
-    \App\Models\IncomeProtectionPolicy::factory()->create(['user_id' => $user->id]);
+    LifeInsurancePolicy::factory()->create(['user_id' => $user->id]);
+    CriticalIllnessPolicy::factory()->create(['user_id' => $user->id]);
+    IncomeProtectionPolicy::factory()->create(['user_id' => $user->id]);
 
     $result = $this->service->getModuleStatus($user);
 
@@ -24,7 +28,7 @@ it('returns complete status for user with all protection data', function () {
 
 it('returns partial status for user with some data', function () {
     $user = User::factory()->create();
-    \App\Models\LifeInsurancePolicy::factory()->create(['user_id' => $user->id]);
+    LifeInsurancePolicy::factory()->create(['user_id' => $user->id]);
 
     $result = $this->service->getModuleStatus($user);
 
@@ -44,7 +48,7 @@ it('returns empty status for user with no data', function () {
 
 it('returns correct sub-area counts and values', function () {
     $user = User::factory()->create();
-    \App\Models\LifeInsurancePolicy::factory()->count(3)->create([
+    LifeInsurancePolicy::factory()->count(3)->create([
         'user_id' => $user->id,
         'sum_assured' => 100000,
     ]);

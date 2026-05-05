@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Documents\FieldMappers;
 
+use App\Models\LifeInsurancePolicy;
+
 class LifeInsuranceMapper extends AbstractFieldMapper
 {
     protected array $fieldMappings = [
@@ -41,7 +43,7 @@ class LifeInsuranceMapper extends AbstractFieldMapper
 
     public function getModelClass(): string
     {
-        return \App\Models\LifeInsurancePolicy::class;
+        return LifeInsurancePolicy::class;
     }
 
     public function getSubtype(): string

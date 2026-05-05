@@ -6,8 +6,10 @@ namespace App\Services\GDPR;
 
 use App\Models\AuditLog;
 use App\Models\ErasureRequest;
+use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\Audit\AuditService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -263,7 +265,7 @@ class DataErasureService
             if ($spouse) {
                 // Delete the spouse's family_member record that represents this user
                 // (the record with relationship='spouse' owned by the spouse)
-                \App\Models\FamilyMember::where('user_id', $spouse->id)
+                FamilyMember::where('user_id', $spouse->id)
                     ->where('relationship', 'spouse')
                     ->delete();
 
@@ -276,7 +278,7 @@ class DataErasureService
         $usersWithThisSpouse = User::where('spouse_id', $user->id)->get();
         foreach ($usersWithThisSpouse as $otherUser) {
             // Delete their family_member record that represents this user
-            \App\Models\FamilyMember::where('user_id', $otherUser->id)
+            FamilyMember::where('user_id', $otherUser->id)
                 ->where('relationship', 'spouse')
                 ->delete();
 
@@ -302,7 +304,7 @@ class DataErasureService
     /**
      * Get pending erasure requests for admin review
      */
-    public function getPendingRequests(): \Illuminate\Database\Eloquent\Collection
+    public function getPendingRequests(): Collection
     {
         return ErasureRequest::pending()
             ->with('user:id,email,first_name,surname')

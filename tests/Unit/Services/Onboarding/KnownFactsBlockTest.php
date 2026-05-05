@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\Onboarding\OnboardingPromptBuilder;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -17,7 +18,7 @@ uses(RefreshDatabase::class);
  * "Do not ask the user for any field above." suffix (INV-2.2.3).
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('OnboardingPromptBuilder::buildAssetCapturePrompt injects <known_facts> with every authoritative field name', function () {

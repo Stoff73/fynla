@@ -7,12 +7,30 @@ namespace App\Services\AI;
 use App\Constants\QuerySchemas;
 use App\Constants\TaxDefaults;
 use App\Models\AiConversation;
+use App\Models\BusinessInterest;
+use App\Models\Chattel;
+use App\Models\CriticalIllnessPolicy;
+use App\Models\DBPension;
+use App\Models\DCPension;
+use App\Models\Estate\Gift;
+use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
+use App\Models\FamilyMember;
+use App\Models\Goal;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeEvent;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\Prompts\QueryKnowledge;
 use App\Services\AI\Prompts\UserContentSanitiser;
+use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
@@ -129,7 +147,7 @@ class AdvicePromptBuilder
         // genuinely need the data. Reduces input tokens by ~500-1000 per
         // factual turn.
         $isFactual = isset($classification['primary'])
-            && \App\Services\AI\AdviceFyn::engineCallLevelFor($classification['primary']) === 'factual';
+            && AdviceFyn::engineCallLevelFor($classification['primary']) === 'factual';
 
         if (! $isFactual) {
             // Layer 5: Financial Position (DYNAMIC/user) — recommendations filtered by classification.
@@ -445,7 +463,7 @@ PROMPT;
 
             // Net worth from dedicated service
             try {
-                $netWorthService = app(\App\Services\NetWorth\NetWorthService::class);
+                $netWorthService = app(NetWorthService::class);
                 $netWorthData = $netWorthService->calculateNetWorth($user);
                 $lines[] = '- Total net worth: £'.number_format($netWorthData['net_worth'], 0);
                 $lines[] = '- Total assets: £'.number_format($netWorthData['total_assets'], 0);
@@ -507,7 +525,7 @@ PROMPT;
             }
 
             // Property
-            $ownsProperty = \App\Models\Property::forUserOrJoint($user->id)->exists();
+            $ownsProperty = Property::forUserOrJoint($user->id)->exists();
             $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
 
             // Estate (IHT-specific)
@@ -519,7 +537,7 @@ PROMPT;
             }
 
             // Goals
-            $activeGoals = \App\Models\Goal::forUserOrJoint($user->id)
+            $activeGoals = Goal::forUserOrJoint($user->id)
                 ->where('status', 'active')
                 ->orderBy('priority')
                 ->get();
@@ -544,7 +562,7 @@ PROMPT;
             }
 
             // Life Events
-            $activeEvents = \App\Models\LifeEvent::forUserOrJoint($user->id)
+            $activeEvents = LifeEvent::forUserOrJoint($user->id)
                 ->active()
                 ->orderBy('expected_date')
                 ->get();
@@ -651,7 +669,7 @@ PROMPT;
 
             // Life event impact summaries
             try {
-                $integrationService = app(\App\Services\Goals\LifeEventIntegrationService::class);
+                $integrationService = app(LifeEventIntegrationService::class);
                 $impactModules = ['savings', 'investment', 'retirement', 'protection', 'estate'];
                 $lifeEventImpacts = [];
 
@@ -735,7 +753,7 @@ PROMPT;
 
             // Savings
             if ($include('savings_account')) {
-                $savings = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $savings = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($savings->isNotEmpty()) {
                     // S0.10 — account_name and institution are user-controlled free text.
                     $items = $savings->map(fn ($a) => '[ID:'.$a->id
@@ -749,7 +767,7 @@ PROMPT;
 
             // Investments
             if ($include('investment_account')) {
-                $investments = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $investments = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($investments->isNotEmpty()) {
                     // S0.10 — provider is user-controlled free text.
                     $items = $investments->map(fn ($a) => '[ID:'.$a->id
@@ -762,7 +780,7 @@ PROMPT;
 
             // DC Pensions
             if ($include('dc_pension')) {
-                $dcPensions = \App\Models\DCPension::where('user_id', $userId)->get();
+                $dcPensions = DCPension::where('user_id', $userId)->get();
                 if ($dcPensions->isNotEmpty()) {
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dcPensions->map(fn ($p) => '[ID:'.$p->id
@@ -775,7 +793,7 @@ PROMPT;
 
             // DB Pensions
             if ($include('db_pension')) {
-                $dbPensions = \App\Models\DBPension::where('user_id', $userId)->get();
+                $dbPensions = DBPension::where('user_id', $userId)->get();
                 if ($dbPensions->isNotEmpty()) {
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dbPensions->map(fn ($p) => '[ID:'.$p->id
@@ -787,7 +805,7 @@ PROMPT;
 
             // Properties — show total value, user's share, mortgage, and ownership with co-owner name
             if ($include('property') || $include('mortgage')) {
-                $properties = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $properties = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($properties->isNotEmpty()) {
                     $items = $properties->map(function ($p) use ($userId, $ownershipLabel) {
                         $totalValue = (float) $p->current_value;
@@ -825,7 +843,7 @@ PROMPT;
 
             // Life Insurance
             if ($include('life_insurance')) {
-                $lifePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+                $lifePolicies = LifeInsurancePolicy::where('user_id', $userId)->get();
                 if ($lifePolicies->isNotEmpty()) {
                     // S0.10 — provider is user-controlled free text.
                     $items = $lifePolicies->map(fn ($p) => '[ID:'.$p->id
@@ -838,7 +856,7 @@ PROMPT;
 
             // Critical Illness
             if ($include('critical_illness')) {
-                $ciPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+                $ciPolicies = CriticalIllnessPolicy::where('user_id', $userId)->get();
                 if ($ciPolicies->isNotEmpty()) {
                     // S0.10 — provider is user-controlled free text.
                     $items = $ciPolicies->map(fn ($p) => '[ID:'.$p->id
@@ -850,7 +868,7 @@ PROMPT;
 
             // Income Protection
             if ($include('income_protection')) {
-                $ipPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+                $ipPolicies = IncomeProtectionPolicy::where('user_id', $userId)->get();
                 if ($ipPolicies->isNotEmpty()) {
                     // S0.10 — provider is user-controlled free text.
                     $items = $ipPolicies->map(fn ($p) => '[ID:'.$p->id
@@ -862,7 +880,7 @@ PROMPT;
 
             // Trusts
             if ($include('trust')) {
-                $trusts = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+                $trusts = Trust::where('user_id', $userId)->get();
                 if ($trusts->isNotEmpty()) {
                     // S0.10 — trust_name is user-controlled free text.
                     $items = $trusts->map(fn ($t) => '[ID:'.$t->id
@@ -875,7 +893,7 @@ PROMPT;
 
             // Business Interests
             if ($include('business')) {
-                $businesses = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $businesses = BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($businesses->isNotEmpty()) {
                     // S0.10 — business_name is user-controlled free text.
                     $items = $businesses->map(fn ($b) => '[ID:'.$b->id
@@ -888,7 +906,7 @@ PROMPT;
 
             // Chattels
             if ($include('chattel')) {
-                $chattels = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $chattels = Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($chattels->isNotEmpty()) {
                     // S0.10 — chattel description is user-controlled free text.
                     $items = $chattels->map(fn ($c) => '[ID:'.$c->id
@@ -901,7 +919,7 @@ PROMPT;
 
             // Liabilities
             if ($include('liability')) {
-                $liabilities = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $liabilities = Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($liabilities->isNotEmpty()) {
                     $items = $liabilities->map(function ($l) {
                         // S0.10 — liability_name is user-controlled free text.
@@ -925,7 +943,7 @@ PROMPT;
 
             // Gifts
             if ($include('gift')) {
-                $gifts = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+                $gifts = Gift::where('user_id', $userId)->get();
                 if ($gifts->isNotEmpty()) {
                     // S0.10 — gift recipient is user-controlled free text.
                     $items = $gifts->map(fn ($g) => '[ID:'.$g->id
@@ -939,7 +957,7 @@ PROMPT;
 
             // Family Members
             if ($include('family_member')) {
-                $family = \App\Models\FamilyMember::where('user_id', $userId)->get();
+                $family = FamilyMember::where('user_id', $userId)->get();
                 $spouse = $user->spouse;
                 $familyParts = [];
                 if ($spouse) {

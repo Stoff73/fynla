@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
     Artisan::call('db:seed', ['--class' => 'PreviewUserSeeder']);
@@ -48,7 +49,7 @@ it('reset endpoint runs preview:reset for the persona', function () {
 });
 
 it('does not register the legacy /api/eval/trace HTTP endpoint (P0.1 — replaced by cache hand-off)', function () {
-    $evalRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
+    $evalRoutes = collect(Route::getRoutes())
         ->map(fn ($r) => $r->uri())
         ->filter(fn ($uri) => str_starts_with($uri, 'api/eval/'))
         ->values()

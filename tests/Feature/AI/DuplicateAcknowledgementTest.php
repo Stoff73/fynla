@@ -14,6 +14,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\DuplicateAcknowledgement;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -28,7 +29,7 @@ uses(RefreshDatabase::class);
  * future LLM/prompt change cannot regress the no-gaslight contract.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->builder = new DuplicateAcknowledgement(new AssetCaptureEntityExtractor);
     $this->user = User::factory()->create();
 });

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -26,7 +27,6 @@ uses(RefreshDatabase::class);
  * so a mid-stream `Cache::forever('ai_provider:v{N+1}', ...)` write by
  * the admin endpoint cannot affect the in-flight call.
  */
-
 beforeEach(function () {
     Cache::forget('ai_provider');
     Cache::forget('ai_provider_version');
@@ -37,7 +37,7 @@ beforeEach(function () {
 
 function callGetAiProviderForLoop(): string
 {
-    $reflection = new ReflectionMethod(\App\Agents\CoordinatingAgent::class, 'getAiProviderForLoop');
+    $reflection = new ReflectionMethod(CoordinatingAgent::class, 'getAiProviderForLoop');
     $reflection->setAccessible(true);
 
     return $reflection->invoke(null);
@@ -53,7 +53,7 @@ function asAdminUser(): User
 
 describe('Provider-swap lock (S0.11.4 / INV-2.9.4)', function () {
     it('exposes a getAiProviderForLoop helper on HasAiGuardrails', function () {
-        expect(method_exists(\App\Agents\CoordinatingAgent::class, 'getAiProviderForLoop'))
+        expect(method_exists(CoordinatingAgent::class, 'getAiProviderForLoop'))
             ->toBeTrue();
     });
 

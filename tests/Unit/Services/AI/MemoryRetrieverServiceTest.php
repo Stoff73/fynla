@@ -7,6 +7,7 @@ use App\Models\AiMessage;
 use App\Models\FamilyMember;
 use App\Models\User;
 use App\Services\AI\MemoryRetrieverService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -18,7 +19,7 @@ uses(RefreshDatabase::class);
  * never overwrites a Layer-1 fact.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->memory = app(MemoryRetrieverService::class);
 });
 

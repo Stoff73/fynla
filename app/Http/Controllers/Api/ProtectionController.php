@@ -31,7 +31,9 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\ProtectionProfile;
 use App\Models\SicknessIllnessPolicy;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Protection\ComprehensiveProtectionPlanService;
 use App\Traits\PolicyCRUDTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,9 +48,9 @@ class ProtectionController extends Controller
      */
     public function __construct(
         private readonly ProtectionAgent $protectionAgent,
-        private readonly \App\Services\Protection\ComprehensiveProtectionPlanService $comprehensiveProtectionPlan,
+        private readonly ComprehensiveProtectionPlanService $comprehensiveProtectionPlan,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**

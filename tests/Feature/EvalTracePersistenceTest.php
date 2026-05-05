@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\Eval\EvalTraceCollector;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
-use Laravel\Sanctum\PersonalAccessToken;
 
 beforeEach(function () {
     Artisan::call('db:seed', ['--class' => 'PreviewUserSeeder']);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Models\AiDailyUsage;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ uses(RefreshDatabase::class);
  * lock, so the daily total cannot be lost or overwritten.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 function callRecordTokenUsage(User $user, int $tokens): void

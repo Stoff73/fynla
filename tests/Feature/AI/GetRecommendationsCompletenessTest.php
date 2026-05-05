@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Agents\CoordinatingAgent;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -20,7 +21,7 @@ uses(RefreshDatabase::class);
  * the handler output unchanged.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
@@ -93,7 +94,7 @@ it('returns the full ranked_recommendations array verbatim with all metadata fie
         'available_surplus' => 1500.0,
     ]);
 
-    $reflection = new \ReflectionClass($agent);
+    $reflection = new ReflectionClass($agent);
     $method = $reflection->getMethod('handleRecommendations');
     $method->setAccessible(true);
 
@@ -147,7 +148,7 @@ it('passes through nested personalised_context arrays without flattening or trun
         'available_surplus' => 0,
     ]);
 
-    $reflection = new \ReflectionClass($agent);
+    $reflection = new ReflectionClass($agent);
     $method = $reflection->getMethod('handleRecommendations');
     $method->setAccessible(true);
 
@@ -164,7 +165,7 @@ it('returns an empty list when orchestrateAnalysis returns no recommendations', 
         'available_surplus' => 0,
     ]);
 
-    $reflection = new \ReflectionClass($agent);
+    $reflection = new ReflectionClass($agent);
     $method = $reflection->getMethod('handleRecommendations');
     $method->setAccessible(true);
 

@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->service = new TrialService();
+    $this->service = new TrialService;
 });
 
 describe('restartTrial', function () {
@@ -61,7 +61,7 @@ describe('restartTrial', function () {
         ]);
 
         expect(fn () => $this->service->restartTrial($user, days: 14))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 
     it('updates users.plan from free back to pro on restart', function () {

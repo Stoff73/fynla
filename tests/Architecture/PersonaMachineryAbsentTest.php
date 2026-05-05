@@ -1,8 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use Tests\TestCase;
 
-uses(Tests\TestCase::class);
+uses(TestCase::class);
 
 it('no class references remain for deleted persona machinery', function (): void {
     $patterns = [
@@ -14,7 +15,7 @@ it('no class references remain for deleted persona machinery', function (): void
     $roots = [app_path(), config_path(), base_path('tests')];
     $hits = [];
     foreach ($roots as $root) {
-        $iter = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root));
+        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
         foreach ($iter as $file) {
             if (! $file->isFile() || $file->getExtension() !== 'php') {
                 continue;

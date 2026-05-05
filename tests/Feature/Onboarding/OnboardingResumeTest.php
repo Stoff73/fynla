@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -22,7 +23,7 @@ uses(RefreshDatabase::class);
  * And for action=restart, it deletes prior messages and resets to path_choice.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('emits a welcome-back greeting with Continue / Something else bubbles on resume', function () {

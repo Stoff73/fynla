@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
-use App\Models\AiConversation;
 use App\Models\AiDailyUsage;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -55,16 +54,16 @@ trait HasAiGuardrails
      */
     protected static function getAiProviderForLoop(): string
     {
-        $version = (int) \Illuminate\Support\Facades\Cache::get('ai_provider_version', 0);
+        $version = (int) Cache::get('ai_provider_version', 0);
 
         if ($version > 0) {
-            return \Illuminate\Support\Facades\Cache::get(
+            return Cache::get(
                 "ai_provider:v{$version}",
                 config('services.ai_provider', 'anthropic')
             );
         }
 
-        return \Illuminate\Support\Facades\Cache::get(
+        return Cache::get(
             'ai_provider',
             config('services.ai_provider', 'anthropic')
         );

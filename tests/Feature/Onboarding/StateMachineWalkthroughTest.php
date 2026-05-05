@@ -8,9 +8,11 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -32,7 +34,7 @@ uses(RefreshDatabase::class);
  * PRD: April/April20Updates/PRD-fyn-driven-onboarding.md §FR-M11
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create([
         'is_preview_user' => false,
         'onboarding_completed' => false,
@@ -48,7 +50,7 @@ beforeEach(function () {
 });
 
 function sendOnboardingMessage(
-    \Tests\TestCase $testCase,
+    TestCase $testCase,
     User $user,
     int $conversationId,
     string $message

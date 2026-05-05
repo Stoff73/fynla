@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Protection;
 
+use App\Events\Eval\GateChecked;
 use App\Models\LifeEvent;
 use App\Models\User;
 
@@ -54,7 +55,7 @@ class ProtectionDataReadinessService
         $totalChecks = count($checks);
         $canProceed = count($blocking) === 0;
 
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'data_readiness',
             module: 'protection',
             passed: $canProceed,

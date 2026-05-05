@@ -7,6 +7,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -27,7 +28,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->builder = app(AdvicePromptBuilder::class);
     $this->classification = [
         'primary' => QuerySchemas::PROTECTION_COVER,

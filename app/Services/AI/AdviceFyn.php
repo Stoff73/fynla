@@ -6,6 +6,7 @@ namespace App\Services\AI;
 
 use App\Agents\CoordinatingAgent;
 use App\Constants\QuerySchemas;
+use App\Events\Eval\AgentDecision;
 use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -210,7 +211,7 @@ final class AdviceFyn
         // whose handlers below already cover those branches.
         $traceablePrimary = $classification['primary'] ?? null;
         if ($traceablePrimary !== null && isset(self::RESPONSE_MODE_MAP[$traceablePrimary])) {
-            event(new \App\Events\Eval\AgentDecision(
+            event(new AgentDecision(
                 agent: 'AdviceFyn',
                 decisionPoint: 'response_mode',
                 outcome: self::RESPONSE_MODE_MAP[$traceablePrimary],
@@ -219,7 +220,7 @@ final class AdviceFyn
             ));
         }
         if ($traceablePrimary !== null && isset(self::ENGINE_CALL_LEVEL_MAP[$traceablePrimary])) {
-            event(new \App\Events\Eval\AgentDecision(
+            event(new AgentDecision(
                 agent: 'AdviceFyn',
                 decisionPoint: 'engine_call_level',
                 outcome: self::ENGINE_CALL_LEVEL_MAP[$traceablePrimary],

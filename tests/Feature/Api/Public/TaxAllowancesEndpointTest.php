@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 
@@ -13,7 +14,7 @@ uses(RefreshDatabase::class);
  * TaxConfiguration row. Must work without authentication.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     Cache::flush();
 });
 

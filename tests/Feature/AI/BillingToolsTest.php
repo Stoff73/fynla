@@ -7,13 +7,15 @@ use App\Models\Invoice;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use Database\Seeders\SubscriptionPlanSeeder;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
-    $this->seed(\Database\Seeders\SubscriptionPlanSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(SubscriptionPlanSeeder::class);
 });
 
 // ─── get_subscription_status ─────────────────────────────────────────

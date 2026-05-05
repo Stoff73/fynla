@@ -6,13 +6,14 @@ use App\Agents\CoordinatingAgent;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 /**
@@ -52,8 +53,8 @@ it('property + mortgage rollback on mid-transaction DB error leaves zero rows', 
             'postcode' => 'T1',
         ]);
 
-        throw new \RuntimeException('simulated mid-transaction failure');
-    } catch (\Throwable $e) {
+        throw new RuntimeException('simulated mid-transaction failure');
+    } catch (Throwable $e) {
         DB::rollBack();
     }
 

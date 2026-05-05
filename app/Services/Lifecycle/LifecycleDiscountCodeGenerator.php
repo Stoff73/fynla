@@ -48,7 +48,7 @@ class LifecycleDiscountCodeGenerator
     private function generateUniqueCode(): string
     {
         for ($i = 0; $i < self::MAX_COLLISION_RETRIES; $i++) {
-            $code = 'WELCOME_' . strtoupper(Str::random(8));
+            $code = 'WELCOME_'.strtoupper(Str::random(8));
             if (! DiscountCode::where('code', $code)->exists()) {
                 return $code;
             }
@@ -56,7 +56,7 @@ class LifecycleDiscountCodeGenerator
 
         throw new RuntimeException(
             'Failed to generate a unique lifecycle discount code after '
-            . self::MAX_COLLISION_RETRIES . ' attempts.'
+            .self::MAX_COLLISION_RETRIES.' attempts.'
         );
     }
 }

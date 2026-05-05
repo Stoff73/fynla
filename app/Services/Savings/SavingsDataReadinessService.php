@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Savings;
 
+use App\Events\Eval\GateChecked;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -51,7 +52,7 @@ class SavingsDataReadinessService
         $info = $collection->where('level', 'info');
         $canProceed = $blocking->where('passed', false)->isEmpty();
 
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'data_readiness',
             module: 'savings',
             passed: $canProceed,

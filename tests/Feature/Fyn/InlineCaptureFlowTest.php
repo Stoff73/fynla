@@ -7,6 +7,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -23,7 +24,7 @@ uses(RefreshDatabase::class);
  *   4. No `persona_state_change` event is ever emitted (INV-2.4.1).
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {

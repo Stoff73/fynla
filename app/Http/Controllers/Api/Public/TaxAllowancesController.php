@@ -25,7 +25,7 @@ class TaxAllowancesController extends Controller
     public function show(): JsonResponse
     {
         $payload = Cache::remember(
-            'public.tax-allowances.' . $this->taxConfig->getTaxYear(),
+            'public.tax-allowances.'.$this->taxConfig->getTaxYear(),
             now()->addHour(),
             fn (): array => $this->buildPayload()
         );

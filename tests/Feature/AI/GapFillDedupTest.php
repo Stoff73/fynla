@@ -11,6 +11,7 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -32,7 +33,7 @@ uses(RefreshDatabase::class);
  * filtered out before the gap-fill emission.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->extractor = new AssetCaptureEntityExtractor;
     $this->user = User::factory()->create();
 });

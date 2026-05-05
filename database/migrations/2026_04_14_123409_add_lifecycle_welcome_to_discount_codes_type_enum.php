@@ -22,8 +22,8 @@ return new class extends Migration
         }
 
         DB::statement(
-            "ALTER TABLE discount_codes MODIFY COLUMN type "
-            . "ENUM('percentage', 'fixed_amount', 'trial_extension', 'lifecycle_welcome') NOT NULL"
+            'ALTER TABLE discount_codes MODIFY COLUMN type '
+            ."ENUM('percentage', 'fixed_amount', 'trial_extension', 'lifecycle_welcome') NOT NULL"
         );
     }
 
@@ -32,14 +32,14 @@ return new class extends Migration
         // Downgrade: only drop the enum value if no rows use it
         $rowsUsingIt = DB::table('discount_codes')->where('type', 'lifecycle_welcome')->count();
         if ($rowsUsingIt > 0) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 "Cannot rollback: {$rowsUsingIt} discount_codes rows use type='lifecycle_welcome'. Delete them first."
             );
         }
 
         DB::statement(
-            "ALTER TABLE discount_codes MODIFY COLUMN type "
-            . "ENUM('percentage', 'fixed_amount', 'trial_extension') NOT NULL"
+            'ALTER TABLE discount_codes MODIFY COLUMN type '
+            ."ENUM('percentage', 'fixed_amount', 'trial_extension') NOT NULL"
         );
     }
 };

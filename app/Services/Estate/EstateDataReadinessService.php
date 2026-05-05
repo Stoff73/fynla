@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Events\Eval\GateChecked;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
@@ -46,7 +47,7 @@ class EstateDataReadinessService
         $totalCount = count($checks);
         $completenessPercent = $totalCount > 0 ? (int) round(($passedCount / $totalCount) * 100) : 0;
 
-        event(new \App\Events\Eval\GateChecked(
+        event(new GateChecked(
             gate: 'data_readiness',
             module: 'estate',
             passed: $canProceed,

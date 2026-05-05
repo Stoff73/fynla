@@ -27,7 +27,7 @@ return new class extends Migration
                     Schema::table($tableName, function (Blueprint $table) use ($indexName) {
                         $table->unique('user_id', $indexName);
                     });
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Index already exists, skip
                 }
             }
@@ -52,7 +52,7 @@ return new class extends Migration
                     Schema::table($tableName, function (Blueprint $table) use ($indexName) {
                         $table->dropUnique($indexName);
                     });
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Index doesn't exist, skip
                 }
             }

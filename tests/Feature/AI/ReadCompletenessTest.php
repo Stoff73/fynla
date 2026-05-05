@@ -8,6 +8,7 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -25,7 +26,7 @@ uses(RefreshDatabase::class);
  * ad-hoc 25/50/100 caps that this invariant exists to prevent).
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('handleListRecords returns every savings_account row without truncation', function () {
@@ -120,7 +121,7 @@ it('preserves cross-user isolation while listing complete data', function () {
  */
 function invokeProtectedMethod(object $instance, string $methodName, array $args = []): mixed
 {
-    $reflection = new \ReflectionClass($instance);
+    $reflection = new ReflectionClass($instance);
     $method = $reflection->getMethod($methodName);
     $method->setAccessible(true);
 

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 use App\Models\User;
 use App\Services\Onboarding\JourneyStateService;
+use Database\Seeders\TaxConfigurationSeeder;
 
 describe('Journey API', function () {
     beforeEach(function () {
-        $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+        $this->seed(TaxConfigurationSeeder::class);
         $this->user = User::factory()->create();
     });
 

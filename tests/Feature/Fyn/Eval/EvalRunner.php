@@ -59,8 +59,8 @@ final class EvalRunner
         }
 
         throw new \RuntimeException(
-            "EvalRunner::run is scaffold-only at Sprint 1 Task 1.1. ".
-            "Per-scenario execution lands in Task 1.2 (seed + fixtures + ".
+            'EvalRunner::run is scaffold-only at Sprint 1 Task 1.1. '.
+            'Per-scenario execution lands in Task 1.2 (seed + fixtures + '.
             "MockedProviderClient wiring). Scenario id: '{$id}'."
         );
     }

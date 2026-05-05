@@ -12,7 +12,6 @@ declare(strict_types=1);
  * AgentInternalController, AgentTokenAuth, AGENT_INTERNAL_TOKEN, or
  * OPENAI_CHAT_MODEL. Any match is a violation.
  */
-
 $projectRoot = realpath(__DIR__.'/../../');
 
 function collectStaleReferences(string $directory, string $pattern): array
@@ -97,7 +96,7 @@ describe('No stale references to deleted sidecar / OpenAI config', function () u
     });
 
     it('has no /api/internal/agent/ route prefix in routes/', function () use ($projectRoot) {
-        $pattern = "#internal/agent#";
+        $pattern = '#internal/agent#';
         $matches = collectStaleReferences($projectRoot.'/routes', $pattern);
         expect($matches)->toBeEmpty(
             'Found stale /api/internal/agent route references:'.PHP_EOL.implode(PHP_EOL, $matches)

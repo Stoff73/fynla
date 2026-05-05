@@ -93,7 +93,7 @@ describe('POST /api/retirement/pensions/dc', function () {
         $response = $this->postJson('/api/retirement/pensions/dc', []);
 
         $response->assertStatus(201);
-        expect(\App\Models\DCPension::where('user_id', $this->user->id)->count())->toBe(1);
+        expect(DCPension::where('user_id', $this->user->id)->count())->toBe(1);
     });
 });
 

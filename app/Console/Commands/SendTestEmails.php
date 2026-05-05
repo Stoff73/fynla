@@ -14,6 +14,8 @@ use App\Mail\SubscriptionCancellation;
 use App\Mail\SubscriptionRenewalReminder;
 use App\Mail\TrialExpirationReminder;
 use App\Mail\VerificationCode;
+use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\Mail;
 class SendTestEmails extends Command
 {
     protected $signature = 'email:test {recipient} {--template= : Send only a specific template}';
+
     protected $description = 'Send test versions of all email templates to a specified address';
 
     public function handle(): int
@@ -31,34 +34,37 @@ class SendTestEmails extends Command
         $user = User::where('email', 'chris@fynla.org')->first()
             ?? User::first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error('No user found for test data.');
+
             return 1;
         }
 
         $spouse = User::where('email', 'jane@example.com')->first() ?? $user;
 
         $templates = [
-            'verification' => fn() => $this->sendVerification($recipient, $user),
-            'payment' => fn() => $this->sendPayment($recipient, $user),
-            'trial' => fn() => $this->sendTrial($recipient, $user),
-            'renewal' => fn() => $this->sendRenewal($recipient, $user),
-            'cancellation' => fn() => $this->sendCancellation($recipient, $user),
-            'spouse-created' => fn() => $this->sendSpouseCreated($recipient, $user, $spouse),
-            'spouse-linked' => fn() => $this->sendSpouseLinked($recipient, $user, $spouse),
-            'retention' => fn() => $this->sendRetention($recipient, $user),
-            'deletion-verify' => fn() => $this->sendDeletionVerify($recipient, $user),
-            'deletion-confirm' => fn() => $this->sendDeletionConfirm($recipient, $user),
+            'verification' => fn () => $this->sendVerification($recipient, $user),
+            'payment' => fn () => $this->sendPayment($recipient, $user),
+            'trial' => fn () => $this->sendTrial($recipient, $user),
+            'renewal' => fn () => $this->sendRenewal($recipient, $user),
+            'cancellation' => fn () => $this->sendCancellation($recipient, $user),
+            'spouse-created' => fn () => $this->sendSpouseCreated($recipient, $user, $spouse),
+            'spouse-linked' => fn () => $this->sendSpouseLinked($recipient, $user, $spouse),
+            'retention' => fn () => $this->sendRetention($recipient, $user),
+            'deletion-verify' => fn () => $this->sendDeletionVerify($recipient, $user),
+            'deletion-confirm' => fn () => $this->sendDeletionConfirm($recipient, $user),
         ];
 
         if ($template && isset($templates[$template])) {
             $templates[$template]();
             $this->info("Sent '{$template}' to {$recipient}");
+
             return 0;
         }
 
         if ($template) {
-            $this->error("Unknown template: {$template}. Available: " . implode(', ', array_keys($templates)));
+            $this->error("Unknown template: {$template}. Available: ".implode(', ', array_keys($templates)));
+
             return 1;
         }
 
@@ -73,6 +79,7 @@ class SendTestEmails extends Command
         }
 
         $this->info("All test emails sent to {$recipient}");
+
         return 0;
     }
 
@@ -84,10 +91,11 @@ class SendTestEmails extends Command
 
     private function sendPayment(string $to, User $user): void
     {
-        $payment = \App\Models\Payment::latest()->first();
+        $payment = Payment::latest()->first();
 
-        if (!$payment) {
+        if (! $payment) {
             $this->warn('No payment records found — skipping payment confirmation email.');
+
             return;
         }
 
@@ -103,11 +111,12 @@ class SendTestEmails extends Command
     private function sendRenewal(string $to, User $user): void
     {
         $subscription = $user->subscription;
-        if (!$subscription) {
-            $subscription = \App\Models\Subscription::latest()->first();
+        if (! $subscription) {
+            $subscription = Subscription::latest()->first();
         }
-        if (!$subscription) {
+        if (! $subscription) {
             $this->warn('No subscription found — skipping renewal reminder email.');
+
             return;
         }
         $subUser = $subscription->user ?? $user;
@@ -117,11 +126,12 @@ class SendTestEmails extends Command
     private function sendCancellation(string $to, User $user): void
     {
         $subscription = $user->subscription;
-        if (!$subscription) {
-            $subscription = \App\Models\Subscription::latest()->first();
+        if (! $subscription) {
+            $subscription = Subscription::latest()->first();
         }
-        if (!$subscription) {
+        if (! $subscription) {
             $this->warn('No subscription found — skipping cancellation email.');
+
             return;
         }
         $subUser = $subscription->user ?? $user;

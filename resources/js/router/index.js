@@ -1127,6 +1127,18 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin/documents',
+    name: 'admin.documents.index',
+    component: () => import('@/views/Admin/Documents/DocumentListPage.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/documents/:id/edit',
+    name: 'admin.documents.edit',
+    component: () => import('@/views/Admin/Documents/DocumentEditor.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/news-subscribers',
     name: 'AdminNewsSubscribers',
     component: NewsSubscribersPage,

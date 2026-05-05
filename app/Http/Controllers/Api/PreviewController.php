@@ -21,6 +21,7 @@ use App\Models\StatePension;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -122,8 +123,8 @@ class PreviewController extends Controller
         // CRITICAL SECURITY: Clear any existing session to prevent data leakage
         // This ensures that if a real user was logged in, their session is destroyed
         // before we log in the preview user
-        if (\Illuminate\Support\Facades\Auth::guard('web')->check()) {
-            \Illuminate\Support\Facades\Auth::guard('web')->logout();
+        if (Auth::guard('web')->check()) {
+            Auth::guard('web')->logout();
         }
 
         // Invalidate the session and regenerate CSRF token (if session is available)

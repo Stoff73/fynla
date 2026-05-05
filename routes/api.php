@@ -1,5 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\ActionDefinitionController;
+use App\Http\Controllers\Api\Admin\DocumentArticleController;
+use App\Http\Controllers\Api\Admin\EvalRecordingController;
+use App\Http\Controllers\Api\Admin\InsightArticleController;
+use App\Http\Controllers\Api\Admin\InsightImageController;
+use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AdvisorController;
+use App\Http\Controllers\Api\AiAuditController;
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BugReportController;
@@ -17,6 +26,7 @@ use App\Http\Controllers\Api\Estate\TrustController;
 use App\Http\Controllers\Api\Estate\WillController;
 use App\Http\Controllers\Api\Estate\WillDocumentController;
 use App\Http\Controllers\Api\EstateController;
+use App\Http\Controllers\Api\EvalAuthController;
 use App\Http\Controllers\Api\FamilyMembersController;
 use App\Http\Controllers\Api\GDPRController;
 use App\Http\Controllers\Api\GoalsController;
@@ -37,27 +47,40 @@ use App\Http\Controllers\Api\Investment\RebalancingActionsController;
 use App\Http\Controllers\Api\Investment\RebalancingCalculationController;
 use App\Http\Controllers\Api\Investment\RebalancingStrategiesController;
 use App\Http\Controllers\Api\Investment\TaxOptimizationController;
+use App\Http\Controllers\Api\InvestmentActionDefinitionController;
 use App\Http\Controllers\Api\InvestmentController;
 use App\Http\Controllers\Api\InvestmentProjectionController;
+use App\Http\Controllers\Api\JointAccountLogController;
 use App\Http\Controllers\Api\JourneyController;
 use App\Http\Controllers\Api\LetterToSpouseController;
+use App\Http\Controllers\Api\LifeEventController;
 use App\Http\Controllers\Api\LifeStageController;
 use App\Http\Controllers\Api\MFAController;
 use App\Http\Controllers\Api\MortgageController;
 use App\Http\Controllers\Api\NetWorthController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PersonalAccountsController;
+use App\Http\Controllers\Api\Plans\PlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\PreviewController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
 use App\Http\Controllers\Api\PropertyController;
+use App\Http\Controllers\Api\ProtectionActionDefinitionController;
 use App\Http\Controllers\Api\ProtectionController;
+use App\Http\Controllers\Api\Public\InsightController;
+use App\Http\Controllers\Api\Public\NewsController;
+use App\Http\Controllers\Api\Public\NewsSubscriberController;
+use App\Http\Controllers\Api\Public\TaxAllowancesController;
 use App\Http\Controllers\Api\RecommendationsController;
+use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
 use App\Http\Controllers\Api\Retirement\DecumulationController;
+use App\Http\Controllers\Api\RetirementActionDefinitionController;
 use App\Http\Controllers\Api\RetirementController;
 use App\Http\Controllers\Api\RiskPreferenceController;
 use App\Http\Controllers\Api\SavingsController;
@@ -65,7 +88,13 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\Tax\TaxOptimisationController;
+use App\Http\Controllers\Api\TaxProductInfoController;
+use App\Http\Controllers\Api\TaxSettingsController;
+use App\Http\Controllers\Api\TaxStrategyController;
+use App\Http\Controllers\Api\TaxYearController;
+use App\Http\Controllers\Api\UserMetricsController;
 use App\Http\Controllers\Api\UserProfileController;
+use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WhatIfScenarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -158,24 +187,24 @@ Route::prefix('auth')->group(function () {
 
 // Public Insights API (no auth required; admins can preview drafts via ?preview=true)
 Route::prefix('insights')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\Public\InsightController::class, 'index']);
-    Route::get('featured', [\App\Http\Controllers\Api\Public\InsightController::class, 'featured']);
-    Route::get('{slug}', [\App\Http\Controllers\Api\Public\InsightController::class, 'show'])
+    Route::get('/', [InsightController::class, 'index']);
+    Route::get('featured', [InsightController::class, 'featured']);
+    Route::get('{slug}', [InsightController::class, 'show'])
         ->where('slug', '[a-z0-9-]+');
 });
 
 // Public tax allowances — read-only, served from cached TaxConfigService.
 // Used by marketing campaign pages (e.g. /savetax) to keep headline
 // figures in sync with the seeded tax-year configuration.
-Route::get('public/tax-allowances', [\App\Http\Controllers\Api\Public\TaxAllowancesController::class, 'show'])
+Route::get('public/tax-allowances', [TaxAllowancesController::class, 'show'])
     ->middleware('throttle:60,1');
 
 // Public News API (no auth required)
 Route::prefix('news')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\Public\NewsController::class, 'index']);
-    Route::post('subscribe', [\App\Http\Controllers\Api\Public\NewsSubscriberController::class, 'subscribe'])
+    Route::get('/', [NewsController::class, 'index']);
+    Route::post('subscribe', [NewsSubscriberController::class, 'subscribe'])
         ->middleware('throttle:5,1');
-    Route::get('{slug}', [\App\Http\Controllers\Api\Public\NewsController::class, 'show'])
+    Route::get('{slug}', [NewsController::class, 'show'])
         ->where('slug', '[a-z0-9-]+');
 });
 
@@ -294,8 +323,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // SaveTax campaign — Tax Strategy dashboard (sections 4-6)
 Route::middleware('auth:sanctum')->prefix('tax-strategy')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\TaxStrategyController::class, 'show']);
-    Route::post('/calculate', [\App\Http\Controllers\Api\TaxStrategyController::class, 'calculate']);
+    Route::get('/', [TaxStrategyController::class, 'show']);
+    Route::post('/calculate', [TaxStrategyController::class, 'calculate']);
 });
 
 // Net Worth routes (Phase 3)
@@ -310,14 +339,14 @@ Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
 
 // Joint Account Logs routes
 Route::middleware('auth:sanctum')->prefix('joint-account-logs')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\JointAccountLogController::class, 'index']);
+    Route::get('/', [JointAccountLogController::class, 'index']);
 });
 
 // Notification preferences (web) — mobile has its own controller at
 // /api/v1/mobile/notifications/preferences in routes/api_v1.php
 Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
-    Route::get('/preferences', [\App\Http\Controllers\Api\NotificationPreferenceController::class, 'show']);
-    Route::put('/preferences', [\App\Http\Controllers\Api\NotificationPreferenceController::class, 'update']);
+    Route::get('/preferences', [NotificationPreferenceController::class, 'show']);
+    Route::put('/preferences', [NotificationPreferenceController::class, 'update']);
 });
 
 // Property routes (Phase 4)
@@ -493,14 +522,14 @@ Route::middleware('auth:sanctum')->prefix('goals')->group(function () {
 
 // Life Events routes (future occurrences impacting net worth)
 Route::middleware('auth:sanctum')->prefix('life-events')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\LifeEventController::class, 'index']);
-    Route::get('/types', [\App\Http\Controllers\Api\LifeEventController::class, 'getEventTypes']);
-    Route::get('/by-age', [\App\Http\Controllers\Api\LifeEventController::class, 'getByAge']);
-    Route::post('/', [\App\Http\Controllers\Api\LifeEventController::class, 'store']);
-    Route::get('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'show']);
-    Route::put('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\LifeEventController::class, 'destroy']);
-    Route::post('/{id}/complete', [\App\Http\Controllers\Api\LifeEventController::class, 'markCompleted']);
+    Route::get('/', [LifeEventController::class, 'index']);
+    Route::get('/types', [LifeEventController::class, 'getEventTypes']);
+    Route::get('/by-age', [LifeEventController::class, 'getByAge']);
+    Route::post('/', [LifeEventController::class, 'store']);
+    Route::get('/{id}', [LifeEventController::class, 'show']);
+    Route::put('/{id}', [LifeEventController::class, 'update']);
+    Route::delete('/{id}', [LifeEventController::class, 'destroy']);
+    Route::post('/{id}/complete', [LifeEventController::class, 'markCompleted']);
 });
 
 // Investment module routes
@@ -951,16 +980,16 @@ Route::middleware('auth:sanctum')->prefix('retirement')->group(function () {
 // Plans routes (comprehensive cross-module plans)
 Route::middleware('auth:sanctum')->prefix('plans')->group(function () {
     // Plan system
-    Route::get('/statuses', [\App\Http\Controllers\Api\Plans\PlanController::class, 'statuses']);
-    Route::get('/goal/{goalId}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generateGoalPlan']);
-    Route::post('/goal/{goalId}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculateGoalPlan']);
-    Route::get('/{type}', [\App\Http\Controllers\Api\Plans\PlanController::class, 'generate'])
+    Route::get('/statuses', [PlanController::class, 'statuses']);
+    Route::get('/goal/{goalId}', [PlanController::class, 'generateGoalPlan']);
+    Route::post('/goal/{goalId}/recalculate', [PlanController::class, 'recalculateGoalPlan']);
+    Route::get('/{type}', [PlanController::class, 'generate'])
         ->where('type', 'investment|protection|retirement|estate');
-    Route::post('/{type}/recalculate', [\App\Http\Controllers\Api\Plans\PlanController::class, 'recalculate'])
+    Route::post('/{type}/recalculate', [PlanController::class, 'recalculate'])
         ->where('type', 'investment|protection|retirement|estate');
-    Route::delete('/{type}/clear-cache', [\App\Http\Controllers\Api\Plans\PlanController::class, 'clearCache'])
+    Route::delete('/{type}/clear-cache', [PlanController::class, 'clearCache'])
         ->where('type', 'investment|protection|retirement|estate');
-    Route::put('/{type}/funding-source', [\App\Http\Controllers\Api\Plans\PlanController::class, 'updateFundingSource'])
+    Route::put('/{type}/funding-source', [PlanController::class, 'updateFundingSource'])
         ->where('type', 'investment|protection|retirement|estate');
 });
 
@@ -1004,9 +1033,9 @@ Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () 
 
 // Tax Product Information routes (Tax status for products)
 Route::middleware('auth:sanctum')->prefix('tax-info')->group(function () {
-    Route::get('/investment/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getInvestmentTaxInfo']);
-    Route::get('/savings/{accountType}', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getSavingsTaxInfo']);
-    Route::get('/summary', [\App\Http\Controllers\Api\TaxProductInfoController::class, 'getTaxSummary']);
+    Route::get('/investment/{accountType}', [TaxProductInfoController::class, 'getInvestmentTaxInfo']);
+    Route::get('/savings/{accountType}', [TaxProductInfoController::class, 'getSavingsTaxInfo']);
+    Route::get('/summary', [TaxProductInfoController::class, 'getTaxSummary']);
 });
 
 // Tax Optimisation routes (cross-module tax strategies)
@@ -1018,32 +1047,32 @@ Route::middleware('auth:sanctum')->prefix('tax')->group(function () {
 
 // Payment routes (public)
 Route::prefix('payment')->group(function () {
-    Route::get('/plans', [\App\Http\Controllers\Api\PaymentController::class, 'plans']);
+    Route::get('/plans', [PaymentController::class, 'plans']);
 });
 
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
-    Route::get('/trial-status', [\App\Http\Controllers\Api\PaymentController::class, 'trialStatus']);
-    Route::get('/billing-history', [\App\Http\Controllers\Api\PaymentController::class, 'billingHistory']);
-    Route::post('/create-order', [\App\Http\Controllers\Api\PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
-    Route::post('/confirm', [\App\Http\Controllers\Api\PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
-    Route::post('/upgrade', [\App\Http\Controllers\Api\PaymentController::class, 'upgradeSubscription'])->middleware('throttle:10,1');
-    Route::post('/cancel-subscription', [\App\Http\Controllers\Api\PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
-    Route::post('/delete-all-data', [\App\Http\Controllers\Api\PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
-    Route::post('/validate-discount', [\App\Http\Controllers\Api\PaymentController::class, 'validateDiscountCode'])->middleware('throttle:20,1');
-    Route::get('/invoices/{invoice}', [\App\Http\Controllers\Api\PaymentController::class, 'showInvoice'])->middleware('throttle:30,1');
-    Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Api\PaymentController::class, 'downloadInvoice'])->middleware('throttle:10,1');
+    Route::get('/trial-status', [PaymentController::class, 'trialStatus']);
+    Route::get('/billing-history', [PaymentController::class, 'billingHistory']);
+    Route::post('/create-order', [PaymentController::class, 'createOrder'])->middleware('throttle:10,1');
+    Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
+    Route::post('/upgrade', [PaymentController::class, 'upgradeSubscription'])->middleware('throttle:10,1');
+    Route::post('/cancel-subscription', [PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
+    Route::post('/delete-all-data', [PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
+    Route::post('/validate-discount', [PaymentController::class, 'validateDiscountCode'])->middleware('throttle:20,1');
+    Route::get('/invoices/{invoice}', [PaymentController::class, 'showInvoice'])->middleware('throttle:30,1');
+    Route::get('/invoices/{invoice}/download', [PaymentController::class, 'downloadInvoice'])->middleware('throttle:10,1');
 });
 
 // Referral
 Route::middleware('auth:sanctum')->prefix('referral')->group(function () {
-    Route::get('/code', [\App\Http\Controllers\Api\ReferralController::class, 'getMyCode']);
-    Route::post('/invite', [\App\Http\Controllers\Api\ReferralController::class, 'sendInvitation'])->middleware('throttle:10,1');
-    Route::get('/list', [\App\Http\Controllers\Api\ReferralController::class, 'myReferrals']);
+    Route::get('/code', [ReferralController::class, 'getMyCode']);
+    Route::post('/invite', [ReferralController::class, 'sendInvitation'])->middleware('throttle:10,1');
+    Route::get('/list', [ReferralController::class, 'myReferrals']);
 });
 
 // Revolut webhook (no auth:sanctum — verified by HMAC signature)
-Route::post('/webhooks/revolut', [\App\Http\Controllers\Api\WebhookController::class, 'handleRevolut'])->middleware('throttle:60,1');
+Route::post('/webhooks/revolut', [WebhookController::class, 'handleRevolut'])->middleware('throttle:60,1');
 
 // User Settings routes
 Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
@@ -1055,171 +1084,183 @@ Route::middleware('auth:sanctum')->prefix('settings')->group(function () {
 // Admin Panel routes (RBAC-protected)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     // Dashboard
-    Route::get('/dashboard', [\App\Http\Controllers\Api\AdminController::class, 'dashboard']);
+    Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
     // Roles list (for user management dropdowns)
-    Route::get('/roles', [\App\Http\Controllers\Api\AdminController::class, 'getRoles']);
+    Route::get('/roles', [AdminController::class, 'getRoles']);
 
     // User management - view (support + admin via admin.access)
-    Route::get('/users', [\App\Http\Controllers\Api\AdminController::class, 'getUsers']);
+    Route::get('/users', [AdminController::class, 'getUsers']);
 
     // User management - create/update (requires users.edit)
     Route::middleware('permission:users.edit')->group(function () {
-        Route::post('/users', [\App\Http\Controllers\Api\AdminController::class, 'createUser']);
-        Route::put('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateUser']);
+        Route::post('/users', [AdminController::class, 'createUser']);
+        Route::put('/users/{id}', [AdminController::class, 'updateUser']);
     });
 
     // User management - delete (requires users.delete)
-    Route::delete('/users/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteUser'])
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])
         ->middleware('permission:users.delete');
 
     // User module status tracking
-    Route::get('users/{id}/module-status', [\App\Http\Controllers\Api\AdminController::class, 'moduleStatus']);
+    Route::get('users/{id}/module-status', [AdminController::class, 'moduleStatus']);
 
     // Subscription stats
-    Route::get('/subscriptions/stats', [\App\Http\Controllers\Api\AdminController::class, 'getSubscriptionStats']);
+    Route::get('/subscriptions/stats', [AdminController::class, 'getSubscriptionStats']);
 
     // AI provider management
-    Route::get('/ai-provider', [\App\Http\Controllers\Api\AdminController::class, 'getAiProvider']);
-    Route::post('/ai-provider', [\App\Http\Controllers\Api\AdminController::class, 'setAiProvider']);
+    Route::get('/ai-provider', [AdminController::class, 'getAiProvider']);
+    Route::post('/ai-provider', [AdminController::class, 'setAiProvider']);
 
     // AI Audit trail
     Route::prefix('ai-audit')->group(function () {
-        Route::get('/users', [\App\Http\Controllers\Api\AiAuditController::class, 'users']);
-        Route::get('/users/{userId}/conversations', [\App\Http\Controllers\Api\AiAuditController::class, 'conversations']);
-        Route::get('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\AiAuditController::class, 'messages']);
+        Route::get('/users', [AiAuditController::class, 'users']);
+        Route::get('/users/{userId}/conversations', [AiAuditController::class, 'conversations']);
+        Route::get('/conversations/{conversationId}/messages', [AiAuditController::class, 'messages']);
         // S0.12 — hash-chain audit endpoints.
-        Route::get('/chain', [\App\Http\Controllers\Api\AiAuditController::class, 'chain']);
-        Route::get('/chain/verify', [\App\Http\Controllers\Api\AiAuditController::class, 'verifyChain']);
+        Route::get('/chain', [AiAuditController::class, 'chain']);
+        Route::get('/chain/verify', [AiAuditController::class, 'verifyChain']);
     });
 
     // Database backup - list (read-only, no rate limit)
     Route::middleware(['permission:admin.backup'])->group(function () {
-        Route::get('/backup/list', [\App\Http\Controllers\Api\AdminController::class, 'listBackups']);
+        Route::get('/backup/list', [AdminController::class, 'listBackups']);
     });
 
     // Database backup - write operations (rate limited: 3 per minute)
     Route::middleware(['permission:admin.backup', 'throttle:3,1'])->group(function () {
-        Route::post('/backup/create', [\App\Http\Controllers\Api\AdminController::class, 'createBackup']);
-        Route::post('/backup/restore', [\App\Http\Controllers\Api\AdminController::class, 'restoreBackup']);
-        Route::delete('/backup/delete', [\App\Http\Controllers\Api\AdminController::class, 'deleteBackup']);
+        Route::post('/backup/create', [AdminController::class, 'createBackup']);
+        Route::post('/backup/restore', [AdminController::class, 'restoreBackup']);
+        Route::delete('/backup/delete', [AdminController::class, 'deleteBackup']);
     });
 
     // User Metrics
-    Route::get('/user-metrics/snapshot', [\App\Http\Controllers\Api\UserMetricsController::class, 'snapshot']);
-    Route::get('/user-metrics/trials', [\App\Http\Controllers\Api\UserMetricsController::class, 'trials']);
-    Route::get('/user-metrics/plans', [\App\Http\Controllers\Api\UserMetricsController::class, 'plans']);
-    Route::get('/user-metrics/activity', [\App\Http\Controllers\Api\UserMetricsController::class, 'activity']);
-    Route::get('/user-metrics/engagement', [\App\Http\Controllers\Api\UserMetricsController::class, 'engagement']);
+    Route::get('/user-metrics/snapshot', [UserMetricsController::class, 'snapshot']);
+    Route::get('/user-metrics/trials', [UserMetricsController::class, 'trials']);
+    Route::get('/user-metrics/plans', [UserMetricsController::class, 'plans']);
+    Route::get('/user-metrics/activity', [UserMetricsController::class, 'activity']);
+    Route::get('/user-metrics/engagement', [UserMetricsController::class, 'engagement']);
 
     // Eval forensic recordings (read-only, plus per-session editable remedial report)
     Route::prefix('eval-recordings')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'index']);
-        Route::get('/runs/{run}/raw', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'rawFixture']);
-        Route::get('/runs/{run}/system-prompt', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'systemPrompt']);
-        Route::get('/{session}', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'show']);
-        Route::put('/{session}/report', [\App\Http\Controllers\Api\Admin\EvalRecordingController::class, 'updateReport']);
+        Route::get('/', [EvalRecordingController::class, 'index']);
+        Route::get('/runs/{run}/raw', [EvalRecordingController::class, 'rawFixture']);
+        Route::get('/runs/{run}/system-prompt', [EvalRecordingController::class, 'systemPrompt']);
+        Route::get('/{session}', [EvalRecordingController::class, 'show']);
+        Route::put('/{session}/report', [EvalRecordingController::class, 'updateReport']);
     });
 
     // Discount Code Management
-    Route::get('/discount-codes', [\App\Http\Controllers\Api\AdminController::class, 'listDiscountCodes']);
-    Route::post('/discount-codes', [\App\Http\Controllers\Api\AdminController::class, 'createDiscountCode']);
-    Route::put('/discount-codes/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateDiscountCode']);
-    Route::delete('/discount-codes/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteDiscountCode']);
-    Route::patch('/discount-codes/{id}/toggle', [\App\Http\Controllers\Api\AdminController::class, 'toggleDiscountCode']);
+    Route::get('/discount-codes', [AdminController::class, 'listDiscountCodes']);
+    Route::post('/discount-codes', [AdminController::class, 'createDiscountCode']);
+    Route::put('/discount-codes/{id}', [AdminController::class, 'updateDiscountCode']);
+    Route::delete('/discount-codes/{id}', [AdminController::class, 'deleteDiscountCode']);
+    Route::patch('/discount-codes/{id}/toggle', [AdminController::class, 'toggleDiscountCode']);
 });
 
 // Admin Insights CMS
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/insights')->group(function () {
-    Route::get('articles', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'index']);
-    Route::post('articles', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'store']);
-    Route::get('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'show']);
-    Route::put('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'update']);
-    Route::delete('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'destroy']);
-    Route::post('articles/{article}/publish', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'publish']);
-    Route::post('articles/{article}/archive', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'archive']);
-    Route::post('articles/{article}/unarchive', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'unarchive']);
-    Route::post('articles/{article}/feature', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'feature']);
-    Route::post('articles/{article}/unfeature', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'unfeature']);
-    Route::post('articles/{article}/resync-template', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'resyncFromTemplate']);
-    Route::get('articles/{article}/revisions', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'revisions']);
-    Route::post('articles/{article}/revisions/{revision}/restore', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'restoreRevision']);
+    Route::get('articles', [InsightArticleController::class, 'index']);
+    Route::post('articles', [InsightArticleController::class, 'store']);
+    Route::get('articles/{article}', [InsightArticleController::class, 'show']);
+    Route::put('articles/{article}', [InsightArticleController::class, 'update']);
+    Route::delete('articles/{article}', [InsightArticleController::class, 'destroy']);
+    Route::post('articles/{article}/publish', [InsightArticleController::class, 'publish']);
+    Route::post('articles/{article}/archive', [InsightArticleController::class, 'archive']);
+    Route::post('articles/{article}/unarchive', [InsightArticleController::class, 'unarchive']);
+    Route::post('articles/{article}/feature', [InsightArticleController::class, 'feature']);
+    Route::post('articles/{article}/unfeature', [InsightArticleController::class, 'unfeature']);
+    Route::post('articles/{article}/resync-template', [InsightArticleController::class, 'resyncFromTemplate']);
+    Route::get('articles/{article}/revisions', [InsightArticleController::class, 'revisions']);
+    Route::post('articles/{article}/revisions/{revision}/restore', [InsightArticleController::class, 'restoreRevision']);
 
-    Route::post('images', [\App\Http\Controllers\Api\Admin\InsightImageController::class, 'store']);
+    Route::post('images', [InsightImageController::class, 'store']);
 
-    Route::get('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'index']);
-    Route::post('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'store']);
-    Route::put('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'update']);
-    Route::delete('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'destroy']);
+    Route::get('templates', [InsightTemplateController::class, 'index']);
+    Route::post('templates', [InsightTemplateController::class, 'store']);
+    Route::put('templates/{template}', [InsightTemplateController::class, 'update']);
+    Route::delete('templates/{template}', [InsightTemplateController::class, 'destroy']);
+});
+
+// Admin Documents CMS
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/documents')->group(function () {
+    Route::get('/', [DocumentArticleController::class, 'index']);
+    Route::post('/', [DocumentArticleController::class, 'store']);
+    Route::get('{document}', [DocumentArticleController::class, 'show']);
+    Route::put('{document}', [DocumentArticleController::class, 'update']);
+    Route::delete('{document}', [DocumentArticleController::class, 'destroy']);
+    Route::post('{document}/publish', [DocumentArticleController::class, 'publish']);
+    Route::post('{document}/unpublish', [DocumentArticleController::class, 'unpublish']);
+    Route::get('{document}/preview-url', [DocumentArticleController::class, 'previewUrl']);
 });
 
 // News subscribers (admin)
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
-    Route::get('news-subscribers', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
-    Route::get('news-subscribers/export', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
+    Route::get('news-subscribers', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
+    Route::get('news-subscribers/export', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/retirement-actions')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'index']);
-    Route::get('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'show']);
-    Route::post('/', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'store']);
-    Route::put('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'destroy']);
-    Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\RetirementActionDefinitionController::class, 'toggleEnabled']);
+    Route::get('/', [RetirementActionDefinitionController::class, 'index']);
+    Route::get('/{id}', [RetirementActionDefinitionController::class, 'show']);
+    Route::post('/', [RetirementActionDefinitionController::class, 'store']);
+    Route::put('/{id}', [RetirementActionDefinitionController::class, 'update']);
+    Route::delete('/{id}', [RetirementActionDefinitionController::class, 'destroy']);
+    Route::patch('/{id}/toggle', [RetirementActionDefinitionController::class, 'toggleEnabled']);
 });
 
 // Investment Action Definitions (admin-configurable plan actions)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/investment-actions')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'index']);
-    Route::get('/{id}', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'show']);
-    Route::post('/', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'store']);
-    Route::put('/{id}', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'destroy']);
-    Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\InvestmentActionDefinitionController::class, 'toggleEnabled']);
+    Route::get('/', [InvestmentActionDefinitionController::class, 'index']);
+    Route::get('/{id}', [InvestmentActionDefinitionController::class, 'show']);
+    Route::post('/', [InvestmentActionDefinitionController::class, 'store']);
+    Route::put('/{id}', [InvestmentActionDefinitionController::class, 'update']);
+    Route::delete('/{id}', [InvestmentActionDefinitionController::class, 'destroy']);
+    Route::patch('/{id}/toggle', [InvestmentActionDefinitionController::class, 'toggleEnabled']);
 });
 
 // Protection Action Definitions (admin-configurable plan actions)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])->prefix('admin/protection-actions')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'index']);
-    Route::get('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'show']);
-    Route::post('/', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'store']);
-    Route::put('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'destroy']);
-    Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\ProtectionActionDefinitionController::class, 'toggleEnabled']);
+    Route::get('/', [ProtectionActionDefinitionController::class, 'index']);
+    Route::get('/{id}', [ProtectionActionDefinitionController::class, 'show']);
+    Route::post('/', [ProtectionActionDefinitionController::class, 'store']);
+    Route::put('/{id}', [ProtectionActionDefinitionController::class, 'update']);
+    Route::delete('/{id}', [ProtectionActionDefinitionController::class, 'destroy']);
+    Route::patch('/{id}/toggle', [ProtectionActionDefinitionController::class, 'toggleEnabled']);
 });
 
 // Generic action definition routes (for Decision Matrix)
 Route::middleware(['auth:sanctum', 'permission:admin.access', 'throttle:30,1'])
     ->prefix('admin/action-definitions/{module}')
     ->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'index']);
-        Route::get('/{id}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'show']);
-        Route::post('/', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'store']);
-        Route::patch('/{id}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'destroy']);
-        Route::patch('/{id}/toggle', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'toggleEnabled']);
+        Route::get('/', [ActionDefinitionController::class, 'index']);
+        Route::get('/{id}', [ActionDefinitionController::class, 'show']);
+        Route::post('/', [ActionDefinitionController::class, 'store']);
+        Route::patch('/{id}', [ActionDefinitionController::class, 'update']);
+        Route::delete('/{id}', [ActionDefinitionController::class, 'destroy']);
+        Route::patch('/{id}/toggle', [ActionDefinitionController::class, 'toggleEnabled']);
     });
 
 Route::middleware(['auth:sanctum', 'permission:admin.access'])
-    ->get('admin/decision-matrix/{module}', [\App\Http\Controllers\Api\ActionDefinitionController::class, 'decisionMatrix']);
+    ->get('admin/decision-matrix/{module}', [ActionDefinitionController::class, 'decisionMatrix']);
 
 // Lightweight active tax year endpoint — any authenticated user can read this.
 // Returns just the tax year label and effective dates so the frontend knows
 // which year to display and calculate allowances against. No sensitive admin
 // config is exposed here (that stays behind permission:admin.tax_config below).
-Route::middleware('auth:sanctum')->get('tax-year/current', [\App\Http\Controllers\Api\TaxYearController::class, 'current']);
+Route::middleware('auth:sanctum')->get('tax-year/current', [TaxYearController::class, 'current']);
 
 // Tax Settings routes (requires tax config permission)
 Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {
-    Route::get('/current', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getCurrent']);
-    Route::get('/all', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getAll']);
-    Route::get('/calculations', [\App\Http\Controllers\Api\TaxSettingsController::class, 'getCalculations']);
-    Route::post('/create', [\App\Http\Controllers\Api\TaxSettingsController::class, 'create']);
-    Route::put('/{id}', [\App\Http\Controllers\Api\TaxSettingsController::class, 'update']);
-    Route::post('/{id}/activate', [\App\Http\Controllers\Api\TaxSettingsController::class, 'setActive']);
-    Route::post('/{id}/duplicate', [\App\Http\Controllers\Api\TaxSettingsController::class, 'duplicate']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\TaxSettingsController::class, 'delete']);
+    Route::get('/current', [TaxSettingsController::class, 'getCurrent']);
+    Route::get('/all', [TaxSettingsController::class, 'getAll']);
+    Route::get('/calculations', [TaxSettingsController::class, 'getCalculations']);
+    Route::post('/create', [TaxSettingsController::class, 'create']);
+    Route::put('/{id}', [TaxSettingsController::class, 'update']);
+    Route::post('/{id}/activate', [TaxSettingsController::class, 'setActive']);
+    Route::post('/{id}/duplicate', [TaxSettingsController::class, 'duplicate']);
+    Route::delete('/{id}', [TaxSettingsController::class, 'delete']);
 });
 
 // Document Upload & AI Extraction routes (rate limited for security)
@@ -1274,7 +1315,7 @@ Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(f
 // ===========================
 Route::middleware(['auth:sanctum', 'advisor'])
     ->prefix('advisor')
-    ->controller(\App\Http\Controllers\Api\AdvisorController::class)
+    ->controller(AdvisorController::class)
     ->group(function () {
         Route::get('dashboard', 'dashboard');
         Route::get('clients', 'clients');
@@ -1299,9 +1340,9 @@ Route::post('/bug-report', [BugReportController::class, 'store'])
 // ===========================
 if (! app()->environment('production')) {
     Route::middleware(['throttle:20,1'])->prefix('eval')->group(function () {
-        Route::post('/login/{personaId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'login']);
+        Route::post('/login/{personaId}', [EvalAuthController::class, 'login']);
         Route::middleware('auth:sanctum')->group(function () {
-            Route::post('/reset/{personaId}', [\App\Http\Controllers\Api\EvalAuthController::class, 'reset']);
+            Route::post('/reset/{personaId}', [EvalAuthController::class, 'reset']);
         });
     });
 }

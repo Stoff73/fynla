@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\QuerySchemas;
+use App\Constants\UpdateRecordAllowlist;
+use App\Events\Eval\AgentDecision;
+use App\Events\Eval\EngineCalled;
+use App\Exceptions\SpouseCollisionException;
+use App\Models\AiConversation;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -12,8 +17,11 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
+use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Liability;
+use App\Models\Estate\LpaAttorney;
 use App\Models\Estate\Trust;
+use App\Models\Estate\Will;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
@@ -24,29 +32,42 @@ use App\Models\Invoice;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
+use App\Models\PensionInputHistory;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\ToolResultContract;
+use App\Services\AI\ToolResultContractException;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Services\WhatIf\WhatIfScenarioService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * CoordinatingAgent
@@ -161,8 +182,8 @@ class CoordinatingAgent extends BaseAgent
      * @param  list<array<string, mixed>>|null  $toolsListOverride
      */
     public function chatWithPromptOverride(
-        \App\Models\User $user,
-        \App\Models\AiConversation $conversation,
+        User $user,
+        AiConversation $conversation,
         string $message,
         ?string $currentRoute,
         ?string $systemPromptOverride,
@@ -226,7 +247,7 @@ class CoordinatingAgent extends BaseAgent
 
         // Eval trace — emit at ENTRY so the orchestrate span is bookended
         // (the existing emit below fires at exit). Doc A §5.3 spec parity.
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'orchestrate_analysis',
             params: ['user_id' => $userId, 'phase' => 'entry'],
             resultSummary: ['result_path' => 'pending'],
@@ -261,7 +282,7 @@ class CoordinatingAgent extends BaseAgent
 
         // Generate cross-module strategies
         $crossModuleStrategies = [];
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if ($user) {
             $crossModuleStrategies = $this->crossModuleStrategyService->generateCrossModuleStrategies($allAnalysis, $user);
         }
@@ -286,7 +307,7 @@ class CoordinatingAgent extends BaseAgent
             ],
         ];
 
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: 'orchestrate_analysis',
             params: ['user_id' => $userId],
             resultSummary: [
@@ -497,7 +518,7 @@ class CoordinatingAgent extends BaseAgent
         ]);
 
         // User context
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         $analysis['user'] = [
             'age' => $user && $user->date_of_birth ? $user->date_of_birth->age : 40,
         ];
@@ -513,7 +534,7 @@ class CoordinatingAgent extends BaseAgent
         try {
             return $analyzer();
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("{$module} analysis failed: ".$e->getMessage());
+            Log::error("{$module} analysis failed: ".$e->getMessage());
 
             return $defaultProvider();
         }
@@ -785,7 +806,7 @@ class CoordinatingAgent extends BaseAgent
         // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
         // (eval flow) AND the X-Eval-Run-Id header is set
         // (April30Updates F-12 — defence-in-depth on the eval bypass).
-        $hasEvalBypass = \App\Services\Eval\EvalBypassGate::isActive($user);
+        $hasEvalBypass = EvalBypassGate::isActive($user);
         $isPreviewUser = (bool) $user->is_preview_user && ! $hasEvalBypass;
 
         // S0.12 — append a chain row at dispatch. Replaces the [AI-AUDIT] file
@@ -801,7 +822,7 @@ class CoordinatingAgent extends BaseAgent
         ]);
 
         // Eval trace — capture every tool dispatch with name + args.
-        event(new \App\Events\Eval\AgentDecision(
+        event(new AgentDecision(
             agent: 'CoordinatingAgent',
             decisionPoint: 'tool_dispatch',
             outcome: $toolName,
@@ -902,7 +923,7 @@ class CoordinatingAgent extends BaseAgent
             $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
 
             return $result;
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             $this->appendAuditEvent([
                 'user_id' => $user->id,
                 'conversation_id' => $conversationId,
@@ -913,7 +934,7 @@ class CoordinatingAgent extends BaseAgent
             ]);
 
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()];
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             Log::error('[CoordinatingAgent] Database error', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
             $this->appendAuditEvent([
                 'user_id' => $user->id,
@@ -987,7 +1008,7 @@ class CoordinatingAgent extends BaseAgent
         // of seeing up to 120s of stale data. Read-tool calls and failed
         // writes don't change DB state, so they don't need invalidation.
         if (! $hasError && self::operationFor($toolName) === 'write') {
-            \App\Services\AI\AdvicePromptCacheInvalidator::forUser($user->id);
+            AdvicePromptCacheInvalidator::forUser($user->id);
         }
     }
 
@@ -1107,11 +1128,11 @@ class CoordinatingAgent extends BaseAgent
                     $mo = (int) $m[2];
                     $y = (int) $m[3];
                     if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                        $carbonDob = \Carbon\Carbon::create($y, $mo, $d, 0, 0, 0);
+                        $carbonDob = Carbon::create($y, $mo, $d, 0, 0, 0);
                     }
                 }
                 if ($carbonDob === null) {
-                    $carbonDob = \Carbon\Carbon::parse($dob);
+                    $carbonDob = Carbon::parse($dob);
                 }
             } catch (\Throwable $e) {
                 Log::warning('[CoordinatingAgent] DOB parse failed', [
@@ -1123,7 +1144,7 @@ class CoordinatingAgent extends BaseAgent
                 return ['error' => true, 'message' => 'Invalid date_of_birth — use YYYY-MM-DD, DD/MM/YYYY, or a natural-language date'];
             }
 
-            $age = (int) $carbonDob->diffInYears(\Carbon\Carbon::now());
+            $age = (int) $carbonDob->diffInYears(Carbon::now());
             if ($age < 18 || $age > 105) {
                 Log::warning('[CoordinatingAgent] DOB outside age bounds', [
                     'user_id' => $user->id,
@@ -1201,12 +1222,12 @@ class CoordinatingAgent extends BaseAgent
         }
 
         try {
-            $dobFormatted = \Carbon\Carbon::parse($dob)->format('Y-m-d');
+            $dobFormatted = Carbon::parse($dob)->format('Y-m-d');
         } catch (\Throwable $e) {
             return ['error' => true, 'message' => 'Invalid spouse date_of_birth'];
         }
 
-        $service = app(\App\Services\Onboarding\SpouseLinkingService::class);
+        $service = app(SpouseLinkingService::class);
 
         try {
             $result = $service->linkOrCreateSpouse($user, [
@@ -1216,7 +1237,7 @@ class CoordinatingAgent extends BaseAgent
                 'email' => $email,
                 'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ]);
-        } catch (\App\Exceptions\SpouseCollisionException $e) {
+        } catch (SpouseCollisionException $e) {
             // FR-M13 — distinguish the "email belongs to another household"
             // case so the director can emit a targeted terminal error
             // instead of the generic grouped_extract retry copy.
@@ -1281,7 +1302,7 @@ class CoordinatingAgent extends BaseAgent
             $firstName = trim((string) ($dep['first_name'] ?? ''));
             $resolvedName = $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant');
 
-            $familyMember = \App\Models\FamilyMember::create([
+            $familyMember = FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $user->household_id,
                 'relationship' => $relationship,
@@ -1439,7 +1460,7 @@ class CoordinatingAgent extends BaseAgent
 
         switch ($entityType) {
             case 'savings_account':
-                $items = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_balance;
@@ -1452,7 +1473,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'investment_account':
-                $items = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_value;
@@ -1465,15 +1486,15 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'dc_pension':
-                $items = \App\Models\DCPension::where('user_id', $userId)->get();
+                $items = DCPension::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'provider' => $p->provider, 'current_value' => (float) $p->current_fund_value, 'employee_contribution' => (float) ($p->employee_contribution_percent ?? 0), 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0), 'employer_matching_limit' => $p->employer_matching_limit ? (float) $p->employer_matching_limit : null, 'monthly_contribution' => $p->monthly_contribution_amount ? (float) $p->monthly_contribution_amount : null, 'platform_fee_percent' => $p->platform_fee_percent ? (float) $p->platform_fee_percent : null, 'retirement_age' => $p->retirement_age, 'projected_value_at_retirement' => $p->projected_value_at_retirement ? (float) $p->projected_value_at_retirement : null, 'has_flexibly_accessed' => (bool) $p->has_flexibly_accessed])->toArray();
                 break;
             case 'db_pension':
-                $items = \App\Models\DBPension::where('user_id', $userId)->get();
+                $items = DBPension::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'scheme_type' => $p->scheme_type, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years, 'pensionable_salary' => $p->pensionable_salary ? (float) $p->pensionable_salary : null, 'normal_retirement_age' => $p->normal_retirement_age, 'spouse_pension_percent' => $p->spouse_pension_percent ? (float) $p->spouse_pension_percent : null, 'lump_sum_entitlement' => $p->lump_sum_entitlement ? (float) $p->lump_sum_entitlement : null, 'inflation_protection' => $p->inflation_protection])->toArray();
                 break;
             case 'property':
-                $items = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(function ($p) use ($ownershipFields) {
                     $fields = $ownershipFields($p);
                     $total = (float) $p->current_value;
@@ -1495,43 +1516,43 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'mortgage':
-                $items = \App\Models\Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
+                $items = Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
                 $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
                 break;
             case 'life_insurance':
-                $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+                $items = LifeInsurancePolicy::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_end_date' => $p->policy_end_date?->format('Y-m-d'), 'policy_term_years' => $p->policy_term_years, 'in_trust' => (bool) $p->in_trust, 'is_mortgage_protection' => (bool) $p->is_mortgage_protection, 'joint_life' => (bool) $p->joint_life, 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'critical_illness':
-                $items = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+                $items = CriticalIllnessPolicy::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'policy_type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_term_years' => $p->policy_term_years, 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'income_protection':
-                $items = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+                $items = IncomeProtectionPolicy::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'benefit_amount' => (float) $p->benefit_amount, 'benefit_frequency' => $p->benefit_frequency, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'deferred_period_weeks' => $p->deferred_period_weeks, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'trust':
-                $items = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+                $items = Trust::where('user_id', $userId)->get();
                 $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value, 'initial_value' => $t->initial_value ? (float) $t->initial_value : null, 'creation_date' => $t->trust_creation_date?->format('Y-m-d'), 'settlor' => $t->settlor, 'beneficiaries' => $t->beneficiaries, 'trustees' => $t->trustees, 'purpose' => $t->purpose, 'is_relevant_property_trust' => (bool) $t->is_relevant_property_trust, 'retained_income_annual' => $t->retained_income_annual ? (float) $t->retained_income_annual : null, 'loan_amount' => $t->loan_amount ? (float) $t->loan_amount : null, 'is_active' => (bool) $t->is_active])->toArray();
                 break;
             case 'business_interest':
-                $items = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation, 'annual_revenue' => $b->annual_revenue ? (float) $b->annual_revenue : null, 'annual_profit' => $b->annual_profit ? (float) $b->annual_profit : null, 'annual_dividend_income' => $b->annual_dividend_income ? (float) $b->annual_dividend_income : null, 'trading_status' => $b->trading_status, 'employee_count' => $b->employee_count, 'acquisition_date' => $b->acquisition_date?->format('Y-m-d'), 'acquisition_cost' => $b->acquisition_cost ? (float) $b->acquisition_cost : null, 'bpr_eligible' => $b->bpr_eligible], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
-                $items = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'name' => $c->name, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value, 'purchase_price' => $c->purchase_price ? (float) $c->purchase_price : null, 'purchase_date' => $c->purchase_date?->format('Y-m-d'), 'make' => $c->make, 'model' => $c->model, 'year' => $c->year], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
-                $items = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(fn ($l) => array_merge(['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance, 'interest_rate' => $l->interest_rate ? (float) $l->interest_rate : null, 'monthly_payment' => $l->monthly_payment ? (float) $l->monthly_payment : null, 'maturity_date' => $l->maturity_date?->format('Y-m-d'), 'is_priority_debt' => (bool) $l->is_priority_debt], $ownershipFields($l)))->toArray();
                 break;
             case 'estate_gift':
-                $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+                $items = Gift::where('user_id', $userId)->get();
                 $records = $items->map(fn ($g) => ['id' => $g->id, 'recipient' => $g->recipient, 'gift_type' => $g->gift_type, 'value' => (float) $g->gift_value, 'date' => $g->gift_date?->format('Y-m-d'), 'status' => $g->status, 'taper_relief_applicable' => (bool) $g->taper_relief_applicable, 'notes' => $g->notes])->toArray();
                 break;
             case 'family_member':
-                $items = \App\Models\FamilyMember::where('user_id', $userId)->get();
+                $items = FamilyMember::where('user_id', $userId)->get();
                 $records = $items->map(fn ($m) => ['id' => $m->id, 'name' => trim($m->first_name.' '.$m->last_name), 'relationship' => $m->relationship, 'age' => $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : null, 'date_of_birth' => $m->date_of_birth?->format('Y-m-d'), 'gender' => $m->gender, 'annual_income' => $m->annual_income ? (float) $m->annual_income : null, 'is_dependent' => (bool) $m->is_dependent, 'education_status' => $m->education_status, 'receives_child_benefit' => (bool) $m->receives_child_benefit])->toArray();
                 break;
             default:
@@ -1547,7 +1568,7 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleListGoals(User $user): array
     {
-        $goals = \App\Models\Goal::forUserOrJoint($user->id)
+        $goals = Goal::forUserOrJoint($user->id)
             ->orderByRaw("FIELD(status, 'active', 'paused', 'completed', 'abandoned')")
             ->orderBy('priority')
             ->get();
@@ -1586,7 +1607,7 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleListLifeEvents(User $user): array
     {
-        $events = \App\Models\LifeEvent::forUserOrJoint($user->id)
+        $events = LifeEvent::forUserOrJoint($user->id)
             ->orderBy('expected_date')
             ->get();
 
@@ -1644,7 +1665,7 @@ class CoordinatingAgent extends BaseAgent
         // success_false when the agent returns ['success' => false, ...],
         // happy otherwise.
         $resultPath = (isset($analysis['success']) && $analysis['success'] === false) ? 'success_false' : 'happy';
-        event(new \App\Events\Eval\EngineCalled(
+        event(new EngineCalled(
             engine: $module === 'holistic' ? 'orchestrate_analysis' : "{$module}_analysis",
             params: ['user_id' => $user->id, 'module' => $module],
             resultSummary: [
@@ -1687,7 +1708,7 @@ class CoordinatingAgent extends BaseAgent
             fn ($v) => is_string($v) && $v !== ''
         ));
 
-        $query = \App\Models\AiConversation::query()
+        $query = AiConversation::query()
             ->where('user_id', $user->id)
             ->whereNotNull('summary');
 
@@ -1727,7 +1748,7 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleCreateWhatIfScenario(array $input, User $user): array
     {
-        $service = app(\App\Services\WhatIf\WhatIfScenarioService::class);
+        $service = app(WhatIfScenarioService::class);
 
         $result = $service->createScenario($user, [
             'name' => $input['name'],
@@ -1761,7 +1782,7 @@ class CoordinatingAgent extends BaseAgent
      * Resolve the user's current subscription. Read-only — returns null if absent.
      * Mirrors the controller-side resolution so chat-tool callers see the same row.
      */
-    private function resolveSubscription(User $user): ?\App\Models\Subscription
+    private function resolveSubscription(User $user): ?Subscription
     {
         return $user->subscription()->latest('id')->first();
     }
@@ -1856,7 +1877,7 @@ class CoordinatingAgent extends BaseAgent
         // income_definitions is per-user (not cacheable globally)
         if ($topic === 'income_definitions') {
             return Cache::remember("ai_income_defs_{$user->id}", 120, function () use ($user) {
-                $incomeService = app(\App\Services\Tax\IncomeDefinitionsService::class);
+                $incomeService = app(IncomeDefinitionsService::class);
 
                 return $incomeService->calculate($user->id);
             });
@@ -2266,7 +2287,7 @@ class CoordinatingAgent extends BaseAgent
         }
 
         // Look up the investment account by name/provider for this user
-        $account = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+        $account = InvestmentAccount::where('user_id', $user->id)
             ->where(function ($query) use ($input) {
                 $query->where('provider', 'LIKE', '%'.$input['account_name'].'%')
                     ->orWhere('account_name', 'LIKE', '%'.$input['account_name'].'%');
@@ -2701,7 +2722,7 @@ class CoordinatingAgent extends BaseAgent
         foreach (['policy_start_date', 'policy_end_date'] as $dateField) {
             if (isset($input[$dateField]) && is_string($input[$dateField]) && $input[$dateField] !== '') {
                 try {
-                    $input[$dateField] = \Carbon\Carbon::parse($input[$dateField])->toDateString();
+                    $input[$dateField] = Carbon::parse($input[$dateField])->toDateString();
                 } catch (\Throwable $e) {
                     unset($input[$dateField]);
                 }
@@ -3056,7 +3077,7 @@ class CoordinatingAgent extends BaseAgent
             ? (bool) $input['spouse_primary_beneficiary']
             : in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
 
-        $will = \App\Models\Estate\Will::updateOrCreate(
+        $will = Will::updateOrCreate(
             ['user_id' => $user->id],
             [
                 'has_will' => true,
@@ -3096,7 +3117,7 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $will = \App\Models\Estate\Will::where('user_id', $user->id)->first();
+        $will = Will::where('user_id', $user->id)->first();
 
         if ($will === null) {
             // No existing will to update — fall through to create semantics.
@@ -3157,8 +3178,8 @@ class CoordinatingAgent extends BaseAgent
 
         $donorName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? '');
 
-        $lpa = \Illuminate\Support\Facades\DB::transaction(function () use ($input, $user, $donorName) {
-            $lpa = \App\Models\Estate\LastingPowerOfAttorney::create([
+        $lpa = DB::transaction(function () use ($input, $user, $donorName) {
+            $lpa = LastingPowerOfAttorney::create([
                 'user_id' => $user->id,
                 'lpa_type' => $input['lpa_type'],
                 'status' => $input['status'] ?? 'draft',
@@ -3170,7 +3191,7 @@ class CoordinatingAgent extends BaseAgent
                 'registration_date' => ($input['status'] ?? 'draft') === 'registered' ? now()->toDateString() : null,
             ]);
 
-            \App\Models\Estate\LpaAttorney::create([
+            LpaAttorney::create([
                 'lasting_power_of_attorney_id' => $lpa->id,
                 'attorney_type' => 'primary',
                 'full_name' => $input['primary_attorney_name'],
@@ -3178,7 +3199,7 @@ class CoordinatingAgent extends BaseAgent
             ]);
 
             if (! empty($input['replacement_attorney_name'])) {
-                \App\Models\Estate\LpaAttorney::create([
+                LpaAttorney::create([
                     'lasting_power_of_attorney_id' => $lpa->id,
                     'attorney_type' => 'replacement',
                     'full_name' => $input['replacement_attorney_name'],
@@ -3218,7 +3239,7 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $lpa = \App\Models\Estate\LastingPowerOfAttorney::where('user_id', $user->id)
+        $lpa = LastingPowerOfAttorney::where('user_id', $user->id)
             ->find($input['lpa_id']);
 
         if ($lpa === null) {
@@ -3229,7 +3250,7 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($input, $lpa) {
+        DB::transaction(function () use ($input, $lpa) {
             $updates = [];
 
             if (array_key_exists('status', $input) && $input['status'] !== null) {
@@ -3253,7 +3274,7 @@ class CoordinatingAgent extends BaseAgent
                 if ($primary !== null) {
                     $primary->update(['full_name' => $input['primary_attorney_name']]);
                 } else {
-                    \App\Models\Estate\LpaAttorney::create([
+                    LpaAttorney::create([
                         'lasting_power_of_attorney_id' => $lpa->id,
                         'attorney_type' => 'primary',
                         'full_name' => $input['primary_attorney_name'],
@@ -3267,7 +3288,7 @@ class CoordinatingAgent extends BaseAgent
                 if ($replacement !== null) {
                     $replacement->update(['full_name' => $input['replacement_attorney_name']]);
                 } else {
-                    \App\Models\Estate\LpaAttorney::create([
+                    LpaAttorney::create([
                         'lasting_power_of_attorney_id' => $lpa->id,
                         'attorney_type' => 'replacement',
                         'full_name' => $input['replacement_attorney_name'],
@@ -3323,7 +3344,7 @@ class CoordinatingAgent extends BaseAgent
         $spouse = $user->spouse;
         $spouseFullName = $spouse ? trim($spouse->first_name.' '.$spouse->surname) : null;
 
-        $children = \App\Models\FamilyMember::where('user_id', $user->id)
+        $children = FamilyMember::where('user_id', $user->id)
             ->where('relationship', 'child')
             ->get();
         $childNames = $children->count() > 0
@@ -3521,9 +3542,9 @@ class CoordinatingAgent extends BaseAgent
         }
 
         try {
-            return app(\App\Services\AI\ToolResultContract::class)->validate($module, $analysis);
-        } catch (\App\Services\AI\ToolResultContractException $e) {
-            \Illuminate\Support\Facades\Log::error('[CoordinatingAgent] Tool result contract violation', [
+            return app(ToolResultContract::class)->validate($module, $analysis);
+        } catch (ToolResultContractException $e) {
+            Log::error('[CoordinatingAgent] Tool result contract violation', [
                 'module' => $module,
                 'context' => $e->context,
                 'missing_keys' => $e->missingKeys,
@@ -3611,7 +3632,7 @@ class CoordinatingAgent extends BaseAgent
             $educationStatus = $input['education_status'] ?? null;
             if (empty($educationStatus) && ! empty($input['date_of_birth'])) {
                 try {
-                    $age = \Carbon\Carbon::parse($input['date_of_birth'])->age;
+                    $age = Carbon::parse($input['date_of_birth'])->age;
                     $educationStatus = match (true) {
                         $age < 5 => 'pre_school',
                         $age < 11 => 'primary',
@@ -3917,7 +3938,7 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'pension_id and salary_sacrifice are required.'];
         }
 
-        $pension = \App\Models\DCPension::where('id', $input['pension_id'])
+        $pension = DCPension::where('id', $input['pension_id'])
             ->where('user_id', $user->id)
             ->first();
 
@@ -3984,7 +4005,7 @@ class CoordinatingAgent extends BaseAgent
             'spouse_pension_input_annual',
         ]));
 
-        \App\Models\TaxStrategyHouseholdInput::updateOrCreate(
+        TaxStrategyHouseholdInput::updateOrCreate(
             ['user_id' => $user->id],
             $allowed
         );
@@ -4011,7 +4032,7 @@ class CoordinatingAgent extends BaseAgent
             'spouse_existing_pension_balance',
         ]));
 
-        \App\Models\TaxStrategyHouseholdInput::updateOrCreate(
+        TaxStrategyHouseholdInput::updateOrCreate(
             ['user_id' => $user->id],
             $allowed
         );
@@ -4046,7 +4067,7 @@ class CoordinatingAgent extends BaseAgent
                 continue;
             }
 
-            \App\Models\PensionInputHistory::updateOrCreate(
+            PensionInputHistory::updateOrCreate(
                 ['user_id' => $user->id, 'tax_year' => $taxYear],
                 ['pension_input_amount' => $amount],
             );
@@ -4141,7 +4162,7 @@ class CoordinatingAgent extends BaseAgent
         // a positive list — every other column (identity FKs, audit
         // timestamps, ownership-changing fields like Trust.settlor or
         // FamilyMember.relationship) is rejected explicitly.
-        $allowed = \App\Constants\UpdateRecordAllowlist::allowedFields($entityType);
+        $allowed = UpdateRecordAllowlist::allowedFields($entityType);
         if (empty($allowed)) {
             return [
                 'error' => 'unsupported_entity_type',

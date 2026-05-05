@@ -11,6 +11,7 @@ use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
 use App\Models\Estate\Asset as EstateAsset;
 use App\Models\Estate\Liability as EstateLiability;
+use App\Models\Estate\Trust;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -34,6 +35,7 @@ use App\Observers\PropertyRiskObserver;
 use App\Observers\RecommendationCacheObserver;
 use App\Observers\SavingsAccountGoalObserver;
 use App\Observers\SavingsAccountRiskObserver;
+use App\Observers\TrustObserver;
 use App\Observers\UserRiskObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -77,7 +79,7 @@ class EventServiceProvider extends ServiceProvider
         IncomeProtectionPolicy::class => [RecommendationCacheObserver::class],
         DisabilityPolicy::class => [RecommendationCacheObserver::class],
         SicknessIllnessPolicy::class => [RecommendationCacheObserver::class],
-        \App\Models\Estate\Trust::class => [\App\Observers\TrustObserver::class],
+        Trust::class => [TrustObserver::class],
     ];
 
     /**

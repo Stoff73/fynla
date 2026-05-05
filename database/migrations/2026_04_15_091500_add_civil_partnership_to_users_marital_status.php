@@ -30,7 +30,7 @@ return new class extends Migration
     public function up(): void
     {
         DB::statement(
-            "ALTER TABLE users MODIFY COLUMN marital_status ".
+            'ALTER TABLE users MODIFY COLUMN marital_status '.
             "enum('single','married','civil_partnership','divorced','widowed') DEFAULT NULL"
         );
     }
@@ -42,7 +42,7 @@ return new class extends Migration
         // values.
         DB::statement("UPDATE users SET marital_status = 'married' WHERE marital_status = 'civil_partnership'");
         DB::statement(
-            "ALTER TABLE users MODIFY COLUMN marital_status ".
+            'ALTER TABLE users MODIFY COLUMN marital_status '.
             "enum('single','married','divorced','widowed') DEFAULT NULL"
         );
     }

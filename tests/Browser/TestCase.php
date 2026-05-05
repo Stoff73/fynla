@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Browser;
 
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase as BaseTestCase;
 
 /**
@@ -58,8 +59,8 @@ abstract class TestCase extends BaseTestCase
     {
         $this->markTestSkipped(
             "Browser scenario `{$scenario}` runs interactively via Playwright MCP "
-            ."(see tests/Browser/README.md, Sprint 0 task S0.16b). vendor/bin/pest "
-            ."does not drive a browser; this stub exists for discoverability."
+            .'(see tests/Browser/README.md, Sprint 0 task S0.16b). vendor/bin/pest '
+            .'does not drive a browser; this stub exists for discoverability.'
         );
     }
 
@@ -75,7 +76,7 @@ abstract class TestCase extends BaseTestCase
     protected function browserHealthcheck(): bool
     {
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(3)
+            $response = Http::timeout(3)
                 ->withoutRedirecting()
                 ->get($this->rootUrl);
 

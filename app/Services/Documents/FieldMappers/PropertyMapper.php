@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Documents\FieldMappers;
 
+use App\Models\Property;
+
 class PropertyMapper extends AbstractFieldMapper
 {
     protected array $fieldMappings = [
@@ -37,7 +39,7 @@ class PropertyMapper extends AbstractFieldMapper
 
     public function getModelClass(): string
     {
-        return \App\Models\Property::class;
+        return Property::class;
     }
 
     public function getSubtype(): string

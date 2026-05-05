@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,8 +23,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $sub_major_group SOC 2020 sub-major group (2-digit)
  * @property string|null $major_group SOC 2020 major group (1-digit)
  * @property bool $is_primary Is this the primary title for the SOC code
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class OccupationCode extends Model
 {
@@ -58,7 +60,7 @@ class OccupationCode extends Model
      * @param  string  $query  Search term (minimum 3 characters)
      * @param  int  $limit  Maximum results to return
      */
-    public static function search(string $query, int $limit = 10): \Illuminate\Database\Eloquent\Collection
+    public static function search(string $query, int $limit = 10): Collection
     {
         $query = trim($query);
 

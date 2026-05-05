@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Prompts\FcaProcessInstructions;
 use App\Services\AI\QueryClassifier;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -29,7 +30,7 @@ uses(RefreshDatabase::class);
  * pins both halves so the regression cannot return.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
@@ -96,7 +97,7 @@ it('AdviceFyn passes assistant honesty text through unchanged when a write tool 
         ->andReturnUsing(function () {
             yield ['type' => 'tool_use', 'tool' => 'create_savings_account'];
             yield ['type' => 'content',
-                   'text' => "I couldn't save that — the target date must be in the future. Want to try again?"];
+                'text' => "I couldn't save that — the target date must be in the future. Want to try again?"];
             yield ['type' => 'done'];
         });
     app()->instance(CoordinatingAgent::class, $agent);

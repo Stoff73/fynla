@@ -191,7 +191,49 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
-### 14. Icons — Functional Only, Decorative Banned
+### 14. All Pages Must Wrap in AppLayout
+Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
+
+Pattern (see `views/Admin/AdminPanel.vue`):
+```vue
+<template>
+  <AppLayout>
+    <!-- page content -->
+  </AppLayout>
+</template>
+<script>
+import AppLayout from '@/layouts/AppLayout.vue';
+export default { components: { AppLayout, ... } };
+</script>
+```
+
+The only exception is when the user explicitly says "standalone" / "chrome-less" / "no layout". When refactoring an existing view onto a new route, confirm the destination view is layout-wrapped before claiming done.
+
+### 15. LOOP UNTIL CORRECT — NON-NEGOTIABLE
+
+**FOR ALL TESTS AND WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
+
+**The loop is:**
+1. Use /sytemic-debugging skill to Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
+2. Fix the root cause in code.
+3. Re-verify in the browser end-to-end via Playwright (click, fill, submit, observe DB + SSE + UI).
+4. If still RED, return to step 1 with the new evidence. **Repeat until GREEN exactly as the plan defines GREEN.**
+
+**Acceptance is defined by the plan, not by me.** For BS-NN scenarios in `April/April24Updates/plan/`, the docblock in `tests/Browser/scenarios/BS-NN-*.php` is the contract — every assertion must hold (DB row, SSE shape, audit chain, UI card, no fabricated success).
+
+**The only acceptable exits from the loop are:**
+- (a) The test is GREEN per the plan's full acceptance criteria, verified in the live browser.
+- (b) I hit a question that genuinely requires a CSJ decision the plan does not answer. Before exiting under (b) I must have exhausted the plan, the spec, the canonical contract, and the relevant memory files. Asking "what should I try next?" is **not** an acceptable exit — that's me handing the work back.
+
+**Forbidden inside the loop:**
+- Apologies without an attached fix attempt.
+- Marking a task complete on partial evidence.
+- Declaring something "good enough" because the plan didn't anticipate the bug — bugs uncovered while looping route through the plan's own bug-fix sub-task pattern (see Sprint 0 plan §S0.16b: "any failures route through dedicated bug-fix sub-tasks against the relevant Sprint 0 file"). **Routing means I open and fix the sub-task in the same loop, then re-verify BS-NN. It does not mean I hand back.**
+- Stopping to write reports, summaries, or session notes mid-loop. Reports come AFTER GREEN.
+
+**Ownership:** This rule is OWNED by CSJ. The mirror copies in `MEMORY.md` (under "Top laws") and the fynlaBrain vault are read-only references — the source of truth is this section of CLAUDE.md.
+
+### 16. Icons — Functional Only, Decorative Banned
 
 **The guiding principle: icons are allowed ONLY when they are functionally necessary. Decorative icons are banned everywhere.**
 
@@ -223,30 +265,6 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 - When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
 
 **Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
-
-### 15. LOOP UNTIL CORRECT — NON-NEGOTIABLE
-
-**FOR ALL TESTS AND WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
-
-**The loop is:**
-1. Use /sytemic-debugging skill to Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
-2. Fix the root cause in code.
-3. Re-verify in the browser end-to-end via Playwright (click, fill, submit, observe DB + SSE + UI).
-4. If still RED, return to step 1 with the new evidence. **Repeat until GREEN exactly as the plan defines GREEN.**
-
-**Acceptance is defined by the plan, not by me.** For BS-NN scenarios in `April/April24Updates/plan/`, the docblock in `tests/Browser/scenarios/BS-NN-*.php` is the contract — every assertion must hold (DB row, SSE shape, audit chain, UI card, no fabricated success).
-
-**The only acceptable exits from the loop are:**
-- (a) The test is GREEN per the plan's full acceptance criteria, verified in the live browser.
-- (b) I hit a question that genuinely requires a CSJ decision the plan does not answer. Before exiting under (b) I must have exhausted the plan, the spec, the canonical contract, and the relevant memory files. Asking "what should I try next?" is **not** an acceptable exit — that's me handing the work back.
-
-**Forbidden inside the loop:**
-- Apologies without an attached fix attempt.
-- Marking a task complete on partial evidence.
-- Declaring something "good enough" because the plan didn't anticipate the bug — bugs uncovered while looping route through the plan's own bug-fix sub-task pattern (see Sprint 0 plan §S0.16b: "any failures route through dedicated bug-fix sub-tasks against the relevant Sprint 0 file"). **Routing means I open and fix the sub-task in the same loop, then re-verify BS-NN. It does not mean I hand back.**
-- Stopping to write reports, summaries, or session notes mid-loop. Reports come AFTER GREEN.
-
-**Ownership:** This rule is OWNED by CSJ. The mirror copies in `MEMORY.md` (under "Top laws") and the fynlaBrain vault are read-only references — the source of truth is this section of CLAUDE.md.
 
 ## Vault Reference (fynlaBrain)
 

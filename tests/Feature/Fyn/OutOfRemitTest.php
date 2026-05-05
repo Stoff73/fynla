@@ -7,12 +7,13 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\QueryClassifier;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->user = User::factory()->create(['first_name' => 'Alex', 'surname' => 'Carter']);
     $this->conversation = AiConversation::create([
         'user_id' => $this->user->id,

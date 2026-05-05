@@ -19,7 +19,6 @@ $root = realpath(__DIR__.'/../../');
  * the bypass check or it's added to this ignore list with a deliberate
  * comment.
  */
-
 it('every preview write-block site checks the bypass-preview-mode token ability', function () use ($root): void {
     $directories = [
         'app/Http/Middleware/',

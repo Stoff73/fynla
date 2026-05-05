@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use Illuminate\Support\Facades\Cache;
+
 class AiToolDefinitions
 {
     /**
@@ -36,7 +38,7 @@ class AiToolDefinitions
         // The HasAiChat trait handles provider-specific wrapping:
         // - xAI/OpenAI: wraps in {type: "function", function: {name, description, parameters}}
         // - Anthropic: converts parameters → input_schema
-        if (\Illuminate\Support\Facades\Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai') {
+        if (Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai') {
             return $tools; // Already in the right shape for OpenAI wrapping
         }
 
@@ -1177,7 +1179,7 @@ class AiToolDefinitions
     {
         $tools = [
             [
-                'name' => \App\Services\AI\HandoffContract::DELEGATE_TO_CAPTURE,
+                'name' => HandoffContract::DELEGATE_TO_CAPTURE,
                 'description' => 'Internal. Emit this when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture mid-conversation. Never shown to the user. The orchestrator will hand off to data-capture Fyn and re-invoke you once capture is complete.',
                 'parameters' => [
                     'type' => 'object',
@@ -1202,7 +1204,7 @@ class AiToolDefinitions
                 ],
             ],
             [
-                'name' => \App\Services\AI\HandoffContract::CAPTURE_COMPLETE,
+                'name' => HandoffContract::CAPTURE_COMPLETE,
                 'description' => 'Internal. Emit this when you (data-capture Fyn) have finished capturing the records the user described. The orchestrator will return control to advice Fyn.',
                 'parameters' => [
                     'type' => 'object',

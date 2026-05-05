@@ -6,12 +6,13 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\GDPR\ConsentService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('zero persona_state_change SSE events emitted during handoff', function (): void {

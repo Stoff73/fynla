@@ -6,6 +6,7 @@ namespace App\Services\AI;
 
 use App\Constants\QuerySchemas;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * April30Updates F-9 — invalidates the per-user AI prompt caches so a
@@ -54,7 +55,7 @@ final class AdvicePromptCacheInvalidator
         } catch (\Throwable $e) {
             // Forensic only — never let a cache invalidation failure
             // mask a successful write or break the chat stream.
-            \Illuminate\Support\Facades\Log::warning(
+            Log::warning(
                 '[AdvicePromptCacheInvalidator] Failed to invalidate caches',
                 [
                     'user_id' => $userId,

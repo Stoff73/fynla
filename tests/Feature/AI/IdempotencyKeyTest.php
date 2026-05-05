@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\IdempotencyKeyMiddleware;
+use App\Jobs\AiIdempotencyCleanupJob;
 use App\Models\AiRequestIdempotency;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +22,7 @@ uses(RefreshDatabase::class);
  * is covered by the broader chat tests.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->middleware = new IdempotencyKeyMiddleware;
 });
 
@@ -170,7 +172,8 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
 
         $this->middleware->handle(
             makeIdempotencyTestRequest($user, 'POST', 'api/ai-chat/conversations/1/messages', $body, 'sse-key'),
-            fn () => new StreamedResponse(function () { /* no-op */ }, 200)
+            fn () => new StreamedResponse(function () { /* no-op */
+            }, 200)
         );
 
         $row = AiRequestIdempotency::first();
@@ -182,7 +185,8 @@ describe('IdempotencyKeyMiddleware (S0.11.3)', function () {
             function () use (&$controllerCalled) {
                 $controllerCalled = true;
 
-                return new StreamedResponse(function () { /* no-op */ }, 200);
+                return new StreamedResponse(function () { /* no-op */
+                }, 200);
             }
         );
 
@@ -237,7 +241,7 @@ describe('AiIdempotencyCleanupJob (S0.11.3)', function () {
             'expires_at' => now()->subHour(),
         ]);
 
-        $deleted = (new \App\Jobs\AiIdempotencyCleanupJob())->handle();
+        $deleted = (new AiIdempotencyCleanupJob)->handle();
 
         expect($deleted)->toBe(1)
             ->and(AiRequestIdempotency::count())->toBe(1)

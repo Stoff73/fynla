@@ -23,7 +23,7 @@ class ReferralService
         }
 
         do {
-            $code = 'FYN-' . strtoupper(Str::random(5));
+            $code = 'FYN-'.strtoupper(Str::random(5));
         } while (User::where('referral_code', $code)->exists());
 
         $user->update(['referral_code' => $code]);

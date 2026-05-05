@@ -19,7 +19,7 @@ beforeEach(function () {
  * resolve during event dispatch (matching what happens during a real HTTP
  * request hitting auth:sanctum).
  */
-function evalTraceActingAs(\App\Models\User $user, array $abilities, bool $withEvalRunIdHeader = true): void
+function evalTraceActingAs(User $user, array $abilities, bool $withEvalRunIdHeader = true): void
 {
     $token = $user->createToken('eval-trace-test', $abilities);
     $user->withAccessToken($token->accessToken);

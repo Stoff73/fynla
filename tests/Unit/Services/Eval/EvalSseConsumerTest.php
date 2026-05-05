@@ -18,7 +18,7 @@ it('parses a complete SSE stream into events', function () {
 });
 
 it('handles partial frames split across the buffer', function () {
-    $part1 = "data: {\"type\":\"content\",\"text\":\"hello";
+    $part1 = 'data: {"type":"content","text":"hello';
     $part2 = " world\"}\n\ndata: {\"type\":\"done\"}\n\n";
 
     $events = (new EvalSseConsumer)->consume($part1.$part2);

@@ -8,6 +8,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\QueryClassifier;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -27,7 +28,7 @@ uses(RefreshDatabase::class);
  * "I couldn't pick up that request — could you try again?" message.
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 afterEach(function () {
@@ -47,6 +48,7 @@ function bindAdviceStreamWithPayload(array $payload): void
             $stream = function () use ($payload) {
                 yield ['type' => 'handoff', 'handoff_type' => 'delegate_to_capture', 'payload' => $payload];
             };
+
             return $stream();
         });
     app()->instance(CoordinatingAgent::class, $agent);
@@ -137,8 +139,11 @@ it('does NOT emit handoff_error when only reason is missing — recovers via Cap
                     yield ['type' => 'entity_created', 'entity_type' => 'savings_account', 'entity_id' => 1, 'name' => 'Test'];
                     yield ['type' => 'done'];
                 },
-                default => function () { yield ['type' => 'done']; },
+                default => function () {
+                    yield ['type' => 'done'];
+                },
             };
+
             return $stream();
         });
     app()->instance(CoordinatingAgent::class, $agent);

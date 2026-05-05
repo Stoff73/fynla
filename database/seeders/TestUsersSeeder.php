@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Household;
+use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
@@ -40,7 +41,7 @@ class TestUsersSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'household_id' => $smithHousehold->id,
                 'is_primary_account' => true,
-                'role_id' => \App\Models\Role::findByName(\App\Models\Role::ROLE_USER)?->id,
+                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'date_of_birth' => '1980-05-15',
                 'gender' => 'male',
                 'marital_status' => 'married',
@@ -68,7 +69,7 @@ class TestUsersSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'household_id' => $smithHousehold->id,
                 'is_primary_account' => false,
-                'role_id' => \App\Models\Role::findByName(\App\Models\Role::ROLE_USER)?->id,
+                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'date_of_birth' => '1982-08-22',
                 'gender' => 'female',
                 'marital_status' => 'married',
@@ -100,7 +101,7 @@ class TestUsersSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'household_id' => $jonesHousehold->id,
                 'is_primary_account' => true,
-                'role_id' => \App\Models\Role::findByName(\App\Models\Role::ROLE_USER)?->id,
+                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'date_of_birth' => '1985-03-10',
                 'gender' => 'female',
                 'marital_status' => 'single',

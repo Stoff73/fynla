@@ -18,7 +18,6 @@ use App\Services\Onboarding\AssetCaptureEntityExtractor;
  * coverage — enough to prove the pattern generalises without freezing
  * the exact regex behaviour.
  */
-
 beforeEach(function () {
     $this->extractor = new AssetCaptureEntityExtractor;
 });

@@ -2,10 +2,23 @@
 
 declare(strict_types=1);
 
+use App\Models\Investment\InvestmentAccount;
 use App\Models\InvestmentActionDefinition;
+use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
 use App\Models\TaxConfiguration;
+use App\Models\User;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Estate\EstateDataReadinessService;
+use App\Services\Investment\Recommendation\DataReadinessService;
+use App\Services\Investment\Recommendation\SafetyCheckService;
+use App\Services\Investment\Recommendation\UserContextBuilder;
+use App\Services\Protection\ProtectionDataReadinessService;
+use App\Services\Retirement\RetirementDataReadinessService;
+use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\TaxConfigService;
+use Database\Seeders\InvestmentActionDefinitionSeeder;
+use Database\Seeders\SavingsActionDefinitionSeeder;
 
 describe('Cross-Module Integration', function () {
 
@@ -15,8 +28,8 @@ describe('Cross-Module Integration', function () {
 
         it('emergency fund is owned by Savings engine, not Investment', function () {
             // Seed the action definitions so the tables are populated
-            $this->seed(\Database\Seeders\InvestmentActionDefinitionSeeder::class);
-            $this->seed(\Database\Seeders\SavingsActionDefinitionSeeder::class);
+            $this->seed(InvestmentActionDefinitionSeeder::class);
+            $this->seed(SavingsActionDefinitionSeeder::class);
 
             // Check SavingsActionDefinition has emergency fund triggers that are enabled
             $savingsTriggers = SavingsActionDefinition::where('key', 'like', 'emergency_fund_%')
@@ -36,9 +49,9 @@ describe('Cross-Module Integration', function () {
         it('SafetyCheckService gates surplus without producing standalone emergency fund recommendations', function () {
             // Ensure TaxConfiguration exists for SafetyCheckService
             TaxConfiguration::factory()->create(['is_active' => true]);
-            app()->forgetInstance(\App\Services\TaxConfigService::class);
+            app()->forgetInstance(TaxConfigService::class);
 
-            $service = app(\App\Services\Investment\Recommendation\SafetyCheckService::class);
+            $service = app(SafetyCheckService::class);
 
             // Context with critically low emergency fund
             $context = [
@@ -88,18 +101,18 @@ describe('Cross-Module Integration', function () {
         it('ISA allowance is shared between Cash ISA and Stocks & Shares ISA', function () {
             // Ensure TaxConfiguration exists for TaxConfigService
             TaxConfiguration::factory()->create(['is_active' => true]);
-            app()->forgetInstance(\App\Services\TaxConfigService::class);
+            app()->forgetInstance(TaxConfigService::class);
 
-            $user = \App\Models\User::factory()->create([
+            $user = User::factory()->create([
                 'date_of_birth' => now()->subYears(35),
             ]);
 
-            $taxConfig = app(\App\Services\TaxConfigService::class);
+            $taxConfig = app(TaxConfigService::class);
             $isaAllowance = $taxConfig->getISAAllowances()['annual_allowance'] ?? 20000;
             $taxYear = $taxConfig->getTaxYear();
 
             // Create a Cash ISA (Savings) with £8,000 subscribed this year
-            \App\Models\SavingsAccount::factory()->create([
+            SavingsAccount::factory()->create([
                 'user_id' => $user->id,
                 'account_type' => 'cash_isa',
                 'current_balance' => 8000,
@@ -108,7 +121,7 @@ describe('Cross-Module Integration', function () {
             ]);
 
             // Create a S&S ISA (Investment) with £7,000 subscribed this year
-            \App\Models\Investment\InvestmentAccount::factory()->create([
+            InvestmentAccount::factory()->create([
                 'user_id' => $user->id,
                 'account_type' => 'isa',
                 'current_value' => 7000,
@@ -116,7 +129,7 @@ describe('Cross-Module Integration', function () {
             ]);
 
             // Build context via UserContextBuilder
-            $contextBuilder = app(\App\Services\Investment\Recommendation\UserContextBuilder::class);
+            $contextBuilder = app(UserContextBuilder::class);
             $context = $contextBuilder->build($user);
 
             // Total ISA used should be 8000 + 7000 = 15000
@@ -133,17 +146,17 @@ describe('Cross-Module Integration', function () {
         it('ISA context accounts for both modules when allowance is fully used', function () {
             // Ensure TaxConfiguration exists for TaxConfigService
             TaxConfiguration::factory()->create(['is_active' => true]);
-            app()->forgetInstance(\App\Services\TaxConfigService::class);
+            app()->forgetInstance(TaxConfigService::class);
 
-            $user = \App\Models\User::factory()->create([
+            $user = User::factory()->create([
                 'date_of_birth' => now()->subYears(40),
             ]);
 
-            $taxConfig = app(\App\Services\TaxConfigService::class);
+            $taxConfig = app(TaxConfigService::class);
             $taxYear = $taxConfig->getTaxYear();
 
             // Cash ISA: £12,000
-            \App\Models\SavingsAccount::factory()->create([
+            SavingsAccount::factory()->create([
                 'user_id' => $user->id,
                 'account_type' => 'cash_isa',
                 'current_balance' => 12000,
@@ -152,14 +165,14 @@ describe('Cross-Module Integration', function () {
             ]);
 
             // S&S ISA: £8,000
-            \App\Models\Investment\InvestmentAccount::factory()->create([
+            InvestmentAccount::factory()->create([
                 'user_id' => $user->id,
                 'account_type' => 'isa',
                 'current_value' => 8000,
                 'isa_subscription_current_year' => 8000,
             ]);
 
-            $contextBuilder = app(\App\Services\Investment\Recommendation\UserContextBuilder::class);
+            $contextBuilder = app(UserContextBuilder::class);
             $context = $contextBuilder->build($user);
 
             // Total = 20000, which equals the ISA allowance
@@ -302,8 +315,8 @@ describe('Cross-Module Integration', function () {
 
         it('no duplicate recommendations across Savings and Investment engines', function () {
             // Seed both sets of action definitions
-            $this->seed(\Database\Seeders\InvestmentActionDefinitionSeeder::class);
-            $this->seed(\Database\Seeders\SavingsActionDefinitionSeeder::class);
+            $this->seed(InvestmentActionDefinitionSeeder::class);
+            $this->seed(SavingsActionDefinitionSeeder::class);
 
             // The 7 Investment savings triggers that overlap with Savings engine must be disabled
             $disabledKeys = [
@@ -324,7 +337,7 @@ describe('Cross-Module Integration', function () {
         });
 
         it('Savings engine emergency fund triggers remain enabled after seeding', function () {
-            $this->seed(\Database\Seeders\SavingsActionDefinitionSeeder::class);
+            $this->seed(SavingsActionDefinitionSeeder::class);
 
             $savingsEmergencyKeys = [
                 'emergency_fund_critical',
@@ -342,8 +355,8 @@ describe('Cross-Module Integration', function () {
         });
 
         it('Investment engine core investment triggers remain enabled', function () {
-            $this->seed(\Database\Seeders\InvestmentActionDefinitionSeeder::class);
-            $this->seed(\Database\Seeders\SavingsActionDefinitionSeeder::class);
+            $this->seed(InvestmentActionDefinitionSeeder::class);
+            $this->seed(SavingsActionDefinitionSeeder::class);
 
             // These Investment-specific triggers should remain enabled
             $enabledKeys = [
@@ -373,11 +386,11 @@ describe('Cross-Module Integration', function () {
     describe('Data Readiness Services', function () {
 
         it('all 5 modules have data readiness services', function () {
-            expect(class_exists(\App\Services\Savings\SavingsDataReadinessService::class))->toBeTrue();
-            expect(class_exists(\App\Services\Estate\EstateDataReadinessService::class))->toBeTrue();
-            expect(class_exists(\App\Services\Investment\Recommendation\DataReadinessService::class))->toBeTrue();
-            expect(class_exists(\App\Services\Protection\ProtectionDataReadinessService::class))->toBeTrue();
-            expect(class_exists(\App\Services\Retirement\RetirementDataReadinessService::class))->toBeTrue();
+            expect(class_exists(SavingsDataReadinessService::class))->toBeTrue();
+            expect(class_exists(EstateDataReadinessService::class))->toBeTrue();
+            expect(class_exists(DataReadinessService::class))->toBeTrue();
+            expect(class_exists(ProtectionDataReadinessService::class))->toBeTrue();
+            expect(class_exists(RetirementDataReadinessService::class))->toBeTrue();
         });
     });
 });

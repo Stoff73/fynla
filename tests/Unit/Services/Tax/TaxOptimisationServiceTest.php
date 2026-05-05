@@ -8,12 +8,13 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Tax\TaxOptimisationService;
 use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->taxConfig = app(TaxConfigService::class);
 
     $this->allowanceChecker = Mockery::mock(AnnualAllowanceChecker::class);

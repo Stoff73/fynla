@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesIncome;
+use Carbon\Carbon;
 
 /**
  * Asset Location Optimizer
@@ -114,7 +115,7 @@ class AssetLocationOptimizer
 
         // Years to retirement (for pension tax drag calculation)
         $age = $user->date_of_birth
-            ? \Carbon\Carbon::parse($user->date_of_birth)->age
+            ? Carbon::parse($user->date_of_birth)->age
             : 45;
         $yearsToRetirement = max(0, 67 - $age);
 
