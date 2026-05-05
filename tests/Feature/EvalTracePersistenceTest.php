@@ -16,13 +16,15 @@ beforeEach(function () {
 
 /**
  * Helper — mirrors the live request shape: real Sanctum PAT bound to the
- * auth guard so currentAccessToken() resolves during event dispatch.
+ * auth guard so currentAccessToken() resolves during event dispatch, plus
+ * the X-Eval-Run-Id header EvalBypassGate requires (F-12).
  */
 function tracePersistActingAs(User $user, array $abilities): void
 {
     $token = $user->createToken('eval-trace-persist-test', $abilities);
     $user->withAccessToken($token->accessToken);
     test()->actingAs($user);
+    request()->headers->set('X-Eval-Run-Id', 'test-run-'.uniqid());
 }
 
 it('persists collected trace events to cache by conversation id (P0.1 fix)', function () {
