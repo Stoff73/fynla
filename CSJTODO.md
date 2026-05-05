@@ -1,7 +1,62 @@
 # CSJTODO — Fynla
 
-*Last updated: 4 May 2026 — session 74 context-clear (CSP fix, Tiptap fix, dev deploy, PR #240, deployCMS guide)*
-*Previous session: 4 May 2026 — session 73 context-clear (Document Articles CMS implementation)*
+*Last updated: 4 May 2026 — session 75 end-of-day (CMS-into-/insights refactor, dev deploy, PR #240 merged, PR #241 open)*
+*Previous session: 4 May 2026 — session 74 context-clear (CSP fix, Tiptap fix, dev deploy, PR #240 opened)*
+
+---
+
+## Session 75 (4 May 2026, end-of-day) — CMS articles into /insights pipeline + dev deploy
+
+**Branch:** `feature/csj/cms-insights-deploy-note` (deploy note only) — substantive code work landed on `dev` via PR #240 squash.
+**PRs:** [#240](https://github.com/Stoff73/fynla/pull/240) **MERGED** to `dev`; [#241](https://github.com/Stoff73/fynla/pull/241) `feature/csj/cms-insights-deploy-note → dev` **open** with the session deploy note.
+**Handover:** `May/May5Updates/handover-2026-05-05-session-1.md` (mirrored to fynlaBrain vault).
+**Deploy guide:** `May/May4Updates/deployInsightsCMSIntegration.md` (covers dev deploy with full file list + dev-server-WIP-not-touched warning).
+**Tech-debt report:** `tech-debt-report.md` — 0 critical, 2 warnings, 3 suggestions.
+
+### Completed this session
+
+#### Refactor + bug fix
+
+- [x] **CSJ flagged**: CMS publishes to `/articles/{slug}` with no top nav / no banner / no footer. "I told the instance to check the app." Anger justified — session 73 built a parallel public renderer instead of integrating with the existing `/insights` SPA.
+- [x] **Refactored CMS articles to surface through `/insights/{slug}`** — Vue SPA + `PublicLayout`. Doc articles now appear in `/insights` hub list alongside native insights. Deleted `PublicDocumentArticleController`, `/articles/{slug}` web route, `resources/views/articles/show.blade.php`. Added `DocumentArticleAsInsight{,List}Resource`. Extended `Api\Public\InsightController` (show fallback, index merge), `InsightsSeoMetaInjector`, `InsightSeoService`. New `body_html` field on `InsightArticleResource` rendered via `v-html` in `InsightArticlePage.vue` with scoped Tailwind-token styles for h2/h3/p/a/ul/ol/blockquote/img/table/pre/code.
+- [x] **Found mid-loop**: `SanitizeInput` middleware was stripping all HTML from `html`/`html_body` request fields BEFORE `HTMLBodySanitiser` (HTMLPurifier) could run, leaving doc article bodies as plain text. Added `'html'` and `'html_body'` to `$htmlAllowedFields`. Confirmed with end-to-end browser upload that body now stores structured h1/p/table.
+- [x] **Browser-verified** locally + on dev: login → upload `sample-with-images-and-tables.docx` → publish → `/insights/rich-sample-title` renders with full PublicLayout chrome, structured body content, design-system table styling, zero console errors. Article appears in `/insights` hub.
+- [x] **133 Documents + Insights + Architecture tests still green** (rewrote `PublicDocumentArticleTest.php` — 7 tests for API show, draft 404, admin preview, non-admin denial, hub listing, previewUrl shape, SEO meta).
+
+#### Deploy
+
+- [x] **PR #240 squash-merged** to `dev` (`3afb33c`) using `gh pr merge 240 --squash --admin --delete-branch=false` (CSJ is sole codeowner).
+- [x] **Deployed to `https://csjones.co/fynla`**: 9 PHP files rsynced, 2 legacy files deleted server-side, `public/build/` rotated with old-chunk merge (92M new + 85M old preserved), `composer dump-autoload` + cache clears + `php artisan optimize`.
+- [x] **Pre-existing dev-server gap fixed in passing**: pushed `app/Http/Controllers/Api/AgentInternalController.php` and `app/Http/Middleware/AgentTokenAuth.php`. They were referenced from server's `routes/api.php` but missing on disk — `php artisan route:list` was failing with "Class ... does not exist". Fixed without disturbing the server's 61+ uncommitted WIP files (eval / tax-strategy work).
+- [x] **End-to-end browser-verified** on csjones, including hub listing.
+- [x] **Deploy note committed** as `May/May4Updates/deployInsightsCMSIntegration.md` documenting what shipped, the SanitizeInput middleware root cause, the deploy gap fixed in passing, and the dev-server-WIP-not-touched warning for future deploys.
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **Review + merge PR #241** (`feature/csj/cms-insights-deploy-note → dev` — deploy note). Quick decision.
+- [ ] **`dev → main` release PR** — `origin/dev` now 44 commits ahead of `origin/main` including news/RSS/lifecycle (PR #238) + the entire CMSFix work + deploy notes. See "Outstanding for production deploy" section in `deployInsightsCMSIntegration.md` — non-trivial prep:
+  - 3 migrations
+  - `./deploy/fynla-org/build.sh` (NOT csjones script)
+  - Verify `AgentInternalController.php` + `AgentTokenAuth.php` exist on `fynla.org` (same gap may be present)
+  - The `SanitizeInput` middleware change goes too
+- [ ] **Verify `/admin/insights` still works** — carry-over from sessions 73 + 74. Not browser-verified after CMSFix landed.
+- [ ] **Drive malicious-fixture path on dev** — `sample-with-malicious-html.docx` should publish with `<script>` + event handlers stripped. Pest covers it; live browser run pending.
+
+### Tech debt + follow-ups
+
+- [ ] **W1** (security, defer): `InsightArticlePage.vue:81` `v-html` is XSS-safe only while every write to `html_body` runs through `HTMLBodySanitiser`. Belt-and-braces option: model mutator on `DocumentArticle::setHtmlBodyAttribute` re-running the sanitiser. Add when convenient.
+- [ ] **W2** (security, defer): `SanitizeInput.php` exempts `html`/`html_body` globally. Documented in the file comment, but any future endpoint with these field names bypasses middleware-level sanitisation. Long-term, prefer route-prefix scoping.
+- [ ] **S1**: `DocumentArticleAsInsight*Resource` naming inconsistent with module-resource pattern. Defer.
+- [ ] **S2**: `InsightController::index()` hand-rolls `{data, meta}`. Could use Laravel collection's `additional()`. Defer.
+- [ ] **S3**: `InsightSeoService::metaTagsForDocument` + `jsonLdForDocument` mirror native versions (~50 LOC duplication). Refactor to a shared `ArticleSeoSubject` interface if a third source appears.
+- [ ] **`bootstrap.js:27` latent hardcode** (carry-over from session 74): `'http://127.0.0.1:8000'` baseURL. Worth a one-line cleanup PR: change to `window.location.origin`.
+- [ ] **Memory candidate** (carry-over from session 74): "Tiptap v3 publishes ESM with named exports only — never default-import". Still un-saved.
+- [ ] **`build.old/`** at `~/www/csjones.co/fynla-app/public/build.old/` is now 85M (was 78M). Deletable once confidence high.
+
+### Known issues / blockers
+
+- **csjones.co server has 61+ uncommitted server-side WIP files** in `app/` (eval / tax-strategy work — listed in `deployInsightsCMSIntegration.md`). Future deploys to csjones MUST run rsync without `--delete` and ASK before bulk-syncing. `feedback_dev_server_is_separate.md` proved correct.
+- **Pre-existing 403s** on `/fynla/storage/insights/bespoke/*.jpg` (8 hero images) on `/fynla/insights` hub — out of scope for the CMS work; these images haven't been uploaded to dev's storage.
 
 ---
 

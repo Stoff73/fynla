@@ -1,10 +1,19 @@
 <template>
-    <div v-if="article" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section class="space-y-4">
-            <header>
-                <h1 class="text-3xl font-black text-horizon-700">{{ article.title }}</h1>
-                <p class="text-horizon-500 mt-1">Status: {{ article.status }}</p>
-            </header>
+    <AppLayout>
+        <div v-if="article" class="space-y-6">
+            <router-link to="/admin/documents" class="detail-inline-back">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to CMS Upload
+            </router-link>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <section class="space-y-4">
+                    <header>
+                        <h1 class="text-3xl font-black text-horizon-700">{{ article.title }}</h1>
+                        <p class="text-horizon-500 mt-1">Status: {{ article.status }}</p>
+                    </header>
 
             <div>
                 <label class="block text-sm font-bold text-horizon-700 mb-1">Title</label>
@@ -66,8 +75,10 @@
                 <editor-content v-if="editor" :editor="editor" class="prose max-w-none" />
             </div>
         </section>
-    </div>
-    <div v-else class="text-horizon-500">Loading…</div>
+            </div>
+        </div>
+        <div v-else class="text-horizon-500">Loading…</div>
+    </AppLayout>
 </template>
 
 <script>
@@ -84,11 +95,12 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
+import AppLayout from '@/layouts/AppLayout.vue';
 import CoverImagePicker from '@/components/Admin/Documents/CoverImagePicker.vue';
 
 export default {
     name: 'DocumentEditor',
-    components: { EditorContent, CoverImagePicker },
+    components: { AppLayout, EditorContent, CoverImagePicker },
     data() {
         return {
             form: {
@@ -158,14 +170,20 @@ export default {
                 },
             });
         },
-        async save() {
+        async save({ redirect = true } = {}) {
             this.errorMessage = '';
             this.successMessage = '';
             try {
                 await this.update({ id: this.article.id, ...this.form });
+                if (redirect) {
+                    this.$router.push('/admin/documents');
+                    return true;
+                }
                 this.successMessage = 'Saved.';
+                return true;
             } catch (e) {
                 this.errorMessage = e?.response?.data?.message || 'Save failed.';
+                return false;
             }
         },
         async openPreview() {
@@ -173,10 +191,11 @@ export default {
             window.open(url, '_blank');
         },
         async onPublish() {
-            await this.save();
+            const ok = await this.save({ redirect: false });
+            if (!ok) return;
             try {
                 await this.publish(this.article.id);
-                this.successMessage = 'Published.';
+                this.$router.push('/admin/documents');
             } catch (e) {
                 this.errorMessage = e?.response?.data?.message || 'Publish failed.';
             }
@@ -184,7 +203,7 @@ export default {
         async onUnpublish() {
             try {
                 await this.unpublish(this.article.id);
-                this.successMessage = 'Unpublished.';
+                this.$router.push('/admin/documents');
             } catch (e) {
                 this.errorMessage = e?.response?.data?.message || 'Unpublish failed.';
             }

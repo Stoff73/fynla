@@ -5,12 +5,20 @@
         @dragover.prevent="isDragging = true"
         @dragleave="isDragging = false"
         @drop.prevent="onDrop"
-        @click="$refs.input.click()"
     >
-        <input ref="input" type="file" accept=".docx" class="hidden" @change="onPick" />
-        <div v-if="!isProcessing" class="text-center">
-            <p class="text-base font-bold text-horizon-700">Drop a Word document here</p>
-            <p class="text-sm text-horizon-500 mt-1">or click to choose a .docx file (max 10 MB)</p>
+        <div v-if="!isProcessing" class="text-center w-full">
+            <p class="text-sm font-bold text-horizon-700">Drop a Word document here</p>
+            <p class="text-xs text-horizon-500 mt-1 mb-3">.docx, max 10 MB</p>
+            <input
+                type="file"
+                accept=".docx"
+                :disabled="isProcessing"
+                @change="onPick"
+                class="block mx-auto text-xs text-horizon-500
+                       file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0
+                       file:text-xs file:font-bold file:bg-raspberry-500 file:text-eggshell-50
+                       hover:file:bg-raspberry-600 file:cursor-pointer cursor-pointer"
+            />
         </div>
         <div v-else class="text-center">
             <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto"></div>
@@ -126,7 +134,7 @@ export default {
 
 <style scoped>
 .drop-zone {
-    @apply border-2 border-dashed border-horizon-300 rounded-lg p-12 cursor-pointer flex items-center justify-center min-h-[180px] transition-colors;
+    @apply border-2 border-dashed border-horizon-300 rounded-lg p-4 flex items-center justify-center w-1/5 aspect-square transition-colors;
     background: rgba(255, 255, 255, 0.5);
 }
 .drop-zone--active {
@@ -134,8 +142,5 @@ export default {
 }
 .drop-zone--busy {
     @apply cursor-default;
-}
-.hidden {
-    display: none;
 }
 </style>
