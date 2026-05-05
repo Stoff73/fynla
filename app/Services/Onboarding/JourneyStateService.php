@@ -13,6 +13,7 @@ class JourneyStateService
 
     public const JOURNEYS = [
         'budgeting',
+        'savings',
         'protection',
         'investment',
         'retirement',
@@ -30,6 +31,7 @@ class JourneyStateService
 
     private const DEFAULT_STEP_COUNTS = [
         'budgeting' => 3,
+        'savings' => 3,
         'protection' => 5,
         'investment' => 3,
         'retirement' => 5,

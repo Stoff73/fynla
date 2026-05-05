@@ -77,6 +77,13 @@ const mutations = {
 
 let fallbackTimer = null;
 
+// Flag set by completeFill and cleared on the next event-loop tick. Used by
+// cancelFill to ignore spurious cancellations that happen in the same sync
+// call stack as completeFill (e.g. handleSave calls completeFill, then the
+// generic closeForm() handler tries to cancelFill — which would clobber the
+// next pendingFill already queued up by processNextInQueue).
+let recentCompleteFill = false;
+
 const actions = {
   startFill({ commit, state: s, dispatch }, { entityType, fields, route, mode, entityId }) {
     const fillData = {
@@ -87,7 +94,8 @@ const actions = {
       entityId: entityId || null,
     };
 
-    // If a fill is already in progress, queue this one for sequential processing
+    // If a fill is already in progress, queue this one for sequential processing.
+    // Its navigation will fire when processNextInQueue dequeues it and re-enters startFill.
     if (s.pendingFill || s.filling) {
       commit('ENQUEUE_FILL', fillData);
       return;
@@ -97,6 +105,13 @@ const actions = {
 
     commit('SET_PENDING_FILL', fillData);
     commit('SET_FORM_READY', false);
+
+    // Drive navigation from here (not aiChat.js) so each fill navigates in queue order.
+    // Previously aiChat.js committed SET_PENDING_NAVIGATION on every fill_form SSE event,
+    // so a second fill would clobber the first entity's target route.
+    if (fillData.route) {
+      commit('aiChat/SET_PENDING_NAVIGATION', fillData.route, { root: true });
+    }
 
     // Fallback: if the form hasn't acknowledged within 30 seconds, clear state
     // and inform the user. This is a safety net — normally the form acknowledges
@@ -123,6 +138,9 @@ const actions = {
   acknowledgeFormReady({ commit }) {
     commit('SET_FORM_READY', true);
     clearTimeout(fallbackTimer);
+    // The next form is now visible and ready — any cancelFill from here on
+    // is a legitimate user action, not a spurious post-save close-handler call.
+    recentCompleteFill = false;
   },
 
   beginFieldSequence({ commit, state: s, dispatch }, fieldOrder) {
@@ -130,6 +148,8 @@ const actions = {
     // gets the handshake automatically when they call beginFieldSequence
     commit('SET_FORM_READY', true);
     clearTimeout(fallbackTimer);
+    // Same reasoning as acknowledgeFormReady — next form is visible.
+    recentCompleteFill = false;
     commit('SET_FIELD_ORDER', fieldOrder);
     commit('SET_CURRENT_FIELD_INDEX', 0);
     commit('SET_FILLING', true);
@@ -222,10 +242,27 @@ const actions = {
 
     clearTimeout(fallbackTimer);
     commit('CLEAR');
+    // Flag spurious cancelFill calls that happen between now and the next
+    // form acknowledging it's ready. Form close handlers fire after handleSave
+    // (see PensionList/CashOverview/etc.) and would otherwise clobber the
+    // pendingFill just set by the dispatch below. The flag is cleared when
+    // the next form calls acknowledgeFormReady/beginFieldSequence, or after
+    // a 2-second fallback if no form ever acknowledges.
+    recentCompleteFill = true;
+    setTimeout(() => { recentCompleteFill = false; }, 2000);
     dispatch('processNextInQueue');
   },
 
   cancelFill({ commit, dispatch }) {
+    // Guard against the "form close after handleSave" anti-pattern: many form
+    // components call cancelFill unconditionally when their close() handler
+    // runs, which happens right after handleSave has already called
+    // completeFill (which advanced the queue and set a new pendingFill for
+    // the next entity). Without this guard, the second entity in a multi-
+    // entity Fyn message would be silently dropped.
+    if (recentCompleteFill) {
+      return;
+    }
     // Cancels only the current fill; queued fills still proceed
     clearTimeout(fallbackTimer);
     commit('CLEAR');

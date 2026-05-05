@@ -15,7 +15,7 @@ describe('JourneyStateService', function () {
 
         $states = $this->service->getJourneyStates($user);
 
-        expect($states)->toHaveCount(8);
+        expect($states)->toHaveCount(9);
 
         foreach (JourneyStateService::JOURNEYS as $journey) {
             expect($states[$journey]['status'])->toBe('not_started')

@@ -754,7 +754,13 @@ export default {
     },
 
     closePensionForm() {
-      if (this.$store.state.aiFormFill.pendingFill) {
+      // Only cancel if the current pendingFill still targets a pension form.
+      // After a successful save, completeFill has already advanced the queue and
+      // pendingFill may belong to the next queued entity — cancelling it would
+      // clobber a multi-entity fill sequence.
+      const pending = this.$store.state.aiFormFill.pendingFill;
+      const pensionTypes = ['dc_pension', 'db_pension', 'state_pension'];
+      if (pending && pensionTypes.includes(pending.entityType)) {
         this.$store.dispatch('aiFormFill/cancelFill');
       }
       this.showPensionForm = false;

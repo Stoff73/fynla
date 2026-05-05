@@ -404,13 +404,13 @@ final class QuerySchemas
             'list_records(savings_account)',
         ],
         self::SAVINGS_ACCOUNTS => [
-            'get_module_analysis(savings)',
             'list_records(savings_account)',
+            'get_tax_information(savings_config)',
         ],
         self::SAVINGS_DEBT => [
-            'get_module_analysis(savings)',
             'list_records(savings_account)',
             'list_records(liability)',
+            'get_tax_information(savings_config)',
         ],
         self::INVESTMENT_PORTFOLIO => [
             'get_module_analysis(investment)',

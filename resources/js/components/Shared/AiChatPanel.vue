@@ -166,10 +166,19 @@
           <!-- Message list -->
           <template v-else>
             <div
-              v-for="msg in messages"
+              v-for="(msg, idx) in messages"
               :key="msg.id"
             >
+              <!-- Quick-reply bubbles (Fyn onboarding tool output) -->
+              <FynQuickReplies
+                v-if="msg.role === 'quick_replies'"
+                :prompt-text="msg.content"
+                :bubbles="msg.metadata?.bubbles || []"
+                :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
+                @select="handleQuickReplySelect"
+              />
               <div
+                v-else
                 class="flex"
                 :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
               >
@@ -182,18 +191,6 @@
                     @navigate="handleNavigation"
                   />
                 </div>
-              </div>
-              <!-- Clickable options attached to message -->
-              <div v-if="msg.options && msg.options.length" class="mt-2 space-y-1.5 pl-1">
-                <button
-                  v-for="option in msg.options"
-                  :key="option"
-                  @click="sendSuggested(option)"
-                  class="w-full text-left px-3 py-2 text-sm bg-light-pink-100 hover:bg-light-pink-200 border border-light-gray rounded-lg transition-colors text-horizon-500"
-                  :disabled="streaming || loading"
-                >
-                  {{ option }}
-                </button>
               </div>
             </div>
 
@@ -243,6 +240,15 @@
           <div v-else-if="error" class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700">
             {{ error }}
           </div>
+
+          <!-- Bottom scroll spacer — reserves room so the latest user bubble
+               can always be scrolled to the TOP of the visible area. -->
+          <div
+            v-if="messages && messages.length > 0"
+            class="flex-shrink-0"
+            :style="{ height: scrollSpacerHeight + 'px' }"
+            aria-hidden="true"
+          ></div>
         </div>
 
         <!-- Card Footer - Input area -->
@@ -376,8 +382,19 @@
         </div>
 
         <!-- Messages -->
-        <template v-for="(msg, idx) in messages" :key="idx">
-          <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+        <div v-for="(msg, idx) in messages" :key="idx">
+          <!-- Quick-reply bubbles (Fyn onboarding) -->
+          <FynQuickReplies
+            v-if="msg.role === 'quick_replies'"
+            :prompt-text="msg.content"
+            :bubbles="msg.metadata?.bubbles || []"
+            :disabled="streaming || loading || idx !== latestQuickRepliesIndex"
+            @select="handleQuickReplySelect"
+          />
+          <div
+            v-else
+            :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
+          >
             <div :class="[
               'max-w-[85%] rounded-lg px-3 py-2 text-sm',
               msg.role === 'user'
@@ -388,19 +405,7 @@
               <span v-else>{{ msg.content }}</span>
             </div>
           </div>
-          <!-- Clickable options attached to message -->
-          <div v-if="msg.options && msg.options.length" class="space-y-1.5 pl-1">
-            <button
-              v-for="option in msg.options"
-              :key="option"
-              @click="sendSuggested(option)"
-              class="w-full text-left px-3 py-2 text-sm bg-light-pink-100 hover:bg-light-pink-200 border border-light-gray rounded-lg transition-colors text-horizon-500"
-              :disabled="streaming || loading"
-            >
-              {{ option }}
-            </button>
-          </div>
-        </template>
+        </div>
 
         <!-- Streaming indicator -->
         <div v-if="streaming" class="flex justify-start">
@@ -414,6 +419,27 @@
           </div>
         </div>
 
+        <!-- Error banner (docked) — must mirror the modal error display so
+             failures in the director / Claude call are actually visible to
+             the user. Without this, the store commits SET_ERROR but the
+             docked panel never renders it, producing silent failures. -->
+        <div
+          v-if="error && !streaming"
+          class="p-3 bg-raspberry-50 border border-raspberry-200 rounded-lg text-sm text-raspberry-700"
+        >
+          {{ error }}
+        </div>
+
+        <!-- Bottom scroll spacer — reserves room so the latest user bubble
+             can always be scrolled to the TOP of the visible area (without
+             this, short conversations can't scroll enough and the user's
+             reply anchors mid-panel instead of at the top). -->
+        <div
+          v-if="messages && messages.length > 0"
+          class="flex-shrink-0"
+          :style="{ height: scrollSpacerHeight + 'px' }"
+          aria-hidden="true"
+        ></div>
       </div>
 
       <!-- Stop streaming button (docked) -->
@@ -496,6 +522,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import AiMessageContent from './AiMessageContent.vue';
+import FynQuickReplies from '@/components/Fyn/FynQuickReplies.vue';
 
 import analyticsService from '@/services/analyticsService';
 import { matchNavigationIntent } from '@/utils/chatNavigationRouter';
@@ -506,6 +533,7 @@ export default {
 
     components: {
         AiMessageContent,
+        FynQuickReplies,
     },
 
     props: {
@@ -531,6 +559,7 @@ export default {
             _thinkingTimer: null,
             countdownSeconds: null,
             _countdownTimer: null,
+            scrollSpacerHeight: 300,
         };
     },
 
@@ -580,6 +609,19 @@ export default {
 
         canSend() {
             return this.inputMessage.trim().length > 0 && !this.streaming && !this.loading && !this.tokenLimitReached;
+        },
+
+        // Index of the most recent quick_replies message in the message
+        // list. Used to disable historical bubble sets so the user cannot
+        // click an earlier answer after they have moved past it. Returns
+        // -1 if no quick_replies messages exist.
+        latestQuickRepliesIndex() {
+            for (let i = this.messages.length - 1; i >= 0; i--) {
+                if (this.messages[i]?.role === 'quick_replies') {
+                    return i;
+                }
+            }
+            return -1;
         },
 
         suggestedPrompts() {
@@ -643,7 +685,10 @@ export default {
     },
 
     mounted() {
-        this.handleResize = () => { this.windowWidth = window.innerWidth; };
+        this.handleResize = () => {
+            this.windowWidth = window.innerWidth;
+            this.updateScrollSpacer();
+        };
         window.addEventListener('resize', this.handleResize);
 
         // In docked mode, auto-open and load conversations immediately
@@ -660,7 +705,10 @@ export default {
                     this._defaultInputHeight = naturalHeight;
                     this.dockedInputHeight = naturalHeight;
                 }
+                this.updateScrollSpacer();
             });
+        } else {
+            this.$nextTick(() => this.updateScrollSpacer());
         }
     },
 
@@ -708,17 +756,27 @@ export default {
         },
 
         messages(newMessages, oldMessages) {
-            // When a new user message is added, scroll to bottom so they see it
-            // When assistant message is added (stream complete), scroll to top of that message
+            // Anchor the latest user bubble to the TOP of the chat viewport so
+            // Fyn's reply streams in below it and stays visible. If there's
+            // no user bubble yet (first turn of onboarding), fall back to
+            // scrollToBottom so the assistant's content is visible.
             if (!newMessages || !oldMessages) return;
+            if (newMessages.length <= oldMessages.length) return;
             const lastMsg = newMessages[newMessages.length - 1];
             if (!lastMsg) return;
 
             if (lastMsg.role === 'user') {
-                this.$nextTick(() => this.scrollToBottom());
-            } else if (lastMsg.role === 'assistant' && newMessages.length > oldMessages.length) {
+                this.$nextTick(() => this.scrollToLastUserMessage());
+            } else if (lastMsg.role === 'assistant' || lastMsg.role === 'quick_replies') {
                 this.$nextTick(() => {
-                    setTimeout(() => this.scrollToLastAssistantMessage(), 50);
+                    const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+                    if (!container) return;
+                    const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
+                    if (userBubbles.length > 0) {
+                        this.scrollToLastUserMessage();
+                    } else {
+                        this.scrollToBottom();
+                    }
                 });
             }
         },
@@ -726,15 +784,7 @@ export default {
         streaming(isStreaming) {
             if (isStreaming) {
                 // Scroll user message to top now that thinking indicator is in the DOM
-                this.$nextTick(() => {
-                    const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
-                    if (!container) return;
-                    const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
-                    const lastBubble = userBubbles[userBubbles.length - 1];
-                    if (lastBubble) {
-                        lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
-                    }
-                });
+                this.$nextTick(() => this.scrollToLastUserMessage());
                 // Start rotating status messages
                 this.thinkingStatusIndex = 0;
                 this._thinkingTimer = setInterval(() => {
@@ -796,36 +846,52 @@ export default {
         async onOpen() {
             analyticsService.trackChatOpened();
 
-            // Check for journey prompt flag — either from store or directly from URL query param
-            const isJourneyPrompt = this.$store.state.aiChat.pendingJourneyPrompt
-                || new URLSearchParams(window.location.search).get('openFyn') === 'journey';
+            const s = () => this.$store.state.aiChat;
 
             // If there's already an active conversation with messages or streaming,
-            // don't replace it — just fetch the conversation list for history
-            const hasActiveConversation = this.$store.state.aiChat.currentConversation
-                && (this.$store.state.aiChat.messages.length > 0 || this.$store.state.aiChat.streaming);
+            // don't replace it — just fetch the conversation list for history.
+            const hasActive = () => s().currentConversation
+                && (s().messages.length > 0 || s().streaming);
+
+            // Another action may have kicked off a conversation while the
+            // panel was mounting (Dashboard.vue dispatches
+            // startOnboardingConversation in parallel when openFyn=journey).
+            // Skip our own initialiser if we can see it is in flight.
+            const busy = () => s().loading || s().streaming;
+
+            if (hasActive() || busy()) {
+                await this.fetchConversations();
+                this.$nextTick(() => this.$refs.inputField?.focus());
+                return;
+            }
 
             await this.fetchConversations();
 
-            if (!hasActiveConversation) {
-                await this.startNewConversation();
+            // RE-CHECK after the fetch. Dashboard.vue's
+            // startOnboardingConversation may have populated the store
+            // while we were awaiting the conversations list — creating a
+            // fresh empty conversation at this point would orphan the
+            // real onboarding conversation and split the transcript.
+            if (hasActive() || busy()) {
+                this.$nextTick(() => this.$refs.inputField?.focus());
+                return;
+            }
 
-                // Add journey stage message if user arrived from "Get started with Fyn"
-                if (isJourneyPrompt) {
-                    this.$store.commit('aiChat/ADD_MESSAGE', {
-                        id: 'journey_' + Date.now(),
-                        role: 'assistant',
-                        content: "Welcome to Fynla! I'm Fyn, your financial companion. What stage of your journey are you on?",
-                        options: [
-                            'Starting out — student or early career',
-                            'Building foundations — first home, growing savings',
-                            'Protecting and growing — family, career progression',
-                            'Planning your future — peak earnings, retirement planning',
-                            'Enjoying your wealth — retired or approaching retirement',
-                        ],
-                    });
-                    this.$store.commit('aiChat/SET_PENDING_JOURNEY_PROMPT', false);
-                }
+            // If the user is mid-onboarding from a previous tab/session,
+            // resume the director flow instead of starting a blank chat.
+            const user = this.$store.getters['auth/user'];
+            const isMidOnboarding = !!(
+                user
+                && user.onboarding_completed === false
+                && user.onboarding_fyn_step
+            );
+
+            if (isMidOnboarding) {
+                // startOnboardingConversation detects in_progress via the
+                // /status endpoint and loads the existing conversation.
+                await this.$store.dispatch('aiChat/startOnboardingConversation');
+            } else {
+                await this.startNewConversation();
             }
 
             this.$nextTick(() => {
@@ -921,6 +987,17 @@ export default {
             await this.sendMessage(message);
         },
 
+        // Handler for FynQuickReplies clicks — sends the bubble's label as if
+        // the user had typed it. The matchNavigationIntent check is skipped
+        // because onboarding bubbles are never navigation intents.
+        async handleQuickReplySelect(bubble) {
+            const label = (bubble && bubble.label) ? bubble.label.trim() : '';
+            if (!label || this.streaming || this.loading) return;
+            window.dispatchEvent(new Event('fyn-chat-interaction'));
+            analyticsService.trackChatMessageSent(label.length);
+            await this.sendMessage(label);
+        },
+
         handleNavigation(routePath) {
             // Parse query strings properly for Vue Router
             if (routePath && routePath.includes('?')) {
@@ -949,10 +1026,33 @@ export default {
             const userBubbles = container.querySelectorAll('.bg-raspberry-500, .bg-raspberry-600');
             const lastBubble = userBubbles[userBubbles.length - 1];
 
-            if (lastBubble) {
-                lastBubble.scrollIntoView({ block: 'start', behavior: 'instant' });
-            } else {
+            if (!lastBubble) {
                 container.scrollTop = container.scrollHeight;
+                return;
+            }
+
+            // Ensure the bottom spacer is sized so there's enough scroll room
+            // to push the user bubble flush with the top.
+            this.updateScrollSpacer();
+
+            // Direct scrollTop math — more reliable than scrollIntoView which
+            // browsers may skip if the element is already "visible enough".
+            // Walk up offsetParent chain to account for nested positioning.
+            const containerRect = container.getBoundingClientRect();
+            const bubbleRect = lastBubble.getBoundingClientRect();
+            const delta = bubbleRect.top - containerRect.top;
+            container.scrollTop = container.scrollTop + delta;
+        },
+
+        updateScrollSpacer() {
+            const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
+            if (!container) return;
+            // Reserve scroll room equal to the container viewport minus a
+            // single message worth of padding. This guarantees the latest
+            // user bubble can always reach the top of the visible area.
+            const target = Math.max(200, container.clientHeight - 100);
+            if (this.scrollSpacerHeight !== target) {
+                this.scrollSpacerHeight = target;
             }
         },
 
@@ -960,10 +1060,13 @@ export default {
             const container = this.$refs.messagesContainer || this.$refs.dockedMessagesContainer;
             if (!container) return;
 
-            const assistantMessages = container.querySelectorAll('.bg-savannah-100');
-            const lastAssistant = assistantMessages[assistantMessages.length - 1];
-            if (lastAssistant) {
-                lastAssistant.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Match both assistant text bubbles (bg-savannah-100) and the
+            // FynQuickReplies wrapper (.fyn-quick-replies) so grouped and
+            // bubble turns both scroll into view correctly.
+            const targets = container.querySelectorAll('.bg-savannah-100, .fyn-quick-replies');
+            const last = targets[targets.length - 1];
+            if (last) {
+                last.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
                 this.scrollToBottom();
             }
