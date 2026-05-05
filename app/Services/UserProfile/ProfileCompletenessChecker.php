@@ -9,6 +9,7 @@ use App\Models\CashAccount;
 use App\Models\Chattel;
 use App\Models\DCPension;
 use App\Models\Estate\Asset;
+use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\SavingsAccount;
@@ -162,7 +163,7 @@ class ProfileCompletenessChecker
         // Also check if spouse has dependent children (shared between linked accounts)
         $spouseHasChildren = false;
         if ($user->spouse_id) {
-            $spouseHasChildren = \App\Models\FamilyMember::where('user_id', $user->spouse_id)
+            $spouseHasChildren = FamilyMember::where('user_id', $user->spouse_id)
                 ->where('is_dependent', true)
                 ->whereIn('relationship', ['child', 'step_child'])
                 ->exists();

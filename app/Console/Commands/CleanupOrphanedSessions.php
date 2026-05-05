@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\UserSession;
 use App\Services\Auth\SessionService;
 use Illuminate\Console\Command;
 
@@ -19,7 +20,7 @@ class CleanupOrphanedSessions extends Command
         $isDryRun = $this->option('dry-run');
 
         if ($isDryRun) {
-            $count = \App\Models\UserSession::whereDoesntHave('token')->count();
+            $count = UserSession::whereDoesntHave('token')->count();
             $this->info("Would delete {$count} orphaned session(s).");
         } else {
             $count = $sessionService->cleanupOrphanedSessions();

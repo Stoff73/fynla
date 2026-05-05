@@ -6,9 +6,10 @@ use App\Models\DCPension;
 use App\Models\User;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
     $this->taxConfig = app(TaxConfigService::class);
     $this->service = new IncomeDefinitionsService($this->taxConfig);
 });

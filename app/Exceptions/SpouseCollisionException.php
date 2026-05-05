@@ -17,6 +17,4 @@ namespace App\Exceptions;
  *
  * PRD: April/April20Updates/PRD-fyn-driven-onboarding.md §FR-M13
  */
-class SpouseCollisionException extends \RuntimeException
-{
-}
+class SpouseCollisionException extends \RuntimeException {}

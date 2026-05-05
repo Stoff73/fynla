@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace App\Agents;
 
+use App\Constants\QuerySchemas;
+use App\Constants\UpdateRecordAllowlist;
+use App\Events\Eval\AgentDecision;
+use App\Events\Eval\EngineCalled;
+use App\Exceptions\SpouseCollisionException;
+use App\Models\AiConversation;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -11,35 +17,57 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
+use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Liability;
+use App\Models\Estate\LpaAttorney;
 use App\Models\Estate\Trust;
+use App\Models\Estate\Will;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Invoice;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
+use App\Models\PensionInputHistory;
 use App\Models\Property;
 use App\Models\SavingsAccount;
+use App\Models\Subscription;
+use App\Models\SubscriptionPlan;
+use App\Models\TaxStrategyHouseholdInput;
 use App\Models\User;
+use App\Services\AI\AdviceFyn;
+use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\AuditChainService;
+use App\Services\AI\ToolResultContract;
+use App\Services\AI\ToolResultContractException;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\ConflictResolver;
 use App\Services\Coordination\CrossModuleStrategyService;
 use App\Services\Coordination\HolisticPlanner;
 use App\Services\Coordination\PriorityRanker;
+use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
+use App\Services\WhatIf\WhatIfScenarioService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
+use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * CoordinatingAgent
@@ -81,6 +109,64 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
+     * Build the analysis dict the prompt builder needs, sized to the
+     * query's classification.
+     *
+     * - `holistic` (HOLISTIC_HEALTH only): full orchestrate. Returns
+     *   the same shape as orchestrateAnalysis() — every cross-module
+     *   field populated. The eval trace fires `EngineCalled:orchestrate_analysis`.
+     * - `module` (every module-scoped advice query): runs only the
+     *   relevant module agents' `analyze()`. Returns a thin shape with
+     *   `module_analysis` populated for the relevant modules and the
+     *   cross-module fields (available_surplus, conflicts, etc.) absent.
+     *   The eval trace does NOT fire orchestrate_analysis — we never
+     *   called it. Fixes the "wasted holistic compute on every chat
+     *   send" issue surfaced by the 9 module-scoped scenarios'
+     *   `must_not_contain: orchestrate_analysis` assertion.
+     * - `factual` (INCOME / GENERAL / NAVIGATION / etc.): no module
+     *   analysis at all. Returns an empty thin shape. The prompt
+     *   builder still renders net worth, goals, life events from the
+     *   user record directly.
+     */
+    public function analyzeRelevantModules(int $userId, ?array $classification): array
+    {
+        $primary = is_array($classification) ? ($classification['primary'] ?? null) : null;
+        $level = AdviceFyn::engineCallLevelFor(is_string($primary) ? $primary : null);
+
+        if ($level === 'holistic') {
+            return $this->orchestrateAnalysis($userId);
+        }
+
+        if ($level === 'factual') {
+            return ['module_analysis' => []];
+        }
+
+        // Module path. Map classification → modules and fan out to the
+        // matching agents. MODULE_MAP exposes module names that don't
+        // resolve to a dispatchable agent (`tax`, `property`, `income`);
+        // those are silently skipped — the prompt builder reads goals,
+        // property and income from the user record directly.
+        $modules = QuerySchemas::getModulesForClassification(is_array($classification) ? $classification : []);
+        $moduleAnalysis = [];
+        foreach ($modules as $module) {
+            $analysis = match ($module) {
+                'protection' => $this->protectionAgent->analyze($userId),
+                'savings' => $this->savingsAgent->analyze($userId),
+                'investment' => $this->investmentAgent->analyze($userId),
+                'retirement' => $this->retirementAgent->analyze($userId),
+                'estate' => $this->estateAgent->analyze($userId),
+                'goals' => $this->goalsAgent->analyze($userId),
+                default => null,
+            };
+            if ($analysis !== null) {
+                $moduleAnalysis[$module] = $analysis;
+            }
+        }
+
+        return ['module_analysis' => $moduleAnalysis];
+    }
+
+    /**
      * Chat with an override system prompt and tool allowlist.
      *
      * Used by OnboardingChatDirector during asset_capture delegation
@@ -96,20 +182,22 @@ class CoordinatingAgent extends BaseAgent
      * @param  list<array<string, mixed>>|null  $toolsListOverride
      */
     public function chatWithPromptOverride(
-        \App\Models\User $user,
-        \App\Models\AiConversation $conversation,
+        User $user,
+        AiConversation $conversation,
         string $message,
         ?string $currentRoute,
         ?string $systemPromptOverride,
         ?array $allowedTools,
         bool $persistUserMessage = true,
         ?array $toolsListOverride = null,
+        ?string $personaOverride = null,
     ): \Generator {
         $this->setChatOverrides(
             systemPrompt: $systemPromptOverride,
             allowedTools: $allowedTools,
             skipUserMessagePersistence: ! $persistUserMessage,
             toolsListOverride: $toolsListOverride,
+            personaOverride: $personaOverride,
         );
 
         try {
@@ -155,6 +243,18 @@ class CoordinatingAgent extends BaseAgent
      */
     public function orchestrateAnalysis(int $userId, ?array $moduleAgents = null): array
     {
+        $orchestrateStart = microtime(true);
+
+        // Eval trace — emit at ENTRY so the orchestrate span is bookended
+        // (the existing emit below fires at exit). Doc A §5.3 spec parity.
+        event(new EngineCalled(
+            engine: 'orchestrate_analysis',
+            params: ['user_id' => $userId, 'phase' => 'entry'],
+            resultSummary: ['result_path' => 'pending'],
+            durationMs: 0,
+            atMicrotime: $orchestrateStart,
+        ));
+
         // Collect analysis from all modules
         $allAnalysis = $this->collectModuleAnalysis($userId, $moduleAgents);
 
@@ -182,12 +282,12 @@ class CoordinatingAgent extends BaseAgent
 
         // Generate cross-module strategies
         $crossModuleStrategies = [];
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if ($user) {
             $crossModuleStrategies = $this->crossModuleStrategyService->generateCrossModuleStrategies($allAnalysis, $user);
         }
 
-        return [
+        $result = [
             'user_id' => $userId,
             'analysis_date' => now()->toIso8601String(),
             'module_analysis' => $allAnalysis,
@@ -206,6 +306,20 @@ class CoordinatingAgent extends BaseAgent
                 'cross_module_strategies_count' => count($crossModuleStrategies),
             ],
         ];
+
+        event(new EngineCalled(
+            engine: 'orchestrate_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: [
+                'keys_returned' => array_keys($result),
+                'result_path' => 'happy',
+                'modules_with_analysis' => array_keys($allAnalysis),
+            ],
+            durationMs: (int) round((microtime(true) - $orchestrateStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**
@@ -404,7 +518,7 @@ class CoordinatingAgent extends BaseAgent
         ]);
 
         // User context
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         $analysis['user'] = [
             'age' => $user && $user->date_of_birth ? $user->date_of_birth->age : 40,
         ];
@@ -420,7 +534,7 @@ class CoordinatingAgent extends BaseAgent
         try {
             return $analyzer();
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("{$module} analysis failed: ".$e->getMessage());
+            Log::error("{$module} analysis failed: ".$e->getMessage());
 
             return $defaultProvider();
         }
@@ -674,7 +788,7 @@ class CoordinatingAgent extends BaseAgent
     /**
      * Execute a tool call with prerequisite gate enforcement.
      */
-    public function executeTool(string $toolName, array $input, User $user): array
+    public function executeTool(string $toolName, array $input, User $user, ?int $conversationId = null): array
     {
         // xAI strict mode may return the string "null" instead of actual null for nullable fields
         // Also decode HTML entities (xAI sometimes encodes & as &amp; in tool arguments)
@@ -689,7 +803,37 @@ class CoordinatingAgent extends BaseAgent
             return $v;
         }, $input);
 
-        $isPreviewUser = $user->is_preview_user;
+        // Bypass when the active token EXPLICITLY lists `bypass-preview-mode`
+        // (eval flow) AND the X-Eval-Run-Id header is set
+        // (April30Updates F-12 — defence-in-depth on the eval bypass).
+        $hasEvalBypass = EvalBypassGate::isActive($user);
+        $isPreviewUser = (bool) $user->is_preview_user && ! $hasEvalBypass;
+
+        // S0.12 — append a chain row at dispatch. Replaces the [AI-AUDIT] file
+        // log that used to fire after the result returned (which dropped any
+        // tool that threw before the log line was reached).
+        $this->appendAuditEvent([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+            'tool_name' => $toolName,
+            'operation' => self::operationFor($toolName),
+            'status' => 'dispatched',
+            'input_summary' => self::summariseInput($toolName, $input, $isPreviewUser),
+        ]);
+
+        // Eval trace — capture every tool dispatch with name + args.
+        event(new AgentDecision(
+            agent: 'CoordinatingAgent',
+            decisionPoint: 'tool_dispatch',
+            outcome: $toolName,
+            context: [
+                'args' => $input,
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'is_preview_user' => $isPreviewUser,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         // Prerequisite gate check
         $gate = $this->prerequisiteGate->canExecuteTool($toolName, $input, $user);
@@ -710,6 +854,19 @@ class CoordinatingAgent extends BaseAgent
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
+                // Handoff tools — stubbed so HasAiChat doesn't error. The
+                // synthetic 'handoff' SSE event yielded downstream from this
+                // result is consumed by OnboardingChatDirector::handleInlineCapture.
+                'delegate_to_capture' => [
+                    'action' => 'handoff',
+                    'handoff_type' => 'delegate_to_capture',
+                    'payload' => $input,
+                ],
+                'capture_complete' => [
+                    'action' => 'handoff',
+                    'handoff_type' => 'capture_complete',
+                    'payload' => $input,
+                ],
                 'capture_personal_details' => $this->handleCapturePersonalDetails($input, $user),
                 'capture_spouse_details' => $this->handleCaptureSpouseDetails($input, $user),
                 'capture_dependants' => $this->handleCaptureDependants($input, $user),
@@ -718,8 +875,12 @@ class CoordinatingAgent extends BaseAgent
                 'list_goals' => $this->handleListGoals($user),
                 'list_life_events' => $this->handleListLifeEvents($user),
                 'get_module_analysis' => $this->handleModuleAnalysis($input, $user),
+                'search_conversation_index' => $this->handleSearchConversationIndex($input, $user, $conversationId),
                 'create_what_if_scenario' => $this->handleCreateWhatIfScenario($input, $user),
                 'get_recommendations' => $this->handleRecommendations($user),
+                'get_subscription_status' => $this->handleGetSubscriptionStatus($user),
+                'list_invoices' => $this->handleListInvoices($user),
+                'get_current_plan' => $this->handleGetCurrentPlan($user),
                 'get_tax_information' => $this->handleTaxInformation($input, $user),
                 'generate_financial_plan' => $this->handleFinancialPlan($user),
                 'create_goal' => $this->handleCreateGoal($input, $user, $isPreviewUser),
@@ -734,6 +895,10 @@ class CoordinatingAgent extends BaseAgent
                 'create_asset' => $this->handleCreateEstateAsset($input, $user, $isPreviewUser),
                 'create_liability' => $this->handleCreateEstateLiability($input, $user, $isPreviewUser),
                 'create_estate_gift' => $this->handleCreateEstateGift($input, $user, $isPreviewUser),
+                'create_will' => $this->handleCreateWill($input, $user, $isPreviewUser),
+                'update_will' => $this->handleUpdateWill($input, $user, $isPreviewUser),
+                'create_power_of_attorney' => $this->handleCreatePowerOfAttorney($input, $user, $isPreviewUser),
+                'update_power_of_attorney' => $this->handleUpdatePowerOfAttorney($input, $user, $isPreviewUser),
                 'create_family_member' => $this->handleCreateFamilyMember($input, $user, $isPreviewUser),
                 'create_trust' => $this->handleCreateTrust($input, $user, $isPreviewUser),
                 'create_business_interest' => $this->handleCreateBusinessInterest($input, $user, $isPreviewUser),
@@ -742,33 +907,175 @@ class CoordinatingAgent extends BaseAgent
                 'update_record' => $this->handleUpdateRecord($input, $user, $isPreviewUser),
                 'delete_record' => $this->handleDeleteRecord($input, $user, $isPreviewUser),
                 'update_profile' => $this->handleUpdateProfile($input, $user, $isPreviewUser),
+                // SaveTax campaign — sections 4-6
+                'capture_salary_sacrifice' => $this->handleCaptureSalarySacrifice($input, $user, $isPreviewUser),
+                'capture_spouse_work_status' => $this->handleCaptureSpouseWorkStatus($input, $user, $isPreviewUser),
+                'capture_spouse_household_data' => $this->handleCaptureSpouseHouseholdData($input, $user, $isPreviewUser),
+                'capture_spouse_non_working_assets' => $this->handleCaptureSpouseNonWorkingAssets($input, $user, $isPreviewUser),
+                'capture_pension_history' => $this->handleCapturePensionHistory($input, $user, $isPreviewUser),
+                'capture_charitable_giving' => $this->handleCaptureCharitableGiving($input, $user, $isPreviewUser),
                 default => ['error' => true, 'error_type' => 'unknown_tool', 'message' => "Unknown tool: {$toolName}"],
             };
 
-            // Audit log for write operations (create, update, delete, profile changes)
-            if (str_starts_with($toolName, 'create_') || in_array($toolName, ['update_record', 'delete_record', 'update_profile'])) {
-                $entityId = $result['id'] ?? $result['data']['id'] ?? ($input['id'] ?? null);
-                Log::channel('single')->info('[AI-AUDIT] Tool executed', [
-                    'user_id' => $user->id,
-                    'tool' => $toolName,
-                    'entity_id' => $entityId,
-                    'success' => ! isset($result['error']),
-                    'preview' => $isPreviewUser,
-                ]);
-            }
+            // S0.12 — chain-append the completion row. `persisted` for any
+            // result without an `error` key; `failed` otherwise. Replaces the
+            // [AI-AUDIT] file log entirely.
+            $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $result);
 
             return $result;
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
+            $this->appendAuditEvent([
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'tool_name' => $toolName,
+                'operation' => self::operationFor($toolName),
+                'status' => 'failed',
+                'result_summary' => ['error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()],
+            ]);
+
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => $e->validator->errors()->first()];
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             Log::error('[CoordinatingAgent] Database error', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+            $this->appendAuditEvent([
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'tool_name' => $toolName,
+                'operation' => self::operationFor($toolName),
+                'status' => 'failed',
+                'result_summary' => ['error_type' => 'database_error', 'message' => $e->getMessage()],
+            ]);
 
             return ['error' => true, 'error_type' => 'database_error', 'message' => 'Unable to save the record. Please try again.'];
         } catch (\Exception $e) {
             Log::error('[CoordinatingAgent] Tool execution failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+            $this->appendAuditEvent([
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+                'tool_name' => $toolName,
+                'operation' => self::operationFor($toolName),
+                'status' => 'failed',
+                'result_summary' => ['error_type' => 'execution_failed', 'message' => $e->getMessage()],
+            ]);
 
             return ['error' => true, 'error_type' => 'execution_failed', 'message' => 'An unexpected error occurred. Please try again.'];
         }
+    }
+
+    /**
+     * S0.12 — Wraps `AuditChainService::append` so failures inside the chain
+     * (e.g. the migration not being run yet on a worker that holds an old
+     * schema cache) cannot bring the chat down. The chain is forensic, not
+     * load-bearing.
+     */
+    private function appendAuditEvent(array $event): void
+    {
+        try {
+            app(AuditChainService::class)->append($event);
+        } catch (\Throwable $e) {
+            Log::warning('[CoordinatingAgent] Audit chain append failed', [
+                'tool' => $event['tool_name'] ?? null,
+                'status' => $event['status'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * S0.12 — Build and append the completion audit row. Status flips between
+     * `persisted` (no error key) and `failed` (error returned in-band rather
+     * than thrown).
+     */
+    private function appendAuditCompletion(User $user, ?int $conversationId, string $toolName, array $input, array $result): void
+    {
+        $hasError = isset($result['error']) && $result['error'] !== false;
+        $entityId = $result['entity_id'] ?? $result['id'] ?? $result['data']['id'] ?? ($input['id'] ?? $input['entity_id'] ?? null);
+        $entityType = $result['entity_type'] ?? ($input['entity_type'] ?? null);
+
+        $this->appendAuditEvent([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+            'tool_name' => $toolName,
+            'operation' => self::operationFor($toolName),
+            'status' => $hasError ? 'failed' : 'persisted',
+            'result_summary' => self::summariseResult($result),
+            'entity_type' => is_string($entityType) ? $entityType : null,
+            'entity_id' => is_numeric($entityId) ? (int) $entityId : null,
+        ]);
+
+        // April30Updates F-9 — invalidate the user's prompt caches on any
+        // successful write. The next advice turn rebuilds the prompt with
+        // the latest existing-records / financial-context state instead
+        // of seeing up to 120s of stale data. Read-tool calls and failed
+        // writes don't change DB state, so they don't need invalidation.
+        if (! $hasError && self::operationFor($toolName) === 'write') {
+            AdvicePromptCacheInvalidator::forUser($user->id);
+        }
+    }
+
+    /**
+     * Operation classification for INV-2.10.2 audit rows. Anything that
+     * persists state is `write`; handoff stubs are `handoff`; everything else
+     * is `read`. The `classify` operation is reserved for QueryClassifier
+     * audits which run outside this method (Sprint 1 work).
+     */
+    private static function operationFor(string $toolName): string
+    {
+        if (in_array($toolName, ['delegate_to_capture', 'capture_complete'], true)) {
+            return 'handoff';
+        }
+
+        if (str_starts_with($toolName, 'create_')
+            || str_starts_with($toolName, 'update_')
+            || str_starts_with($toolName, 'capture_')
+            || in_array($toolName, ['delete_record', 'set_expenditure'], true)
+        ) {
+            return 'write';
+        }
+
+        return 'read';
+    }
+
+    /**
+     * Summarise the tool input for the audit row. Truncates long string
+     * values so a runaway prompt-injection attempt or pasted document
+     * doesn't bloat the chain.
+     */
+    private static function summariseInput(string $toolName, array $input, bool $isPreviewUser): array
+    {
+        $summary = ['preview' => $isPreviewUser];
+
+        foreach ($input as $key => $value) {
+            if (is_scalar($value) || $value === null) {
+                if (is_string($value) && mb_strlen($value) > 200) {
+                    $summary[$key] = mb_substr($value, 0, 200).'…';
+                } else {
+                    $summary[$key] = $value;
+                }
+            } elseif (is_array($value)) {
+                $summary[$key] = '['.count($value).' items]';
+            } else {
+                $summary[$key] = '[non-scalar]';
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Summarise the tool result for the audit row. Keeps the canonical
+     * outcome flags but drops large nested arrays.
+     */
+    private static function summariseResult(array $result): array
+    {
+        $keep = ['success', 'created', 'error', 'error_type', 'message', 'blocked', 'reason', 'action', 'requires_confirmation'];
+        $summary = [];
+        foreach ($keep as $key) {
+            if (array_key_exists($key, $result)) {
+                $summary[$key] = $result[$key];
+            }
+        }
+
+        return $summary;
     }
 
     // ─── Read-only tool handlers ─────────────────────────────────────
@@ -821,11 +1128,11 @@ class CoordinatingAgent extends BaseAgent
                     $mo = (int) $m[2];
                     $y = (int) $m[3];
                     if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                        $carbonDob = \Carbon\Carbon::create($y, $mo, $d, 0, 0, 0);
+                        $carbonDob = Carbon::create($y, $mo, $d, 0, 0, 0);
                     }
                 }
                 if ($carbonDob === null) {
-                    $carbonDob = \Carbon\Carbon::parse($dob);
+                    $carbonDob = Carbon::parse($dob);
                 }
             } catch (\Throwable $e) {
                 Log::warning('[CoordinatingAgent] DOB parse failed', [
@@ -837,7 +1144,7 @@ class CoordinatingAgent extends BaseAgent
                 return ['error' => true, 'message' => 'Invalid date_of_birth — use YYYY-MM-DD, DD/MM/YYYY, or a natural-language date'];
             }
 
-            $age = (int) $carbonDob->diffInYears(\Carbon\Carbon::now());
+            $age = (int) $carbonDob->diffInYears(Carbon::now());
             if ($age < 18 || $age > 105) {
                 Log::warning('[CoordinatingAgent] DOB outside age bounds', [
                     'user_id' => $user->id,
@@ -897,7 +1204,12 @@ class CoordinatingAgent extends BaseAgent
     private function handleCaptureSpouseDetails(array $input, User $user): array
     {
         $firstName = trim((string) ($input['first_name'] ?? ''));
-        $email = trim((string) ($input['email'] ?? ''));
+        // Lowercase the email at the entry point so every downstream
+        // lookup (SpouseLinkingService, account creation, FamilyMember
+        // linkage) sees the canonical form. P0.8 — case-mismatched emails
+        // were either rejecting the legitimate spouse's existing account or
+        // creating a duplicate one on case-sensitive collations.
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
         $dob = trim((string) ($input['date_of_birth'] ?? ''));
 
         if ($firstName === '' || $email === '' || $dob === '') {
@@ -910,12 +1222,12 @@ class CoordinatingAgent extends BaseAgent
         }
 
         try {
-            $dobFormatted = \Carbon\Carbon::parse($dob)->format('Y-m-d');
+            $dobFormatted = Carbon::parse($dob)->format('Y-m-d');
         } catch (\Throwable $e) {
             return ['error' => true, 'message' => 'Invalid spouse date_of_birth'];
         }
 
-        $service = app(\App\Services\Onboarding\SpouseLinkingService::class);
+        $service = app(SpouseLinkingService::class);
 
         try {
             $result = $service->linkOrCreateSpouse($user, [
@@ -925,7 +1237,7 @@ class CoordinatingAgent extends BaseAgent
                 'email' => $email,
                 'annual_income' => isset($input['annual_income']) ? (float) $input['annual_income'] : null,
             ]);
-        } catch (\App\Exceptions\SpouseCollisionException $e) {
+        } catch (SpouseCollisionException $e) {
             // FR-M13 — distinguish the "email belongs to another household"
             // case so the director can emit a targeted terminal error
             // instead of the generic grouped_extract retry copy.
@@ -988,12 +1300,14 @@ class CoordinatingAgent extends BaseAgent
             }
 
             $firstName = trim((string) ($dep['first_name'] ?? ''));
+            $resolvedName = $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant');
 
-            $familyMember = \App\Models\FamilyMember::create([
+            $familyMember = FamilyMember::create([
                 'user_id' => $user->id,
                 'household_id' => $user->household_id,
                 'relationship' => $relationship,
-                'first_name' => $firstName !== '' ? $firstName : ($relationship === 'child' ? 'Child' : 'Dependant'),
+                'first_name' => $resolvedName,
+                'name' => $resolvedName,
                 'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
                 'is_dependent' => true,
                 'education_status' => $this->educationStatusForAge($age),
@@ -1146,7 +1460,7 @@ class CoordinatingAgent extends BaseAgent
 
         switch ($entityType) {
             case 'savings_account':
-                $items = \App\Models\SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_balance;
@@ -1159,7 +1473,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'investment_account':
-                $items = \App\Models\Investment\InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_value;
@@ -1172,15 +1486,15 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'dc_pension':
-                $items = \App\Models\DCPension::where('user_id', $userId)->get();
+                $items = DCPension::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'provider' => $p->provider, 'current_value' => (float) $p->current_fund_value, 'employee_contribution' => (float) ($p->employee_contribution_percent ?? 0), 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0), 'employer_matching_limit' => $p->employer_matching_limit ? (float) $p->employer_matching_limit : null, 'monthly_contribution' => $p->monthly_contribution_amount ? (float) $p->monthly_contribution_amount : null, 'platform_fee_percent' => $p->platform_fee_percent ? (float) $p->platform_fee_percent : null, 'retirement_age' => $p->retirement_age, 'projected_value_at_retirement' => $p->projected_value_at_retirement ? (float) $p->projected_value_at_retirement : null, 'has_flexibly_accessed' => (bool) $p->has_flexibly_accessed])->toArray();
                 break;
             case 'db_pension':
-                $items = \App\Models\DBPension::where('user_id', $userId)->get();
+                $items = DBPension::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'scheme_type' => $p->scheme_type, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years, 'pensionable_salary' => $p->pensionable_salary ? (float) $p->pensionable_salary : null, 'normal_retirement_age' => $p->normal_retirement_age, 'spouse_pension_percent' => $p->spouse_pension_percent ? (float) $p->spouse_pension_percent : null, 'lump_sum_entitlement' => $p->lump_sum_entitlement ? (float) $p->lump_sum_entitlement : null, 'inflation_protection' => $p->inflation_protection])->toArray();
                 break;
             case 'property':
-                $items = \App\Models\Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(function ($p) use ($ownershipFields) {
                     $fields = $ownershipFields($p);
                     $total = (float) $p->current_value;
@@ -1202,43 +1516,43 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'mortgage':
-                $items = \App\Models\Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
+                $items = Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
                 $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
                 break;
             case 'life_insurance':
-                $items = \App\Models\LifeInsurancePolicy::where('user_id', $userId)->get();
+                $items = LifeInsurancePolicy::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_end_date' => $p->policy_end_date?->format('Y-m-d'), 'policy_term_years' => $p->policy_term_years, 'in_trust' => (bool) $p->in_trust, 'is_mortgage_protection' => (bool) $p->is_mortgage_protection, 'joint_life' => (bool) $p->joint_life, 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'critical_illness':
-                $items = \App\Models\CriticalIllnessPolicy::where('user_id', $userId)->get();
+                $items = CriticalIllnessPolicy::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'policy_type' => $p->policy_type, 'sum_assured' => (float) $p->sum_assured, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'policy_term_years' => $p->policy_term_years, 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'income_protection':
-                $items = \App\Models\IncomeProtectionPolicy::where('user_id', $userId)->get();
+                $items = IncomeProtectionPolicy::where('user_id', $userId)->get();
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'provider' => $p->provider, 'benefit_amount' => (float) $p->benefit_amount, 'benefit_frequency' => $p->benefit_frequency, 'premium' => (float) ($p->premium_amount ?? 0), 'premium_frequency' => $p->premium_frequency, 'deferred_period_weeks' => $p->deferred_period_weeks, 'policy_start_date' => $p->policy_start_date?->format('Y-m-d'), 'ownership_type' => $p->ownership_type])->toArray();
                 break;
             case 'trust':
-                $items = \App\Models\Estate\Trust::where('user_id', $userId)->get();
+                $items = Trust::where('user_id', $userId)->get();
                 $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value, 'initial_value' => $t->initial_value ? (float) $t->initial_value : null, 'creation_date' => $t->trust_creation_date?->format('Y-m-d'), 'settlor' => $t->settlor, 'beneficiaries' => $t->beneficiaries, 'trustees' => $t->trustees, 'purpose' => $t->purpose, 'is_relevant_property_trust' => (bool) $t->is_relevant_property_trust, 'retained_income_annual' => $t->retained_income_annual ? (float) $t->retained_income_annual : null, 'loan_amount' => $t->loan_amount ? (float) $t->loan_amount : null, 'is_active' => (bool) $t->is_active])->toArray();
                 break;
             case 'business_interest':
-                $items = \App\Models\BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation, 'annual_revenue' => $b->annual_revenue ? (float) $b->annual_revenue : null, 'annual_profit' => $b->annual_profit ? (float) $b->annual_profit : null, 'annual_dividend_income' => $b->annual_dividend_income ? (float) $b->annual_dividend_income : null, 'trading_status' => $b->trading_status, 'employee_count' => $b->employee_count, 'acquisition_date' => $b->acquisition_date?->format('Y-m-d'), 'acquisition_cost' => $b->acquisition_cost ? (float) $b->acquisition_cost : null, 'bpr_eligible' => $b->bpr_eligible], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
-                $items = \App\Models\Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'name' => $c->name, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value, 'purchase_price' => $c->purchase_price ? (float) $c->purchase_price : null, 'purchase_date' => $c->purchase_date?->format('Y-m-d'), 'make' => $c->make, 'model' => $c->model, 'year' => $c->year], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
-                $items = \App\Models\Estate\Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 $records = $items->map(fn ($l) => array_merge(['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance, 'interest_rate' => $l->interest_rate ? (float) $l->interest_rate : null, 'monthly_payment' => $l->monthly_payment ? (float) $l->monthly_payment : null, 'maturity_date' => $l->maturity_date?->format('Y-m-d'), 'is_priority_debt' => (bool) $l->is_priority_debt], $ownershipFields($l)))->toArray();
                 break;
             case 'estate_gift':
-                $items = \App\Models\Estate\Gift::where('user_id', $userId)->get();
+                $items = Gift::where('user_id', $userId)->get();
                 $records = $items->map(fn ($g) => ['id' => $g->id, 'recipient' => $g->recipient, 'gift_type' => $g->gift_type, 'value' => (float) $g->gift_value, 'date' => $g->gift_date?->format('Y-m-d'), 'status' => $g->status, 'taper_relief_applicable' => (bool) $g->taper_relief_applicable, 'notes' => $g->notes])->toArray();
                 break;
             case 'family_member':
-                $items = \App\Models\FamilyMember::where('user_id', $userId)->get();
+                $items = FamilyMember::where('user_id', $userId)->get();
                 $records = $items->map(fn ($m) => ['id' => $m->id, 'name' => trim($m->first_name.' '.$m->last_name), 'relationship' => $m->relationship, 'age' => $m->date_of_birth ? now()->diffInYears($m->date_of_birth) : null, 'date_of_birth' => $m->date_of_birth?->format('Y-m-d'), 'gender' => $m->gender, 'annual_income' => $m->annual_income ? (float) $m->annual_income : null, 'is_dependent' => (bool) $m->is_dependent, 'education_status' => $m->education_status, 'receives_child_benefit' => (bool) $m->receives_child_benefit])->toArray();
                 break;
             default:
@@ -1254,7 +1568,7 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleListGoals(User $user): array
     {
-        $goals = \App\Models\Goal::forUserOrJoint($user->id)
+        $goals = Goal::forUserOrJoint($user->id)
             ->orderByRaw("FIELD(status, 'active', 'paused', 'completed', 'abandoned')")
             ->orderBy('priority')
             ->get();
@@ -1293,7 +1607,7 @@ class CoordinatingAgent extends BaseAgent
 
     private function handleListLifeEvents(User $user): array
     {
-        $events = \App\Models\LifeEvent::forUserOrJoint($user->id)
+        $events = LifeEvent::forUserOrJoint($user->id)
             ->orderBy('expected_date')
             ->get();
 
@@ -1333,6 +1647,7 @@ class CoordinatingAgent extends BaseAgent
     {
         $module = $input['module'];
 
+        $analyzeStart = microtime(true);
         $analysis = match ($module) {
             'protection' => $this->protectionAgent->analyze($user->id),
             'savings' => $this->savingsAgent->analyze($user->id),
@@ -1343,13 +1658,97 @@ class CoordinatingAgent extends BaseAgent
             'holistic' => $this->orchestrateAnalysis($user->id),
             default => ['error' => "Unknown module: {$module}"],
         };
+        $analyzeDuration = (int) round((microtime(true) - $analyzeStart) * 1000);
+
+        // Eval trace — every module analyze invocation through this tool
+        // gets one EngineCalled. result_path inferred from response shape:
+        // success_false when the agent returns ['success' => false, ...],
+        // happy otherwise.
+        $resultPath = (isset($analysis['success']) && $analysis['success'] === false) ? 'success_false' : 'happy';
+        event(new EngineCalled(
+            engine: $module === 'holistic' ? 'orchestrate_analysis' : "{$module}_analysis",
+            params: ['user_id' => $user->id, 'module' => $module],
+            resultSummary: [
+                'keys_returned' => array_keys($analysis),
+                'result_path' => $resultPath,
+            ],
+            durationMs: $analyzeDuration,
+            atMicrotime: microtime(true),
+        ));
 
         return $this->summariseToolAnalysis($module, $analysis);
     }
 
+    /**
+     * S1.5 — Search the user's prior conversations by topic_keywords or
+     * entity_types against the S1.3 conversation-index columns.
+     *
+     * Returns up to 10 conversations ordered by `last_message_at` desc.
+     * Per-result payload is intentionally lean: id + title + summary +
+     * topics + intents_stated + last_message_at. The model uses this
+     * to surface "as we talked about last time" context — INV-2.11.3.
+     *
+     * `forUser` scope pins per-user ACL; the tool can never reach
+     * another user's conversation history.
+     *
+     * Excludes the active conversation if `$activeConversationId` is
+     * supplied — the model already has the active conversation's
+     * messages in its history, so re-surfacing them via index search
+     * would be noise.
+     */
+    private function handleSearchConversationIndex(array $input, User $user, ?int $activeConversationId = null): array
+    {
+        $topicKeywords = array_values(array_filter(
+            (array) ($input['topic_keywords'] ?? []),
+            fn ($v) => is_string($v) && $v !== ''
+        ));
+
+        $entityTypes = array_values(array_filter(
+            (array) ($input['entity_types'] ?? []),
+            fn ($v) => is_string($v) && $v !== ''
+        ));
+
+        $query = AiConversation::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('summary');
+
+        if ($activeConversationId !== null) {
+            $query->where('id', '!=', $activeConversationId);
+        }
+
+        if ($topicKeywords !== [] || $entityTypes !== []) {
+            $query->where(function ($outer) use ($topicKeywords, $entityTypes): void {
+                foreach ($topicKeywords as $topic) {
+                    $outer->orWhereJsonContains('topics', $topic);
+                }
+                foreach ($entityTypes as $entityType) {
+                    $outer->orWhereJsonContains('entities_mentioned', ['type' => $entityType]);
+                }
+            });
+        }
+
+        $rows = $query
+            ->orderByDesc('last_message_at')
+            ->limit(10)
+            ->get(['id', 'title', 'summary', 'topics', 'intents_stated', 'entities_mentioned', 'last_message_at']);
+
+        return [
+            'count' => $rows->count(),
+            'conversations' => $rows->map(fn ($row) => [
+                'id' => $row->id,
+                'title' => $row->title,
+                'summary' => $row->summary,
+                'topics' => $row->topics ?? [],
+                'intents_stated' => $row->intents_stated ?? [],
+                'entities_mentioned' => $row->entities_mentioned ?? [],
+                'last_message_at' => $row->last_message_at?->toIso8601String(),
+            ])->all(),
+        ];
+    }
+
     private function handleCreateWhatIfScenario(array $input, User $user): array
     {
-        $service = app(\App\Services\WhatIf\WhatIfScenarioService::class);
+        $service = app(WhatIfScenarioService::class);
 
         $result = $service->createScenario($user, [
             'name' => $input['name'],
@@ -1379,6 +1778,98 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
+    /**
+     * Resolve the user's current subscription. Read-only — returns null if absent.
+     * Mirrors the controller-side resolution so chat-tool callers see the same row.
+     */
+    private function resolveSubscription(User $user): ?Subscription
+    {
+        return $user->subscription()->latest('id')->first();
+    }
+
+    private function handleGetSubscriptionStatus(User $user): array
+    {
+        $sub = $this->resolveSubscription($user);
+
+        if (! $sub) {
+            return ['status' => 'none'];
+        }
+
+        $plan = SubscriptionPlan::findBySlug($sub->plan);
+
+        // S0.5.u (BS-16): when the user has any real subscription (active,
+        // trialing, paused, or cancelled) we surface the Subscription
+        // Management page so they can act on the answer. HasAiChat::stream
+        // turns this into a `navigation` SSE event consumed by
+        // AiChatPanel; the user lands on /settings/subscription where
+        // their invoices and billing details are managed. INV-2.7.2 only
+        // mandates parity of the read tools, not their result shape, so
+        // BillingToolsTest::list_invoices stays green (extra keys are
+        // accepted by toHaveKeys).
+        return [
+            'status' => $sub->status,
+            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
+            'billing_cycle' => $sub->billing_cycle,
+            'trial_ends_at' => $sub->trial_ends_at?->toIso8601String(),
+            'current_period_end' => $sub->current_period_end?->toIso8601String(),
+            'next_charge_amount' => round((float) $sub->amount, 2),
+            'is_cancelled' => $sub->cancelled_at !== null,
+            'action' => 'navigate',
+            'route_path' => '/settings/subscription',
+            'description' => 'View your subscription and invoices',
+        ];
+    }
+
+    private function handleListInvoices(User $user): array
+    {
+        return Invoice::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('issued_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Invoice $i) => [
+                'invoice_id' => $i->id,
+                'invoice_number' => $i->invoice_number,
+                'issued_at' => $i->issued_at?->toIso8601String(),
+                'amount' => round($i->total_amount / 100, 2),
+                'currency' => $i->currency ?? 'GBP',
+                'status' => $i->status,
+                'plan_name' => $i->plan_name,
+                'billing_cycle' => $i->billing_cycle,
+                'pdf_url' => '/api/payment/invoices/'.$i->id.'/download',
+            ])
+            ->all();
+    }
+
+    private function handleGetCurrentPlan(User $user): array
+    {
+        $sub = $this->resolveSubscription($user);
+
+        if (! $sub) {
+            return [
+                'plan_name' => 'none',
+                'tier' => 'none',
+                'billing_cycle' => null,
+                'price_gbp' => 0.0,
+                'features' => [],
+            ];
+        }
+
+        $plan = SubscriptionPlan::findBySlug($sub->plan);
+
+        $pricePence = $plan
+            ? ($plan->getLaunchPriceForCycle($sub->billing_cycle) ?? $plan->getPriceForCycle($sub->billing_cycle))
+            : (int) round(((float) $sub->amount) * 100);
+
+        return [
+            'plan_name' => $plan?->name ?? ucfirst((string) $sub->plan),
+            'tier' => $sub->plan,
+            'billing_cycle' => $sub->billing_cycle,
+            'price_gbp' => round($pricePence / 100, 2),
+            'features' => $plan?->features ?? [],
+        ];
+    }
+
     private function handleTaxInformation(array $input, User $user): array
     {
         $topic = $input['topic'];
@@ -1386,7 +1877,7 @@ class CoordinatingAgent extends BaseAgent
         // income_definitions is per-user (not cacheable globally)
         if ($topic === 'income_definitions') {
             return Cache::remember("ai_income_defs_{$user->id}", 120, function () use ($user) {
-                $incomeService = app(\App\Services\Tax\IncomeDefinitionsService::class);
+                $incomeService = app(IncomeDefinitionsService::class);
 
                 return $incomeService->calculate($user->id);
             });
@@ -1470,7 +1961,8 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'goal_name' => $input['name'],
             'goal_type' => $input['goal_type'],
             'target_amount' => (float) $input['target_amount'],
@@ -1478,21 +1970,31 @@ class CoordinatingAgent extends BaseAgent
             'priority' => $input['priority'],
         ];
 
-        // Custom goals need the custom_goal_type_name field — use the goal name
+        // Custom goals require custom_goal_type_name; reuse the goal name
+        // because the AI tool doesn't expose a separate slot for it.
         if ($input['goal_type'] === 'custom') {
-            $fields['custom_goal_type_name'] = $input['name'];
+            $payload['custom_goal_type_name'] = $input['name'];
         }
 
-        if (isset($input['monthly_contribution'])) {
-            $fields['monthly_contribution'] = (float) $input['monthly_contribution'];
+        if (isset($input['monthly_contribution']) && is_numeric($input['monthly_contribution'])) {
+            $payload['monthly_contribution'] = (float) $input['monthly_contribution'];
         }
+        if (isset($input['description']) && $input['description'] !== '') {
+            $payload['description'] = $input['description'];
+        }
+
+        $goal = DB::transaction(fn () => Goal::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'goal',
-            'route' => '/goals',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['name']}\" goal now.",
+            'entity_id' => $goal->id,
+            'name' => $goal->goal_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$goal->goal_name}\" goal.",
         ];
     }
 
@@ -1514,24 +2016,33 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'event_name' => $input['event_name'],
             'event_type' => $input['event_type'],
             'amount' => (float) $input['estimated_amount'],
             'expected_date' => $input['event_date'],
             'certainty' => $input['certainty'] ?? 'likely',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
         ];
 
-        if (isset($input['description'])) {
-            $fields['description'] = $input['description'];
+        if (isset($input['description']) && $input['description'] !== '') {
+            $payload['description'] = $input['description'];
         }
 
+        $event = DB::transaction(fn () => LifeEvent::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'life_event',
-            'route' => '/goals?tab=events',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['event_name']}\" life event now.",
+            'entity_id' => $event->id,
+            'name' => $event->event_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$event->event_name}\" life event.",
         ];
     }
 
@@ -1545,7 +2056,10 @@ class CoordinatingAgent extends BaseAgent
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
             'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver', 'savings_account', 'current_account', 'instant_access', 'fixed', 'cash_isa', 'junior_isa', 'premium_bonds', 'nsi'])],
+            'institution' => 'nullable|string|max:255',
             'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'is_isa' => 'nullable|boolean',
+            'is_emergency_fund' => 'nullable|boolean',
             'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
         ]);
         if ($validationError) {
@@ -1557,38 +2071,63 @@ class CoordinatingAgent extends BaseAgent
             return $duplicateCheck;
         }
 
-        $isIsa = $input['is_isa'] ?? false;
+        $isIsa = (bool) ($input['is_isa'] ?? false);
         $accountType = $input['account_type'] ?? 'easy_access';
 
-        // Map AI account_type to form-compatible account_type
-        $formAccountType = match ($accountType) {
+        // AI tool enum → canonical DB value. `fixed_term`/`regular_saver` are
+        // AI-facing conveniences that map onto existing DB categories.
+        $dbAccountType = match ($accountType) {
             'fixed_term' => 'fixed',
             'regular_saver' => 'easy_access',
             default => $accountType,
         };
 
-        // If ISA, set account_type to cash_isa so the form shows ISA fields
-        if ($isIsa && ! in_array($formAccountType, ['cash_isa', 'junior_isa'])) {
-            $formAccountType = 'cash_isa';
+        // ISA inference — if flagged ISA but account_type isn't already an
+        // ISA variant, promote to cash_isa so downstream ISA tracking works.
+        if ($isIsa && ! in_array($dbAccountType, ['cash_isa', 'junior_isa'], true)) {
+            $dbAccountType = 'cash_isa';
         }
 
+        $accessType = match ($dbAccountType) {
+            'notice' => 'notice',
+            'fixed' => 'fixed',
+            default => 'immediate',
+        };
+
+        $payload = [
+            'user_id' => $user->id,
+            'account_name' => $input['account_name'],
+            'institution' => ! empty($input['institution']) ? $input['institution'] : $input['account_name'],
+            'account_type' => $dbAccountType,
+            'current_balance' => (float) $input['current_balance'],
+            'access_type' => $accessType,
+            'is_isa' => $isIsa,
+            'is_emergency_fund' => (bool) ($input['is_emergency_fund'] ?? false),
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+        ];
+
+        // interest_rate / regular_contribution_amount are optional on the AI
+        // tool; only include them when actually supplied so DB defaults apply.
+        if (isset($input['interest_rate'])) {
+            $payload['interest_rate'] = (float) $input['interest_rate'];
+        }
+        if (isset($input['regular_contribution_amount'])) {
+            $payload['regular_contribution_amount'] = (float) $input['regular_contribution_amount'];
+        }
+
+        $account = DB::transaction(fn () => SavingsAccount::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'savings_account',
-            'route' => '/net-worth/cash',
-            'fields' => [
-                'institution' => ! empty($input['institution']) ? $input['institution'] : (! empty($input['provider']) ? $input['provider'] : $input['account_name']),
-                'account_type' => $formAccountType,
-                'current_balance' => (float) $input['current_balance'],
-                'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
-                'is_isa' => $isIsa,
-                'is_emergency_fund' => $input['is_emergency_fund'] ?? false,
-                'regular_contribution_amount' => isset($input['regular_contribution_amount']) ? (float) $input['regular_contribution_amount'] : null,
-                'access_type' => match ($formAccountType) {
-                    'notice' => 'notice', 'fixed' => 'fixed', default => 'immediate'
-                },
-            ],
-            'message' => "I'll fill in the form for your \"{$input['account_name']}\" account now.",
+            'entity_id' => $account->id,
+            'name' => $account->account_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$account->account_name}\" savings account.",
         ];
     }
 
@@ -1606,9 +2145,14 @@ class CoordinatingAgent extends BaseAgent
                 'onshore_bond', 'offshore_bond', 'vct', 'eis',
                 'private_company', 'crowdfunding', 'saye', 'csop',
                 'emi', 'unapproved_options', 'rsu', 'other',
+                // DB-canonical values (the HTTP form posts these directly)
+                'isa', 'gia',
             ])],
+            'provider' => 'nullable|string|max:255',
             'monthly_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
             'platform_fee_percent' => 'nullable|numeric|min:0|max:10',
+            'ownership_type' => ['nullable', Rule::in(['individual', 'joint', 'tenants_in_common', 'trust'])],
+            'ownership_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
         if ($validationError) {
             return $validationError;
@@ -1621,110 +2165,104 @@ class CoordinatingAgent extends BaseAgent
 
         $accountType = $input['account_type'] ?? 'personal_investment_account';
 
-        // Map AI account_type values to form select values
-        $formAccountType = match ($accountType) {
+        // AI-facing enums → DB canonical values (mirrors the existing
+        // form-fill mapping so AI direct-write and HTTP form path persist
+        // identical rows).
+        $dbAccountType = match ($accountType) {
             'stocks_shares_isa', 'lifetime_isa' => 'isa',
             'personal_investment_account' => 'gia',
-            default => $accountType, // vct, eis, private_company, crowdfunding, saye, csop, emi, unapproved_options, rsu, other pass through directly
+            default => $accountType,
         };
 
-        // Form uses 'provider' as the main name field — map account_name to it
-        $provider = $input['provider'] ?? $input['account_name'];
+        $isaType = match ($accountType) {
+            'stocks_shares_isa' => 'stocks_shares',
+            'lifetime_isa' => 'lifetime',
+            default => null,
+        };
 
-        $fields = [
-            'account_type' => $formAccountType,
-            'provider' => $provider,
+        // ISAs are individually owned per UK tax rules. Mirrors the HTTP
+        // controller's hard rejection.
+        $ownershipType = $input['ownership_type'] ?? 'individual';
+        if ($dbAccountType === 'isa' && $ownershipType !== 'individual') {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'message' => 'ISAs can only be individually owned under UK tax rules.',
+            ];
+        }
+
+        $payload = [
+            'user_id' => $user->id,
+            'account_name' => $input['account_name'],
+            'provider' => ! empty($input['provider']) ? $input['provider'] : $input['account_name'],
+            'account_type' => $dbAccountType,
             'current_value' => (float) $input['current_value'],
-            'monthly_contribution_amount' => isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : 0,
-            'platform_fee_percent' => isset($input['platform_fee_percent']) ? (float) $input['platform_fee_percent'] : null,
+            'ownership_type' => $ownershipType,
+            'ownership_percentage' => isset($input['ownership_percentage'])
+                ? (float) $input['ownership_percentage']
+                : 100.00,
         ];
 
-        // Bond-specific fields
-        if (in_array($accountType, ['onshore_bond', 'offshore_bond'])) {
-            $bondFields = ['bond_purchase_date', 'bond_withdrawal_taken'];
-            foreach ($bondFields as $field) {
-                if (isset($input[$field])) {
-                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
-                }
+        if ($isaType !== null) {
+            $payload['isa_type'] = $isaType;
+        }
+
+        // Optional numeric / string fields — only persist when supplied.
+        $optionalNumeric = [
+            'monthly_contribution_amount', 'platform_fee_percent',
+            'investment_amount', 'number_of_shares', 'price_per_share',
+            'units_granted', 'exercise_price', 'market_value_at_grant',
+            'current_share_price', 'units_vested', 'units_unvested',
+            'cliff_percentage', 'saye_monthly_savings',
+            'saye_current_savings_balance', 'scheme_duration_months',
+        ];
+        foreach ($optionalNumeric as $field) {
+            if (isset($input[$field]) && $input[$field] !== '' && is_numeric($input[$field])) {
+                $payload[$field] = (float) $input[$field];
             }
         }
 
-        // Private company / Crowdfunding fields
-        if (in_array($formAccountType, ['private_company', 'crowdfunding', 'vct', 'eis'])) {
-            $privateStringFields = [
-                'company_legal_name', 'company_registration_number', 'crowdfunding_platform',
-                'investment_date', 'instrument_type', 'funding_round', 'share_class', 'tax_relief_type',
-            ];
-            $privateNumericFields = [
-                'investment_amount', 'number_of_shares', 'price_per_share',
-            ];
-            foreach ($privateStringFields as $field) {
-                if (isset($input[$field]) && $input[$field] !== '') {
-                    $fields[$field] = (string) $input[$field];
-                }
-            }
-            foreach ($privateNumericFields as $field) {
-                if (isset($input[$field]) && $input[$field] !== '') {
-                    $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
-                }
+        $optionalString = [
+            'company_legal_name', 'company_registration_number',
+            'crowdfunding_platform', 'instrument_type', 'funding_round',
+            'share_class', 'tax_relief_type', 'employer_name',
+            'vesting_type',
+        ];
+        foreach ($optionalString as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
+                $payload[$field] = (string) $input[$field];
             }
         }
 
-        // Employee share scheme fields
-        if (in_array($formAccountType, ['saye', 'csop', 'emi', 'unapproved_options', 'rsu'])) {
-            $schemeFields = [
-                'employer_name', 'employer_is_listed', 'grant_date', 'units_granted',
-                'exercise_price', 'market_value_at_grant', 'current_share_price',
-                'units_vested', 'units_unvested', 'vesting_type', 'full_vest_date',
-                'cliff_date', 'cliff_percentage',
-            ];
-            foreach ($schemeFields as $field) {
-                if (isset($input[$field]) && $input[$field] !== '') {
-                    if (is_bool($input[$field])) {
-                        $fields[$field] = $input[$field];
-                    } elseif (is_numeric($input[$field])) {
-                        $fields[$field] = (float) $input[$field];
-                    } else {
-                        $fields[$field] = $input[$field];
-                    }
-                }
-            }
-
-            // SAYE-specific fields
-            if ($formAccountType === 'saye') {
-                $sayeFields = ['saye_monthly_savings', 'saye_current_savings_balance', 'scheme_start_date', 'scheme_duration_months'];
-                foreach ($sayeFields as $field) {
-                    if (isset($input[$field]) && $input[$field] !== '') {
-                        $fields[$field] = is_numeric($input[$field]) ? (float) $input[$field] : $input[$field];
-                    }
-                }
+        $optionalDate = [
+            'bond_purchase_date', 'investment_date', 'grant_date',
+            'full_vest_date', 'cliff_date', 'scheme_start_date',
+        ];
+        foreach ($optionalDate as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
+                $payload[$field] = $input[$field];
             }
         }
 
-        // Inline holdings — pass through for holdable account types (ISA, GIA, bonds, VCT, EIS)
-        $holdableTypes = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
-        if (in_array($formAccountType, $holdableTypes) && ! empty($input['holdings']) && is_array($input['holdings'])) {
-            $holdings = [];
-            foreach ($input['holdings'] as $holding) {
-                $h = [
-                    'security_name' => $holding['security_name'] ?? '',
-                    'asset_type' => $holding['asset_type'] ?? '',
-                    'allocation_percent' => isset($holding['allocation_percent']) ? (float) $holding['allocation_percent'] : 0,
-                ];
-                if (isset($holding['cost_basis']) && $holding['cost_basis'] !== null) {
-                    $h['cost_basis'] = (float) $holding['cost_basis'];
-                }
-                $holdings[] = $h;
-            }
-            $fields['holdings'] = $holdings;
+        if (isset($input['bond_withdrawal_taken'])) {
+            $payload['bond_withdrawal_taken'] = (float) $input['bond_withdrawal_taken'];
         }
+        if (isset($input['employer_is_listed'])) {
+            $payload['employer_is_listed'] = (bool) $input['employer_is_listed'];
+        }
+
+        $account = DB::transaction(fn () => InvestmentAccount::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'investment_account',
-            'route' => '/net-worth/investments',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$provider}\" investment account now.",
+            'entity_id' => $account->id,
+            'name' => $account->account_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$account->account_name}\" investment account.",
         ];
     }
 
@@ -1749,7 +2287,7 @@ class CoordinatingAgent extends BaseAgent
         }
 
         // Look up the investment account by name/provider for this user
-        $account = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+        $account = InvestmentAccount::where('user_id', $user->id)
             ->where(function ($query) use ($input) {
                 $query->where('provider', 'LIKE', '%'.$input['account_name'].'%')
                     ->orWhere('account_name', 'LIKE', '%'.$input['account_name'].'%');
@@ -1764,34 +2302,49 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
-        $fields = [
-            'investment_account_id' => $account->id,
+        $allocationPct = isset($input['allocation_percent']) ? (float) $input['allocation_percent'] : null;
+        $accountCurrentValue = (float) ($account->current_value ?? 0);
+        $currentValue = $allocationPct !== null
+            ? round(($allocationPct / 100) * $accountCurrentValue, 2)
+            : 0.0;
+
+        $payload = [
+            'holdable_id' => $account->id,
+            'holdable_type' => InvestmentAccount::class,
             'security_name' => $input['security_name'],
             'asset_type' => $input['asset_type'],
+            'current_value' => $currentValue,
         ];
 
-        if (isset($input['ticker'])) {
-            $fields['ticker'] = $input['ticker'];
+        if ($allocationPct !== null) {
+            $payload['allocation_percent'] = $allocationPct;
         }
-        if (isset($input['allocation_percent'])) {
-            $fields['allocation_percent'] = (float) $input['allocation_percent'];
+        foreach (['ticker', 'isin'] as $field) {
+            if (isset($input[$field]) && $input[$field] !== '') {
+                $payload[$field] = $input[$field];
+            }
         }
-        if (isset($input['purchase_price'])) {
-            $fields['purchase_price'] = (float) $input['purchase_price'];
+        foreach (['purchase_price', 'current_price', 'ocf_percent'] as $field) {
+            if (isset($input[$field]) && is_numeric($input[$field])) {
+                $payload[$field] = (float) $input[$field];
+            }
         }
-        if (isset($input['current_price'])) {
-            $fields['current_price'] = (float) $input['current_price'];
-        }
-        if (isset($input['ocf_percent'])) {
-            $fields['ocf_percent'] = (float) $input['ocf_percent'];
+        if (isset($input['purchase_date']) && $input['purchase_date'] !== '') {
+            $payload['purchase_date'] = $input['purchase_date'];
         }
 
+        $holding = DB::transaction(fn () => Holding::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'investment_holding',
-            'route' => '/net-worth/investments',
-            'fields' => $fields,
-            'message' => "I'll add \"{$input['security_name']}\" to your {$account->provider} account now.",
+            'entity_id' => $holding->id,
+            'name' => $holding->security_name,
+            'persisted_fields' => array_keys($payload),
+            'message' => "I've added \"{$holding->security_name}\" to your {$account->provider} account.",
         ];
     }
 
@@ -1824,52 +2377,86 @@ class CoordinatingAgent extends BaseAgent
         }
 
         $category = $input['pension_category'] ?? 'dc';
-        $entityType = $category === 'db' ? 'db_pension' : 'dc_pension';
-
-        $schemeName = ! empty($input['scheme_name']) ? $input['scheme_name'] : ($input['provider'] ?? $input['scheme_name']);
-
-        $fields = [
-            'scheme_name' => $schemeName,
-        ];
+        $schemeName = $input['scheme_name'];
 
         if ($category === 'db') {
-            $fields['employer_name'] = $input['scheme_name'] ?? $schemeName;
-            $fields['scheme_type'] = $input['scheme_type'] ?? 'final_salary';
-            // scheme_status is REQUIRED by DB form validation — default to 'Active'
-            $fields['scheme_status'] = $input['scheme_status'] ?? 'Active';
-            $fields['annual_income'] = isset($input['accrued_annual_pension']) ? (float) $input['accrued_annual_pension'] : 0;
-            $fields['service_years'] = isset($input['pensionable_service_years']) ? (int) $input['pensionable_service_years'] : null;
-            $fields['final_salary'] = isset($input['final_salary']) ? (float) $input['final_salary'] : null;
-            $fields['accrual_rate'] = isset($input['accrual_rate']) ? (int) $input['accrual_rate'] : null;
-            $fields['normal_retirement_age'] = isset($input['normal_retirement_age']) ? (int) $input['normal_retirement_age'] : null;
+            // DB pensions: scheme_type column is NOT NULL with enum
+            // (final_salary|career_average|public_sector). The DB form's
+            // free-text "scheme_type" field overlaps semantically — keep the
+            // existing default of final_salary when the AI didn't pin it.
+            $rawSchemeType = $input['scheme_type'] ?? 'final_salary';
+            $schemeType = in_array($rawSchemeType, ['final_salary', 'career_average', 'public_sector'], true)
+                ? $rawSchemeType
+                : 'final_salary';
+
+            $payload = [
+                'user_id' => $user->id,
+                'scheme_name' => $schemeName,
+                'scheme_type' => $schemeType,
+            ];
+
+            foreach (['accrued_annual_pension', 'pensionable_service_years', 'pensionable_salary', 'spouse_pension_percent', 'lump_sum_entitlement'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (float) $input[$f];
+                }
+            }
+            if (isset($input['normal_retirement_age']) && is_numeric($input['normal_retirement_age'])) {
+                $payload['normal_retirement_age'] = (int) $input['normal_retirement_age'];
+            }
+            foreach (['revaluation_method', 'inflation_protection'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+
+            $pension = DB::transaction(fn () => DBPension::create($payload));
+            $entityType = 'db_pension';
         } else {
-            // Map AI scheme_type to form pension_type select values
-            $formPensionType = match ($input['scheme_type'] ?? 'workplace') {
+            // DC pensions: pension_type NOT NULL enum
+            // (occupational|sipp|personal|stakeholder), defaults to occupational.
+            $pensionType = match ($input['scheme_type'] ?? 'workplace') {
                 'workplace', 'occupational' => 'occupational',
                 'sipp', 'self_invested' => 'sipp',
                 'personal', 'personal_pension' => 'personal',
                 'stakeholder' => 'stakeholder',
                 default => 'occupational',
             };
-            $fields['pension_type'] = $formPensionType;
-            $fields['provider'] = ! empty($input['provider']) ? $input['provider'] : $schemeName;
-            $fields['current_fund_value'] = isset($input['current_fund_value']) ? (float) $input['current_fund_value'] : 0;
-            $fields['employee_contribution_percent'] = isset($input['employee_contribution_percent']) ? (float) $input['employee_contribution_percent'] : null;
-            $fields['employer_contribution_percent'] = isset($input['employer_contribution_percent']) ? (float) $input['employer_contribution_percent'] : null;
-            $fields['monthly_contribution_amount'] = isset($input['monthly_contribution_amount']) ? (float) $input['monthly_contribution_amount'] : null;
-            $fields['annual_salary'] = isset($input['annual_salary']) ? (float) $input['annual_salary'] : null;
-            $fields['retirement_age'] = isset($input['retirement_age']) ? (int) $input['retirement_age'] : null;
+
+            $payload = [
+                'user_id' => $user->id,
+                'scheme_name' => $schemeName,
+                'pension_type' => $pensionType,
+                'provider' => ! empty($input['provider']) ? $input['provider'] : $schemeName,
+            ];
+
+            foreach (['current_fund_value', 'annual_salary', 'employee_contribution_percent', 'employer_contribution_percent', 'employer_matching_limit', 'monthly_contribution_amount', 'lump_sum_contribution', 'expected_return_percent', 'platform_fee_percent', 'advisor_fee_percent'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (float) $input[$f];
+                }
+            }
+            if (isset($input['retirement_age']) && is_numeric($input['retirement_age'])) {
+                $payload['retirement_age'] = (int) $input['retirement_age'];
+            }
+            foreach (['member_number', 'investment_strategy'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+
+            $pension = DB::transaction(fn () => DCPension::create($payload));
+            $entityType = 'dc_pension';
         }
 
-        // Strip nulls and empty strings
-        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => $entityType,
-            'route' => '/net-worth/retirement',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['scheme_name']}\" pension now.",
+            'entity_id' => $pension->id,
+            'name' => $pension->scheme_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$pension->scheme_name}\" pension.",
         ];
     }
 
@@ -1911,96 +2498,96 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $propertyType = $input['property_type'] ?? 'main_residence';
-        $addressLabel = $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType));
-
-        // Frontend validateForm() requires: property_type, address_line_1, city, postcode, current_value,
-        // ownership_type, ownership_percentage. Set sensible defaults for any the AI didn't provide.
-        $address = $input['address_line_1'] ?? $addressLabel;
-        $city = $input['city'] ?? 'Unknown';
-        $postcode = $input['postcode'] ?? 'N/A';
+        $propertyType = $input['property_type'];
         $ownershipType = $input['ownership_type'] ?? 'individual';
-        $ownershipPct = isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : null;
-        // Auto-set ownership percentage from type if not explicitly provided
-        if ($ownershipPct === null) {
-            $ownershipPct = match ($ownershipType) {
-                'individual' => 100.0,
-                'joint' => 50.0,
-                'tenants_in_common' => 50.0,
+        $ownershipPct = isset($input['ownership_percentage'])
+            ? (float) $input['ownership_percentage']
+            : match ($ownershipType) {
+                'joint', 'tenants_in_common' => 50.0,
                 'trust' => 0.0,
                 default => 100.0,
             };
-        }
 
-        // Build property form fields — pass through all provided data
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'property_type' => $propertyType,
             'current_value' => (float) $input['current_value'],
-            // Address — defaults ensure form validation passes
-            'address_line_1' => $address,
-            'address_line_2' => $input['address_line_2'] ?? null,
-            'city' => $city,
-            'county' => $input['county'] ?? null,
-            'postcode' => $postcode,
-            // Purchase
-            'purchase_price' => isset($input['purchase_price']) ? (float) $input['purchase_price'] : null,
-            'purchase_date' => $input['purchase_date'] ?? null,
-            'valuation_date' => $input['valuation_date'] ?? null,
-            // Ownership — defaults set above to ensure form validation passes
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
-            'joint_owner_name' => $input['joint_owner_name'] ?? null,
-            // Tenure
-            'tenure_type' => $input['tenure_type'] ?? null,
-            'lease_remaining_years' => isset($input['lease_remaining_years']) ? (int) $input['lease_remaining_years'] : null,
-            'lease_expiry_date' => $input['lease_expiry_date'] ?? null,
-            // Monthly costs
-            'monthly_council_tax' => isset($input['monthly_council_tax']) ? (float) $input['monthly_council_tax'] : null,
-            'monthly_gas' => isset($input['monthly_gas']) ? (float) $input['monthly_gas'] : null,
-            'monthly_electricity' => isset($input['monthly_electricity']) ? (float) $input['monthly_electricity'] : null,
-            'monthly_water' => isset($input['monthly_water']) ? (float) $input['monthly_water'] : null,
-            'monthly_building_insurance' => isset($input['monthly_building_insurance']) ? (float) $input['monthly_building_insurance'] : null,
-            'monthly_contents_insurance' => isset($input['monthly_contents_insurance']) ? (float) $input['monthly_contents_insurance'] : null,
-            'monthly_service_charge' => isset($input['monthly_service_charge']) ? (float) $input['monthly_service_charge'] : null,
-            'monthly_maintenance_reserve' => isset($input['monthly_maintenance_reserve']) ? (float) $input['monthly_maintenance_reserve'] : null,
-            'other_monthly_costs' => isset($input['other_monthly_costs']) ? (float) $input['other_monthly_costs'] : null,
-            // BTL rental
-            'monthly_rental_income' => isset($input['monthly_rental_income']) ? (float) $input['monthly_rental_income'] : null,
-            'tenant_name' => $input['tenant_name'] ?? null,
-            'managing_agent_name' => $input['managing_agent_name'] ?? null,
+            'address_line_1' => $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType)),
+            'city' => $input['city'] ?? 'Unknown',
+            'postcode' => $input['postcode'] ?? 'N/A',
         ];
 
-        // Add mortgage fields if provided (xAI: has_mortgage flag, Anthropic: outstanding_mortgage legacy)
-        $hasMortgage = ! empty($input['has_mortgage'])
-            || (! empty($input['mortgage_outstanding_balance']) && $input['mortgage_outstanding_balance'] > 0)
-            || (! empty($input['outstanding_mortgage']) && $input['outstanding_mortgage'] > 0);
-
-        if ($hasMortgage) {
-            $fields['has_mortgage'] = true;
-            // xAI uses mortgage_outstanding_balance, Anthropic uses outstanding_mortgage
-            $balance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
-            $fields['mortgage_outstanding_balance'] = isset($balance) ? (float) $balance : null;
-            // xAI uses mortgage_interest_rate, Anthropic uses mortgage_rate
-            $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
-            $fields['mortgage_interest_rate'] = isset($rate) ? (float) $rate : null;
-            // AI param is 'mortgage_lender', form field is 'mortgage_lender_name'
-            $fields['mortgage_lender_name'] = $input['mortgage_lender'] ?? null;
-            $fields['mortgage_type'] = $input['mortgage_type'] ?? null;
-            $fields['mortgage_rate_type'] = $input['mortgage_rate_type'] ?? null;
-            $fields['mortgage_monthly_payment'] = isset($input['mortgage_monthly_payment']) ? (float) $input['mortgage_monthly_payment'] : null;
-            $fields['mortgage_start_date'] = $input['mortgage_start_date'] ?? null;
-            $fields['mortgage_maturity_date'] = $input['mortgage_maturity_date'] ?? null;
+        foreach (['address_line_2', 'county', 'tenure_type', 'joint_owner_name', 'tenant_name', 'managing_agent_name'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+        foreach (['purchase_date', 'valuation_date', 'lease_expiry_date'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+        foreach (['purchase_price', 'monthly_council_tax', 'monthly_gas', 'monthly_electricity', 'monthly_water', 'monthly_building_insurance', 'monthly_contents_insurance', 'monthly_service_charge', 'monthly_maintenance_reserve', 'other_monthly_costs', 'monthly_rental_income'] as $f) {
+            if (isset($input[$f]) && is_numeric($input[$f])) {
+                $payload[$f] = (float) $input[$f];
+            }
+        }
+        if (isset($input['lease_remaining_years']) && is_numeric($input['lease_remaining_years'])) {
+            $payload['lease_remaining_years'] = (int) $input['lease_remaining_years'];
         }
 
-        // Strip nulls and empty strings — only send fields with actual values
-        $fields = array_filter($fields, fn ($v) => $v !== null && $v !== '');
+        // Mortgage auto-create — flagged via has_mortgage OR by legacy
+        // outstanding_mortgage / mortgage_outstanding_balance fields.
+        $mortgageBalance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
+        $hasMortgage = ! empty($input['has_mortgage'])
+            || (is_numeric($mortgageBalance) && (float) $mortgageBalance > 0);
+
+        $property = DB::transaction(function () use ($payload, $hasMortgage, $input, $mortgageBalance, $user, $ownershipType, $ownershipPct) {
+            $property = Property::create($payload);
+
+            if ($hasMortgage) {
+                $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
+                $mortgagePayload = [
+                    'user_id' => $user->id,
+                    'property_id' => $property->id,
+                    'lender_name' => $input['mortgage_lender'] ?? null,
+                    'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+                    'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
+                    'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
+                    'ownership_type' => $ownershipType,
+                    'ownership_percentage' => $ownershipPct,
+                ];
+                if (is_numeric($rate)) {
+                    $mortgagePayload['interest_rate'] = (float) $rate;
+                }
+                if (isset($input['mortgage_monthly_payment']) && is_numeric($input['mortgage_monthly_payment'])) {
+                    $mortgagePayload['monthly_payment'] = (float) $input['mortgage_monthly_payment'];
+                }
+                if (isset($input['mortgage_start_date']) && $input['mortgage_start_date'] !== '') {
+                    $mortgagePayload['start_date'] = $input['mortgage_start_date'];
+                }
+                if (isset($input['mortgage_maturity_date']) && $input['mortgage_maturity_date'] !== '') {
+                    $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
+                }
+
+                Mortgage::create($mortgagePayload);
+            }
+
+            return $property;
+        });
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'property',
-            'route' => '/net-worth/property',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your property at \"{$addressLabel}\" now.",
+            'entity_id' => $property->id,
+            'name' => $property->address_line_1,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your property at \"{$property->address_line_1}\".",
         ];
     }
 
@@ -2019,35 +2606,79 @@ class CoordinatingAgent extends BaseAgent
             'remaining_term_months' => 'nullable|integer|min:1|max:480',
             'start_date' => 'nullable|date',
             'maturity_date' => 'nullable|date',
+            'lender_name' => 'nullable|string|max:255',
+            'property_address_hint' => 'nullable|string|max:500',
         ]);
         if ($validationError) {
             return $validationError;
         }
 
-        $lenderName = $input['lender_name'] ?? 'Mortgage';
+        // Resolve target property: fuzzy match on hint, else fall back to
+        // the user's only property if exactly one exists.
+        $hint = trim((string) ($input['property_address_hint'] ?? ''));
+        $propertyQuery = Property::where('user_id', $user->id);
+        if ($hint !== '') {
+            $like = '%'.$hint.'%';
+            $propertyQuery->where(function ($q) use ($like) {
+                $q->where('address_line_1', 'LIKE', $like)
+                    ->orWhere('postcode', 'LIKE', $like)
+                    ->orWhere('city', 'LIKE', $like);
+            });
+        }
+        $property = $propertyQuery->orderBy('id')->first();
 
-        $fields = [
-            'has_mortgage' => true,
-            'mortgage_lender_name' => $lenderName,
-            'mortgage_outstanding_balance' => (float) $input['outstanding_balance'],
-            'mortgage_interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : 4.5,
+        if (! $property) {
+            $userProperties = Property::where('user_id', $user->id)->count();
+
+            return [
+                'error' => true,
+                'error_type' => $userProperties === 0 ? 'missing_property' : 'property_match_failed',
+                'message' => $userProperties === 0
+                    ? "I couldn't find a property to attach this mortgage to. Please add the property first."
+                    : "I couldn't match \"{$hint}\" to one of your properties. Please be more specific.",
+            ];
+        }
+
+        $payload = [
+            'user_id' => $user->id,
+            'property_id' => $property->id,
             'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
-            'mortgage_rate_type' => $input['rate_type'] ?? 'fixed',
-            'mortgage_remaining_term_months' => isset($input['remaining_term_months']) ? (int) $input['remaining_term_months'] : 300,
-            'mortgage_monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
-            'mortgage_start_date' => $input['start_date'] ?? null,
-            'mortgage_maturity_date' => $input['maturity_date'] ?? null,
+            'rate_type' => $input['rate_type'] ?? 'fixed',
+            'outstanding_balance' => (float) $input['outstanding_balance'],
+            'ownership_type' => $property->ownership_type,
+            'ownership_percentage' => (float) $property->ownership_percentage,
         ];
 
-        // Strip only empty strings — keep nulls so frontend form fill receives all fields
-        $fields = array_filter($fields, fn ($v) => $v !== '');
+        if (isset($input['lender_name']) && $input['lender_name'] !== '') {
+            $payload['lender_name'] = $input['lender_name'];
+        }
+        if (isset($input['interest_rate']) && is_numeric($input['interest_rate'])) {
+            $payload['interest_rate'] = (float) $input['interest_rate'];
+        }
+        if (isset($input['monthly_payment']) && is_numeric($input['monthly_payment'])) {
+            $payload['monthly_payment'] = (float) $input['monthly_payment'];
+        }
+        if (isset($input['remaining_term_months']) && is_numeric($input['remaining_term_months'])) {
+            $payload['remaining_term_months'] = (int) $input['remaining_term_months'];
+        }
+        foreach (['start_date', 'maturity_date'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+
+        $mortgage = DB::transaction(fn () => Mortgage::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'mortgage',
-            'route' => '/net-worth/property',
-            'fields' => $fields,
-            'message' => "I'll fill in the mortgage details for \"{$lenderName}\" now.",
+            'entity_id' => $mortgage->id,
+            'name' => $mortgage->lender_name ?? 'Mortgage',
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added the mortgage on \"{$property->address_line_1}\".",
         ];
     }
 
@@ -2070,51 +2701,201 @@ class CoordinatingAgent extends BaseAgent
 
         $policyType = $input['policy_type'];
 
-        // Map AI policy_type to the form's policyType select values
-        $formPolicyType = match ($policyType) {
-            'income_protection' => 'incomeProtection',
-            'standalone_ci', 'accelerated_ci' => 'criticalIllness',
-            default => 'life', // level_term, term, whole_of_life, decreasing_term, family_income_benefit
+        // Choose the right model + entity_type per category. Each protection
+        // category has its own table and bespoke field set.
+        $category = match ($policyType) {
+            'income_protection' => 'income_protection',
+            'standalone_ci', 'accelerated_ci' => 'critical_illness',
+            default => 'life',
         };
 
-        // Build fields that map to PolicyFormModal's formData keys
-        $fields = [
-            'policyType' => $formPolicyType,
-            'provider' => $input['provider'] ?? null,
-            'premium_amount' => isset($input['premium_amount']) ? (float) $input['premium_amount'] : null,
-            'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
-        ];
-
-        // Coverage amount: benefit_amount for income protection and family income benefit, sum_assured for others
-        if ($policyType === 'income_protection' || $policyType === 'family_income_benefit') {
-            $fields['coverage_amount'] = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : (isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0);
-        } else {
-            $fields['coverage_amount'] = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0;
-        }
-
-        // Life insurance sub-type — map generic 'term' to 'level_term' (dropdown value)
-        if ($formPolicyType === 'life') {
-            $fields['policy_type'] = $policyType === 'term' ? 'level_term' : $policyType;
-        }
-
-        // Term years (for life and critical illness)
-        if (isset($input['policy_term_years'])) {
-            $fields['term_years'] = (int) $input['policy_term_years'];
-        }
-
-        // In trust (for life insurance)
-        if (isset($input['in_trust'])) {
-            $fields['in_trust'] = (bool) $input['in_trust'];
-        }
-
+        $sumAssured = isset($input['sum_assured']) ? (float) $input['sum_assured'] : 0.0;
+        $benefitAmount = isset($input['benefit_amount']) ? (float) $input['benefit_amount'] : 0.0;
         $providerLabel = $input['provider'] ?? str_replace('_', ' ', $policyType);
 
+        // Resolve any natural-language date the LLM passed through. We do NOT
+        // ask the LLM to format dates as ISO 8601 — it's an unreliable thing
+        // to delegate. The handler accepts whatever phrase the user said and
+        // parses it deterministically (Carbon handles "today", "yesterday",
+        // "26 April 2026", "last Monday", etc.). Bad strings drop to null
+        // rather than 500 the request.
+        foreach (['policy_start_date', 'policy_end_date'] as $dateField) {
+            if (isset($input[$dateField]) && is_string($input[$dateField]) && $input[$dateField] !== '') {
+                try {
+                    $input[$dateField] = Carbon::parse($input[$dateField])->toDateString();
+                } catch (\Throwable $e) {
+                    unset($input[$dateField]);
+                }
+            }
+        }
+
+        if ($category === 'life') {
+            $payload = [
+                'user_id' => $user->id,
+                // map generic 'term' onto canonical 'level_term'
+                'policy_type' => $policyType === 'term' ? 'level_term' : $policyType,
+                'sum_assured' => $policyType === 'family_income_benefit' && $benefitAmount > 0
+                    ? $benefitAmount
+                    : $sumAssured,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+            ];
+            foreach (['provider', 'policy_number', 'policy_start_date', 'policy_end_date'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+            foreach (['premium_amount', 'start_value', 'decreasing_rate', 'indexation_rate'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (float) $input[$f];
+                }
+            }
+            if (isset($input['policy_term_years']) && is_numeric($input['policy_term_years'])) {
+                $payload['policy_term_years'] = (int) $input['policy_term_years'];
+            }
+            foreach (['in_trust', 'is_mortgage_protection', 'joint_life'] as $f) {
+                if (isset($input[$f])) {
+                    $payload[$f] = (bool) $input[$f];
+                }
+            }
+
+            // BS-17 in-turn idempotency: grok-4-1-fast occasionally emits
+            // create_protection_policy twice for the same entity inside one
+            // multi-entity message. Without this guard the second tool call
+            // creates a duplicate row before the LLM has a chance to see the
+            // first result. The check is scoped to a 60s window so genuine
+            // separate-session adds are unaffected.
+            $existing = LifeInsurancePolicy::where('user_id', $user->id)
+                ->where('policy_type', $payload['policy_type'])
+                ->where('sum_assured', $payload['sum_assured'])
+                ->where('provider', $payload['provider'] ?? null)
+                ->where('created_at', '>', now()->subMinute())
+                ->first();
+            if ($existing !== null) {
+                $this->invalidateUserCache($user->id);
+
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'duplicate' => true,
+                    'entity_type' => 'life_insurance_policy',
+                    'entity_id' => $existing->id,
+                    'name' => (string) $providerLabel,
+                    'persisted_fields' => [],
+                    'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
+                ];
+            }
+
+            $policy = DB::transaction(fn () => LifeInsurancePolicy::create($payload));
+            $entityType = 'life_insurance_policy';
+        } elseif ($category === 'critical_illness') {
+            // CI table's enum uses bare values (standalone | accelerated)
+            // — strip the AI tool's `_ci` suffix.
+            $ciType = match ($policyType) {
+                'standalone_ci' => 'standalone',
+                'accelerated_ci' => 'accelerated',
+                default => 'standalone',
+            };
+            $payload = [
+                'user_id' => $user->id,
+                'policy_type' => $ciType,
+                'sum_assured' => $sumAssured,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+            ];
+            foreach (['provider', 'policy_number', 'policy_start_date'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+            if (isset($input['premium_amount']) && is_numeric($input['premium_amount'])) {
+                $payload['premium_amount'] = (float) $input['premium_amount'];
+            }
+            if (isset($input['policy_term_years']) && is_numeric($input['policy_term_years'])) {
+                $payload['policy_term_years'] = (int) $input['policy_term_years'];
+            }
+            if (isset($input['conditions_covered']) && is_array($input['conditions_covered'])) {
+                $payload['conditions_covered'] = $input['conditions_covered'];
+            }
+
+            // BS-17 in-turn idempotency — see life-branch comment above.
+            $existing = CriticalIllnessPolicy::where('user_id', $user->id)
+                ->where('policy_type', $payload['policy_type'])
+                ->where('sum_assured', $payload['sum_assured'])
+                ->where('provider', $payload['provider'] ?? null)
+                ->where('created_at', '>', now()->subMinute())
+                ->first();
+            if ($existing !== null) {
+                $this->invalidateUserCache($user->id);
+
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'duplicate' => true,
+                    'entity_type' => 'critical_illness_policy',
+                    'entity_id' => $existing->id,
+                    'name' => (string) $providerLabel,
+                    'persisted_fields' => [],
+                    'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
+                ];
+            }
+
+            $policy = DB::transaction(fn () => CriticalIllnessPolicy::create($payload));
+            $entityType = 'critical_illness_policy';
+        } else {
+            $payload = [
+                'user_id' => $user->id,
+                'benefit_amount' => $benefitAmount > 0 ? $benefitAmount : $sumAssured,
+                'premium_frequency' => $input['premium_frequency'] ?? 'monthly',
+                'benefit_frequency' => $input['benefit_frequency'] ?? 'monthly',
+            ];
+            foreach (['provider', 'policy_number', 'occupation_class', 'policy_start_date'] as $f) {
+                if (isset($input[$f]) && $input[$f] !== '') {
+                    $payload[$f] = $input[$f];
+                }
+            }
+            if (isset($input['premium_amount']) && is_numeric($input['premium_amount'])) {
+                $payload['premium_amount'] = (float) $input['premium_amount'];
+            }
+            foreach (['deferred_period_weeks', 'benefit_period_months'] as $f) {
+                if (isset($input[$f]) && is_numeric($input[$f])) {
+                    $payload[$f] = (int) $input[$f];
+                }
+            }
+
+            // BS-17 in-turn idempotency — see life-branch comment above.
+            $existing = IncomeProtectionPolicy::where('user_id', $user->id)
+                ->where('benefit_amount', $payload['benefit_amount'])
+                ->where('provider', $payload['provider'] ?? null)
+                ->where('created_at', '>', now()->subMinute())
+                ->first();
+            if ($existing !== null) {
+                $this->invalidateUserCache($user->id);
+
+                return [
+                    'success' => true,
+                    'created' => false,
+                    'duplicate' => true,
+                    'entity_type' => 'income_protection_policy',
+                    'entity_id' => $existing->id,
+                    'name' => (string) $providerLabel,
+                    'persisted_fields' => [],
+                    'message' => "Already added — skipped duplicate \"{$providerLabel}\" policy.",
+                ];
+            }
+
+            $policy = DB::transaction(fn () => IncomeProtectionPolicy::create($payload));
+            $entityType = 'income_protection_policy';
+        }
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
-            'entity_type' => 'protection_policy',
-            'route' => '/protection',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$providerLabel}\" protection policy now.",
+            'success' => true,
+            'created' => true,
+            'entity_type' => $entityType,
+            'entity_id' => $policy->id,
+            'name' => (string) $providerLabel,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$providerLabel}\" protection policy.",
         ];
     }
 
@@ -2133,21 +2914,35 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'asset_name' => $input['asset_name'],
             'asset_type' => $input['asset_type'],
             'current_value' => (float) $input['current_value'],
             'ownership_type' => 'individual',
             'valuation_date' => now()->toDateString(),
-            'is_iht_exempt' => $input['is_iht_exempt'] ?? false,
+            'is_iht_exempt' => (bool) ($input['is_iht_exempt'] ?? false),
         ];
 
+        if (isset($input['exemption_reason']) && $input['exemption_reason'] !== '') {
+            $payload['exemption_reason'] = $input['exemption_reason'];
+        }
+        if (isset($input['liquidity']) && $input['liquidity'] !== '') {
+            $payload['liquidity'] = $input['liquidity'];
+        }
+
+        $asset = DB::transaction(fn () => Asset::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'estate_asset',
-            'route' => '/estate',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['asset_name']}\" estate asset now.",
+            'entity_id' => $asset->id,
+            'name' => $asset->asset_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added \"{$asset->asset_name}\" to your estate.",
         ];
     }
 
@@ -2168,26 +2963,48 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        // Map AI liability_type to form-compatible values
-        $formLiabilityType = match ($input['liability_type']) {
+        $dbLiabilityType = match ($input['liability_type']) {
             'loan' => 'personal_loan',
             default => $input['liability_type'],
         };
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'liability_name' => $input['liability_name'],
-            'liability_type' => $formLiabilityType,
+            'liability_type' => $dbLiabilityType,
             'current_balance' => (float) $input['current_balance'],
-            'monthly_payment' => isset($input['monthly_payment']) ? (float) $input['monthly_payment'] : null,
-            'interest_rate' => isset($input['interest_rate']) ? (float) $input['interest_rate'] : null,
+            'ownership_type' => 'individual',
         ];
 
+        if (isset($input['monthly_payment']) && is_numeric($input['monthly_payment'])) {
+            $payload['monthly_payment'] = (float) $input['monthly_payment'];
+        }
+        if (isset($input['interest_rate']) && is_numeric($input['interest_rate'])) {
+            $payload['interest_rate'] = (float) $input['interest_rate'];
+        }
+        foreach (['secured_against', 'mortgage_type', 'notes'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+        foreach (['maturity_date', 'fixed_until'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
+        }
+
+        $liability = DB::transaction(fn () => Liability::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'estate_liability',
-            'route' => '/net-worth/liabilities',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['liability_name']}\" liability now.",
+            'entity_id' => $liability->id,
+            'name' => $liability->liability_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$liability->liability_name}\" liability.",
         ];
     }
 
@@ -2207,26 +3024,287 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        // Resolve family name references in recipient
         $recipient = $this->resolveFamilyNames($input['recipient'], $user) ?? $input['recipient'];
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'gift_date' => substr($input['gift_date'], 0, 10),
             'recipient' => $recipient,
             'gift_type' => $input['gift_type'] ?? 'pet',
             'gift_value' => (float) $input['gift_value'],
         ];
 
-        if (isset($input['notes'])) {
-            $fields['notes'] = $input['notes'];
+        if (isset($input['notes']) && $input['notes'] !== '') {
+            $payload['notes'] = $input['notes'];
         }
 
+        $gift = DB::transaction(fn () => Gift::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'estate_gift',
-            'route' => '/estate',
-            'fields' => $fields,
-            'message' => "I'll record your gift of £".number_format((float) $input['gift_value'])." to {$recipient} now.",
+            'entity_id' => $gift->id,
+            'name' => $recipient,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've recorded your gift of £".number_format((float) $input['gift_value'])." to {$recipient}.",
+        ];
+    }
+
+    // ─── Estate planning documents (Will + LPA) ──────────────────────
+
+    private function handleCreateWill(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('will');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'executor_name' => 'required|string|max:255',
+            'residuary_beneficiary' => 'nullable|string|max:255',
+            'guardian_for_minors' => 'nullable|string|max:255',
+            'specific_gifts' => 'nullable|string|max:2000',
+            'spouse_primary_beneficiary' => 'nullable|boolean',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        // Default spouse_primary_beneficiary true for married users when not specified.
+        $spousePrimary = array_key_exists('spouse_primary_beneficiary', $input)
+            ? (bool) $input['spouse_primary_beneficiary']
+            : in_array((string) $user->marital_status, ['married', 'civil_partnership'], true);
+
+        $will = Will::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'has_will' => true,
+                'executor_name' => $input['executor_name'],
+                'residuary_beneficiary' => $input['residuary_beneficiary'] ?? null,
+                'guardian_for_minors' => $input['guardian_for_minors'] ?? null,
+                'specific_gifts' => $input['specific_gifts'] ?? null,
+                'spouse_primary_beneficiary' => $spousePrimary,
+                'will_last_updated' => now()->toDateString(),
+            ],
+        );
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'will',
+            'id' => $will->id,
+            'message' => 'Recorded your will details.',
+        ];
+    }
+
+    private function handleUpdateWill(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('will');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'executor_name' => 'nullable|string|max:255',
+            'residuary_beneficiary' => 'nullable|string|max:255',
+            'guardian_for_minors' => 'nullable|string|max:255',
+            'specific_gifts' => 'nullable|string|max:2000',
+            'spouse_primary_beneficiary' => 'nullable|boolean',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $will = Will::where('user_id', $user->id)->first();
+
+        if ($will === null) {
+            // No existing will to update — fall through to create semantics.
+            return $this->handleCreateWill($input, $user, $isPreview);
+        }
+
+        $updates = array_filter(
+            [
+                'executor_name' => $input['executor_name'] ?? null,
+                'residuary_beneficiary' => $input['residuary_beneficiary'] ?? null,
+                'guardian_for_minors' => $input['guardian_for_minors'] ?? null,
+                'specific_gifts' => $input['specific_gifts'] ?? null,
+                'spouse_primary_beneficiary' => array_key_exists('spouse_primary_beneficiary', $input)
+                    ? (bool) $input['spouse_primary_beneficiary']
+                    : null,
+            ],
+            fn ($v) => $v !== null,
+        );
+
+        if ($updates === []) {
+            return [
+                'error' => true,
+                'error_type' => 'nothing_to_update',
+                'message' => 'No will fields were provided for update.',
+            ];
+        }
+
+        $updates['will_last_updated'] = now()->toDateString();
+
+        $will->update($updates);
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'will',
+            'id' => $will->id,
+            'message' => 'Updated your will details.',
+        ];
+    }
+
+    private function handleCreatePowerOfAttorney(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('lasting power of attorney');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'lpa_type' => ['required', Rule::in(['property_financial', 'health_welfare'])],
+            'primary_attorney_name' => 'required|string|max:255',
+            'replacement_attorney_name' => 'nullable|string|max:255',
+            'status' => ['nullable', Rule::in(['draft', 'registered'])],
+            'opg_reference' => 'nullable|string|max:50',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $donorName = trim(($user->first_name ?? '').' '.($user->surname ?? '')) ?: ($user->name ?? '');
+
+        $lpa = DB::transaction(function () use ($input, $user, $donorName) {
+            $lpa = LastingPowerOfAttorney::create([
+                'user_id' => $user->id,
+                'lpa_type' => $input['lpa_type'],
+                'status' => $input['status'] ?? 'draft',
+                'source' => 'created',
+                'donor_full_name' => $donorName,
+                'donor_date_of_birth' => $user->date_of_birth,
+                'opg_reference' => $input['opg_reference'] ?? null,
+                'is_registered_with_opg' => ($input['status'] ?? 'draft') === 'registered',
+                'registration_date' => ($input['status'] ?? 'draft') === 'registered' ? now()->toDateString() : null,
+            ]);
+
+            LpaAttorney::create([
+                'lasting_power_of_attorney_id' => $lpa->id,
+                'attorney_type' => 'primary',
+                'full_name' => $input['primary_attorney_name'],
+                'sort_order' => 1,
+            ]);
+
+            if (! empty($input['replacement_attorney_name'])) {
+                LpaAttorney::create([
+                    'lasting_power_of_attorney_id' => $lpa->id,
+                    'attorney_type' => 'replacement',
+                    'full_name' => $input['replacement_attorney_name'],
+                    'sort_order' => 2,
+                ]);
+            }
+
+            return $lpa;
+        });
+
+        $this->invalidateUserCache($user->id);
+
+        $typeLabel = $lpa->lpa_type === 'property_financial' ? 'Property & Financial Affairs' : 'Health & Welfare';
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'lasting_power_of_attorney',
+            'id' => $lpa->id,
+            'message' => "Recorded your {$typeLabel} LPA.",
+        ];
+    }
+
+    private function handleUpdatePowerOfAttorney(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('lasting power of attorney');
+        }
+
+        $validationError = $this->validateToolInput($input, [
+            'lpa_id' => 'required|integer|exists:lasting_powers_of_attorney,id',
+            'status' => ['nullable', Rule::in(['draft', 'registered'])],
+            'opg_reference' => 'nullable|string|max:50',
+            'primary_attorney_name' => 'nullable|string|max:255',
+            'replacement_attorney_name' => 'nullable|string|max:255',
+        ]);
+        if ($validationError) {
+            return $validationError;
+        }
+
+        $lpa = LastingPowerOfAttorney::where('user_id', $user->id)
+            ->find($input['lpa_id']);
+
+        if ($lpa === null) {
+            return [
+                'error' => true,
+                'error_type' => 'not_found',
+                'message' => 'No LPA with that ID found for this user.',
+            ];
+        }
+
+        DB::transaction(function () use ($input, $lpa) {
+            $updates = [];
+
+            if (array_key_exists('status', $input) && $input['status'] !== null) {
+                $updates['status'] = $input['status'];
+                $updates['is_registered_with_opg'] = $input['status'] === 'registered';
+                if ($input['status'] === 'registered' && $lpa->registration_date === null) {
+                    $updates['registration_date'] = now()->toDateString();
+                }
+            }
+
+            if (array_key_exists('opg_reference', $input) && $input['opg_reference'] !== null) {
+                $updates['opg_reference'] = $input['opg_reference'];
+            }
+
+            if ($updates !== []) {
+                $lpa->update($updates);
+            }
+
+            if (! empty($input['primary_attorney_name'])) {
+                $primary = $lpa->attorneys()->where('attorney_type', 'primary')->first();
+                if ($primary !== null) {
+                    $primary->update(['full_name' => $input['primary_attorney_name']]);
+                } else {
+                    LpaAttorney::create([
+                        'lasting_power_of_attorney_id' => $lpa->id,
+                        'attorney_type' => 'primary',
+                        'full_name' => $input['primary_attorney_name'],
+                        'sort_order' => 1,
+                    ]);
+                }
+            }
+
+            if (! empty($input['replacement_attorney_name'])) {
+                $replacement = $lpa->attorneys()->where('attorney_type', 'replacement')->first();
+                if ($replacement !== null) {
+                    $replacement->update(['full_name' => $input['replacement_attorney_name']]);
+                } else {
+                    LpaAttorney::create([
+                        'lasting_power_of_attorney_id' => $lpa->id,
+                        'attorney_type' => 'replacement',
+                        'full_name' => $input['replacement_attorney_name'],
+                        'sort_order' => 2,
+                    ]);
+                }
+            }
+        });
+
+        $this->invalidateUserCache($user->id);
+
+        return [
+            'action' => 'record_saved',
+            'entity_type' => 'lasting_power_of_attorney',
+            'id' => $lpa->id,
+            'message' => 'Updated your LPA.',
         ];
     }
 
@@ -2266,7 +3344,7 @@ class CoordinatingAgent extends BaseAgent
         $spouse = $user->spouse;
         $spouseFullName = $spouse ? trim($spouse->first_name.' '.$spouse->surname) : null;
 
-        $children = \App\Models\FamilyMember::where('user_id', $user->id)
+        $children = FamilyMember::where('user_id', $user->id)
             ->where('relationship', 'child')
             ->get();
         $childNames = $children->count() > 0
@@ -2447,48 +3525,39 @@ class CoordinatingAgent extends BaseAgent
     }
 
     /**
-     * Summarise analysis data for tool result.
+     * Validate raw module analysis against the per-agent contract (S1.6.b)
+     * and return the verbatim payload as a tool_result. The previous
+     * implementation silently dropped everything outside a 15-key whitelist;
+     * the new implementation hands the LLM the structured agent output it
+     * was supposed to see all along.
+     *
+     * On contract violation the LLM receives an explicit error tool result
+     * — not a malformed shape — so it degrades by asking the user for
+     * clarification rather than fabricating around missing data.
      */
     private function summariseToolAnalysis(string $module, array $analysis): array
     {
         if (isset($analysis['error'])) {
-            return $analysis;
+            return ['module' => $module] + $analysis;
         }
 
-        $summary = ['module' => $module];
+        try {
+            return app(ToolResultContract::class)->validate($module, $analysis);
+        } catch (ToolResultContractException $e) {
+            Log::error('[CoordinatingAgent] Tool result contract violation', [
+                'module' => $module,
+                'context' => $e->context,
+                'missing_keys' => $e->missingKeys,
+                'present_keys' => $e->presentKeys,
+                'message' => $e->getMessage(),
+            ]);
 
-        if (isset($analysis['data'])) {
-            $data = $analysis['data'];
-            $summary['metrics'] = $this->extractKeyMetrics($data);
-            $summary['recommendations'] = array_slice($data['recommendations'] ?? [], 0, 5);
-        } elseif (isset($analysis['summary'])) {
-            $summary['metrics'] = $analysis['summary'];
-            $summary['recommendations'] = array_slice($analysis['ranked_recommendations'] ?? [], 0, 5);
-        } else {
-            $summary['metrics'] = $analysis;
+            return [
+                'module' => $module,
+                'error' => 'module_analysis_contract_violation',
+                'detail' => 'The module analysis returned a malformed shape and was blocked. Ask the user for clarification rather than relying on this result.',
+            ];
         }
-
-        return $summary;
-    }
-
-    private function extractKeyMetrics(array $data): array
-    {
-        $metrics = [];
-        $keyFields = [
-            'total_value', 'total_cover', 'coverage_gaps', 'net_worth',
-            'monthly_surplus', 'emergency_fund_months', 'pension_projection',
-            'iht_liability', 'total_savings', 'total_investments',
-            'retirement_income', 'target_income', 'shortfall',
-            'risk_score', 'asset_allocation', 'progress_percentage',
-        ];
-
-        foreach ($keyFields as $field) {
-            if (isset($data[$field])) {
-                $metrics[$field] = $data[$field];
-            }
-        }
-
-        return $metrics;
     }
 
     // ─── Additional creation tool handlers ──────────────────────────────
@@ -2535,29 +3604,35 @@ class CoordinatingAgent extends BaseAgent
         // Default is_dependent for children and dependents
         $isDependent = $input['is_dependent'] ?? in_array($relationship, ['child', 'step_child', 'other_dependent']);
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'relationship' => $dbRelationship,
             'first_name' => $input['first_name'],
             'last_name' => $surname,
-            'date_of_birth' => $input['date_of_birth'] ?? null,
-            'gender' => $input['gender'] ?? null,
             'is_dependent' => $isDependent,
         ];
-
-        // Append mapping note to existing notes
-        if ($mappingNote) {
-            $existingNotes = $input['notes'] ?? '';
-            $fields['notes'] = trim($mappingNote.($existingNotes ? '. '.$existingNotes : ''));
+        if (isset($input['date_of_birth']) && $input['date_of_birth'] !== '') {
+            $payload['date_of_birth'] = $input['date_of_birth'];
+        }
+        if (isset($input['gender']) && $input['gender'] !== '') {
+            $payload['gender'] = $input['gender'];
         }
 
-        // Child-specific fields
-        if (in_array($dbRelationship, ['child'])) {
-            $educationStatus = $input['education_status'] ?? null;
+        // Notes: combine the relationship-mapping note with any AI-supplied
+        // notes (in that order so the mapping context comes first).
+        $aiNotes = $input['notes'] ?? '';
+        if ($mappingNote) {
+            $payload['notes'] = trim($mappingNote.($aiNotes !== '' ? '. '.$aiNotes : ''));
+        } elseif ($aiNotes !== '') {
+            $payload['notes'] = $aiNotes;
+        }
 
-            // Infer education status from age if not provided
+        // Child-specific: education_status (inferred from DOB if absent).
+        if ($dbRelationship === 'child') {
+            $educationStatus = $input['education_status'] ?? null;
             if (empty($educationStatus) && ! empty($input['date_of_birth'])) {
                 try {
-                    $age = \Carbon\Carbon::parse($input['date_of_birth'])->age;
+                    $age = Carbon::parse($input['date_of_birth'])->age;
                     $educationStatus = match (true) {
                         $age < 5 => 'pre_school',
                         $age < 11 => 'primary',
@@ -2567,28 +3642,29 @@ class CoordinatingAgent extends BaseAgent
                         default => 'graduated',
                     };
                 } catch (\Exception $e) {
-                    // Ignore parse errors
+                    // Unparseable DOB — leave education_status null.
                 }
             }
-
             if (! empty($educationStatus)) {
-                $fields['education_status'] = $educationStatus;
+                $payload['education_status'] = $educationStatus;
             }
             if (isset($input['receives_child_benefit'])) {
-                $fields['receives_child_benefit'] = $input['receives_child_benefit'];
+                $payload['receives_child_benefit'] = (bool) $input['receives_child_benefit'];
             }
         }
 
-        if (! empty($input['notes'])) {
-            $fields['notes'] = $input['notes'];
-        }
+        $member = DB::transaction(fn () => FamilyMember::create($payload));
+
+        $this->invalidateUserCache($user->id);
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'family_member',
-            'route' => '/profile',
-            'fields' => $fields,
-            'message' => "I'll add {$input['first_name']} as a {$relationship} now.",
+            'entity_id' => $member->id,
+            'name' => trim($member->first_name.' '.($member->last_name ?? '')),
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added {$input['first_name']} as your {$relationship}.",
         ];
     }
 
@@ -2612,45 +3688,59 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $initialValue = isset($input['initial_value']) ? (float) $input['initial_value'] : (isset($input['current_value']) ? (float) $input['current_value'] : 0);
+        $initialValue = isset($input['initial_value'])
+            ? (float) $input['initial_value']
+            : (isset($input['current_value']) ? (float) $input['current_value'] : 0);
         $currentValue = isset($input['current_value']) ? (float) $input['current_value'] : $initialValue;
 
-        // Resolve family references in beneficiaries and trustees
         $beneficiaries = $this->resolveFamilyNames($input['beneficiaries'] ?? null, $user);
         $trustees = $this->resolveFamilyNames($input['trustees'] ?? null, $user);
+        $settlor = $input['settlor'] ?? trim($user->first_name.' '.$user->surname);
+        $creationDate = $input['trust_creation_date'] ?? now()->toDateString();
 
-        // Default settlor to the user (they created the trust unless stated otherwise)
-        $userName = trim($user->first_name.' '.$user->surname);
-        $settlor = $userName;
+        // Discretionary + A&M trusts attract relevant-property regime
+        // (10-yearly + exit charges). Mirrors TrustController::createTrust.
+        $isRelevantProperty = in_array($input['trust_type'], ['discretionary', 'accumulation_maintenance'], true);
 
-        // Default creation date to today if not provided (trust is being recorded now)
-        $creationDate = $input['trust_creation_date'] ?? date('Y-m-d');
-
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'trust_name' => $input['trust_name'],
             'trust_type' => $input['trust_type'],
             'initial_value' => $initialValue,
             'current_value' => $currentValue,
             'trust_creation_date' => $creationDate,
-            'beneficiaries' => $beneficiaries,
-            'trustees' => $trustees,
             'settlor' => $settlor,
-            'purpose' => $input['purpose'] ?? null,
+            'is_relevant_property_trust' => $isRelevantProperty,
         ];
+        if ($beneficiaries !== null) {
+            $payload['beneficiaries'] = $beneficiaries;
+        }
+        if ($trustees !== null) {
+            $payload['trustees'] = $trustees;
+        }
+        if (isset($input['purpose']) && $input['purpose'] !== '') {
+            $payload['purpose'] = $input['purpose'];
+        }
 
-        // FR-M15 — CLT Gift creation moved to TrustObserver::created. The
-        // observer writes the Gift if and only if the Trust row is saved,
-        // which prevents orphan CLT rows when the user cancels the form.
+        // FR-M15 — TrustObserver::created emits the corresponding Gift
+        // (Chargeable Lifetime Transfer) when the trust persists; we don't
+        // need to do anything extra here.
+        $trust = DB::transaction(fn () => Trust::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         $cltMessage = $initialValue > 0
-            ? " Once you save it, I'll also record a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.'
+            ? " I've also recorded a Chargeable Lifetime Transfer of £".number_format($initialValue).' for Inheritance Tax tracking.'
             : '';
 
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'trust',
-            'route' => '/trusts',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['trust_name']}\" trust now.{$cltMessage}",
+            'entity_id' => $trust->id,
+            'name' => $trust->trust_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$trust->trust_name}\" trust.{$cltMessage}",
         ];
     }
 
@@ -2675,37 +3765,42 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'business_name' => $input['business_name'],
             'business_type' => $input['business_type'],
             'current_valuation' => isset($input['estimated_value']) ? (float) $input['estimated_value'] : 0,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => isset($input['ownership_percentage']) ? (float) $input['ownership_percentage'] : 100.00,
+            'valuation_date' => now()->toDateString(),
         ];
 
-        if (isset($input['industry_sector'])) {
-            $fields['industry_sector'] = $input['industry_sector'];
+        foreach (['annual_revenue', 'annual_profit', 'annual_dividend_income'] as $f) {
+            if (isset($input[$f]) && is_numeric($input[$f])) {
+                $payload[$f] = (float) $input[$f];
+            }
         }
-        if (isset($input['ownership_percentage'])) {
-            $fields['ownership_percentage'] = (float) $input['ownership_percentage'];
+        if (isset($input['employee_count']) && is_numeric($input['employee_count'])) {
+            $payload['employee_count'] = (int) $input['employee_count'];
         }
-        if (isset($input['annual_revenue'])) {
-            $fields['annual_revenue'] = (float) $input['annual_revenue'];
-        }
-        if (isset($input['annual_profit'])) {
-            $fields['annual_profit'] = (float) $input['annual_profit'];
-        }
-        if (isset($input['annual_dividend_income'])) {
-            $fields['annual_dividend_income'] = (float) $input['annual_dividend_income'];
-        }
-        if (isset($input['employee_count'])) {
-            $fields['employee_count'] = (int) $input['employee_count'];
+        foreach (['description', 'notes'] as $f) {
+            if (isset($input[$f]) && $input[$f] !== '') {
+                $payload[$f] = $input[$f];
+            }
         }
 
+        $bi = DB::transaction(fn () => BusinessInterest::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'business_interest',
-            'route' => '/net-worth/business',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['business_name']}\" business interest now.",
+            'entity_id' => $bi->id,
+            'name' => $bi->business_name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$bi->business_name}\" business interest.",
         ];
     }
 
@@ -2726,7 +3821,7 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
-        // Map AI category values to form chattel_type values
+        // AI category -> canonical DB chattel_type (singular forms).
         $chattelType = match ($input['category'] ?? 'other') {
             'jewellery' => 'jewelry',
             'art' => 'art',
@@ -2736,19 +3831,35 @@ class CoordinatingAgent extends BaseAgent
             default => 'other',
         };
 
-        $fields = [
+        $payload = [
+            'user_id' => $user->id,
             'chattel_type' => $chattelType,
             'name' => $input['description'],
             'current_value' => (float) $input['estimated_value'],
-            'purchase_price' => isset($input['purchase_value']) ? (float) $input['purchase_value'] : null,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+            'valuation_date' => now()->toDateString(),
         ];
 
+        if (isset($input['purchase_value']) && is_numeric($input['purchase_value'])) {
+            $payload['purchase_price'] = (float) $input['purchase_value'];
+        }
+        if (isset($input['notes']) && $input['notes'] !== '') {
+            $payload['notes'] = $input['notes'];
+        }
+
+        $chattel = DB::transaction(fn () => Chattel::create($payload));
+
+        $this->invalidateUserCache($user->id);
+
         return [
-            'action' => 'fill_form',
+            'success' => true,
+            'created' => true,
             'entity_type' => 'chattel',
-            'route' => '/net-worth/chattels',
-            'fields' => $fields,
-            'message' => "I'll fill in the form for your \"{$input['description']}\" now.",
+            'entity_id' => $chattel->id,
+            'name' => $chattel->name,
+            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'message' => "I've added your \"{$chattel->name}\".",
         ];
     }
 
@@ -2815,6 +3926,193 @@ class CoordinatingAgent extends BaseAgent
         ];
     }
 
+    // ─── SaveTax campaign capture handlers ──────────────────────────────
+
+    private function handleCaptureSalarySacrifice(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('pension');
+        }
+
+        if (! isset($input['pension_id'], $input['salary_sacrifice'])) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'pension_id and salary_sacrifice are required.'];
+        }
+
+        $pension = DCPension::where('id', $input['pension_id'])
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (! $pension) {
+            return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];
+        }
+
+        $payload = ['salary_sacrifice' => (bool) $input['salary_sacrifice']];
+
+        if (array_key_exists('employer_ni_rebate_pct', $input) && $input['employer_ni_rebate_pct'] !== null) {
+            $rebate = (float) $input['employer_ni_rebate_pct'];
+            $payload['employer_ni_rebate_pct'] = max(0.0, min(1.0, $rebate));
+        }
+
+        $pension->update($payload);
+
+        return [
+            'updated' => true,
+            'pension_id' => $pension->id,
+            'message' => 'Salary sacrifice setting updated.',
+        ];
+    }
+
+    private function handleCaptureSpouseWorkStatus(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('household');
+        }
+
+        if (! array_key_exists('spouse_works', $input)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'spouse_works is required.'];
+        }
+
+        $works = (bool) $input['spouse_works'];
+
+        $user->update([
+            'marriage_allowance_eligible' => ! $works,
+            'household_calculation_mode' => $works ? 'dual_earner' : 'single_earner_couple',
+        ]);
+
+        return [
+            'updated' => true,
+            'household_calculation_mode' => $user->household_calculation_mode,
+            'marriage_allowance_eligible' => $user->marriage_allowance_eligible,
+            'message' => $works
+                ? 'Recorded that your spouse works — we\'ll capture more details next.'
+                : 'Recorded that your spouse doesn\'t currently work — Marriage Allowance may apply.',
+        ];
+    }
+
+    private function handleCaptureSpouseHouseholdData(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('household');
+        }
+
+        $allowed = array_intersect_key($input, array_flip([
+            'spouse_annual_income',
+            'spouse_employment_status',
+            'spouse_isa_balance',
+            'spouse_psa_band',
+            'spouse_unrealised_gains',
+            'spouse_annual_dividends',
+            'spouse_pension_input_annual',
+        ]));
+
+        TaxStrategyHouseholdInput::updateOrCreate(
+            ['user_id' => $user->id],
+            $allowed
+        );
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_spouse_household',
+            'summary' => 'Spouse household data captured.',
+            'details' => $allowed,
+        ];
+    }
+
+    private function handleCaptureSpouseNonWorkingAssets(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('household');
+        }
+
+        $allowed = array_intersect_key($input, array_flip([
+            'spouse_existing_isa_balance',
+            'spouse_existing_savings_balance',
+            'spouse_existing_investment_balance',
+            'spouse_existing_dividend_holdings_value',
+            'spouse_existing_pension_balance',
+        ]));
+
+        TaxStrategyHouseholdInput::updateOrCreate(
+            ['user_id' => $user->id],
+            $allowed
+        );
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_spouse_non_working_assets',
+            'summary' => 'Spouse standalone assets captured.',
+            'details' => $allowed,
+        ];
+    }
+
+    private function handleCapturePensionHistory(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('pension');
+        }
+
+        $history = $input['history'] ?? null;
+        if (! is_array($history) || $history === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'history must be a non-empty array.'];
+        }
+
+        $written = [];
+        foreach ($history as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+            $taxYear = isset($entry['tax_year']) ? (string) $entry['tax_year'] : null;
+            $amount = isset($entry['pension_input_amount']) ? (float) $entry['pension_input_amount'] : null;
+            if ($taxYear === null || $taxYear === '' || $amount === null || $amount < 0) {
+                continue;
+            }
+
+            PensionInputHistory::updateOrCreate(
+                ['user_id' => $user->id, 'tax_year' => $taxYear],
+                ['pension_input_amount' => $amount],
+            );
+            $written[$taxYear] = $amount;
+        }
+
+        if ($written === []) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No valid history entries provided.'];
+        }
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_pension_history',
+            'summary' => sprintf('Captured %d year(s) of pension history.', count($written)),
+            'details' => $written,
+        ];
+    }
+
+    private function handleCaptureCharitableGiving(array $input, User $user, bool $isPreview): array
+    {
+        if ($isPreview) {
+            return $this->previewBlocked('profile');
+        }
+
+        if (! array_key_exists('annual_donations', $input)) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'annual_donations is required.'];
+        }
+
+        $amount = (float) $input['annual_donations'];
+        if ($amount < 0) {
+            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'annual_donations must be >= 0.'];
+        }
+
+        $user->update(['annual_charitable_donations' => $amount]);
+
+        return [
+            'onboarding_capture' => true,
+            'field_group' => 'campaign_charitable_giving',
+            'summary' => $amount > 0
+                ? sprintf('Annual Gift Aid donations recorded as £%s.', number_format($amount, 0))
+                : 'No Gift Aid donations recorded.',
+            'details' => ['annual_charitable_donations' => $amount],
+        ];
+    }
+
     // ─── Generic update/delete handlers ─────────────────────────────────
 
     private function handleUpdateRecord(array $input, User $user, bool $isPreview): array
@@ -2823,26 +4121,33 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('record');
         }
 
-        $entityType = $input['entity_type'];
-        $entityId = (int) $input['entity_id'];
+        $entityType = (string) ($input['entity_type'] ?? '');
+        $entityId = (int) ($input['entity_id'] ?? 0);
         $fields = $input['fields'] ?? [];
 
         if (empty($fields)) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No fields provided to update.'];
+            return ['error' => 'validation_failed', 'message' => 'No fields provided to update.'];
         }
 
-        $model = $this->resolveModel($entityType, $entityId, $user->id);
-        if (isset($model['error'])) {
-            return $model;
-        }
-
-        // Map AI tool field names to actual model field names
+        // Map AI tool field names to actual model field names. Aliasing happens
+        // BEFORE the allowlist check so the LLM may use either the schema
+        // name or any legacy alias and still pass.
         $fieldAliases = match ($entityType) {
-            'business_interest' => ['estimated_value' => 'current_valuation'],
-            'chattel' => ['estimated_value' => 'current_value', 'category' => 'chattel_type'],
-            'dc_pension' => ['current_value' => 'current_fund_value'],
-            'mortgage' => ['current_balance' => 'outstanding_balance'],
-            'life_insurance' => ['life_policy_type' => 'policy_type', 'monthly_premium' => 'premium_amount'],
+            'business_interest' => ['estimated_value' => 'current_valuation', 'value' => 'current_valuation'],
+            'chattel' => ['estimated_value' => 'current_value', 'category' => 'chattel_type', 'value' => 'current_value', 'chattel_name' => 'name'],
+            'dc_pension' => ['current_value' => 'current_fund_value', 'pot_value' => 'current_fund_value', 'monthly_contribution' => 'monthly_contribution_amount', 'employer_contribution' => 'employer_contribution_percent'],
+            'mortgage' => ['current_balance' => 'outstanding_balance', 'term_years' => 'remaining_term_months'],
+            'life_insurance' => ['life_policy_type' => 'policy_type', 'monthly_premium' => 'premium_amount', 'end_date' => 'policy_end_date'],
+            'critical_illness' => ['monthly_premium' => 'premium_amount'],
+            'income_protection' => ['monthly_premium' => 'premium_amount', 'monthly_benefit' => 'benefit_amount', 'deferred_period' => 'deferred_period_weeks'],
+            'savings_account' => ['balance' => 'current_balance', 'provider' => 'institution'],
+            'investment_account' => ['total_value' => 'current_value'],
+            'db_pension' => ['annual_pension_amount' => 'accrued_annual_pension'],
+            'estate_asset' => ['value' => 'current_value'],
+            'estate_liability' => ['outstanding_amount' => 'current_balance'],
+            'estate_gift' => ['value' => 'gift_value', 'gift_description' => 'gift_type', 'recipient_name' => 'recipient'],
+            'trust' => ['value' => 'current_value'],
+            'family_member' => ['surname' => 'last_name'],
             default => [],
         };
         foreach ($fieldAliases as $aiName => $dbName) {
@@ -2852,27 +4157,47 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
-        // Only allow updating fillable fields
-        $fillable = $model->getFillable();
-        $safeFields = array_intersect_key($fields, array_flip($fillable));
-        // Never allow changing user_id or id
-        unset($safeFields['user_id'], $safeFields['id']);
-
-        if (empty($safeFields)) {
-            return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'None of the provided fields are editable.'];
+        // Per-entity allowlist enforcement (INV-2.7.3). Replaces the prior
+        // `unset($safeFields['user_id'], $safeFields['id'])` blocklist with
+        // a positive list — every other column (identity FKs, audit
+        // timestamps, ownership-changing fields like Trust.settlor or
+        // FamilyMember.relationship) is rejected explicitly.
+        $allowed = UpdateRecordAllowlist::allowedFields($entityType);
+        if (empty($allowed)) {
+            return [
+                'error' => 'unsupported_entity_type',
+                'entity_type' => $entityType,
+                'message' => "The entity type '{$entityType}' cannot be updated via this tool.",
+            ];
         }
 
-        $route = $this->getRouteForEntityType($entityType);
+        $disallowed = array_diff(array_keys($fields), $allowed);
+        if (! empty($disallowed)) {
+            return [
+                'error' => 'fields_not_allowed',
+                'entity_type' => $entityType,
+                'disallowed_fields' => array_values($disallowed),
+                'allowed_fields' => $allowed,
+            ];
+        }
 
-        return [
-            'action' => 'fill_form',
-            'mode' => 'edit',
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'route' => $route,
-            'fields' => $safeFields,
-            'message' => "I'll update the ".str_replace('_', ' ', $entityType).' for you now.',
-        ];
+        $model = $this->resolveModel($entityType, $entityId, $user->id);
+        if (is_array($model) && isset($model['error'])) {
+            return $model;
+        }
+
+        return DB::transaction(function () use ($model, $fields, $entityType) {
+            $model->fill($fields);
+            $model->save();
+
+            return [
+                'success' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $model->id,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
+            ];
+        });
     }
 
     /**
@@ -2904,19 +4229,57 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('record');
         }
 
-        $entityType = $input['entity_type'];
-        $entityId = (int) $input['entity_id'];
+        $entityType = (string) ($input['entity_type'] ?? '');
+        $entityId = (int) ($input['entity_id'] ?? 0);
+
+        // Two-phase confirmation (Rubric-A D5 Level 3): the first call
+        // never deletes — it returns a deterministic SHA-256 token bound
+        // to (user_id, entity_type, entity_id, today's date). The LLM
+        // must echo that exact token on the second call to proceed.
+        // The same-day salt means tokens cannot be replayed across days.
+        $expectedToken = hash(
+            'sha256',
+            $user->id.'|'.$entityType.'|'.$entityId.'|'.now()->format('Y-m-d')
+        );
+
+        $providedToken = (string) ($input['confirmation_token'] ?? '');
+
+        if (! hash_equals($expectedToken, $providedToken)) {
+            return [
+                'requires_confirmation' => true,
+                'confirmation_token' => $expectedToken,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'preview_message' => 'This will permanently delete '
+                    .str_replace('_', ' ', $entityType)." #{$entityId}. "
+                    .'Confirm with the user before re-calling delete_record with this confirmation_token.',
+            ];
+        }
 
         $model = $this->resolveModel($entityType, $entityId, $user->id);
-        if (isset($model['error'])) {
+        if (is_array($model) && isset($model['error'])) {
             return $model;
         }
 
-        $name = $model->goal_name ?? $model->account_name ?? $model->trust_name ?? $model->business_name ?? $model->description ?? $model->first_name ?? "#{$entityId}";
+        $name = $model->goal_name
+            ?? $model->account_name
+            ?? $model->trust_name
+            ?? $model->business_name
+            ?? $model->description
+            ?? $model->first_name
+            ?? "#{$entityId}";
 
-        $model->delete();
+        return DB::transaction(function () use ($model, $entityType, $entityId, $name) {
+            $model->delete();
 
-        return ['deleted' => true, 'entity_type' => $entityType, 'entity_id' => $entityId, 'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted."];
+            return [
+                'success' => true,
+                'deleted' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
+            ];
+        });
     }
 
     /**

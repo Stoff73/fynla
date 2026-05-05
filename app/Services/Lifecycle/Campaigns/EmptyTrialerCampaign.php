@@ -16,8 +16,7 @@ class EmptyTrialerCampaign implements LifecycleCampaign
 {
     public function __construct(
         private readonly LifecycleEngine $engine,
-    ) {
-    }
+    ) {}
 
     public function name(): string
     {

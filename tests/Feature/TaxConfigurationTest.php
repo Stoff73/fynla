@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Savings\ISATracker;
 use App\Services\TaxConfigService;
+use Database\Seeders\RolesPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,10 +49,10 @@ class TaxConfigurationTest extends TestCase
         $this->nextTaxYear = ($startYear + 1).'/'.($startYear + 2 - 2000);
 
         // Seed roles and permissions (required for RBAC middleware)
-        $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
+        $this->seed(RolesPermissionsSeeder::class);
 
-        $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
-        $userRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_USER);
+        $adminRole = Role::findByName(Role::ROLE_ADMIN);
+        $userRole = Role::findByName(Role::ROLE_USER);
 
         // Create admin user with admin role
         $this->admin = User::factory()->create([

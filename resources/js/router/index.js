@@ -23,6 +23,7 @@ const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
 const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
+const SaveTaxCampaignPage = () => import('@/views/Public/SaveTaxCampaignPage.vue');
 const NotFoundPage = () => import('@/views/Public/NotFoundPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
@@ -229,7 +230,7 @@ const routes = [
   {
     path: '/savetax',
     name: 'CampaignSaveTax',
-    component: CampaignPage,
+    component: SaveTaxCampaignPage,
     meta: { public: true },
   },
   {
@@ -552,6 +553,16 @@ const routes = [
         { label: 'Planning Assumptions', path: '/settings/assumptions' },
       ],
     },
+  },
+  {
+    // S0.5.u (BS-16): canonical billing entry point. SubscriptionManagement
+    // lives as a tab inside /profile; this route redirects so chat-emitted
+    // navigation events ('/settings/subscription' from the
+    // get_subscription_status tool result) land on the right tab.
+    path: '/settings/subscription',
+    name: 'SubscriptionSettings',
+    redirect: () => ({ path: '/profile', query: { section: 'subscription' } }),
+    meta: { requiresAuth: true },
   },
   {
     path: '/valuable-info',
@@ -910,6 +921,18 @@ const routes = [
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Actions & Recommendations', path: '/actions' },
+      ],
+    },
+  },
+  {
+    path: '/tax-strategy',
+    name: 'TaxStrategy',
+    component: () => import('@/views/TaxStrategy/TaxStrategyDashboard.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Tax Strategy', path: '/tax-strategy' },
       ],
     },
   },

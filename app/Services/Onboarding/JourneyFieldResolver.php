@@ -105,7 +105,7 @@ class JourneyFieldResolver
         ],
         'annual_employment_income' => [
             'label' => 'Your annual income',
-            'fyn_prompt' => "Roughly what do you earn a year (gross, before tax)? It drives your tax band, your pension contribution headroom, and what I think you can realistically save each month.",
+            'fyn_prompt' => 'Roughly what do you earn a year (gross, before tax)? It drives your tax band, your pension contribution headroom, and what I think you can realistically save each month.',
             'why' => [
                 'budgeting' => 'Shows your earnings and helps calculate your savings rate',
                 'protection' => 'Determines how much income protection cover you need if you cannot work',
@@ -132,7 +132,7 @@ class JourneyFieldResolver
         ],
         'marital_status' => [
             'label' => 'Your marital status',
-            'fyn_prompt' => "Single, married, in a civil partnership, divorced, or widowed? Couples and civil partners get some meaningful tax advantages — I want to make sure we use them.",
+            'fyn_prompt' => 'Single, married, in a civil partnership, divorced, or widowed? Couples and civil partners get some meaningful tax advantages — I want to make sure we use them.',
             'why' => [
                 'protection' => 'Married people often need more life cover to protect their spouse',
                 'estate' => 'Married couples can pass assets tax-free to each other (spouse exemption)',
@@ -143,7 +143,7 @@ class JourneyFieldResolver
         ],
         'occupation' => [
             'label' => 'Your occupation',
-            'fyn_prompt' => "What do you do for a living? Your role affects insurance premiums and whether you qualify for income protection cover — worth capturing.",
+            'fyn_prompt' => 'What do you do for a living? Your role affects insurance premiums and whether you qualify for income protection cover — worth capturing.',
             'why' => [
                 'protection' => 'Your job affects insurance premiums and income protection eligibility',
                 'business' => 'Your role affects tax treatment and business exit planning',
@@ -162,7 +162,7 @@ class JourneyFieldResolver
         ],
         'target_retirement_age' => [
             'label' => 'When you want to retire',
-            'fyn_prompt' => "When would you ideally like to stop working? Even a rough age is fine — we can refine it as things change.",
+            'fyn_prompt' => 'When would you ideally like to stop working? Even a rough age is fine — we can refine it as things change.',
             'why' => [
                 'investment' => 'Your investment timeline affects how much risk you should take',
                 'retirement' => 'Projects how much you need to save and what income you will have',
@@ -211,7 +211,7 @@ class JourneyFieldResolver
         ],
         'mortgages' => [
             'label' => 'Your mortgage details',
-            'fyn_prompt' => "Got a mortgage on any property? Share the outstanding balance, the monthly payment, and the interest rate if you have them to hand — rough numbers are fine.",
+            'fyn_prompt' => 'Got a mortgage on any property? Share the outstanding balance, the monthly payment, and the interest rate if you have them to hand — rough numbers are fine.',
             'why' => [
                 'protection' => 'Mortgage debt is often the largest protection need — should be covered by life insurance',
             ],
@@ -220,7 +220,7 @@ class JourneyFieldResolver
         ],
         'liabilities' => [
             'label' => 'Your other debts and loans',
-            'fyn_prompt' => "Any other loans or debts on the go — credit cards, car finance, student loans, personal loans? These shape your protection cover and day-to-day budget, so it helps to have them captured.",
+            'fyn_prompt' => 'Any other loans or debts on the go — credit cards, car finance, student loans, personal loans? These shape your protection cover and day-to-day budget, so it helps to have them captured.',
             'why' => [
                 'protection' => 'All debts should be considered when calculating protection needs',
             ],
@@ -238,7 +238,7 @@ class JourneyFieldResolver
         ],
         'investment_accounts' => [
             'label' => 'Your investment accounts',
-            'fyn_prompt' => "What investment accounts are you running? A Stocks & Shares ISA, a General Investment Account, bonds, company share schemes — provider and current value is enough to start. List as many as you have.",
+            'fyn_prompt' => 'What investment accounts are you running? A Stocks & Shares ISA, a General Investment Account, bonds, company share schemes — provider and current value is enough to start. List as many as you have.',
             'why' => [
                 'investment' => 'Analyse your portfolio, track performance, and optimise asset allocation',
                 'estate' => 'Investment assets form part of your taxable estate',
@@ -275,7 +275,7 @@ class JourneyFieldResolver
         ],
         'properties' => [
             'label' => 'Your properties',
-            'fyn_prompt' => "Do you own any property — your home, a buy-to-let, a holiday home, or somewhere abroad? I need the current estimated value and the type (main residence, second home, or buy-to-let) for each one.",
+            'fyn_prompt' => 'Do you own any property — your home, a buy-to-let, a holiday home, or somewhere abroad? I need the current estimated value and the type (main residence, second home, or buy-to-let) for each one.',
             'why' => [
                 'estate' => 'Properties count towards your estate value for inheritance tax',
             ],
@@ -294,7 +294,7 @@ class JourneyFieldResolver
         ],
         'business_interests' => [
             'label' => 'Your business interests',
-            'fyn_prompt' => "Do you own or have a stake in any business? Sole trade, partnership, limited company — either way, it shapes your tax position and your estate. Trade name, entity type, ownership percentage, and rough valuation for each.",
+            'fyn_prompt' => 'Do you own or have a stake in any business? Sole trade, partnership, limited company — either way, it shapes your tax position and your estate. Trade name, entity type, ownership percentage, and rough valuation for each.',
             'why' => [
                 'business' => 'Track business ownership, valuation, and exit plans',
             ],

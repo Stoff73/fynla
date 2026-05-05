@@ -13,6 +13,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
+use App\Services\UKTaxCalculator;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\ResolvesIncome;
 use Carbon\Carbon;
@@ -33,7 +34,7 @@ class UserContextBuilder
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly RiskPreferenceService $riskPreferenceService,
-        private readonly \App\Services\UKTaxCalculator $taxCalculator
+        private readonly UKTaxCalculator $taxCalculator
     ) {}
 
     /**
@@ -490,7 +491,7 @@ class UserContextBuilder
     /**
      * Provide the UKTaxCalculator for the ResolvesIncome trait.
      */
-    protected function getIncomeTaxCalculator(): \App\Services\UKTaxCalculator
+    protected function getIncomeTaxCalculator(): UKTaxCalculator
     {
         return $this->taxCalculator;
     }

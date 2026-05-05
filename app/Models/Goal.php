@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Investment\InvestmentAccount;
 use App\Services\Goals\GoalCalculationService;
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
@@ -142,7 +143,7 @@ class Goal extends Model
      */
     public function linkedInvestmentAccount(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Investment\InvestmentAccount::class, 'linked_investment_account_id');
+        return $this->belongsTo(InvestmentAccount::class, 'linked_investment_account_id');
     }
 
     /**

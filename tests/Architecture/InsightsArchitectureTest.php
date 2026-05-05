@@ -12,7 +12,6 @@ declare(strict_types=1);
  * 3. No hardcoded tax years or ISA allowances in insights code — everything
  *    flows through TaxConfigService (backend) or taxConfig.js (frontend).
  */
-
 $root = realpath(__DIR__.'/../../');
 
 it('declares the /insights/:slug catch-all after every named Insight route in Vue Router', function () use ($root) {
@@ -77,11 +76,11 @@ it('does not hardcode tax years or ISA allowances anywhere in insights code', fu
         }
 
         $files = is_dir($path)
-            ? iterator_to_array(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path)))
-            : [new \SplFileInfo($path)];
+            ? iterator_to_array(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path)))
+            : [new SplFileInfo($path)];
 
         foreach ($files as $file) {
-            if (! ($file instanceof \SplFileInfo) || ! $file->isFile()) {
+            if (! ($file instanceof SplFileInfo) || ! $file->isFile()) {
                 continue;
             }
             if (! in_array($file->getExtension(), ['php', 'vue', 'js'], true)) {

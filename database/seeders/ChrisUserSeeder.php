@@ -27,6 +27,7 @@ use App\Models\Role;
 use App\Models\SavingsAccount;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\UserConsent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -88,6 +89,18 @@ class ChrisUserSeeder extends Seeder
         );
 
         $userId = $chris->id;
+
+        // Grant the same consents real users grant at registration
+        // (AuthController::register lines 506-511). Without this the
+        // consent gate at AiChatController::sendMessage returns 403.
+        foreach ([
+            UserConsent::TYPE_TERMS,
+            UserConsent::TYPE_PRIVACY,
+            UserConsent::TYPE_DATA_PROCESSING,
+            UserConsent::TYPE_AI_CHAT,
+        ] as $consentType) {
+            UserConsent::recordConsent($userId, $consentType, true);
+        }
 
         // ── Subscription (Pro, yearly, active) ────────────────
         Subscription::updateOrCreate(

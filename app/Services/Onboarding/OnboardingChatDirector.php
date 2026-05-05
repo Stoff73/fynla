@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Agents\CoordinatingAgent;
+use App\Jobs\ConversationSummariserJob;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\ExpenditureProfile;
 use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
+use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\RecordDuplicateChecker;
+use App\ValueObjects\CaptureContext;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -41,6 +47,11 @@ final class OnboardingChatDirector
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly OnboardingPromptBuilder $promptBuilder,
+        private readonly OnboardingFactExtractor $factExtractor,
+        private readonly AssetCaptureEntityExtractor $entityExtractor,
+        private readonly HouseholdProvisioner $householdProvisioner,
+        private readonly MemoryRetrieverService $memory,
+        private readonly RecordDuplicateChecker $duplicateChecker,
     ) {}
 
     /**
@@ -51,16 +62,18 @@ final class OnboardingChatDirector
      *
      * @return \Generator<array{type: string}>
      */
-    public function emitFirstTurn(User $user, AiConversation $conversation): \Generator
+    public function emitFirstTurn(User $user, AiConversation $conversation, ?string $stateId = null): \Generator
     {
-        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
+        $stateId = $stateId ?? OnboardingStateMachine::STATE_PATH_CHOICE;
+
+        $state = OnboardingStateMachine::getState($stateId);
         if ($state === null) {
             yield $this->errorEvent('Onboarding is temporarily unavailable.');
 
             return;
         }
 
-        yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_PATH_CHOICE, $state);
+        yield from $this->emitTurnForState($user, $conversation, $stateId, $state);
     }
 
     /**
@@ -82,6 +95,24 @@ final class OnboardingChatDirector
         // fails.
         $this->saveMessage($conversation, 'user', $message);
 
+        // Phase 11 — OnboardingFactExtractor runs speculatively on every
+        // user message and parks structured facts into
+        // ai_conversations.onboarding_parked_facts. Writes to users.* and
+        // family_members remain the responsibility of the existing
+        // grouped_extract tool handlers; parking is consulted downstream
+        // by state handlers for gap-filling follow-ups and pause-state
+        // confirmations. Extraction is best-effort — swallow any failure
+        // rather than blocking the turn.
+        try {
+            $this->factExtractor->extractAndPark($conversation, $message);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Fact extractor failed', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $currentStateId = $user->onboarding_fyn_step;
         if ($currentStateId === null) {
             // Shouldn't happen — controller delegation checks this. Fall
@@ -98,9 +129,14 @@ final class OnboardingChatDirector
             return;
         }
 
-        // Asset capture is the delegated turn.
+        // Asset capture is the delegated turn. Both the journey/focus
+        // STATE_ASSET_CAPTURE and the SaveTax campaign STATE_CAMPAIGN_*
+        // delegated states share the same handler — it advances via
+        // state.next, which gives campaign users the linear walk through
+        // OCCUPATIONAL → ISA → BANK → INVESTMENT → PENSION → SPOUSE_WORK
+        // while keeping STATE_ASSET_CAPTURE → STATE_ADD_MORE unchanged.
         if (($state['turn_type'] ?? '') === 'delegated') {
-            yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute);
+            yield from $this->handleAssetCaptureTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
         }
@@ -109,7 +145,21 @@ final class OnboardingChatDirector
         // base_dependants_detail, base_work) delegate to Claude with a
         // narrow extraction tool, which writes the fields to the DB and
         // returns a capture receipt via SSE.
+        //
+        // Phase 11 Item 4 — before handing to the LLM, see if parking
+        // already has everything the extraction tool would gather. If
+        // it does we can apply the parked values synchronously, emit
+        // the capture event the state handler expects, and advance —
+        // saving an LLM round-trip whenever the user volunteered the
+        // facts earlier in the conversation.
         if (($state['turn_type'] ?? '') === 'grouped_extract') {
+            $hydrated = $this->hydrateFromParking($user, $conversation, $currentStateId, $state);
+            if ($hydrated !== null) {
+                yield from $hydrated;
+
+                return;
+            }
+
             yield from $this->handleGroupedExtractTurn($user, $conversation, $message, $currentRoute, $currentStateId, $state);
 
             return;
@@ -133,8 +183,29 @@ final class OnboardingChatDirector
         // FamilyMember row, or scratch-pad context).
         $this->persistCapture($user, $state, $interpretation);
 
+        // Bubble→tool wiring: when the state declares `bubble_capture`,
+        // dispatch the named tool synchronously so its DB writes are
+        // visible to the routing callable below. Without this, bubble
+        // states with capture_field=null can't influence next-state
+        // routing because nothing writes to the user model.
+        $this->dispatchBubbleCapture($user, $conversation, $state, $interpretation);
+
+        // INV-2.2.6 — flush the matching parked-facts bucket so the
+        // <known_facts> block on the next prompt does not list the same
+        // field twice (the values now live on users.* / family_members /
+        // expenditure_profiles instead).
+        $this->flushParkedFactsForState($conversation, $currentStateId);
+
         // Record the completed step in onboarding_progress for audit/resume.
         $this->recordProgress($user, $currentStateId, $interpretation['captured_value'] ?? null);
+
+        // Emit a short acknowledgment so the UX doesn't feel abrupt when
+        // the state machine jumps straight to the next prompt. One-sentence
+        // acks per completed capture — addresses the terse-transition bug.
+        $ack = $this->buildCaptureAck($user, $currentStateId, $interpretation);
+        if ($ack !== null) {
+            yield ['type' => 'content', 'text' => $ack];
+        }
 
         // Decide the next state id (applies skip_if transitively).
         $nextStateId = OnboardingStateMachine::getNextStateId(
@@ -175,7 +246,247 @@ final class OnboardingChatDirector
             'to_step' => $nextStateId,
         ];
 
+        // Terminal-with-navigate states (e.g. STATE_CAMPAIGN_TERMINAL → /tax-strategy)
+        // own their own route. Treat them like a done turn.
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
+
         yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Handle a routed action from the new POST /action endpoint.
+     * Replaces the old sentinel-string user-message path. Actions are NOT
+     * persisted as AiMessage rows.
+     *
+     * Supported actions:
+     *   - resume:         emit welcome-back greeting referencing the saved step
+     *   - continue:       resume at the saved step (re-emit the current state)
+     *   - restart:        hard-delete prior AiMessage rows, reset step to path_choice
+     *   - skip:           advance past the current state (used for the spouse skip)
+     *   - something_else: pause onboarding (preserving path/selection in
+     *                     onboarding_fyn_context.paused_at_step) and hand the
+     *                     user to free-text mode by emitting "What can I help
+     *                     you with?" — subsequent messages route to AdviceFyn.
+     *
+     * @return \Generator<array{type: string}>
+     */
+    public function handleAction(User $user, AiConversation $conversation, string $action): \Generator
+    {
+        $currentStateId = $user->onboarding_fyn_step;
+
+        switch ($action) {
+            case 'resume':
+                yield from $this->handleResumeAction($user, $conversation, $currentStateId);
+
+                return;
+
+            case 'something_else':
+                yield from $this->handleSomethingElseAction($user, $conversation, $currentStateId);
+
+                return;
+
+            case 'continue':
+                // Re-emit the current state so the user picks up where they left off.
+                if ($currentStateId === null) {
+                    yield $this->errorEvent('No onboarding step to continue from.');
+
+                    return;
+                }
+
+                $state = OnboardingStateMachine::getState($currentStateId);
+                if ($state === null) {
+                    yield $this->errorEvent('Unknown onboarding step.');
+
+                    return;
+                }
+
+                yield from $this->emitTurnForState($user, $conversation, $currentStateId, $state);
+
+                return;
+
+            case 'restart':
+                yield from $this->handleRestartAction($user, $conversation);
+
+                return;
+
+            case 'skip':
+                yield from $this->handleSkipAction($user, $conversation, $currentStateId);
+
+                return;
+
+            default:
+                yield $this->errorEvent("Unknown action: {$action}");
+        }
+    }
+
+    /**
+     * Emit a welcome-back greeting referencing the saved step and surface
+     * Continue / Something else action bubbles. Used by the resume flow on
+     * conversation mount (Phase 12).
+     */
+    private function handleResumeAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
+    {
+        if ($currentStateId === null) {
+            yield $this->errorEvent('No onboarding in progress to resume.');
+
+            return;
+        }
+
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] !== '' ? $nameParts[0] : 'there';
+        }
+
+        $stateLabel = $this->describeStep($currentStateId, $user);
+        $greeting = "Welcome back, {$firstName}. Last time we were {$stateLabel}. Would you like to continue from where we left off, or is there something else I can help with?";
+
+        $message = $this->saveMessage($conversation, 'assistant', $greeting, [
+            'metadata' => [
+                'onboarding_step' => $currentStateId,
+                'is_resume_greeting' => true,
+            ],
+        ]);
+
+        yield [
+            'type' => 'quick_replies',
+            'prompt_text' => $greeting,
+            'bubbles' => [
+                ['id' => 'continue', 'label' => 'Continue'],
+                ['id' => 'something_else', 'label' => 'Something else'],
+            ],
+            'action_bubbles' => true,
+        ];
+
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Hard-delete prior assistant messages in this conversation and reset
+     * the user's onboarding_fyn_step to path_choice so they start fresh.
+     */
+    private function handleRestartAction(User $user, AiConversation $conversation): \Generator
+    {
+        $conversation->messages()->delete();
+
+        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_PATH_CHOICE;
+        $user->onboarding_fyn_path = null;
+        $user->onboarding_fyn_selection = null;
+        $user->onboarding_fyn_context = null;
+        $user->save();
+
+        yield ['type' => 'content', 'text' => "No problem — let's start fresh."];
+
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PATH_CHOICE);
+        if ($state !== null) {
+            yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_PATH_CHOICE, $state);
+        }
+    }
+
+    /**
+     * Pause onboarding without losing it. Stores the current step into
+     * onboarding_fyn_context.paused_at_step and nulls onboarding_fyn_step
+     * so AiChatController::sendMessage routes the user's next message to
+     * AdviceFyn. Path + selection are preserved so the dashboard can offer a
+     * Continue Onboarding CTA when the user is ready to come back.
+     */
+    private function handleSomethingElseAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
+    {
+        if ($currentStateId !== null) {
+            $context = is_array($user->onboarding_fyn_context) ? $user->onboarding_fyn_context : [];
+            $context['paused_at_step'] = $currentStateId;
+            $user->onboarding_fyn_context = $context;
+            $user->onboarding_fyn_step = null;
+            $user->save();
+        }
+
+        $prompt = 'Of course — what can I help you with?';
+        $message = $this->saveMessage($conversation, 'assistant', $prompt, [
+            'metadata' => [
+                'paused_at_step' => $currentStateId,
+                'is_pause_handoff' => true,
+            ],
+        ]);
+
+        yield ['type' => 'content', 'text' => $prompt];
+        yield ['type' => 'done', 'message_id' => $message->id];
+    }
+
+    /**
+     * Skip the current state (primary use: the spouse block). Advances to
+     * the state's configured next without persisting any captured value.
+     * Phase 10 wires this to the actual state-machine skip_next hooks.
+     */
+    private function handleSkipAction(User $user, AiConversation $conversation, ?string $currentStateId): \Generator
+    {
+        if ($currentStateId === null) {
+            yield $this->errorEvent('No onboarding step to skip.');
+
+            return;
+        }
+
+        // Supported skip targets (Phase 10 extension point). For now, the
+        // only sanctioned skip is from base_spouse to base_dependants.
+        $skipTargets = [
+            OnboardingStateMachine::STATE_BASE_SPOUSE => OnboardingStateMachine::STATE_BASE_DEPENDANTS,
+        ];
+
+        if (! isset($skipTargets[$currentStateId])) {
+            yield $this->errorEvent('This step cannot be skipped.');
+
+            return;
+        }
+
+        $nextStateId = $skipTargets[$currentStateId];
+
+        $this->recordProgress($user, $currentStateId, ['skipped' => true]);
+
+        $user->onboarding_fyn_step = $nextStateId;
+        $user->save();
+
+        yield [
+            'type' => 'onboarding_advance',
+            'from_step' => $currentStateId,
+            'to_step' => $nextStateId,
+            'skipped' => true,
+        ];
+
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState !== null) {
+            yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+        }
+    }
+
+    /**
+     * Human-readable label for a state id, used in the resume greeting.
+     * Pass the user so we can interpolate name / selection where relevant.
+     */
+    private function describeStep(string $stateId, ?User $user = null): string
+    {
+        return match ($stateId) {
+            OnboardingStateMachine::STATE_PATH_CHOICE => 'choosing how to get started',
+            OnboardingStateMachine::STATE_JOURNEY_SELECTION => 'picking a life-stage journey',
+            OnboardingStateMachine::STATE_FOCUS_SELECTION => 'picking a module to focus on first',
+            OnboardingStateMachine::STATE_BASE_PERSONAL => 'capturing your date of birth and marital status',
+            OnboardingStateMachine::STATE_BASE_SPOUSE => 'capturing your partner\'s details',
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS => 'noting whether you have dependants',
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => 'noting your dependants',
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'noting your employment situation',
+            OnboardingStateMachine::STATE_BASE_WORK => 'capturing your employer and role',
+            OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'noting your monthly expenditure',
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE => 'noting whether you have another role to add',
+            OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE => 'noting when you retired',
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY => 'reviewing your family details',
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE => 'reviewing your full profile',
+            OnboardingStateMachine::STATE_ASSET_CAPTURE => 'mapping your '.($user?->onboarding_fyn_selection ?? 'financial').' records',
+            OnboardingStateMachine::STATE_ADD_MORE => 'choosing whether to add another module',
+            default => 'mid-onboarding',
+        };
     }
 
     /**
@@ -194,8 +505,13 @@ final class OnboardingChatDirector
             return ['in_progress' => false];
         }
 
+        // Pivot on metadata.source via the `onboarding` scope — the title
+        // legitimately changes as the conversation evolves, so the prior
+        // `where('title','Onboarding')` filter started returning null after
+        // the first user message and broke welcome-back resume on every
+        // re-login past base_personal.
         $conversation = AiConversation::forUser($user->id)
-            ->where('title', 'Onboarding')
+            ->onboarding()
             ->latest('id')
             ->first();
 
@@ -215,6 +531,12 @@ final class OnboardingChatDirector
      * if applicable), persists a corresponding assistant AiMessage row so
      * the conversation history reflects Fyn's output, then yields a `done`
      * marker.
+     *
+     * Phase 10 — also emits `onboarding_layout_change` with the state's
+     * declared layout ('wide' default, 'standard' for profile-review
+     * pauses). Bubble states may include a `skip_link` metadata object
+     * that the frontend renders as a raspberry-500 inline link calling
+     * POST /api/ai-chat/conversations/{id}/action {action:'skip'}.
      */
     private function emitTurnForState(
         User $user,
@@ -224,7 +546,16 @@ final class OnboardingChatDirector
         bool $includeTransitionHeader = true
     ): \Generator {
         $turnType = $state['turn_type'] ?? 'free_text';
-        $promptText = OnboardingStateMachine::resolvePromptText($state, $user);
+        $promptText = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+        $layoutMode = (string) ($state['layout'] ?? 'wide');
+        $skipLink = $state['skip_link'] ?? null;
+
+        // Emit the layout mode up-front so the frontend can shrink / expand
+        // the chat container and blur / un-blur the dashboard in one pass.
+        yield [
+            'type' => 'onboarding_layout_change',
+            'mode' => $layoutMode,
+        ];
 
         if ($turnType === 'bubbles') {
             $bubbles = $this->filterBubbles($user, $stateId, $state);
@@ -234,24 +565,49 @@ final class OnboardingChatDirector
                 'prompt_text' => $promptText,
                 'bubbles' => $bubbles,
             ];
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                $event['skip_link'] = $skipLink;
+            }
             yield $event;
 
-            $assistantMessage = $this->saveMessage(
-                $conversation,
-                'assistant',
-                $promptText,
-                ['metadata' => ['bubbles' => $bubbles, 'onboarding_step' => $stateId]]
-            );
-        } else {
-            // free_text / terminal — plain content event
-            yield ['type' => 'content', 'text' => $promptText];
+            $metadata = ['bubbles' => $bubbles, 'onboarding_step' => $stateId];
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                $metadata['skip_link'] = $skipLink;
+            }
 
             $assistantMessage = $this->saveMessage(
                 $conversation,
                 'assistant',
                 $promptText,
-                ['metadata' => ['onboarding_step' => $stateId]]
+                ['metadata' => $metadata]
             );
+        } else {
+            // free_text / grouped_extract / terminal — plain content event.
+            // Grouped_extract turns emit a prompt too so the user knows what
+            // to type; the tool call happens on their next user message.
+            yield ['type' => 'content', 'text' => $promptText];
+
+            $metadata = ['onboarding_step' => $stateId];
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                $metadata['skip_link'] = $skipLink;
+            }
+
+            $assistantMessage = $this->saveMessage(
+                $conversation,
+                'assistant',
+                $promptText,
+                ['metadata' => $metadata]
+            );
+
+            // For grouped_extract states, the frontend needs the skip_link
+            // (and any other action affordances) out-of-band — emit a
+            // separate event so the UI can render it alongside the content.
+            if (is_array($skipLink) && ! empty($skipLink)) {
+                yield [
+                    'type' => 'skip_link',
+                    'skip_link' => $skipLink,
+                ];
+            }
         }
 
         yield [
@@ -402,6 +758,46 @@ final class OnboardingChatDirector
     // ─── Persistence ──────────────────────────────────────────────────────
 
     /**
+     * Dispatch a side-effect tool when a bubble state declares `bubble_capture`.
+     *
+     * State config shape:
+     *   'bubble_capture' => [
+     *       'tool' => 'capture_spouse_work_status',
+     *       'input_for_bubble' => [
+     *           'yes' => ['spouse_works' => true],
+     *           'no'  => ['spouse_works' => false],
+     *       ],
+     *   ]
+     *
+     * Runs synchronously after persistCapture so the tool's DB writes are
+     * visible to the routing callable in getNextStateId. Goes through
+     * CoordinatingAgent::executeTool to keep preview gating + audit + xAI
+     * parity intact. No-op when bubble_capture is absent or the bubble id
+     * doesn't appear in input_for_bubble.
+     */
+    private function dispatchBubbleCapture(
+        User $user,
+        AiConversation $conversation,
+        array $state,
+        array $interpretation
+    ): void {
+        $config = $state['bubble_capture'] ?? null;
+        if (! is_array($config)) {
+            return;
+        }
+
+        $tool = $config['tool'] ?? null;
+        $inputMap = $config['input_for_bubble'] ?? [];
+        $bubbleId = $interpretation['captured_value'] ?? null;
+
+        if (! is_string($tool) || ! is_string($bubbleId) || ! isset($inputMap[$bubbleId]) || ! is_array($inputMap[$bubbleId])) {
+            return;
+        }
+
+        $this->coordinatingAgent->executeTool($tool, $inputMap[$bubbleId], $user, $conversation->id);
+    }
+
+    /**
      * Write the captured value to the right place:
      * - capture_field set → update users.$column directly
      * - base_spouse state → create FamilyMember row (free text parsed by director)
@@ -511,6 +907,11 @@ final class OnboardingChatDirector
      */
     private function createSpouseFamilyMember(User $user, string $rawText): void
     {
+        // B-2 — create a Household and persist household_id on the user
+        // BEFORE the FamilyMember insert so the spouse row inherits the
+        // real id, not NULL.
+        $householdId = $this->householdProvisioner->ensureFor($user);
+
         $firstName = $this->extractFirstName($rawText);
         $dob = $this->extractDate($rawText);
         $income = OnboardingValueInterpreter::parseIncomeAmount(
@@ -519,7 +920,7 @@ final class OnboardingChatDirector
 
         FamilyMember::create([
             'user_id' => $user->id,
-            'household_id' => $user->household_id,
+            'household_id' => $householdId,
             'relationship' => 'spouse',
             'first_name' => $firstName ?: 'Spouse',
             'date_of_birth' => $dob,
@@ -537,6 +938,9 @@ final class OnboardingChatDirector
      */
     private function createDependantFamilyMembers(User $user, string $rawText): void
     {
+        // B-2 — ensure household exists before any dependant insert.
+        $householdId = $this->householdProvisioner->ensureFor($user);
+
         // Ages are the most reliable signal. Pull every integer between 0
         // and 25 from the message; treat each as one dependant's age.
         if (preg_match_all('/\b(\d{1,2})\b/', $rawText, $matches) === false) {
@@ -553,7 +957,7 @@ final class OnboardingChatDirector
             // the intent is not lost.
             FamilyMember::create([
                 'user_id' => $user->id,
-                'household_id' => $user->household_id,
+                'household_id' => $householdId,
                 'relationship' => 'child',
                 'first_name' => 'Dependant',
                 'is_dependent' => true,
@@ -567,7 +971,7 @@ final class OnboardingChatDirector
         foreach ($ages as $age) {
             FamilyMember::create([
                 'user_id' => $user->id,
-                'household_id' => $user->household_id,
+                'household_id' => $householdId,
                 'relationship' => $age < 18 ? 'child' : 'other_dependent',
                 'first_name' => 'Dependant',
                 'date_of_birth' => now()->subYears($age)->startOfYear()->toDateString(),
@@ -632,6 +1036,197 @@ final class OnboardingChatDirector
         return null;
     }
 
+    // ─── Parking-driven hydration (Phase 11 Item 4) ──────────────────────
+
+    /**
+     * For the current grouped_extract state, check whether the conversation's
+     * onboarding_parked_facts already carry every required field. If so,
+     * call the capture tool handler directly with the parked values, yield
+     * the capture SSE event the normal flow would emit, and advance state.
+     *
+     * Returns null when parking is insufficient — callers then fall through
+     * to the standard LLM-backed handleGroupedExtractTurn. This is strictly
+     * an optimisation; wrong answers (the user contradicting parked facts
+     * in-chat) are still handled by the retraction block in
+     * OnboardingPromptBuilder because parking only fires when the user
+     * has NOT typed anything new for the state.
+     *
+     * Only capture_personal_details is hydrated for now — other buckets
+     * need more careful field mapping (DOB from age_hint, relationship
+     * normalisation) and are deferred to a follow-up.
+     *
+     * @return \Generator<array<string, mixed>>|null
+     */
+    private function hydrateFromParking(
+        User $user,
+        AiConversation $conversation,
+        string $currentStateId,
+        array $state,
+    ): ?\Generator {
+        $extractionTool = (string) ($state['extraction_tool'] ?? '');
+        $parked = $conversation->onboarding_parked_facts ?? [];
+
+        if (! is_array($parked) || $parked === []) {
+            return null;
+        }
+
+        $input = match ($extractionTool) {
+            'capture_personal_details' => $this->buildPersonalInputFromParking($parked, $user),
+            default => null,
+        };
+
+        if ($input === null || $input === []) {
+            return null;
+        }
+
+        Log::info('[OnboardingChatDirector] Parking hydration fires', [
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'state' => $currentStateId,
+            'tool' => $extractionTool,
+            'parked_fields' => array_keys($input),
+        ]);
+
+        $result = $this->coordinatingAgent->executeTool($extractionTool, $input, $user, $conversation->id);
+
+        if (($result['error'] ?? false) === true) {
+            Log::info('[OnboardingChatDirector] Parking hydration rejected — falling through to LLM', [
+                'user_id' => $user->id,
+                'state' => $currentStateId,
+                'reason' => $result['message'] ?? 'unknown',
+            ]);
+
+            return null;
+        }
+
+        // Emit the same shape handleGroupedExtractTurn produces on a
+        // successful capture so downstream consumers (frontend store) see
+        // no difference.
+        return (function () use ($user, $conversation, $currentStateId, $result) {
+            if (($result['onboarding_capture'] ?? false) === true) {
+                yield [
+                    'type' => 'onboarding_field_captured',
+                    'field_group' => $result['field_group'] ?? 'unknown',
+                    'summary' => $result['summary'] ?? 'Captured.',
+                    'details' => $result['details'] ?? [],
+                    'hydrated_from_parking' => true,
+                ];
+            }
+
+            $this->recordProgress($user, $currentStateId, ['hydrated_from_parking' => true]);
+
+            // INV-2.2.6 — parking hydration has just committed the bucket
+            // to users.* via the executeTool call above; clear the bucket
+            // so the next prompt does not surface it again as a parked
+            // fact and trigger duplicate ask-asks.
+            $this->flushParkedFactsForState($conversation, $currentStateId);
+
+            $user->refresh();
+
+            $nextStateId = OnboardingStateMachine::getNextStateId(
+                $currentStateId,
+                '',
+                $user,
+            );
+
+            if ($nextStateId === null) {
+                return;
+            }
+
+            $user->onboarding_fyn_step = $nextStateId;
+
+            if ($nextStateId === OnboardingStateMachine::STATE_DONE) {
+                yield from $this->emitDoneTurn($user, $conversation);
+
+                return;
+            }
+
+            $user->save();
+
+            $nextState = OnboardingStateMachine::getState($nextStateId);
+            if ($nextState === null) {
+                return;
+            }
+
+            yield [
+                'type' => 'onboarding_advance',
+                'from_step' => $currentStateId,
+                'to_step' => $nextStateId,
+                'hydrated_from_parking' => true,
+            ];
+
+            yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+        })();
+    }
+
+    /**
+     * INV-2.2.6 — remove parked-fact buckets that have just been committed
+     * to backing tables so the next prompt's <known_facts> block does not
+     * re-list values the user already volunteered. Keys outside the state's
+     * bucket set stay intact (e.g. parked spouse facts survive a
+     * base_personal commit).
+     *
+     * Mapping mirrors INV-2.2.6: the state at which each bucket's data
+     * gets written to its destination row.
+     */
+    private function flushParkedFactsForState(AiConversation $conversation, string $stateId): void
+    {
+        $buckets = match ($stateId) {
+            OnboardingStateMachine::STATE_BASE_PERSONAL => ['personal'],
+            OnboardingStateMachine::STATE_BASE_SPOUSE => ['spouse'],
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => ['dependants'],
+            OnboardingStateMachine::STATE_BASE_WORK => ['employment'],
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => ['expenditure'],
+            default => [],
+        };
+
+        if ($buckets === []) {
+            return;
+        }
+
+        $parked = (array) ($conversation->onboarding_parked_facts ?? []);
+        if ($parked === []) {
+            return;
+        }
+
+        $changed = false;
+        foreach ($buckets as $bucket) {
+            if (array_key_exists($bucket, $parked)) {
+                unset($parked[$bucket]);
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $conversation->update([
+                'onboarding_parked_facts' => $parked === [] ? null : $parked,
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $parked
+     * @return array<string, mixed>
+     */
+    private function buildPersonalInputFromParking(array $parked, User $user): array
+    {
+        $personal = is_array($parked['personal'] ?? null) ? $parked['personal'] : [];
+        $input = [];
+
+        // Only provide fields the user has NOT already got in the DB; the
+        // tool handler rejects empty payloads which gracefully falls
+        // through when the state would have been skipped anyway.
+        if (empty($user->date_of_birth) && ! empty($personal['date_of_birth'])) {
+            $input['date_of_birth'] = $personal['date_of_birth'];
+        }
+
+        if (empty($user->marital_status) && ! empty($personal['marital_status'])) {
+            $input['marital_status'] = $personal['marital_status'];
+        }
+
+        return $input;
+    }
+
     // ─── Grouped-extract delegation ───────────────────────────────────────
 
     /**
@@ -662,11 +1257,11 @@ final class OnboardingChatDirector
             return;
         }
 
-        $toolDefinitions = app(\App\Services\AI\AiToolDefinitions::class);
+        $toolDefinitions = app(AiToolDefinitions::class);
         // Match the active provider so the tools ship in the correct
         // format. xAI expects the OpenAI function-calling wrapper,
         // Anthropic expects the flattened input_schema shape.
-        $provider = \Illuminate\Support\Facades\Cache::get(
+        $provider = Cache::get(
             'ai_provider',
             config('services.ai_provider', 'anthropic')
         );
@@ -695,7 +1290,7 @@ final class OnboardingChatDirector
             return;
         }
 
-        $systemPrompt = $this->buildGroupedExtractPrompt($user, $currentStateId, $toolName);
+        $systemPrompt = $this->buildGroupedExtractPrompt($user, $currentStateId, $toolName, $conversation);
 
         $captureReceived = false;
         $captureDetails = [];
@@ -821,6 +1416,12 @@ final class OnboardingChatDirector
 
         $this->recordProgress($user, $currentStateId, $captureDetails);
 
+        // INV-2.2.6 — same flush as the free-text path above. The grouped
+        // capture handler has just written the bucket's fields to users.*
+        // / family_members so leaving the parked copy would re-list those
+        // values in the next <known_facts> block.
+        $this->flushParkedFactsForState($conversation, $currentStateId);
+
         // Refresh the user so skip_if helpers on the next state see the
         // freshly-written columns.
         $user->refresh();
@@ -854,11 +1455,31 @@ final class OnboardingChatDirector
             return;
         }
 
+        // Emit a capture ack for the just-completed grouped_extract state
+        // (spouse, dependants, employment, expenditure). Fires between the
+        // handler's persistence and the next state's prompt so transitions
+        // don't feel abrupt.
+        $ack = $this->buildCaptureAck($user, $currentStateId, []);
+        if ($ack !== null) {
+            yield ['type' => 'content', 'text' => $ack];
+        }
+
         yield [
             'type' => 'onboarding_advance',
             'from_step' => $currentStateId,
             'to_step' => $nextStateId,
         ];
+
+        // Terminal-with-navigate states (e.g. STATE_CAMPAIGN_TERMINAL → /tax-strategy)
+        // own their own route and must mark onboarding_completed. Free-text
+        // path has the same branch at the main turn-router (handleUserMessage);
+        // grouped_extract needs its own copy because it returns from inside
+        // this private method.
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
 
         yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
     }
@@ -900,7 +1521,7 @@ final class OnboardingChatDirector
     ): \Generator {
         $text = $captureError['message'] !== ''
             ? $captureError['message']
-            : "Something went wrong. Could you try again?";
+            : 'Something went wrong. Could you try again?';
 
         $message = $this->saveMessage($conversation, 'assistant', $text, [
             'metadata' => [
@@ -976,7 +1597,7 @@ final class OnboardingChatDirector
         )));
 
         if (count($friendly) === 0) {
-            return "I still need a couple of things to move on — could you share them again?";
+            return 'I still need a couple of things to move on — could you share them again?';
         }
 
         $list = match (count($friendly)) {
@@ -993,10 +1614,18 @@ final class OnboardingChatDirector
      * stay narrow — we do not want Claude to answer the user, we just
      * want it to call the single extraction tool with parsed fields.
      */
-    private function buildGroupedExtractPrompt(User $user, string $stateId, string $toolName): string
+    private function buildGroupedExtractPrompt(User $user, string $stateId, string $toolName, ?AiConversation $conversation = null): string
     {
-        $nameParts = explode(' ', (string) $user->name);
-        $firstName = $nameParts[0] ?: 'there';
+        $firstName = trim((string) ($user->first_name ?? ''));
+        if ($firstName === '') {
+            $nameParts = explode(' ', (string) $user->name);
+            $firstName = $nameParts[0] ?: 'there';
+        }
+
+        // S1.4 — known_facts block; injected after <instructions> below
+        // (rendered into the heredoc) so the LLM never re-asks for fields
+        // already known from layers 1-4.
+        $knownFactsBlock = $this->memory->renderKnownFactsBlock($user, $conversation);
 
         $instructions = match ($toolName) {
             'capture_personal_details' => 'Extract the user\'s date of birth and marital status from their message. Map phrases exactly: "civil partnership" / "civil partner" → civil_partnership; "married" → married; "single" → single; "divorced" / "separated" → divorced; "widowed" → widowed.',
@@ -1006,7 +1635,7 @@ final class OnboardingChatDirector
             default => 'Extract the user\'s reply using the provided tool.',
         };
 
-        return <<<PROMPT
+        $prompt = <<<PROMPT
 <identity>
 You are an extraction helper for the Fynla onboarding flow. {$firstName} is a new user setting up their account. Your ONLY job this turn is to extract structured fields from their plain-English reply and call the `{$toolName}` tool exactly once. Do not answer, greet, analyse, or respond conversationally — just call the tool.
 </identity>
@@ -1022,6 +1651,12 @@ Rules:
 - Numbers must be plain integers or decimals without currency symbols, commas, or units.
 </instructions>
 PROMPT;
+
+        if ($knownFactsBlock !== '') {
+            $prompt .= "\n\n".$knownFactsBlock;
+        }
+
+        return $prompt;
     }
 
     // ─── Asset capture delegation ─────────────────────────────────────────
@@ -1036,18 +1671,60 @@ PROMPT;
      * After the delegation completes, the director advances state to
      * add_more so the next user turn routes back through handleUserMessage.
      */
+    /**
+     * @param  array<string, mixed>  $state
+     */
     private function handleAssetCaptureTurn(
         User $user,
         AiConversation $conversation,
         string $message,
-        ?string $currentRoute
+        ?string $currentRoute,
+        string $currentStateId = OnboardingStateMachine::STATE_ASSET_CAPTURE,
+        array $state = []
     ): \Generator {
         $selection = $user->onboarding_fyn_selection ?? 'savings';
+
+        // April30Updates F-11 — duplicate-check guard.
+        //
+        // During multi-turn onboarding (especially the SaveTax 6-8 turn flow)
+        // the user may re-mention records they already described in an earlier
+        // turn ("the Aviva life cover I told you about"). The known_facts
+        // block reduces re-asking, but the LLM is not perfectly disciplined at
+        // 0.7 temperature and can still re-emit a create_* tool. The advice
+        // path is protected by RecordDuplicateChecker; until now the onboarding
+        // path was not. Mirror the same guard here so multi-turn capture cannot
+        // create duplicates. We map the focus to the entity_type the checker
+        // recognises; estate / business / savetax fall through (no checker
+        // mapping — handler-level dedup remains the floor for those).
+        $entityType = match ($selection) {
+            'savings', 'budgeting' => 'savings_account',
+            'investment' => 'investment_account',
+            'retirement' => 'pension',
+            'protection' => 'protection_policy',
+            'goals' => 'goal',
+            default => null,
+        };
+        if ($entityType !== null) {
+            $intent = ['entity_type' => $entityType];
+            if ($this->duplicateChecker->alreadyExists($user, $intent, $message)) {
+                Log::info('[OnboardingChatDirector] Duplicate capture suppressed', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'focus' => $selection,
+                    'entity_type' => $entityType,
+                ]);
+
+                yield ['type' => 'content', 'text' => 'Already on file — nothing to add there.'];
+                yield ['type' => 'done'];
+
+                return;
+            }
+        }
 
         // Swap the coordinating agent's system prompt for this turn only.
         // We do this by calling chat() with a short-lived prompt override —
         // see CoordinatingAgent::chatWithPromptOverride() below.
-        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection);
+        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
 
         try {
@@ -1077,6 +1754,14 @@ PROMPT;
             $toolCallsSeen = 0;
             $contentBuffer = '';
             $flushed = false;
+
+            // B-1 gap-check — track the fields dict of every fill_form the
+            // LLM emitted so we can compare it to the deterministic entity
+            // extractor's view of the user message and fill in any gaps
+            // after the stream is done. fill_form is the single canonical
+            // source of the "what entity was just captured" data; tool_use
+            // status events don't carry the input payload.
+            $llmEmittedFills = [];
 
             $flushBuffer = function () use (&$contentBuffer, &$toolCallsSeen, &$flushed, $selection) {
                 $flushed = true;
@@ -1110,6 +1795,13 @@ PROMPT;
                     continue;
                 }
 
+                if ($type === 'fill_form') {
+                    $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+                    yield $event;
+
+                    continue;
+                }
+
                 if ($type === 'done') {
                     // Flush the buffered content just before the delegated
                     // stream's terminal marker so the frontend sees ack
@@ -1119,6 +1811,12 @@ PROMPT;
                     if ($flushEvent !== null) {
                         yield $flushEvent;
                     }
+
+                    // B-1 — synthesize tool calls for entities the LLM
+                    // dropped BEFORE the done marker so the frontend's
+                    // aiFormFill queue sees them in a single turn.
+                    yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
+
                     yield $event;
 
                     continue;
@@ -1135,6 +1833,7 @@ PROMPT;
                 if ($flushEvent !== null) {
                     yield $flushEvent;
                 }
+                yield from $this->emitGapFillToolCalls($user, $selection, $message, $llmEmittedFills);
             }
         } catch (\Throwable $e) {
             Log::error('[OnboardingChatDirector] Asset capture delegation failed', [
@@ -1145,33 +1844,282 @@ PROMPT;
 
             yield [
                 'type' => 'content',
-                'text' => "I had trouble reading that. Could you try listing them one at a time?",
+                'text' => 'I had trouble reading that. Could you try listing them one at a time?',
             ];
 
             return;
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
-        // that actually created records already persisted their own rows)
+        // that actually created records already persisted their own rows).
+        // Records under the actual state ID so campaign delegated states
+        // (campaign_occupational_scheme, campaign_isa_holdings, etc.) appear
+        // as their own rows, not as STATE_ASSET_CAPTURE.
         $this->recordProgress(
             $user,
-            OnboardingStateMachine::STATE_ASSET_CAPTURE,
+            $currentStateId,
             ['selection' => $selection, 'raw_message' => mb_substr($message, 0, 500)]
         );
 
-        // Advance the user's step to add_more for the next turn.
-        $user->onboarding_fyn_step = OnboardingStateMachine::STATE_ADD_MORE;
+        // Advance via state.next so the journey/focus path stays at
+        // STATE_ASSET_CAPTURE → STATE_ADD_MORE while the campaign branch
+        // walks through its 5 delegated states sequentially.
+        $nextStateId = OnboardingStateMachine::getNextStateId(
+            $currentStateId,
+            $message,
+            $user->refresh()
+        );
+
+        if ($nextStateId === null) {
+            return;
+        }
+
+        $user->onboarding_fyn_step = $nextStateId;
         $user->save();
 
         yield [
             'type' => 'onboarding_advance',
-            'from_step' => OnboardingStateMachine::STATE_ASSET_CAPTURE,
-            'to_step' => OnboardingStateMachine::STATE_ADD_MORE,
+            'from_step' => $currentStateId,
+            'to_step' => $nextStateId,
         ];
 
-        $nextState = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_ADD_MORE);
-        if ($nextState !== null) {
-            yield from $this->emitTurnForState($user, $conversation, OnboardingStateMachine::STATE_ADD_MORE, $nextState);
+        $nextState = OnboardingStateMachine::getState($nextStateId);
+        if ($nextState === null) {
+            return;
+        }
+
+        // SaveTax campaign terminal: emit the celebration text, fire the
+        // navigate SSE event using state.navigate_to, mark onboarding
+        // complete. emitTurnForState alone only renders the prompt — it
+        // doesn't know about navigate_to or onboarding_complete chains.
+        if (($nextState['turn_type'] ?? '') === 'terminal' && ! empty($nextState['navigate_to'])) {
+            yield from $this->emitTerminalNavigationTurn($user, $conversation, $nextStateId, $nextState);
+
+            return;
+        }
+
+        yield from $this->emitTurnForState($user, $conversation, $nextStateId, $nextState);
+    }
+
+    /**
+     * Emit a terminal turn that owns its own navigation route via
+     * state.navigate_to (currently used by STATE_CAMPAIGN_TERMINAL → /tax-strategy).
+     * Mirrors emitDoneTurn but uses the state's own navigate_to so a campaign
+     * branch can land the user on a bespoke route while still triggering the
+     * onboarding_complete chain that flips users.onboarding_completed.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function emitTerminalNavigationTurn(
+        User $user,
+        AiConversation $conversation,
+        string $stateId,
+        array $state
+    ): \Generator {
+        $selection = $user->onboarding_fyn_selection ?? '';
+        $nextRoute = (string) $state['navigate_to'];
+        $celebration = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        yield ['type' => 'content', 'text' => $celebration];
+
+        $assistantMessage = $this->saveMessage(
+            $conversation,
+            'assistant',
+            $celebration,
+            ['metadata' => ['onboarding_step' => $stateId]]
+        );
+
+        yield [
+            'type' => 'navigation',
+            'route_path' => $nextRoute,
+            'description' => $stateId,
+        ];
+
+        yield [
+            'type' => 'onboarding_complete',
+            'selection' => $selection,
+            'nextRoute' => $nextRoute,
+        ];
+
+        yield ['type' => 'done', 'message_id' => $assistantMessage->id];
+
+        $user->onboarding_completed = true;
+        $user->onboarding_completed_at = now();
+        $user->onboarding_fyn_step = null;
+        $user->onboarding_fyn_path = null;
+        $user->onboarding_fyn_selection = null;
+        $user->onboarding_fyn_context = null;
+        $user->save();
+
+        $this->recordProgress($user, $stateId, ['next_route' => $nextRoute]);
+    }
+
+    /**
+     * Generate a one-sentence acknowledgment for a just-completed capture.
+     *
+     * The state machine previously advanced silently between capture and
+     * the next prompt, which felt abrupt ("My wife is Jane, born 1983" →
+     * immediately "Any children or dependants to add?"). A brief "Got it"
+     * line between the two lands the previous answer before the next ask.
+     *
+     * Returns null for states that don't merit an ack (bubble confirmations,
+     * terminal states) so we don't double up on noise.
+     *
+     * @param  array<string, mixed>  $interpretation
+     */
+    private function buildCaptureAck(User $user, string $stateId, array $interpretation): ?string
+    {
+        return match ($stateId) {
+            OnboardingStateMachine::STATE_BASE_SPOUSE => $this->spouseAck($user),
+            OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL => $this->dependantsAck($user),
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT => 'Thanks — I\'ve noted your work details.',
+            OnboardingStateMachine::STATE_BASE_EXPENDITURE => 'Thanks — I\'ve noted your monthly spending.',
+            default => null,
+        };
+    }
+
+    private function spouseAck(User $user): string
+    {
+        $spouse = FamilyMember::where('user_id', $user->id)
+            ->where('relationship', 'spouse')
+            ->latest()
+            ->first();
+
+        if ($spouse === null || $spouse->first_name === null) {
+            return 'Got it — your spouse is now on file.';
+        }
+
+        return "Got it — I've added {$spouse->first_name} and linked the two of you.";
+    }
+
+    private function dependantsAck(User $user): string
+    {
+        $count = FamilyMember::where('user_id', $user->id)
+            ->whereIn('relationship', ['child', 'other_dependent'])
+            ->count();
+
+        if ($count === 0) {
+            return 'Got it.';
+        }
+        if ($count === 1) {
+            return 'Got it — 1 dependant added.';
+        }
+
+        return "Got it — {$count} dependants added.";
+    }
+
+    /**
+     * B-1 — synthesize tool calls for multi-entity messages the LLM dropped.
+     *
+     * Runs AFTER the LLM's asset_capture stream has finished. Feeds the
+     * user's original message to AssetCaptureEntityExtractor, compares the
+     * extracted entity set to the fill_form payloads the LLM actually
+     * emitted, and yields synthetic tool_use / fill_form / tool_use events
+     * for every entity the LLM missed. Those synthetic events flow into
+     * the aiFormFill Vuex queue exactly the same way as LLM-emitted ones,
+     * so each missing entity still drives a form navigation + auto-save
+     * on the frontend.
+     *
+     * The extractor is conservative — it only fires when it's confident
+     * about both the entity type and its identity, so a completely
+     * unrecognised phrasing degrades gracefully to "the LLM's single
+     * tool call wins" rather than misclassifying.
+     *
+     * @param  list<array<string, mixed>>  $llmEmittedFills  fields[] from each
+     *                                                       LLM-emitted fill_form
+     * @return \Generator<array{type: string}>
+     */
+    private function emitGapFillToolCalls(
+        User $user,
+        string $selection,
+        string $message,
+        array $llmEmittedFills
+    ): \Generator {
+        $tool = $this->entityExtractor->toolNameForFocus($selection);
+        if ($tool === null) {
+            return;
+        }
+
+        try {
+            $extracted = $this->entityExtractor->extractForFocus($selection, $message);
+            $missing = $this->entityExtractor->findMissing($selection, $extracted, $llmEmittedFills, $user);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Gap-fill extraction failed', [
+                'user_id' => $user->id,
+                'selection' => $selection,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        Log::info('[OnboardingChatDirector] Gap-fill firing for dropped entities', [
+            'user_id' => $user->id,
+            'selection' => $selection,
+            'llm_emitted' => count($llmEmittedFills),
+            'extractor_found' => count($extracted),
+            'gap_filling' => count($missing),
+        ]);
+
+        foreach ($missing as $input) {
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'running',
+            ];
+
+            try {
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+            } catch (\Throwable $e) {
+                Log::error('[OnboardingChatDirector] Gap-fill tool execution failed', [
+                    'user_id' => $user->id,
+                    'tool' => $tool,
+                    'input' => $input,
+                    'error' => $e->getMessage(),
+                ]);
+
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (! empty($result['error']) || ! empty($result['blocked'])) {
+                // Handler refused. Don't propagate a bad fill_form to the
+                // frontend — just close out the tool_use status so the UI
+                // doesn't think it's still running.
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (($result['action'] ?? null) === 'fill_form') {
+                yield [
+                    'type' => 'fill_form',
+                    'entity_type' => $result['entity_type'] ?? '',
+                    'route' => $result['route'] ?? '',
+                    'fields' => $result['fields'] ?? [],
+                    'mode' => $result['mode'] ?? 'create',
+                    'entity_id' => $result['entity_id'] ?? null,
+                ];
+            }
+
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'complete',
+            ];
         }
     }
 
@@ -1288,6 +2236,8 @@ PROMPT;
         $user->save();
 
         $this->recordProgress($user, OnboardingStateMachine::STATE_DONE, ['next_route' => $nextRoute]);
+
+        ConversationSummariserJob::dispatch($conversation->id);
     }
 
     private function routeForSelection(string $selection): string
@@ -1363,5 +2313,300 @@ PROMPT;
         }
 
         return '';
+    }
+
+    /**
+     * Two-Fyn inline capture: handle a mid-onboarding turn where the user
+     * volunteered data that needs to be persisted via create_/update_ tools.
+     *
+     * Strips layout/quick_reply events from the stream so the handoff is
+     * invisible to the frontend (INV-2.4.1, INV-2.4.2). Tracks fill_form
+     * events emitted by the LLM so the extractor-driven gap-fill below
+     * can dedup against them. After the LLM stream completes, runs the
+     * multi-entity gap-fill on every focus inferred from the CaptureContext.
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    public function handleInlineCapture(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        CaptureContext $context,
+        ?string $currentRoute = null,
+    ): \Generator {
+        $allowedTools = $this->captureToolSet($context);
+
+        // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
+        // chat() turn that emitted delegate_to_capture already saved the
+        // user message. Re-saving from inside the inline-capture turn would
+        // produce a duplicate row in ai_messages.
+        $generator = $this->coordinatingAgent->chatWithPromptOverride(
+            user: $user,
+            conversation: $conversation,
+            message: $message,
+            currentRoute: $currentRoute,
+            systemPromptOverride: null,
+            allowedTools: $allowedTools,
+            persistUserMessage: false,
+            toolsListOverride: null,
+            personaOverride: 'data_capture',
+        );
+
+        /** @var list<array<string, mixed>> $llmEmittedFills */
+        $llmEmittedFills = [];
+
+        /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
+        $recordsCreated = [];
+
+        foreach ($generator as $event) {
+            $type = $event['type'] ?? '';
+
+            if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
+                continue;
+            }
+
+            if ($type === 'fill_form') {
+                $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+            }
+
+            // Track every record persisted by a create_* / direct-write handler
+            // so the closing capture_complete event carries the full list.
+            if ($type === 'entity_created') {
+                $recordsCreated[] = [
+                    'type' => (string) ($event['entity_type'] ?? ''),
+                    'id' => $event['entity_id'] ?? null,
+                    'name' => (string) ($event['name'] ?? ''),
+                ];
+            }
+
+            yield $event;
+        }
+
+        yield from $this->emitGapFillFromCaptureContext(
+            $user,
+            $conversation,
+            $context,
+            $message,
+            $llmEmittedFills,
+        );
+
+        // Emit a single closing capture_complete event so AiChatPanel.vue can
+        // render the rich record-card bubble (one card per record) instead of
+        // leaving the user with the bare entity_created mini-bubble plus the
+        // assistant's prose. Suppressed when nothing was actually written —
+        // an empty card would just be visual noise.
+        if ($recordsCreated !== []) {
+            yield [
+                'type' => 'capture_complete',
+                'summary' => $this->buildCaptureCompleteSummary($recordsCreated),
+                'records_created' => $recordsCreated,
+            ];
+        }
+    }
+
+    /**
+     * One-line summary heading for the capture_complete record-card bubble.
+     * The card itself shows each record on its own row; this is the bold
+     * prefix above them.
+     *
+     * @param  list<array{type: string, id: int|string|null, name: string}>  $records
+     */
+    private function buildCaptureCompleteSummary(array $records): string
+    {
+        if (count($records) === 1) {
+            return 'Saved to your records';
+        }
+
+        return sprintf('Saved %d records', count($records));
+    }
+
+    /**
+     * Tool whitelist for an inline-capture turn. Matches the post-collapse
+     * data_capture scope — every create_/update_ write the user can trigger
+     * mid-onboarding plus a handful of update helpers.
+     *
+     * @return list<string>
+     */
+    private function captureToolSet(CaptureContext $context): array
+    {
+        return [
+            'create_savings_account', 'create_investment_account', 'create_holding',
+            'create_pension', 'create_property', 'create_mortgage',
+            'create_protection_policy', 'create_family_member',
+            'create_goal', 'create_life_event', 'create_trust',
+            'create_will', 'update_will',
+            'create_power_of_attorney', 'update_power_of_attorney',
+            'create_asset', 'create_liability', 'create_estate_gift',
+            'create_chattel', 'create_business_interest',
+            'update_record', 'update_profile', 'set_expenditure',
+            // S0.5.r — what-if scenarios persist a WhatIfScenario row, so
+            // they route through the handoff like every other create_*.
+            'create_what_if_scenario',
+            // S0.5.r — delete is allowed in inline-capture so the user can
+            // ask Advice Fyn to remove a record and have the handoff dispatch
+            // delete_record for them.
+            'delete_record',
+            // SaveTax campaign sections 4-6 — used during the campaign-only
+            // post-expenditure state-machine branch. Always whitelisted; the
+            // state machine itself gates which states can call which tool.
+            'capture_salary_sacrifice',
+            'capture_spouse_work_status',
+            'capture_spouse_household_data',
+            'capture_spouse_non_working_assets',
+        ];
+    }
+
+    /**
+     * Deterministic multi-entity gap-fill — ported from the retired persona
+     * invoker. Runs AssetCaptureEntityExtractor on the user's message once
+     * per focus inferred from the CaptureContext, compares against the
+     * fill_form events the LLM already emitted this turn, and synthesises
+     * tool_use + fill_form + tool_use events for every entity the LLM
+     * dropped.
+     *
+     * Silently drops entity types the extractor does not cover (goals,
+     * life events, property). Per-focus extractor failures are logged and
+     * skipped rather than aborting the turn.
+     *
+     * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @return \Generator<array<string, mixed>>
+     */
+    private function emitGapFillFromCaptureContext(
+        User $user,
+        AiConversation $conversation,
+        CaptureContext $context,
+        string $message,
+        array $llmEmittedFills,
+    ): \Generator {
+        $focuses = $this->inferFocusesFromEntityTypes($context->entityTypes);
+
+        foreach ($focuses as $focus) {
+            yield from $this->runExtractorForFocus($user, $focus, $message, $llmEmittedFills);
+        }
+    }
+
+    /**
+     * Run the extractor for a single focus and emit gap-fill events for any
+     * entities the LLM dropped.
+     *
+     * @param  list<array<string, mixed>>  $llmEmittedFills
+     * @return \Generator<array<string, mixed>>
+     */
+    private function runExtractorForFocus(
+        User $user,
+        string $focus,
+        string $message,
+        array $llmEmittedFills,
+    ): \Generator {
+        $tool = $this->entityExtractor->toolNameForFocus($focus);
+        if ($tool === null) {
+            return;
+        }
+
+        try {
+            $extracted = $this->entityExtractor->extractForFocus($focus, $message);
+            $missing = $this->entityExtractor->findMissing($focus, $extracted, $llmEmittedFills, $user);
+        } catch (\Throwable $e) {
+            Log::warning('[OnboardingChatDirector] Inline-capture gap-fill extraction failed', [
+                'user_id' => $user->id,
+                'focus' => $focus,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        Log::info('[OnboardingChatDirector] Inline-capture gap-fill firing for dropped entities', [
+            'user_id' => $user->id,
+            'focus' => $focus,
+            'llm_emitted' => count($llmEmittedFills),
+            'extractor_found' => count($extracted),
+            'gap_filling' => count($missing),
+        ]);
+
+        foreach ($missing as $input) {
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'running',
+            ];
+
+            try {
+                $result = $this->coordinatingAgent->executeTool($tool, $input, $user);
+            } catch (\Throwable $e) {
+                Log::error('[OnboardingChatDirector] Inline-capture gap-fill tool execution failed', [
+                    'user_id' => $user->id,
+                    'tool' => $tool,
+                    'input' => $input,
+                    'error' => $e->getMessage(),
+                ]);
+
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (! empty($result['error']) || ! empty($result['blocked'])) {
+                yield [
+                    'type' => 'tool_use',
+                    'tool' => $tool,
+                    'status' => 'complete',
+                ];
+
+                continue;
+            }
+
+            if (($result['action'] ?? null) === 'fill_form') {
+                yield [
+                    'type' => 'fill_form',
+                    'entity_type' => $result['entity_type'] ?? '',
+                    'route' => $result['route'] ?? '',
+                    'fields' => $result['fields'] ?? [],
+                    'mode' => $result['mode'] ?? 'create',
+                    'entity_id' => $result['entity_id'] ?? null,
+                ];
+            }
+
+            yield [
+                'type' => 'tool_use',
+                'tool' => $tool,
+                'status' => 'complete',
+            ];
+        }
+    }
+
+    /**
+     * Translate CaptureContext::entityTypes into extractor focus strings.
+     * Silently drops entity types the extractor does not cover (goal,
+     * life_event, property).
+     *
+     * @param  list<string>  $entityTypes
+     * @return list<string>
+     */
+    private function inferFocusesFromEntityTypes(array $entityTypes): array
+    {
+        $focuses = [];
+        foreach ($entityTypes as $entity) {
+            $focus = match ($entity) {
+                'protection_policy', 'life_insurance_policy', 'critical_illness_policy', 'income_protection_policy' => 'protection',
+                'savings_account', 'cash_account' => 'savings',
+                'dc_pension', 'db_pension', 'pension' => 'retirement',
+                'investment_account', 'holding' => 'investment',
+                default => null,
+            };
+            if ($focus !== null && ! in_array($focus, $focuses, true)) {
+                $focuses[] = $focus;
+            }
+        }
+
+        return $focuses;
     }
 }

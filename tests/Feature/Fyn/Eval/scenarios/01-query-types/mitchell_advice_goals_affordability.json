@@ -1,0 +1,75 @@
+{
+  "id": "mitchell_advice_goals_affordability",
+  "category": "01-query-types",
+  "persona": "peak_earners",
+  "is_mutating": false,
+  "description": "David Mitchell asks about goal progress / affordability. Classifier resolves to GOALS_PROGRESS (primary), affordability (related), modules: [goals, savings, income]. Universal KYC passes. GoalsAgent runs across configured goals. LLM should reference progress vs target and signpost FCA advice.",
+  "input": {
+    "turns": [
+      {"user": "Are we on track for our savings goals?", "current_route": "/goals"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "goals_progress",
+    "related": ["affordability"],
+    "modules": ["goals", "savings", "income"]
+  },
+  "expected_response_mode": "recommendation",
+  "expected_engine_call_level": "module",
+  "expected_kyc_state": "passed",
+  "expected_tool_calls": [
+    {"tool": "get_module_analysis", "args": {"module": "goals"}, "required": true, "result_path": "happy"}
+  ],
+  "expected_tool_calls_absent": [
+    "create_goal",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["title", "content", "tool_use", "done"],
+    "must_emit_exactly_once": ["done", "title"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5,
+    "tool_use_count_min": 1,
+    "tool_use_count_max": 8
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+    ],
+    "must_contain_at_least_one_of": [
+      ["goal", "target", "progress", "track"]
+    ],
+    "must_not_contain_substrings": ["I think you should", "I'd recommend", "In my opinion", "you should definitely"],
+    "minimum_length_chars": 200,
+    "maximum_length_chars": 3000
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["goals", "users"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "AgentDecision", "decisionPoint": "response_mode", "outcome": "recommendation"},
+      {"event": "AgentDecision", "decisionPoint": "engine_call_level", "outcome": "module"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true},
+      {"event": "GateChecked", "gate": "kyc", "module": "goals", "passed": true},
+      {"event": "EngineCalled", "engine": "goals_analysis"}
+    ],
+    "must_not_contain": [
+      {"event": "EngineCalled", "engine": "orchestrate_analysis"}
+    ]
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"happy": 9000},
+    "xai": {"happy": 22000}
+  },
+  "tags": ["regression-band-0", "recommendation-mode", "goals", "peak_earners", "happy-path"]
+}

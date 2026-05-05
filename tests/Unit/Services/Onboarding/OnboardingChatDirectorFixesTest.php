@@ -21,7 +21,6 @@ uses(RefreshDatabase::class);
  *  inside a generator loop that consumes delegated CoordinatingAgent output
  *  and isn't unit-testable without a full LLM mock.
  */
-
 function invokePersistCapture(User $user, string $stateId, mixed $capturedValue): void
 {
     $director = app(OnboardingChatDirector::class);
@@ -58,7 +57,7 @@ describe('Fix §1: add_more persists the new selection', function () {
         $user->refresh();
         expect($user->onboarding_fyn_selection)->toBe('savings')
             ->and($user->onboarding_fyn_context['visited_focuses'])
-                ->toContain('protection')->toContain('savings');
+            ->toContain('protection')->toContain('savings');
     });
 
     it('does not overwrite selection when user picks "done"', function () {
@@ -72,7 +71,7 @@ describe('Fix §1: add_more persists the new selection', function () {
         $user->refresh();
         expect($user->onboarding_fyn_selection)->toBe('savings')
             ->and($user->onboarding_fyn_context['visited_focuses'])
-                ->not->toContain('done');
+            ->not->toContain('done');
     });
 
     it('does not duplicate an already-visited focus', function () {

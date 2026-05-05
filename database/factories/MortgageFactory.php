@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\Mortgage;
+use App\Models\Property;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Mortgage>
+ * @extends Factory<Mortgage>
  */
 class MortgageFactory extends Factory
 {
@@ -29,7 +31,7 @@ class MortgageFactory extends Factory
         $remainingMonths = max(0, ($maturityDate->getTimestamp() - $now->getTimestamp()) / (30 * 24 * 60 * 60));
 
         return [
-            'property_id' => \App\Models\Property::factory(),
+            'property_id' => Property::factory(),
             'lender_name' => fake()->company().' Bank',
             'mortgage_account_number' => fake()->optional()->numerify('MG########'),
             'mortgage_type' => $mortgageType,

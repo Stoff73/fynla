@@ -128,7 +128,7 @@ it('all monetary and percentage columns use decimal:2 instead of float', functio
 
     expect($violations)->toBeEmpty(sprintf(
         "Found %d monetary columns using 'float' cast (must be 'decimal:2'):\n\n%s\n\n".
-        "Currency and percentage columns require decimal precision. Update the \$casts array ".
+        'Currency and percentage columns require decimal precision. Update the $casts array '.
         "to use 'decimal:2' (or appropriate precision for percentages).",
         count($violations),
         implode("\n", $violations)

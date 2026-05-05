@@ -37,6 +37,7 @@ use App\Models\SicknessIllnessPolicy;
 use App\Models\SpousePermission;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Models\UserConsent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -416,6 +417,8 @@ class PreviewUserSeeder extends Seeder
 
         $user->save();
 
+        $this->grantStandardConsents($user);
+
         return $user;
     }
 
@@ -523,6 +526,8 @@ class PreviewUserSeeder extends Seeder
         }
 
         $spouse->save();
+
+        $this->grantStandardConsents($spouse);
 
         // Link spouse to primary user
         $primaryUser->spouse_id = $spouse->id;
@@ -2543,5 +2548,22 @@ class PreviewUserSeeder extends Seeder
             ],
             default => null,
         };
+    }
+
+    /**
+     * Grant the same consents real users grant at registration
+     * (AuthController::register lines 506-511). Without this the
+     * consent gate at AiChatController::sendMessage returns 403.
+     */
+    private function grantStandardConsents(User $user): void
+    {
+        foreach ([
+            UserConsent::TYPE_TERMS,
+            UserConsent::TYPE_PRIVACY,
+            UserConsent::TYPE_DATA_PROCESSING,
+            UserConsent::TYPE_AI_CHAT,
+        ] as $consentType) {
+            UserConsent::recordConsent($user->id, $consentType, true);
+        }
     }
 }

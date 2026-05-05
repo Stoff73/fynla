@@ -78,13 +78,13 @@ describe('JourneyStateService', function () {
         $user = User::factory()->create();
 
         $this->service->startJourney($user, 'invalid_journey');
-    })->throws(\InvalidArgumentException::class);
+    })->throws(InvalidArgumentException::class);
 
     it('throws exception for invalid journey name on complete', function () {
         $user = User::factory()->create();
 
         $this->service->completeJourney($user, 'invalid_journey');
-    })->throws(\InvalidArgumentException::class);
+    })->throws(InvalidArgumentException::class);
 
     it('returns journey progress', function () {
         $user = User::factory()->create();

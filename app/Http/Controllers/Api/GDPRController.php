@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GDPRController extends Controller
 {
@@ -142,7 +143,7 @@ class GDPRController extends Controller
     /**
      * Download the export file
      */
-    public function downloadExport(Request $request, int $id): JsonResponse|\Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadExport(Request $request, int $id): JsonResponse|StreamedResponse
     {
         $export = DataExport::where('id', $id)
             ->where('user_id', $request->user()->id)

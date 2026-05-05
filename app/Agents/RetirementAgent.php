@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Agents;
 
 use App\Constants\TaxDefaults;
+use App\Events\Eval\EngineCalled;
+use App\Events\Eval\GateChecked;
 use App\Models\DCPension;
 use App\Models\Goal;
 use App\Models\RetirementProfile;
@@ -66,173 +68,259 @@ class RetirementAgent extends BaseAgent
      */
     public function analyze(int $userId): array
     {
-        // Data readiness gate — return early if blocking checks fail
-        $gateUser = User::find($userId);
-        if ($gateUser) {
-            $readiness = $this->readinessService->assess($gateUser);
-            if (! $readiness['can_proceed']) {
-                return $this->response(true, 'Readiness check incomplete', [
-                    'can_proceed' => false,
-                    'readiness_checks' => $readiness,
-                    'summary' => null,
-                    'income_projection' => null,
-                    'breakdown' => null,
-                    'annual_allowance' => null,
-                    'profile' => null,
-                    'decumulation' => null,
-                    'post_retirement_goals' => [],
-                ]);
-            }
-        }
-
-        $cacheKey = "retirement_analysis_{$userId}";
-        $cacheTags = ['retirement', 'user_'.$userId];
-
-        return $this->remember($cacheKey, function () use ($userId) {
-            // Get all retirement data (single query with eager loading)
-            $user = User::with(['retirementProfile', 'dcPensions', 'dbPensions', 'statePension'])
-                ->find($userId);
-
-            $profile = $user?->retirementProfile;
-            $dcPensions = $user?->dcPensions ?? collect();
-            $dbPensions = $user?->dbPensions ?? collect();
-            $statePension = $user?->statePension;
-
-            if (! $profile) {
-                return $this->response(false, 'No retirement profile found', []);
-            }
-
-            // Project total retirement income
-            $incomeProjection = $this->projector->projectTotalRetirementIncome($userId);
-
-            $targetIncome = (float) $profile->target_retirement_income;
-            $statePensionAge = $statePension->state_pension_age ?? 67;
-            $retirementAge = $profile->target_retirement_age;
-
-            // Income at retirement: only include state pension if retiring at or after SPA
-            $incomeAtRetirement = ($incomeProjection['dc_annual_income'] ?? 0)
-                + ($incomeProjection['db_annual_income'] ?? 0);
-            $retiresBeforeSPA = $retirementAge < $statePensionAge;
-            $statePensionIncome = $incomeProjection['state_pension_income'] ?? 0;
-
-            if (! $retiresBeforeSPA) {
-                $incomeAtRetirement += $statePensionIncome;
-            }
-
-            $incomeGap = max(0, $targetIncome - $incomeAtRetirement);
-
-            // Income after SPA (when state pension kicks in)
-            $incomeAfterSPA = $incomeAtRetirement + ($retiresBeforeSPA ? $statePensionIncome : 0);
-            $incomeGapAfterSPA = max(0, $targetIncome - $incomeAfterSPA);
-
-            // Check annual allowance
-            $taxYear = $this->taxConfig->getTaxYear();
-            $allowance = $this->allowanceChecker->checkAnnualAllowance($userId, $taxYear);
-
-            // Calculate years to retirement
-            $yearsToRetirement = max(0, $retirementAge - $profile->current_age);
-
-            // Summary metrics
-            $currentDcValue = (float) $dcPensions->sum('current_fund_value');
-            $summary = [
-                'years_to_retirement' => $yearsToRetirement,
-                'target_retirement_age' => $retirementAge,
-                'projected_retirement_income' => $incomeAtRetirement,
-                'target_retirement_income' => $targetIncome,
-                'income_gap' => $incomeGap,
-                'retires_before_spa' => $retiresBeforeSPA,
-                'state_pension_age' => $statePensionAge,
-                'state_pension_income' => $statePensionIncome,
-                'income_after_spa' => $retiresBeforeSPA ? $incomeAfterSPA : null,
-                'income_gap_after_spa' => $retiresBeforeSPA ? $incomeGapAfterSPA : null,
-                'current_dc_value' => $currentDcValue,
-                'total_dc_value' => $incomeProjection['dc_total_value'],
-                'total_pensions_count' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
-            ];
-
-            // Detailed breakdown
-            $breakdown = [
-                'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection),
-                'db_pensions' => $this->formatDBPensions($dbPensions),
-                'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
-            ];
-
-            // Decumulation analysis for users within transition period of retirement or already retired
-            $decumulation = null;
-            $accumulationToDecumulationYears = (int) $this->taxConfig->get('retirement.accumulation_to_decumulation_years', 10);
-            if ($yearsToRetirement <= $accumulationToDecumulationYears && $currentDcValue > 0) {
-                $decumulationUser = User::with('protectionProfile')->find($userId);
-                $lifeExpectancy = $decumulationUser?->life_expectancy_override ?? $profile->life_expectancy ?? 85;
-                $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
-                $hasSpouse = $profile->spouse_life_expectancy !== null;
-
-                // Wire care costs from RetirementProfile into decumulation planning
-                $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
-                $careStartAge = (int) ($profile->care_start_age ?? 0);
-                $careStartsAfterYear = ($careCostAnnual > 0 && $careStartAge > $retirementAge)
-                    ? max(0, $careStartAge - $retirementAge)
-                    : 0;
-
-                $decumulation = [
-                    'withdrawal_rates' => $this->planner->calculateSustainableWithdrawalRate(
-                        $currentDcValue,
-                        $yearsInRetirement,
-                        0.05,
-                        0.025,
-                        $careCostAnnual,
-                        $careStartsAfterYear
-                    ),
-                    'annuity_vs_drawdown' => $this->planner->compareAnnuityVsDrawdown(
-                        $currentDcValue,
-                        $profile->current_age,
-                        $hasSpouse,
-                        $decumulationUser
-                    ),
-                    'pcls_strategy' => $this->planner->calculatePCLSStrategy($currentDcValue),
-                    'income_phasing' => $this->planner->modelIncomePhasing(
-                        $dcPensions,
-                        $retirementAge
-                    ),
-                    'care_costs_modelled' => $careCostAnnual > 0,
-                    'care_cost_annual' => round($careCostAnnual, 2),
-                    'care_start_age' => $careStartAge > 0 ? $careStartAge : null,
-                    'enhanced_annuity' => $this->planner->assessEnhancedAnnuityEligibility($decumulationUser),
-                ];
-            }
-
-            // Post-retirement goal detection
-            $postRetirementGoals = [];
-            $currentAge = $user->date_of_birth ? (int) now()->diffInYears($user->date_of_birth) : null;
-
-            if ($currentAge) {
-                $yearsToRetirementForGoals = max(0, $retirementAge - $currentAge);
-                $retirementDate = now()->addYears($yearsToRetirementForGoals);
-
-                $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
-                foreach ($activeGoals as $goal) {
-                    if ($goal->target_date && $goal->target_date->gt($retirementDate)) {
-                        $postRetirementGoals[] = [
-                            'name' => $goal->goal_name,
-                            'target_amount' => round((float) $goal->target_amount, 2),
-                            'outstanding' => round(max(0, (float) $goal->target_amount - (float) $goal->current_amount), 2),
-                            'monthly_contribution' => round((float) ($goal->monthly_contribution ?? 0), 2),
-                            'annual_cost' => round((float) ($goal->monthly_contribution ?? 0) * 12, 2),
-                            'target_date' => $goal->target_date->format('Y-m-d'),
-                        ];
-                    }
+        $analyzeStart = microtime(true);
+        $result = (function () use ($userId): array {
+            // Data readiness gate — return early if blocking checks fail
+            $gateUser = User::find($userId);
+            if ($gateUser) {
+                $readiness = $this->readinessService->assess($gateUser);
+                if (! $readiness['can_proceed']) {
+                    return $this->response(true, 'Readiness check incomplete', [
+                        'can_proceed' => false,
+                        'readiness_checks' => $readiness,
+                        'summary' => null,
+                        'income_projection' => null,
+                        'breakdown' => null,
+                        'annual_allowance' => null,
+                        'profile' => null,
+                        'decumulation' => null,
+                        'post_retirement_goals' => [],
+                    ]);
                 }
             }
 
-            return $this->response(true, 'Retirement analysis completed', [
-                'summary' => $summary,
-                'income_projection' => $incomeProjection,
-                'breakdown' => $breakdown,
-                'annual_allowance' => $allowance,
-                'profile' => $profile,
-                'decumulation' => $decumulation,
-                'post_retirement_goals' => $postRetirementGoals,
-            ]);
-        }, null, $cacheTags);
+            $cacheKey = "retirement_analysis_{$userId}";
+            $cacheTags = ['retirement', 'user_'.$userId];
+
+            return $this->remember($cacheKey, function () use ($userId) {
+                // Get all retirement data (single query with eager loading)
+                $user = User::with(['retirementProfile', 'dcPensions', 'dbPensions', 'statePension'])
+                    ->find($userId);
+
+                $profile = $user?->retirementProfile;
+                $dcPensions = $user?->dcPensions ?? collect();
+                $dbPensions = $user?->dbPensions ?? collect();
+                $statePension = $user?->statePension;
+
+                $hasProfile = $profile !== null;
+                event(new GateChecked(
+                    gate: 'profile_gate',
+                    module: 'retirement',
+                    passed: $hasProfile,
+                    context: ['profile_table' => 'retirement_profiles', 'user_id' => $user?->id ?? 0],
+                    atMicrotime: microtime(true),
+                ));
+
+                if (! $hasProfile) {
+                    return $this->response(false, 'No retirement profile found', []);
+                }
+
+                // Project total retirement income
+                $incomeProjection = $this->projector->projectTotalRetirementIncome($userId);
+
+                $targetIncome = (float) $profile->target_retirement_income;
+                $statePensionAge = $statePension->state_pension_age ?? 67;
+                $retirementAge = $profile->target_retirement_age;
+
+                // Income at retirement: only include state pension if retiring at or after SPA
+                $incomeAtRetirement = ($incomeProjection['dc_annual_income'] ?? 0)
+                    + ($incomeProjection['db_annual_income'] ?? 0);
+                $retiresBeforeSPA = $retirementAge < $statePensionAge;
+                $statePensionIncome = $incomeProjection['state_pension_income'] ?? 0;
+
+                if (! $retiresBeforeSPA) {
+                    $incomeAtRetirement += $statePensionIncome;
+                }
+
+                $incomeGap = max(0, $targetIncome - $incomeAtRetirement);
+
+                // Income after SPA (when state pension kicks in)
+                $incomeAfterSPA = $incomeAtRetirement + ($retiresBeforeSPA ? $statePensionIncome : 0);
+                $incomeGapAfterSPA = max(0, $targetIncome - $incomeAfterSPA);
+
+                // Check annual allowance
+                $taxYear = $this->taxConfig->getTaxYear();
+                $allowance = $this->allowanceChecker->checkAnnualAllowance($userId, $taxYear);
+
+                // Calculate years to retirement
+                $yearsToRetirement = max(0, $retirementAge - $profile->current_age);
+
+                // Summary metrics
+                $currentDcValue = (float) $dcPensions->sum('current_fund_value');
+                $summary = [
+                    'years_to_retirement' => $yearsToRetirement,
+                    'target_retirement_age' => $retirementAge,
+                    'projected_retirement_income' => $incomeAtRetirement,
+                    'target_retirement_income' => $targetIncome,
+                    'income_gap' => $incomeGap,
+                    'retires_before_spa' => $retiresBeforeSPA,
+                    'state_pension_age' => $statePensionAge,
+                    'state_pension_income' => $statePensionIncome,
+                    'income_after_spa' => $retiresBeforeSPA ? $incomeAfterSPA : null,
+                    'income_gap_after_spa' => $retiresBeforeSPA ? $incomeGapAfterSPA : null,
+                    'current_dc_value' => $currentDcValue,
+                    'total_dc_value' => $incomeProjection['dc_total_value'],
+                    'total_pensions_count' => $dcPensions->count() + $dbPensions->count() + ($statePension ? 1 : 0),
+                ];
+
+                // Detailed breakdown
+                $breakdown = [
+                    'dc_pensions' => $this->formatDCPensions($dcPensions, $incomeProjection),
+                    'db_pensions' => $this->formatDBPensions($dbPensions),
+                    'state_pension' => $this->formatStatePension($statePension, $incomeProjection),
+                ];
+
+                // Decumulation analysis for users within transition period of retirement or already retired
+                $decumulation = null;
+                $accumulationToDecumulationYears = (int) $this->taxConfig->get('retirement.accumulation_to_decumulation_years', 10);
+                if ($yearsToRetirement <= $accumulationToDecumulationYears && $currentDcValue > 0) {
+                    $decumulationUser = User::with('protectionProfile')->find($userId);
+                    $lifeExpectancy = $decumulationUser?->life_expectancy_override ?? $profile->life_expectancy ?? 85;
+                    $yearsInRetirement = max(1, $lifeExpectancy - $retirementAge);
+                    $hasSpouse = $profile->spouse_life_expectancy !== null;
+
+                    // Wire care costs from RetirementProfile into decumulation planning
+                    $careCostAnnual = (float) ($profile->care_cost_annual ?? 0);
+                    $careStartAge = (int) ($profile->care_start_age ?? 0);
+                    $careStartsAfterYear = ($careCostAnnual > 0 && $careStartAge > $retirementAge)
+                        ? max(0, $careStartAge - $retirementAge)
+                        : 0;
+
+                    $decumulation = [
+                        'withdrawal_rates' => $this->planner->calculateSustainableWithdrawalRate(
+                            $currentDcValue,
+                            $yearsInRetirement,
+                            0.05,
+                            0.025,
+                            $careCostAnnual,
+                            $careStartsAfterYear
+                        ),
+                        'annuity_vs_drawdown' => $this->planner->compareAnnuityVsDrawdown(
+                            $currentDcValue,
+                            $profile->current_age,
+                            $hasSpouse,
+                            $decumulationUser
+                        ),
+                        'pcls_strategy' => $this->planner->calculatePCLSStrategy($currentDcValue),
+                        'income_phasing' => $this->planner->modelIncomePhasing(
+                            $dcPensions,
+                            $retirementAge
+                        ),
+                        'care_costs_modelled' => $careCostAnnual > 0,
+                        'care_cost_annual' => round($careCostAnnual, 2),
+                        'care_start_age' => $careStartAge > 0 ? $careStartAge : null,
+                        'enhanced_annuity' => $this->planner->assessEnhancedAnnuityEligibility($decumulationUser),
+                    ];
+                }
+
+                // Post-retirement goal detection
+                $postRetirementGoals = [];
+                $currentAge = $user->date_of_birth ? (int) now()->diffInYears($user->date_of_birth) : null;
+
+                if ($currentAge) {
+                    $yearsToRetirementForGoals = max(0, $retirementAge - $currentAge);
+                    $retirementDate = now()->addYears($yearsToRetirementForGoals);
+
+                    $activeGoals = Goal::forUserOrJoint($userId)->where('status', 'active')->get();
+                    foreach ($activeGoals as $goal) {
+                        if ($goal->target_date && $goal->target_date->gt($retirementDate)) {
+                            $postRetirementGoals[] = [
+                                'name' => $goal->goal_name,
+                                'target_amount' => round((float) $goal->target_amount, 2),
+                                'outstanding' => round(max(0, (float) $goal->target_amount - (float) $goal->current_amount), 2),
+                                'monthly_contribution' => round((float) ($goal->monthly_contribution ?? 0), 2),
+                                'annual_cost' => round((float) ($goal->monthly_contribution ?? 0) * 12, 2),
+                                'target_date' => $goal->target_date->format('Y-m-d'),
+                            ];
+                        }
+                    }
+                }
+
+                // S1.6.b — structured gap list for the LLM.
+                $missingForQualityAdvice = $this->findMissingForQualityAdvice(
+                    $user,
+                    $profile,
+                    $statePension,
+                    $dcPensions,
+                    $dbPensions,
+                );
+
+                return $this->response(true, 'Retirement analysis completed', [
+                    'summary' => $summary,
+                    'income_projection' => $incomeProjection,
+                    'breakdown' => $breakdown,
+                    'annual_allowance' => $allowance,
+                    'profile' => $profile,
+                    'decumulation' => $decumulation,
+                    'post_retirement_goals' => $postRetirementGoals,
+                    'missing_for_quality_advice' => $missingForQualityAdvice,
+                ]);
+            }, null, $cacheTags);
+        })();
+
+        $resultPath = match (true) {
+            isset($result['success']) && $result['success'] === false => 'success_false',
+            isset($result['data']['can_proceed']) && $result['data']['can_proceed'] === false => 'readiness_blocked',
+            default => 'happy',
+        };
+        event(new EngineCalled(
+            engine: 'retirement_analysis',
+            params: ['user_id' => $userId],
+            resultSummary: ['result_path' => $resultPath, 'keys_returned' => array_keys($result)],
+            durationMs: (int) round((microtime(true) - $analyzeStart) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
+    }
+
+    /**
+     * Per-agent contract gap field (S1.6.b).
+     *
+     * @return list<array{field: string, why: string, severity: 'blocking'|'soft'}>
+     */
+    private function findMissingForQualityAdvice(
+        User $user,
+        RetirementProfile $profile,
+        $statePension,
+        Collection $dcPensions,
+        Collection $dbPensions,
+    ): array {
+        $gaps = [];
+
+        if ((float) ($profile->target_retirement_income ?? 0) <= 0) {
+            $gaps[] = [
+                'field' => 'target_retirement_income',
+                'why' => 'Income gap and contribution recommendations are computed against a target — without it the projection has nothing to aim at.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($dcPensions->isEmpty() && $dbPensions->isEmpty() && $statePension === null) {
+            $gaps[] = [
+                'field' => 'pension_records',
+                'why' => 'No DC, DB, or State Pension recorded — there is nothing to project retirement income from.',
+                'severity' => 'blocking',
+            ];
+        }
+
+        if ($statePension === null) {
+            $gaps[] = [
+                'field' => 'state_pension',
+                'why' => 'A State Pension forecast (NI years + state pension age) materially changes the projected income.',
+                'severity' => 'soft',
+            ];
+        }
+
+        if ($user->marital_status === 'married' && $profile->spouse_life_expectancy === null) {
+            $gaps[] = [
+                'field' => 'spouse_life_expectancy',
+                'why' => 'Joint-life decumulation planning depends on the spouse life expectancy.',
+                'severity' => 'soft',
+            ];
+        }
+
+        return $gaps;
     }
 
     /**
@@ -240,7 +328,18 @@ class RetirementAgent extends BaseAgent
      */
     public function generateRecommendations(array $analysisData): array
     {
-        return $this->actionDefinitionService->evaluateAgentActions($analysisData);
+        $start = microtime(true);
+        $result = $this->actionDefinitionService->evaluateAgentActions($analysisData);
+
+        event(new EngineCalled(
+            engine: 'retirement_recommendation',
+            params: [],
+            resultSummary: ['result_path' => 'happy', 'keys_returned' => is_array($result) ? array_keys($result) : []],
+            durationMs: (int) round((microtime(true) - $start) * 1000),
+            atMicrotime: microtime(true),
+        ));
+
+        return $result;
     }
 
     /**

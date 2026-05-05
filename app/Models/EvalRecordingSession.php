@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+/**
+ * One row per `php artisan eval:record` invocation. Captures the scenario,
+ * the preview persona user it ran against, and the start state Fyn was
+ * working from. The paired EvalProviderRun rows hold the per-(provider,
+ * model) results.
+ */
+final class EvalRecordingSession extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'scenario_id',
+        'scenario_path',
+        'scenario_yaml',
+        'preview_user_id',
+        'persona',
+        'start_state_snapshot',
+        'http_log',
+        'remedial_report',
+        'fynla_branch',
+        'fynla_sha',
+        'status',
+        'started_at',
+        'completed_at',
+    ];
+
+    protected $casts = [
+        'start_state_snapshot' => 'array',
+        'http_log' => 'array',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+    ];
+
+    public function previewUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'preview_user_id');
+    }
+
+    public function providerRuns(): HasMany
+    {
+        return $this->hasMany(EvalProviderRun::class);
+    }
+}

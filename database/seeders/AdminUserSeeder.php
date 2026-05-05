@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserConsent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -37,6 +38,18 @@ class AdminUserSeeder extends Seeder
         // Sync is_admin flag with role assignment
         $user->is_admin = true;
         $user->save();
+
+        // Grant the same consents real users grant at registration
+        // (AuthController::register lines 506-511). Without this the
+        // consent gate at AiChatController::sendMessage returns 403.
+        foreach ([
+            UserConsent::TYPE_TERMS,
+            UserConsent::TYPE_PRIVACY,
+            UserConsent::TYPE_DATA_PROCESSING,
+            UserConsent::TYPE_AI_CHAT,
+        ] as $consentType) {
+            UserConsent::recordConsent($user->id, $consentType, true);
+        }
 
         // Promote any existing users listed in ADMIN_EMAILS to admin role
         $adminEmails = config('auth.admin_emails', []);

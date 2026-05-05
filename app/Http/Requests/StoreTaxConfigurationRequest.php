@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Permission;
+use App\Services\Auth\PermissionService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTaxConfigurationRequest extends FormRequest
@@ -13,9 +15,9 @@ class StoreTaxConfigurationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $permissionService = app(\App\Services\Auth\PermissionService::class);
+        $permissionService = app(PermissionService::class);
 
-        return $this->user() && $permissionService->hasPermission($this->user(), \App\Models\Permission::ADMIN_TAX_CONFIG);
+        return $this->user() && $permissionService->hasPermission($this->user(), Permission::ADMIN_TAX_CONFIG);
     }
 
     /**

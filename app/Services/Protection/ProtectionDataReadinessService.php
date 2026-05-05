@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Protection;
 
+use App\Events\Eval\GateChecked;
 use App\Models\LifeEvent;
 use App\Models\User;
 
@@ -52,9 +53,22 @@ class ProtectionDataReadinessService
 
         $passedCount = count(array_filter($checks, fn (array $c) => $c['passed']));
         $totalChecks = count($checks);
+        $canProceed = count($blocking) === 0;
+
+        event(new GateChecked(
+            gate: 'data_readiness',
+            module: 'protection',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         return [
-            'can_proceed' => count($blocking) === 0,
+            'can_proceed' => $canProceed,
             'blocking' => $blocking,
             'warnings' => $warnings,
             'info' => $info,
@@ -226,6 +240,7 @@ class ProtectionDataReadinessService
             || ($user->annual_self_employment_income ?? 0) > 0
             || ($user->annual_rental_income ?? 0) > 0
             || ($user->annual_dividend_income ?? 0) > 0
+            || ($user->annual_interest_income ?? 0) > 0
             || ($user->annual_other_income ?? 0) > 0
             || ($user->annual_trust_income ?? 0) > 0;
     }

@@ -2,19 +2,22 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Api\PaymentController;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\RevolutService;
+use Database\Seeders\SubscriptionPlanSeeder;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
-    $this->seed(\Database\Seeders\SubscriptionPlanSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(SubscriptionPlanSeeder::class);
 });
 
 it('generates invoice when webhook beats confirmPayment (race condition)', function () {
@@ -77,7 +80,7 @@ it('generates invoice when webhook beats confirmPayment (race condition)', funct
     expect($payment->invoice_id)->not->toBeNull();
 
     // Assert: invoice record exists with correct amounts
-    $invoice = \App\Models\Invoice::find($payment->invoice_id);
+    $invoice = Invoice::find($payment->invoice_id);
     expect($invoice)->not->toBeNull();
     expect($invoice->user_id)->toBe($user->id);
     expect($invoice->payment_id)->toBe($payment->id);
@@ -86,7 +89,7 @@ it('generates invoice when webhook beats confirmPayment (race condition)', funct
     expect($invoice->pdf_path)->not->toBeNull();
 
     // Assert: PDF file was created
-    expect(\Illuminate\Support\Facades\Storage::exists($invoice->pdf_path))->toBeTrue();
+    expect(Storage::exists($invoice->pdf_path))->toBeTrue();
 
     Mockery::close();
 });

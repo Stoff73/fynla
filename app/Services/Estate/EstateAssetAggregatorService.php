@@ -6,16 +6,21 @@ namespace App\Services\Estate;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
+use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
+use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\ProtectionProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -110,7 +115,7 @@ class EstateAssetAggregatorService
             if ($business->bpr_eligible && $business->trading_status === 'trading') {
                 // Check 2-year ownership rule if acquisition_date is set
                 if ($business->acquisition_date) {
-                    $yearsOwned = \Carbon\Carbon::parse($business->acquisition_date)->diffInYears(now());
+                    $yearsOwned = Carbon::parse($business->acquisition_date)->diffInYears(now());
                     $ihtExempt = $yearsOwned >= 2;
                 } else {
                     // If no acquisition date set but marked BPR eligible, assume eligible
@@ -250,10 +255,10 @@ class EstateAssetAggregatorService
      */
     public function getExistingLifeCover(User $user): float
     {
-        $lifeInsurance = \App\Models\LifeInsurancePolicy::where('user_id', $user->id)
+        $lifeInsurance = LifeInsurancePolicy::where('user_id', $user->id)
             ->sum('sum_assured');
 
-        $criticalIllness = \App\Models\CriticalIllnessPolicy::where('user_id', $user->id)
+        $criticalIllness = CriticalIllnessPolicy::where('user_id', $user->id)
             ->sum('sum_assured');
 
         return $lifeInsurance + $criticalIllness;
@@ -265,7 +270,7 @@ class EstateAssetAggregatorService
     public function getUserExpenditure(User $user): array
     {
         // Try ExpenditureProfile first
-        $expenditureProfile = \App\Models\ExpenditureProfile::where('user_id', $user->id)->first();
+        $expenditureProfile = ExpenditureProfile::where('user_id', $user->id)->first();
         if ($expenditureProfile) {
             return [
                 'monthly_expenditure' => $expenditureProfile->total_monthly_expenditure,
@@ -274,7 +279,7 @@ class EstateAssetAggregatorService
         }
 
         // Fall back to ProtectionProfile if available
-        $protectionProfile = \App\Models\ProtectionProfile::where('user_id', $user->id)->first();
+        $protectionProfile = ProtectionProfile::where('user_id', $user->id)->first();
         if ($protectionProfile && $protectionProfile->monthly_expenditure) {
             return [
                 'monthly_expenditure' => $protectionProfile->monthly_expenditure,

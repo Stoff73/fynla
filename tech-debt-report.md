@@ -1,56 +1,122 @@
-# Tech Debt Report — Session 75 (2026-05-04)
+# Tech Debt Report — Session 123 (30 April 2026, evening)
 
-**Files analysed:** 14 (my actual session scope: `bf8cd0c..HEAD`, excluding session 73's CMSFix bundle which was audited at write time)
-**Issues found:** 5
-**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
+**Files analysed:** 7 (the `/tax-strategy` redesign commit `fad6e88`)
+**Issues found:** 3 (1 medium, 2 low)
+**Severity breakdown:** 0 critical, 1 warning, 2 suggestions
 
-## Critical Issues
+---
 
-None. No design-system violations, no banned colours, no hardcoded tax values, no `DB` facade misuse, no missing `declare(strict_types=1)`, no acronyms in user-facing text, no scores in UI, no `v-if` + `v-for` collisions.
+## Files audited
+
+| File | Lines | Result |
+|---|---|---|
+| `resources/js/components/TaxStrategy/AllowanceCard.vue` | 62 | Clean |
+| `resources/js/components/TaxStrategy/AllowanceGrid.vue` | 60 | Clean |
+| `resources/js/components/TaxStrategy/AssetShiftingPanel.vue` | 38 | Clean |
+| `resources/js/components/TaxStrategy/HouseholdView.vue` | 77 | Clean |
+| `resources/js/components/TaxStrategy/StrategyRecommendationList.vue` | 133 | 1 suggestion |
+| `resources/js/components/TaxStrategy/TaxYearHeader.vue` | 67 | Clean |
+| `resources/js/views/TaxStrategy/TaxStrategyDashboard.vue` | 49 | Clean |
+
+All files well under the 500-line refactor threshold. Total 486 lines across 7 files.
+
+---
 
 ## Warnings
 
-### W1 — `v-html` safety depends on import pipeline
-- **File:** `resources/js/views/Public/insights/InsightArticlePage.vue:81`
-- **Category:** Security
-- **What's wrong:** `<div class="article-html-body" v-html="article.body_html"></div>` is XSS-safe today only because every write path (`DocumentArticleImporter`, `DocumentArticleController::update`) routes `html`/`html_body` through `HTMLBodySanitiser` (HTMLPurifier `document_article` profile). Any future code path that inserts directly to `document_articles.html_body` (seeder, raw SQL, an admin route that skips the form request) becomes an XSS vector.
-- **Suggested fix:** Either (a) add a model-level mutator on `DocumentArticle::setHtmlBodyAttribute` that re-runs `HTMLBodySanitiser` on assignment so the model self-protects, or (b) write an architecture test asserting all `html_body` writes go through the sanitiser. Defer until a second writer appears.
+### W-1 (medium) — Orphaned slider backend pipework after frontend removal
 
-### W2 — `SanitizeInput` exemption for `html`/`html_body` is a developer trap
-- **File:** `app/Http/Middleware/SanitizeInput.php:29-37`
-- **Category:** Security / convention
-- **What's wrong:** Adding `'html'` and `'html_body'` to `$htmlAllowedFields` is correct for the doc article import (HTMLPurifier handles it downstream), but ANY future endpoint that accepts a top-level `html` or `html_body` field will now bypass strip_tags too. If that endpoint forgets HTMLPurifier, it's an XSS hole.
-- **Suggested fix:** The block comment in the file explains the dependency. Sufficient for now. Long-term, prefer scoping this exemption to specific routes via a path-prefix mechanism (`/api/admin/documents/*`) rather than a global field-name allowlist.
+**Files:**
+- `resources/js/services/taxStrategyService.js:12` — `recalculate: (overrides) => api.post('/tax-strategy/calculate', overrides)`
+- `resources/js/store/modules/taxStrategy.js` — `recalculate` action and `setRecalculating` mutation
+- `app/Http/Controllers/Api/TaxStrategyController.php::calculate`
+- `app/Http/Requests/TaxStrategyCalculateRequest.php`
+- `app/DataTransferObjects/TaxStrategyOverridesDTO.php`
+- `app/Services/Tax/TaxStrategyService.php::recalculate`
+- `routes/api.php` — `POST /api/tax-strategy/calculate` (auth:sanctum)
+- `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php` + `tests/Feature/Api/TaxStrategy/` (9 cases)
+
+**Category:** Dead & Redundant Code (Cat 2) + Inconsistency (Cat 6)
+
+**What's wrong:** The `StrategySliderPanel.vue` was deleted in `fad6e88`, removing the only consumer of `taxStrategy/recalculate` Vuex action and `POST /tax-strategy/calculate`. The entire pipeline — frontend service method, store action, mutation, validation request, controller method, DTO, service method, route, and 9+ Pest tests — is now unreachable from the UI.
+
+**Note:** `TaxStrategyMath::availableAnnualAllowance()` and `estimatePensionContributionThisYear()` still accept `?TaxStrategyOverridesDTO` as an *optional* parameter, and the strategies pass `null` through. So the DTO type isn't fully dead — it's still on the type signature of methods called with `null` from `TaxStrategyCalculator`. But the override behaviour itself is unreachable.
+
+**Suggested fix — two options for next session to choose:**
+
+- **(a) Leave intact** if a future "what-if" UI is on the roadmap. Cost: ~9 dead Pest cases, ~250 lines of unused PHP/Vue/JS. Risk: none — endpoint requires `auth:sanctum` and validates inputs.
+- **(b) Rip out** if the slider concept is permanently dead per CSJ's "get rid of these fucking things" directive. Cost: delete the 7 files/symbols above + 9 test cases + `setRecalculating`/`recalculating` from the Vuex store. Mechanical refactor — strategy classes already work with `null` overrides so the math service signatures simplify.
+
+**Recommendation:** confirm option (b) with CSJ at the start of the next session (he was emphatic about removing sliders — likely wants the backend gone too).
+
+---
 
 ## Suggestions
 
-### S1 — Resource naming inconsistent with module pattern
-- **File:** `app/Http/Resources/Insights/DocumentArticleAsInsightResource.php`, `DocumentArticleAsInsightListResource.php`
-- **Category:** Convention drift
-- **What's wrong:** The `AsInsight` suffix conveys intent (adapting `DocumentArticle` to the `InsightArticleResource` contract) but is a one-off naming pattern. Other modules use `XxxResource` / `XxxListResource`.
-- **Suggested fix:** Defer. The current names are self-documenting; a rename would lose that signal. Revisit if a third "adapter resource" appears.
+### S-1 (low) — Hardcoded route paths in `NEXT_STEPS` map
 
-### S2 — `InsightController::index()` hand-rolls response shape
-- **File:** `app/Http/Controllers/Api/Public/InsightController.php:23-58`
-- **Category:** Inconsistency with Laravel idiom
-- **What's wrong:** Previously returned `AnonymousResourceCollection`; now returns `JsonResponse` with hand-built `{data, meta}`. The shape matches Laravel's collection envelope but the construction is manual.
-- **Suggested fix:** Could use `InsightArticleListResource::collection($paginator)->additional(['_doc_articles' => $docItems])` and merge in a resource trait. Cleaner Laravel idiom, but the current code is more explicit about the merge logic. Not worth changing.
+**File:** `resources/js/components/TaxStrategy/StrategyRecommendationList.vue:73-93`
 
-### S3 — `InsightSeoService` doc-article methods mirror native ones
-- **File:** `app/Services/Insights/InsightSeoService.php:79-135`
-- **Category:** Duplication
-- **What's wrong:** `metaTagsForDocument` + `jsonLdForDocument` are structural copies of `metaTags` + `jsonLd` with different field-name accessors. ~50 lines of near-duplicate logic.
-- **Suggested fix:** Extract a small `ArticleSeoSubject` interface (or readonly value object) that both `InsightArticle` and `DocumentArticle` can present, then collapse to a single `metaTags(ArticleSeoSubject $a)`. Defer until a third source appears — premature unification has its own cost.
+**Category:** Convention / Magic-strings
+
+**What's wrong:** The `NEXT_STEPS` constant at module level maps 17 strategy types to `{ label, path }` objects with paths like `/pension`, `/savings`, `/investments`, `/profile` written as raw strings.
+
+```js
+const NEXT_STEPS = {
+  pa_taper_rescue: { label: 'Open a pension', path: '/pension' },
+  isa_topup_vs_psa: { label: 'Open savings & ISAs', path: '/savings' },
+  bed_and_isa: { label: 'Open investments', path: '/investments' },
+  ...
+};
+```
+
+**Suggested fix:** Defer until a 2nd consumer appears. If/when another component starts mapping strategy types to module routes, extract to `resources/js/constants/strategyNextSteps.js`. For now, the locality is fine — one component, one map.
+
+### S-2 (low) — `formatCurrency(Math.round(...))` repeated 5 times across the changed components
+
+**Files:**
+- `AllowanceGrid.vue:8`
+- `AssetShiftingPanel.vue:18`
+- `HouseholdView.vue:38`
+- `StrategyRecommendationList.vue:33`
+- `TaxYearHeader.vue:39`
+
+**Category:** Duplication (Cat 1)
+
+**What's wrong:** Every recommendation/headroom currency display does `formatCurrency(Math.round(value))` to drop pence. The pattern is a 1-line idiom but appears in 5 files now.
+
+**Suggested fix:** Add `formatCurrencyRounded(value)` to `resources/js/mixins/currencyMixin.js`. Single 5-line addition; replaces 5 call sites with cleaner intent. Defer to a tech-debt sweep — not worth its own commit.
 
 ---
 
-## Top 3 most impactful
+## Clean bill of health on these checks
 
-1. **W1** — model-level html_body sanitisation belt-and-braces. Add when convenient.
-2. **W2** — middleware exemption documented but global. Fine for now.
-3. **S3** — `InsightSeoService` near-duplication. Refactor on third use.
-
-**Nothing blocks shipping.** No issues need fixing before commit.
+- ✅ Zero `"Your "` headings in any changed file (CSJ scrub directive complied with)
+- ✅ Zero hardcoded hex in `<style>` or template colour classes
+- ✅ Zero banned colours (`amber-*`, `orange-*`, `primary-*`, `secondary-*`, `gray-*`)
+- ✅ Zero `'sole'` instead of `'individual'`
+- ✅ Zero `console.log` / `dd()` / `dump()` left behind
+- ✅ Zero hardcoded tax values — all live config or consumed via `currencyMixin`
+- ✅ Zero icons on banned surfaces (cards, detail views) per Rule #14
+- ✅ Zero scores / "X/100" in user-facing UI per Rule #13
+- ✅ Zero acronyms — all spelled out (Personal Allowance, Capital Gains Tax, etc.); only `ISA` retained per the exception
+- ✅ All Tailwind type tokens used (`text-h1`, `text-h3`, `text-h4`, `text-h5`, `text-body`, `text-body-sm`, `text-caption`) — verified in `tailwind.config.js`
+- ✅ All component names multi-word
+- ✅ Every `v-for` has `:key`; no `v-if`+`v-for` collisions
+- ✅ `formatCurrency` consumed exclusively via `currencyMixin` — no local methods
+- ✅ No new local spinner / scrollbar / animation CSS
+- ✅ Vuex auth getter used correctly for personalisation
 
 ---
-*Generated by tech-debt-session skill, session 75 end-of-day*
+
+## Top 3 most impactful issues
+
+1. **W-1** — orphan slider backend (medium) — confirmation needed from CSJ on rip-out vs preserve
+2. **S-1** — hardcoded route paths in NEXT_STEPS — micro, defer
+3. **S-2** — duplicated `formatCurrency(Math.round(...))` — micro, defer
+
+**No critical issues. No fixes required before merge to dev.**
+
+---
+
+*Generated by tech-debt-session skill on 30 April 2026 evening.*

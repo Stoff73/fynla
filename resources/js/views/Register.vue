@@ -194,6 +194,7 @@ import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
 import { hasConsent, acceptCookies } from '@/utils/cookieConsent';
+import { getCapturedSource, clearCapturedSource } from '@/utils/sourceCapture';
 
 export default {
   name: 'RegisterView',
@@ -276,7 +277,21 @@ export default {
           payload.referral_code = referralCode;
         }
 
+        // Marketing-channel attribution captured at first page load
+        // (e.g. /savetax?utm_source=linkedin) and stashed in
+        // sessionStorage by sourceCapture.js. Send it through; backend
+        // validates against an allowlist before persisting.
+        const capturedSource = getCapturedSource();
+        if (capturedSource) {
+          payload.signup_source = capturedSource;
+        }
+
         const response = await api.post('/auth/register', payload);
+
+        // Source has been persisted to PendingRegistration; clear so a
+        // second registration attempt in the same browser session does
+        // not silently inherit it.
+        if (capturedSource) clearCapturedSource();
 
         // Check if verification is required
         if (response.data.requires_verification) {
@@ -337,13 +352,19 @@ export default {
       // CRITICAL: Reset aiChat state to prevent any prior user's conversation leaking
       store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
 
-      // Route based on registration source
+      // Route based on registration source. Any `from=<id>` (e.g. fyn,
+      // savetax, biggerpension) takes the user to the dashboard with the
+      // Fyn chat auto-opened, propagating the entry source so the
+      // onboarding director can route to the matching campaign or
+      // life-stage journey via the campaign_map / journey_map config.
       const fromParam = route.query.from;
       const stageParam = route.query.stage;
 
-      if (fromParam === 'fyn') {
-        // Came from "Get started with Fyn" — go to dashboard with Fyn chat open
-        router.push({ name: 'Dashboard', query: { openFyn: 'journey', newUser: '1' } });
+      if (fromParam) {
+        router.push({
+          name: 'Dashboard',
+          query: { openFyn: 'journey', newUser: '1', from: fromParam },
+        });
       } else if (stageParam) {
         router.push({ name: 'Onboarding', query: { stage: stageParam, newUser: '1' } });
       } else {

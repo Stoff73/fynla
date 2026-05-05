@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\RetirementProfile;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\RetirementProfile>
+ * @extends Factory<RetirementProfile>
  */
 class RetirementProfileFactory extends Factory
 {
-    protected $model = \App\Models\RetirementProfile::class;
+    protected $model = RetirementProfile::class;
 
     /**
      * Define the model's default state.
@@ -30,7 +32,7 @@ class RetirementProfileFactory extends Factory
         $targetRetirementIncome = $currentAnnualSalary * fake()->randomFloat(2, 0.5, 0.8); // 50-80% of current salary
 
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'current_age' => $currentAge,
             'target_retirement_age' => $targetRetirementAge,
             'current_annual_salary' => $currentAnnualSalary,

@@ -6,9 +6,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiAdviceLog;
+use App\Models\AiAuditEvent;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\AuditChainService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -144,6 +146,63 @@ class AiAuditController extends Controller
                     'user_data_snapshot' => $adviceLog->user_data_snapshot,
                 ] : null,
             ],
+        ]);
+    }
+
+    /**
+     * S0.12 — paginated read of the hash-chain audit table for admins.
+     * GET /api/admin/ai-audit/chain
+     */
+    public function chain(Request $request): JsonResponse
+    {
+        $query = AiAuditEvent::query()->orderByDesc('id');
+
+        if ($userId = (int) $request->query('user_id', '0')) {
+            $query->where('user_id', $userId);
+        }
+        if ($status = (string) $request->query('status', '')) {
+            $query->where('status', $status);
+        }
+        if ($operation = (string) $request->query('operation', '')) {
+            $query->where('operation', $operation);
+        }
+
+        $events = $query->paginate(50);
+
+        $events->getCollection()->transform(fn (AiAuditEvent $row) => [
+            'id' => $row->id,
+            'user_id' => $row->user_id,
+            'conversation_id' => $row->conversation_id,
+            'tool_name' => $row->tool_name,
+            'operation' => $row->operation,
+            'status' => $row->status,
+            'entity_type' => $row->entity_type,
+            'entity_id' => $row->entity_id,
+            'input_summary' => $row->input_summary,
+            'result_summary' => $row->result_summary,
+            'prev_hash' => $row->prev_hash,
+            'row_hash' => $row->row_hash,
+            'signature' => $row->signature,
+            'signed_at' => $row->signed_at?->toIso8601String(),
+            'created_at' => $row->created_at?->toIso8601String(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $events,
+        ]);
+    }
+
+    /**
+     * S0.12 — verify the chain end-to-end. Returns the same JSON shape
+     * the artisan command emits.
+     * GET /api/admin/ai-audit/chain/verify
+     */
+    public function verifyChain(AuditChainService $service): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $service->verifyChain(),
         ]);
     }
 }

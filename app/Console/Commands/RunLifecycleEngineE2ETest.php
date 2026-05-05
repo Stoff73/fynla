@@ -54,7 +54,7 @@ class RunLifecycleEngineE2ETest extends Command
 
         // Seed 5 test users (idempotent — clears prior runs)
         $this->info('Seeding 5 test users...');
-        (new LifecycleTestSeeder())->run();
+        (new LifecycleTestSeeder)->run();
 
         $testUserCount = User::where('is_lifecycle_test_user', true)->count();
         $this->info("Created {$testUserCount} test users.");

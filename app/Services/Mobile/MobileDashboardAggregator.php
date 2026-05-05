@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\StructuredLogging;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -377,7 +378,7 @@ class MobileDashboardAggregator
     /**
      * Sum user's ownership shares for a collection of assets (where user is primary owner).
      *
-     * @param  \Illuminate\Support\Collection  $assets  Collection of asset models
+     * @param  Collection  $assets  Collection of asset models
      * @param  int  $userId  The user ID
      * @return float The total value of user's shares
      */

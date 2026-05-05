@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Household;
+use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\UserConsent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -39,7 +41,7 @@ class TestUsersSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'household_id' => $smithHousehold->id,
                 'is_primary_account' => true,
-                'role_id' => \App\Models\Role::findByName(\App\Models\Role::ROLE_USER)?->id,
+                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'date_of_birth' => '1980-05-15',
                 'gender' => 'male',
                 'marital_status' => 'married',
@@ -67,7 +69,7 @@ class TestUsersSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'household_id' => $smithHousehold->id,
                 'is_primary_account' => false,
-                'role_id' => \App\Models\Role::findByName(\App\Models\Role::ROLE_USER)?->id,
+                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'date_of_birth' => '1982-08-22',
                 'gender' => 'female',
                 'marital_status' => 'married',
@@ -99,7 +101,7 @@ class TestUsersSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'household_id' => $jonesHousehold->id,
                 'is_primary_account' => true,
-                'role_id' => \App\Models\Role::findByName(\App\Models\Role::ROLE_USER)?->id,
+                'role_id' => Role::findByName(Role::ROLE_USER)?->id,
                 'date_of_birth' => '1985-03-10',
                 'gender' => 'female',
                 'marital_status' => 'single',
@@ -135,6 +137,19 @@ class TestUsersSeeder extends Seeder
                         'current_period_end' => $trialEnd,
                     ]
                 );
+
+                // Grant the same consents real users grant at registration
+                // (AuthController::register lines 506-511). Without this the
+                // consent gate at AiChatController::sendMessage returns 403
+                // and chat is silently locked out for seeded users.
+                foreach ([
+                    UserConsent::TYPE_TERMS,
+                    UserConsent::TYPE_PRIVACY,
+                    UserConsent::TYPE_DATA_PROCESSING,
+                    UserConsent::TYPE_AI_CHAT,
+                ] as $consentType) {
+                    UserConsent::recordConsent($user->id, $consentType, true);
+                }
             }
         }
     }

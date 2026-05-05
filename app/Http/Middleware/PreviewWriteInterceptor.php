@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -129,6 +130,24 @@ class PreviewWriteInterceptor
             }
         }
 
+        // Eval bypass: a Sanctum token with `bypass-preview-mode` ability lets
+        // writes through. Only honoured for tokens that EXPLICITLY list the
+        // ability — wildcard `['*']` tokens (the Sanctum default for regular
+        // user logins) must NOT bypass, otherwise every preview user's normal
+        // token would silently let writes through. The ability is issued by
+        // EvalAuthController::login, gated to non-production environments.
+        // See April/April27Updates/eval-http-driven-rewrite-plan.md §4.
+        //
+        // April30Updates F-12 — additionally require the X-Eval-Run-Id
+        // header so a leaked token alone cannot use the bypass. The eval
+        // harness already sets this header (`EvalHttpDriver`).
+        $accessToken = PersonalAccessToken::findToken($request->bearerToken() ?? '');
+        $hasAbility = $accessToken && in_array('bypass-preview-mode', $accessToken->abilities ?? [], true);
+        $hasEvalHeader = is_string($request->header('X-Eval-Run-Id')) && trim((string) $request->header('X-Eval-Run-Id')) !== '';
+        if ($hasAbility && $hasEvalHeader) {
+            return $next($request);
+        }
+
         // For write operations, return a fake success response
         return $this->fakeSuccessResponse($request);
     }
@@ -139,7 +158,7 @@ class PreviewWriteInterceptor
      * Since this middleware runs before auth:sanctum, we need to manually
      * resolve the user from the Authorization header.
      */
-    private function resolveUserFromToken(Request $request): ?\App\Models\User
+    private function resolveUserFromToken(Request $request): ?User
     {
         $token = $request->bearerToken();
 

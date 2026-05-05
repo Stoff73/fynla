@@ -1,0 +1,68 @@
+id: memory_no_repeat_ask
+category: 09-canonical-behaviour
+description: |
+  S1.4 acceptance — `<known_facts>` block + "Do not ask the user for any field
+  above." pin INV-2.2.3 + INV-2.11.1.
+
+  User starts at `base_spouse` after onboarding has already captured their
+  marital_status='married'. The next prompt MUST NOT re-ask the user's own
+  marital status. The `<known_facts>` block is rendered into the asset_capture
+  / grouped_extract / advice prompts via `MemoryRetrieverService::renderKnownFactsBlock`.
+
+  Recording deferred — see Sprint 1 plan "Output-shape contract — S1.6 scope
+  extension" §S1.2.k. The unit pin `tests/Unit/Services/Onboarding/KnownFactsBlockTest.php`
+  asserts the same INV-2.2.3 contract synchronously without a provider call,
+  so this YAML is authored now and will be recorded as part of the S1.2.k
+  rollup once S1.6 ships.
+
+input:
+  turns:
+    - user: "Tell me about my protection cover."
+
+seed:
+  user:
+    first_name: Test
+    surname: User
+    date_of_birth: '1985-04-15'
+    marital_status: married
+    employment_status: employed
+    annual_employment_income: 50000
+    monthly_expenditure: 2500
+    onboarding_completed: true
+
+expected_classifications:
+  - protection_cover
+
+expected_tool_calls:
+  - tool: get_module_analysis
+    args: { module: protection }
+
+expected_sse_events:
+  - { type: content }
+  - { type: done }
+
+expected_system_prompt_contains:
+  - "<known_facts>"
+  - "- marital_status: \"married\""
+  - "Do not ask the user for any field above."
+
+forbidden_outputs:
+  - "What is your marital status"
+  - "Are you married"
+  - "Are you single"
+  - "Could you tell me your marital status"
+  - "I need to ask about your marital status"
+
+forbidden_tools:
+  - create_protection_policy
+  - update_protection_policy
+  - delete_protection_policy
+
+timing_budget_ms: 5000
+
+tags:
+  - regression-band-0
+  - canonical-contract
+  - memory-retrieval
+  - INV-2.2.3
+  - INV-2.11.1

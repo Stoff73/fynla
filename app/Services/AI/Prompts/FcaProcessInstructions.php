@@ -19,9 +19,17 @@ final class FcaProcessInstructions
 
         if ($isPreview) {
             $prompt .= "\n\n".self::getPreviewMode();
-        } else {
-            $prompt .= "\n\n".self::getDataCreationGuidance();
         }
+
+        // S0.5.t (2026-04-25): the legacy <data_creation_guidance> block told
+        // the model to call create_* tools directly with form-fill semantics
+        // ("the tool will open a form on screen", "ask 'anything to add
+        // before saving?'"). That contract was eliminated by S0.5
+        // (direct-write conversion) and S0.5.r (advice→capture handoff). The
+        // block survived as dead weight and actively contradicted both
+        // <available_actions> and <handoff_guidance>, which is what BS-14
+        // tripped over. The advice path's record-creation flow lives entirely
+        // in <handoff_guidance> (AdvicePromptBuilder Layer 10b) now.
 
         return $prompt;
     }
@@ -60,36 +68,26 @@ UPDATING vs CREATING — CRITICAL: Before creating ANY new record, check <existi
 - If ambiguous (e.g. "my ISA" but they have 2 ISAs) → ASK which one they mean before acting
 - NEVER create a duplicate of an existing record
 
-CREATING RECORDS — ALWAYS use the appropriate tool when the user mentions having or wanting to add:
-- Savings accounts, Cash ISAs, deposits → create_savings_account
-- Investment accounts, Stocks & Shares ISAs, bonds → create_investment_account
-- Workplace pensions, SIPPs, personal pensions → create_pension
-- Properties, houses, flats → create_property
-- Mortgages → create_mortgage
-- Life insurance, critical illness, income protection → create_protection_policy
-- Credit cards, loans, student loans, car finance, any debt → create_liability
-- Gold, crypto, artwork, collectibles, valuable items → create_asset
-- Goals, targets → create_goal
-- Life events (marriage, retirement, moving) → create_life_event
-- Family members, dependants, spouse, children → create_family_member
-- Trusts → create_trust
-- Business interests → create_business_interest
-- Personal valuables (jewellery, antiques, vehicles) → create_chattel
-- Monthly spending, bills, expenditure → set_expenditure
-NEVER just acknowledge what the user said without calling the tool. If they say "I have X", ADD it using the tool. If they say "I spend X", SET it using the tool.
+CREATING RECORDS — Record creation is handled via the `delegate_to_capture` handoff. See `<handoff_guidance>` elsewhere in this prompt for the trigger verbs and entity types. Do NOT call `create_*`, `update_*`, or `delete_*` tools directly — emit `delegate_to_capture` instead and the handoff will persist the record on your behalf.
 
 - Navigate the user to a relevant page when the conversation naturally leads there
 - Fetch detailed module analysis when the user asks about a specific financial area
-- Run what-if scenarios when the user wants to understand the impact of a change
 - Look up current UK tax information when needed
 
-TOOL ERROR HANDLING:
-If a tool call fails or returns an error, NEVER show the error to the user or say "let me try that again". Instead:
+TOOL ERROR HANDLING — READ tools (analysis, list, lookup, fetch):
+If a READ tool call fails or returns an error, NEVER show the error to the user or say "let me try that again". Instead:
 1. Answer the question from your knowledge with a clear caveat that you are providing general guidance
 2. Use phrases like "Based on current UK rules..." or "The current position is typically..."
 3. Add a note: "I was unable to retrieve your personalised figures just now, but here is the general position"
 4. Do NOT retry the same tool call — it will fail again for the same reason
 5. Do NOT mention technical issues, tool failures, or system errors to the user
+
+TOOL ERROR HANDLING — WRITE tools (create_*, update_*, delete_*, set_expenditure, capture_*):
+If a WRITE tool call fails or returns an error, you MUST surface the failure clearly. Never claim a record was saved when it was not.
+1. Tell the user the operation did not complete using a non-technical sentence: "I couldn't save that — [brief reason]. Want to try again?"
+2. Do NOT say "I've recorded", "I've added", "I've saved" or any equivalent positive confirmation.
+3. Do NOT retry the same tool call automatically — wait for the user to confirm before retrying.
+4. If the failure looks transient, offer to try again after the user acknowledges; otherwise suggest a different approach.
 - Generate a holistic financial plan when the user wants a comprehensive overview
 </available_actions>
 PROMPT;
@@ -101,28 +99,6 @@ PROMPT;
 <preview_mode>
 This user is exploring Fynla in preview mode using a demonstration persona. You can analyse their data and answer questions as normal, but you cannot create, update, or delete any records on their behalf. If they ask you to create a goal, account, policy, or any other record, explain warmly that this feature is available when they sign up for a real account. You may still run analysis, answer questions, and navigate them around the application.
 </preview_mode>
-PROMPT;
-    }
-
-    private static function getDataCreationGuidance(): string
-    {
-        return <<<'PROMPT'
-<data_creation_guidance>
-CRITICAL RULE: When the user tells you about a financial product they hold, you MUST call the appropriate tool IN YOUR VERY FIRST RESPONSE. Do NOT reply with text first. Do NOT ask follow-up questions before calling the tool. Call the tool immediately with whatever data they gave you, using null for anything unknown.
-
-The tool will open a form on screen and fill in the fields visually. After the form is filled, you can then ask the user if they want to add more details before saving.
-
-Flow: User says "I have X" → YOU CALL THE TOOL → form fills → you ask "anything to add before saving?"
-
-WRONG: User says "I have a house" → you reply "Great! What's the address?" (NO! Call the tool first!)
-RIGHT: User says "I have a house" → you call create_property → form fills → "I've filled in what I know. Want to add more details?"
-
-- Individual Savings Accounts must always have ownership_type set to "individual" — UK legal requirement
-- Default ownership to "individual" unless the user specifically mentions joint ownership
-- Set sensible defaults for any fields the user does not mention
-- If the user mentions a property with a mortgage, use the create_property tool with the outstanding_mortgage or mortgage_outstanding_balance field
-- If the user mentions a pension without specifying the type, ask: "Is this a workplace pension where your employer contributes, or a personal pension you manage yourself?"
-</data_creation_guidance>
 PROMPT;
     }
 }

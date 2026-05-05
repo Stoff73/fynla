@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Auth;
 
 use App\Models\User;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -41,11 +45,11 @@ class MFAService
         );
 
         // Generate QR code using bacon/bacon-qr-code
-        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
-            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(300),
-            new \BaconQrCode\Renderer\Image\SvgImageBackEnd
+        $renderer = new ImageRenderer(
+            new RendererStyle(300),
+            new SvgImageBackEnd
         );
-        $writer = new \BaconQrCode\Writer($renderer);
+        $writer = new Writer($renderer);
 
         $svg = $writer->writeString($qrCodeUrl);
 

@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\DCPension;
+use App\Models\Goal;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Lifecycle\LifecycleSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +24,7 @@ it('isEmpty returns true for a user with no module data', function () {
 
 it('isEmpty returns false for a user with a property record', function () {
     $user = User::factory()->create();
-    \App\Models\Property::factory()->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     $service = app(LifecycleSnapshotService::class);
 
@@ -27,12 +33,12 @@ it('isEmpty returns false for a user with a property record', function () {
 
 it('isEmpty returns false for a user with any module data (test all 6 tables)', function () {
     $tables = [
-        \App\Models\Property::class,
-        \App\Models\DCPension::class,
-        \App\Models\SavingsAccount::class,
-        \App\Models\Investment\InvestmentAccount::class,
-        \App\Models\LifeInsurancePolicy::class,
-        \App\Models\Goal::class,
+        Property::class,
+        DCPension::class,
+        SavingsAccount::class,
+        InvestmentAccount::class,
+        LifeInsurancePolicy::class,
+        Goal::class,
     ];
 
     $service = app(LifecycleSnapshotService::class);
@@ -50,8 +56,8 @@ it('findUserIdsWithData returns the subset of user IDs that have data', function
     $userWithoutData = User::factory()->create();
     $anotherUserWithData = User::factory()->create();
 
-    \App\Models\Property::factory()->create(['user_id' => $userWithData->id]);
-    \App\Models\Goal::factory()->create(['user_id' => $anotherUserWithData->id]);
+    Property::factory()->create(['user_id' => $userWithData->id]);
+    Goal::factory()->create(['user_id' => $anotherUserWithData->id]);
 
     $service = app(LifecycleSnapshotService::class);
     $result = $service->findUserIdsWithData([
@@ -85,8 +91,8 @@ it('findUserIdsWithData handles empty input array', function () {
 
 it('buildContext returns first_name, completion_pct, and modules_with_data', function () {
     $user = User::factory()->create(['first_name' => 'James']);
-    \App\Models\Property::factory()->count(2)->create(['user_id' => $user->id]);
-    \App\Models\Goal::factory()->count(3)->create(['user_id' => $user->id]);
+    Property::factory()->count(2)->create(['user_id' => $user->id]);
+    Goal::factory()->count(3)->create(['user_id' => $user->id]);
 
     $service = app(LifecycleSnapshotService::class);
     $context = $service->buildContext($user);
@@ -102,7 +108,7 @@ it('buildContext returns first_name, completion_pct, and modules_with_data', fun
 
 it('buildContext omits modules with zero count', function () {
     $user = User::factory()->create(['first_name' => 'Test']);
-    \App\Models\Property::factory()->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     $service = app(LifecycleSnapshotService::class);
     $context = $service->buildContext($user);

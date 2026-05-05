@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
@@ -211,7 +212,7 @@ describe('AutoRiskCalculator', function () {
 
         it('returns MEDIUM for intermediate knowledge', function () {
             $user = User::factory()->create();
-            \App\Models\Investment\RiskProfile::factory()->create([
+            RiskProfile::factory()->create([
                 'user_id' => $user->id,
                 'knowledge_level' => 'intermediate',
             ]);
@@ -227,7 +228,7 @@ describe('AutoRiskCalculator', function () {
 
         it('returns UPPER_MEDIUM for experienced', function () {
             $user = User::factory()->create();
-            \App\Models\Investment\RiskProfile::factory()->create([
+            RiskProfile::factory()->create([
                 'user_id' => $user->id,
                 'knowledge_level' => 'experienced',
             ]);

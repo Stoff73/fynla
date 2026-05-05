@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Laravel\Sanctum\Sanctum;
 
@@ -10,10 +13,10 @@ beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     // Create admin and regular users (set is_preview_user to skip email verification)
     // Seed roles and permissions
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
 
-    $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
-    $userRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_USER);
+    $adminRole = Role::findByName(Role::ROLE_ADMIN);
+    $userRole = Role::findByName(Role::ROLE_USER);
 
     $this->adminUser = User::factory()->create([
         'first_name' => 'Admin',
@@ -134,7 +137,7 @@ describe('Dashboard Visibility', function () {
 describe('Admin Seeder', function () {
     it('has admin user in database after seeding', function () {
         // Run the admin seeder
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(AdminUserSeeder::class);
 
         $admin = User::where('email', 'admin@fps.com')->first();
 
@@ -146,7 +149,7 @@ describe('Admin Seeder', function () {
 
     it('allows admin user to authenticate', function () {
         // Run the admin seeder
-        $this->seed(\Database\Seeders\AdminUserSeeder::class);
+        $this->seed(AdminUserSeeder::class);
 
         $response = $this->postJson('/api/auth/login', [
             'email' => 'admin@fps.com',

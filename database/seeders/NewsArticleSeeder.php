@@ -18,14 +18,14 @@ class NewsArticleSeeder extends Seeder
         NewsArticle::updateOrCreate(
             ['slug' => 'launching-fynla'],
             [
-                'title'   => 'Launching Fynla: a new personal finance platform built to change your financial future',
+                'title' => 'Launching Fynla: a new personal finance platform built to change your financial future',
                 'summary' => 'Fynla is the new UK personal finance platform from founders Brett Isenberg (FCA) and Chris Slater-Jones (DipPFS) — bringing professional-grade financial planning to everyone.',
-                'body'    => $this->bodyHtml(),
-                'image_url'        => null,
-                'author_name'      => 'The Fynla Team',
-                'status'           => 'published',
-                'published_at'     => Carbon::create(2026, 4, 27, 9, 0, 0),
-                'meta_title'       => 'Launching Fynla — a new UK personal finance platform | Fynla',
+                'body' => $this->bodyHtml(),
+                'image_url' => null,
+                'author_name' => 'The Fynla Team',
+                'status' => 'published',
+                'published_at' => Carbon::create(2026, 4, 27, 9, 0, 0),
+                'meta_title' => 'Launching Fynla — a new UK personal finance platform | Fynla',
                 'meta_description' => 'Fynla is the new UK personal finance platform from founders Brett Isenberg (FCA) and Chris Slater-Jones (DipPFS), bringing professional-grade financial planning to everyone.',
             ]
         );

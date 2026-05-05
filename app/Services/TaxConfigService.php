@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\TaxConfiguration;
+use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use RuntimeException;
 
@@ -107,7 +108,7 @@ class TaxConfigService
     /**
      * Check if a date falls within the current tax year
      *
-     * @param  \Carbon\Carbon|string  $date
+     * @param  Carbon|string  $date
      */
     public function isInCurrentTaxYear($date): bool
     {
@@ -115,7 +116,7 @@ class TaxConfigService
         $effectiveTo = $this->getEffectiveTo();
 
         if (is_string($date)) {
-            $date = \Carbon\Carbon::parse($date);
+            $date = Carbon::parse($date);
         }
 
         return $date->isBetween($effectiveFrom, $effectiveTo, true);

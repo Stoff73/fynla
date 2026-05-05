@@ -33,16 +33,16 @@ class GetStartedMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.get-started',
             with: [
-                'firstName'        => $this->firstName,
-                'progressPercent'  => $this->progressPercent,
-                'dashboardUrl'     => $this->utm('https://fynla.org/dashboard', 'ready-to-start-cta'),
-                'fynUrl'           => $this->utm('https://fynla.org/fyn/onboarding', 'fyn-help-cta'),
-                'protectionUrl'    => $this->utm('https://fynla.org/protection', 'tile-protection'),
-                'savingsUrl'       => $this->utm('https://fynla.org/savings', 'tile-savings'),
-                'investmentUrl'    => $this->utm('https://fynla.org/investment', 'tile-investment'),
-                'retirementUrl'    => $this->utm('https://fynla.org/net-worth/retirement', 'tile-retirement'),
-                'estateUrl'        => $this->utm('https://fynla.org/estate', 'tile-estate'),
-                'goalsUrl'         => $this->utm('https://fynla.org/goals', 'tile-goals'),
+                'firstName' => $this->firstName,
+                'progressPercent' => $this->progressPercent,
+                'dashboardUrl' => $this->utm('https://fynla.org/dashboard', 'ready-to-start-cta'),
+                'fynUrl' => $this->utm('https://fynla.org/fyn/onboarding', 'fyn-help-cta'),
+                'protectionUrl' => $this->utm('https://fynla.org/protection', 'tile-protection'),
+                'savingsUrl' => $this->utm('https://fynla.org/savings', 'tile-savings'),
+                'investmentUrl' => $this->utm('https://fynla.org/investment', 'tile-investment'),
+                'retirementUrl' => $this->utm('https://fynla.org/net-worth/retirement', 'tile-retirement'),
+                'estateUrl' => $this->utm('https://fynla.org/estate', 'tile-estate'),
+                'goalsUrl' => $this->utm('https://fynla.org/goals', 'tile-goals'),
             ],
         );
     }

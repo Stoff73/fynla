@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\News\NewsSubscriber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NewsSubscriberController extends Controller
 {
@@ -62,7 +63,7 @@ class NewsSubscriberController extends Controller
         ]);
     }
 
-    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function export(): StreamedResponse
     {
         $filename = 'news-subscribers-'.now()->format('Y-m-d-His').'.csv';
 

@@ -71,7 +71,7 @@ it('rejects import when html references an image index with no matching blob', f
             'keywords' => null, 'author_name' => null,
         ],
         importedBy: $this->admin,
-    ))->toThrow(\RuntimeException::class);
+    ))->toThrow(RuntimeException::class);
 
     expect(DocumentArticle::count())->toBe($beforeCount);
 });
@@ -110,7 +110,7 @@ it('rolls back the article row when image write fails inside the transaction', f
             'author_name' => null,
         ],
         importedBy: $this->admin,
-    ))->toThrow(\RuntimeException::class, 'Failed to write image');
+    ))->toThrow(RuntimeException::class, 'Failed to write image');
 
     // The DB::transaction must have rolled back the create.
     expect(DocumentArticle::count())->toBe($beforeCount);

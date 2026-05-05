@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fynla Eval Scenario",
+  "type": "object",
+  "required": [
+    "id",
+    "category",
+    "persona",
+    "is_mutating",
+    "description",
+    "input",
+    "expected_classification_shape",
+    "expected_response_mode",
+    "expected_engine_call_level",
+    "expected_kyc_state",
+    "expected_tool_calls",
+    "expected_sse_events",
+    "expected_assistant_text",
+    "timing_budget_ms",
+    "tags"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]+$"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "01-query-types",
+        "02-preview-personas",
+        "03-multi-entity",
+        "04-handoffs",
+        "05-cancel-timeout",
+        "06-prompt-injection",
+        "07-regulatory",
+        "08-provider-parity",
+        "09-canonical-behaviour"
+      ]
+    },
+    "persona": {
+      "type": "string",
+      "enum": [
+        "young_family",
+        "peak_earners",
+        "entrepreneur",
+        "young_saver",
+        "retired_couple",
+        "student"
+      ]
+    },
+    "is_mutating": {
+      "type": "boolean"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 30
+    },
+    "input": {
+      "type": "object",
+      "required": ["turns"],
+      "properties": {
+        "turns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["user"],
+            "properties": {
+              "user": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "current_route": {
+                "type": ["string", "null"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_classification_shape": {
+      "type": "object",
+      "required": ["primary"],
+      "properties": {
+        "primary": {"type": "string"},
+        "related": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "modules": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "expected_response_mode": {
+      "type": "string",
+      "enum": ["recommendation", "factual", "out_of_remit"]
+    },
+    "expected_engine_call_level": {
+      "type": "string",
+      "enum": ["holistic", "module", "factual"]
+    },
+    "expected_kyc_state": {
+      "type": "string",
+      "enum": ["passed", "bypass", "blocked"]
+    },
+    "expected_kyc_missing": {
+      "type": "array"
+    },
+    "expected_tool_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tool", "required"],
+        "properties": {
+          "tool": {"type": "string"},
+          "args": {"type": "object"},
+          "required": {"type": "boolean"},
+          "result_path": {
+            "type": "string",
+            "enum": ["happy", "success_false", "readiness_blocked", "empty_state"]
+          },
+          "result_message_contains": {"type": "string"},
+          "condition": {"type": "string"}
+        }
+      }
+    },
+    "expected_tool_calls_absent": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "expected_sse_events": {
+      "type": "object",
+      "properties": {
+        "must_contain_types": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "must_emit_exactly_once": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "must_not_emit": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "content_event_minimum": {"type": "integer", "minimum": 0},
+        "tool_use_count_min": {"type": "integer", "minimum": 0},
+        "tool_use_count_max": {"type": "integer", "minimum": 0}
+      }
+    },
+    "expected_assistant_text": {
+      "type": "object",
+      "properties": {
+        "must_contain_substrings": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "must_contain_at_least_one_of": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        },
+        "must_not_contain_substrings": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "minimum_length_chars": {"type": "integer", "minimum": 0},
+        "maximum_length_chars": {"type": "integer", "minimum": 0},
+        "exact_match": {"type": "string"}
+      }
+    },
+    "expected_db_writes": {
+      "type": "object",
+      "properties": {
+        "expected_count": {"type": "integer", "minimum": 0},
+        "expected_no_writes_to": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "expected_engine_trace": {
+      "type": "object",
+      "properties": {
+        "must_contain": {"type": "array"},
+        "must_not_contain": {"type": "array"},
+        "ordered": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "expected_http_log": {
+      "type": "object",
+      "properties": {
+        "calls": {"type": "integer", "minimum": 0},
+        "must_have_status_200": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "timing_budget_ms": {
+      "type": "object",
+      "patternProperties": {
+        "^(anthropic|xai)$": {
+          "type": "object",
+          "patternProperties": {
+            "^(happy|success_false|readiness_blocked|kyc_blocked|factual|empty_state)$": {
+              "type": "integer",
+              "minimum": 100
+            }
+          }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}

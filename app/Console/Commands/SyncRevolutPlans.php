@@ -35,7 +35,7 @@ class SyncRevolutPlans extends Command
                 $variations = $result['variations'] ?? [];
 
                 $this->info("    Revolut plan ID: {$planId}");
-                $this->info("    Variations: " . count($variations));
+                $this->info('    Variations: '.count($variations));
 
                 foreach ($variations as $i => $variation) {
                     $phase = $variations[$i]['phases'][0] ?? null;

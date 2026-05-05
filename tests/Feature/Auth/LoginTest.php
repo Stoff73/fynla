@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Laravel\Sanctum\PersonalAccessToken;
 
 it('allows user to login with valid credentials', function () {
     $user = User::factory()->create([
@@ -137,6 +138,6 @@ it('creates multiple tokens for multiple successful logins', function () {
     expect($token1)->not()->toBe($token2);
 
     // Both tokens should be in database
-    $tokenCount = \Laravel\Sanctum\PersonalAccessToken::where('tokenable_id', $user->id)->count();
+    $tokenCount = PersonalAccessToken::where('tokenable_id', $user->id)->count();
     expect($tokenCount)->toBe(2);
 });

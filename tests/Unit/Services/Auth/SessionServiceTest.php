@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\Auth\SessionService;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->sessionService = new SessionService;
@@ -185,9 +186,9 @@ describe('cleanupOrphanedSessions', function () {
 
         // Disable FK checks, set token_id to a non-existent value, re-enable FK checks
         // This simulates an orphaned session without cascading deletes
-        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         $session->update(['token_id' => 999999]);
-        \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         $count = $this->sessionService->cleanupOrphanedSessions();
 

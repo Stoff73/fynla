@@ -152,6 +152,7 @@ class DiscountCode extends Model
         }
         $key = "{$planSlug}.{$billingCycle}";
         $amount = $this->metadata['plan_amounts'][$key] ?? 0;
+
         return min((int) $amount, $amountPence);
     }
 }

@@ -54,6 +54,8 @@ class DCPension extends Model
         'beneficiary_name',
         'has_flexibly_accessed',
         'flexible_access_date',
+        'salary_sacrifice',
+        'employer_ni_rebate_pct',
     ];
 
     protected $casts = [
@@ -73,6 +75,8 @@ class DCPension extends Model
         'has_custom_risk' => 'boolean',
         'has_flexibly_accessed' => 'boolean',
         'flexible_access_date' => 'date',
+        'salary_sacrifice' => 'boolean',
+        'employer_ni_rebate_pct' => 'decimal:4',
     ];
 
     protected $hidden = ['member_number'];

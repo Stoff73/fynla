@@ -44,7 +44,7 @@ it('throws when the file is not a valid zip', function () {
     file_put_contents($tmp, 'not a zip');
 
     expect(fn () => (new DocxMetadataExtractor)->extract($tmp))
-        ->toThrow(\RuntimeException::class, 'not a valid docx');
+        ->toThrow(RuntimeException::class, 'not a valid docx');
 
     unlink($tmp);
 });
@@ -71,8 +71,8 @@ it('logs a warning when core.xml is malformed XML', function () {
     Log::shouldHaveReceived('warning')
         ->once()
         ->with(
-            \Mockery::pattern('/DocxMetadataExtractor/'),
-            \Mockery::on(fn (array $ctx) => isset($ctx['path']))
+            Mockery::pattern('/DocxMetadataExtractor/'),
+            Mockery::on(fn (array $ctx) => isset($ctx['path']))
         );
 
     unlink($tmp);

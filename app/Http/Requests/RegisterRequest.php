@@ -4,10 +4,26 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RegisterRequest extends FormRequest
 {
+    /**
+     * Marketing-channel allowlist for signup_source. Mirror of
+     * resources/js/utils/sourceCapture.js — keep both lists in sync
+     * when adding a new social platform.
+     */
+    public const ALLOWED_SIGNUP_SOURCES = [
+        'linkedin',
+        'facebook',
+        'instagram',
+        'tiktok',
+        'x',
+        'youtube',
+    ];
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -19,7 +35,7 @@ class RegisterRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -35,6 +51,7 @@ class RegisterRequest extends FormRequest
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/',
             ],
+            'signup_source' => ['nullable', 'string', Rule::in(self::ALLOWED_SIGNUP_SOURCES)],
         ];
     }
 

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Insights\InsightArticle;
 use App\Services\Insights\InsightSeoService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->service = app(InsightSeoService::class);

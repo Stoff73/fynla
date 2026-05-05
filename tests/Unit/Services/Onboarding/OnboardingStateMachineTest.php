@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,13 +21,27 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_BASE_SPOUSE,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS,
             OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL,
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY,
             OnboardingStateMachine::STATE_BASE_EMPLOYMENT,
             OnboardingStateMachine::STATE_BASE_WORK,
+            OnboardingStateMachine::STATE_BASE_EMPLOYMENT_MORE,
             OnboardingStateMachine::STATE_BASE_RETIREMENT_DATE,
             OnboardingStateMachine::STATE_BASE_EXPENDITURE,
+            OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE,
             OnboardingStateMachine::STATE_ASSET_CAPTURE,
             OnboardingStateMachine::STATE_ADD_MORE,
             OnboardingStateMachine::STATE_DONE,
+            // SaveTax campaign — sections 4-6 (post-expenditure branch for path=campaign)
+            OnboardingStateMachine::STATE_CAMPAIGN_INTRO,
+            OnboardingStateMachine::STATE_CAMPAIGN_OCCUPATIONAL_SCHEME,
+            OnboardingStateMachine::STATE_CAMPAIGN_ISA_HOLDINGS,
+            OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
+            OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
+            OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,
+            OnboardingStateMachine::STATE_CAMPAIGN_TERMINAL,
         ];
 
         foreach ($expected as $id) {
@@ -43,14 +58,18 @@ describe('OnboardingStateMachine::states', function () {
         }
     });
 
-    it('every bubble state defines between 2 and 6 bubbles', function () {
+    it('every bubble state defines between 1 and 8 bubbles', function () {
+        // Profile-review pauses have a single confirmation bubble. Focus
+        // selection has 8 options (savings / investment / retirement /
+        // protection / estate / goals / budgeting / business). Other
+        // bubble states carry 2-5 options.
         foreach (OnboardingStateMachine::states() as $id => $state) {
             if ($state['turn_type'] !== 'bubbles') {
                 continue;
             }
             $bubbles = $state['bubbles'] ?? [];
-            expect(count($bubbles))->toBeGreaterThanOrEqual(2)
-                ->and(count($bubbles))->toBeLessThanOrEqual(6);
+            expect(count($bubbles))->toBeGreaterThanOrEqual(1)
+                ->and(count($bubbles))->toBeLessThanOrEqual(8);
             foreach ($bubbles as $bubble) {
                 expect($bubble)->toHaveKeys(['id', 'label']);
             }
@@ -76,6 +95,25 @@ describe('OnboardingStateMachine::getState', function () {
         expect($state)->not->toBeNull()
             ->and($state['turn_type'])->toBe('bubbles')
             ->and(count($state['bubbles']))->toBe(2);
+    });
+
+    it('declares the standard layout on profile review states', function () {
+        expect(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY)['layout'])->toBe('standard')
+            ->and(OnboardingStateMachine::getState(OnboardingStateMachine::STATE_PROFILE_REVIEW_EXPENDITURE)['layout'])->toBe('standard');
+    });
+
+    it('surfaces skip_link metadata on base_spouse', function () {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        expect($state)->toHaveKey('skip_link')
+            ->and($state['skip_link']['color'])->toBe('raspberry');
+    });
+
+    it('removes the Other employment bubble and renames Employed to Full-time', function () {
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_EMPLOYMENT);
+        $labels = array_column($state['bubbles'], 'label');
+        expect($labels)->not->toContain('Other')
+            ->and($labels)->not->toContain('Employed')
+            ->and($labels)->toContain('Full-time');
     });
 
     it('returns null for an unknown id', function () {
@@ -171,10 +209,11 @@ describe('OnboardingStateMachine::nextFromDependants', function () {
             ->toBe(OnboardingStateMachine::STATE_BASE_DEPENDANTS_DETAIL);
     });
 
-    it('routes no to employment', function () {
+    it('routes no to profile_review_family (new Phase 10 path)', function () {
         expect(OnboardingStateMachine::nextFromDependants('No'))
-            ->toBe(OnboardingStateMachine::STATE_BASE_EMPLOYMENT);
+            ->toBe(OnboardingStateMachine::STATE_PROFILE_REVIEW_FAMILY);
     });
+
 });
 
 describe('OnboardingStateMachine::nextFromEmployment', function () {
@@ -429,5 +468,154 @@ describe('OnboardingStateMachine::buildPersonalPrompt (FR-M10)', function () {
         expect($text)->toContain('civil partnership')
             ->and($text)->not->toContain('grab a few basics')
             ->and($text)->not->toContain('divorced');
+    });
+});
+
+/**
+ * No-repeat-ask contract for the spouse step. When the user volunteered
+ * the spouse's first name upstream (parked into onboarding_parked_facts.spouse.first_name
+ * by OnboardingFactExtractor at base_personal), the base_spouse prompt
+ * must acknowledge the name and ask only for the remaining fields — DOB
+ * and email. Re-asking is the visible regression CSJ caught (session 111).
+ */
+describe('OnboardingStateMachine::buildSpousePrompt — parked first_name awareness', function () {
+    it('asks for first name + DOB + email when no spouse facts are parked', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->toContain('first name')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->toContain('email');
+    });
+
+    it('omits the first-name ask when spouse.first_name is parked', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $conversation = AiConversation::factory()->create([
+            'user_id' => $user->id,
+            'onboarding_parked_facts' => [
+                'spouse' => ['first_name' => 'Angela'],
+            ],
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        expect($text)->toContain('Angela')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->toContain('email')
+            ->and($text)->not->toContain('first name');
+    });
+
+    it('falls back to the standard prompt when conversation is null', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user, '', null);
+
+        expect($text)->toContain('first name');
+    });
+
+    it('falls back to the standard prompt when spouse bucket is empty', function () {
+        $user = User::factory()->create(['marital_status' => 'married']);
+        $conversation = AiConversation::factory()->create([
+            'user_id' => $user->id,
+            'onboarding_parked_facts' => ['personal' => ['marital_status' => 'married']],
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_SPOUSE);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user, '', $conversation);
+
+        expect($text)->toContain('first name');
+    });
+});
+
+/**
+ * Campaign welcome — when the user arrives via the campaign_map
+ * (onboarding_fyn_path='campaign'), buildPersonalPrompt prepends a
+ * one-sentence campaign-specific opening to the existing grouped
+ * DOB+marital question. All in one bubble (option A from the spec).
+ *
+ * Welcome only fires for fresh users (neither DOB nor marital_status
+ * set) — the existing "I have you as born..." / "Got that you're
+ * married..." retry branches still take precedence on resume.
+ */
+describe('OnboardingStateMachine::buildPersonalPrompt — campaign welcome', function () {
+    it('prepends the savetax welcome for a fresh campaign user', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->toContain('tax-saving strategy')
+            ->and($text)->toContain('Verify')
+            ->and($text)->toContain('date of birth')
+            ->and($text)->toContain('married');
+    });
+
+    it('does NOT prepend the welcome when the path is journey', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'journey',
+            'onboarding_fyn_selection' => 'protection',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->not->toContain('tax-saving strategy')
+            ->and($text)->toContain('grab a few basics');
+    });
+
+    it('does NOT prepend the welcome when the path is focus', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'focus',
+            'onboarding_fyn_selection' => 'investment',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        expect($text)->not->toContain('tax-saving strategy')
+            ->and($text)->toContain('grab a few basics');
+    });
+
+    it('skips the welcome on resume when DOB is already set', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => '1985-01-12',
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'savetax',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Welcome suppressed; resume branch ("I have you as born...") fires.
+        expect($text)->not->toContain('tax-saving strategy')
+            ->and($text)->toContain('12 January 1985');
+    });
+
+    it('falls back to a generic campaign welcome for an unknown campaign id', function () {
+        $user = User::factory()->create([
+            'first_name' => 'Verify',
+            'date_of_birth' => null,
+            'marital_status' => null,
+            'onboarding_fyn_path' => 'campaign',
+            'onboarding_fyn_selection' => 'future-campaign-id',
+        ]);
+        $state = OnboardingStateMachine::getState(OnboardingStateMachine::STATE_BASE_PERSONAL);
+        $text = OnboardingStateMachine::resolvePromptText($state, $user);
+
+        // Generic campaign welcome — no campaign-specific phrasing — but
+        // still distinguishable from the path_choice greeting and the
+        // base "grab a few basics" opening.
+        expect($text)->toContain('Verify')
+            ->and($text)->toContain('date of birth');
     });
 });

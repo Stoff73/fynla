@@ -125,6 +125,13 @@ class TaxConfigurationSeeder extends Seeder
                     'rate' => 0,            // 0% rate
                 ],
 
+                // Marriage Allowance — 10% of personal allowance, transferable
+                // between spouses / civil partners where the recipient is a
+                // basic-rate taxpayer.
+                'marriage_allowance' => [
+                    'amount' => 1260,
+                ],
+
                 // Blind Person's Allowance
                 'blind_persons_allowance' => 3130,
             ],

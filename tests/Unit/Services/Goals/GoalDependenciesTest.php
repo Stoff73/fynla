@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\Goals\GoalRiskService;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -104,11 +105,11 @@ it('removes dependencies when a goal is force deleted', function () {
 
     $goalB->dependsOn()->attach($goalA->id, ['dependency_type' => 'blocks']);
 
-    expect(\DB::table('goal_dependencies')->count())->toBe(1);
+    expect(DB::table('goal_dependencies')->count())->toBe(1);
 
     $goalA->forceDelete();
 
-    expect(\DB::table('goal_dependencies')->count())->toBe(0);
+    expect(DB::table('goal_dependencies')->count())->toBe(0);
 });
 
 // GoalRiskService tests
@@ -120,7 +121,7 @@ it('returns risk parameters for a goal', function () {
         'use_global_risk_profile' => false,
     ]);
 
-    $service = app(\App\Services\Goals\GoalRiskService::class);
+    $service = app(GoalRiskService::class);
     $params = $service->getRiskParameters($goal);
 
     expect($params)->toHaveKeys(['risk_level', 'risk_label', 'expected_return', 'volatility', 'use_global_profile']);
@@ -135,7 +136,7 @@ it('defaults to balanced risk when no preference set', function () {
         'use_global_risk_profile' => false,
     ]);
 
-    $service = app(\App\Services\Goals\GoalRiskService::class);
+    $service = app(GoalRiskService::class);
     $params = $service->getRiskParameters($goal);
 
     expect($params['risk_level'])->toBe(3);
@@ -148,7 +149,7 @@ it('clamps risk level to valid range', function () {
         'use_global_risk_profile' => false,
     ]);
 
-    $service = app(\App\Services\Goals\GoalRiskService::class);
+    $service = app(GoalRiskService::class);
     $params = $service->getRiskParameters($goal);
 
     expect($params['risk_level'])->toBe(5);
@@ -166,7 +167,7 @@ it('returns projections for an investment goal', function () {
         'use_global_risk_profile' => false,
     ]);
 
-    $service = app(\App\Services\Goals\GoalRiskService::class);
+    $service = app(GoalRiskService::class);
     $projections = $service->getProjections($goal);
 
     expect($projections)->toHaveKeys(['risk_parameters', 'projections', 'yearly_projections', 'recommendation']);
@@ -178,7 +179,7 @@ it('returns projections for an investment goal', function () {
 });
 
 it('returns available risk levels', function () {
-    $service = app(\App\Services\Goals\GoalRiskService::class);
+    $service = app(GoalRiskService::class);
     $levels = $service->getAvailableRiskLevels();
 
     expect($levels)->toHaveCount(5);

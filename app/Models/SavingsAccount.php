@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\HasJointOwnership;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -120,7 +121,7 @@ class SavingsAccount extends Model
                 }
                 try {
                     return Crypt::decryptString($value);
-                } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                } catch (DecryptException $e) {
                     return $value;
                 }
             },

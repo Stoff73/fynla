@@ -3,10 +3,23 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Models\UserConsent;
+use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingStateMachine;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+/**
+ * Helper — grant ai_chat consent so the S0.9 runtime guard lets the
+ * request reach the gating logic these tests pin (preview / completed /
+ * disabled / fresh-stream).
+ */
+function grantAiChatConsentForOnboardingEndpointTest(User $user): void
+{
+    app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
+}
 
 /**
  * Covers PRD FR-M9 + FR-M11 — POST /api/ai-chat/onboarding/start
@@ -21,7 +34,7 @@ uses(RefreshDatabase::class);
  *   503       — kill switch off
  */
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 describe('POST /api/ai-chat/onboarding/start', function () {
@@ -32,6 +45,7 @@ describe('POST /api/ai-chat/onboarding/start', function () {
 
     it('returns 403 for preview users with reason=preview_mode (FR-M9)', function () {
         $user = User::factory()->create(['is_preview_user' => true]);
+        grantAiChatConsentForOnboardingEndpointTest($user);
         $token = $user->createToken('test')->plainTextToken;
 
         $response = $this->withToken($token)
@@ -55,6 +69,7 @@ describe('POST /api/ai-chat/onboarding/start', function () {
             'is_preview_user' => false,
             'onboarding_completed' => true,
         ]);
+        grantAiChatConsentForOnboardingEndpointTest($user);
         $token = $user->createToken('test')->plainTextToken;
 
         $this->withToken($token)
@@ -70,6 +85,7 @@ describe('POST /api/ai-chat/onboarding/start', function () {
         config(['onboarding.fyn_flow_enabled' => false]);
 
         $user = User::factory()->create(['is_preview_user' => false]);
+        grantAiChatConsentForOnboardingEndpointTest($user);
         $token = $user->createToken('test')->plainTextToken;
 
         $this->withToken($token)
@@ -87,6 +103,7 @@ describe('POST /api/ai-chat/onboarding/start', function () {
             'onboarding_completed' => false,
             'onboarding_fyn_step' => null,
         ]);
+        grantAiChatConsentForOnboardingEndpointTest($user);
         $token = $user->createToken('test')->plainTextToken;
 
         $response = $this->withToken($token)

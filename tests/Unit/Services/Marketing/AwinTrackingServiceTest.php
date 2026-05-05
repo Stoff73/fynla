@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\Marketing\AwinTrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
@@ -236,7 +237,7 @@ describe('fireServerToServer', function () {
 
     it('returns false and swallows connection exceptions', function () {
         Http::fake([
-            'www.awin1.com/*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('timeout'),
+            'www.awin1.com/*' => fn () => throw new ConnectionException('timeout'),
         ]);
 
         $result = $this->service->fireServerToServer([

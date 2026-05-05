@@ -1,26 +1,20 @@
 <template>
   <div class="ai-message-content text-sm leading-relaxed">
-    <!-- Navigation action card -->
+    <!-- Navigation action card. Rule #14: no icons on Fyn chat surfaces. -->
     <div
       v-if="message.role === 'navigation'"
-      class="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg cursor-pointer
+      class="p-3 bg-violet-50 border border-violet-200 rounded-lg cursor-pointer
              hover:bg-violet-100 transition-colors"
       @click="handleNavigation"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-violet-600 flex-shrink-0">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-      </svg>
       <span class="text-violet-700 font-medium">{{ message.metadata?.description || 'Go to page' }}</span>
     </div>
 
-    <!-- Entity created card -->
+    <!-- Entity created card. Rule #14: no icons on Fyn chat surfaces. -->
     <div
       v-else-if="message.role === 'entity_created'"
-      class="flex items-center gap-2 p-3 bg-spring-50 border border-spring-200 rounded-lg"
+      class="p-3 bg-spring-50 border border-spring-200 rounded-lg"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-spring-600 flex-shrink-0">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-      </svg>
       <span class="text-spring-700 font-medium">
         {{ entityLabel }} created: {{ message.content }}
       </span>

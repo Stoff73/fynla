@@ -44,7 +44,7 @@ it('rejects unsupported formats', function () {
     $file = UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf');
 
     $this->service->upload($file, 'my-article');
-})->throws(\InvalidArgumentException::class);
+})->throws(InvalidArgumentException::class);
 
 it('stores files under the slug directory', function () {
     $file = UploadedFile::fake()->image('photo.jpg');

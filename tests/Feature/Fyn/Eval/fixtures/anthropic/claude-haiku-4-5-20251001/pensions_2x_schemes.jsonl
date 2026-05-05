@@ -1,0 +1,9 @@
+{"__meta":{"provider":"anthropic","model":"claude-haiku-4-5-20251001","scenario_id":"pensions_2x_schemes","recorded_at":"2026-04-27T18:42:17+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"a705ae8","conversation_id":218,"event_count":8,"duration_ms":325}}
+{"type":"title","title":"I have an old workplace pension at Standard Life worth \u00a345,000 and my current workplace pension is w..."}
+{"type":"error","message":"I apologise, but I encountered an issue processing your request. Please try again."}
+{"type":"tool_use","tool":"create_savings_account","status":"running"}
+{"type":"tool_use","tool":"create_savings_account","status":"complete"}
+{"type":"onboarding_advance","from_step":"asset_capture","to_step":"add_more"}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"quick_replies","prompt_text":"Anything else you'd like to cover?","bubbles":[{"id":"savings","label":"Savings"},{"id":"investment","label":"Investment"},{"id":"retirement","label":"Retirement"},{"id":"protection","label":"Protection"},{"id":"done","label":"I'm done"}]}
+{"type":"done","message_id":354}

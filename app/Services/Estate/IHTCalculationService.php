@@ -1311,7 +1311,7 @@ class IHTCalculationService
      */
     private function hasMainResidence(User $user, ?User $spouse): bool
     {
-        $userHasMainRes = \App\Models\Property::where('user_id', $user->id)
+        $userHasMainRes = Property::where('user_id', $user->id)
             ->where('property_type', 'main_residence')
             ->exists();
 
@@ -1320,7 +1320,7 @@ class IHTCalculationService
         }
 
         if ($spouse) {
-            return \App\Models\Property::where('user_id', $spouse->id)
+            return Property::where('user_id', $spouse->id)
                 ->where('property_type', 'main_residence')
                 ->exists();
         }

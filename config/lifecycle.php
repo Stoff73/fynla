@@ -1,6 +1,11 @@
 <?php
 
 declare(strict_types=1);
+use App\Services\Lifecycle\Campaigns\CancelledTrialerCampaign;
+use App\Services\Lifecycle\Campaigns\ChurnedSubscriberCampaign;
+use App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign;
+use App\Services\Lifecycle\Campaigns\EngagedTrialerCampaign;
+use App\Services\Lifecycle\Campaigns\LapsedSubscriberCampaign;
 
 return [
     'enabled' => env('LIFECYCLE_ENGINE_ENABLED', true),
@@ -8,11 +13,11 @@ return [
     // Campaigns are registered here. The engine resolves them via container
     // and sorts by priority() at runtime.
     'campaigns' => [
-        \App\Services\Lifecycle\Campaigns\CancelledTrialerCampaign::class,
-        \App\Services\Lifecycle\Campaigns\ChurnedSubscriberCampaign::class,
-        \App\Services\Lifecycle\Campaigns\LapsedSubscriberCampaign::class,
-        \App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign::class,
-        \App\Services\Lifecycle\Campaigns\EngagedTrialerCampaign::class,
+        CancelledTrialerCampaign::class,
+        ChurnedSubscriberCampaign::class,
+        LapsedSubscriberCampaign::class,
+        EmptyTrialerCampaign::class,
+        EngagedTrialerCampaign::class,
     ],
 
     // Timing knobs (all in days)

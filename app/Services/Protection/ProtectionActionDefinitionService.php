@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class ProtectionActionDefinitionService
 {
@@ -2174,7 +2175,7 @@ class ProtectionActionDefinitionService
     /**
      * Format a list of life insurance policies into a readable summary string.
      */
-    private function formatLifePolicySummary(\Illuminate\Support\Collection $policies): string
+    private function formatLifePolicySummary(Collection $policies): string
     {
         if ($policies->isEmpty()) {
             return 'None';
@@ -2197,7 +2198,7 @@ class ProtectionActionDefinitionService
     /**
      * Format a list of income protection policies into a readable summary string.
      */
-    private function formatIpPolicySummary(\Illuminate\Support\Collection $policies): string
+    private function formatIpPolicySummary(Collection $policies): string
     {
         if ($policies->isEmpty()) {
             return 'None';
@@ -2220,7 +2221,7 @@ class ProtectionActionDefinitionService
     /**
      * Format a list of critical illness policies into a readable summary string.
      */
-    private function formatCiPolicySummary(\Illuminate\Support\Collection $policies): string
+    private function formatCiPolicySummary(Collection $policies): string
     {
         if ($policies->isEmpty()) {
             return 'None';

@@ -7,6 +7,7 @@ use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\TaxConfiguration;
 use App\Models\User;
@@ -151,7 +152,7 @@ it('calculates individual property expenses correctly', function () {
     ]);
 
     // Create mortgage for the property
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => Property::first()->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 450.00,
@@ -196,7 +197,7 @@ it('splits joint property expenses by ownership percentage', function () {
         'monthly_contents_insurance' => 0.00,
     ]);
 
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => Property::first()->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 900.00, // Full amount; user gets 50% = 450
@@ -244,7 +245,7 @@ it('uses first mortgage on property (service takes first mortgage only)', functi
     ]);
 
     // Service only takes first mortgage
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 800.00,
@@ -453,7 +454,7 @@ it('calculates total commitments across all categories', function () {
         'ownership_type' => 'individual',
         'monthly_council_tax' => 200.00,
     ]);
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'monthly_payment' => 800.00,
@@ -494,7 +495,7 @@ it('splits joint property values by ownership percentage', function () {
         'joint_owner_id' => $spouse->id,
         'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
     ]);
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',
@@ -529,7 +530,7 @@ it('handles mixed individual and joint commitments correctly', function () {
         'joint_owner_id' => $spouse->id,
         'monthly_council_tax' => 400.00, // Full amount; user gets 50% = 200
     ]);
-    \App\Models\Mortgage::factory()->create([
+    Mortgage::factory()->create([
         'property_id' => $property->id,
         'user_id' => $this->user->id,
         'ownership_type' => 'joint',

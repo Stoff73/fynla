@@ -20,8 +20,7 @@ class CancelledTrialerMail extends Mailable
     public function __construct(
         public User $user,
         public array $feedbackUrls = [],
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

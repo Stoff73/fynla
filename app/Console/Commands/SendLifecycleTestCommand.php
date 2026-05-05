@@ -13,8 +13,8 @@ use App\Mail\Lifecycle\InsightsMail;
 use App\Mail\Lifecycle\SubscribeInProgressMail;
 use App\Mail\Lifecycle\SubscribeMaxDiscountMail;
 use App\Mail\Lifecycle\WeHaventSeenYouMail;
-use App\Mail\Lifecycle\WellDoneMail;
 use App\Mail\Lifecycle\WelcomeMail;
+use App\Mail\Lifecycle\WellDoneMail;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -37,20 +37,20 @@ class SendLifecycleTestCommand extends Command
 
         // Demo data — James Carter / Save Tax journey / 3 days remaining / 26 April trial end
         $demo = [
-            'firstName'       => 'James',
-            'email'           => 'james.carter@example.com',
-            'username'        => 'james',
-            'planLabel'       => 'Free trial (7 days)',
-            'startDate'       => '22 April 2026',
-            'journeySlug'     => 'save-tax',
+            'firstName' => 'James',
+            'email' => 'james.carter@example.com',
+            'username' => 'james',
+            'planLabel' => 'Free trial (7 days)',
+            'startDate' => '22 April 2026',
+            'journeySlug' => 'save-tax',
             'journeyHeadline' => 'You can save tax',
-            'journeyPhrase'   => 'saving tax?',
-            'trialEndDate'    => '26 April 2026',
-            'daysRemaining'   => 3,
+            'journeyPhrase' => 'saving tax?',
+            'trialEndDate' => '26 April 2026',
+            'daysRemaining' => 3,
         ];
 
         $sequence = [
-            'welcome'               => fn () => new WelcomeMail(
+            'welcome' => fn () => new WelcomeMail(
                 firstName: $demo['firstName'],
                 email: $demo['email'],
                 username: $demo['username'],
@@ -59,11 +59,11 @@ class SendLifecycleTestCommand extends Command
                 journeySlug: $demo['journeySlug'],
                 journeyHeadline: $demo['journeyHeadline'],
             ),
-            'get-started'           => fn () => new GetStartedMail(firstName: $demo['firstName'], progressPercent: 50),
-            'dont-miss-out'         => fn () => new DontMissOutMail(firstName: $demo['firstName']),
-            'insights'              => fn () => new InsightsMail(firstName: $demo['firstName'], journeyPhrase: $demo['journeyPhrase'], progressPercent: 50),
-            'great-job'             => fn () => new GreatJobMail(firstName: $demo['firstName'], progressPercent: 75, discountEarned: '15%'),
-            'well-done'             => fn () => new WellDoneMail(firstName: $demo['firstName']),
+            'get-started' => fn () => new GetStartedMail(firstName: $demo['firstName'], progressPercent: 50),
+            'dont-miss-out' => fn () => new DontMissOutMail(firstName: $demo['firstName']),
+            'insights' => fn () => new InsightsMail(firstName: $demo['firstName'], journeyPhrase: $demo['journeyPhrase'], progressPercent: 50),
+            'great-job' => fn () => new GreatJobMail(firstName: $demo['firstName'], progressPercent: 75, discountEarned: '15%'),
+            'well-done' => fn () => new WellDoneMail(firstName: $demo['firstName']),
             'subscribe-in-progress' => fn () => new SubscribeInProgressMail(
                 firstName: $demo['firstName'],
                 daysRemaining: $demo['daysRemaining'],
@@ -76,18 +76,18 @@ class SendLifecycleTestCommand extends Command
                 daysRemaining: $demo['daysRemaining'],
                 trialEndDate: $demo['trialEndDate'],
             ),
-            'countdown'             => fn () => new CountdownMail(
+            'countdown' => fn () => new CountdownMail(
                 firstName: $demo['firstName'],
                 daysRemaining: $demo['daysRemaining'],
                 trialEndDate: $demo['trialEndDate'],
                 discountCode: 'FYNLA15',
                 discountPercent: '15%',
             ),
-            'end-of-trial'          => fn () => new EndOfTrialMail(
+            'end-of-trial' => fn () => new EndOfTrialMail(
                 firstName: $demo['firstName'],
                 discountPercent: '15%',
             ),
-            'we-havent-seen-you'    => fn () => new WeHaventSeenYouMail(firstName: $demo['firstName']),
+            'we-havent-seen-you' => fn () => new WeHaventSeenYouMail(firstName: $demo['firstName']),
         ];
 
         $only = $this->option('only');
@@ -96,7 +96,7 @@ class SendLifecycleTestCommand extends Command
             $selected = array_map('trim', explode(',', $only));
             $sequence = array_intersect_key($sequence, array_flip($selected));
             if (empty($sequence)) {
-                $this->error("No matching slugs. Known slugs: " . implode(', ', $knownSlugs));
+                $this->error('No matching slugs. Known slugs: '.implode(', ', $knownSlugs));
 
                 return self::FAILURE;
             }
@@ -107,8 +107,8 @@ class SendLifecycleTestCommand extends Command
         $this->newLine();
 
         $position = 0;
-        $sent     = 0;
-        $failed   = [];
+        $sent = 0;
+        $failed = [];
 
         foreach ($sequence as $slug => $factory) {
             $position++;
@@ -119,7 +119,7 @@ class SendLifecycleTestCommand extends Command
                 $this->line("<fg=green>[OK]</> {$label} - sent");
                 $sent++;
             } catch (Throwable $e) {
-                $this->line("<fg=red>[FAIL]</> {$label} - failed: " . $e->getMessage());
+                $this->line("<fg=red>[FAIL]</> {$label} - failed: ".$e->getMessage());
                 $failed[] = $slug;
             }
         }
@@ -128,7 +128,7 @@ class SendLifecycleTestCommand extends Command
         $this->info("Done: {$sent}/{$total} sent.");
 
         if (! empty($failed)) {
-            $this->warn('Failed: ' . implode(', ', $failed));
+            $this->warn('Failed: '.implode(', ', $failed));
 
             return self::FAILURE;
         }

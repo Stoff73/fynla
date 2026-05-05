@@ -1,0 +1,74 @@
+{
+  "id": "mitchell_advice_holistic_health",
+  "category": "01-query-types",
+  "persona": "peak_earners",
+  "is_mutating": false,
+  "description": "David Mitchell asks about overall financial health. Classifier resolves to HOLISTIC_HEALTH (primary), savings_emergency + affordability + tax_optimisation (related), modules: all 9. Universal KYC passes. CoordinatingAgent::orchestrateAnalysis runs across every module. LLM should produce a cross-module health summary and signpost FCA advice.",
+  "input": {
+    "turns": [
+      {"user": "How am I doing financially overall?", "current_route": "/dashboard"}
+    ]
+  },
+  "expected_classification_shape": {
+    "primary": "holistic_health",
+    "related": ["savings_emergency", "affordability", "tax_optimisation"],
+    "modules": ["savings", "investment", "retirement", "protection", "estate", "goals", "tax", "property", "income"]
+  },
+  "expected_response_mode": "recommendation",
+  "expected_engine_call_level": "holistic",
+  "expected_kyc_state": "passed",
+  "expected_tool_calls": [
+    {"tool": "get_recommendations", "args": {}, "required": true, "result_path": "happy"},
+    {"tool": "get_module_analysis", "args": {"module": "holistic"}, "required": true, "result_path": "happy"},
+    {"tool": "generate_financial_plan", "args": {}, "required": false, "result_path": "happy"}
+  ],
+  "expected_tool_calls_absent": [
+    "create_savings_account",
+    "update_record",
+    "delete_record",
+    "delegate_to_capture",
+    "navigate_to_page"
+  ],
+  "expected_sse_events": {
+    "must_contain_types": ["title", "content", "tool_use", "done"],
+    "must_emit_exactly_once": ["done", "title"],
+    "must_not_emit": ["persona_state_change", "handoff", "consent_required", "error"],
+    "content_event_minimum": 5,
+    "tool_use_count_min": 2,
+    "tool_use_count_max": 14
+  },
+  "expected_assistant_text": {
+    "must_contain_substrings": [
+      "For regulated advice personal to your circumstances, speak to a qualified financial adviser."
+    ],
+    "must_contain_at_least_one_of": [
+      ["overall", "summary", "across", "savings", "retirement", "protection"]
+    ],
+    "must_not_contain_substrings": ["I think you should", "I'd recommend", "In my opinion", "you should definitely"],
+    "minimum_length_chars": 250,
+    "maximum_length_chars": 4000
+  },
+  "expected_db_writes": {
+    "expected_count": 0,
+    "expected_no_writes_to": ["users", "ai_conversations"]
+  },
+  "expected_engine_trace": {
+    "must_contain": [
+      {"event": "AgentDecision", "decisionPoint": "classify_query"},
+      {"event": "AgentDecision", "decisionPoint": "response_mode", "outcome": "recommendation"},
+      {"event": "AgentDecision", "decisionPoint": "engine_call_level", "outcome": "holistic"},
+      {"event": "GateChecked", "gate": "kyc", "module": "global", "passed": true},
+      {"event": "EngineCalled", "engine": "orchestrate_analysis"}
+    ],
+    "must_not_contain": []
+  },
+  "expected_http_log": {
+    "calls": 4,
+    "must_have_status_200": ["login", "create_conversation", "send_message", "logout"]
+  },
+  "timing_budget_ms": {
+    "anthropic": {"happy": 18000},
+    "xai": {"happy": 40000}
+  },
+  "tags": ["regression-band-0", "recommendation-mode", "holistic", "peak_earners", "happy-path"]
+}

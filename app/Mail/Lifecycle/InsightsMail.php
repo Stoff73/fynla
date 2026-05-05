@@ -25,7 +25,7 @@ class InsightsMail extends LifecycleMail
     {
         return new Envelope(
             from: new Address('noreply@fynla.org', 'Fynla'),
-            subject: 'Why are you ' . trim($this->journeyPhrase, '?') . '?',
+            subject: 'Why are you '.trim($this->journeyPhrase, '?').'?',
         );
     }
 
@@ -34,17 +34,17 @@ class InsightsMail extends LifecycleMail
         return new Content(
             view: 'emails.lifecycle.insights',
             with: [
-                'firstName'        => $this->firstName,
-                'journeyPhrase'    => $this->journeyPhrase,
-                'progressPercent'  => $this->progressPercent,
-                'finishUrl'        => $this->utm('https://fynla.org/dashboard', 'did-you-know-cta'),
-                'continueUrl'      => $this->utm('https://fynla.org/dashboard', 'continue-my-plan-cta'),
-                'protectionUrl'    => $this->utm('https://fynla.org/protection', 'tile-protection'),
-                'savingsUrl'       => $this->utm('https://fynla.org/savings', 'tile-savings'),
-                'investmentUrl'    => $this->utm('https://fynla.org/investment', 'tile-investment'),
-                'retirementUrl'    => $this->utm('https://fynla.org/net-worth/retirement', 'tile-retirement'),
-                'estateUrl'        => $this->utm('https://fynla.org/estate', 'tile-estate'),
-                'goalsUrl'         => $this->utm('https://fynla.org/goals', 'tile-goals'),
+                'firstName' => $this->firstName,
+                'journeyPhrase' => $this->journeyPhrase,
+                'progressPercent' => $this->progressPercent,
+                'finishUrl' => $this->utm('https://fynla.org/dashboard', 'did-you-know-cta'),
+                'continueUrl' => $this->utm('https://fynla.org/dashboard', 'continue-my-plan-cta'),
+                'protectionUrl' => $this->utm('https://fynla.org/protection', 'tile-protection'),
+                'savingsUrl' => $this->utm('https://fynla.org/savings', 'tile-savings'),
+                'investmentUrl' => $this->utm('https://fynla.org/investment', 'tile-investment'),
+                'retirementUrl' => $this->utm('https://fynla.org/net-worth/retirement', 'tile-retirement'),
+                'estateUrl' => $this->utm('https://fynla.org/estate', 'tile-estate'),
+                'goalsUrl' => $this->utm('https://fynla.org/goals', 'tile-goals'),
             ],
         );
     }

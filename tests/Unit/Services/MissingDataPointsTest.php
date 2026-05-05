@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Estate\Will;
+use App\Models\Goal;
 use App\Models\User;
 use App\Services\Estate\FutureValueCalculator;
 use App\Services\Retirement\DecumulationPlanner;
@@ -52,13 +53,13 @@ describe('Goal Dependencies', function () {
     it('detects blocked goals', function () {
         $user = User::factory()->create();
 
-        $goalA = \App\Models\Goal::factory()->create([
+        $goalA = Goal::factory()->create([
             'user_id' => $user->id,
             'goal_name' => 'Emergency Fund',
             'status' => 'active',
         ]);
 
-        $goalB = \App\Models\Goal::factory()->create([
+        $goalB = Goal::factory()->create([
             'user_id' => $user->id,
             'goal_name' => 'House Deposit',
             'status' => 'active',

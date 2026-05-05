@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\CoordinatingAgent;
 use App\Exceptions\SpouseCollisionException;
 use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
@@ -46,6 +47,30 @@ describe('SpouseLinkingService::linkOrCreateSpouse (collision path)', function (
         expect(fn () => $service->linkOrCreateSpouse($currentUser, [
             'first_name' => 'Pat',
             'email' => 'busy@example.com',
+            'date_of_birth' => '1990-01-01',
+        ]))->toThrow(SpouseCollisionException::class);
+    });
+
+    /**
+     * Regression for P0.8 — the spouse email lookup must be case-insensitive.
+     * Previously a mixed-case input ("Busy@Example.com") did not match a
+     * lowercase stored email and either fell through to creating a duplicate
+     * account or, on case-mismatched collations, surfaced confusing collision
+     * errors against the wrong row.
+     */
+    it('matches a stored lowercase email when the input is mixed-case', function () {
+        $currentUser = User::factory()->create(['marital_status' => 'married']);
+        $thirdParty = User::factory()->create();
+        User::factory()->create([
+            'email' => 'busy@example.com',
+            'spouse_id' => $thirdParty->id,
+        ]);
+
+        $service = app(SpouseLinkingService::class);
+
+        expect(fn () => $service->linkOrCreateSpouse($currentUser, [
+            'first_name' => 'Pat',
+            'email' => 'Busy@Example.COM',
             'date_of_birth' => '1990-01-01',
         ]))->toThrow(SpouseCollisionException::class);
     });
@@ -138,7 +163,7 @@ describe('OnboardingChatDirector::handleGroupedExtractTurn (spouse collision)', 
 
         // The "is_terminal_error" assistant message row is persisted with
         // the error_type metadata so the audit trail captures the branch.
-        $terminalMessage = \App\Models\AiMessage::where('conversation_id', $conversation->id)
+        $terminalMessage = AiMessage::where('conversation_id', $conversation->id)
             ->where('role', 'assistant')
             ->latest('id')
             ->first();

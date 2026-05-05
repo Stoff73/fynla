@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
+use App\Events\Eval\GateChecked;
 use App\Models\ExpenditureProfile;
 use App\Models\Investment\RiskProfile;
 use App\Models\User;
@@ -53,12 +54,34 @@ class RetirementDataReadinessService
 
         $canProceed = count($blocking) === 0;
 
+        event(new GateChecked(
+            gate: 'data_readiness',
+            module: 'retirement',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
+
+        $totalChecks = count($checks);
+        $passedChecks = count(array_filter($checks, fn (array $c): bool => $c['passed'] ?? false));
+
         return [
             'can_proceed' => $canProceed,
             'blocking' => $blocking,
             'warnings' => $warnings,
             'info' => $info,
             'checks' => $checks,
+            'total_checks' => $totalChecks,
+            'passed_checks' => $passedChecks,
+            // M12 — canonical key shared with Estate / Investment / Protection
+            // / Savings readiness services.
+            'completeness_percent' => $totalChecks > 0
+                ? round(($passedChecks / $totalChecks) * 100, 1)
+                : 0.0,
             'summary' => $this->buildSummary($canProceed, $blocking, $warnings, $info),
         ];
     }

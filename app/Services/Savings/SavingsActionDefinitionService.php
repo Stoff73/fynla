@@ -8,6 +8,7 @@ use App\Constants\TaxDefaults;
 use App\Models\FamilyMember;
 use App\Models\Goal;
 use App\Models\Mortgage;
+use App\Models\SavingsAccount;
 use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\TaxConfigService;
@@ -3071,7 +3072,7 @@ class SavingsActionDefinitionService
         $taxYear = $this->taxConfig->getTaxYear();
 
         // Estimate spouse ISA usage from their savings accounts
-        $spouseIsaUsed = (float) \App\Models\SavingsAccount::where('user_id', $user->spouse_id)
+        $spouseIsaUsed = (float) SavingsAccount::where('user_id', $user->spouse_id)
             ->where('is_isa', true)
             ->where('isa_subscription_year', $taxYear)
             ->sum('isa_subscription_amount');

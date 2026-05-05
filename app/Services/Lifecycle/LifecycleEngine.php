@@ -26,8 +26,7 @@ class LifecycleEngine
     public function __construct(
         private readonly LifecycleSnapshotService $snapshotService,
         private readonly LifecycleDiscountCodeGenerator $discountGenerator,
-    ) {
-    }
+    ) {}
 
     public function setTestMode(bool $testMode): self
     {

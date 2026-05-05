@@ -6,12 +6,13 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use App\Services\Documents\HoldingsImportService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 it('matches sheet to existing account by type and provider', function () {

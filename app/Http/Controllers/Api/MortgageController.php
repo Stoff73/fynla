@@ -9,10 +9,13 @@ use App\Http\Requests\StoreMortgageRequest;
 use App\Http\Requests\UpdateMortgageRequest;
 use App\Http\Resources\MortgageResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\JointAccountLog;
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\Property\MortgageService;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -115,12 +118,12 @@ class MortgageController extends Controller
         if (! isset($validated['remaining_term_months']) &&
             isset($validated['start_date']) && $validated['start_date'] &&
             isset($validated['maturity_date']) && $validated['maturity_date']) {
-            $startDate = $validated['start_date'] instanceof \Carbon\Carbon
+            $startDate = $validated['start_date'] instanceof Carbon
                 ? $validated['start_date']
-                : \Carbon\Carbon::parse($validated['start_date']);
-            $maturityDate = $validated['maturity_date'] instanceof \Carbon\Carbon
+                : Carbon::parse($validated['start_date']);
+            $maturityDate = $validated['maturity_date'] instanceof Carbon
                 ? $validated['maturity_date']
-                : \Carbon\Carbon::parse($validated['maturity_date']);
+                : Carbon::parse($validated['maturity_date']);
 
             $validated['remaining_term_months'] = $startDate->diffInMonths($maturityDate);
         } else {
@@ -133,7 +136,7 @@ class MortgageController extends Controller
         // Copy joint ownership from property if applicable
         if (in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id) {
             $validated['joint_owner_id'] = $property->joint_owner_id;
-            $jointOwner = \App\Models\User::find($property->joint_owner_id);
+            $jointOwner = User::find($property->joint_owner_id);
             $validated['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
         }
 
@@ -369,7 +372,7 @@ class MortgageController extends Controller
     /**
      * Log joint mortgage update for audit trail
      */
-    private function logJointMortgageUpdate(\App\Models\User $user, Mortgage $mortgage, array $validated): void
+    private function logJointMortgageUpdate(User $user, Mortgage $mortgage, array $validated): void
     {
         $beforeValues = [
             'outstanding_balance' => [
@@ -385,7 +388,7 @@ class MortgageController extends Controller
             ],
         ];
 
-        \App\Models\JointAccountLog::logEdit(
+        JointAccountLog::logEdit(
             $user->id,
             $mortgage->joint_owner_id,
             $mortgage,

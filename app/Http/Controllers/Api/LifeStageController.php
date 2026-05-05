@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\User;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\PrerequisiteGateService;
 use Illuminate\Http\JsonResponse;
@@ -122,7 +123,7 @@ class LifeStageController extends Controller
      * Display level: does any data exist for this module? (enough to show a card)
      * Advice level: do all BLOCKING prerequisites pass? (enough for Agent analysis)
      */
-    private function buildModuleCompleteness(\App\Models\User $user): array
+    private function buildModuleCompleteness(User $user): array
     {
         // Full assessments from DataReadiness services (field-level detail)
         $assessments = $this->prerequisiteGate->assessAll($user);

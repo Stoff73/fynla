@@ -239,13 +239,31 @@ export default {
             break;
         }
 
-        // Complete AI fill if this was an AI-driven save
+        // Complete AI fill if this was an AI-driven save. completeFill
+        // synchronously advances the aiFormFill queue — if there is a
+        // second entity to capture, pendingFill is repopulated BEFORE
+        // this dispatch returns.
         if (this.$store.state.aiFormFill.pendingFill) {
           this.$store.dispatch('aiFormFill/completeFill');
         }
         // Reload protection data to show the new/updated policy
         await this.fetchProtectionData();
-        this.closeForm();
+
+        // B-1 — do NOT unmount the modal if aiFormFill just queued a
+        // next fill. Closing the form would destroy PolicyFormModal
+        // mid-way through processing the second entity (e.g. Aviva life
+        // saved → Vitality critical illness queued → modal unmounts →
+        // CI never saved). When the queue is empty we close as before.
+        const nextFill = this.$store.state.aiFormFill.pendingFill;
+        if (!nextFill || nextFill.entityType !== 'protection_policy') {
+          this.closeForm();
+        } else {
+          // Reset the modal's local state to 'add a new policy' so the
+          // next fill's watcher can populate formData cleanly. editingPolicy
+          // is null so the modal stays in create mode; showForm stays true
+          // so the component is not unmounted.
+          this.editingPolicy = null;
+        }
       } catch (error) {
         logger.error('Failed to save policy:', error);
         alert('Failed to save policy. Please try again.');

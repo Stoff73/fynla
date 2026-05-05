@@ -4,11 +4,23 @@ declare(strict_types=1);
 
 namespace App\Services\UserProfile;
 
+use App\Models\CriticalIllnessPolicy;
+use App\Models\DCPension;
+use App\Models\DisabilityPolicy;
+use App\Models\Estate\Liability;
+use App\Models\FamilyMember;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
 use App\Models\Property;
+use App\Models\SavingsAccount;
+use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
+use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UKTaxCalculator;
+use Carbon\Carbon;
 
 class UserProfileService
 {
@@ -151,7 +163,7 @@ class UserProfileService
         // Calculate and set deemed_domicile_date if applicable
         if ($user->isDeemedDomiciled() && ! $user->deemed_domicile_date && $user->uk_arrival_date) {
             // Calculate the date when they became deemed domiciled (15 years after arrival)
-            $arrivalDate = \Carbon\Carbon::parse($user->uk_arrival_date);
+            $arrivalDate = Carbon::parse($user->uk_arrival_date);
             $user->deemed_domicile_date = $arrivalDate->copy()->addYears(15);
         }
 
@@ -175,7 +187,7 @@ class UserProfileService
      */
     private function calculateAnnualRentalIncome(User $user): array
     {
-        $propertyService = app(\App\Services\Property\PropertyService::class);
+        $propertyService = app(PropertyService::class);
         $properties = [];
         $totalTaxableIncome = 0;
         $totalSection24Credit = 0;
@@ -619,7 +631,7 @@ class UserProfileService
 
         // If user has a linked spouse, get spouse's children (NOT the spouse record itself)
         if ($user->spouse_id) {
-            $spouseFamilyMembers = \App\Models\FamilyMember::where('user_id', $user->spouse_id)
+            $spouseFamilyMembers = FamilyMember::where('user_id', $user->spouse_id)
                 ->where('relationship', 'child')  // Only children, not spouse record
                 ->orderBy('date_of_birth')
                 ->get();
@@ -671,7 +683,7 @@ class UserProfileService
 
         // 1. DC Pension Contributions
         // Note: DC Pensions are always individual - no joint ownership support
-        $dcPensions = \App\Models\DCPension::where('user_id', $user->id)->get();
+        $dcPensions = DCPension::where('user_id', $user->id)->get();
         foreach ($dcPensions as $pension) {
             if ($pension->monthly_contribution_amount > 0) {
                 // Apply ownership filter - DC pensions are always individual
@@ -692,7 +704,7 @@ class UserProfileService
 
         // 2. Property Expenses (mortgage + council tax + utilities + maintenance)
         // Include properties owned by user OR where user is the joint owner
-        $properties = \App\Models\Property::where(function ($query) use ($user) {
+        $properties = Property::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
                 ->orWhere('joint_owner_id', $user->id);
         })->get();
@@ -810,7 +822,7 @@ class UserProfileService
 
         // 3. Investment Contributions
         // Include accounts owned by user OR where user is the joint owner
-        $investmentAccounts = \App\Models\Investment\InvestmentAccount::where(function ($query) use ($user) {
+        $investmentAccounts = InvestmentAccount::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
                 ->orWhere('joint_owner_id', $user->id);
         })->get();
@@ -835,10 +847,10 @@ class UserProfileService
             // Track lump sum as a one-off amount (not spread monthly)
             $lumpSumAmount = 0;
             if ($account->planned_lump_sum_amount > 0 && $account->planned_lump_sum_date) {
-                $lumpSumDate = \Carbon\Carbon::parse($account->planned_lump_sum_date);
+                $lumpSumDate = Carbon::parse($account->planned_lump_sum_date);
 
                 // Only include if lump sum is planned within the next 12 months
-                if ($lumpSumDate->isFuture() && $lumpSumDate->diffInMonths(\Carbon\Carbon::now()) <= 12) {
+                if ($lumpSumDate->isFuture() && $lumpSumDate->diffInMonths(Carbon::now()) <= 12) {
                     $lumpSumAmount = $account->planned_lump_sum_amount;
                 }
             }
@@ -868,7 +880,7 @@ class UserProfileService
 
         // 4. Savings Account Contributions
         // Include accounts owned by user OR where user is the joint owner
-        $savingsAccounts = \App\Models\SavingsAccount::where(function ($query) use ($user) {
+        $savingsAccounts = SavingsAccount::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
                 ->orWhere('joint_owner_id', $user->id);
         })->where('regular_contribution_amount', '>', 0)->get();
@@ -909,7 +921,7 @@ class UserProfileService
 
         // 5. Protection Premiums
         // Life Insurance
-        $lifeInsurancePolicies = \App\Models\LifeInsurancePolicy::where('user_id', $user->id)->get();
+        $lifeInsurancePolicies = LifeInsurancePolicy::where('user_id', $user->id)->get();
         foreach ($lifeInsurancePolicies as $policy) {
             // Calculate monthly premium based on frequency
             $monthlyPremium = $policy->premium_amount;
@@ -932,7 +944,7 @@ class UserProfileService
         }
 
         // Critical Illness
-        $criticalIllnessPolicies = \App\Models\CriticalIllnessPolicy::where('user_id', $user->id)->get();
+        $criticalIllnessPolicies = CriticalIllnessPolicy::where('user_id', $user->id)->get();
         foreach ($criticalIllnessPolicies as $policy) {
             // Calculate monthly premium based on frequency
             $monthlyPremium = $policy->premium_amount;
@@ -955,7 +967,7 @@ class UserProfileService
         }
 
         // Income Protection
-        $incomeProtectionPolicies = \App\Models\IncomeProtectionPolicy::where('user_id', $user->id)->get();
+        $incomeProtectionPolicies = IncomeProtectionPolicy::where('user_id', $user->id)->get();
         foreach ($incomeProtectionPolicies as $policy) {
             // Calculate monthly premium based on frequency
             $monthlyPremium = $policy->premium_amount;
@@ -978,7 +990,7 @@ class UserProfileService
         }
 
         // Disability
-        $disabilityPolicies = \App\Models\DisabilityPolicy::where('user_id', $user->id)->get();
+        $disabilityPolicies = DisabilityPolicy::where('user_id', $user->id)->get();
         foreach ($disabilityPolicies as $policy) {
             // Calculate monthly premium based on frequency
             $monthlyPremium = $policy->premium_amount;
@@ -1001,7 +1013,7 @@ class UserProfileService
         }
 
         // Sickness/Illness
-        $sicknessIllnessPolicies = \App\Models\SicknessIllnessPolicy::where('user_id', $user->id)->get();
+        $sicknessIllnessPolicies = SicknessIllnessPolicy::where('user_id', $user->id)->get();
         foreach ($sicknessIllnessPolicies as $policy) {
             // Calculate monthly premium based on frequency
             $monthlyPremium = $policy->premium_amount;
@@ -1025,7 +1037,7 @@ class UserProfileService
 
         // 6. Liability Payments (excluding mortgages - they're in properties)
         // Include liabilities owned by user OR where user is the joint owner
-        $liabilities = \App\Models\Estate\Liability::where(function ($query) use ($user) {
+        $liabilities = Liability::where(function ($query) use ($user) {
             $query->where('user_id', $user->id)
                 ->orWhere('joint_owner_id', $user->id);
         })->where('liability_type', '!=', 'mortgage')->get();

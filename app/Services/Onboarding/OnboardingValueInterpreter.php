@@ -28,9 +28,18 @@ final class OnboardingValueInterpreter
     /**
      * Parse a free-text date of birth into a Y-m-d string.
      *
-     * Accepted examples: "12 January 1985", "12/01/1985", "1985-01-12",
-     * "12 Jan 1980". Rejects relative references ("yesterday") and dates
-     * that would make the user younger than 18 or older than 105.
+     * Accepted examples:
+     *   "12 January 1985", "12/01/1985", "1985-01-12", "12 Jan 1980"
+     *   "My date of birth is 12 March 1985 and I am married"
+     *   "I was born on 12-03-1985", "12th March 1985", "March 12, 1985"
+     *
+     * When the input contains extra prose around the date (as in the
+     * common multi-field onboarding answer above), the parser extracts
+     * the date-like substring first and passes only that to Carbon —
+     * `Carbon::parse` on the full sentence would throw for most prose.
+     *
+     * Rejects relative references ("yesterday") and dates that would make
+     * the user younger than 18 or older than 105.
      */
     public static function parseDateOfBirth(?string $input): ?string
     {
@@ -47,8 +56,24 @@ final class OnboardingValueInterpreter
             }
         }
 
+        $dateCandidate = self::extractDateSubstring($cleaned) ?? $cleaned;
+
         try {
-            $date = Carbon::parse($cleaned);
+            // UK convention for slashed / dashed / dotted numeric dates:
+            // "12/03/1985" is 12 March, not December 3rd. Carbon's default
+            // for "12/03/1985" is MDY, so handle DMY explicitly.
+            if (preg_match('#^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$#', $dateCandidate, $m) === 1) {
+                $d = (int) $m[1];
+                $mo = (int) $m[2];
+                $y = (int) $m[3];
+                if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
+                    $date = Carbon::create($y, $mo, $d, 0, 0, 0);
+                } else {
+                    return null;
+                }
+            } else {
+                $date = Carbon::parse($dateCandidate);
+            }
         } catch (\Throwable $e) {
             return null;
         }
@@ -63,6 +88,41 @@ final class OnboardingValueInterpreter
         }
 
         return $date->format('Y-m-d');
+    }
+
+    /**
+     * Pull a date-like substring out of a longer message. Returns the first
+     * match or null if no recognisable date pattern is present.
+     *
+     * Patterns, longest/most specific first so "12 March 1985" matches
+     * before "March 1985" would swallow it:
+     *   - "12 March 1985" / "12th March 1985" / "12 Mar 1985"
+     *   - "March 12 1985" / "March 12, 1985" / "Mar 12 1985"
+     *   - "12/03/1985" / "12-03-1985" / "12.03.1985"
+     *   - "1985-03-12" / "1985/03/12"
+     */
+    private static function extractDateSubstring(string $text): ?string
+    {
+        $months = '(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)';
+
+        $patterns = [
+            // DD Month YYYY — "12 March 1985", "12th March 1985", "12 Mar 1985"
+            '/\b(\d{1,2})(?:st|nd|rd|th)?\s+'.$months.'\s+\d{4}\b/i',
+            // Month DD YYYY — "March 12 1985", "March 12, 1985"
+            '/\b'.$months.'\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}\b/i',
+            // YYYY-MM-DD / YYYY/MM/DD
+            '/\b\d{4}[-\/]\d{1,2}[-\/]\d{1,2}\b/',
+            // DD/MM/YYYY / DD-MM-YYYY / DD.MM.YYYY
+            '/\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}\b/',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m) === 1) {
+                return $m[0];
+            }
+        }
+
+        return null;
     }
 
     /**

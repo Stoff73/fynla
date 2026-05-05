@@ -6,9 +6,11 @@ namespace App\Services\Protection;
 
 use App\Agents\ProtectionAgent;
 use App\Exceptions\FinancialCalculationException;
+use App\Models\FamilyMember;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Traits\FormatsCurrency;
+use Carbon\Carbon;
 
 /**
  * Generates a comprehensive protection plan combining:
@@ -184,7 +186,7 @@ class ComprehensiveProtectionPlanService
         // Calculate age from date_of_birth
         $age = 'Not provided';
         if ($user->date_of_birth) {
-            $age = \Carbon\Carbon::parse($user->date_of_birth)->age;
+            $age = Carbon::parse($user->date_of_birth)->age;
         }
 
         // Determine smoker status - check user table first, fallback to profile
@@ -215,7 +217,7 @@ class ComprehensiveProtectionPlanService
         return [
             'name' => $user->name,
             'email' => $user->email,
-            'date_of_birth' => $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not provided',
+            'date_of_birth' => $user->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not provided',
             'age' => $age,
             'gender' => ucfirst($user->gender ?? 'Not specified'),
             'marital_status' => ucfirst(str_replace('_', ' ', $maritalStatus)),
@@ -223,7 +225,7 @@ class ComprehensiveProtectionPlanService
             'education_level' => $educationLevel,
             'smoker_status' => $smokerStatus,
             'health_status' => $healthStatus,
-            'number_of_dependents' => \App\Models\FamilyMember::where('user_id', $user->id)->where('is_dependent', true)->count(),
+            'number_of_dependents' => FamilyMember::where('user_id', $user->id)->where('is_dependent', true)->count(),
             'dependents_ages' => $profile->dependents_ages ?? [],
             'retirement_age' => $profile->retirement_age ?? 65,
             'death_in_service_multiple' => $profile->death_in_service_multiple,

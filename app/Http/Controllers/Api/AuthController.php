@@ -16,11 +16,15 @@ use App\Models\LoginAttempt;
 use App\Models\PendingRegistration;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserConsent;
 use App\Models\UserSession;
 use App\Services\Audit\AuditService;
 use App\Services\Auth\LoginLockoutService;
 use App\Services\Auth\MFAService;
 use App\Services\Auth\SessionService;
+use App\Services\GDPR\ConsentService;
+use App\Services\LifeStage\LifeStageService;
+use App\Services\Payment\ReferralService;
 use App\Services\Payment\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +44,8 @@ class AuthController extends Controller
         private readonly MFAService $mfaService,
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
-        private readonly TrialService $trialService
+        private readonly TrialService $trialService,
+        private readonly ConsentService $consentService
     ) {}
 
     /**
@@ -76,6 +81,7 @@ class AuthController extends Controller
             'plan' => $request->plan ?? null,
             'billing_cycle' => $request->billing_cycle ?? null,
             'referral_code' => $request->referral_code ?? null,
+            'signup_source' => $request->validated('signup_source'),
         ]);
 
         Log::info('Pending registration created', [
@@ -143,7 +149,7 @@ class AuthController extends Controller
 
         // Auto-promote admin users on login if listed in ADMIN_EMAILS
         if ($user && ! $user->is_admin && in_array($email, config('auth.admin_emails', []), true)) {
-            $adminRole = \App\Models\Role::findByName(\App\Models\Role::ROLE_ADMIN);
+            $adminRole = Role::findByName(Role::ROLE_ADMIN);
             if ($adminRole) {
                 $user->role_id = $adminRole->id;
                 $user->is_admin = true;
@@ -260,7 +266,7 @@ class AuthController extends Controller
         // Audit log
         $this->auditService->logAuth(AuditLog::ACTION_LOGOUT, $user);
 
-        if ($token && $token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+        if ($token && $token instanceof PersonalAccessToken) {
             // Delete the session record first (if exists)
             UserSession::where('token_id', $token->id)->delete();
 
@@ -345,7 +351,7 @@ class AuthController extends Controller
         // Include life stage data completeness so frontend has it immediately
         $dataCompletedSteps = [];
         if ($user->life_stage) {
-            $lifeStageService = app(\App\Services\LifeStage\LifeStageService::class);
+            $lifeStageService = app(LifeStageService::class);
             $dataCompletedSteps = $lifeStageService->getDataCompleteness($user);
         }
 
@@ -472,6 +478,7 @@ class AuthController extends Controller
                 'password' => $pending->password, // Already hashed
                 'role_id' => $role?->id,
                 'referred_by_code' => $pending->referral_code,
+                'signup_source' => $pending->signup_source,
             ]);
 
             // Sync is_admin flag (bypasses guarded)
@@ -490,10 +497,27 @@ class AuthController extends Controller
             $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
             $this->trialService->startTrial($user, $plan, $billingCycle);
 
+            // Record GDPR consents accepted at registration. The form footer
+            // says "By creating an account, you agree to our Terms of Service
+            // and Privacy Policy" so terms + privacy are explicit. Data
+            // processing is the lawful basis under which the app operates and
+            // is implicit at sign-up. AI chat consent is granted because the
+            // entire post-registration journey (onboarding, advice) is chat-
+            // driven — without it /api/ai-chat/onboarding/start returns 403
+            // and the user is silently locked out of the product. Withdrawing
+            // any of these via /settings continues to flow through the
+            // existing UserConsent::withdraw path (INV-2.10.3 still applies).
+            $this->consentService->recordConsents($user, [
+                UserConsent::TYPE_TERMS => true,
+                UserConsent::TYPE_PRIVACY => true,
+                UserConsent::TYPE_DATA_PROCESSING => true,
+                UserConsent::TYPE_AI_CHAT => true,
+            ]);
+
             // Link referral if user registered with a referral code
             if ($pending->referral_code) {
                 try {
-                    app(\App\Services\Payment\ReferralService::class)
+                    app(ReferralService::class)
                         ->applyReferralOnRegistration($user, $pending->referral_code);
                 } catch (\Exception $e) {
                     Log::error('Failed to link referral on registration', [

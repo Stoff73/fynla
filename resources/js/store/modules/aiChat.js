@@ -6,6 +6,7 @@
  */
 
 import aiChatService from '@/services/aiChatService';
+import { stripTags } from '@/utils/stripTags';
 
 import logger from '@/utils/logger';
 const state = {
@@ -25,6 +26,20 @@ const state = {
     pendingNavigation: null,
     prefilledPrompt: null,
     abortController: null,
+    onboardingLayout: 'wide',    // 'wide' | 'standard' — driven by onboarding_layout_change SSE
+    skipLink: null,              // { label, color } when a state exposes a skip link
+    previewCta: null,            // { label, route } when advice emits a signup CTA
+    // True while the current conversation is a Fyn-driven onboarding
+    // conversation (started via startOnboardingConversation, i.e. the
+    // "Quick start with Fyn" CTA). AppLayout reads this to activate the
+    // wide-chat wrapper + dashboard blur on /dashboard routes — the
+    // onboarding surface is not tied to a specific URL path.
+    isOnboardingActive: false,
+    // Set true when the backend emits a consent_required event (either as
+    // a 403 on send or as a mid-stream SSE event after withdrawal). UI
+    // components watch this getter to surface a re-consent prompt; the
+    // existing /settings GDPR consent UI handles the actual re-grant.
+    consentRequired: false,
 };
 
 const getters = {
@@ -44,6 +59,11 @@ const getters = {
     pendingNavigation: (state) => state.pendingNavigation,
     prefilledPrompt: (state) => state.prefilledPrompt,
     hasConversation: (state) => state.currentConversation !== null,
+    onboardingLayout: (state) => state.onboardingLayout,
+    skipLink: (state) => state.skipLink,
+    previewCta: (state) => state.previewCta,
+    isOnboardingActive: (state) => state.isOnboardingActive,
+    consentRequired: (state) => state.consentRequired,
 };
 
 const mutations = {
@@ -113,6 +133,26 @@ const mutations = {
         state.abortController = controller;
     },
 
+    SET_ONBOARDING_LAYOUT(state, mode) {
+        state.onboardingLayout = mode === 'standard' ? 'standard' : 'wide';
+    },
+
+    SET_SKIP_LINK(state, skipLink) {
+        state.skipLink = skipLink || null;
+    },
+
+    SET_PREVIEW_CTA(state, cta) {
+        state.previewCta = cta || null;
+    },
+
+    SET_IS_ONBOARDING_ACTIVE(state, value) {
+        state.isOnboardingActive = !!value;
+    },
+
+    SET_CONSENT_REQUIRED(state, value) {
+        state.consentRequired = !!value;
+    },
+
     UPDATE_CONVERSATION_TITLE(state, { conversationId, title }) {
         if (state.currentConversation && state.currentConversation.id === conversationId) {
             state.currentConversation.title = title;
@@ -148,6 +188,11 @@ const mutations = {
         state.pendingNavigation = null;
         state.prefilledPrompt = null;
         state.abortController = null;
+        state.onboardingLayout = 'wide';
+        state.skipLink = null;
+        state.previewCta = null;
+        state.isOnboardingActive = false;
+        state.consentRequired = false;
     },
 };
 
@@ -217,6 +262,9 @@ const actions = {
         commit('SET_ERROR', null);
         commit('SET_MESSAGES', []);
         commit('SET_STREAMING_TEXT', '');
+        // Starting a fresh non-onboarding conversation clears the onboarding
+        // active flag so the wide-chat/blur drops back to normal.
+        commit('SET_IS_ONBOARDING_ACTIVE', false);
 
         try {
             const currentRoute = rootState.route?.path || window.location.pathname;
@@ -232,6 +280,13 @@ const actions = {
 
     /**
      * Load an existing conversation.
+     *
+     * Normalises the persisted message shape to match the streamed shape:
+     * assistant rows with `metadata.bubbles` are split into a plain
+     * `assistant` row (text only) plus a `quick_replies` row (bubbles),
+     * mirroring what the SSE path produces. Without this split, AiChatPanel
+     * (which only renders bubbles when `msg.role === 'quick_replies'`) shows
+     * a resumed onboarding turn with no bubbles.
      */
     async loadConversation({ commit }, conversationId) {
         commit('SET_LOADING', true);
@@ -245,7 +300,32 @@ const actions = {
         try {
             const response = await aiChatService.getConversation(conversationId);
             commit('SET_CURRENT_CONVERSATION', response.data.conversation);
-            commit('SET_MESSAGES', response.data.messages || []);
+
+            const raw = response.data.messages || [];
+            const normalised = [];
+            for (const m of raw) {
+                const bubbles = m?.metadata?.bubbles;
+                const skipLink = m?.metadata?.skip_link || null;
+                const actionBubbles = Boolean(m?.metadata?.action_bubbles);
+                const hasBubbles = Array.isArray(bubbles) && bubbles.length > 0;
+
+                if (m.role === 'assistant' && hasBubbles) {
+                    // Split into text + quick_replies so AiChatPanel renders both.
+                    if (m.content) {
+                        normalised.push({ ...m, metadata: { ...m.metadata, bubbles: undefined } });
+                    }
+                    normalised.push({
+                        id: `qr_${m.id}`,
+                        role: 'quick_replies',
+                        content: '',
+                        metadata: { bubbles, skip_link: skipLink, action_bubbles: actionBubbles },
+                        created_at: m.created_at,
+                    });
+                } else {
+                    normalised.push(m);
+                }
+            }
+            commit('SET_MESSAGES', normalised);
         } catch (error) {
             logger.error('Failed to load conversation:', error);
             commit('SET_ERROR', 'Failed to load conversation.');
@@ -272,11 +352,16 @@ const actions = {
     async sendMessage({ commit, dispatch, state, rootState }, message) {
         if (!state.currentConversation) return;
 
-        // Add user message to local state immediately
+        // Add user message to local state immediately. Strip HTML tags so the
+        // optimistic bubble matches what SanitizeInput middleware writes to
+        // the DB — otherwise the user sees their own "<script>...</script>"
+        // input rendered as visible text in the bubble (escaped, but ugly).
+        const displayMessage = stripTags(message);
+
         commit('ADD_MESSAGE', {
             id: 'temp_' + Date.now(),
             role: 'user',
-            content: message,
+            content: displayMessage,
             created_at: new Date().toISOString(),
         });
 
@@ -395,9 +480,16 @@ const actions = {
                                     content: event.prompt_text || '',
                                     metadata: {
                                         bubbles: event.bubbles || [],
+                                        skip_link: event.skip_link || null,
+                                        action_bubbles: Boolean(event.action_bubbles),
                                     },
                                     created_at: new Date().toISOString(),
                                 });
+                                // Phase 10 — propagate skip-link metadata to the
+                                // global getter so persistent affordances (e.g.
+                                // the spouse skip) can be rendered outside the
+                                // bubble list too.
+                                commit('SET_SKIP_LINK', event.skip_link || null);
                                 break;
 
                             case 'onboarding_advance':
@@ -406,12 +498,101 @@ const actions = {
                                 logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
                                 break;
 
+                            case 'onboarding_layout_change':
+                                // Phase 13 — director signals layout switch (wide/standard)
+                                // for pause states. FynOnboardingChat.vue watches this
+                                // getter to shrink the chat container and unblur the
+                                // dashboard while in standard mode.
+                                commit('SET_ONBOARDING_LAYOUT', event.mode);
+                                // Entering a profile-review pause — refresh the auth
+                                // user + family members so ProfileReviewPanel has the
+                                // data the director just wrote (FR-M22: "renders
+                                // captured personal / family / employment / expenditure
+                                // fields"). Without this refresh the panel reads stale
+                                // Vuex state from page load and shows only fields that
+                                // existed then.
+                                if (event.mode === 'standard') {
+                                    dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                                    dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
+                                }
+                                break;
+
+                            case 'capture_complete':
+                                // Phase 13 — orchestrator fires this after data-capture
+                                // Fyn emits capture_complete. Records are added to the
+                                // message stream as a record-card bubble for the UI.
+                                commit('ADD_MESSAGE', {
+                                    id: 'capture_' + Date.now(),
+                                    role: 'capture_complete',
+                                    content: event.summary || '',
+                                    metadata: {
+                                        records_created: event.records_created || [],
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                break;
+
+                            case 'handoff':
+                                // Should never reach here — AdviceFyn::wrapStream strips
+                                // handoff events from the outbound SSE per INV-2.4.1.
+                                // Log only.
+                                logger.debug('[chat] handoff leaked', event);
+                                break;
+
+                            case 'handoff_error':
+                                // April30Updates F-1 / INV-2.4.5 — the LLM emitted a
+                                // delegate_to_capture with a malformed payload. Surface
+                                // a single short message so the user knows the request
+                                // didn't land. Render as a normal assistant content
+                                // bubble (per INV-2.4.3 styling rule — no special chrome).
+                                commit('ADD_MESSAGE', {
+                                    id: 'handoff_error_' + Date.now(),
+                                    role: 'assistant',
+                                    content: event.message || "I couldn't pick up that request — could you try again?",
+                                    created_at: new Date().toISOString(),
+                                });
+                                logger.warn('[chat] handoff_error', {
+                                    reason: event.reason,
+                                });
+                                break;
+
+                            case 'skip_link':
+                                // Phase 10 — director-emitted skip link affordance for
+                                // grouped_extract states (e.g. base_spouse). The bubbles
+                                // path bundles skip_link into the quick_replies event;
+                                // this separate type carries it for non-bubble turns.
+                                commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'preview_cta':
+                                // Phase 13 — orchestrator surfaces a signup CTA after
+                                // short-circuiting a preview user.
+                                commit('SET_PREVIEW_CTA', {
+                                    label: event.label || 'Sign up',
+                                    route: event.route || '/register',
+                                });
+                                break;
+
                             case 'onboarding_complete':
                                 // Terminal state — the director marked the user as
                                 // onboarded and told us where to navigate next.
                                 // SET_PENDING_NAVIGATION is picked up by AiChatPanel's
-                                // existing navigation handler.
+                                // existing navigation handler. Also clear the Fyn
+                                // onboarding flag so the wide-chat/blur layout
+                                // returns to normal.
+                                commit('SET_IS_ONBOARDING_ACTIVE', false);
                                 commit('SET_PENDING_NAVIGATION', event.nextRoute || '/dashboard');
+                                // Refresh dashboard data — onboarding may have created
+                                // goals, family members, income, expenditure, and other
+                                // records that the dashboard's charts and cards display.
+                                // If the user lands on the same route they were on, the
+                                // router push is a no-op and no remount fires — explicit
+                                // refresh below ensures the visible state matches the
+                                // newly captured data.
+                                dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                                dispatch('goals/fetchProjection', null, { root: true }).catch(() => {});
+                                dispatch('goals/fetchDashboardOverview', null, { root: true }).catch(() => {});
+                                dispatch('netWorth/refreshNetWorth', null, { root: true }).catch(() => {});
                                 break;
 
                             case 'token_limit':
@@ -420,6 +601,22 @@ const actions = {
                                     resetAt: event.reset_at,
                                     secondsUntilReset: event.seconds_until_reset,
                                 });
+                                break;
+
+                            case 'consent_required':
+                                // S0.9 — backend re-checks ai_chat consent on every
+                                // SSE iteration. If the user withdrew consent
+                                // mid-stream the controller emits this terminal
+                                // event and closes the connection. Surface the
+                                // re-consent prompt and stop streaming locally.
+                                commit('SET_CONSENT_REQUIRED', true);
+                                commit('SET_STREAMING', false);
+                                // No user-facing consent toggle exists — AI chat
+                                // consent is granted at registration via the
+                                // privacy policy. If consent has been withdrawn
+                                // (e.g. by support action or a GDPR request),
+                                // the user has to contact support to restore it.
+                                commit('SET_ERROR', 'AI chat consent has been withdrawn. Contact Fynla support to restore your AI features.');
                                 break;
 
                             case 'error':
@@ -463,10 +660,165 @@ const actions = {
             // "Replied" = either streamingText has content OR new messages
             // (assistant, quick_replies, navigation, entity_created, etc.)
             // were pushed during the stream.
+            //
+            // Skip the empty-response error when the stream legitimately
+            // ended with no assistant turn — token_limit and consent_required
+            // both close the stream after a single terminal SSE event and
+            // produce no message. Without these guards the violet token-
+            // limit notice and the raspberry empty-response banner both
+            // render, with the banner overwriting the legitimate notice
+            // (BS-13 RED until session 89).
             const producedNewMessages = state.messages.length > preStreamMessageCount;
-            if (state.streaming && !state.streamingText && !producedNewMessages && !state.error) {
+            if (
+                state.streaming
+                && !state.streamingText
+                && !producedNewMessages
+                && !state.error
+                && !state.tokenLimitReached
+                && !state.consentRequired
+            ) {
                 commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
             }
+            commit('SET_STREAMING', false);
+            commit('SET_STREAMING_TEXT', '');
+            commit('SET_ABORT_CONTROLLER', null);
+        }
+    },
+
+    /**
+     * Post a routed action (resume / continue / restart / skip / something_else)
+     * against the current conversation. Streams the director's response via
+     * SSE and commits events using the same mutations as sendMessage.
+     * Phase 12 — replaces the old sentinel-string resume/skip/restart
+     * hack.
+     */
+    async postAction({ commit, dispatch, state }, action) {
+        if (!state.currentConversation) {
+            logger.warn('[chat] postAction called without a current conversation');
+            return;
+        }
+
+        const validActions = ['resume', 'continue', 'restart', 'skip', 'something_else'];
+        if (!validActions.includes(action)) {
+            logger.warn('[chat] invalid action', action);
+            return;
+        }
+
+        commit('SET_STREAMING', true);
+        commit('SET_STREAMING_TEXT', '');
+        commit('SET_ERROR', null);
+
+        const abortController = new AbortController();
+        commit('SET_ABORT_CONTROLLER', abortController);
+
+        let reader;
+        try {
+            reader = await aiChatService.postActionStream(
+                state.currentConversation.id,
+                action,
+                { signal: abortController.signal },
+            );
+        } catch (error) {
+            logger.error('[chat] postAction failed', error);
+            commit('SET_ERROR', 'Could not complete that action. Please try again.');
+            commit('SET_STREAMING', false);
+            commit('SET_ABORT_CONTROLLER', null);
+            return;
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+
+                    try {
+                        const event = JSON.parse(line.slice(6));
+
+                        switch (event.type) {
+                            case 'content':
+                                commit('APPEND_STREAMING_TEXT', event.text);
+                                break;
+
+                            case 'quick_replies':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: 'qr_text_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                commit('ADD_MESSAGE', {
+                                    id: 'qr_' + Date.now(),
+                                    role: 'quick_replies',
+                                    content: event.prompt_text || '',
+                                    metadata: {
+                                        bubbles: event.bubbles || [],
+                                        skip_link: event.skip_link || null,
+                                        action_bubbles: Boolean(event.action_bubbles),
+                                    },
+                                    created_at: new Date().toISOString(),
+                                });
+                                commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'onboarding_advance':
+                                logger.debug('[onboarding] advance', event.from_step, '→', event.to_step);
+                                break;
+
+                            case 'onboarding_layout_change':
+                                commit('SET_ONBOARDING_LAYOUT', event.mode);
+                                // See sendMessage handler — refresh auth/family when
+                                // entering a profile-review pause so ProfileReviewPanel
+                                // shows the director's latest writes.
+                                if (event.mode === 'standard') {
+                                    dispatch('auth/fetchUser', null, { root: true }).catch(() => {});
+                                    dispatch('userProfile/fetchFamilyMembers', null, { root: true }).catch(() => {});
+                                }
+                                break;
+
+                            case 'skip_link':
+                                commit('SET_SKIP_LINK', event.skip_link || null);
+                                break;
+
+                            case 'done':
+                                if (state.streamingText) {
+                                    commit('ADD_MESSAGE', {
+                                        id: event.message_id || 'msg_' + Date.now(),
+                                        role: 'assistant',
+                                        content: state.streamingText,
+                                        created_at: new Date().toISOString(),
+                                    });
+                                    commit('SET_STREAMING_TEXT', '');
+                                }
+                                break;
+
+                            case 'error':
+                                commit('SET_ERROR', event.message);
+                                break;
+                        }
+                    } catch {
+                        // Skip malformed SSE lines
+                    }
+                }
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                logger.error('postAction streaming error:', error);
+                commit('SET_ERROR', 'Connection lost. Please try again.');
+            }
+        } finally {
             commit('SET_STREAMING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
@@ -522,21 +874,41 @@ const actions = {
      * conversation. If onboarding is already complete or the feature flag
      * is off, falls back to a normal startNewConversation.
      */
-    async startOnboardingConversation({ commit, dispatch, state, rootState }) {
+    async startOnboardingConversation({ commit, dispatch, state, rootState }, payload = {}) {
+        // Forward the optional `from` entry-source identifier so the
+        // onboarding director can pre-select the campaign / journey via
+        // config('onboarding.campaign_map') / journey_map.
+        const fromParam = (payload && typeof payload.from === 'string') ? payload.from : null;
+
         // Reset chat state before starting
         commit('SET_LOADING', true);
         commit('SET_ERROR', null);
         commit('SET_MESSAGES', []);
         commit('SET_STREAMING_TEXT', '');
+        // Phase 13 — Fyn-driven onboarding is active. Unlocks the wide-chat
+        // wrapper + dashboard blur in AppLayout regardless of URL path.
+        commit('SET_IS_ONBOARDING_ACTIVE', true);
+        commit('SET_ONBOARDING_LAYOUT', 'wide');
 
-        // Check status first — if already in progress, resume instead of starting
+        // Check status first — if already in progress, fire the resume action
+        // so the director emits a clean welcome-back greeting + Continue/Start
+        // over bubbles. We do NOT dump the prior history into the active chat —
+        // that lives in the conversation history sidebar. The active chat
+        // surface is reserved for the welcome-back turn so the user gets a
+        // friendly summary of where they left off (per OnboardingChatDirector
+        // ::handleResumeAction → describeStep), not a wall of past messages.
         try {
             const status = await aiChatService.getOnboardingStatus();
             const inProgress = status?.data?.in_progress === true;
             const conversationId = status?.data?.conversation_id;
             if (inProgress && conversationId) {
+                commit('SET_CURRENT_CONVERSATION', {
+                    id: conversationId,
+                    title: 'Onboarding',
+                    message_count: 0,
+                });
                 commit('SET_LOADING', false);
-                await dispatch('loadConversation', conversationId);
+                await dispatch('postAction', 'resume');
                 return;
             }
         } catch (error) {
@@ -551,7 +923,10 @@ const actions = {
 
         let reader;
         try {
-            reader = await aiChatService.startOnboardingStream({ signal: abortController.signal });
+            reader = await aiChatService.startOnboardingStream({
+                signal: abortController.signal,
+                from: fromParam,
+            });
         } catch (error) {
             // 503 disabled / 409 already_completed / 403 preview_mode — fall back
             // to a normal empty chat so the user can still talk to Fyn.

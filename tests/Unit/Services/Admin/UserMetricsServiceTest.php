@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\Subscription;
 use App\Models\User;
@@ -400,7 +401,7 @@ describe('getEngagementStats', function () {
             'onboarding_completed' => true,
         ]);
         SavingsAccount::factory()->create(['user_id' => $user1->id]);
-        \App\Models\Property::factory()->create(['user_id' => $user1->id]);
+        Property::factory()->create(['user_id' => $user1->id]);
 
         // User who has used 0 modules
         User::factory()->create([

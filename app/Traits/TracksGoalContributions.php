@@ -6,6 +6,7 @@ namespace App\Traits;
 
 use App\Models\Goal;
 use App\Models\GoalContribution;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -81,9 +82,9 @@ trait TracksGoalContributions
      *
      * For other account types, goals are resolved via the FK column directly.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Goal>
+     * @return Collection<int, Goal>
      */
-    protected function resolveLinkedGoals(Model $account): \Illuminate\Database\Eloquent\Collection
+    protected function resolveLinkedGoals(Model $account): Collection
     {
         $linkedField = $this->getLinkedField();
 

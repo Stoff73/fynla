@@ -73,7 +73,7 @@ class SubscriptionRenewalService
                 'amount' => $amount,
                 'currency' => 'GBP',
                 'status' => 'pending',
-                'description' => ucfirst($planSlug) . ' — ' . ucfirst($billingCycle) . ' (Auto-renewal)',
+                'description' => ucfirst($planSlug).' — '.ucfirst($billingCycle).' (Auto-renewal)',
                 'plan_slug' => $planSlug,
                 'billing_cycle' => $billingCycle,
                 'revolut_subscription_payment' => true,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
+use App\Events\Eval\GateChecked;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
@@ -45,6 +46,18 @@ class EstateDataReadinessService
         $passedCount = count(array_filter($checks, fn (array $check): bool => $check['passed']));
         $totalCount = count($checks);
         $completenessPercent = $totalCount > 0 ? (int) round(($passedCount / $totalCount) * 100) : 0;
+
+        event(new GateChecked(
+            gate: 'data_readiness',
+            module: 'estate',
+            passed: $canProceed,
+            context: [
+                'blocking' => array_map(fn ($c) => $c['key'] ?? 'unknown', $blocking),
+                'warnings' => array_map(fn ($c) => $c['key'] ?? 'unknown', $warnings),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
 
         return [
             'can_proceed' => $canProceed,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Investment;
 
 use App\Http\Controllers\Controller;
+use App\Models\Investment\InvestmentAccount;
 use App\Services\Investment\ContributionOptimizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,7 +90,7 @@ class ContributionOptimizerController extends Controller
 
         // Get current portfolio value
         $user = $request->user();
-        $currentValue = \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)
+        $currentValue = InvestmentAccount::where('user_id', $user->id)
             ->sum('current_value');
 
         $result = $this->contributionOptimizer->optimizeContributions(

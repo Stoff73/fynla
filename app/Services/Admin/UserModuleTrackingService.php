@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Models\Estate\Will;
 use App\Models\User;
 
 /**
@@ -267,7 +268,7 @@ class UserModuleTrackingService
     private function getEstateSubAreas(User $user): array
     {
         // Check for will via the Estate\Will model
-        $hasWill = \App\Models\Estate\Will::where('user_id', $user->id)
+        $hasWill = Will::where('user_id', $user->id)
             ->where('has_will', true)
             ->exists();
 

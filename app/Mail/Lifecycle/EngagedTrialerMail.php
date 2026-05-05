@@ -22,8 +22,7 @@ class EngagedTrialerMail extends Mailable
         public array $context = [],
         public ?string $magicUrl = null,
         public ?string $discountCode = null,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

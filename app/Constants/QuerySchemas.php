@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Constants;
 
+use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
+
 /**
  * Defines all AI query types, their classifications, KYC requirements,
  * mandatory tool sequences, and decision tree trigger mappings.
  *
- * Used by QueryClassifier, KycGateChecker, SystemPromptBuilder, and QueryKnowledge.
+ * Used by QueryClassifier, KycGateChecker, AdvicePromptBuilder, and QueryKnowledge.
  */
 final class QuerySchemas
 {
@@ -58,6 +61,23 @@ final class QuerySchemas
 
     public const AFFORDABILITY = 'affordability';
 
+    /**
+     * Billing / subscription / invoice / payment query. Factual type — no FCA
+     * advice process, no KYC gate, no per-module readiness check. The model
+     * surfaces the user's billing state via `get_subscription_status` +
+     * `list_invoices` and follows the response-shape contract pinned by
+     * `<billing_guidance>` (only injected when this classification fires —
+     * see April27Updates/fixEvalTask.md Task 2).
+     */
+    public const BILLING = 'billing';
+
+    /**
+     * S0.14 — non-financial topic detected (medical, legal, emotional support,
+     * general knowledge). AdviceFyn::handle short-circuits these with the
+     * canonical refusal string and emits zero tool calls.
+     */
+    public const OUT_OF_REMIT = 'out_of_remit';
+
     // ─── Type Groups ─────────────────────────────────────────────────
 
     /**
@@ -98,6 +118,7 @@ final class QuerySchemas
      */
     public const FACTUAL_TYPES = [
         self::GENERAL,
+        self::BILLING,
     ];
 
     // ─── Module Mapping ──────────────────────────────────────────────
@@ -125,9 +146,11 @@ final class QuerySchemas
         self::INCOME => ['income'],
         self::HOLISTIC_HEALTH => ['savings', 'investment', 'retirement', 'protection', 'estate', 'goals', 'tax', 'property', 'income'],
         self::AFFORDABILITY => ['savings', 'income'],
+        self::BILLING => [],
         self::GENERAL => [],
         self::DATA_ENTRY => [],
         self::NAVIGATION => [],
+        self::OUT_OF_REMIT => [],
     ];
 
     // ─── Implicit Related Types ──────────────────────────────────────
@@ -155,10 +178,12 @@ final class QuerySchemas
         self::PROPERTY => [],
         self::INCOME => [],
         self::AFFORDABILITY => [],
+        self::BILLING => [],
         self::GENERAL => [],
         self::DATA_ENTRY => [],
         self::NAVIGATION => [],
         self::INVESTMENT_FEES => [],
+        self::OUT_OF_REMIT => [],
     ];
 
     // ─── Keyword Patterns ────────────────────────────────────────────
@@ -188,6 +213,18 @@ final class QuerySchemas
             '/\bgo\s+to\b/i',
             '/\bopen\s+(my|the)\b/i',
             '/\bshow\s+me\s+(my|the)\b/i',
+        ],
+        self::BILLING => [
+            '/\binvoice(s)?\b/i',
+            '/\breceipt(s)?\b/i',
+            '/\b(billing|bill)\s+(history|cycle|date)\b/i',
+            '/\bsubscription\s+(status|plan|active|cancelled|paused|trial|trialing|renew(al|s)?)\b/i',
+            '/\bnext\s+(charge|payment|bill|invoice)\b/i',
+            '/\bwhen\s+(am\s+i\s+)?charged\b/i',
+            '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',
+            '/\bwhat\s+(am\s+i\s+)?paying\s+(for\s+)?fynla\b/i',
+            '/\bcurrent\s+plan\b/i',
+            '/\bmy\s+plan\b/i',
         ],
         self::HOLISTIC_HEALTH => [
             '/\b(financial|total|overall|full)\s+(health|review|position|picture|summary|overview)\b/i',
@@ -224,6 +261,9 @@ final class QuerySchemas
         self::PROTECTION_COVER => [
             '/\b(life|death)\s+(cover|insurance)\b/i',
             '/\b(enough|adequate|sufficient)\s+(life\s+)?cover\b/i',
+            '/\b(enough|adequate|sufficient)\s+(life\s+)?(coverage|insurance|protection)\b/i',
+            '/\bcovered?\s+(enough|adequately|sufficiently)\b/i',
+            '/\bam\s+i\s+(insured|covered|protected)\b/i',
             '/\bcoverage\s+gap\b/i',
             '/\bincome\s+protection\b/i',
             '/\bcritical\s+illness\b/i',
@@ -238,6 +278,7 @@ final class QuerySchemas
         ],
         self::SAVINGS_EMERGENCY => [
             '/\bemergency\s+fund\b/i',
+            '/\bemergency\s+(savings|cash|reserve|reserves|money|pot)\b/i',
             '/\bcash\s+buffer\b/i',
             '/\brainy\s+day\b/i',
             '/\b(enough|adequate)\s+(savings|cash|liquid)/i',
@@ -265,6 +306,7 @@ final class QuerySchemas
             '/\bdiversif/i',
             '/\brebalance?\b/i',
             '/\brisk\s+profile\b/i',
+            '/\bstocks?\s*(?:&|and)\s*shares?\s+isa\b/i',
         ],
         self::INVESTMENT_FEES => [
             '/\bfund\s+fee/i',
@@ -428,6 +470,8 @@ final class QuerySchemas
         self::PROTECTION_COVER => [
             'get_module_analysis(protection)',
             'list_records(life_insurance)',
+            'list_records(critical_illness)',
+            'list_records(income_protection)',
         ],
         self::PROTECTION_POLICY => [
             'get_module_analysis(protection)',
@@ -632,17 +676,45 @@ final class QuerySchemas
 
     /**
      * Priority order for holistic health reviews (section F of the plan).
+     *
+     * The PA-taper band labels were previously a `const` array with the
+     * £100,000-£125,140 figures hardcoded into a string. M16 — replaced
+     * with a static method so the bands are sourced from
+     * TaxConfigService/TaxDefaults and the prompt copy stays in sync with
+     * whatever HMRC publishes for the active tax year. Returns the same
+     * shape (1-indexed map → string) the prompt assemblers expect.
+     *
+     * @return array<int, string>
      */
-    public const HOLISTIC_PRIORITY = [
-        1 => 'Liquidity — emergency fund adequacy (liquid assets vs 3-6 months expenses)',
-        2 => 'High-interest debt — repayment before investment',
-        3 => 'Protection gaps — life, income, critical illness coverage',
-        4 => 'Pension contributions — employer match, tax relief, Personal Allowance reclaim at £100,000-£125,140',
-        5 => 'Individual Savings Account allowance — use it or lose it (tax year sensitive)',
-        6 => 'Further investment/pension — surplus allocation beyond Individual Savings Account',
-        7 => 'Estate planning — Inheritance Tax, wills, Lasting Powers of Attorney, gifting strategies',
-        8 => 'Goal funding — savings targets and life event preparation',
-    ];
+    public static function holisticPriority(): array
+    {
+        $taperLower = (int) (TaxDefaults::PERSONAL_ALLOWANCE_TAPER ?? 100000);
+        $taperUpper = (int) (TaxDefaults::ADDITIONAL_RATE_THRESHOLD ?? 125140);
+
+        $income = (array) (app(TaxConfigService::class)->getIncomeTax() ?? []);
+        if (isset($income['personal_allowance_taper_threshold'])) {
+            $taperLower = (int) $income['personal_allowance_taper_threshold'];
+        }
+        $thresholds = app(TaxStrategyMath::class)->bandThresholds();
+        if (($thresholds['additional'] ?? 0) > 0) {
+            $taperUpper = (int) $thresholds['additional'];
+        }
+
+        return [
+            1 => 'Liquidity — emergency fund adequacy (liquid assets vs 3-6 months expenses)',
+            2 => 'High-interest debt — repayment before investment',
+            3 => 'Protection gaps — life, income, critical illness coverage',
+            4 => sprintf(
+                'Pension contributions — employer match, tax relief, Personal Allowance reclaim at £%s-£%s',
+                number_format($taperLower),
+                number_format($taperUpper),
+            ),
+            5 => 'Individual Savings Account allowance — use it or lose it (tax year sensitive)',
+            6 => 'Further investment/pension — surplus allocation beyond Individual Savings Account',
+            7 => 'Estate planning — Inheritance Tax, wills, Lasting Powers of Attorney, gifting strategies',
+            8 => 'Goal funding — savings targets and life event preparation',
+        ];
+    }
 
     // ─── Helper Methods ──────────────────────────────────────────────
 
@@ -688,6 +760,55 @@ final class QuerySchemas
         }
 
         return array_values(array_unique($tools));
+    }
+
+    /**
+     * Detect advice-shaped phrasing in a user message. Used by classifier
+     * callers that want to decide whether a user turn is asking for
+     * analysis as well as volunteering data — the presence of any of these
+     * phrases indicates the user expects advice, not just capture.
+     *
+     * Case-insensitive, word-boundary-aware. Intentionally permissive —
+     * false positives are preferable to misrouting a genuine advice query.
+     */
+    public static function isAdviceShaped(string $message): bool
+    {
+        $patterns = [
+            '/\bshould\s+i\b/i',
+            '/\bwhat\s+(about|if)\b/i',
+            '/\bhow\s+(much|should|can|do|would)\b/i',
+            '/\bam\s+i\b/i',
+            '/\bcan\s+you\s+(explain|help|tell)\b/i',
+            '/\bwhy\b/i',
+            '/\brecommend/i',
+            '/\badvice\b/i',
+            '/\bcompare\b/i',
+            '/\bprojection\b/i',
+            '/\bforecast\b/i',
+            '/\bthoughts\?/i',
+            '/\bis\s+that\s+enough\b/i',
+            '/\bis\s+this\s+enough\b/i',
+            '/\bwhat\s+do\s+you\s+think\b/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $message) === 1) {
+                return true;
+            }
+        }
+
+        // Belt-and-braces: if the message contains a question mark AND has
+        // more than one sentence/clause, fall through to advice. This
+        // catches "Add my ISA £5k, thoughts?" style mixed-intent messages.
+        if (str_contains($message, '?')) {
+            // Count rough clause separators (comma, period, question, newline)
+            $clauseSeparators = preg_match_all('/[,.?!\n]/', $message);
+            if ($clauseSeparators !== false && $clauseSeparators >= 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
