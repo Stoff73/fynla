@@ -23,7 +23,9 @@ it('writes annual_charitable_donations to the user', function () {
         'annual_donations' => 500,
     ], $user);
 
-    expect($result['updated'] ?? false)->toBeTrue();
+    expect($result['onboarding_capture'] ?? false)->toBeTrue()
+        ->and($result['field_group'] ?? null)->toBe('campaign_charitable_giving')
+        ->and($result['details']['annual_charitable_donations'] ?? null)->toBe(500.0);
     expect((float) $user->fresh()->annual_charitable_donations)->toBe(500.0);
 });
 

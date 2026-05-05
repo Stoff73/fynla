@@ -38,6 +38,8 @@ describe('OnboardingStateMachine::states', function () {
             OnboardingStateMachine::STATE_CAMPAIGN_BANK_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_INVESTMENT_ACCOUNTS,
             OnboardingStateMachine::STATE_CAMPAIGN_PENSION_CONTRIBS,
+            OnboardingStateMachine::STATE_CAMPAIGN_PENSION_HISTORY,
+            OnboardingStateMachine::STATE_CAMPAIGN_CHARITABLE_GIVING,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_WORK,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_HOUSEHOLD,
             OnboardingStateMachine::STATE_CAMPAIGN_SPOUSE_NON_WORKING_ASSETS,

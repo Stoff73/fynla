@@ -42,7 +42,9 @@ it('reset endpoint runs preview:reset for the persona', function () {
     $user = User::where('preview_persona_id', 'peak_earners')->firstOrFail();
     $token = $user->createToken('reset-test', ['bypass-preview-mode'])->plainTextToken;
 
-    $response = $this->withToken($token)->postJson('/api/eval/reset/peak_earners');
+    $response = $this->withToken($token)
+        ->withHeaders(['X-Eval-Run-Id' => 'test-run-'.uniqid()])
+        ->postJson('/api/eval/reset/peak_earners');
 
     $response->assertOk()->assertJsonPath('reset', 'peak_earners');
     expect(User::where('preview_persona_id', 'peak_earners')->exists())->toBeTrue();
