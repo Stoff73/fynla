@@ -1,22 +1,27 @@
 <template>
-    <div
+    <label
         class="drop-zone"
         :class="{ 'drop-zone--active': isDragging, 'drop-zone--busy': isProcessing }"
         @dragover.prevent="isDragging = true"
         @dragleave="isDragging = false"
         @drop.prevent="onDrop"
-        @click="$refs.input.click()"
     >
-        <input ref="input" type="file" accept=".docx" class="hidden" @change="onPick" />
-        <div v-if="!isProcessing" class="text-center">
+        <input
+            type="file"
+            accept=".docx"
+            class="sr-only"
+            :disabled="isProcessing"
+            @change="onPick"
+        />
+        <div v-if="!isProcessing" class="text-center pointer-events-none">
             <p class="text-base font-bold text-horizon-700">Drop a Word document here</p>
             <p class="text-sm text-horizon-500 mt-1">or click to choose a .docx file (max 10 MB)</p>
         </div>
-        <div v-else class="text-center">
+        <div v-else class="text-center pointer-events-none">
             <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto"></div>
             <p class="text-sm text-horizon-500 mt-3">{{ progressMessage }}</p>
         </div>
-    </div>
+    </label>
 </template>
 
 <script>
@@ -134,8 +139,5 @@ export default {
 }
 .drop-zone--busy {
     @apply cursor-default;
-}
-.hidden {
-    display: none;
 }
 </style>
