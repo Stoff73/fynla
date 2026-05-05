@@ -153,6 +153,7 @@
               </transition>
             </div>
 
+            <!-- Get started with Fyn -->
             <router-link
               to="/register?from=fyn"
               class="inline-block px-12 py-3 text-lg bg-light-blue-500 text-white rounded-button font-medium hover:opacity-90 transition-colors whitespace-nowrap"
@@ -284,27 +285,24 @@
 
     <!-- Your Fynla Dashboard -->
     <div id="dashboard" class="bg-eggshell-500 py-10 lg:py-12">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-center mb-12">Your Fynla dashboard</h2>
-        <div class="card-lg overflow-hidden p-0">
-          <div class="flex items-center gap-2 px-4 py-2.5 bg-savannah-100 border-b border-light-gray">
-            <span class="w-3 h-3 rounded-full bg-raspberry-500"></span>
-            <span class="w-3 h-3 rounded-full bg-violet-500"></span>
-            <span class="w-3 h-3 rounded-full bg-spring-500"></span>
-            <span class="ml-3 text-xs text-neutral-500 font-mono">fynla.org</span>
-          </div>
+        <div class="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" @click="toggleVideo">
           <video
-            src="/images/fynla-dashboard-walkthrough.mp4"
-            autoplay
-            loop
-            muted
+            ref="productVideo"
+            src="/images/Homepage-Fynla-ProductVideov2.mp4"
             playsinline
-            width="1346"
-            height="665"
             class="w-full h-auto block"
           >
             Your browser does not support the video tag.
           </video>
+          <div v-if="!videoPlaying" class="absolute inset-0 bg-horizon-500/30 flex items-center justify-center transition-opacity group-hover:bg-horizon-500/20">
+            <div class="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-raspberry-500 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -358,40 +356,98 @@
       </div>
     </div>
 
-    <!-- Latest insights -->
-    <div class="bg-light-pink-100 pt-12 pb-28">
+    <!-- Latest insights — featured 2/3 + two supporting 1/3 (DB-driven) -->
+    <div v-if="insightsFeatured" class="bg-light-pink-100 pt-12 pb-28">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6" style="letter-spacing:-0.02em;">Latest insights</h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+          <!-- Featured (2/3) -->
           <router-link
-            v-for="article in latestInsights"
-            :key="article.slug"
-            :to="article.slug"
-            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col no-underline"
+            :to="'/insights/' + insightsFeatured.slug"
+            class="lg:col-span-2 group relative block rounded-3xl overflow-hidden bg-horizon-500 min-h-[320px] lg:min-h-[420px]"
           >
-            <div class="aspect-[16/9] overflow-hidden bg-horizon-100">
-              <img
-                :src="getInsightImage(article.image)"
-                :alt="article.title"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-            <div class="p-3.5 flex-1 flex flex-col">
-              <p class="text-[0.65rem] text-neutral-400 mb-1 uppercase tracking-wide">{{ article.date }}</p>
-              <h3 class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-1.5 leading-snug">
-                {{ article.title }}
+            <img
+              v-if="insightsFeatured.image_card"
+              :src="insightsFeatured.image_card"
+              :alt="insightsFeatured.title"
+              class="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-horizon-700 via-horizon-500/50 to-transparent"></div>
+            <div class="relative h-full flex flex-col justify-end p-6 md:p-8">
+              <span class="text-[0.65rem] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-raspberry-500 text-white self-start mb-3">
+                Featured
+              </span>
+              <h3
+                class="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight group-hover:text-raspberry-300 transition-colors"
+                style="letter-spacing:-0.02em;"
+              >
+                {{ insightsFeatured.title }}
               </h3>
-              <p class="text-xs text-neutral-500 mb-2 leading-relaxed flex-1 line-clamp-2">{{ article.summary }}</p>
-              <span class="text-xs font-semibold text-raspberry-500">Read &rarr;</span>
+              <p class="text-sm md:text-base text-white/80 leading-relaxed line-clamp-2">
+                {{ insightsFeatured.summary }}
+              </p>
             </div>
           </router-link>
+
+          <!-- Two supporting (1/3 stacked) -->
+          <div class="grid grid-rows-2 gap-5">
+            <router-link
+              v-for="article in insightsSupporting"
+              :key="article.slug"
+              :to="'/insights/' + article.slug"
+              class="group relative block rounded-3xl overflow-hidden bg-white hover:shadow-xl transition-all"
+            >
+              <div class="flex h-full min-h-[150px] lg:min-h-[200px]">
+                <div class="w-2/5 relative overflow-hidden bg-horizon-100">
+                  <img
+                    v-if="article.image_card"
+                    :src="article.image_card"
+                    :alt="article.title"
+                    class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
+                <div class="flex-1 p-4 flex flex-col justify-center">
+                  <h4 class="text-sm md:text-base font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors leading-tight">
+                    {{ article.title }}
+                  </h4>
+                </div>
+              </div>
+            </router-link>
+          </div>
         </div>
 
         <div class="text-center mt-6">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">
             See all insights &rarr;
           </router-link>
+        </div>
+      </div>
+    </div>
+
+    <!-- Static Latest insights fallback (when CMS is disabled) -->
+    <div v-if="!insightsFeatured" class="bg-light-pink-100 pt-12 pb-28">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-6" style="letter-spacing:-0.02em;">Latest insights</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <router-link
+            v-for="article in staticInsights"
+            :key="article.slug"
+            :to="article.slug"
+            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col no-underline"
+          >
+            <div class="aspect-[16/9] overflow-hidden bg-horizon-100">
+              <img v-if="getInsightImage(article.image)" :src="getInsightImage(article.image)" :alt="article.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col">
+              <p class="text-[0.65rem] text-neutral-400 mb-1 uppercase tracking-wide">{{ article.date }}</p>
+              <h3 class="text-sm font-bold text-horizon-500 group-hover:text-raspberry-500 transition-colors mb-1.5 leading-snug">{{ article.title }}</h3>
+              <p class="text-xs text-neutral-500 leading-relaxed flex-1 line-clamp-2">{{ article.summary }}</p>
+            </div>
+          </router-link>
+        </div>
+        <div class="text-center mt-6">
+          <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">See all insights &rarr;</router-link>
         </div>
       </div>
     </div>
@@ -406,8 +462,8 @@
           </div>
           <div class="block w-px self-stretch bg-light-gray"></div>
           <div class="text-center flex-1 min-w-0">
-            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">1</div>
-            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">The only UK platform designed for students to retirees</div>
+            <div class="text-2xl sm:text-4xl font-bold text-horizon-500">1000's</div>
+            <div class="text-[0.7rem] sm:text-sm font-semibold text-neutral-500 mt-1 leading-tight">of financial plans created for people like you</div>
           </div>
           <div class="block w-px self-stretch bg-light-gray"></div>
           <div class="text-center flex-1 min-w-0">
@@ -438,9 +494,17 @@ import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 import logger from '@/utils/logger';
 
-// Auto-import insight images so the latest-insights panels resolve the same
-// bundled URLs as the Insights hub page.
 const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
+
+// Fallback insights rendered only when VITE_INSIGHTS_CMS_ENABLED !== 'true'
+// (the DB-driven block above is hidden in that case). Keep these in sync with
+// the bespoke insight pages — the hub itself reads from the CMS, so this list
+// is just a homepage stand-in until the CMS flag is flipped on.
+const STATIC_INSIGHTS = [
+  { slug: '/insights/how-much-to-retire-uk', title: 'How Much Do I Need to Retire in the UK?', date: '14 April 2026', summary: 'Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.', image: 'how-much-to-retire-uk.jpg' },
+  { slug: '/insights/stocks-shares-isa-uk', title: 'What Is a Stocks and Shares ISA?', date: '13 April 2026', summary: 'How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.', image: 'stocks-shares-isa.jpg' },
+  { slug: '/insights/isa-guide-uk', title: 'The Ultimate Guide to ISAs in the UK', date: '8 April 2026', summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and choosing the right one.', image: 'isa-guide-uk.jpg' },
+];
 
 export default {
   name: 'LandingPage',
@@ -458,40 +522,31 @@ export default {
       previewError: '',
       chatInput: '',
       fynDetailsOpen: false,
-      latestInsights: [
-        {
-          slug: '/insights/how-much-to-retire-uk',
-          title: 'How Much Do I Need to Retire in the UK?',
-          date: '14 April 2026',
-          summary: 'Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.',
-          image: 'how-much-to-retire-uk.jpg',
-        },
-        {
-          slug: '/insights/stocks-shares-isa-uk',
-          title: 'What Is a Stocks and Shares ISA?',
-          date: '13 April 2026',
-          summary: 'How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.',
-          image: 'stocks-shares-isa.jpg',
-        },
-        {
-          slug: '/insights/isa-guide-uk',
-          title: 'The Ultimate Guide to ISAs in the UK',
-          date: '8 April 2026',
-          summary: 'Everything you need to know about ISAs in 2026 — types, allowances, rules, and choosing the right one.',
-          image: 'isa-guide-uk.jpg',
-        },
-      ],
+      videoPlaying: false,
     };
   },
 
   computed: {
     ...mapGetters('preview', ['availablePersonas']),
+    ...mapGetters('insights', { insightsFeatured: 'featured', insightsSupporting: 'supporting' }),
+    staticInsights() { return STATIC_INSIGHTS; },
   },
 
-  mounted() {
+  async mounted() {
     document.title = 'Fyn, your financial companion | Fynla is your complete personal finance platform for planning, savings and investments';
     this.setMetaDescription('Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place.');
     this.checkDemoParam();
+
+    // Feature flag off → skip the fetch; the `v-if="insightsFeatured"` block
+    // in the template hides the Latest insights section entirely when there's
+    // no data, which is the intended behaviour during a backend-only deploy.
+    if (import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true') {
+      try {
+        await this.fetchFeatured();
+      } catch (e) {
+        // non-fatal — hero hides if nothing returned
+      }
+    }
   },
 
   watch: {
@@ -506,11 +561,24 @@ export default {
 
   methods: {
     ...mapActions('preview', ['loadPersona']),
+    ...mapActions('insights', ['fetchFeatured']),
 
     getInsightImage(filename) {
       if (!filename) return null;
       const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));
       return key ? insightImages[key] : null;
+    },
+
+    toggleVideo() {
+      const video = this.$refs.productVideo;
+      if (!video) return;
+      if (video.paused) {
+        video.play();
+        this.videoPlaying = true;
+      } else {
+        video.pause();
+        this.videoPlaying = false;
+      }
     },
 
     setMetaDescription(content) {

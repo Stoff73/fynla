@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 664 |
-| PHP Services | 240 |
-| Controllers | 94 |
-| Models | 94 |
-| Vuex Stores | 32 |
+| Vue Components | 705 |
+| PHP Services | 252 |
+| Controllers | 106 |
+| Models | 102 |
+| Vuex Stores | 34 |
 | Agents | 9 |
 
 **Production**: https://fynla.org | **Version**: v1.0
@@ -79,10 +79,10 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 - `Exceptions/FinancialCalculationException` - Domain exception with factory methods
 
 **Frontend** (`resources/js/`): See `resources/js/CLAUDE.md` for detailed conventions.
-- `components/{Module}/` - Vue components (443 across 28 module directories)
-- `views/` - Page-level route components (73 views)
-- `store/modules/` - Vuex state management (31 namespaced modules)
-- `services/` - API wrappers (44 services)
+- `components/{Module}/` - Vue components (488 across 29 module directories)
+- `views/` - Page-level route components (138 views)
+- `store/modules/` - Vuex state management (33 namespaced modules)
+- `services/` - API wrappers (45 services)
 - `mixins/` - `currencyMixin` (formatting), `previewModeMixin` (preview blocking)
 - `utils/` - `currency`, `dateFormatter`, `ownership`, `poller`, `logger`
 - `constants/` - `designSystem`, `eventIcons`, `eventIconSvgs`, `goalIcons`, `taxConfig`
@@ -93,6 +93,32 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 **Database** (`database/`): See `database/CLAUDE.md` for detailed conventions.
 
 **Tests** (`tests/`): See `tests/CLAUDE.md` for detailed conventions.
+
+## Working Style
+
+### Parallel tool calls
+Run independent tool calls in a single response — reading several files, `git status` + `git diff` + `git log`, hitting several endpoints. Sequential only when one call's output feeds the next call's parameter. Don't use placeholders or guess missing parameters.
+
+### Scope discipline
+Only change what was asked for. A bug fix doesn't need surrounding cleanup; a simple feature doesn't need extra configurability. If you notice something else worth fixing, **report it** rather than silently fixing it. Don't add comments, docstrings, error handling, validation, or type hints to code you didn't change. Don't design for hypothetical future requirements. Trust internal code and framework guarantees — only validate at system boundaries (user input, external APIs).
+
+### Investigate before answering
+Never speculate about code you haven't opened. If the user references a file, read it before answering. Ground claims in what's in the codebase right now, not what you remember or assume. If you don't know, say so and go look — don't guess.
+
+### When to spawn subagents
+Spawn subagents for work that can run in parallel, needs isolated context, or involves independent workstreams. Use the `Explore` or `general-purpose` agent for broad codebase research that would otherwise take 3+ queries. For single-file edits, sequential operations, or work that needs to share context across steps, do it directly — don't delegate.
+
+### Context awareness for long sessions
+The conversation compacts automatically as it approaches the context limit — you can keep working indefinitely. Do not wrap up tasks early over token-budget worries. For multi-window work, save progress to a file the next window can pick up from (git log, a progress note, `CSJTODO.md`, a structured task list).
+
+### Code review output
+When reviewing code, report every issue you find — including low-severity and low-confidence ones — tagged with **confidence** and **severity**. Filtering by importance is a separate downstream step. At the finding stage your job is coverage, not judgment. Don't pre-filter for "only important issues".
+
+### Response length
+Calibrates to task complexity. For shorter output, say "under N words" or "one-line summary". For step-by-step walkthroughs or deep analysis, ask for it explicitly.
+
+### Effort level
+Default is `xhigh` for Fynla work. Drop to `high` for routine edits where speed matters. Raise to `max` only for genuinely hard problems — it can over-think.
 
 ## Key Rules
 
@@ -158,38 +184,23 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
-### 14. Icons — Functional Only, Decorative Banned
+### 14. All Pages Must Wrap in AppLayout
+Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
 
-**The guiding principle: icons are allowed ONLY when they are functionally necessary. Decorative icons are banned everywhere.**
+Pattern (see `views/Admin/AdminPanel.vue`):
+```vue
+<template>
+  <AppLayout>
+    <!-- page content -->
+  </AppLayout>
+</template>
+<script>
+import AppLayout from '@/layouts/AppLayout.vue';
+export default { components: { AppLayout, ... } };
+</script>
+```
 
-"Functionally necessary" means the icon is the ONLY way to identify or operate a UI element. The canonical example is the collapsed side nav: when `AppNavbar` is minimised, labels are hidden and icons are the sole way to tell nav items apart. Remove the icon and the user can't navigate. That's functional.
-
-"Decorative" means the icon is there for visual balance, personality, brand flavour, or because the label would "feel bare" without it. That is banned everywhere.
-
-**Explicitly banned surfaces (no icons, no emoji, no glyphs, ever):**
-- **Fyn chat window** — Fyn's message text, quick reply bubbles, chat header chrome, system messages, streaming indicators, delete/collapse/new-conversation buttons. Fyn speaks in plain text with no decorative glyphs.
-- **Dashboard cards** — every module card on `/dashboard`, every summary card, every metric tile, every empty-state card.
-- **Detail views** — every module page (`/net-worth/*`, `/protection`, `/estate`, `/retirement`, `/goals`, `/plans/*`, `/trusts`, etc.), every drill-down panel, every tabbed sub-view inside those pages.
-
-**Explicitly allowed surface:**
-- **Side nav (`AppNavbar` sidebar)** — icons are required because the nav collapses to an icon-only mode where labels are hidden. Both expanded and collapsed modes may use icons. This is the ONE canonical example of functional necessity.
-
-**Other surfaces (ask before adding or removing):**
-Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty states that are NOT on cards, settings pages, admin pages, onboarding wizards, and the mobile app. If you need to add or remove an icon on any of these, ASK CSJ first. Do not guess. Do not copy patterns from elsewhere without checking. If CSJ hasn't said, the default is NO icon.
-
-**Specific bans that apply anywhere (even the allowed side nav):**
-- Emoji in strings, labels, bubbles, tooltips, AI responses, system prompts, commit messages, code comments, docs, markdown, JSON, DB rows, or migration files — use text.
-- Unicode symbols as icons (★, ✓, ✗, →, ←, ⚠, ℹ, etc.) — use text.
-- CSS `::before` / `::after` pseudo-elements that inject glyphs or icon-font codepoints.
-- Icon fonts as a whole class (font-awesome, material-icons, anything requiring a webfont).
-- Mascot/character images used as inline icons. The Fyn character is permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon.
-
-**Enforcement:**
-- When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
-- When editing code on a banned surface, if you find existing icons, you may remove them as part of your change if it is in-scope — but removing them is optional unless CSJ specifically asks.
-- When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
-
-**Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
+The only exception is when the user explicitly says "standalone" / "chrome-less" / "no layout". When refactoring an existing view onto a new route, confirm the destination view is layout-wrapped before claiming done.
 
 ## Vault Reference (fynlaBrain)
 
@@ -241,17 +252,16 @@ Fynla runs on two environments, isolated database, code, and credentials:
 ### Branch workflow
 
 ```
-<feature-branch>   ──PR──►   dev   ──PR──►   main
+feature/<owner>/<short-task>   ──PR──►   dev   ──PR──►   main
 ```
 
 - `main` = exactly what's running on `fynla.org`. Protected. Only `@Stoff73` can merge.
 - `dev` = exactly what's running on `csjones.co/fynla`. Protected. Only `@Stoff73` can merge.
-- **Feature branches** = working branches. Branch off `dev`, not `main`. Naming:
-  - **CSJ's own work:** any short descriptive name is fine — camelCase or kebab-case. Examples: `onboardingFyn`, `fyn-quick-start`, `lifecycle-email-engine`, `revolutLive`. No prefix required.
-  - **External contributors (mandatory prefix for traceability):**
-    - `feature/icecube/<task>` — `icecube-acc`
-    - `feature/phailanx/<task>` — `Phailanx`
-  - PRs from contributors without the correct prefix will be closed.
+- `feature/<owner>/<task>` = working branches. Naming is **mandatory**:
+  - `feature/csj/<task>` — your own work
+  - `feature/icecube/<task>` — `icecube-acc`
+  - `feature/phailanx/<task>` — `Phailanx`
+  - Any other prefix is wrong and the PR will be closed.
 - **All PRs target `dev`**, never `main` directly (except the periodic `dev → main` release PR which only `@Stoff73` opens).
 - `.github/CODEOWNERS` forces `@Stoff73` as a required reviewer on every PR.
 
@@ -282,7 +292,7 @@ The scripts set different Vite environment variables so the SPA routing and asse
 
 ### Deploying to dev (csjones.co/fynla)
 
-1. Work on a feature branch off `dev`, open PR → `dev`
+1. Work on a `feature/<owner>/<task>` branch, open PR → `dev`
 2. After merge: `git checkout dev && git pull`
 3. Build: `./deploy/csjones-fynla/build.sh`
 4. Upload `public/build/` + changed PHP files to `~/www/csjones.co/public_html/fynla/` via SiteGround File Manager or `rsync`
@@ -375,10 +385,10 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 |---------|-------|-------|
 | young_family | James & Emily Carter | Mortgage, workplace pensions |
 | peak_earners | David & Sarah Mitchell | Multiple properties, SIPP + NHS pension |
-| widow | Margaret Thompson | Estate planning |
 | entrepreneur | Alex Chen | SIPP, business interests |
 | young_saver | John Morgan | Emergency fund, first-time savings |
-| retired_couple | Robert & Patricia Williams | Decumulation, estate planning |
+| retired_couple | Patricia & Harold Bennett | Decumulation, estate planning |
+| student | Janice Taylor | LISA, student loan, early-career planning |
 
 ## UK Tax Context
 

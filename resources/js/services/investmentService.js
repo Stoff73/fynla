@@ -297,6 +297,22 @@ const investmentService = {
         return response.data;
     },
 
+    /**
+     * Get Monte Carlo projections for a single investment account (the account
+     * detail view). Backend is InvestmentController::getAccountProjections, which
+     * returns { success, data: { projections: { 5: {...}, 10: {...}, 20: {...}, 30: {...} } } }.
+     *
+     * GET /api/investment/accounts/{id}/projections?risk_level=<optional>
+     * @param {number} accountId
+     * @param {string|null} riskLevelOverride - optional what-if risk override
+     * @returns {Promise} Account projection envelope
+     */
+    async getAccountProjections(accountId, riskLevelOverride = null) {
+        const config = riskLevelOverride ? { params: { risk_level: riskLevelOverride } } : {};
+        const response = await api.get(`/investment/accounts/${accountId}/projections`, config);
+        return response.data;
+    },
+
 };
 
 export default investmentService;

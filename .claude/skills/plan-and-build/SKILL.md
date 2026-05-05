@@ -249,8 +249,8 @@ If ANY of these fail, fix and re-run Pass 2.
 
 ## Important
 
-- NEVER skip checkpoints. They exist because the alternative is 3-5x rework time.
-- NEVER self-approve sub-agent work. Verify at least 2-3 files per agent.
-- NEVER say "done" without Pass 1 AND Pass 2 completing.
-- NEVER proceed past a failing checkpoint. Fix first, re-test the whole flow, then continue.
+- Don't skip checkpoints — the alternative is 3-5× rework time.
+- Don't self-approve sub-agent work. Verify at least 2-3 files per agent before merging.
+- Don't say "done" without Pass 1 AND Pass 2 completing.
+- Don't proceed past a failing checkpoint. Fix first, re-test the whole flow from Step 1, then continue.
 - Checkpoints feel slow. They are. They're still faster than discovering everything is broken at the end.

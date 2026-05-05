@@ -156,6 +156,23 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+// Public Insights API (no auth required; admins can preview drafts via ?preview=true)
+Route::prefix('insights')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Public\InsightController::class, 'index']);
+    Route::get('featured', [\App\Http\Controllers\Api\Public\InsightController::class, 'featured']);
+    Route::get('{slug}', [\App\Http\Controllers\Api\Public\InsightController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+');
+});
+
+// Public News API (no auth required)
+Route::prefix('news')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Public\NewsController::class, 'index']);
+    Route::post('subscribe', [\App\Http\Controllers\Api\Public\NewsSubscriberController::class, 'subscribe'])
+        ->middleware('throttle:5,1');
+    Route::get('{slug}', [\App\Http\Controllers\Api\Public\NewsController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+');
+});
+
 // Preview Mode routes (allows unauthenticated preview access)
 Route::prefix('preview')->group(function () {
     // Public routes - no auth required (rate limited)
@@ -282,6 +299,13 @@ Route::middleware('auth:sanctum')->prefix('net-worth')->group(function () {
 // Joint Account Logs routes
 Route::middleware('auth:sanctum')->prefix('joint-account-logs')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\JointAccountLogController::class, 'index']);
+});
+
+// Notification preferences (web) — mobile has its own controller at
+// /api/v1/mobile/notifications/preferences in routes/api_v1.php
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/preferences', [\App\Http\Controllers\Api\NotificationPreferenceController::class, 'show']);
+    Route::put('/preferences', [\App\Http\Controllers\Api\NotificationPreferenceController::class, 'update']);
 });
 
 // Property routes (Phase 4)
@@ -995,6 +1019,7 @@ Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::post('/cancel-subscription', [\App\Http\Controllers\Api\PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
     Route::post('/delete-all-data', [\App\Http\Controllers\Api\PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
     Route::post('/validate-discount', [\App\Http\Controllers\Api\PaymentController::class, 'validateDiscountCode'])->middleware('throttle:20,1');
+    Route::get('/invoices/{invoice}', [\App\Http\Controllers\Api\PaymentController::class, 'showInvoice'])->middleware('throttle:30,1');
     Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Api\PaymentController::class, 'downloadInvoice'])->middleware('throttle:10,1');
 });
 
@@ -1078,6 +1103,48 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::put('/discount-codes/{id}', [\App\Http\Controllers\Api\AdminController::class, 'updateDiscountCode']);
     Route::delete('/discount-codes/{id}', [\App\Http\Controllers\Api\AdminController::class, 'deleteDiscountCode']);
     Route::patch('/discount-codes/{id}/toggle', [\App\Http\Controllers\Api\AdminController::class, 'toggleDiscountCode']);
+});
+
+// Admin Insights CMS
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/insights')->group(function () {
+    Route::get('articles', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'index']);
+    Route::post('articles', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'store']);
+    Route::get('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'show']);
+    Route::put('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'update']);
+    Route::delete('articles/{article}', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'destroy']);
+    Route::post('articles/{article}/publish', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'publish']);
+    Route::post('articles/{article}/archive', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'archive']);
+    Route::post('articles/{article}/unarchive', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'unarchive']);
+    Route::post('articles/{article}/feature', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'feature']);
+    Route::post('articles/{article}/unfeature', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'unfeature']);
+    Route::post('articles/{article}/resync-template', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'resyncFromTemplate']);
+    Route::get('articles/{article}/revisions', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'revisions']);
+    Route::post('articles/{article}/revisions/{revision}/restore', [\App\Http\Controllers\Api\Admin\InsightArticleController::class, 'restoreRevision']);
+
+    Route::post('images', [\App\Http\Controllers\Api\Admin\InsightImageController::class, 'store']);
+
+    Route::get('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'index']);
+    Route::post('templates', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'store']);
+    Route::put('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'update']);
+    Route::delete('templates/{template}', [\App\Http\Controllers\Api\Admin\InsightTemplateController::class, 'destroy']);
+});
+
+// Admin Documents CMS
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/documents')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'store']);
+    Route::get('{document}', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'show']);
+    Route::put('{document}', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'update']);
+    Route::delete('{document}', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'destroy']);
+    Route::post('{document}/publish', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'publish']);
+    Route::post('{document}/unpublish', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'unpublish']);
+    Route::get('{document}/preview-url', [\App\Http\Controllers\Api\Admin\DocumentArticleController::class, 'previewUrl']);
+});
+
+// News subscribers (admin)
+Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
+    Route::get('news-subscribers', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
+    Route::get('news-subscribers/export', [\App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)

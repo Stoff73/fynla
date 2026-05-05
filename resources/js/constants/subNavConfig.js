@@ -36,10 +36,8 @@ export const SUB_NAV_CONFIG = [
         { label: 'Add Account', icon: 'plus', action: 'addAccount', style: 'primary' },
         { label: 'Upload Statement', icon: 'upload', action: 'uploadStatement', style: 'secondary' },
       ],
-      '/net-worth/retirement': [
-        { label: 'Add Pension', icon: 'plus', action: 'addPension', style: 'primary' },
-        { label: 'Upload Statement', icon: 'upload', action: 'uploadStatement', style: 'secondary' },
-      ],
+      // Retirement CTAs moved inline into PensionList (under the pension cards,
+      // next to the projection chart) — see components/NetWorth/PensionList.vue.
       '/net-worth/property': [
         { label: 'Add Property', icon: 'plus', action: 'addProperty', style: 'primary' },
       ],

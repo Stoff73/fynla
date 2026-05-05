@@ -89,16 +89,18 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 
 ## Seeders
 
-**Execution order** (from `DatabaseSeeder.php`, 20 seeders):
+**23 seeder classes** in `database/seeders/` (including `DatabaseSeeder` orchestrator).
+
+**Phase 1 — Required Data** (always runs, 18 seeders, executed in this order):
 1. TaxConfigurationSeeder - 5 UK tax years
 2. TaxProductReferenceSeeder - ISA/GIA/Bond tax treatment
 3. ActuarialLifeTablesSeeder - Life expectancy data
-4. RolesPermissionsSeeder - Auth roles and permissions
+4. RolesPermissionsSeeder - Auth roles and permissions (before AdminUserSeeder)
 5. AdminUserSeeder - Admin test accounts
 6. PreviewUserSeeder - 6 preview personas
 7. SavingsMarketRatesSeeder - Savings benchmark rates
-8. OccupationCodeSeeder - 406 occupation codes
-9. PlanConfigurationSeeder - Plan templates
+8. OccupationCodeSeeder - ONS SOC 2020 occupation codes
+9. PlanConfigurationSeeder - Plan templates and admin-configurable values
 10. RetirementActionDefinitionSeeder - Retirement action triggers
 11. InvestmentActionDefinitionSeeder - Investment action triggers
 12. SavingsActionDefinitionSeeder - Savings action triggers
@@ -106,17 +108,22 @@ Always index `joint_owner_id` for the `WHERE user_id = ? OR joint_owner_id = ?` 
 14. TaxActionDefinitionSeeder - Tax action triggers
 15. EstateActionDefinitionSeeder - Estate action triggers
 16. SubscriptionPlanSeeder - Subscription plan pricing
-17. AdvisorClientSeeder - Advisor demo data
-18. HouseholdSeeder - Household linking
-19. TestUsersSeeder - Test users with full data (dev/staging only)
+17. DiscountCodeSeeder - Promotional discount codes
+18. ExistingInsightsMetadataSeeder - Insights article metadata (bodies stay in Vue)
+
+**Phase 2 — Optional Dev Data** (only runs when `APP_ENV` is `local`, `development`, or `staging`):
+19. HouseholdSeeder - Household linking
+20. TestUsersSeeder - Test users with full data
+21. ChrisUserSeeder - chris@fynla.org account (mirrors production)
+22. AdvisorClientSeeder - Advisor demo relationships
 
 **Idempotency:** Always use `updateOrCreate()` with unique keys to prevent duplicates on reseed.
 
-**Preview persona data:** Loaded from JSON files at `resources/js/data/personas/{personaId}.json`.
+**Preview persona data:** Loaded from JSON files at `resources/js/data/personas/{personaId}.json` (6 files: `entrepreneur`, `peak_earners`, `retired_couple`, `student`, `young_family`, `young_saver`).
 
 ## Factories
 
-55 factories in `database/factories/`. Structure:
+64 factories in `database/factories/`. Structure:
 ```php
 class MyModelFactory extends Factory {
     protected $model = MyModel::class;

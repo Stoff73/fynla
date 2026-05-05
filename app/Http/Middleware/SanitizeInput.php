@@ -27,7 +27,27 @@ class SanitizeInput
      * Add field names here if they need to allow HTML content
      */
     protected array $htmlAllowedFields = [
-        // 'content', 'description', 'body' - add as needed
+        // Document article CMS — `html` (import) and `html_body` (update) carry
+        // mammoth-converted Word document HTML. Downstream sanitisation runs
+        // via HTMLPurifier in HTMLBodySanitiser using the `document_article`
+        // profile, which is the appropriate defence-in-depth layer for rich
+        // article content; middleware-level strip_tags here would erase the
+        // structure HTMLPurifier is meant to validate.
+        'html',
+        'html_body',
+    ];
+
+    /**
+     * Full dotted key paths (or path prefixes) whose string values should
+     * keep their HTML intact. Matched via `str_starts_with`, so
+     * `body_blocks` matches `body_blocks.0.html`, `body_blocks.2.html` etc.
+     *
+     * Insight article blocks have their own two-layer sanitisation (form
+     * request `strip_tags` + allowlist + frontend DOMPurify), so we must
+     * not strip HTML here before the form request sees it.
+     */
+    protected array $htmlAllowedPathPrefixes = [
+        'body_blocks',
     ];
 
     /**
@@ -76,7 +96,7 @@ class SanitizeInput
             if (is_array($value)) {
                 $sanitized[$key] = $this->sanitizeArray($value, $fullKey);
             } elseif (is_string($value)) {
-                $sanitized[$key] = $this->sanitizeString($value, (string) $key);
+                $sanitized[$key] = $this->sanitizeString($value, (string) $key, $fullKey);
             } else {
                 $sanitized[$key] = $value;
             }
@@ -88,7 +108,7 @@ class SanitizeInput
     /**
      * Sanitize a string value
      */
-    protected function sanitizeString(string $value, string $key): string
+    protected function sanitizeString(string $value, string $key, string $fullKey = ''): string
     {
         // Don't sanitize exempt fields
         if (in_array($key, $this->exemptFields)) {
@@ -98,11 +118,29 @@ class SanitizeInput
         // Trim whitespace
         $value = trim($value);
 
-        // Strip HTML tags unless field is in allowed list
-        if (! in_array($key, $this->htmlAllowedFields)) {
+        // Strip HTML tags unless field is in allowed list (or under an allowed path prefix)
+        if (! in_array($key, $this->htmlAllowedFields) && ! $this->pathAllowsHtml($fullKey)) {
             $value = strip_tags($value);
         }
 
         return $value;
+    }
+
+    /**
+     * Check if the full dotted key path sits under any allow-listed prefix.
+     */
+    protected function pathAllowsHtml(string $fullKey): bool
+    {
+        if ($fullKey === '') {
+            return false;
+        }
+
+        foreach ($this->htmlAllowedPathPrefixes as $prefix) {
+            if ($fullKey === $prefix || str_starts_with($fullKey, $prefix.'.')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

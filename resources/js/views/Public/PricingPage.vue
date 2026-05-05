@@ -47,7 +47,7 @@
         <div class="flex justify-center mb-10">
           <div class="bg-gradient-to-r from-raspberry-500 to-violet-500 rounded-xl px-8 py-4 text-center shadow-lg">
             <p class="text-xl sm:text-2xl font-bold text-white mb-1">Limited Time Offer</p>
-            <p class="text-sm text-white/80">Lock in discounted pricing today for your first 12 months &mdash; prices will increase when this offer expires</p>
+            <p class="text-sm text-white/80">Lock in discounted pricing today for your first 12 months</p>
           </div>
         </div>
 
@@ -229,6 +229,18 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 <span class="text-white/70 text-sm">Family module</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="text-white/70 text-sm">Parents included</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="text-white/70 text-sm">Children for free</span>
               </li>
             </ul>
 

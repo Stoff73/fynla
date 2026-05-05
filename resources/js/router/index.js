@@ -21,6 +21,9 @@ const HowItWorksPage = () => import('@/views/Public/HowItWorksPage.vue');
 const AdvisorsPage = () => import('@/views/Public/AdvisorsPage.vue');
 const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
+const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
+const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
+const NotFoundPage = () => import('@/views/Public/NotFoundPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
 const ProtectingAndGrowingPage = () => import('@/views/Public/stages/ProtectingAndGrowingPage.vue');
@@ -41,6 +44,8 @@ const StartingOutGuidePage = () => import('@/views/Public/learn/guide/StartingOu
 const GlossaryPage = () => import('@/views/Public/learn/GlossaryPage.vue');
 // Insights
 const InsightsHubPage = () => import('@/views/Public/insights/InsightsHubPage.vue');
+const NewsHubPage = () => import('@/views/Public/NewsHubPage.vue');
+const NewsArticlePage = () => import('@/views/Public/NewsArticlePage.vue');
 const PensionIhtChanges2027Page = () => import('@/views/Public/insights/PensionIhtChanges2027Page.vue');
 const IsaAllowance202526Page = () => import('@/views/Public/insights/IsaAllowance202526Page.vue');
 const InheritanceTaxExplainedPage = () => import('@/views/Public/insights/InheritanceTaxExplainedPage.vue');
@@ -49,6 +54,7 @@ const IsaGuideUkPage = () => import('@/views/Public/insights/IsaGuideUkPage.vue'
 const RetirementPlanningUkPage = () => import('@/views/Public/insights/RetirementPlanningUkPage.vue');
 const StocksSharesIsaUkPage = () => import('@/views/Public/insights/StocksSharesIsaUkPage.vue');
 const HowMuchToRetireUkPage = () => import('@/views/Public/insights/HowMuchToRetireUkPage.vue');
+const InsightArticlePage = () => import('@/views/Public/insights/InsightArticlePage.vue');
 const WhatIsSalarySacrificePage = () => import('@/views/Public/learn/WhatIsSalarySacrificePage.vue');
 const WhatIsAnLpaPage = () => import('@/views/Public/learn/WhatIsAnLpaPage.vue');
 const WhatIsASippPage = () => import('@/views/Public/learn/WhatIsASippPage.vue');
@@ -93,6 +99,7 @@ const SecuritySettings = () => import('@/views/Settings/SecuritySettings.vue');
 const PrivacySettings = () => import('@/views/Settings/PrivacySettings.vue');
 const AssumptionsSettings = () => import('@/views/Settings/AssumptionsSettings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
+const InvoiceView = () => import('@/views/InvoiceView.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
 const NetWorthWealthSummary = () => import('@/components/NetWorth/NetWorthWealthSummary.vue');
 const PropertyList = () => import('@/components/NetWorth/PropertyList.vue');
@@ -117,6 +124,10 @@ const TrustsDashboard = () => import('@/views/Trusts/TrustsDashboard.vue');
 const TrustDetailView = () => import('@/views/Trusts/TrustDetailView.vue');
 const HolisticPlan = () => import('@/views/HolisticPlan.vue');
 const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
+const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
+const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
+const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
+const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -207,6 +218,42 @@ const routes = [
     path: '/how-it-works',
     name: 'HowItWorks',
     component: HowItWorksPage,
+    meta: { public: true },
+  },
+  {
+    path: '/quickstart',
+    name: 'QuickStart',
+    component: QuickStartPage,
+    meta: { public: true },
+  },
+  {
+    path: '/savetax',
+    name: 'CampaignSaveTax',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/biggerpension',
+    name: 'CampaignBiggerPension',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/paymortgage',
+    name: 'CampaignPayMortgage',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/managedebt',
+    name: 'CampaignManageDebt',
+    component: CampaignPage,
+    meta: { public: true },
+  },
+  {
+    path: '/wealth',
+    name: 'CampaignWealth',
+    component: CampaignPage,
     meta: { public: true },
   },
   {
@@ -316,6 +363,16 @@ const routes = [
   { path: '/insights/retirement-planning-uk', name: 'InsightRetirementPlanning', component: RetirementPlanningUkPage, meta: { public: true } },
   { path: '/insights/stocks-shares-isa-uk', name: 'InsightStocksSharesIsa', component: StocksSharesIsaUkPage, meta: { public: true } },
   { path: '/insights/how-much-to-retire-uk', name: 'InsightHowMuchToRetire', component: HowMuchToRetireUkPage, meta: { public: true } },
+  // IMPORTANT: /insights/:slug catch-all MUST come AFTER all named insight routes
+  // so bespoke Vue articles take precedence. Enforced by an architecture test in Phase 6.
+  // Gated by VITE_INSIGHTS_CMS_ENABLED so production can ship backend-only builds
+  // first and flip the flag after smoke-testing the API.
+  ...(import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true'
+    ? [{ path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } }]
+    : []),
+  // News (DB-backed announcements / product updates / press)
+  { path: '/news', name: 'NewsHub', component: NewsHubPage, meta: { public: true } },
+  { path: '/news/:slug', name: 'NewsArticle', component: NewsArticlePage, meta: { public: true } },
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },
@@ -517,6 +574,32 @@ const routes = [
       breadcrumb: [
         { label: 'Home', path: '/dashboard' },
         { label: 'Profile', path: '/profile' },
+      ],
+    },
+  },
+  {
+    path: '/invoice/:id',
+    name: 'InvoiceView',
+    component: InvoiceView,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Profile', path: '/profile' },
+        { label: 'Invoice', path: '' },
+      ],
+    },
+  },
+  {
+    path: '/profile/notifications',
+    name: 'NotificationPreferences',
+    component: () => import('@/components/UserProfile/NotificationPreferences.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Profile', path: '/profile' },
+        { label: 'Notifications', path: '/profile/notifications' },
       ],
     },
   },
@@ -997,6 +1080,48 @@ const routes = [
     },
   },
   {
+    path: '/admin/insights',
+    name: 'AdminInsights',
+    component: InsightsArticleListPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/new',
+    name: 'AdminInsightNew',
+    component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/templates',
+    name: 'AdminInsightTemplates',
+    component: InsightsTemplateListPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/insights/:id/edit',
+    name: 'AdminInsightEdit',
+    component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/documents',
+    name: 'admin.documents.index',
+    component: () => import('@/views/Admin/Documents/DocumentListPage.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/documents/:id/edit',
+    name: 'admin.documents.edit',
+    component: () => import('@/views/Admin/Documents/DocumentEditor.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/news-subscribers',
+    name: 'AdminNewsSubscribers',
+    component: NewsSubscribersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/version',
     name: 'Version',
     component: Version,
@@ -1228,6 +1353,12 @@ const routes = [
       { path: 'module/coordination', name: 'MobileCoordinationDetail', component: CoordinationDetail, meta: { title: 'Coordination' } },
     ],
   },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFoundPage,
+    meta: { public: true },
+  },
 ];
 
 // Router base path is configurable via environment variable
@@ -1395,6 +1526,14 @@ router.afterEach((to) => {
 
   // Fetch requirements for this module
   store.dispatch('infoGuide/fetchRequirements', module);
+});
+
+// Keep the browser tab title as a simple "Fynla" on every SPA navigation.
+// The base blade template still ships the long marketing title for SEO
+// crawlers that don't execute JS — this hook only overrides what users see
+// in their tab once Vue has hydrated.
+router.afterEach(() => {
+  document.title = 'Fynla';
 });
 
 // Analytics: track page views on every route change

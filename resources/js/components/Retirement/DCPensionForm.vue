@@ -5,7 +5,7 @@
       <!-- Header -->
       <div :class="context === 'onboarding' ? 'mb-4' : 'sticky top-0 bg-white border-b border-light-gray px-6 py-4 flex items-center justify-between'">
         <h3 class="text-xl font-semibold text-horizon-500">
-          {{ isEdit ? 'Edit' : 'Add' }} Money Purchase Pension
+          {{ isEdit ? 'Edit ' + editTypeLabel : 'Add Pension' }}
         </h3>
         <button
           v-if="context !== 'onboarding'"
@@ -37,28 +37,32 @@
               <option value="sipp">Self-Invested Personal Pension</option>
               <option value="personal">Personal Pension</option>
               <option value="stakeholder">Stakeholder Pension</option>
+              <!-- Onboarding pre-scopes this form to DC only; the DB and State options
+                   are for the unified "Add Pension" entry point on the retirement dashboard. -->
+              <option v-if="!isOnboarding" value="final_salary">Final Salary (Defined Benefit)</option>
+              <option v-if="!isOnboarding" value="state_pension">State Pension</option>
             </select>
             <p class="text-xs text-neutral-500 mt-1">
-              Workplace pensions use % of salary contributions. Personal pensions use fixed monthly amounts
+              {{ pensionTypeHelpText }}
             </p>
           </div>
 
-          <!-- Scheme Name -->
-          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'scheme_name' }">
+          <!-- Scheme Name (DC + DB only; State is a single UK scheme) -->
+          <div v-if="isDCType || isFinalSalary" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'scheme_name' }">
             <label for="scheme_name" class="block text-sm font-medium text-neutral-500 mb-2">
-              Scheme Name
+              {{ isFinalSalary ? 'Employer / Scheme Name' : 'Scheme Name' }}
             </label>
             <input
               id="scheme_name"
               v-model="formData.scheme_name"
               type="text"
               class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="e.g., Aviva Master Trust"
+              :placeholder="isFinalSalary ? 'e.g., NHS Pension Scheme' : 'e.g., Aviva Master Trust'"
             />
           </div>
 
-          <!-- Provider and Policy Number -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Provider and Policy Number (DC only) -->
+          <div v-if="isDCType" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'provider' }">
               <label for="provider" class="block text-sm font-medium text-neutral-500 mb-2">
                 Provider
@@ -85,8 +89,8 @@
             </div>
           </div>
 
-          <!-- Current Fund Value -->
-          <div :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_fund_value' }">
+          <!-- Current Fund Value (DC only) -->
+          <div v-if="isDCType" :class="{ 'ai-fill-highlight rounded-lg': highlightedField === 'current_fund_value' }">
             <label for="current_fund_value" class="block text-sm font-medium text-neutral-500 mb-2">
               Current Fund Value (£)
             </label>
@@ -185,8 +189,8 @@
             <p class="text-xs text-neutral-500 mt-1">Fixed monthly contribution amount</p>
           </div>
 
-          <!-- Personal/SIPP: Lump Sum Contribution (Carry Forward) -->
-          <div v-if="isPersonalPension">
+          <!-- Personal/SIPP: Lump Sum Contribution (Carry Forward) — collapsed by default, see "Additional information" -->
+          <div v-if="isPersonalPension && showAdditionalInfo">
             <label for="lump_sum_contribution" class="block text-sm font-medium text-neutral-500 mb-2">
               Lump Sum Contribution (£) <span class="text-neutral-500 text-xs">(Optional)</span>
             </label>
@@ -204,8 +208,8 @@
             </p>
           </div>
 
-          <!-- Expected Return (hidden during onboarding — advanced detail) -->
-          <div v-if="!isOnboarding">
+          <!-- Expected Return (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo">
             <label for="expected_return_percent" class="block text-sm font-medium text-neutral-500 mb-2">
               Expected Return (% p.a.)
             </label>
@@ -222,8 +226,8 @@
             <p class="text-xs text-neutral-500 mt-1">Typical: 4-6% for balanced funds</p>
           </div>
 
-          <!-- Platform Fee -->
-          <div>
+          <!-- Platform Fee (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo">
             <label class="block text-sm font-medium text-neutral-500 mb-2">
               Platform Fee
             </label>
@@ -261,8 +265,8 @@
             <p class="text-xs text-neutral-500 mt-1">{{ feeHelpText }}</p>
           </div>
 
-          <!-- Advisor Fee -->
-          <div>
+          <!-- Advisor Fee (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo">
             <label for="advisor_fee_percent" class="block text-sm font-medium text-neutral-500 mb-2">
               Advisor Fee (% p.a.)
             </label>
@@ -309,8 +313,8 @@
             </p>
           </div>
 
-          <!-- Risk Level Section (hidden during onboarding) -->
-          <template v-if="!isOnboarding">
+          <!-- Risk Level Section (DC only; hidden during onboarding) -->
+          <template v-if="isDCType && !isOnboarding">
             <div v-if="hasRiskProfile" class="pt-4 border-t border-light-gray">
               <RiskLevelSelector
                 v-model="formData.risk_preference"
@@ -359,8 +363,8 @@
             </label>
           </div>
 
-          <!-- Beneficiary Section -->
-          <div class="space-y-4 p-4 bg-violet-50 border border-violet-200 rounded-lg">
+          <!-- Beneficiary Section (DC only) — collapsed by default, see "Additional information" -->
+          <div v-if="isDCType && showAdditionalInfo" class="space-y-4 p-4 bg-violet-50 border border-violet-200 rounded-lg">
             <p class="text-sm text-violet-800 font-medium">Beneficiary Details</p>
 
             <!-- Beneficiary Selection -->
@@ -403,7 +407,261 @@
             </div>
           </div>
 
-          <!-- Notes -->
+          <!-- Final Salary (Defined Benefit) fields. These map to the db_pensions
+               payload in handleSubmit — scheme_name above doubles as employer_name. -->
+          <template v-if="isFinalSalary">
+            <div class="bg-savannah-100 rounded-lg p-4 flex items-start">
+              <svg class="w-6 h-6 text-violet-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <div>
+                <p class="text-sm font-bold text-violet-900">Important Notice About Defined Benefit Pensions</p>
+                <p class="text-sm text-violet-800 mt-2">
+                  Defined Benefit pension information is captured for <strong>income projection only</strong>.
+                  This system does <strong>not provide Defined Benefit to Defined Contribution transfer advice</strong>.
+                  Defined Benefit pension transfers are complex and may not be suitable.
+                  You should seek specialist financial advice before considering any transfer.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label for="db_scheme_status" class="block text-sm font-medium text-neutral-500 mb-2">
+                Scheme Status
+              </label>
+              <select
+                id="db_scheme_status"
+                v-model="formData.db_scheme_status"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              >
+                <option value="">Select status</option>
+                <option value="Active">Active</option>
+                <option value="Deferred">Deferred</option>
+                <option value="In Payment">In Payment</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="db_annual_income" class="block text-sm font-medium text-neutral-500 mb-2">
+                Annual Income at Retirement (£)
+              </label>
+              <input
+                id="db_annual_income"
+                v-model.number="formData.db_annual_income"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 15000.00"
+              />
+              <p class="text-xs text-neutral-500 mt-1">Projected annual pension at your normal retirement age</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="db_service_years" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Service Years
+                </label>
+                <input
+                  id="db_service_years"
+                  v-model.number="formData.db_service_years"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  placeholder="e.g., 20.5"
+                />
+              </div>
+              <div>
+                <label for="db_final_salary" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Pensionable Salary (£)
+                </label>
+                <input
+                  id="db_final_salary"
+                  v-model.number="formData.db_final_salary"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  placeholder="e.g., 50000.00"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="db_accrual_rate" class="block text-sm font-medium text-neutral-500 mb-2">
+                Accrual Rate (1/X)
+              </label>
+              <input
+                id="db_accrual_rate"
+                v-model.number="formData.db_accrual_rate"
+                type="number"
+                min="0"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 60 (for 1/60th)"
+              />
+              <p class="text-xs text-neutral-500 mt-1">Common: 60 (public sector), 80 (older schemes)</p>
+            </div>
+
+            <div>
+              <label for="db_revaluation_rate" class="block text-sm font-medium text-neutral-500 mb-2">
+                Revaluation Rate (% p.a.)
+              </label>
+              <input
+                id="db_revaluation_rate"
+                v-model.number="formData.db_revaluation_rate"
+                type="number"
+                step="0.01"
+                min="0"
+                max="10"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 2.50"
+              />
+              <p class="text-xs text-neutral-500 mt-1">Typical: CPI, CPI+1.5%, or fixed %</p>
+            </div>
+
+            <div>
+              <label for="db_pcls_available" class="block text-sm font-medium text-neutral-500 mb-2">
+                Pension Commencement Lump Sum (PCLS) Available (£)
+              </label>
+              <input
+                id="db_pcls_available"
+                v-model.number="formData.db_pcls_available"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 50000.00"
+              />
+              <p class="text-xs text-neutral-500 mt-1">Tax-free lump sum available at retirement (if applicable)</p>
+            </div>
+          </template>
+
+          <!-- State Pension fields. These map to the state_pensions payload in handleSubmit. -->
+          <template v-if="isStatePension">
+            <div class="bg-savannah-100 rounded-lg p-4 flex items-start">
+              <svg class="w-5 h-5 text-violet-600 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div>
+                <p class="text-sm font-medium text-violet-900">Get Your State Pension Forecast</p>
+                <p class="text-sm text-violet-800 mt-1">
+                  Check your State Pension forecast at
+                  <a href="https://www.gov.uk/check-state-pension" target="_blank" class="underline font-medium">gov.uk/check-state-pension</a>
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label for="state_forecast_weekly" class="block text-sm font-medium text-neutral-500 mb-2">
+                Forecast Weekly Amount (£)
+              </label>
+              <input
+                id="state_forecast_weekly"
+                v-model.number="formData.state_forecast_weekly_amount"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 203.85"
+              />
+              <p class="text-xs text-neutral-500 mt-1">
+                Full new State Pension ({{ currentTaxYear }}): £221.20/week (£11,502/year)
+              </p>
+            </div>
+
+            <div>
+              <label for="state_qualifying_years" class="block text-sm font-medium text-neutral-500 mb-2">
+                Qualifying Years
+              </label>
+              <input
+                id="state_qualifying_years"
+                v-model.number="formData.state_qualifying_years"
+                type="number"
+                min="0"
+                max="50"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                placeholder="e.g., 25"
+              />
+              <p class="text-xs text-neutral-500 mt-1">You need 35 qualifying years for the full new State Pension</p>
+            </div>
+
+            <div>
+              <label for="state_forecast_date" class="block text-sm font-medium text-neutral-500 mb-2">
+                Forecast Date
+              </label>
+              <input
+                id="state_forecast_date"
+                v-model="formData.state_forecast_date"
+                type="date"
+                class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+              <p class="text-xs text-neutral-500 mt-1">When did you check your forecast?</p>
+            </div>
+
+            <div class="flex items-start">
+              <input
+                id="state_has_ni_gaps"
+                v-model="formData.state_has_ni_gaps"
+                type="checkbox"
+                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded mt-1"
+              />
+              <label for="state_has_ni_gaps" class="ml-2 block text-sm text-neutral-500">
+                I have National Insurance gaps that can be filled
+              </label>
+            </div>
+
+            <div v-if="formData.state_has_ni_gaps" class="pl-6 space-y-4">
+              <div>
+                <label for="state_gaps_years" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Number of Gap Years
+                </label>
+                <input
+                  id="state_gaps_years"
+                  v-model.number="formData.state_gaps_years"
+                  type="number"
+                  min="0"
+                  max="20"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  placeholder="e.g., 3"
+                />
+              </div>
+              <div>
+                <label for="state_estimated_gap_cost" class="block text-sm font-medium text-neutral-500 mb-2">
+                  Estimated Cost to Fill Gaps (£)
+                </label>
+                <input
+                  id="state_estimated_gap_cost"
+                  v-model.number="formData.state_estimated_gap_cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full px-4 py-2 border border-horizon-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  placeholder="e.g., 2500.00"
+                />
+                <p class="text-xs text-neutral-500 mt-1">Typical cost: ~£800-900 per year ({{ currentTaxYear }})</p>
+              </div>
+            </div>
+          </template>
+
+          <!-- Additional information toggle (DC only; DB/State forms have no hidden fields) -->
+          <div v-if="isDCType" class="pt-2">
+            <button
+              type="button"
+              @click="showAdditionalInfo = !showAdditionalInfo"
+              class="inline-flex items-center gap-1 text-sm font-medium text-raspberry-500 hover:text-raspberry-600 transition-colors"
+            >
+              {{ showAdditionalInfo ? 'Hide' : 'Show' }} additional information
+              <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showAdditionalInfo }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <p v-if="!showAdditionalInfo" class="mt-1 text-xs text-neutral-500">
+              Fees, expected return, lump sum contribution, beneficiary and holdings
+            </p>
+          </div>
+
+          <!-- Notes (all types) -->
           <div>
             <label for="notes" class="block text-sm font-medium text-neutral-500 mb-2">
               Notes
@@ -417,9 +675,9 @@
             ></textarea>
           </div>
 
-          <!-- Inline Holdings Editor -->
+          <!-- Inline Holdings Editor (DC only) — collapsed by default, see "Additional information" -->
           <InlineHoldingsEditor
-            v-if="parseFloat(formData.current_fund_value) > 0"
+            v-if="isDCType && showAdditionalInfo && parseFloat(formData.current_fund_value) > 0"
             :account-value="parseFloat(formData.current_fund_value) || 0"
             :holdings="formData.holdings"
             :account-id="pension?.id || null"
@@ -459,6 +717,7 @@ import RiskLevelSelector from '@/components/Shared/RiskLevelSelector.vue';
 import InlineHoldingsEditor from '@/components/Investment/InlineHoldingsEditor.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'DCPensionForm',
@@ -502,7 +761,7 @@ export default {
         employer_contribution_percent: null,
         monthly_contribution_amount: null,
         lump_sum_contribution: null,
-        expected_return_percent: 5.0,
+        expected_return_percent: null,
         platform_fee_type: 'percentage',
         platform_fee_amount: null,
         platform_fee_frequency: 'annually',
@@ -514,6 +773,23 @@ export default {
         beneficiary_id: null,
         beneficiary_name: '',
         holdings: [],
+        // Defined Benefit (Final Salary) fields — only populated when pension_type === 'final_salary'.
+        // Mapped to the db_pensions backend payload in handleSubmit.
+        db_scheme_status: '',
+        db_annual_income: null,
+        db_service_years: null,
+        db_final_salary: null,
+        db_accrual_rate: null,
+        db_revaluation_rate: null,
+        db_pcls_available: null,
+        // State Pension fields — only populated when pension_type === 'state_pension'.
+        // Mapped to the state_pensions backend payload in handleSubmit.
+        state_forecast_weekly_amount: null,
+        state_qualifying_years: null,
+        state_forecast_date: null,
+        state_has_ni_gaps: false,
+        state_gaps_years: null,
+        state_estimated_gap_cost: null,
       },
       validationError: null,
       validationErrors: {
@@ -525,6 +801,9 @@ export default {
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
       // Beneficiary state
       beneficiarySelection: '',
+      // Collapsed "Additional information" section (fees, expected return, lump sum,
+      // beneficiary, holdings). Auto-expands in edit mode when any hidden field has a value.
+      showAdditionalInfo: false,
     };
   },
 
@@ -550,6 +829,36 @@ export default {
 
     isPersonalPension() {
       return this.formData.pension_type === 'sipp' || this.formData.pension_type === 'personal' || this.formData.pension_type === 'stakeholder';
+    },
+
+    // True for any defined-contribution sub-type. Controls visibility of the DC-only
+    // sections (fund value, fees, holdings, risk level, etc.).
+    isDCType() {
+      return this.isWorkplacePension || this.isPersonalPension;
+    },
+
+    isFinalSalary() {
+      return this.formData.pension_type === 'final_salary';
+    },
+
+    isStatePension() {
+      return this.formData.pension_type === 'state_pension';
+    },
+
+    editTypeLabel() {
+      if (this.isFinalSalary) return 'Final Salary Pension';
+      if (this.isStatePension) return 'State Pension';
+      return 'Money Purchase Pension';
+    },
+
+    pensionTypeHelpText() {
+      if (this.isFinalSalary) return 'Defined Benefit scheme — captured for income projection only.';
+      if (this.isStatePension) return 'UK State Pension — based on your National Insurance record.';
+      return 'Workplace pensions use % of salary contributions. Personal pensions use fixed monthly amounts.';
+    },
+
+    currentTaxYear() {
+      return getCurrentTaxYear();
     },
 
     profileRetirementAge() {
@@ -609,8 +918,11 @@ export default {
       immediate: true,
       handler(newPension) {
         if (newPension) {
-          // Editing existing pension - populate form with pension data
+          // Editing existing pension - populate form with pension data while
+          // preserving db_* / state_* defaults so v-model bindings stay reactive
+          // if the user later switches the dropdown to a non-DC type.
           this.formData = {
+            ...this.formData,
             ...newPension,
             policy_number: newPension.member_number || '',
             risk_preference: newPension.risk_preference || null,
@@ -630,6 +942,9 @@ export default {
                 cost_basis: h.cost_basis,
               }));
           }
+          // Auto-expand "Additional information" if any of the collapsed-by-default
+          // fields already have a value, so editors see their own data on open.
+          this.showAdditionalInfo = this.hasAdditionalInfoData();
           this.$nextTick(() => {
             this.initializeBeneficiarySelection();
           });
@@ -718,22 +1033,51 @@ export default {
         this.formData.employer_contribution_percent = null;
       }
 
-      // Default retirement age from user profile for all pension types
+      // When switching away from DC, clear DC-only numeric fields so they can't
+      // leak into a DB/State payload by accident.
+      if (!this.isDCType) {
+        this.formData.current_fund_value = null;
+        this.formData.monthly_contribution_amount = null;
+        this.formData.lump_sum_contribution = null;
+        this.formData.holdings = [];
+      }
+
+      // Default retirement age from user profile (for DC personal pensions that
+      // render the retirement-age input)
       if (!this.formData.retirement_age && this.profileRetirementAge) {
         this.formData.retirement_age = this.profileRetirementAge;
       }
 
-      // Set scheme_type for backward compatibility
+      // Set scheme_type for backward compatibility with existing DC validation
       if (this.formData.pension_type === 'occupational') {
         this.formData.scheme_type = 'workplace';
       } else if (this.formData.pension_type === 'stakeholder') {
         // Stakeholder pensions map to 'personal' scheme_type
         // (stakeholder is a regulated type of personal pension in UK)
         this.formData.scheme_type = 'personal';
-      } else {
-        // sipp, personal map directly
+      } else if (this.isPersonalPension || this.formData.pension_type === 'sipp' || this.formData.pension_type === 'personal') {
         this.formData.scheme_type = this.formData.pension_type;
+      } else {
+        // Final Salary / State Pension don't use DC's scheme_type — clear it so
+        // the DC validator below doesn't trip when the user is on a non-DC branch
+        this.formData.scheme_type = '';
       }
+    },
+
+    // Returns true if any of the "Additional information" fields have a
+    // user-provided value, so the section should auto-expand on open.
+    hasAdditionalInfoData() {
+      const f = this.formData;
+      return !!(
+        (f.lump_sum_contribution !== null && f.lump_sum_contribution !== '' && f.lump_sum_contribution !== 0)
+        || (f.expected_return_percent !== null && f.expected_return_percent !== '')
+        || (f.platform_fee_percent !== null && f.platform_fee_percent !== '')
+        || (f.platform_fee_amount !== null && f.platform_fee_amount !== '')
+        || (f.advisor_fee_percent !== null && f.advisor_fee_percent !== '')
+        || f.beneficiary_id
+        || (f.beneficiary_name && f.beneficiary_name.trim() !== '')
+        || (f.holdings && f.holdings.length > 0)
+      );
     },
 
     handleBeneficiarySelection() {
@@ -793,17 +1137,31 @@ export default {
     handleSubmit() {
       this.validationError = null;
 
+      if (!this.formData.pension_type) {
+        this.validationError = 'Please select a pension type';
+        return;
+      }
+
+      if (this.isFinalSalary) {
+        this.submitFinalSalary();
+        return;
+      }
+
+      if (this.isStatePension) {
+        this.submitStatePension();
+        return;
+      }
+
+      // --- DC (Money Purchase) submission ---
       if (this.isWorkplacePension) {
         this.validateEmployeeContribution();
         this.validateEmployerContribution();
 
-        // Check if there are any validation errors
         if (this.validationErrors.employee_contribution_percent || this.validationErrors.employer_contribution_percent) {
           return;
         }
       }
 
-      // Basic validation
       if (!this.formData.scheme_type) {
         this.validationError = 'Please select a pension type';
         return;
@@ -824,14 +1182,104 @@ export default {
         return;
       }
 
-      // Map frontend field names to backend DB column names
-      const payload = { ...this.formData };
-      if (payload.policy_number !== undefined) {
-        payload.member_number = payload.policy_number;
-        delete payload.policy_number;
+      // Build a DC-only payload — strip the db_* and state_* fields so they
+      // can't leak into dc_pensions records.
+      const payload = this.buildDCPayload();
+      this.$emit('save', { ...payload, _pensionType: 'dc' });
+    },
+
+    // Strips DB/State scratch fields and renames policy_number -> member_number
+    // (the column the backend expects for dc_pensions).
+    buildDCPayload() {
+      const {
+        db_scheme_status, db_annual_income, db_service_years, db_final_salary,
+        db_accrual_rate, db_revaluation_rate, db_pcls_available,
+        state_forecast_weekly_amount, state_qualifying_years, state_forecast_date,
+        state_has_ni_gaps, state_gaps_years, state_estimated_gap_cost,
+        policy_number,
+        ...dcFields
+      } = this.formData;
+
+      const payload = { ...dcFields };
+      if (policy_number !== undefined && policy_number !== null && policy_number !== '') {
+        payload.member_number = policy_number;
       }
 
-      this.$emit('save', payload);
+      // If the "Additional information" section is collapsed, clear its values
+      // so the backend never stores fees/returns/lump sum/beneficiary/holdings the
+      // user can't see on the form.
+      if (!this.showAdditionalInfo) {
+        payload.lump_sum_contribution = null;
+        payload.expected_return_percent = null;
+        payload.platform_fee_percent = null;
+        payload.platform_fee_amount = null;
+        payload.advisor_fee_percent = null;
+        payload.beneficiary_id = null;
+        payload.beneficiary_name = '';
+        payload.holdings = [];
+      }
+
+      return payload;
+    },
+
+    submitFinalSalary() {
+      if (!this.formData.scheme_name) {
+        this.validationError = 'Please enter an employer / scheme name';
+        return;
+      }
+      if (!this.formData.db_scheme_status) {
+        this.validationError = 'Please select a scheme status';
+        return;
+      }
+      if (this.formData.db_annual_income === null || this.formData.db_annual_income === '' || this.formData.db_annual_income < 0) {
+        this.validationError = 'Please enter a valid annual income at retirement';
+        return;
+      }
+      if (this.formData.db_service_years === null || this.formData.db_service_years === '' || this.formData.db_service_years < 0) {
+        this.validationError = 'Please enter valid service years';
+        return;
+      }
+
+      // Shape mirrors DBPensionForm.handleSubmit so db_pensions records are
+      // identical whether captured via this unified form or the legacy edit form.
+      const apiData = {
+        scheme_name: this.formData.scheme_name,
+        scheme_type: 'final_salary',
+        accrued_annual_pension: this.formData.db_annual_income,
+        pensionable_service_years: this.formData.db_service_years,
+        pensionable_salary: this.formData.db_final_salary,
+        revaluation_method: this.formData.db_revaluation_rate ? `${this.formData.db_revaluation_rate}%` : null,
+        lump_sum_entitlement: this.formData.db_pcls_available,
+        notes: this.formData.notes,
+      };
+
+      this.$emit('save', { ...apiData, _pensionType: 'db' });
+    },
+
+    submitStatePension() {
+      if (!this.formData.state_forecast_weekly_amount || this.formData.state_forecast_weekly_amount < 0) {
+        this.validationError = 'Please enter a valid forecast weekly amount';
+        return;
+      }
+      if (!this.formData.state_qualifying_years || this.formData.state_qualifying_years < 0) {
+        this.validationError = 'Please enter valid qualifying years';
+        return;
+      }
+
+      // Shape mirrors StatePensionForm.handleSubmit — annual figure derived from
+      // the weekly forecast, ni_gaps encoded as a placeholder array the backend
+      // already understands.
+      const apiData = {
+        ni_years_completed: this.formData.state_qualifying_years,
+        ni_years_required: 35,
+        state_pension_forecast_annual: this.formData.state_forecast_weekly_amount * 52,
+        ni_gaps: this.formData.state_has_ni_gaps && this.formData.state_gaps_years
+          ? Array(this.formData.state_gaps_years).fill({ year: 'Unknown', cost: 0 })
+          : null,
+        gap_fill_cost: this.formData.state_has_ni_gaps ? this.formData.state_estimated_gap_cost : null,
+      };
+
+      this.$emit('save', { ...apiData, _pensionType: 'state' });
     },
   },
 };

@@ -120,7 +120,7 @@
             </div>
 
             <!-- Recommendations Tab -->
-            <Recommendations v-else-if="activeTab === 'recommendations'" />
+            <SavingsRecommendations v-else-if="activeTab === 'recommendations'" />
           </div>
         </div>
         </div>
@@ -135,7 +135,7 @@ import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import CurrentSituation from '@/components/Savings/CurrentSituation.vue';
 import EmergencyFund from '@/components/Savings/EmergencyFund.vue';
-import Recommendations from '@/components/Savings/Recommendations.vue';
+import SavingsRecommendations from '@/components/Savings/SavingsRecommendations.vue';
 import AccountDetails from '@/components/Savings/AccountDetails.vue';
 import SavingsAccountDetailInline from '@/views/Savings/SavingsAccountDetailInline.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
@@ -150,7 +150,7 @@ export default {
     AppLayout,
     CurrentSituation,
     EmergencyFund,
-    Recommendations,
+    SavingsRecommendations,
     AccountDetails,
     SavingsAccountDetailInline,
     ModuleLifeEvents,

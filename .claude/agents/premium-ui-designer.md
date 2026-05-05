@@ -108,118 +108,107 @@ background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0
 
 You transform functional interfaces into experiences that feel valuable, trustworthy, and delightful. Every enhancement you make should answer: 'Does this make the product feel more premium?'
 
-## CRITICAL: Tailwind CSS Implementation Rules
+## Fynla Design System (v1.2.0) — Authoritative Palette
 
-When using `@apply` directives in Vue scoped CSS, you MUST follow these rules to avoid build errors:
+Before designing for Fynla, read `fynlaDesignGuide.md` v1.2.0. All colors come from this palette — no exceptions, no new tokens. The generic "premium" advice above adapts to these tokens:
 
-### 1. NEVER Create Circular Class Definitions
+| Role | Token | Hex |
+|---|---|---|
+| Primary CTAs / buttons | `raspberry-500` | `#E83E6D` |
+| Text / nav / headings | `horizon-500` | `#1F2A44` |
+| Success states | `spring-500` | `#20B486` |
+| Warnings / focus rings | `violet-500` | `#5854E6` |
+| Hover / subtle bg | `savannah-100` | `#FDFAF7` |
+| Page background | `eggshell-500` | `#F7F6F4` |
+| Muted text | `neutral-500` | `#717171` |
+| Borders | `light-gray` | `#EEEEEE` |
 
-**WRONG - Creates circular dependency error:**
+### Banned tokens (zero exceptions)
+
+- `amber-*`, `orange-*`, `yellow-*` — not in the palette
+- `primary-*`, `secondary-*` — old v0.8 tokens, now removed
+- `gray-*` for general UI — use `horizon-*` (text/nav), `neutral-*` (muted), `light-gray` (borders)
+
+Kept unchanged: risk-level badge colors (green/teal/blue/red), account type badges (ISA blue, SIPP purple, etc.) — see `fynlaDesignGuide.md`.
+
+## Tailwind `@apply` Rules
+
+These are real Tailwind build-error traps, not stylistic preferences. Keep them.
+
+### Don't create circular class definitions
+
 ```css
-.text-gray-500 {
-  @apply text-gray-500;
-  font-weight: 400;
-}
+/* build error — circular */
+.text-horizon-500 { @apply text-horizon-500; font-weight: 400; }
+
+/* correct */
+.muted-text { @apply text-horizon-500; font-weight: 400; }
 ```
 
-**CORRECT - Use a custom class name:**
+### Valid border widths: only `border`, `border-0`, `border-2`, `border-4`, `border-8`
+
 ```css
-.muted-text {
-  @apply text-gray-500;
-  font-weight: 400;
-}
+/* build error — border-3 does not exist */
+@apply border-3 border-light-gray;
+
+/* correct */
+@apply border-2 border-light-gray;
 ```
 
-**Rule:** Never define a CSS class with the same name as a Tailwind utility you're applying inside it.
+### `@apply` is standalone, not glued to property names
 
-### 2. Valid Tailwind Border Width Classes
-
-Tailwind ONLY supports these border widths:
-- `border` (1px)
-- `border-0` (0px)
-- `border-2` (2px)
-- `border-4` (4px)
-- `border-8` (8px)
-
-**WRONG:**
 ```css
-@apply border-3 border-gray-200;  /* border-3 does NOT exist */
+/* invalid */
+.card:hover { border-@apply text-raspberry-500; }
+
+/* correct */
+.card:hover { @apply border-raspberry-500; }
 ```
 
-**CORRECT:**
-```css
-@apply border-4 border-gray-200;  /* Use border-2 or border-4 */
-```
+## Chart Colors — Import From Design System
 
-### 3. Correct @apply Syntax
+Actual exports in `resources/js/constants/designSystem.js`:
+- `PRIMARY_COLORS` (Raspberry)
+- `SECONDARY_COLORS` (Horizon)
+- `SUCCESS_COLORS` (Spring)
+- `WARNING_COLORS` (Violet)
+- `ERROR_COLORS`, `INFO_COLORS`
+- `CHART_COLORS` (8-color palette array)
+- `ASSET_COLORS`, `RISK_COLORS`
+- `TEXT_COLORS`, `BG_COLORS`, `BORDER_COLORS`, `SPACING`, `BORDER_RADIUS`, `ANIMATION`
 
-The `@apply` directive must be a complete statement, not part of a property name.
-
-**WRONG - Malformed syntax:**
-```css
-.card:hover {
-  border-@apply text-primary-500;  /* INVALID */
-  border-top-@apply text-primary-500;  /* INVALID */
-}
-```
-
-**CORRECT:**
-```css
-.card:hover {
-  @apply border-primary-500;
-  @apply border-t-primary-500;
-}
-```
-
-### 4. Use Design System Constants for Chart Colors
-
-For ApexCharts and other JavaScript color configurations, import from the design system:
-
-**WRONG - Hardcoded hex values:**
 ```javascript
+// wrong — hardcoded hex
 colors: ['#3b82f6', '#10b981', '#f97316']
-```
 
-**CORRECT - Import from design system:**
-```javascript
-import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS } from '@/constants/designSystem';
-
+// correct
+import { CHART_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, WARNING_COLORS } from '@/constants/designSystem';
 colors: CHART_COLORS.slice(0, 3)
-// or for semantic colors:
+// or semantic:
 colors: [PRIMARY_COLORS[500], SUCCESS_COLORS[500], WARNING_COLORS[500]]
 ```
 
-### 5. Converting Hex Colors to Tailwind @apply
+## Hex → Fynla Tailwind Conversion
 
-When replacing hardcoded hex colors in scoped CSS:
+When replacing hardcoded hex in scoped CSS:
 
-| Hex Code | Tailwind Class |
-|----------|----------------|
-| `#111827` | `text-gray-900` or `bg-gray-900` |
-| `#374151` | `text-gray-700` or `bg-gray-700` |
-| `#6b7280` | `text-gray-500` or `bg-gray-500` |
-| `#9ca3af` | `text-gray-400` or `bg-gray-400` |
-| `#e5e7eb` | `border-gray-200` or `bg-gray-200` |
-| `#f3f4f6` | `bg-gray-100` |
-| `#f9fafb` | `bg-gray-50` |
-| `#3b82f6` | `text-primary-500` or `bg-primary-500` |
-| `#2563eb` | `text-blue-600` or `bg-blue-600` |
-| `#10b981` | `text-green-500` or `bg-green-500` |
-| `#f97316` | `text-orange-500` or `bg-orange-500` |
-| `#ef4444` | `text-red-500` or `bg-red-500` |
+| Hex | Fynla token |
+|---|---|
+| `#1F2A44`, `#111827`, `#374151` | `horizon-500`, `horizon-700`, `horizon-600` |
+| `#717171`, `#6b7280`, `#9ca3af` | `neutral-500`, `neutral-400` |
+| `#EEEEEE`, `#e5e7eb` | `light-gray` |
+| `#F7F6F4`, `#FDFAF7`, `#f3f4f6` | `eggshell-500`, `savannah-100` |
+| `#E83E6D`, any CTA pink/red | `raspberry-500` |
+| `#20B486`, any success green | `spring-500` |
+| `#5854E6`, any warning/focus | `violet-500` |
 
-### 6. Forbidden Colors (Fynla Project)
+## Pre-implementation checklist
 
-For this financial planning application, NEVER use:
-- **Mustard/pastel yellows** - Use solid orange/orange instead
-- **Pastel/washed-out colors** - Use solid, professional colors
-- **Neon/bright colors** - Use muted, trust-conveying tones
-
-### Pre-Implementation Checklist
-
-Before writing CSS with `@apply`:
-- [ ] Class name doesn't match any Tailwind utility being applied
-- [ ] Border widths use only `border`, `border-0`, `border-2`, `border-4`, `border-8`
-- [ ] `@apply` is a standalone directive, not attached to a property name
+- [ ] All colors from the Fynla palette above (no banned tokens)
+- [ ] No hardcoded hex in `<style>` — use `@apply` or `designSystem.js` constants
+- [ ] No custom `@keyframes spin` — use `animate-spin` global class
+- [ ] Class names don't collide with applied Tailwind utilities
+- [ ] Border widths valid (`border`, `border-0`, `border-2`, `border-4`, `border-8`)
 - [ ] Chart colors imported from `@/constants/designSystem.js`
-- [ ] No hardcoded hex values - use Tailwind classes or design system constants
+- [ ] British spelling in user-facing copy (Optimisation, Customise, Colour)
+- [ ] No "Score" / "X/100" metrics in user UI (see CLAUDE.md Key Rule #13)

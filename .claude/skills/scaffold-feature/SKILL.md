@@ -138,12 +138,15 @@ export default {featureName}Service;
 After scaffolding, verify:
 - [ ] All PHP files have `declare(strict_types=1);`
 - [ ] Model uses `Auditable` trait
-- [ ] No hardcoded tax values (use `TaxConfigService`)
-- [ ] Ownership uses canonical enums (`individual`, `joint`, `tenants_in_common`, `trust`)
-- [ ] Currency displayed via `currencyMixin` (not local formatting)
+- [ ] Tax values come from `TaxConfigService` (no hardcoded allowances, thresholds, or tax years)
+- [ ] Ownership uses canonical enums (`individual`, `joint`, `tenants_in_common`, `trust`) — never `sole`
+- [ ] If joint ownership applies: model uses `HasJointOwnership` trait, migration has `joint_owner_id` + `ownership_type` + `ownership_percentage`
+- [ ] Currency displayed via `currencyMixin` (not a local `formatCurrency()` method)
 - [ ] Form modal emits `save` not `submit`
-- [ ] No amber/orange colours in UI
-- [ ] No acronyms in user-facing text (except ISA)
+- [ ] UI uses only Fynla v1.2.0 palette tokens (raspberry, horizon, spring, violet, savannah, eggshell, neutral, light-gray) — no `amber-*`, `orange-*`, `primary-*`, `secondary-*`, or `gray-*` for general UI
+- [ ] Chart colours imported from `@/constants/designSystem.js`
+- [ ] User-facing text spells out acronyms (except ISA)
+- [ ] User-facing text avoids scores / "X/100" metrics (Key Rule #13)
 - [ ] British spelling in user-facing text, American in code
-- [ ] Routes added to `PreviewWriteInterceptor` excluded list if auth-related
+- [ ] Auth-related POST routes added to `EXCLUDED_ROUTES` in `PreviewWriteInterceptor`
 - [ ] Architecture tests still pass: `./vendor/bin/pest --testsuite=Architecture`

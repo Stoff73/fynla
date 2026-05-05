@@ -59,14 +59,31 @@
         </button>
       </div>
 
-      <div v-else class="liabilities-grid">
-        <LiabilityCard
-          v-for="liability in filteredLiabilities"
-          :key="liability.id"
-          :liability="liability"
-          @click="openDetail(liability.id)"
-        />
-      </div>
+      <template v-else>
+        <!-- Inline CTA row (top-right) — replaces the global SubNavBar action. -->
+        <div class="flex justify-end items-center gap-2 mb-4">
+          <button
+            v-preview-disabled="'add'"
+            type="button"
+            @click="openAddModal"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Liability
+          </button>
+        </div>
+
+        <div class="liabilities-grid">
+          <LiabilityCard
+            v-for="liability in filteredLiabilities"
+            :key="liability.id"
+            :liability="liability"
+            @click="openDetail(liability.id)"
+          />
+        </div>
+      </template>
 
       <!-- Summary Bar -->
       <div v-if="filteredLiabilities.length > 0" class="summary-bar">

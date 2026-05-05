@@ -14,8 +14,14 @@
     <!-- Collapsed: slim bar with greeting + percentage -->
     <div v-if="heroCollapsed" class="flex items-center gap-3 pr-8">
       <h2 class="text-lg font-bold text-horizon-500">{{ greeting }}, {{ firstName }}</h2>
-      <span class="text-sm font-extrabold" :class="stageTextClass">{{ progressPercentage }}%</span>
-      <span class="text-sm text-neutral-500">{{ stageLabel }}</span>
+      <template v-if="currentStage">
+        <span class="text-sm font-extrabold" :class="stageTextClass">{{ progressPercentage }}%</span>
+        <span class="text-sm text-neutral-500">{{ stageLabel }}</span>
+      </template>
+      <template v-else>
+        <span class="text-sm font-extrabold text-raspberry-500">{{ overallProfilePercent }}%</span>
+        <span class="text-sm text-neutral-500">Profile complete</span>
+      </template>
     </div>
 
     <!-- Expanded: full status bar -->
@@ -26,8 +32,9 @@
       <!-- Desktop: three-panel row (container-query responsive) -->
       <div class="hero-desktop-layout gap-6 pr-6">
 
-        <!-- LEFT: Scenario Completeness -->
-        <div class="flex-1 min-w-0">
+        <!-- LEFT: Scenario Completeness (journey only). When there is no active journey this slot collapses to a narrow equal-width margin so Profile & Actions can grow. -->
+        <div :class="currentStage ? 'flex-1 min-w-0' : 'w-6 flex-shrink-0'">
+          <template v-if="currentStage">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Scenario Completeness
             <span class="relative group">
@@ -101,10 +108,11 @@
               </div>
             </div>
           </div>
+          </template>
         </div>
 
         <!-- MIDDLE: Profile Completeness (progress ring + category links) -->
-        <div class="flex flex-shrink-0 w-1/3 flex-col pl-5 status-divider">
+        <div :class="['flex flex-col pl-5 status-divider', currentStage ? 'flex-shrink-0 w-1/3' : 'flex-1 min-w-0']">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Profile Completeness
             <span class="relative group">
@@ -135,17 +143,17 @@
                 v-for="cat in categoryCompleteness"
                 :key="cat.key"
                 :to="cat.route"
-                class="group flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-white/50 transition-colors cursor-pointer"
+                class="group flex items-center py-1.5 px-2 rounded-md hover:bg-white/50 transition-colors cursor-pointer"
               >
-                <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ cat.label }}</span>
-                <span class="text-xs font-bold" :class="cat.percent >= 75 ? 'text-spring-600' : cat.percent >= 25 ? 'text-horizon-400' : 'text-raspberry-500'">{{ cat.percent }}%</span>
+                <span class="flex-1 min-w-0 text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 transition-colors whitespace-nowrap">{{ cat.label }}</span>
+                <span class="ml-3 w-10 text-right text-xs font-bold tabular-nums" :class="cat.percent >= 75 ? 'text-spring-600' : cat.percent >= 25 ? 'text-horizon-400' : 'text-raspberry-500'">{{ cat.percent }}%</span>
               </router-link>
             </div>
           </div>
         </div>
 
         <!-- RIGHT: Recommended Actions (desktop only) -->
-        <div v-if="topActions.length" class="flex flex-shrink-0 w-1/3 flex-col pl-5 status-divider">
+        <div v-if="topActions.length" :class="['flex flex-col pl-5 status-divider', currentStage ? 'flex-shrink-0 w-1/3' : 'flex-1 min-w-0']">
           <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
             Fyn's Recommended Actions
             <span class="relative group">
@@ -174,6 +182,9 @@
             Got a question? Ask Fyn
           </button>
         </div>
+
+        <!-- RIGHT SPACER: matches the narrow left margin so Profile & Actions get the rest of the row when there is no active journey -->
+        <div v-if="!currentStage" class="w-6 flex-shrink-0"></div>
       </div>
 
       <!-- Mobile/narrow: swipeable carousel -->
@@ -183,8 +194,8 @@
           class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-6 px-6 gap-4"
           @scroll="onCarouselScroll"
         >
-          <!-- Slide 1: Scenario Completeness -->
-          <div class="snap-center flex-shrink-0 w-full">
+          <!-- Slide 1: Scenario Completeness (journey only) -->
+          <div v-if="currentStage" class="snap-center flex-shrink-0 w-full">
             <h4 class="text-lg font-semibold text-horizon-500 mb-2 flex items-center gap-2">
               Scenario Completeness
               <span class="relative group">
@@ -295,7 +306,7 @@
                   :to="cat.route"
                   class="group flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-white/50 transition-colors cursor-pointer"
                 >
-                  <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 transition-colors">{{ cat.label }}</span>
+                  <span class="text-xs font-medium text-horizon-500 group-hover:text-raspberry-500 transition-colors whitespace-nowrap">{{ cat.label }}</span>
                   <span class="text-xs font-bold" :class="cat.percent >= 75 ? 'text-spring-600' : cat.percent >= 25 ? 'text-horizon-400' : 'text-raspberry-500'">{{ cat.percent }}%</span>
                 </router-link>
               </div>
@@ -395,6 +406,7 @@ export default {
   computed: {
     ...mapGetters('auth', { currentUser: 'currentUser' }),
     ...mapGetters('lifeStage', [
+      'currentStage',
       'stageLabel',
       'stageColour',
       'progressPercentage',
@@ -515,7 +527,10 @@ export default {
     },
 
     carouselSlideCount() {
-      return this.topActions.length ? 3 : 2;
+      let count = 1; // Profile Completeness is always shown
+      if (this.currentStage) count++;
+      if (this.topActions.length) count++;
+      return count;
     },
   },
 

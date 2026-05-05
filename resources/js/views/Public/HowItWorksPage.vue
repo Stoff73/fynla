@@ -229,6 +229,8 @@
       </div>
     </section>
 
+    <ReviewCarousel />
+
     <!-- 15 Minutes to Clarity -->
     <section class="py-16 bg-eggshell-500">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -245,10 +247,11 @@
 
 <script>
 import PublicLayout from '@/layouts/PublicLayout.vue';
+import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 export default {
   name: 'HowItWorksPage',
-  components: { PublicLayout },
+  components: { PublicLayout, ReviewCarousel },
 
   mounted() {
     document.title = 'How Fynla works — simple financial planning in 3 steps | Fynla';

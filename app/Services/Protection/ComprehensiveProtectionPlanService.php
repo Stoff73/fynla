@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Protection;
 
 use App\Agents\ProtectionAgent;
+use App\Exceptions\FinancialCalculationException;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Traits\FormatsCurrency;
@@ -38,14 +39,17 @@ class ComprehensiveProtectionPlanService
         $analysis = $this->protectionAgent->analyze($user->id);
 
         if (! $analysis['success']) {
-            throw new \Exception($analysis['message']);
+            throw FinancialCalculationException::protectionCalculationError(
+                $analysis['message'] ?? 'Protection analysis failed',
+                ['user_id' => $user->id]
+            );
         }
 
         $data = $analysis['data'];
         $profile = ProtectionProfile::where('user_id', $user->id)->first();
 
         if (! $profile) {
-            throw new \Exception('Protection profile not found');
+            throw FinancialCalculationException::missingData('protection_profile', ['user_id' => $user->id]);
         }
 
         // Extract profile completeness data

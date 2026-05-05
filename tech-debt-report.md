@@ -1,99 +1,56 @@
-# Tech Debt Report — Session 15 April 2026
+# Tech Debt Report — Session 75 (2026-05-04)
 
-**Files analysed:** 14 files I authored or meaningfully modified this session (Awin integration + related fixes)
-**Issues found:** 0
-**Severity breakdown:** 0 critical, 0 warnings, 0 suggestions
+**Files analysed:** 14 (my actual session scope: `bf8cd0c..HEAD`, excluding session 73's CMSFix bundle which was audited at write time)
+**Issues found:** 5
+**Severity breakdown:** 0 critical, 2 warnings, 3 suggestions
 
-## Scope
+## Critical Issues
 
-Audited only files I authored or modified with substantive content this session. Files merged in from `origin/dev` (PR #210 insight pages, PR #211 email templates + review carousel + LandingPage tweaks, persona modal mobile fix, onboarding tweaks) were already reviewed in their own branches before the merge and are out of scope for this session audit.
+None. No design-system violations, no banned colours, no hardcoded tax values, no `DB` facade misuse, no missing `declare(strict_types=1)`, no acronyms in user-facing text, no scores in UI, no `v-if` + `v-for` collisions.
 
-**In-scope files:**
+## Warnings
 
-Backend (7):
-- `app/Services/Marketing/AwinTrackingService.php` — 161 lines, new
-- `app/Jobs/FireAwinConversionJob.php` — 116 lines, new
-- `app/Http/Middleware/CaptureAwcCookie.php` — 51 lines, new
-- `app/Http/Middleware/SecurityHeaders.php` — modified (Meta Pixel CSP + conditional Awin CSP)
-- `app/Http/Middleware/EncryptCookies.php` — modified (`awc` in `$except`)
-- `app/Http/Kernel.php` — modified (register CaptureAwcCookie)
-- `app/Http/Controllers/Api/PaymentController.php` — modified (Awin capture + dispatch + response)
-- `app/Http/Controllers/Api/WebhookController.php` — modified (Awin dispatch)
-- `app/Models/Payment.php` — modified (4 awin_* fillables + datetime cast)
-- `app/Services/LifeStage/LifeStageService.php` — 1-line typo fix (`current_value` → `current_fund_value`)
+### W1 — `v-html` safety depends on import pipeline
+- **File:** `resources/js/views/Public/insights/InsightArticlePage.vue:81`
+- **Category:** Security
+- **What's wrong:** `<div class="article-html-body" v-html="article.body_html"></div>` is XSS-safe today only because every write path (`DocumentArticleImporter`, `DocumentArticleController::update`) routes `html`/`html_body` through `HTMLBodySanitiser` (HTMLPurifier `document_article` profile). Any future code path that inserts directly to `document_articles.html_body` (seeder, raw SQL, an admin route that skips the form request) becomes an XSS vector.
+- **Suggested fix:** Either (a) add a model-level mutator on `DocumentArticle::setHtmlBodyAttribute` that re-runs `HTMLBodySanitiser` on assignment so the model self-protects, or (b) write an architecture test asserting all `html_body` writes go through the sanitiser. Defer until a second writer appears.
 
-Config + migration (2):
-- `config/awin.php` — 108 lines, new
-- `database/migrations/2026_04_15_153100_add_awin_tracking_to_payments_table.php` — 60 lines, new
+### W2 — `SanitizeInput` exemption for `html`/`html_body` is a developer trap
+- **File:** `app/Http/Middleware/SanitizeInput.php:29-37`
+- **Category:** Security / convention
+- **What's wrong:** Adding `'html'` and `'html_body'` to `$htmlAllowedFields` is correct for the doc article import (HTMLPurifier handles it downstream), but ANY future endpoint that accepts a top-level `html` or `html_body` field will now bypass strip_tags too. If that endpoint forgets HTMLPurifier, it's an XSS hole.
+- **Suggested fix:** The block comment in the file explains the dependency. Sufficient for now. Long-term, prefer scoping this exemption to specific routes via a path-prefix mechanism (`/api/admin/documents/*`) rather than a global field-name allowlist.
 
-Frontend (4):
-- `resources/js/utils/awinTracking.js` — 184 lines, new
-- `resources/js/utils/cookieConsent.js` — modified (accept/decline/init hooks)
-- `resources/js/router/index.js` — modified (afterEach hook)
-- `resources/js/views/Auth/CheckoutPage.vue` — modified (fireAwinConversion after GA4)
+## Suggestions
 
-## Audit Results
+### S1 — Resource naming inconsistent with module pattern
+- **File:** `app/Http/Resources/Insights/DocumentArticleAsInsightResource.php`, `DocumentArticleAsInsightListResource.php`
+- **Category:** Convention drift
+- **What's wrong:** The `AsInsight` suffix conveys intent (adapting `DocumentArticle` to the `InsightArticleResource` contract) but is a one-off naming pattern. Other modules use `XxxResource` / `XxxListResource`.
+- **Suggested fix:** Defer. The current names are self-documenting; a rename would lose that signal. Revisit if a third "adapter resource" appears.
 
-### Category 1: Duplicate Code
-**✅ No findings.**
-- `AwinTrackingService` methods (`buildSaleParams`, `isCustomerAcquisition`, `commissionGroupFor`, `orderRefFor`, `fireServerToServer`) have no name collisions with existing services
-- No local `formatCurrency()`, `spinner`, or `scrollbar` reimplementations in the frontend utils
-- HTTP call uses the `Http` facade, not a re-invented cURL wrapper
+### S2 — `InsightController::index()` hand-rolls response shape
+- **File:** `app/Http/Controllers/Api/Public/InsightController.php:23-58`
+- **Category:** Inconsistency with Laravel idiom
+- **What's wrong:** Previously returned `AnonymousResourceCollection`; now returns `JsonResponse` with hand-built `{data, meta}`. The shape matches Laravel's collection envelope but the construction is manual.
+- **Suggested fix:** Could use `InsightArticleListResource::collection($paginator)->additional(['_doc_articles' => $docItems])` and merge in a resource trait. Cleaner Laravel idiom, but the current code is more explicit about the merge logic. Not worth changing.
 
-### Category 2: Dead & Redundant Code
-**✅ No findings.**
-- `grep -n "TODO|FIXME|HACK|XXX"` across all in-scope files: 0 matches
-- `grep -n "console.log|dd(|dump("`: 0 matches
-- All new imports are used; no unused computed properties or variables
-- One catch block in `AwinTrackingService::fireServerToServer` catches `\Throwable` — not empty, logs via `logError` and returns false per the documented "never throw" contract
-
-### Category 3: Convention Violations
-**✅ No findings.**
-- **strict_types**: All 5 new PHP files start with `declare(strict_types=1);` ✓
-- **Hardcoded tax values**: grep for `'2025/26'|'2026/27'|12570|20000|60000|325000|175000`: 0 matches ✓
-- **Banned colours**: grep for `amber-|orange-` in `awinTracking.js` + `cookieConsent.js`: 0 matches ✓
-- **DB facade in controllers**: `PaymentController` already uses `DB::transaction()` for payment activation (pre-existing, out of scope for this audit) — Awin additions don't introduce new DB facade uses
-- **Type hints**: all new methods on `AwinTrackingService` and `FireAwinConversionJob` have full parameter and return type hints
-- **`sole` vs `individual`**: no ownership types touched
-
-### Category 4: Complexity & Maintainability
-**✅ No findings.**
-- File sizes (all well under 500 lines):
-  - `AwinTrackingService.php` — 161 lines
-  - `FireAwinConversionJob.php` — 116 lines
-  - `CaptureAwcCookie.php` — 51 lines
-  - `awinTracking.js` — 184 lines
-  - `config/awin.php` — 108 lines
-- Longest method in new code is `fireServerToServer` at ~50 lines — at the complexity threshold but justified (query building + try/catch + success/error logging paths). No extraction warranted.
-- No nesting beyond 2 levels
-- All magic values (`tt=ss`, `tv=2`, `ch=aw`) are documented inline and come from the Awin spec — not "magic numbers" in the code-smell sense
-
-### Category 5: Security Concerns
-**✅ No findings.**
-- `CaptureAwcCookie` validates input: `is_string($awc) && $awc !== '' && strlen($awc) <= 255` prevents cookie bombing and type confusion
-- Cookie attributes are correct: `HttpOnly`, `Secure`, `SameSite=Lax`, domain-scoped
-- `awc` exempted from Laravel's `EncryptCookies` so Awin receives the raw click reference — intentional, documented in the middleware docblock
-- CSP extensions to `SecurityHeaders` are gated on `config('awin.enabled')` for the Awin domains (no unnecessary widening when disabled); Meta Pixel domains are unconditional since `app.blade.php` loads the pixel on every page
-- No user input interpolated into SQL
-- `fireServerToServer` uses Laravel's `Http` facade which encodes query params correctly (explicitly avoids the Awin sample's 3 bugs: URL encoding, `parts` format, response ignore)
-- Payment data (amount, voucher, customer acquisition) is never logged to `laravel.log` as PII; only the `order_ref` identifier and HTTP status are logged
-
-### Category 6: Inconsistency with Existing Patterns
-**✅ No findings.**
-- `AwinTrackingService` follows the constructor-free pure-service pattern (it uses `StructuredLogging` trait like other services)
-- `FireAwinConversionJob` uses `Dispatchable`, `InteractsWithQueue`, `Queueable`, `SerializesModels` — the same trait stack as `RunMonteCarloSimulation`
-- `CaptureAwcCookie` follows the same short-circuit-on-disabled pattern used by other conditional middleware
-- Controller wiring uses the same `DB::transaction()` + post-transaction pattern already in place for payment confirmation
-- Frontend util mirrors `analyticsService.js` and the GA loader inside `cookieConsent.js`
-- All `[awin]` log entries use the structured-logging prefix convention
-
-## Verdict
-
-**Nothing to fix. Commit the one outstanding file (CLAUDE.md metrics update) and move on to session wrap-up.**
-
-Notes for future reference:
-- The Awin integration is well-isolated in its own `App\Services\Marketing` namespace — future tracking integrations (Google Ads, TikTok Pixel, etc.) should follow the same pattern
-- The dual-track (browser + S2S) with idempotency via `payments.awin_fired_at` is a reusable pattern for any attribution integration — worth extracting into a generic `AttributionJob` base class if a second network gets added
+### S3 — `InsightSeoService` doc-article methods mirror native ones
+- **File:** `app/Services/Insights/InsightSeoService.php:79-135`
+- **Category:** Duplication
+- **What's wrong:** `metaTagsForDocument` + `jsonLdForDocument` are structural copies of `metaTags` + `jsonLd` with different field-name accessors. ~50 lines of near-duplicate logic.
+- **Suggested fix:** Extract a small `ArticleSeoSubject` interface (or readonly value object) that both `InsightArticle` and `DocumentArticle` can present, then collapse to a single `metaTags(ArticleSeoSubject $a)`. Defer until a third source appears — premature unification has its own cost.
 
 ---
-*Generated by tech-debt-session skill — 2026-04-15 21:29 BST*
+
+## Top 3 most impactful
+
+1. **W1** — model-level html_body sanitisation belt-and-braces. Add when convenient.
+2. **W2** — middleware exemption documented but global. Fine for now.
+3. **S3** — `InsightSeoService` near-duplication. Refactor on third use.
+
+**Nothing blocks shipping.** No issues need fixing before commit.
+
+---
+*Generated by tech-debt-session skill, session 75 end-of-day*

@@ -45,19 +45,37 @@ public function __construct(
 Heavily-used modules have nested subdirectories; simpler modules are flat:
 
 ```
-Services/             (214 services across 32 module directories)
-  Investment/         (root files + 9 subdirectories)
+Services/             (239 services across 35 module directories)
+  Investment/         (55 services, 10 subdirectories)
     Analytics/, AssetLocation/, Fees/, Goals/, ModelPortfolio/,
-    Performance/, Rebalancing/, Tax/, Utilities/
-  Estate/             (22 services)
-  Retirement/         (8 services)
-  Protection/         (5 services, flat)
-  Savings/            (5 services, flat)
-  Coordination/       (5 services)
+    Performance/, Rebalancing/, Recommendation/, Tax/, Utilities/
+  Estate/             (27 services)
+  Documents/          (17 services — AI extraction, upload handling)
+  Retirement/         (12 services)
   Goals/              (12 services)
-  TaxConfigService.php  (centralised tax lookups)
-  UKTaxCalculator.php   (primary tax calculation engine)
+  AI/                 (12 services — chat, tools, streaming)
+  Plans/              (11 services)
+  Savings/            (9 services)
+  Coordination/       (8 services)
+  Payment/            (8 services — Revolut, subscriptions)
+  Protection/         (7 services)
+  Auth/               (5 services)
+  Insights/           (5 services)
+  Onboarding/         (5 services)
+  UserProfile/        (5 services)
+  Property/           (4 services)
+  Tax/                (4 services)
+  Admin/, Advisor/, GDPR/, Mobile/  (3 services each)
+  Risk/, Shared/, Trust/            (2 services each)
+
+  Root files (module-agnostic):
+  TaxConfigService.php         (centralised tax lookups)
+  UKTaxCalculator.php          (primary tax calculation engine)
+  TaxBandTracker.php           (tax band allocation across income sources)
+  PrerequisiteGateService.php  (onboarding readiness gates)
 ```
+
+Smaller modules (Audit, Benefits, Business, Cache, Chattel, Dashboard, LifeStage, Marketing, NetWorth, Settings, WhatIf) each contain a single service.
 
 ## TaxConfigService
 
@@ -82,6 +100,7 @@ Loads active `TaxConfiguration` model (where `is_active = true`). Request-scoped
 | `Auditable` | Auto-audit create/update/delete via observers | On models needing change tracking |
 | `HasJointOwnership` | Query scopes: `scopeForUserOrJoint()`, `scopeForUser()` | On models with `joint_owner_id` |
 | `CalculatesOwnershipShare` | Calculate user's share of jointly-owned assets | In services computing net worth |
+| `CalculatesOCF` | Ongoing charges figure (OCF) calculations for funds/platforms | In investment fee analysis |
 | `FormatsCurrency` | `formatCurrency()`, `formatCurrencyCompact()` | In services returning formatted output |
 | `StructuredLogging` | `logInfo()`, `logError()`, `logCalculation()` with context | In services and controllers |
 | `ResolvesExpenditure` | Resolve monthly expenditure from priority chain | In services needing user spending data |

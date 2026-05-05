@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Insights\InsightArticle;
+use App\Observers\InsightArticleObserver;
 use App\Services\Plans\PlanConfigService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -33,6 +35,19 @@ class AppServiceProvider extends ServiceProvider
                 return new \Anthropic\Client(apiKey: $apiKey);
             });
         }
+
+        // LifecycleEngine is a singleton so its per-run caches
+        // (trialAfterEndCandidates, cachedHasDataIds) are shared across every
+        // campaign resolved from config during a single engine run. Without
+        // the singleton, Laravel would construct a fresh engine each time a
+        // campaign's constructor asks for one, defeating the cache and
+        // re-running the expensive candidate query N times per run.
+        $this->app->singleton(\App\Services\Lifecycle\LifecycleEngine::class, function ($app) {
+            return new \App\Services\Lifecycle\LifecycleEngine(
+                snapshotService: $app->make(\App\Services\Lifecycle\LifecycleSnapshotService::class),
+                discountGenerator: $app->make(\App\Services\Lifecycle\LifecycleDiscountCodeGenerator::class),
+            );
+        });
     }
 
     /**
@@ -42,5 +57,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Prevent lazy loading in non-production environments to catch N+1 query issues
         Model::preventLazyLoading(! app()->isProduction());
+
+        InsightArticle::observe(InsightArticleObserver::class);
     }
 }

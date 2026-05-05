@@ -36,7 +36,7 @@ Read the full list of changed files and sort into categories:
 | **Seeders** | `database/seeders/*.php` | Upload + SSH `php artisan db:seed --class=XSeeder --force` |
 | **Deploy Config** | `deploy/**`, `.htaccess` | Upload to server |
 | **Composer** | `composer.json`, `composer.lock` | SSH `composer install --no-dev` on server |
-| **Docs Only** | `*.md`, `docs/**`, `.claude/**`, `March/**` | No deployment needed |
+| **Docs Only** | `*.md`, `docs/**`, `.claude/**`, `{Month}/**` (e.g. `April/`, `March/`) | No deployment needed |
 | **Tests Only** | `tests/**` | No deployment needed |
 
 Count files per category. If ALL changes are docs/tests only, report "No deployment needed" and stop.
@@ -155,13 +155,21 @@ php artisan cache:clear && php artisan config:clear && php artisan view:clear &&
 
 **Save to both locations:**
 
-1. Project: `March/March[DD]Updates/deploy.md`
-2. Vault: `/Users/CSJ/Desktop/fynlaBrain/March/March[DD]Updates/deploy.md`
+Use dynamic month — NEVER hardcode. Compute these first:
+```bash
+MONTH=$(date +%B)   # e.g. "April"
+DAY=$(date +%-d)    # unpadded day, e.g. "7" not "07"
+FOLDER="${MONTH}/${MONTH}${DAY}Updates"
+```
+
+Save to both:
+1. Project: `${FOLDER}/deploy.md` (e.g. `April/April17Updates/deploy.md`)
+2. Vault: `/Users/CSJ/Desktop/fynlaBrain/${FOLDER}/deploy.md`
 
 Create directories if they don't exist:
 ```bash
-mkdir -p "March/March$(date +%d)Updates"
-mkdir -p "/Users/CSJ/Desktop/fynlaBrain/March/March$(date +%d)Updates"
+mkdir -p "${FOLDER}"
+mkdir -p "/Users/CSJ/Desktop/fynlaBrain/${FOLDER}"
 ```
 
 ## Step 8: Display Summary
@@ -170,8 +178,8 @@ After saving, show a concise summary to the user:
 
 ```
 Deploy notes saved to:
-  - March/March[DD]Updates/deploy.md
-  - fynlaBrain/March/March[DD]Updates/deploy.md
+  - ${MONTH}/${MONTH}${DAY}Updates/deploy.md
+  - fynlaBrain/${MONTH}/${MONTH}${DAY}Updates/deploy.md
 
 Summary: X PHP files, [build needed/not needed], [N migrations], [N seeders]
 Warnings: [list any]

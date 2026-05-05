@@ -79,6 +79,12 @@ class DatabaseSeeder extends Seeder
 
             // Discount codes (promotional codes for checkout)
             DiscountCodeSeeder::class,
+
+            // Existing bespoke insight articles — metadata only, bodies stay in Vue files
+            ExistingInsightsMetadataSeeder::class,
+
+            // News articles (DB-backed; first article = launch announcement)
+            NewsArticleSeeder::class,
         ]);
 
         // ============================================================

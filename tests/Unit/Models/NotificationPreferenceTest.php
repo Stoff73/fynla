@@ -50,4 +50,25 @@ describe('NotificationPreference', function () {
             'user_id' => $user->id,
         ]))->toThrow(\Illuminate\Database\QueryException::class);
     });
+
+    it('has all 5 lifecycle email preference columns defaulting to true', function () {
+        $user = User::factory()->create();
+        $prefs = NotificationPreference::getOrCreateForUser($user->id);
+
+        expect($prefs->lifecycle_empty_trialer)->toBeTrue();
+        expect($prefs->lifecycle_engaged_trialer)->toBeTrue();
+        expect($prefs->lifecycle_cancelled_trialer)->toBeTrue();
+        expect($prefs->lifecycle_churned_subscriber)->toBeTrue();
+        expect($prefs->lifecycle_lapsed_subscriber)->toBeTrue();
+    });
+
+    it('allows updating individual lifecycle preferences', function () {
+        $user = User::factory()->create();
+        $prefs = NotificationPreference::getOrCreateForUser($user->id);
+
+        $prefs->update(['lifecycle_engaged_trialer' => false]);
+
+        expect($prefs->fresh()->lifecycle_engaged_trialer)->toBeFalse();
+        expect($prefs->fresh()->lifecycle_empty_trialer)->toBeTrue();
+    });
 });

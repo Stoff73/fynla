@@ -126,6 +126,99 @@ describe('validate', function () {
     });
 });
 
+describe('user_id lock (per-user lifecycle codes)', function () {
+    it('rejects a user-locked code when a different user tries to use it', function () {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        DiscountCode::factory()->fixedAmount(500)->forPlans(['standard'])->forCycles(['monthly'])->create([
+            'code' => 'LOCKED1',
+            'user_id' => $owner->id,
+        ]);
+
+        $result = $this->service->validate('LOCKED1', $other->id, 'standard', 'monthly', 1099);
+
+        expect($result['valid'])->toBeFalse()
+            ->and($result['message'])->toContain('not valid for your account');
+    });
+
+    it('accepts a user-locked code when the correct user tries to use it', function () {
+        $owner = User::factory()->create();
+
+        DiscountCode::factory()->fixedAmount(500)->forPlans(['standard'])->forCycles(['monthly'])->create([
+            'code' => 'LOCKED2',
+            'user_id' => $owner->id,
+        ]);
+
+        $result = $this->service->validate('LOCKED2', $owner->id, 'standard', 'monthly', 1099);
+
+        expect($result['valid'])->toBeTrue();
+    });
+
+    it('still accepts shared codes (user_id null) for any user', function () {
+        DiscountCode::factory()->percentage(10)->create([
+            'code' => 'SHARED1',
+            'user_id' => null,
+        ]);
+
+        $result = $this->service->validate('SHARED1', $this->user->id, 'standard', 'monthly', 1099);
+
+        expect($result['valid'])->toBeTrue();
+    });
+});
+
+describe('lifecycle_welcome discount type', function () {
+    it('calculates discount from metadata for matching plan/cycle', function () {
+        $user = User::factory()->create();
+
+        DiscountCode::factory()->create([
+            'code' => 'WELCOME_LC1',
+            'type' => 'lifecycle_welcome',
+            'value' => 0,
+            'user_id' => $user->id,
+            'applicable_plans' => ['student', 'standard', 'family'],
+            'applicable_cycles' => ['monthly', 'yearly'],
+            'metadata' => [
+                'plan_amounts' => [
+                    'standard.monthly' => 500,
+                    'standard.yearly' => 4500,
+                    'family.monthly' => 400,
+                ],
+            ],
+        ]);
+
+        $result = $this->service->validate('WELCOME_LC1', $user->id, 'standard', 'monthly', 1099);
+        expect($result['discount_amount'])->toBe(500);
+        expect($result['final_amount'])->toBe(599);
+
+        $result = $this->service->validate('WELCOME_LC1', $user->id, 'standard', 'yearly', 10000);
+        expect($result['discount_amount'])->toBe(4500);
+
+        $result = $this->service->validate('WELCOME_LC1', $user->id, 'family', 'monthly', 1499);
+        expect($result['discount_amount'])->toBe(400);
+    });
+
+    it('returns zero discount for a plan not in metadata', function () {
+        $user = User::factory()->create();
+
+        DiscountCode::factory()->create([
+            'code' => 'WELCOME_LC2',
+            'type' => 'lifecycle_welcome',
+            'value' => 0,
+            'user_id' => $user->id,
+            'applicable_plans' => ['student', 'standard'],
+            'applicable_cycles' => ['monthly'],
+            'metadata' => [
+                'plan_amounts' => ['standard.monthly' => 500],
+            ],
+        ]);
+
+        $result = $this->service->validate('WELCOME_LC2', $user->id, 'student', 'monthly', 399);
+        expect($result['valid'])->toBeTrue();
+        expect($result['discount_amount'])->toBe(0);
+    });
+});
+
 describe('apply', function () {
     it('records usage and increments counter', function () {
         $code = DiscountCode::factory()->percentage(20)->create(['code' => 'APPLY20']);

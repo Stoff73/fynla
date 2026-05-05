@@ -7,11 +7,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AdminUserResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\DiscountCode;
 use App\Models\Payment;
 use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\UserSession;
 use App\Services\Admin\DatabaseMetricsService;
 use App\Services\Admin\UserModuleTrackingService;
 use Illuminate\Http\JsonResponse;
@@ -38,11 +41,20 @@ class AdminController extends Controller
     /**
      * Get admin dashboard statistics
      */
-    public function dashboard(): JsonResponse
+    public function dashboard(Request $request): JsonResponse
     {
         try {
             $realUsers = User::where('is_preview_user', false);
             $adminRoleId = Role::findByName(Role::ROLE_ADMIN)?->id;
+            $sevenDaysAgo = now()->subDays(7);
+
+            $aiTotalTokens = (int) AiConversation::sum('total_input_tokens')
+                + (int) AiConversation::sum('total_output_tokens');
+
+            $recentMessages = AiMessage::where('created_at', '>=', $sevenDaysAgo);
+            $aiTokens7d = (int) (clone $recentMessages)->sum('input_tokens')
+                + (int) (clone $recentMessages)->sum('output_tokens');
+
             $stats = [
                 'total_users' => (clone $realUsers)->count(),
                 'admin_users' => $adminRoleId ? (clone $realUsers)->where('role_id', $adminRoleId)->count() : 0,
@@ -51,7 +63,47 @@ class AdminController extends Controller
                 'database_size' => $this->databaseMetrics->getDatabaseSize(),
                 'last_backup' => $this->getLastBackupTime(),
                 'table_statistics' => $this->databaseMetrics->getTableStatistics(),
+                'registered_7d' => (clone $realUsers)->where('created_at', '>=', $sevenDaysAgo)->count(),
+                'subscribed_7d' => Payment::where('status', 'completed')
+                    ->where('created_at', '>=', $sevenDaysAgo)
+                    ->distinct('user_id')
+                    ->count('user_id'),
+                'ai_total_tokens' => $aiTotalTokens,
+                'ai_tokens_7d' => $aiTokens7d,
+                'ai_conversations_7d' => AiConversation::where('created_at', '>=', $sevenDaysAgo)->count(),
             ];
+
+            $stats['previous_login_at'] = null;
+            $stats['deltas'] = null;
+
+            $previousLoginAt = $this->resolvePreviousLoginAt($request->user());
+            if ($previousLoginAt) {
+                $prevWindowStart = $previousLoginAt->copy()->subDays(7);
+
+                $prevMessages = AiMessage::whereBetween('created_at', [$prevWindowStart, $previousLoginAt]);
+                $prevTokens7d = (int) (clone $prevMessages)->sum('input_tokens')
+                    + (int) (clone $prevMessages)->sum('output_tokens');
+
+                $newMessages = AiMessage::where('created_at', '>', $previousLoginAt);
+                $newTokensTotal = (int) (clone $newMessages)->sum('input_tokens')
+                    + (int) (clone $newMessages)->sum('output_tokens');
+
+                $stats['previous_login_at'] = $previousLoginAt->toIso8601String();
+                $stats['deltas'] = [
+                    'total_users' => (clone $realUsers)->where('created_at', '>', $previousLoginAt)->count(),
+                    'registered_7d' => $stats['registered_7d']
+                        - (clone $realUsers)->whereBetween('created_at', [$prevWindowStart, $previousLoginAt])->count(),
+                    'subscribed_7d' => $stats['subscribed_7d']
+                        - Payment::where('status', 'completed')
+                            ->whereBetween('created_at', [$prevWindowStart, $previousLoginAt])
+                            ->distinct('user_id')
+                            ->count('user_id'),
+                    'ai_total_tokens' => $newTokensTotal,
+                    'ai_tokens_7d' => $stats['ai_tokens_7d'] - $prevTokens7d,
+                    'ai_conversations_7d' => $stats['ai_conversations_7d']
+                        - AiConversation::whereBetween('created_at', [$prevWindowStart, $previousLoginAt])->count(),
+                ];
+            }
 
             return response()->json([
                 'success' => true,
@@ -60,6 +112,27 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to load dashboard', $e);
         }
+    }
+
+    private function resolvePreviousLoginAt(?User $user): ?\Illuminate\Support\Carbon
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $token = $user->currentAccessToken();
+        $currentTokenId = $token instanceof \Laravel\Sanctum\PersonalAccessToken ? $token->id : null;
+
+        $query = UserSession::where('user_id', $user->id);
+        if ($currentTokenId) {
+            $query->where('token_id', '!=', $currentTokenId);
+
+            return $query->orderByDesc('created_at')->value('created_at');
+        }
+
+        // No identifiable current token (e.g. SPA cookie / TransientToken): skip the newest
+        // session on the assumption it represents the current one.
+        return $query->orderByDesc('created_at')->skip(1)->value('created_at');
     }
 
     /**
@@ -94,13 +167,19 @@ class AdminController extends Controller
             $request->validate([
                 'per_page' => 'sometimes|integer|min:1|max:100',
                 'search' => 'sometimes|nullable|string|max:100',
+                'status' => 'sometimes|nullable|string|in:trialing,active,expired,cancelled,past_due',
             ]);
 
             $perPage = min((int) $request->query('per_page', 15), 100);
             $search = $request->query('search');
+            $status = $request->query('status');
 
             $query = User::with(['role', 'spouse:id,first_name,surname,email', 'subscription', 'subscription.payments'])
                 ->where('is_preview_user', false);
+
+            if ($status) {
+                $query->whereHas('subscription', fn ($q) => $q->where('status', $status));
+            }
 
             if ($search) {
                 $search = substr($search, 0, 100); // Extra safety: truncate to max 100 chars

@@ -860,11 +860,8 @@ export default {
     },
 
     spouseNameForLetter() {
-      // For married users, use spouse's first name
-      if (!this.isExpressionOfWishes && this.currentUser?.spouse?.name) {
-        return this.currentUser.spouse.name.split(' ')[0]; // Get first name only
-      }
-      return null;
+      if (this.isExpressionOfWishes) return null;
+      return this.$store.getters['userProfile/spouse']?.first_name || null;
     },
 
     currentDate() {

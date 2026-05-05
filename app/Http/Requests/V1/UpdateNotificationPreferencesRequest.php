@@ -24,6 +24,12 @@ class UpdateNotificationPreferencesRequest extends FormRequest
             'security_alerts' => ['nullable', 'boolean'],
             'payment_alerts' => ['nullable', 'boolean'],
             'mortgage_rate_alerts' => ['nullable', 'boolean'],
+            'estate_alerts' => ['nullable', 'boolean'],
+            'lifecycle_empty_trialer' => ['nullable', 'boolean'],
+            'lifecycle_engaged_trialer' => ['nullable', 'boolean'],
+            'lifecycle_cancelled_trialer' => ['nullable', 'boolean'],
+            'lifecycle_churned_subscriber' => ['nullable', 'boolean'],
+            'lifecycle_lapsed_subscriber' => ['nullable', 'boolean'],
         ];
     }
 }

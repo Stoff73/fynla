@@ -98,9 +98,8 @@
         </div>
       </div>
 
-      <!-- Journey Progress Hero (shown when life stage is active, even if no financial data yet) -->
+      <!-- Progress Hero — always shown. Scenario Completeness column inside the hero is replaced by an empty spacer when there is no active journey, so Profile Completeness and Recommended Actions keep their original column widths. -->
       <JourneyProgressHero
-        v-if="currentStage"
         class="mb-3"
         @toggle-chat="toggleFynChat"
       />

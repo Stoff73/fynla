@@ -23,12 +23,15 @@ class Kernel extends ConsoleKernel
         $schedule->command('sessions:cleanup')->dailyAt('02:00');
         $schedule->command('audit:purge')->weeklyOn(0, '03:00');
         $schedule->command('notifications:daily-insight')->dailyAt('08:00');
+        $schedule->command('lifecycle:run-daily')->dailyAt('08:30');
         $schedule->command('notifications:policy-renewals')->dailyAt('09:00');
         $schedule->command('protection:send-alerts')->dailyAt('09:15');
         $schedule->command('notifications:mortgage-rate-alerts')->dailyAt('09:30');
         $schedule->command('savings:send-alerts')->dailyAt('10:00');
         $schedule->command('estate:send-alerts')->dailyAt('10:30');
         $schedule->command('subscriptions:check-overdue')->dailyAt('01:00');
+
+        $schedule->job(new \App\Jobs\PublishScheduledInsightsJob())->everyFiveMinutes();
     }
 
     /**
