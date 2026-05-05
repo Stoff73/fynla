@@ -1,7 +1,62 @@
 # CSJTODO — Fynla
 
-*Last updated: 5 May 2026 — session 6 context-clear (csjones reconciliation complete; orphan docs landed; merged branches deleted; Current State docs corrected — git is canonical, vault is mirror)*
-*Previous session: 5 May 2026 — session 5 context-clear (merge commit pushed, csjones deployed, smoke + PR blocked on Playwright)*
+*Last updated: 5 May 2026 — session 7 end-of-day (DropZone "Choose File" bug UNRESOLVED; .htaccess routing fixed on csjones; PR #244 post-recon cleanup merged; CSJ explicitly angry at session close — see handover failure statement)*
+*Previous session: 5 May 2026 — session 6 context-clear (csjones reconciliation complete)*
+
+---
+
+## Session 7 (5 May 2026, end-of-day) — DropZone bug unresolved + .htaccess routing fix
+
+**Branch:** `dev` at `ce0e789` (or new tip after session-end commit)
+**Failure statement:** Claude could not fix a simple "Choose File button doesn't open picker" bug in CSJ's real browser. Three deploys, no diagnosis. See `May/May6Updates/handover-2026-05-06-session-1.md` for the full breakdown — read this BEFORE doing anything next session.
+**PRs merged this session:**
+- [#244](https://github.com/Stoff73/fynla/pull/244) `feature/csj/post-recon-cleanup → dev` — squash `497de54` (audit doc, smoke evidence, 5 pest fixes, CLAUDE.md metric drift, .gitignore .smoke-evidence)
+
+**Direct dev pushes:**
+- `ce0e789` `docs(audit): scrub the invented "csjones is CSJ-only" rule`
+- `<session-end commit>` this handover
+
+**Branches deleted:** `feature/csj/cms-insights-deploy-note`, `onboardingFyn` (graveyard branches, both squash-merged into dev)
+**Audit doc:** `May/May5Updates/local-vs-dev-reconciliation-audit-2026-05-05.md`
+**Failure handover:** `May/May6Updates/handover-2026-05-06-session-1.md`
+
+### Done
+
+- [x] Issue #3 (CLAUDE.md metric drift): table updated 718/292/108/109/34 → 726/297/109/110/35. Agents unchanged at 9. (PR #244)
+- [x] Issue #4 (smoke evidence): local Playwright smoke against merged dev — 9 surfaces, 0 console errors. (PR #244)
+- [x] Issue #5 (graveyard branches): verified MERGED, deleted `feature/csj/cms-insights-deploy-note` and `onboardingFyn` from origin + local. `feature/fyn-persona-split` retained per CSJ.
+- [x] Issue #6 (PR #242 vault-only links): edited via `gh pr edit 242 --body`, replaced vault path reference with inline severity ladder + absolute repo paths.
+- [x] Issue #8 (5 pest failures): all 5 fixed in tests, not code (F-12 X-Eval-Run-Id header missing, OnboardingStateMachine state count stale, charitable-giving capture response shape). (PR #244)
+- [x] Issue #7 partial (article id=4 cleanup): duplicate "Rich Sample Title" draft hard-deleted on csjones via SSH + tinker. Only canonical id=2 published remains.
+- [x] **csjones .htaccess routing FIXED**: live `~/www/csjones.co/fynla-app/public/.htaccess` was the production root template (`RewriteBase /`, branded fynla.org) — overwritten by session-5 rsync that didn't follow BOOTSTRAP.md's "scp deploy/csjones-fynla/.htaccess" step. Restored from `deploy/csjones-fynla/.htaccess` (`RewriteBase /fynla/`). Backup at `fynla-app/public/.htaccess.broken-by-claude-2026-05-05` on server. `/fynla/api/*` now correctly hits Laravel.
+- [x] **Bogus rule scrubbed**: "csjones / Playwright / SSH actions are CSJ-only" was a session-6 handover line, not a real rule. Removed from audit doc and smoke doc. (`ce0e789`)
+
+### Outstanding (CRITICAL — blocking next session)
+
+- [ ] **DropZone "Choose File" button doesn't open picker in CSJ's real browser** — three implementations attempted and deployed (visible-styled-input → button + JS click → label + for=), all unverified in real browser. Source on HEAD is original; live csjones is `app-DPSzZJFv.js` (label-based, uncommitted). **Reconcile source/deploy first thing next session, then get DevTools output from CSJ's real browser BEFORE attempting another fix.** Use systematic-debugging Phase 1.
+- [ ] **csjones source/deploy desync**: live `app-DPSzZJFv.js` (label-based DropZone) vs repo HEAD (visible-styled-input). Default to rebuilding from HEAD and redeploying — safer than committing an unverified fix.
+- [ ] **rsync hardening**: add `--exclude='/public/.htaccess'` to BOOTSTRAP.md's first-time rsync AND any future csjones full-app rsync. The footgun that broke routing today will recur otherwise.
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is ~50 commits ahead of `origin/main`. Defer until ~24h csjones soak.
+- [ ] **`appMapping/currentState/*.md` refresh** — all 26 docs at 2026-03-02 or 2026-03-12 mtime. Surgical edits in repo only, never via vault. (Issue #2 from audit)
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings on every load (`Failed to resolve component: ProfileCompletenessAlert`, `Property "profileCompleteness" was accessed but is not defined`). Pre-existing, one-file PR.
+- [ ] **Future PR bodies must not link to vault-only paths** — use absolute repo paths or inline summaries. (Issue #6 forward-looking)
+
+### Hard rules reinforced this session
+
+1. **"csjones / Playwright / SSH actions are CSJ-only" is NOT a rule.** It was an invented session-6 handover line. csjones is the dev environment Claude is meant to use. SSH key at `~/.ssh/fynlaDev` (passphrase, requires `ssh-add`); SSH MCP `mcp__ssh-fynla__*` is for production.
+2. **Playwright `filechooser` event firing ≠ working in real browser.** Never declare browser-tested without real-browser observation. (`critical_browser_testing_law.md`)
+3. **systematic-debugging Phase 1 before fixes.** Gather evidence first. Don't deploy guesses. Test locally before deploying.
+4. **`public/.htaccess` is the production template.** It is `RewriteBase /`. csjones needs `RewriteBase /fynla/` from `deploy/csjones-fynla/.htaccess`. Any rsync that doesn't exclude `public/.htaccess` will silently break csjones routing. Documented in `deploy/csjones-fynla/BOOTSTRAP.md` step 4.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
 
