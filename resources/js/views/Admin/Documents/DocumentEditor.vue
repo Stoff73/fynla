@@ -1,10 +1,11 @@
 <template>
-    <div v-if="article" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section class="space-y-4">
-            <header>
-                <h1 class="text-3xl font-black text-horizon-700">{{ article.title }}</h1>
-                <p class="text-horizon-500 mt-1">Status: {{ article.status }}</p>
-            </header>
+    <AppLayout>
+        <div v-if="article" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <section class="space-y-4">
+                <header>
+                    <h1 class="text-3xl font-black text-horizon-700">{{ article.title }}</h1>
+                    <p class="text-horizon-500 mt-1">Status: {{ article.status }}</p>
+                </header>
 
             <div>
                 <label class="block text-sm font-bold text-horizon-700 mb-1">Title</label>
@@ -66,8 +67,9 @@
                 <editor-content v-if="editor" :editor="editor" class="prose max-w-none" />
             </div>
         </section>
-    </div>
-    <div v-else class="text-horizon-500">Loading…</div>
+        </div>
+        <div v-else class="text-horizon-500">Loading…</div>
+    </AppLayout>
 </template>
 
 <script>
@@ -84,11 +86,12 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
+import AppLayout from '@/layouts/AppLayout.vue';
 import CoverImagePicker from '@/components/Admin/Documents/CoverImagePicker.vue';
 
 export default {
     name: 'DocumentEditor',
-    components: { EditorContent, CoverImagePicker },
+    components: { AppLayout, EditorContent, CoverImagePicker },
     data() {
         return {
             form: {

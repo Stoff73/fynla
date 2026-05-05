@@ -184,6 +184,24 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
+### 14. All Pages Must Wrap in AppLayout
+Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
+
+Pattern (see `views/Admin/AdminPanel.vue`):
+```vue
+<template>
+  <AppLayout>
+    <!-- page content -->
+  </AppLayout>
+</template>
+<script>
+import AppLayout from '@/layouts/AppLayout.vue';
+export default { components: { AppLayout, ... } };
+</script>
+```
+
+The only exception is when the user explicitly says "standalone" / "chrome-less" / "no layout". When refactoring an existing view onto a new route, confirm the destination view is layout-wrapped before claiming done.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**

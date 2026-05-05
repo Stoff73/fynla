@@ -126,7 +126,7 @@ export default {
 
 <style scoped>
 .drop-zone {
-    @apply border-2 border-dashed border-horizon-300 rounded-lg p-12 cursor-pointer flex items-center justify-center min-h-[180px] transition-colors;
+    @apply border-2 border-dashed border-horizon-300 rounded-lg p-4 cursor-pointer flex items-center justify-center w-1/5 aspect-square transition-colors;
     background: rgba(255, 255, 255, 0.5);
 }
 .drop-zone--active {

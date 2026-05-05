@@ -166,7 +166,7 @@ export default {
         // Insights CMS lives on its own route stack, not as an embedded tab — the
         // `path` key tells the sidebar to router-push instead of switching activeTab.
         { id: 'insights', label: 'CMS', shortLabel: 'CMS', path: '/admin/insights' },
-        { id: 'documents', label: 'Documents', shortLabel: 'Docs', path: '/admin/documents' },
+        { id: 'documents', label: 'CMS Upload', shortLabel: 'Upload', path: '/admin/documents' },
       ],
     };
   },
