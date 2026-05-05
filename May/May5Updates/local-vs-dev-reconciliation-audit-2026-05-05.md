@@ -406,10 +406,10 @@ From session 6 handover Open Items, both pre-existing carry-overs from session 2
 2. **Delete duplicate "Rich Sample Title" article** on csjones (id=4, draft) created during session-2 DropZone test.
 
 **Recommended action:**
-1. CSJ does both at the same time: open `https://csjones.co/fynla/admin/documents` in real browser → click Choose File (verify picker) → navigate to article list → delete id=4. ~2 min.
-2. Out-of-scope for Claude (per the rule: "csjones / Playwright / SSH server-side actions are CSJ's").
+1. Article id=4 delete: Claude can run via SSH (`~/.ssh/fynlaDev` key + tinker) once the key is loaded into ssh-agent.
+2. Raspberry button picker check: Playwright intercepts the OS file_chooser dialog in headless Chromium, so Playwright can confirm the button triggers a `filechooser` event but cannot render the actual macOS picker. CSJ's real (non-Playwright) browser is the most reliable confirmation. ~30 seconds.
 
-**Owner:** CSJ.
+**Owner:** Claude (article delete) + CSJ (real-browser picker confirmation).
 
 **Priority:** P3 (UX + hygiene).
 

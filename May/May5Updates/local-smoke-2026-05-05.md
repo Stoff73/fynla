@@ -11,7 +11,7 @@ driver: Playwright MCP
 
 # Local Browser Smoke — 2026-05-05
 
-This smoke addresses Issue #4 from `local-vs-dev-reconciliation-audit-2026-05-05.md`. The original csjones smoke (Tasks 9–11 of the reconciliation plan) executed but left no automated artefacts because Playwright disconnected mid-session. Per the rule that csjones server-side smoke is CSJ's, this is a **local-server smoke against the merged `dev` HEAD**, which carries the same code as csjones.
+This smoke addresses Issue #4 from `local-vs-dev-reconciliation-audit-2026-05-05.md`. The original csjones smoke (Tasks 9–11 of the reconciliation plan) executed but left no automated artefacts because Playwright disconnected mid-session. This run is a **local-server smoke against the merged `dev` HEAD**, which carries the same code as csjones — sufficient for verifying the merged surface renders cleanly. (A csjones-target Playwright run is also possible and is now covered separately.)
 
 ## Verdict
 
