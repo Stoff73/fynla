@@ -1,7 +1,50 @@
 # CSJTODO — Fynla
 
-*Last updated: 4 May 2026 — session 75 end-of-day (CMS-into-/insights refactor, dev deploy, PR #240 merged, PR #241 open)*
-*Previous session: 4 May 2026 — session 74 context-clear (CSP fix, Tiptap fix, dev deploy, PR #240 opened)*
+*Last updated: 5 May 2026 — session 6 (csjones dev reconciliation: persona-split merged into dev via PR #242, local synced, worktree cleaned)*
+*Previous session: 5 May 2026 — session 5 context-clear (merge commit pushed, csjones deployed, smoke + PR blocked on Playwright)*
+
+---
+
+## Session 6 (5 May 2026) — csjones dev reconciliation complete
+
+**Branch:** `dev` (merged-clean at `0335ffd`)
+**PR merged this session:** [#242](https://github.com/Stoff73/fynla/pull/242) (`fix/persona-split-review-fixes → dev`, squash-merge `0335ffd`)
+**Plan:** `docs/superpowers/plans/2026-05-05-csjones-dev-reconciliation.md` *(currently only on `onboardingFyn` — see "Outstanding" below)*
+**Spec:** `docs/superpowers/specs/2026-05-05-csjones-dev-reconciliation-design.md` *(same — only on `onboardingFyn`)*
+**Diff report:** `May/May5Updates/local-vs-dev-codebase-diff-2026-05-05.md` *(same)*
+**Rollback tags on origin:** `pre-recon/dev` (`dc335b3`), `pre-recon/persona-split` (`1bf89e8`)
+
+### Done
+
+- [x] Tagged both branches before merge (`pre-recon/dev`, `pre-recon/persona-split`) — pushed
+- [x] Forward-merged `origin/dev` into `fix/persona-split-review-fixes` in `/tmp/fynla-merge` worktree (commit `487fe1c`, 27 conflicts resolved)
+- [x] Resolved conflicts: persona-split as superset for AI/Eval/Tax/Onboarding; dev for CLAUDE.md / CSJTODO; routes unioned, dead AgentInternalController routes removed
+- [x] CLAUDE.md rules renumbered to preserve all three: #14 AppLayout (dev), #15 LOOP UNTIL CORRECT (persona-split), #16 Icons (renumbered from persona-split's #14)
+- [x] `pint` clean, `pest` 3,418 / 7 / 25 (the 7 are pre-existing persona-split P0/P1 tracked in `April28Updates/maxAuditEval.md §5`, not merge-introduced)
+- [x] `./deploy/csjones-fynla/build.sh` PASS (manifest 120 KB)
+- [x] csjones built + rsynced + composer install + migrate + db:seed + cache clears + optimize (session 5)
+- [x] Browser smoke on csjones (CSJ manual): Admin tabs + persona dashboards — PASS
+- [x] PR #242 opened, squash-merged to `dev` via `gh pr merge --squash --admin --delete-branch=false`
+- [x] Local checked out `dev`, pulled `0335ffd`, applied 25 persona-split migrations, reseeded, ran `pest --testsuite=Unit` (2,034 pass / 1 known-failing `OnboardingStateMachineTest > state count`)
+- [x] `composer dump-autoload -o` + cache clears + dev server restarted (Laravel :8000, Vite :5174)
+- [x] Worktree `/tmp/fynla-merge` removed; `git worktree prune` clean
+- [x] session-start skill patched to read latest handover in full from `<repo>/<MONTH>/<MONTH>NUpdates/handover-*.md`
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **5 docs commits orphaned on `onboardingFyn`** — the spec, plan, diff report, and 3 handovers (sessions 2, 3, 4, 5) live only on `onboardingFyn` ahead of `origin/dev`. The PR #242 body links to them. Decide: open a docs-only PR `onboardingFyn → dev` to land them, OR leave them on the working branch and accept the dead links in the merged PR description. Recommendation: docs-only PR — small, safe, preserves history.
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~50+ commits ahead of `origin/main` after the merge surface (Eval framework + Tax Strategy framework + AI Audit/Idempotency + AdviceFyn + Onboarding extras + 25 migrations + earlier CMS / News / Onboarding Fyn work). Production deploy planning is non-trivial; defer until you've had ~24 hr to soak csjones under preview-mode use.
+- [ ] **Decision: delete `fix/persona-split-review-fixes`, `feature/fyn-persona-split`, `backup/fyn-persona-split-pre-merge` branches?** Code is now in dev; branches kept for now as belt-and-braces.
+- [ ] **Carry-overs from session 5** (lower priority):
+  - Confirm in own non-Playwright browser that the raspberry "Choose File" button on `https://csjones.co/fynla/admin/documents` opens the macOS file picker
+  - Delete duplicate "Rich Sample Title" article on csjones (id=4, draft) created during session-2 DropZone test
+
+### Untracked at session end (carried from session-start)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (Fyn AI prompt-engineering scratch dirs from May 1)
 
 ---
 
