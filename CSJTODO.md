@@ -1,45 +1,51 @@
 # CSJTODO — Fynla
 
-*Last updated: 5 May 2026 — session 6 (csjones dev reconciliation: persona-split merged into dev via PR #242, local synced, worktree cleaned)*
+*Last updated: 5 May 2026 — session 6 context-clear (csjones reconciliation complete; orphan docs landed; merged branches deleted; Current State docs corrected — git is canonical, vault is mirror)*
 *Previous session: 5 May 2026 — session 5 context-clear (merge commit pushed, csjones deployed, smoke + PR blocked on Playwright)*
 
 ---
 
 ## Session 6 (5 May 2026) — csjones dev reconciliation complete
 
-**Branch:** `dev` (merged-clean at `0335ffd`)
-**PR merged this session:** [#242](https://github.com/Stoff73/fynla/pull/242) (`fix/persona-split-review-fixes → dev`, squash-merge `0335ffd`)
-**Plan:** `docs/superpowers/plans/2026-05-05-csjones-dev-reconciliation.md` *(currently only on `onboardingFyn` — see "Outstanding" below)*
-**Spec:** `docs/superpowers/specs/2026-05-05-csjones-dev-reconciliation-design.md` *(same — only on `onboardingFyn`)*
-**Diff report:** `May/May5Updates/local-vs-dev-codebase-diff-2026-05-05.md` *(same)*
+**Branch:** `dev` at `6986e92` (or new tip after session-end commit)
+**PRs merged this session:**
+- [#242](https://github.com/Stoff73/fynla/pull/242) `fix/persona-split-review-fixes → dev` — squash `0335ffd` (the big merge)
+- [#243](https://github.com/Stoff73/fynla/pull/243) `feature/csj/recon-docs-to-dev → dev` — squash `6986e92` (orphaned spec / plan / diff / 4 handovers landed on dev)
+
+**Direct dev pushes (admin override):**
+- `8fe7dfe` CSJTODO update (per plan Step 14.1)
+- `<session-end commit>` this handover
+
+**Plan:** `docs/superpowers/plans/2026-05-05-csjones-dev-reconciliation.md` (now on dev)
+**Spec:** `docs/superpowers/specs/2026-05-05-csjones-dev-reconciliation-design.md` (now on dev)
+**Diff report:** `May/May5Updates/local-vs-dev-codebase-diff-2026-05-05.md` (now on dev)
 **Rollback tags on origin:** `pre-recon/dev` (`dc335b3`), `pre-recon/persona-split` (`1bf89e8`)
 
 ### Done
 
-- [x] Tagged both branches before merge (`pre-recon/dev`, `pre-recon/persona-split`) — pushed
-- [x] Forward-merged `origin/dev` into `fix/persona-split-review-fixes` in `/tmp/fynla-merge` worktree (commit `487fe1c`, 27 conflicts resolved)
-- [x] Resolved conflicts: persona-split as superset for AI/Eval/Tax/Onboarding; dev for CLAUDE.md / CSJTODO; routes unioned, dead AgentInternalController routes removed
-- [x] CLAUDE.md rules renumbered to preserve all three: #14 AppLayout (dev), #15 LOOP UNTIL CORRECT (persona-split), #16 Icons (renumbered from persona-split's #14)
-- [x] `pint` clean, `pest` 3,418 / 7 / 25 (the 7 are pre-existing persona-split P0/P1 tracked in `April28Updates/maxAuditEval.md §5`, not merge-introduced)
-- [x] `./deploy/csjones-fynla/build.sh` PASS (manifest 120 KB)
-- [x] csjones built + rsynced + composer install + migrate + db:seed + cache clears + optimize (session 5)
-- [x] Browser smoke on csjones (CSJ manual): Admin tabs + persona dashboards — PASS
-- [x] PR #242 opened, squash-merged to `dev` via `gh pr merge --squash --admin --delete-branch=false`
-- [x] Local checked out `dev`, pulled `0335ffd`, applied 25 persona-split migrations, reseeded, ran `pest --testsuite=Unit` (2,034 pass / 1 known-failing `OnboardingStateMachineTest > state count`)
-- [x] `composer dump-autoload -o` + cache clears + dev server restarted (Laravel :8000, Vite :5174)
-- [x] Worktree `/tmp/fynla-merge` removed; `git worktree prune` clean
-- [x] session-start skill patched to read latest handover in full from `<repo>/<MONTH>/<MONTH>NUpdates/handover-*.md`
+- [x] Reconciliation Tasks 1–14 complete: tags pushed; merge in worktree; 27 conflicts resolved; pint + pest + build pass; csjones deployed (session 5); CSJ browser smoke PASS; PR #242 opened + squash-merged; local checkout dev + 25 migrations + reseed + pest unit (2,034 pass / 1 known-failing); dev server restarted on merged code; worktree cleaned
+- [x] **Docs PR #243** opened + squash-merged — spec / plan / diff / 4 handovers (sessions 2–5) now on `dev`, no longer orphaned on `onboardingFyn`
+- [x] **Branch deletions** — `fix/persona-split-review-fixes` deleted from origin AND local; `backup/fyn-persona-split-pre-merge` deleted (was local-only at `0170815`); `feature/fyn-persona-split` retained per CSJ
+- [x] **Current State docs investigation** — vault-sync flagged `Onboarding.md` / `GoalsLifeEvents.md` as 64+ days old; subagent dispatched to refresh BUT botched it (rewrote vault Onboarding.md with wrong line counts). CSJ corrected: vault `Current State/*.md` is a MIRROR of `appMapping/currentState/*.md` in the repo. Restored both vault docs from git canonical
+- [x] **session-start skill patched** — Phase 2a now mandatorily reads latest handover in full from `<repo>/<MONTH>/<MONTH>NUpdates/handover-*.md`
 
 ### Outstanding (awaiting CSJ direction)
 
-- [ ] **5 docs commits orphaned on `onboardingFyn`** — the spec, plan, diff report, and 3 handovers (sessions 2, 3, 4, 5) live only on `onboardingFyn` ahead of `origin/dev`. The PR #242 body links to them. Decide: open a docs-only PR `onboardingFyn → dev` to land them, OR leave them on the working branch and accept the dead links in the merged PR description. Recommendation: docs-only PR — small, safe, preserves history.
-- [ ] **`dev → main` release PR** — `origin/dev` is now ~50+ commits ahead of `origin/main` after the merge surface (Eval framework + Tax Strategy framework + AI Audit/Idempotency + AdviceFyn + Onboarding extras + 25 migrations + earlier CMS / News / Onboarding Fyn work). Production deploy planning is non-trivial; defer until you've had ~24 hr to soak csjones under preview-mode use.
-- [ ] **Decision: delete `fix/persona-split-review-fixes`, `feature/fyn-persona-split`, `backup/fyn-persona-split-pre-merge` branches?** Code is now in dev; branches kept for now as belt-and-braces.
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~50+ commits ahead of `origin/main` after the merge surface (Eval framework + Tax Strategy + AI Audit/Idempotency + AdviceFyn + Onboarding extras + 25 migrations + earlier CMS / News / Onboarding Fyn work). Production deploy planning is non-trivial; defer until ~24 hr csjones soak under preview-mode use.
+- [ ] **`appMapping/currentState/Onboarding.md` + `GoalsLifeEvents.md`** are still pre-persona-split (2026-03-02 baseline, commit `1afcd11`). If updated, must be: surgical edit in the **repo**, no deletions, no rewrites, PR for CSJ review. **Never via the vault.**
+- [ ] **Other Current State docs may also be stale** — vault-sync only flagged 2, but `Coordination.md`, `Investment.md`, `EstatePlanning.md`, `Auth.md` etc. all mtime 2026-03-02. Worth a sweep.
+- [ ] **CLAUDE.md metrics drift on dev** — table says Vue 718 / PHP 292 / Controllers 108 / Models 109 / Vuex Stores 34. Actual: 722 / 297 / 109 / 110 / 35. Drift +4/+5/+1/+1/+1. Tiny PR when convenient.
 - [ ] **Carry-overs from session 5** (lower priority):
   - Confirm in own non-Playwright browser that the raspberry "Choose File" button on `https://csjones.co/fynla/admin/documents` opens the macOS file picker
   - Delete duplicate "Rich Sample Title" article on csjones (id=4, draft) created during session-2 DropZone test
 
-### Untracked at session end (carried from session-start)
+### Hard rules added this session (encoded in handover + skill)
+
+1. **`appMapping/currentState/*.md` is the source of truth for Current State docs.** Vault `fynlaBrain/Current State/*` is a mirror. Edit the repo copy, in place, surgical only — never rewrite the vault copy.
+2. **CSJ doesn't want csjones / Playwright / SSH actions from Claude.** Server-side is CSJ's. Claude does git-side only.
+3. **Don't dispatch subagents to refresh canonical docs** — they hallucinate line counts.
+
+### Untracked at session end (carried since session-start, intentional)
 
 - `Fynla-Narrative-Memo-Template.docx`
 - `FCA-Supercharged-Sandbox-Application-Draft.md`
