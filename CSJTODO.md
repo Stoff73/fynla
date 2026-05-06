@@ -1,7 +1,54 @@
 # CSJTODO — Fynla
 
-*Last updated: 5 May 2026 — session 7 end-of-day (DropZone "Choose File" bug UNRESOLVED; .htaccess routing fixed on csjones; PR #244 post-recon cleanup merged; CSJ explicitly angry at session close — see handover failure statement)*
-*Previous session: 5 May 2026 — session 6 context-clear (csjones reconciliation complete)*
+*Last updated: 6 May 2026 — session 2 context-clear (DropZone changed to drag-only on local; csjones still on stale label-based build; CSJ explicitly angry at session close for the SECOND consecutive session — see handover failure statement)*
+*Previous session: 6 May 2026 — session 1 end-of-day (DropZone bug UNRESOLVED, three deploys to csjones, none verified)*
+
+---
+
+## Session 2 (6 May 2026, context-clear) — Drag-only dropzones on local; csjones sync deferred to next session
+
+**Branch:** `dev` at `fe60ade` (or new tip after this session-end commit)
+**Failure statement:** Two consecutive sessions failed on the same DropZone bug. This session's instance: surfaced "path (a) or (b)" when prior handover already said "default to (b)"; tried to deploy to csjones BEFORE local repro; used `pkill -f vite` and killed sibling fynlaInternational; spent 10+ turns narrating Playwright structural state instead of finding the bug; doubled down on click-based fixes after CSJ said clicks don't work. Final fix only happened after CSJ's explicit instruction "leave the fucking drag logic". See `May/May6Updates/handover-2026-05-06-session-2-clear.md` for full breakdown.
+
+**Direct dev pushes this session:**
+- `6ae2fb8` `fix(dev): pin Vite to canonical port 5173`
+- `fe60ade` `revert(cms): drag-only dropzones — remove click-to-browse affordance`
+- `<session-end commit>` this handover + CSJTODO
+
+### Done
+
+- [x] **Vite port pinned to 5173** in `vite.config.js` (was 5174 for ~17 days; collided with sibling `fynlaInternational`). Saved feedback memory `feedback_vite_canonical_port_5173.md` pinning the rule and banning `pkill -f vite`.
+- [x] **`Admin/Documents/DropZone.vue` reduced to drag-only** — removed visible-styled `<input type="file">`, removed `onPick` and `openFileDialog` methods, removed `fileInput` ref. Pure `@dragover` / `@dragleave` / `@drop` handlers feeding into `handleFile()`.
+- [x] **`Shared/UploadDropZone.vue` reduced to drag-only** — removed "or click to browse" link; kept hidden `<input ref="fileInput">` because `removeFile()` resets its `.value` when a file is unselected.
+
+### Outstanding (CRITICAL — blocking next session)
+
+- [ ] **Drag-only is unverified in CSJ's real browser.** Step 1 of next session: CSJ opens `localhost:8000/admin/documents` in real browser, drags a `.docx`, confirms upload completes. Modal version (Shared/UploadDropZone.vue) likewise. If drag works → proceed to csjones sync. If drag does NOT work → diagnose with CSJ's DevTools (Console + Network on drop), do NOT add click handlers.
+- [ ] **csjones is structurally divergent from local.** Live `app-DPSzZJFv.js` (label-based, session-1 attempt). Local HEAD = drag-only post this session. Reconciliation: rebuild from current HEAD (`./deploy/csjones-fynla/build.sh`), then rsync to `~/www/csjones.co/fynla-app/public/build/` with `--exclude='.htaccess'`, then cache-clear. **The `public/build/assets/app-CoBH6hW-.js` build sitting on disk from earlier this session is STALE — predates the drag-only commit. Rebuild before deploying.**
+- [ ] **CSJ must `ssh-add ~/.ssh/fynlaDev` once next session** before Claude can rsync/scp non-interactively. Required for the csjones sync above.
+- [ ] **Hardening: `--exclude='/public/.htaccess'` not yet added to BOOTSTRAP.md** (carried from session-1 handover). Production root template silently breaks csjones routing if rsynced over.
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~52 commits ahead of `origin/main` (this session added 3). Defer until ~24h csjones soak.
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only, never via vault.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+1. **The handover IS the decision.** When prior handover defaults a path, take it. Don't surface as a re-decision.
+2. **Test locally before deploying to csjones — always.** The previous handover said this; this session violated it. Rebuild + deploy comes ONLY after CSJ-real-browser confirmation locally.
+3. **Don't `pkill -f vite`.** Kills sibling project's Vite. Use `lsof -i :5173 -t | xargs kill` for surgical fynla-only cleanup.
+4. **Don't add click-based fixes for click-based failures.** CSJ's real browser does not reliably open OS file pickers from clicks on these dropzones; cause unknown after three sessions; the working answer is to NOT promise click behaviour the UI can't deliver.
+5. **Vite canonical port is 5173.** `vite.config.js` must read `port: 5173, strictPort: true`. New feedback memory `feedback_vite_canonical_port_5173.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
 
