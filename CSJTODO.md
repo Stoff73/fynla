@@ -1,7 +1,66 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 2 context-clear (DropZone changed to drag-only on local; csjones still on stale label-based build; CSJ explicitly angry at session close for the SECOND consecutive session — see handover failure statement)*
-*Previous session: 6 May 2026 — session 1 end-of-day (DropZone bug UNRESOLVED, three deploys to csjones, none verified)*
+*Last updated: 6 May 2026 — session 3 context-clear (insights publish→hub bug closed end-to-end on csjones: DocumentArticleObserver + Laravel /storage route + scoped Cache-Control: no-store on /api/*. Production templates updated, deploy pending)*
+*Previous session: 6 May 2026 — session 2 context-clear (drag-only DropZones, csjones sync deferred)*
+
+---
+
+## Session 3 (6 May 2026, context-clear) — Insights publish→hub bug closed; csjones permanent fixes shipped
+
+**Branch:** `dev` at `574ba5f` (or new tip after this session-end commit)
+**Outcome:** Three layered defects fixed, all verified live on csjones:
+1. Backend cache-invalidation gap on DocumentArticle publishes (no observer existed) → new `DocumentArticleObserver`
+2. CDN edge cache poisoning on `/api/insights` (stale text/html from a foreign host) → permanent Apache `Cache-Control: no-store` on `/api/*` + temporary SPA cachebuster while legacy entry expires
+3. Storage 403 on bespoke article cover images (SiteGround restricts symlink traversal) → Laravel `Route::get('/storage/{path}')` streams from `Storage::disk('public')` + removed wrongly-blanket `RedirectMatch 403`
+
+**Direct dev pushes this session:**
+- `92ac8ae` `fix(insights): bust merged cache when DocumentArticles publish + SPA cachebuster`
+- `574ba5f` `fix(infra): Laravel-served /storage route + scoped Cache-Control no-store on /api/*`
+- `<session-end commit>` this handover + CSJTODO + deploy note
+
+### Done
+
+- [x] **csjones sync from session 2 completed.** CSJ confirmed drag-and-drop works locally → built `app-DFcwXVfE.js` for csjones → `ssh-add ~/.ssh/fynlaDev` loaded → rotated build/ → rsynced with `--exclude='.htaccess'` → merged old chunks → cache cleared. Drag-only DropZone now live at https://csjones.co/fynla.
+- [x] **DocumentArticleObserver added** — mirrors `InsightArticleObserver`'s `bustCaches()` (forget `insights.featured` + increment `insights.list_version`). Registered in `AppServiceProvider`. Verified locally via tinker (cache version 8→9→10→11 across create/publish/delete) and end-to-end controller simulation.
+- [x] **Laravel `/storage/{path}` route** — added before SPA catch-all in `routes/web.php`, streams from `Storage::disk('public')` with `max-age=31536000, public` browser cache + `..` traversal rejection. On hosts where the symlink works (local, fynla.org), Apache still serves directly; on csjones the route handles it.
+- [x] **Scoped `Cache-Control: no-store` on `/api/*`** in all three .htaccess templates. The env-set `RewriteRule ^api/ - [E=FYNLA_API:1]` is placed inside the main mod_rewrite block BEFORE the front-controller `[L]` rule (which would otherwise terminate the rewrite phase first). Matches both `env=FYNLA_API` and `env=REDIRECT_FYNLA_API` for the post-rewrite phase. Verified on csjones: `/api/insights?_=N` → `cache-control: no-store, no-cache, private, must-revalidate, max-age=0`; `/` (SPA) → unchanged Laravel default.
+- [x] **`RedirectMatch 403 ^/storage/`** removed from all three .htaccess templates — was wrongly blocking the legitimate `/storage/` public path.
+- [x] **csjones `public/storage` symlink removed** (Apache 403s symlink traversal regardless of FollowSymLinks/SymLinksIfOwnerMatch). The Laravel route handles all storage requests on csjones now.
+- [x] **csjones live verified end-to-end**: `nootropic_stack` (CSJ's published doc article) renders as Featured hero on /insights, `Rich Sample Title` in side panel, all 8 bespoke insights load with cover images, article body loads at `/insights/nootropic-stack`. **Zero console errors** (was 8 × 403s).
+
+### Outstanding (next session — production deploy)
+
+- [ ] **Ship today's fixes to fynla.org production.** When CSJ is ready: PR `dev → main`, `./deploy/fynla-org/build.sh`, upload `public/build/` + new `public/.htaccess` + new `app/Observers/DocumentArticleObserver.php` + modified `app/Providers/AppServiceProvider.php` + modified `routes/web.php`. SSH and `composer dump-autoload -o && php artisan cache:clear && php artisan optimize`. Smoke test https://fynla.org/insights and confirm `cache-control: no-store` on `/api/*`. Production may already have its own `public/storage` symlink working — leave it; the new Laravel route is a no-op fallback.
+- [ ] **One-time SiteGround cache purge on csjones** (optional, lower priority). The legacy poisoned `/api/insights` cache entry still serves stale text/html on the bare URL (without query string) — `x-proxy-cache: HIT`. SPA cachebuster sidesteps it for users. Site Tools → Speed → Caching → Dynamic Cache → Purge clears it permanently. After that, the SPA cachebuster on `insightsService.list()` can be reverted (one-line removal).
+- [ ] **Update `deploy/csjones-fynla/BOOTSTRAP.md`**:
+  - Add `--exclude='/public/.htaccess'` to rsync example (carried from session 1 + 2)
+  - REMOVE the `php artisan storage:link` step — Apache 403s the resulting symlink on SiteGround. The Laravel `/storage/{path}` route is the canonical mechanism.
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~57 commits ahead of `origin/main` (this session added 2 + the session-end commit). Defer until ~24h csjones soak under preview-mode use.
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only, never via vault.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — `find` reports 722 Vue components, CLAUDE.md says 726 (4-count drift). Update opportunistically.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+1. **CDN cache prevention belongs at the Apache/server layer, not the SPA.** Per-call cachebusters on the client are a workaround, not a fix. The right answer is `Cache-Control: no-store` on `/api/*` so no proxy ever caches API responses again. (CSJ's pushback: "why would I need to purge every time an article is uploaded".)
+2. **`.htaccess` `[L]` flag terminates the entire rewrite phase, not just one rule.** Env-setting `RewriteRule [E=...]` must be placed BEFORE the front-controller `[L]` rule, in the SAME `<IfModule mod_rewrite.c>` block. A separate `<IfModule>` block won't fire if `[L]` already terminated.
+3. **SiteGround restricts symlink traversal regardless of `+FollowSymLinks` / `+SymLinksIfOwnerMatch`.** The `php artisan storage:link` symlink doesn't work there. Use a Laravel-served route instead.
+4. **One-time legacy cache cleanup ≠ ongoing maintenance.** Once `Cache-Control: no-store` is in force, no future API responses get cached. The legacy entry will TTL out (or one-time SG purge clears it). After that, no purge ever again.
+
+### New memory file
+
+- `~/.claude/projects/-Users-CSJ-Desktop-fynla/memory/feedback_siteground_hosting_lore.md` — three SiteGround patterns (symlink 403, .htaccess env-var ordering, CDN cache poisoning + permanent fix). Created by vault-sync subagent. Indexed in `MEMORY.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
 
