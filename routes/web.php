@@ -4,6 +4,7 @@ use App\Http\Controllers\FeedController;
 use App\Http\Controllers\Lifecycle\LifecycleActionController;
 use App\Http\Controllers\NewsletterActionController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,6 +60,23 @@ Route::get('/subscribe/news/confirm/{token}', [NewsletterActionController::class
 Route::get('/unsubscribe/news/{token}', [NewsletterActionController::class, 'unsubscribe'])
     ->name('newsletter.unsubscribe')
     ->where('token', '[A-Za-z0-9]{48}');
+
+// Serve files from storage/app/public (cover images, user uploads, etc.).
+// The classic `php artisan storage:link` symlink works fine on most hosts but
+// SiteGround shared hosting 403s any traversal of public/storage even with
+// `Options +FollowSymLinks` or `+SymLinksIfOwnerMatch`. This route is the
+// portable fallback — only fires when no static file exists at the URL, so on
+// hosts where the symlink works Apache still serves directly (faster). MUST be
+// declared BEFORE the SPA catch-all.
+Route::get('/storage/{path}', function (string $path) {
+    abort_if(str_contains($path, '..'), 404);
+    abort_unless(Storage::disk('public')->exists($path), 404);
+
+    return Storage::disk('public')->response($path)
+        ->setMaxAge(31536000)
+        ->setSharedMaxAge(31536000)
+        ->setPublic();
+})->where('path', '.*');
 
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
