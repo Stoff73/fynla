@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Anthropic\Client;
+use App\Models\DocumentArticle;
 use App\Models\Insights\InsightArticle;
+use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\XaiClient;
@@ -71,5 +73,6 @@ class AppServiceProvider extends ServiceProvider
         Model::preventLazyLoading(! app()->isProduction());
 
         InsightArticle::observe(InsightArticleObserver::class);
+        DocumentArticle::observe(DocumentArticleObserver::class);
     }
 }
