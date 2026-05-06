@@ -102,14 +102,22 @@
     <div class="bg-eggshell-500 py-10">
       <div class="campaign-inner max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-horizon-500 text-center mb-8">Your Fynla dashboard</h2>
-        <div class="card-lg overflow-hidden p-0">
-          <div class="flex items-center gap-2 px-4 py-2.5 bg-savannah-100 border-b border-light-gray">
-            <span class="w-3 h-3 rounded-full bg-raspberry-500"></span>
-            <span class="w-3 h-3 rounded-full bg-violet-500"></span>
-            <span class="w-3 h-3 rounded-full bg-spring-500"></span>
-            <span class="ml-3 text-xs text-neutral-500 font-mono">fynla.org</span>
+        <div class="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" @click="toggleVideo">
+          <video
+            ref="productVideo"
+            src="/images/Homepage-Fynla-ProductVideov2.mp4"
+            playsinline
+            class="w-full h-auto block"
+          >
+            Your browser does not support the video tag.
+          </video>
+          <div v-if="!videoPlaying" class="absolute inset-0 bg-horizon-500/30 flex items-center justify-center transition-opacity group-hover:bg-horizon-500/20">
+            <div class="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-raspberry-500 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
           </div>
-          <video src="/images/fynla-dashboard-walkthrough.mp4" autoplay loop muted playsinline width="1346" height="665" class="w-full h-auto block">Your browser does not support the video tag.</video>
         </div>
       </div>
     </div>
@@ -283,6 +291,7 @@ export default {
   data() {
     return {
       fynDetailsOpen: false,
+      videoPlaying: false,
       features: [
         { title: 'Protection', desc: 'Analyse life insurance, critical illness, and income protection coverage gaps to ensure your family is fully protected.', iconBg: 'bg-raspberry-500', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', tags: ['Life Cover', 'Income Protection'] },
         { title: 'Savings', desc: 'Track emergency funds, ISA allowances, and savings goals across all your accounts with smart benchmarking.', iconBg: 'bg-spring-500', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', tags: ['Emergency Fund', 'ISA'] },
@@ -314,6 +323,18 @@ export default {
   },
 
   methods: {
+    toggleVideo() {
+      const video = this.$refs.productVideo;
+      if (!video) return;
+      if (video.paused) {
+        video.play();
+        this.videoPlaying = true;
+      } else {
+        video.pause();
+        this.videoPlaying = false;
+      }
+    },
+
     getImage(filename) {
       if (!filename) return null;
       const key = Object.keys(insightImages).find(k => k.endsWith('/' + filename));

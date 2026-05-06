@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\DCPension;
+use App\Models\FamilyMember;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -52,26 +54,26 @@ function createMarriedCouple(): array
     $spouse->save();
 
     // Create main residence and child for RNRB qualification
-    \App\Models\Property::factory()->create([
+    Property::factory()->create([
         'user_id' => $user->id,
         'property_type' => 'main_residence',
         'current_value' => 450000,
         'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
-    \App\Models\FamilyMember::factory()->create([
+    FamilyMember::factory()->create([
         'user_id' => $user->id,
         'relationship' => 'child',
         'first_name' => 'Oliver',
     ]);
-    \App\Models\Property::factory()->create([
+    Property::factory()->create([
         'user_id' => $spouse->id,
         'property_type' => 'main_residence',
         'current_value' => 450000,
         'ownership_type' => 'individual',
         'ownership_percentage' => 100,
     ]);
-    \App\Models\FamilyMember::factory()->create([
+    FamilyMember::factory()->create([
         'user_id' => $spouse->id,
         'relationship' => 'child',
         'first_name' => 'Oliver',
@@ -224,7 +226,7 @@ describe('HouseholdPlanningService', function () {
             [$user, $spouse] = createMarriedCouple();
 
             // Create DC pension for user
-            \App\Models\DCPension::factory()->create([
+            DCPension::factory()->create([
                 'user_id' => $user->id,
                 'current_fund_value' => 250000,
                 'scheme_name' => 'Workplace Pension',

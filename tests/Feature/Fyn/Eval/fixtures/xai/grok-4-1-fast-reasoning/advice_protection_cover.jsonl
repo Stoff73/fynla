@@ -1,0 +1,227 @@
+{"__meta":{"provider":"xai","model":"grok-4-1-fast-reasoning","scenario_id":"advice_protection_cover","recorded_at":"2026-04-27T17:19:50+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"e00c540","conversation_id":180,"event_count":226,"duration_ms":29855}}
+{"type":"title","title":"Am I covered enough for protection?"}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"content","text":"You"}
+{"type":"content","text":" currently"}
+{"type":"content","text":" have"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"100"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" level"}
+{"type":"content","text":" term"}
+{"type":"content","text":" life"}
+{"type":"content","text":" insurance"}
+{"type":"content","text":" with"}
+{"type":"content","text":" Av"}
+{"type":"content","text":"iva"}
+{"type":"content","text":" ("}
+{"type":"content","text":"monthly"}
+{"type":"content","text":" premium"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"25"}
+{"type":"content","text":"**"}
+{"type":"content","text":"),"}
+{"type":"content","text":" which"}
+{"type":"content","text":" is"}
+{"type":"content","text":" a"}
+{"type":"content","text":" positive"}
+{"type":"content","text":" step"}
+{"type":"content","text":" for"}
+{"type":"content","text":" basic"}
+{"type":"content","text":" family"}
+{"type":"content","text":" protection"}
+{"type":"content","text":"."}
+{"type":"content","text":" There"}
+{"type":"content","text":" are"}
+{"type":"content","text":" no"}
+{"type":"content","text":" income"}
+{"type":"content","text":" protection"}
+{"type":"content","text":" or"}
+{"type":"content","text":" critical"}
+{"type":"content","text":" illness"}
+{"type":"content","text":" policies"}
+{"type":"content","text":" recorded"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"I"}
+{"type":"content","text":" was"}
+{"type":"content","text":" unable"}
+{"type":"content","text":" to"}
+{"type":"content","text":" retrieve"}
+{"type":"content","text":" your"}
+{"type":"content","text":" full"}
+{"type":"content","text":" personalised"}
+{"type":"content","text":" protection"}
+{"type":"content","text":" analysis"}
+{"type":"content","text":" just"}
+{"type":"content","text":" now"}
+{"type":"content","text":","}
+{"type":"content","text":" but"}
+{"type":"content","text":" here"}
+{"type":"content","text":" is"}
+{"type":"content","text":" the"}
+{"type":"content","text":" general"}
+{"type":"content","text":" position"}
+{"type":"content","text":":"}
+{"type":"content","text":" with"}
+{"type":"content","text":" your"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"50"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" annual"}
+{"type":"content","text":" income"}
+{"type":"content","text":","}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"2"}
+{"type":"content","text":","}
+{"type":"content","text":"500"}
+{"type":"content","text":"**"}
+{"type":"content","text":" monthly"}
+{"type":"content","text":" expenditure"}
+{"type":"content","text":","}
+{"type":"content","text":" and"}
+{"type":"content","text":" being"}
+{"type":"content","text":" married"}
+{"type":"content","text":","}
+{"type":"content","text":" it"}
+{"type":"content","text":" could"}
+{"type":"content","text":" be"}
+{"type":"content","text":" worth"}
+{"type":"content","text":" exploring"}
+{"type":"content","text":" whether"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"100"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" is"}
+{"type":"content","text":" enough"}
+{"type":"content","text":" to"}
+{"type":"content","text":" replace"}
+{"type":"content","text":" lost"}
+{"type":"content","text":" income"}
+{"type":"content","text":" or"}
+{"type":"content","text":" cover"}
+{"type":"content","text":" depend"}
+{"type":"content","text":"ants"}
+{"type":"content","text":"'"}
+{"type":"content","text":" needs"}
+{"type":"content","text":" if"}
+{"type":"content","text":" something"}
+{"type":"content","text":" happened"}
+{"type":"content","text":" to"}
+{"type":"content","text":" you"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" often"}
+{"type":"content","text":" people"}
+{"type":"content","text":" consider"}
+{"type":"content","text":" multiples"}
+{"type":"content","text":" of"}
+{"type":"content","text":" salary"}
+{"type":"content","text":" ("}
+{"type":"content","text":"e"}
+{"type":"content","text":".g"}
+{"type":"content","text":"."}
+{"type":"content","text":" "}
+{"type":"content","text":"5"}
+{"type":"content","text":"\u2013"}
+{"type":"content","text":"10"}
+{"type":"content","text":"x"}
+{"type":"content","text":")"}
+{"type":"content","text":" or"}
+{"type":"content","text":" enough"}
+{"type":"content","text":" to"}
+{"type":"content","text":" bridge"}
+{"type":"content","text":" **"}
+{"type":"content","text":"3"}
+{"type":"content","text":"\u2013"}
+{"type":"content","text":"5"}
+{"type":"content","text":" years"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" expenses"}
+{"type":"content","text":" (\u00a3"}
+{"type":"content","text":"90"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"\u2013"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"150"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":" based"}
+{"type":"content","text":" on"}
+{"type":"content","text":" your"}
+{"type":"content","text":" spending"}
+{"type":"content","text":").\n\n"}
+{"type":"content","text":"It"}
+{"type":"content","text":" may"}
+{"type":"content","text":" also"}
+{"type":"content","text":" be"}
+{"type":"content","text":" beneficial"}
+{"type":"content","text":" to"}
+{"type":"content","text":" review"}
+{"type":"content","text":" if"}
+{"type":"content","text":" the"}
+{"type":"content","text":" policy"}
+{"type":"content","text":" is"}
+{"type":"content","text":" written"}
+{"type":"content","text":" in"}
+{"type":"content","text":" trust"}
+{"type":"content","text":" to"}
+{"type":"content","text":" avoid"}
+{"type":"content","text":" Inheritance"}
+{"type":"content","text":" Tax"}
+{"type":"content","text":" delays"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"What"}
+{"type":"content","text":" specific"}
+{"type":"content","text":" risks"}
+{"type":"content","text":" are"}
+{"type":"content","text":" you"}
+{"type":"content","text":" most"}
+{"type":"content","text":" concerned"}
+{"type":"content","text":" about"}
+{"type":"content","text":","}
+{"type":"content","text":" like"}
+{"type":"content","text":" illness"}
+{"type":"content","text":","}
+{"type":"content","text":" income"}
+{"type":"content","text":" loss"}
+{"type":"content","text":","}
+{"type":"content","text":" or"}
+{"type":"content","text":" family"}
+{"type":"content","text":" needs"}
+{"type":"content","text":"?\n\n"}
+{"type":"content","text":"For"}
+{"type":"content","text":" regulated"}
+{"type":"content","text":" advice"}
+{"type":"content","text":" personal"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":","}
+{"type":"content","text":" speak"}
+{"type":"content","text":" to"}
+{"type":"content","text":" a"}
+{"type":"content","text":" qualified"}
+{"type":"content","text":" financial"}
+{"type":"content","text":" adviser"}
+{"type":"content","text":"."}
+{"type":"done","message_id":273,"input_tokens":13664,"output_tokens":327}

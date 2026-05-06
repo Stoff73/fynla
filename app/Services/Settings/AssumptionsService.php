@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserAssumption;
 use App\Services\Risk\RiskPreferenceService;
 use App\Services\TaxConfigService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -354,7 +355,7 @@ class AssumptionsService
     /**
      * Calculate weighted OCF from a collection of holdings.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, Holding>  $holdings
+     * @param  Collection<int, Holding>  $holdings
      */
     private function calculateHoldingsWeightedOcf($holdings, float $accountValue): float
     {

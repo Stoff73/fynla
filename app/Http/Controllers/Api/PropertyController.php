@@ -9,7 +9,9 @@ use App\Http\Requests\StorePropertyRequest;
 use App\Http\Requests\UpdatePropertyRequest;
 use App\Http\Resources\PropertyResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\JointAccountLog;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\Property\MortgageService;
 use App\Services\Property\PropertyService;
 use App\Services\Property\PropertyTaxService;
@@ -408,7 +410,7 @@ class PropertyController extends Controller
     /**
      * Log joint property update for audit trail
      */
-    private function logJointPropertyUpdate(\App\Models\User $user, Property $property, array $validated): void
+    private function logJointPropertyUpdate(User $user, Property $property, array $validated): void
     {
         if (! isset($validated['current_value'])) {
             return;
@@ -428,7 +430,7 @@ class PropertyController extends Controller
             ],
         ];
 
-        \App\Models\JointAccountLog::logEdit(
+        JointAccountLog::logEdit(
             $user->id,
             $property->joint_owner_id,
             $property,
@@ -447,7 +449,7 @@ class PropertyController extends Controller
      * Single-record pattern: Apply ownership percentage when calculating
      * user's share of rental income.
      */
-    private function syncUserRentalIncome(\App\Models\User $user): void
+    private function syncUserRentalIncome(User $user): void
     {
         // Get properties where user is owner OR joint_owner
         $properties = Property::forUserOrJoint($user->id)

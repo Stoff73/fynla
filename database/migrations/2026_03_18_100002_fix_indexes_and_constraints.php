@@ -16,7 +16,7 @@ return new class extends Migration
                 Schema::table('bequests', function (Blueprint $table) {
                     $table->foreign('asset_id')->references('id')->on('assets')->nullOnDelete();
                 });
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // FK already exists
             }
         }
@@ -34,7 +34,7 @@ return new class extends Migration
                     Schema::table($table, function (Blueprint $blueprint) use ($column, $indexName) {
                         $blueprint->index($column, $indexName);
                     });
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Index already exists
                 }
             }
@@ -55,7 +55,7 @@ return new class extends Migration
                     Schema::table($table, function (Blueprint $blueprint) use ($indexName) {
                         $blueprint->dropIndex($indexName);
                     });
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Index doesn't exist
                 }
             }
@@ -70,7 +70,7 @@ return new class extends Migration
                 Schema::table('bequests', function (Blueprint $table) {
                     $table->dropForeign(['asset_id']);
                 });
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
             }
         }
 
@@ -87,7 +87,7 @@ return new class extends Migration
                     Schema::table($table, function (Blueprint $blueprint) use ($indexName) {
                         $blueprint->dropIndex($indexName);
                     });
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                 }
             }
         }

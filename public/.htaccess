@@ -23,6 +23,13 @@
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # =============================================================================
+    # Mark API requests so mod_headers can force `no-store` on the response.
+    # MUST be before the front-controller [L] rule below, otherwise the rewrite
+    # phase terminates first and this rule never fires.
+    # =============================================================================
+    RewriteRule ^api/ - [E=FYNLA_API:1]
+
+    # =============================================================================
     # Force HTTPS
     # =============================================================================
     RewriteCond %{HTTPS} !=on
@@ -77,14 +84,34 @@ RewriteRule ^\.git - [F,L]
 </FilesMatch>
 
 # =============================================================================
-# Block Direct Access to Storage Directory
+# Disable Directory Listing & Allow Symlink Traversal
 # =============================================================================
-RedirectMatch 403 ^/storage/
+# `public/storage` is the Laravel `storage:link` symlink to `storage/app/public`
+# and is intentionally web-accessible (article cover images, user uploads, etc.).
+# Apache 403s symlink traversal unless FollowSymLinks (or the more secure
+# SymLinksIfOwnerMatch) is enabled. SiteGround restricts FollowSymLinks on
+# shared hosting, so we use SymLinksIfOwnerMatch — both link and target are
+# owned by the site user, so the resolution succeeds.
+# Do NOT add a `RedirectMatch 403 ^/storage/` rule — only `storage/app/public`
+# is exposed via the symlink; private files under storage/app, storage/logs,
+# storage/framework remain unreachable because no route maps to them.
+Options -Indexes +SymLinksIfOwnerMatch
 
 # =============================================================================
-# Disable Directory Listing
+# API responses must not be cached by any proxy (SiteGround edge / CDN)
 # =============================================================================
-Options -Indexes
+# The env FYNLA_API is set inside the main mod_rewrite block above (must run
+# before the front-controller [L] rule terminates the rewrite phase). When
+# the rewrite forwards to index.php, Apache exposes the env as both
+# FYNLA_API and REDIRECT_FYNLA_API depending on phase — match both.
+<IfModule mod_headers.c>
+    Header always set Cache-Control "no-store, no-cache, private, must-revalidate, max-age=0" env=FYNLA_API
+    Header always set Pragma "no-cache" env=FYNLA_API
+    Header always set Expires "0" env=FYNLA_API
+    Header always set Cache-Control "no-store, no-cache, private, must-revalidate, max-age=0" env=REDIRECT_FYNLA_API
+    Header always set Pragma "no-cache" env=REDIRECT_FYNLA_API
+    Header always set Expires "0" env=REDIRECT_FYNLA_API
+</IfModule>
 
 # =============================================================================
 # Compression

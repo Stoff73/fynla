@@ -334,7 +334,7 @@ it('calculates correct statistics in getSummary', function () {
 });
 
 it('handles service exceptions gracefully during aggregation', function () {
-    $this->protectionEngine->shouldReceive('analyze')->andThrow(new \Exception('Protection service error'));
+    $this->protectionEngine->shouldReceive('analyze')->andThrow(new Exception('Protection service error'));
 
     $this->savingsCalculator->shouldReceive('analyze')->andReturn([
         'emergency_fund' => [

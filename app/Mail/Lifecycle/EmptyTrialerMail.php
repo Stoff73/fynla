@@ -20,8 +20,7 @@ class EmptyTrialerMail extends Mailable
     public function __construct(
         public User $user,
         public ?string $magicUrl = null,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

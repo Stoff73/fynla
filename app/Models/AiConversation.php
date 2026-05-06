@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AiConversation extends Model
 {
+    use HasFactory;
     use SoftDeletes;
 
     protected $fillable = [
@@ -24,6 +26,13 @@ class AiConversation extends Model
         'message_count',
         'last_message_at',
         'metadata',
+        'persona_state',
+        'onboarding_parked_facts',
+        'summary',
+        'topics',
+        'entities_mentioned',
+        'intents_stated',
+        'summarised_at',
     ];
 
     protected $casts = [
@@ -32,6 +41,12 @@ class AiConversation extends Model
         'message_count' => 'integer',
         'last_message_at' => 'datetime',
         'metadata' => 'array',
+        'persona_state' => 'array',
+        'onboarding_parked_facts' => 'array',
+        'topics' => 'array',
+        'entities_mentioned' => 'array',
+        'intents_stated' => 'array',
+        'summarised_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -52,6 +67,22 @@ class AiConversation extends Model
     public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Filter to conversations created by the Fyn onboarding flow.
+     *
+     * The onboarding conversation's `title` legitimately changes as the
+     * conversation evolves (HasAiChat updates it from a user message), so
+     * the resume + status flows pivot on the immutable `metadata.source`
+     * flag set at creation in AiChatController::startOnboarding. Without
+     * this scope, getOnboardingStatus's prior `where('title','Onboarding')`
+     * filter returned null once the title was updated, breaking the
+     * welcome-back resume on every sign-in past the first user message.
+     */
+    public function scopeOnboarding(Builder $query): Builder
+    {
+        return $query->where('metadata->source', 'fyn_onboarding');
     }
 
     public function incrementTokenUsage(int $inputTokens, int $outputTokens): void

@@ -5,6 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Estate\Asset;
+use App\Models\Estate\Gift;
+use App\Models\Estate\IHTProfile;
+use App\Models\Estate\LastingPowerOfAttorney;
+use App\Models\Estate\Liability;
+use App\Models\Estate\Trust;
+use App\Models\Investment\InvestmentAccount;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -126,6 +134,7 @@ class User extends Authenticatable
         'onboarding_started_at' => 'datetime',
         'onboarding_completed_at' => 'datetime',
         'onboarding_asset_flags' => 'array',
+        'onboarding_fyn_context' => 'array',
         'journey_states' => 'array',
         'journey_selections' => 'array',
         'life_stage_completed_steps' => 'array',
@@ -143,6 +152,8 @@ class User extends Authenticatable
         'trial_ends_at' => 'datetime',
         // Lifecycle email e2e testing
         'is_lifecycle_test_user' => 'boolean',
+        // SaveTax campaign — household tax-strategy
+        'marriage_allowance_eligible' => 'boolean',
     ];
 
     /**
@@ -438,7 +449,7 @@ class User extends Authenticatable
      */
     public function liabilities(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Liability::class);
+        return $this->hasMany(Liability::class);
     }
 
     /**
@@ -446,7 +457,7 @@ class User extends Authenticatable
      */
     public function trusts(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Trust::class);
+        return $this->hasMany(Trust::class);
     }
 
     /**
@@ -454,7 +465,7 @@ class User extends Authenticatable
      */
     public function ihtProfile(): HasOne
     {
-        return $this->hasOne(\App\Models\Estate\IHTProfile::class);
+        return $this->hasOne(IHTProfile::class);
     }
 
     /**
@@ -462,7 +473,7 @@ class User extends Authenticatable
      */
     public function assets(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Asset::class);
+        return $this->hasMany(Asset::class);
     }
 
     /**
@@ -470,7 +481,7 @@ class User extends Authenticatable
      */
     public function gifts(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\Gift::class);
+        return $this->hasMany(Gift::class);
     }
 
     /**
@@ -478,7 +489,7 @@ class User extends Authenticatable
      */
     public function lastingPowersOfAttorney(): HasMany
     {
-        return $this->hasMany(\App\Models\Estate\LastingPowerOfAttorney::class);
+        return $this->hasMany(LastingPowerOfAttorney::class);
     }
 
     /**
@@ -518,7 +529,7 @@ class User extends Authenticatable
      */
     public function investmentAccounts(): HasMany
     {
-        return $this->hasMany(\App\Models\Investment\InvestmentAccount::class);
+        return $this->hasMany(InvestmentAccount::class);
     }
 
     /**
@@ -583,6 +594,14 @@ class User extends Authenticatable
     public function expenditureProfile(): HasOne
     {
         return $this->hasOne(ExpenditureProfile::class);
+    }
+
+    /**
+     * SaveTax campaign — household tax-strategy inputs (spouse data).
+     */
+    public function taxStrategyHouseholdInput(): HasOne
+    {
+        return $this->hasOne(TaxStrategyHouseholdInput::class);
     }
 
     /**
@@ -677,8 +696,8 @@ class User extends Authenticatable
             return null;
         }
 
-        $arrivalDate = \Carbon\Carbon::parse($this->uk_arrival_date);
-        $now = \Carbon\Carbon::now();
+        $arrivalDate = Carbon::parse($this->uk_arrival_date);
+        $now = Carbon::now();
 
         return $arrivalDate->diffInYears($now);
     }

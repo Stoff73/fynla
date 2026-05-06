@@ -8,6 +8,7 @@ use App\Models\Estate\Bequest;
 use App\Models\Estate\Will;
 use App\Models\User;
 use App\Services\TaxConfigService;
+use Illuminate\Support\Collection;
 
 /**
  * Will Analysis Service
@@ -154,9 +155,9 @@ class WillAnalysisService
      * Get all charitable bequests for a user
      *
      * @param  User  $user  The user to check
-     * @return \Illuminate\Support\Collection Collection of charitable bequests
+     * @return Collection Collection of charitable bequests
      */
-    public function getCharitableBequests(User $user): \Illuminate\Support\Collection
+    public function getCharitableBequests(User $user): Collection
     {
         $will = Will::where('user_id', $user->id)->with('bequests')->first();
 

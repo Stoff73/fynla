@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Hash;
 class LifecycleTestSeeder extends Seeder
 {
     private const PASSWORD = 'Password1!';
+
     private const EMAIL_DOMAIN = 'fynla.test';
 
     public function run(): void
@@ -73,7 +74,7 @@ class LifecycleTestSeeder extends Seeder
         $user = $this->createUser([
             'first_name' => 'TestEmpty',
             'surname' => 'User',
-            'email' => 'lifecycle-e2e-1@' . self::EMAIL_DOMAIN,
+            'email' => 'lifecycle-e2e-1@'.self::EMAIL_DOMAIN,
             'password' => Hash::make(self::PASSWORD),
             'plan' => 'free',
             'is_lifecycle_test_user' => true,
@@ -96,7 +97,7 @@ class LifecycleTestSeeder extends Seeder
         $user = $this->createUser([
             'first_name' => 'TestEngaged',
             'surname' => 'User',
-            'email' => 'lifecycle-e2e-2@' . self::EMAIL_DOMAIN,
+            'email' => 'lifecycle-e2e-2@'.self::EMAIL_DOMAIN,
             'password' => Hash::make(self::PASSWORD),
             'plan' => 'free',
             'is_lifecycle_test_user' => true,
@@ -125,7 +126,7 @@ class LifecycleTestSeeder extends Seeder
         $user = $this->createUser([
             'first_name' => 'TestCancelled',
             'surname' => 'User',
-            'email' => 'lifecycle-e2e-3@' . self::EMAIL_DOMAIN,
+            'email' => 'lifecycle-e2e-3@'.self::EMAIL_DOMAIN,
             'password' => Hash::make(self::PASSWORD),
             'plan' => 'free',
             'is_lifecycle_test_user' => true,
@@ -149,7 +150,7 @@ class LifecycleTestSeeder extends Seeder
         $user = $this->createUser([
             'first_name' => 'TestChurned',
             'surname' => 'User',
-            'email' => 'lifecycle-e2e-4@' . self::EMAIL_DOMAIN,
+            'email' => 'lifecycle-e2e-4@'.self::EMAIL_DOMAIN,
             'password' => Hash::make(self::PASSWORD),
             'plan' => 'free',
             'is_lifecycle_test_user' => true,
@@ -175,7 +176,7 @@ class LifecycleTestSeeder extends Seeder
         $user = $this->createUser([
             'first_name' => 'TestLapsed',
             'surname' => 'User',
-            'email' => 'lifecycle-e2e-5@' . self::EMAIL_DOMAIN,
+            'email' => 'lifecycle-e2e-5@'.self::EMAIL_DOMAIN,
             'password' => Hash::make(self::PASSWORD),
             'plan' => 'standard',
             'is_lifecycle_test_user' => true,

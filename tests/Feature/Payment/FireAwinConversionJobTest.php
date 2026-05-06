@@ -70,7 +70,7 @@ it('throws to trigger retry when the S2S call returns non-2xx', function () {
     $job = new FireAwinConversionJob($payment->id);
 
     expect(fn () => $job->handle(app(AwinTrackingService::class)))
-        ->toThrow(\RuntimeException::class);
+        ->toThrow(RuntimeException::class);
 
     expect($payment->fresh()->awin_fired_at)->toBeNull();
 });

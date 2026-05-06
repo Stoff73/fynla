@@ -11,7 +11,9 @@ use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
 use App\Models\Estate\Asset as EstateAsset;
 use App\Models\Estate\Liability as EstateLiability;
+use App\Models\Estate\Trust;
 use App\Models\FamilyMember;
+use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
@@ -23,6 +25,7 @@ use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Observers\DCPensionRiskObserver;
 use App\Observers\FamilyMemberRiskObserver;
+use App\Observers\GoalCacheObserver;
 use App\Observers\InvestmentAccountGoalObserver;
 use App\Observers\InvestmentAccountRiskObserver;
 use App\Observers\LifeEventMonteCarloObserver;
@@ -32,6 +35,7 @@ use App\Observers\PropertyRiskObserver;
 use App\Observers\RecommendationCacheObserver;
 use App\Observers\SavingsAccountGoalObserver;
 use App\Observers\SavingsAccountRiskObserver;
+use App\Observers\TrustObserver;
 use App\Observers\UserRiskObserver;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -59,6 +63,7 @@ class EventServiceProvider extends ServiceProvider
     protected $observers = [
         User::class => [UserRiskObserver::class],
         FamilyMember::class => [FamilyMemberRiskObserver::class, RecommendationCacheObserver::class],
+        Goal::class => [GoalCacheObserver::class],
         SavingsAccount::class => [SavingsAccountRiskObserver::class, SavingsAccountGoalObserver::class, NetWorthCacheObserver::class, RecommendationCacheObserver::class],
         InvestmentAccount::class => [InvestmentAccountRiskObserver::class, InvestmentAccountGoalObserver::class, NetWorthCacheObserver::class, RecommendationCacheObserver::class],
         DCPension::class => [DCPensionRiskObserver::class, NetWorthCacheObserver::class, RecommendationCacheObserver::class],
@@ -74,6 +79,7 @@ class EventServiceProvider extends ServiceProvider
         IncomeProtectionPolicy::class => [RecommendationCacheObserver::class],
         DisabilityPolicy::class => [RecommendationCacheObserver::class],
         SicknessIllnessPolicy::class => [RecommendationCacheObserver::class],
+        Trust::class => [TrustObserver::class],
     ];
 
     /**

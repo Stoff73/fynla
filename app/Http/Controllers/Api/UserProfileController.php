@@ -10,10 +10,13 @@ use App\Http\Requests\UpdateIncomeOccupationRequest;
 use App\Http\Requests\UpdatePersonalInfoRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\ExpenditureProfile;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\UserProfile\UserProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserProfileController extends Controller
 {
@@ -151,7 +154,7 @@ class UserProfileController extends Controller
         if ($validated['monthly_expenditure'] ?? null) {
             $monthly = $validated['monthly_expenditure'];
 
-            \App\Models\ExpenditureProfile::updateOrCreate(
+            ExpenditureProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'monthly_housing' => 0,
@@ -214,7 +217,7 @@ class UserProfileController extends Controller
 
         // Only allow access to spouse data
         if ($currentUser->spouse_id !== $userId) {
-            \Illuminate\Support\Facades\Log::warning('Unauthorized user data access attempt', [
+            Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
                 'ip' => $request->ip(),
@@ -226,7 +229,7 @@ class UserProfileController extends Controller
             ], 403);
         }
 
-        $user = \App\Models\User::findOrFail($userId);
+        $user = User::findOrFail($userId);
 
         return response()->json([
             'success' => true,
@@ -323,7 +326,7 @@ class UserProfileController extends Controller
 
         // Only allow updating spouse's expenditure
         if ($currentUser->spouse_id !== $userId) {
-            \Illuminate\Support\Facades\Log::warning('Unauthorized user data access attempt', [
+            Log::warning('Unauthorized user data access attempt', [
                 'requesting_user_id' => $currentUser->id,
                 'target_user_id' => $userId,
                 'ip' => $request->ip(),
@@ -335,7 +338,7 @@ class UserProfileController extends Controller
             ], 403);
         }
 
-        $spouse = \App\Models\User::findOrFail($userId);
+        $spouse = User::findOrFail($userId);
 
         $validated = $request->validate([
             'monthly_expenditure' => 'nullable|numeric|min:0',
@@ -382,7 +385,7 @@ class UserProfileController extends Controller
         if ($validated['monthly_expenditure'] ?? null) {
             $monthly = $validated['monthly_expenditure'];
 
-            \App\Models\ExpenditureProfile::updateOrCreate(
+            ExpenditureProfile::updateOrCreate(
                 ['user_id' => $spouse->id],
                 [
                     'monthly_housing' => 0,

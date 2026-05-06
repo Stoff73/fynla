@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\Estate\EstateDataReadinessService;
 use App\Services\Investment\Recommendation\DataReadinessService as InvestmentDataReadinessService;
@@ -218,15 +219,32 @@ class PrerequisiteGateService
     {
         $modules = ['protection', 'savings', 'retirement', 'investment', 'estate', 'goals', 'tax_optimisation'];
         $readyModules = [];
+        $blockedModules = [];
 
         foreach ($modules as $module) {
             $gate = $this->enforce($module, $user);
             if ($gate['can_proceed']) {
                 $readyModules[] = $module;
+            } else {
+                $blockedModules[] = $module;
             }
         }
 
-        if (empty($readyModules)) {
+        $canProceed = ! empty($readyModules);
+
+        event(new GateChecked(
+            gate: 'recommendation_eligibility',
+            module: 'global',
+            passed: $canProceed,
+            context: [
+                'ready_modules' => $readyModules,
+                'blocked_modules' => $blockedModules,
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
+
+        if (! $canProceed) {
             return [
                 'can_proceed' => false,
                 'missing' => ['sufficient data in at least one financial module'],

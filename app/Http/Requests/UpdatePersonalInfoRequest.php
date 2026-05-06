@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,7 +33,7 @@ class UpdatePersonalInfoRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -45,7 +46,7 @@ class UpdatePersonalInfoRequest extends FormRequest
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($this->user()->id)],
             'date_of_birth' => ['sometimes', 'nullable', 'date', 'before_or_equal:'.$minAge18, 'after:'.$maxAge105],
             'gender' => ['sometimes', 'nullable', Rule::in(['male', 'female', 'other', 'prefer_not_to_say'])],
-            'marital_status' => ['sometimes', 'nullable', Rule::in(['single', 'married', 'divorced', 'widowed'])],
+            'marital_status' => ['sometimes', 'nullable', Rule::in(['single', 'married', 'civil_partnership', 'divorced', 'widowed'])],
             'national_insurance_number' => ['sometimes', 'nullable', 'string', 'regex:/^[A-Z]{2}[0-9]{6}[A-Z]{1}$/'],
             'address_line_1' => ['sometimes', 'nullable', 'string', 'max:255'],
             'address_line_2' => ['sometimes', 'nullable', 'string', 'max:255'],

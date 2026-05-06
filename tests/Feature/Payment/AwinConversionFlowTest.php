@@ -7,6 +7,9 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Payment\RevolutService;
+use Database\Seeders\RolesPermissionsSeeder;
+use Database\Seeders\SubscriptionPlanSeeder;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
@@ -15,9 +18,9 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
-    $this->seed(\Database\Seeders\RolesPermissionsSeeder::class);
-    $this->seed(\Database\Seeders\SubscriptionPlanSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(RolesPermissionsSeeder::class);
+    $this->seed(SubscriptionPlanSeeder::class);
 
     config()->set('awin.enabled', true);
     config()->set('awin.merchant_id', '126105');

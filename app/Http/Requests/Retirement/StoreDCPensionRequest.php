@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Retirement;
 
+use App\Models\DCPension;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDCPensionRequest extends FormRequest
@@ -21,7 +22,7 @@ class StoreDCPensionRequest extends FormRequest
         // For PUT/PATCH (update), check if user owns the pension
         $pensionId = $this->route('id');
         if ($pensionId) {
-            $pension = \App\Models\DCPension::find($pensionId);
+            $pension = DCPension::find($pensionId);
             if ($pension && $pension->user_id !== $this->user()->id) {
                 return false;
             }

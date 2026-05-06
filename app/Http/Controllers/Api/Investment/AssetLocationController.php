@@ -7,10 +7,13 @@ namespace App\Http\Controllers\Api\Investment;
 use App\Constants\TaxDefaults;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\Investment\Holding;
+use App\Models\User;
 use App\Services\Investment\AssetLocation\AccountTypeRecommender;
 use App\Services\Investment\AssetLocation\AssetLocationOptimizer;
 use App\Services\Investment\AssetLocation\TaxDragCalculator;
 use App\Services\TaxConfigService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -189,7 +192,7 @@ class AssetLocationController extends Controller
 
         try {
             // SECURITY: Fetch with ownership check to prevent information disclosure
-            $holding = \App\Models\Investment\Holding::whereHas('investmentAccount', function ($query) use ($user) {
+            $holding = Holding::whereHas('investmentAccount', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })->where('id', $validated['holding_id'])->firstOrFail();
 
@@ -236,14 +239,14 @@ class AssetLocationController extends Controller
     /**
      * Build default tax profile for user
      *
-     * @param  \App\Models\User  $user  User
+     * @param  User  $user  User
      * @return array Tax profile
      */
     private function buildDefaultTaxProfile($user): array
     {
         $annualIncome = $user->gross_annual_income ?? 50000;
         $age = $user->date_of_birth
-            ? \Carbon\Carbon::parse($user->date_of_birth)->age
+            ? Carbon::parse($user->date_of_birth)->age
             : 45;
 
         $incomeTax = $this->taxConfig->getIncomeTax();

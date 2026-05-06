@@ -2,16 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Mail\ReferralInvitationEmail;
 use App\Models\Referral;
 use App\Models\User;
 use App\Services\Payment\ReferralService;
+use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 });
 
 describe('generateCode', function () {
@@ -50,7 +52,7 @@ describe('sendInvitation', function () {
         expect($referral->status)->toBe('pending');
         expect($referral->referee_email)->toBe('friend@example.com');
         expect($referral->referral_code)->toBe('FYN-ABC12');
-        Mail::assertSent(\App\Mail\ReferralInvitationEmail::class);
+        Mail::assertSent(ReferralInvitationEmail::class);
     });
 
     it('rejects if user has no active subscription', function () {
@@ -63,7 +65,7 @@ describe('sendInvitation', function () {
         $service = app(ReferralService::class);
 
         expect(fn () => $service->sendInvitation($user, 'friend@example.com'))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 
     it('rejects self-referral', function () {
@@ -76,7 +78,7 @@ describe('sendInvitation', function () {
         $service = app(ReferralService::class);
 
         expect(fn () => $service->sendInvitation($user, 'me@example.com'))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 
     it('rejects duplicate invitation to same email', function () {
@@ -94,7 +96,7 @@ describe('sendInvitation', function () {
         $service = app(ReferralService::class);
 
         expect(fn () => $service->sendInvitation($user, 'already@example.com'))
-            ->toThrow(\InvalidArgumentException::class);
+            ->toThrow(InvalidArgumentException::class);
     });
 });
 

@@ -7,6 +7,7 @@ namespace App\Services\AI;
 use GuzzleHttp\Client as GuzzleClient;
 use OpenAI;
 use OpenAI\Client;
+use OpenAI\Resources\Chat;
 
 /**
  * Singleton wrapper for the OpenAI PHP SDK configured for xAI Grok API.
@@ -88,7 +89,7 @@ class XaiClient
     /**
      * Access the chat completions API.
      */
-    public function chat(): \OpenAI\Resources\Chat
+    public function chat(): Chat
     {
         return $this->client->chat();
     }

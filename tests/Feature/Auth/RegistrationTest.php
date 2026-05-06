@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\PendingRegistration;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 
@@ -72,7 +73,7 @@ it('creates verification code during registration', function () {
     ]);
 
     // Verify the pending registration has a verification code
-    $pending = \App\Models\PendingRegistration::find($pendingId);
+    $pending = PendingRegistration::find($pendingId);
     expect($pending->verification_code)->not()->toBeNull();
     expect(strlen($pending->verification_code))->toBe(6);
 });

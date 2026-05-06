@@ -24,18 +24,22 @@ use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
+use App\Models\JointAccountLog;
+use App\Models\User;
 use App\Services\Goals\GoalStrategyService;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\ReturnCalculationService;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Investment Controller
@@ -228,7 +232,7 @@ class InvestmentController extends Controller
                     'message' => 'Monte Carlo simulation started',
                 ],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Re-throw validation exceptions to let Laravel handle them (422 response)
             throw $e;
         } catch (\Exception $e) {
@@ -333,13 +337,13 @@ class InvestmentController extends Controller
             && isset($validated['tax_relief_type'])
             && in_array($validated['tax_relief_type'], ['eis', 'seis', 'sitr'])
             && isset($validated['investment_date'])) {
-            $investmentDate = \Carbon\Carbon::parse($validated['investment_date']);
+            $investmentDate = Carbon::parse($validated['investment_date']);
             $validated['disposal_restriction_date'] = $investmentDate->addYears(3)->format('Y-m-d');
         }
 
         // Auto-calculate CSOP three-year date (grant_date + 3 years)
         if ($validated['account_type'] === 'csop' && isset($validated['grant_date'])) {
-            $grantDate = \Carbon\Carbon::parse($validated['grant_date']);
+            $grantDate = Carbon::parse($validated['grant_date']);
             $validated['csop_three_year_date'] = $grantDate->copy()->addYears(3)->format('Y-m-d');
         }
 
@@ -347,7 +351,7 @@ class InvestmentController extends Controller
         if ($validated['account_type'] === 'saye'
             && isset($validated['scheme_start_date'])
             && isset($validated['scheme_duration_months'])) {
-            $startDate = \Carbon\Carbon::parse($validated['scheme_start_date']);
+            $startDate = Carbon::parse($validated['scheme_start_date']);
             $validated['saye_maturity_date'] = $startDate->copy()->addMonths($validated['scheme_duration_months'])->format('Y-m-d');
         }
 
@@ -491,7 +495,7 @@ class InvestmentController extends Controller
         // Auto-calculate CSOP three-year date on update if grant_date changes
         $accountType = $validated['account_type'] ?? $account->account_type;
         if ($accountType === 'csop' && isset($validated['grant_date'])) {
-            $grantDate = \Carbon\Carbon::parse($validated['grant_date']);
+            $grantDate = Carbon::parse($validated['grant_date']);
             $validated['csop_three_year_date'] = $grantDate->copy()->addYears(3)->format('Y-m-d');
         }
 
@@ -500,7 +504,7 @@ class InvestmentController extends Controller
             $startDate = $validated['scheme_start_date'] ?? $account->scheme_start_date;
             $duration = $validated['scheme_duration_months'] ?? $account->scheme_duration_months;
             if ($startDate && $duration) {
-                $startDateCarbon = \Carbon\Carbon::parse($startDate);
+                $startDateCarbon = Carbon::parse($startDate);
                 $validated['saye_maturity_date'] = $startDateCarbon->copy()->addMonths($duration)->format('Y-m-d');
             }
         }
@@ -911,7 +915,7 @@ class InvestmentController extends Controller
     /**
      * Log joint investment account update for audit trail
      */
-    private function logJointAccountUpdate(\App\Models\User $user, InvestmentAccount $account, array $validated): void
+    private function logJointAccountUpdate(User $user, InvestmentAccount $account, array $validated): void
     {
         $beforeValues = [
             'current_value' => [
@@ -927,7 +931,7 @@ class InvestmentController extends Controller
             ],
         ];
 
-        \App\Models\JointAccountLog::logEdit(
+        JointAccountLog::logEdit(
             $user->id,
             $account->joint_owner_id,
             $account,

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Property;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign;
@@ -34,7 +35,7 @@ it('excludes a user with module data', function () {
         'status' => 'expired',
         'trial_ends_at' => now()->subDays(2),
     ]);
-    \App\Models\Property::factory()->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     $campaign = app(EmptyTrialerCampaign::class);
     expect($campaign->eligibleUsers()->pluck('id'))->not->toContain($user->id);

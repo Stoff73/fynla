@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\TaxConfiguration;
 use App\Services\Estate\FutureValueCalculator;
+use App\Services\TaxConfigService;
 
 beforeEach(function () {
     // Ensure active tax configuration exists
@@ -11,7 +12,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $taxConfig = app(\App\Services\TaxConfigService::class);
+    $taxConfig = app(TaxConfigService::class);
     $this->calculator = new FutureValueCalculator($taxConfig);
 });
 

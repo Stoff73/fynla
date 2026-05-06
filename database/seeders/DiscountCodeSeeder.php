@@ -46,6 +46,6 @@ class DiscountCodeSeeder extends Seeder
             );
         }
 
-        echo "Discount codes seeded: " . count($codes) . " codes.\n";
+        echo 'Discount codes seeded: '.count($codes)." codes.\n";
     }
 }

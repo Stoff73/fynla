@@ -5,8 +5,22 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Exceptions\FinancialCalculationException;
+use App\Models\CriticalIllnessPolicy;
+use App\Models\Estate\Liability;
+use App\Models\Estate\Will;
+use App\Models\FamilyMember;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
+use App\Models\Property;
+use App\Models\RetirementProfile;
+use App\Models\SavingsAccount;
+use App\Models\SpousePermission;
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
+use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -14,8 +28,8 @@ class OnboardingService
 {
     public function __construct(
         private EstateOnboardingFlow $estateFlow,
-        private \App\Services\TaxConfigService $taxConfig,
-        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation
+        private TaxConfigService $taxConfig,
+        private readonly CacheInvalidationService $cacheInvalidation
     ) {}
 
     /**
@@ -249,7 +263,7 @@ class OnboardingService
         }
 
         // Get existing family members added during onboarding
-        $existingMembers = \App\Models\FamilyMember::where('user_id', $userId)
+        $existingMembers = FamilyMember::where('user_id', $userId)
             ->whereNotNull('date_of_birth')
             ->get()
             ->keyBy('name');
@@ -274,7 +288,7 @@ class OnboardingService
                 ]);
             } else {
                 // Create new family member
-                \App\Models\FamilyMember::create([
+                FamilyMember::create([
                     'user_id' => $userId,
                     'name' => $memberData['name'],
                     'relationship' => $memberData['relationship'],
@@ -333,7 +347,7 @@ class OnboardingService
                 $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $spouseAccount->id);
 
                 // Create bidirectional spouse data sharing permissions
-                \App\Models\SpousePermission::updateOrCreate(
+                SpousePermission::updateOrCreate(
                     [
                         'user_id' => $user->id,
                         'spouse_id' => $spouseAccount->id,
@@ -344,7 +358,7 @@ class OnboardingService
                     ]
                 );
 
-                \App\Models\SpousePermission::updateOrCreate(
+                SpousePermission::updateOrCreate(
                     [
                         'user_id' => $spouseAccount->id,
                         'spouse_id' => $user->id,
@@ -356,7 +370,7 @@ class OnboardingService
                 );
 
                 // Create family member record for the current user
-                \App\Models\FamilyMember::updateOrCreate(
+                FamilyMember::updateOrCreate(
                     [
                         'user_id' => $user->id,
                         'relationship' => 'spouse',
@@ -370,7 +384,7 @@ class OnboardingService
                 );
 
                 // Create reciprocal family member record for spouse
-                \App\Models\FamilyMember::updateOrCreate(
+                FamilyMember::updateOrCreate(
                     [
                         'user_id' => $spouseAccount->id,
                         'relationship' => 'spouse',
@@ -385,7 +399,7 @@ class OnboardingService
             });
         } else {
             // Account doesn't exist yet - just create family member record
-            \App\Models\FamilyMember::updateOrCreate(
+            FamilyMember::updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'relationship' => 'spouse',
@@ -426,7 +440,7 @@ class OnboardingService
         }
 
         // Use updateOrCreate to handle both new and existing records
-        \App\Models\Estate\Will::updateOrCreate(
+        Will::updateOrCreate(
             ['user_id' => $userId],
             $willData
         );
@@ -457,9 +471,9 @@ class OnboardingService
 
         // Update or create retirement profile if retirement age is provided
         if (isset($data['target_retirement_age'])) {
-            $currentAge = $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->age : 30;
+            $currentAge = $user->date_of_birth ? Carbon::parse($user->date_of_birth)->age : 30;
 
-            \App\Models\RetirementProfile::updateOrCreate(
+            RetirementProfile::updateOrCreate(
                 ['user_id' => $userId],
                 [
                     'current_age' => $currentAge,
@@ -470,12 +484,12 @@ class OnboardingService
 
         // If user is retired, calculate their retirement age from retirement date
         if ($data['employment_status'] === 'retired' && isset($data['retirement_date']) && $user->date_of_birth) {
-            $birthDate = \Carbon\Carbon::parse($user->date_of_birth);
-            $retirementDate = \Carbon\Carbon::parse($data['retirement_date']);
+            $birthDate = Carbon::parse($user->date_of_birth);
+            $retirementDate = Carbon::parse($data['retirement_date']);
             $retirementAge = $retirementDate->diffInYears($birthDate);
-            $currentAge = \Carbon\Carbon::now()->diffInYears($birthDate);
+            $currentAge = Carbon::now()->diffInYears($birthDate);
 
-            \App\Models\RetirementProfile::updateOrCreate(
+            RetirementProfile::updateOrCreate(
                 ['user_id' => $userId],
                 [
                     'current_age' => $currentAge,
@@ -601,7 +615,7 @@ class OnboardingService
                 $monthlyRental = $propertyData['monthly_rental_income'] ?? 0;
 
                 // Create property record
-                $property = \App\Models\Property::create([
+                $property = Property::create([
                     'user_id' => $userId,
                     'property_type' => $propertyData['property_type'],
                     'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
@@ -623,7 +637,7 @@ class OnboardingService
 
                 // If property has a mortgage, create a mortgage record linked to this property
                 if (isset($propertyData['outstanding_mortgage']) && $propertyData['outstanding_mortgage'] > 0) {
-                    \App\Models\Mortgage::create([
+                    Mortgage::create([
                         'property_id' => $property->id,
                         'user_id' => $userId,
                         'lender_name' => 'Mortgage Provider', // Default name from onboarding
@@ -679,10 +693,10 @@ class OnboardingService
                 if ($ownershipType === 'joint') {
                     $ownershipPercentage = 50.00;
                     $jointOwnerId = $investmentData['joint_owner_id']
-                        ?? \App\Models\User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
+                        ?? User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
-                \App\Models\Investment\InvestmentAccount::create([
+                InvestmentAccount::create([
                     'user_id' => $userId,
                     'provider' => $investmentData['institution'],
                     'account_type' => $accountType,
@@ -712,10 +726,10 @@ class OnboardingService
                 $jointOwnerId = null;
                 if ($ownershipType === 'joint') {
                     $jointOwnerId = $cashData['joint_owner_id']
-                        ?? \App\Models\User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
+                        ?? User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
-                \App\Models\SavingsAccount::create([
+                SavingsAccount::create([
                     'user_id' => $userId,
                     'institution' => $cashData['institution'],
                     'account_type' => $cashData['account_type'],
@@ -796,7 +810,7 @@ class OnboardingService
                 : null;
 
             // Create liability record
-            \App\Models\Estate\Liability::create([
+            Liability::create([
                 'user_id' => $userId,
                 'liability_type' => $liabilityData['type'],
                 'liability_name' => $liabilityData['lender'],
@@ -851,8 +865,8 @@ class OnboardingService
         // Calculate term years if end date provided or use provided term_years
         $termYears = $data['term_years'] ?? 25; // Default
         if ($endDate) {
-            $start = \Carbon\Carbon::parse($startDate);
-            $end = \Carbon\Carbon::parse($endDate);
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
             $termYears = $start->diffInYears($end);
         }
 
@@ -880,7 +894,7 @@ class OnboardingService
             $policyData['decreasing_rate'] = $data['decreasing_rate'] ?? null;
         }
 
-        \App\Models\LifeInsurancePolicy::create($policyData);
+        LifeInsurancePolicy::create($policyData);
     }
 
     /**
@@ -894,12 +908,12 @@ class OnboardingService
         // Calculate term years if end date provided
         $termYears = 25; // Default
         if ($endDate) {
-            $start = \Carbon\Carbon::parse($startDate);
-            $end = \Carbon\Carbon::parse($endDate);
+            $start = Carbon::parse($startDate);
+            $end = Carbon::parse($endDate);
             $termYears = $start->diffInYears($end);
         }
 
-        \App\Models\CriticalIllnessPolicy::create([
+        CriticalIllnessPolicy::create([
             'user_id' => $userId,
             'policy_type' => 'standalone', // Default
             'provider' => $data['provider'],
@@ -919,7 +933,7 @@ class OnboardingService
     {
         $startDate = ! empty($data['start_date']) ? $data['start_date'] : now()->toDateString();
 
-        \App\Models\IncomeProtectionPolicy::create([
+        IncomeProtectionPolicy::create([
             'user_id' => $userId,
             'provider' => $data['provider'],
             'policy_number' => $data['policy_number'] ?? null,

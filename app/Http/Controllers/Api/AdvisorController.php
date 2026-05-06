@@ -12,8 +12,10 @@ use App\Services\Admin\UserModuleTrackingService;
 use App\Services\Advisor\AdvisorDashboardService;
 use App\Services\Advisor\AdvisorImpersonationService;
 use App\Services\Advisor\ClientActivityService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AdvisorController extends Controller
 {
@@ -89,7 +91,7 @@ class AdvisorController extends Controller
             ];
 
             return response()->json(['success' => true, 'data' => $data]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Client not found or not assigned to you.'], 404);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Failed to load client detail', 500);
@@ -108,7 +110,7 @@ class AdvisorController extends Controller
             $moduleStatus = $this->moduleTracking->getModuleStatus($client);
 
             return response()->json(['success' => true, 'data' => $moduleStatus]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Client not found or not assigned to you.'], 404);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Failed to load module status', 500);
@@ -124,9 +126,9 @@ class AdvisorController extends Controller
             $result = $this->impersonationService->enterClientProfile($advisor, $client);
 
             return response()->json(['success' => true, 'data' => $result]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Client not assigned to you.'], 403);
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        } catch (HttpException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], $e->getStatusCode());
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Failed to enter client profile', 500);

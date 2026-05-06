@@ -26,6 +26,7 @@ use App\Services\Retirement\RequiredCapitalCalculator;
 use App\Services\Retirement\RetirementIncomeService;
 use App\Services\Retirement\RetirementProjectionService;
 use App\Services\Retirement\RetirementStrategyService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -138,7 +139,7 @@ class RetirementController extends Controller
                 'message' => 'DC pension projections generated successfully',
                 'data' => $projections,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Pension not found',

@@ -4,7 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services\Documents;
 
+use App\Models\CashAccount;
+use App\Models\CriticalIllnessPolicy;
+use App\Models\DBPension;
+use App\Models\DCPension;
+use App\Models\DisabilityPolicy;
 use App\Models\Document;
+use App\Models\IncomeProtectionPolicy;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
+use App\Models\SicknessIllnessPolicy;
+use App\Models\StatePension;
 
 class DocumentTypeDetector
 {
@@ -13,29 +26,29 @@ class DocumentTypeDetector
      */
     private const TYPE_MODEL_MAP = [
         Document::TYPE_PENSION_STATEMENT => [
-            'dc_pension' => \App\Models\DCPension::class,
-            'db_pension' => \App\Models\DBPension::class,
-            'state_pension' => \App\Models\StatePension::class,
+            'dc_pension' => DCPension::class,
+            'db_pension' => DBPension::class,
+            'state_pension' => StatePension::class,
         ],
         Document::TYPE_INSURANCE_POLICY => [
-            'life_insurance' => \App\Models\LifeInsurancePolicy::class,
-            'critical_illness' => \App\Models\CriticalIllnessPolicy::class,
-            'income_protection' => \App\Models\IncomeProtectionPolicy::class,
-            'disability' => \App\Models\DisabilityPolicy::class,
-            'sickness_illness' => \App\Models\SicknessIllnessPolicy::class,
+            'life_insurance' => LifeInsurancePolicy::class,
+            'critical_illness' => CriticalIllnessPolicy::class,
+            'income_protection' => IncomeProtectionPolicy::class,
+            'disability' => DisabilityPolicy::class,
+            'sickness_illness' => SicknessIllnessPolicy::class,
         ],
         Document::TYPE_INVESTMENT_STATEMENT => [
-            'investment_account' => \App\Models\Investment\InvestmentAccount::class,
+            'investment_account' => InvestmentAccount::class,
         ],
         Document::TYPE_MORTGAGE_STATEMENT => [
-            'mortgage' => \App\Models\Mortgage::class,
+            'mortgage' => Mortgage::class,
         ],
         Document::TYPE_SAVINGS_STATEMENT => [
-            'savings_account' => \App\Models\SavingsAccount::class,
-            'cash_account' => \App\Models\CashAccount::class,
+            'savings_account' => SavingsAccount::class,
+            'cash_account' => CashAccount::class,
         ],
         Document::TYPE_PROPERTY_DOCUMENT => [
-            'property' => \App\Models\Property::class,
+            'property' => Property::class,
         ],
     ];
 

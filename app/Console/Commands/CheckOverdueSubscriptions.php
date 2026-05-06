@@ -39,7 +39,7 @@ class CheckOverdueSubscriptions extends Command
 
                 if ($revolutState === 'overdue') {
                     $subscription->update(['status' => 'past_due']);
-                    $this->warn("    Updated to past_due");
+                    $this->warn('    Updated to past_due');
                     Log::info('Overdue check: subscription marked past_due', [
                         'subscription_id' => $subscription->id,
                         'revolut_subscription_id' => $subscription->revolut_subscription_id,
@@ -50,11 +50,11 @@ class CheckOverdueSubscriptions extends Command
                         'cancelled_at' => now(),
                         'auto_renew' => false,
                     ]);
-                    $this->warn("    Updated to cancelled");
+                    $this->warn('    Updated to cancelled');
                 } elseif ($revolutState === 'active') {
                     // Revolut says active but our period expired — likely a webhook was missed
                     // Check cycles to update period dates
-                    $this->line("    Revolut says active — checking cycles...");
+                    $this->line('    Revolut says active — checking cycles...');
                     $cycles = $service->getSubscriptionCycles($subscription->revolut_subscription_id, 1);
                     $latestCycle = ($cycles['cycles'] ?? [])[0] ?? null;
 
@@ -63,7 +63,7 @@ class CheckOverdueSubscriptions extends Command
                             'current_period_start' => $latestCycle['start_date'],
                             'current_period_end' => $latestCycle['end_date'],
                         ]);
-                        $this->info("    Period updated from cycle data");
+                        $this->info('    Period updated from cycle data');
                     }
                 }
             } catch (\Throwable $e) {

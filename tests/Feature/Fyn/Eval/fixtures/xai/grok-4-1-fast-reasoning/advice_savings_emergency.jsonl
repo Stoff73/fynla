@@ -1,0 +1,226 @@
+{"__meta":{"provider":"xai","model":"grok-4-1-fast-reasoning","scenario_id":"advice_savings_emergency","recorded_at":"2026-04-27T18:39:23+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"a705ae8","conversation_id":203,"event_count":225,"duration_ms":14278}}
+{"type":"title","title":"Do I have enough emergency savings?"}
+{"type":"tool_use","tool":"get_module_analysis","status":"running"}
+{"type":"tool_use","tool":"get_module_analysis","status":"complete"}
+{"type":"tool_use","tool":"list_records","status":"running"}
+{"type":"tool_use","tool":"list_records","status":"complete"}
+{"type":"content","text":"No"}
+{"type":"content","text":","}
+{"type":"content","text":" Test"}
+{"type":"content","text":","}
+{"type":"content","text":" your"}
+{"type":"content","text":" current"}
+{"type":"content","text":" savings"}
+{"type":"content","text":" total"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"0"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" which"}
+{"type":"content","text":" provides"}
+{"type":"content","text":" **"}
+{"type":"content","text":"0"}
+{"type":"content","text":" months"}
+{"type":"content","text":"**"}
+{"type":"content","text":" of"}
+{"type":"content","text":" cover"}
+{"type":"content","text":" against"}
+{"type":"content","text":" your"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"2"}
+{"type":"content","text":","}
+{"type":"content","text":"500"}
+{"type":"content","text":"**"}
+{"type":"content","text":" monthly"}
+{"type":"content","text":" expenditure"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" that's"}
+{"type":"content","text":" a"}
+{"type":"content","text":" **"}
+{"type":"content","text":"critical"}
+{"type":"content","text":"**"}
+{"type":"content","text":" shortfall"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"The"}
+{"type":"content","text":" analysis"}
+{"type":"content","text":" shows"}
+{"type":"content","text":" you"}
+{"type":"content","text":" need"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"15"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" for"}
+{"type":"content","text":" a"}
+{"type":"content","text":" **"}
+{"type":"content","text":"6"}
+{"type":"content","text":"-month"}
+{"type":"content","text":"**"}
+{"type":"content","text":" emergency"}
+{"type":"content","text":" fund"}
+{"type":"content","text":" ("}
+{"type":"content","text":"the"}
+{"type":"content","text":" standard"}
+{"type":"content","text":" target"}
+{"type":"content","text":" for"}
+{"type":"content","text":" employed"}
+{"type":"content","text":" people"}
+{"type":"content","text":" like"}
+{"type":"content","text":" you"}
+{"type":"content","text":","}
+{"type":"content","text":" held"}
+{"type":"content","text":" in"}
+{"type":"content","text":" easy"}
+{"type":"content","text":"-access"}
+{"type":"content","text":" accounts"}
+{"type":"content","text":" for"}
+{"type":"content","text":" quick"}
+{"type":"content","text":" access"}
+{"type":"content","text":").\n\n"}
+{"type":"content","text":"With"}
+{"type":"content","text":" your"}
+{"type":"content","text":" healthy"}
+{"type":"content","text":" monthly"}
+{"type":"content","text":" surplus"}
+{"type":"content","text":" of"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"3"}
+{"type":"content","text":","}
+{"type":"content","text":"293"}
+{"type":"content","text":"."}
+{"type":"content","text":"30"}
+{"type":"content","text":"**,"}
+{"type":"content","text":" you"}
+{"type":"content","text":" could"}
+{"type":"content","text":" build"}
+{"type":"content","text":" this"}
+{"type":"content","text":" quickly"}
+{"type":"content","text":" \u2014"}
+{"type":"content","text":" it"}
+{"type":"content","text":" might"}
+{"type":"content","text":" take"}
+{"type":"content","text":" just"}
+{"type":"content","text":" "}
+{"type":"content","text":"5"}
+{"type":"content","text":" months"}
+{"type":"content","text":" if"}
+{"type":"content","text":" you"}
+{"type":"content","text":" directed"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"3"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" a"}
+{"type":"content","text":" month"}
+{"type":"content","text":" there"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"1"}
+{"type":"content","text":"."}
+{"type":"content","text":" Prior"}
+{"type":"content","text":"it"}
+{"type":"content","text":"ise"}
+{"type":"content","text":" topping"}
+{"type":"content","text":" up"}
+{"type":"content","text":" your"}
+{"type":"content","text":" existing"}
+{"type":"content","text":" easy"}
+{"type":"content","text":"-access"}
+{"type":"content","text":" savings"}
+{"type":"content","text":" account"}
+{"type":"content","text":" ("}
+{"type":"content","text":"currently"}
+{"type":"content","text":" at"}
+{"type":"content","text":" **"}
+{"type":"content","text":"4"}
+{"type":"content","text":"."}
+{"type":"content","text":"5"}
+{"type":"content","text":"%"}
+{"type":"content","text":"**"}
+{"type":"content","text":" interest"}
+{"type":"content","text":","}
+{"type":"content","text":" a"}
+{"type":"content","text":" strong"}
+{"type":"content","text":" rate"}
+{"type":"content","text":")"}
+{"type":"content","text":" to"}
+{"type":"content","text":" reach"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"15"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**.\n"}
+{"type":"content","text":"2"}
+{"type":"content","text":"."}
+{"type":"content","text":" Once"}
+{"type":"content","text":" built"}
+{"type":"content","text":","}
+{"type":"content","text":" review"}
+{"type":"content","text":" spreading"}
+{"type":"content","text":" across"}
+{"type":"content","text":" providers"}
+{"type":"content","text":" for"}
+{"type":"content","text":" Financial"}
+{"type":"content","text":" Services"}
+{"type":"content","text":" Compensation"}
+{"type":"content","text":" Scheme"}
+{"type":"content","text":" protection"}
+{"type":"content","text":" ("}
+{"type":"content","text":"up"}
+{"type":"content","text":" to"}
+{"type":"content","text":" **"}
+{"type":"content","text":"\u00a3"}
+{"type":"content","text":"85"}
+{"type":"content","text":","}
+{"type":"content","text":"000"}
+{"type":"content","text":"**"}
+{"type":"content","text":" per"}
+{"type":"content","text":" institution"}
+{"type":"content","text":").\n"}
+{"type":"content","text":"3"}
+{"type":"content","text":"."}
+{"type":"content","text":" Re"}
+{"type":"content","text":"visit"}
+{"type":"content","text":" when"}
+{"type":"content","text":" your"}
+{"type":"content","text":" income"}
+{"type":"content","text":" or"}
+{"type":"content","text":" expenditure"}
+{"type":"content","text":" changes"}
+{"type":"content","text":","}
+{"type":"content","text":" or"}
+{"type":"content","text":" annually"}
+{"type":"content","text":".\n\n"}
+{"type":"content","text":"Want"}
+{"type":"content","text":" help"}
+{"type":"content","text":" adding"}
+{"type":"content","text":" funds"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" account"}
+{"type":"content","text":" or"}
+{"type":"content","text":" exploring"}
+{"type":"content","text":" options"}
+{"type":"content","text":"?\n\n"}
+{"type":"content","text":"For"}
+{"type":"content","text":" regulated"}
+{"type":"content","text":" advice"}
+{"type":"content","text":" personal"}
+{"type":"content","text":" to"}
+{"type":"content","text":" your"}
+{"type":"content","text":" circumstances"}
+{"type":"content","text":","}
+{"type":"content","text":" speak"}
+{"type":"content","text":" to"}
+{"type":"content","text":" a"}
+{"type":"content","text":" qualified"}
+{"type":"content","text":" financial"}
+{"type":"content","text":" adviser"}
+{"type":"content","text":"."}
+{"type":"done","message_id":321,"input_tokens":14534,"output_tokens":274}

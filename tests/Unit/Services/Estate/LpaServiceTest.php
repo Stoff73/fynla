@@ -6,6 +6,7 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\LpaAttorney;
 use App\Models\TaxConfiguration;
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Estate\LpaService;
 
 beforeEach(function () {
@@ -13,7 +14,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $this->service = new LpaService(app(\App\Services\Cache\CacheInvalidationService::class));
+    $this->service = new LpaService(app(CacheInvalidationService::class));
     $this->user = User::factory()->create();
 });
 

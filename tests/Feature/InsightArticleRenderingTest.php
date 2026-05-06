@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Insights\InsightArticle;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 it('returns body_blocks unchanged through the public show endpoint', function () {
     InsightArticle::factory()->published()->create([

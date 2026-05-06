@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AiMessage extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'conversation_id',
         'role',
         'content',
+        'persona',
         'system_prompt',
         'tool_calls',
         'tool_results',

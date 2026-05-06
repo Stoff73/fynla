@@ -24,7 +24,10 @@ use App\Services\Plans\SavingsPlanService;
 use App\Services\Savings\FSCSAssessor;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\PSACalculator;
+use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -340,7 +343,7 @@ class SavingsController extends Controller
                 'success' => true,
                 'data' => $accountData,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Account not found',
@@ -404,7 +407,7 @@ class SavingsController extends Controller
                 'message' => 'Savings account updated successfully',
                 'data' => $accountData,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Account not found or unauthorized',
@@ -441,7 +444,7 @@ class SavingsController extends Controller
                 'success' => true,
                 'message' => 'Savings account deleted successfully',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Account not found or unauthorized',
@@ -485,7 +488,7 @@ class SavingsController extends Controller
                     'include_in_retirement' => $account->include_in_retirement,
                 ],
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Account not found or unauthorized',
@@ -562,7 +565,7 @@ class SavingsController extends Controller
                 'message' => 'Savings goal updated successfully',
                 'data' => $goal->fresh()->load('linkedAccount'),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Goal not found or unauthorized',
@@ -594,7 +597,7 @@ class SavingsController extends Controller
                 'success' => true,
                 'message' => 'Savings goal deleted successfully',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Goal not found or unauthorized',
@@ -648,7 +651,7 @@ class SavingsController extends Controller
 
         $jisaAllowance = 9000.0;
         try {
-            $isaAllowances = app(\App\Services\TaxConfigService::class)->getISAAllowances();
+            $isaAllowances = app(TaxConfigService::class)->getISAAllowances();
             $jisaAllowance = (float) ($isaAllowances['junior_isa']['annual_allowance'] ?? 9000);
         } catch (\Throwable $e) {
             // Use default
@@ -656,7 +659,7 @@ class SavingsController extends Controller
 
         return $children->map(function ($child) use ($accounts, $jisaAllowance) {
             $dob = $child->date_of_birth;
-            $age = $dob ? (int) \Carbon\Carbon::parse($dob)->age : null;
+            $age = $dob ? (int) Carbon::parse($dob)->age : null;
             $isUnder18 = $age !== null && $age < 18;
 
             // Find JISA accounts for this child

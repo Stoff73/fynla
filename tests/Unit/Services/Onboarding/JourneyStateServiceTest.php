@@ -15,7 +15,7 @@ describe('JourneyStateService', function () {
 
         $states = $this->service->getJourneyStates($user);
 
-        expect($states)->toHaveCount(8);
+        expect($states)->toHaveCount(9);
 
         foreach (JourneyStateService::JOURNEYS as $journey) {
             expect($states[$journey]['status'])->toBe('not_started')
@@ -78,13 +78,13 @@ describe('JourneyStateService', function () {
         $user = User::factory()->create();
 
         $this->service->startJourney($user, 'invalid_journey');
-    })->throws(\InvalidArgumentException::class);
+    })->throws(InvalidArgumentException::class);
 
     it('throws exception for invalid journey name on complete', function () {
         $user = User::factory()->create();
 
         $this->service->completeJourney($user, 'invalid_journey');
-    })->throws(\InvalidArgumentException::class);
+    })->throws(InvalidArgumentException::class);
 
     it('returns journey progress', function () {
         $user = User::factory()->create();

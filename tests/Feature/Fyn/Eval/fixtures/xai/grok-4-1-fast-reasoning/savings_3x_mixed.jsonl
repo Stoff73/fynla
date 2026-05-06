@@ -1,0 +1,19 @@
+{"__meta":{"provider":"xai","model":"grok-4-1-fast-reasoning","scenario_id":"savings_3x_mixed","recorded_at":"2026-04-27T18:42:16+01:00","fynla_branch":"feature/fyn-persona-split","fynla_sha":"a705ae8","conversation_id":217,"event_count":18,"duration_ms":16607}}
+{"type":"title","title":"I've got \u00a35,000 in a Nationwide easy access, \u00a315,000 in a HSBC cash ISA, and \u00a32,000 in a Marcus regu..."}
+{"type":"tool_use","tool":"create_savings_account","status":"running"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1596,"name":"Nationwide easy access"}
+{"type":"tool_use","tool":"create_savings_account","status":"complete"}
+{"type":"tool_use","tool":"create_savings_account","status":"running"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1597,"name":"HSBC cash ISA"}
+{"type":"tool_use","tool":"create_savings_account","status":"complete"}
+{"type":"tool_use","tool":"create_savings_account","status":"running"}
+{"type":"entity_created","entity_type":"savings_account","entity_id":1598,"name":"Marcus regular saver"}
+{"type":"tool_use","tool":"create_savings_account","status":"complete"}
+{"type":"content","text":"Got it \u2014 recording those now. Your cash and savings total **\u00a322,000** across three accounts: **Nationwide easy access (\u00a35,000)**, **HSBC Cash ISA (\u00a315,000)**, and **Marcus regular saver (\u00a32,000)**. It may be worth reviewing the interest rates on each to see if they're keeping pace with inflation."}
+{"type":"tool_use","tool":"create_savings_account","status":"running"}
+{"type":"tool_use","tool":"create_savings_account","status":"complete"}
+{"type":"done","message_id":351,"input_tokens":11503,"output_tokens":476}
+{"type":"onboarding_advance","from_step":"asset_capture","to_step":"add_more"}
+{"type":"onboarding_layout_change","mode":"wide"}
+{"type":"quick_replies","prompt_text":"Anything else you'd like to cover?","bubbles":[{"id":"savings","label":"Savings"},{"id":"investment","label":"Investment"},{"id":"retirement","label":"Retirement"},{"id":"protection","label":"Protection"},{"id":"done","label":"I'm done"}]}
+{"type":"done","message_id":352}

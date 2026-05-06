@@ -193,7 +193,7 @@ describe('partial failure handling', function () {
         // Protection throws an exception
         $this->protectionAgent->shouldReceive('analyze')
             ->with($user->id)
-            ->andThrow(new \RuntimeException('Protection service unavailable'));
+            ->andThrow(new RuntimeException('Protection service unavailable'));
 
         // All other agents work normally
         $this->savingsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeSavingsAnalysis());
@@ -220,9 +220,9 @@ describe('partial failure handling', function () {
     it('still returns data when multiple modules fail', function () {
         $user = User::factory()->create();
 
-        $this->protectionAgent->shouldReceive('analyze')->andThrow(new \RuntimeException('fail'));
-        $this->savingsAgent->shouldReceive('analyze')->andThrow(new \RuntimeException('fail'));
-        $this->investmentAgent->shouldReceive('analyze')->andThrow(new \RuntimeException('fail'));
+        $this->protectionAgent->shouldReceive('analyze')->andThrow(new RuntimeException('fail'));
+        $this->savingsAgent->shouldReceive('analyze')->andThrow(new RuntimeException('fail'));
+        $this->investmentAgent->shouldReceive('analyze')->andThrow(new RuntimeException('fail'));
         $this->retirementAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeRetirementAnalysis());
         $this->estateAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeEstateAnalysis());
         $this->goalsAgent->shouldReceive('analyze')->with($user->id)->andReturn(fakeGoalsAnalysis());
@@ -244,7 +244,7 @@ describe('partial failure handling', function () {
 
         $this->dashboardAggregator->shouldReceive('aggregateAlerts')
             ->with($user->id)
-            ->andThrow(new \RuntimeException('Alert service down'));
+            ->andThrow(new RuntimeException('Alert service down'));
 
         $result = $this->service->getAggregatedDashboard($user->id);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Constants\QuerySchemas;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -135,7 +136,7 @@ class StructuredResponseValidator
 
         // For advice responses, check for £ amounts (should have specific figures)
         if ($classification !== null
-            && \App\Constants\QuerySchemas::isAdviceType($classification['primary'] ?? '')
+            && QuerySchemas::isAdviceType($classification['primary'] ?? '')
             && ! preg_match('/£[\d,]+/', $response)) {
             $violations[] = [
                 'rule' => 'missing_amounts',
@@ -208,6 +209,13 @@ class StructuredResponseValidator
 
         // Strip exposed record IDs like "ID:123" or "[ID:456]"
         $response = preg_replace('/\[?ID[:\s]?\d{1,6}\]?/', '', $response);
+
+        // Strip leaked tool call metadata lines at the end of responses
+        // These are internal tool names the model sometimes echoes (e.g. "- get_module_analysis: module: estate")
+        $toolNames = 'get_module_analysis|get_tax_information|get_recommendations|list_records|list_goals'
+            .'|list_life_events|navigate_to_page|generate_financial_plan|create_\w+|update_\w+|delete_record'
+            .'|set_expenditure';
+        $response = preg_replace('/(\n\s*-\s*(?:'.$toolNames.'):.*)+\s*$/s', '', $response);
 
         // Strip dangerous HTML tags
         $response = preg_replace('/<\s*(script|iframe|object|embed|form|input|link|meta|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', '', $response);

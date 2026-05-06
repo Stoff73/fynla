@@ -7,10 +7,11 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\PersonalAccount;
 use App\Models\Property;
 use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
 
 beforeEach(function () {
     // Ensure TaxConfiguration exists for the PersonalAccountsService tax calculations
-    $this->seed(\Database\Seeders\TaxConfigurationSeeder::class);
+    $this->seed(TaxConfigurationSeeder::class);
 
     // Create a household
     $this->household = Household::factory()->create();

@@ -8,6 +8,7 @@ use App\Models\LetterToSpouse;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use Carbon\Carbon;
 
 class LetterToSpouseService
 {
@@ -306,7 +307,7 @@ class LetterToSpouseService
             $info .= "• {$member->name}\n";
             $info .= '  Relationship: '.ucfirst($member->relationship ?? 'dependent')."\n";
             if ($member->date_of_birth) {
-                $age = \Carbon\Carbon::parse($member->date_of_birth)->age;
+                $age = Carbon::parse($member->date_of_birth)->age;
                 $info .= "  Age: {$age}\n";
             }
             $info .= "\n";
@@ -333,7 +334,7 @@ class LetterToSpouseService
         foreach ($children as $child) {
             $info .= "• {$child->name}\n";
             if ($child->date_of_birth) {
-                $age = \Carbon\Carbon::parse($child->date_of_birth)->age;
+                $age = Carbon::parse($child->date_of_birth)->age;
                 $info .= "  Current Age: {$age}\n";
             }
             $info .= "  Education Plans: [Please add details about university plans, savings accounts, etc.]\n\n";

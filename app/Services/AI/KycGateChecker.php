@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Constants\QuerySchemas;
+use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\PrerequisiteGateService;
 
@@ -37,8 +38,10 @@ class KycGateChecker
             return $this->pass();
         }
 
-        // General/factual queries don't need KYC
-        if ($primary === QuerySchemas::GENERAL) {
+        // Factual queries (general / billing / etc.) don't need KYC — they
+        // are answered from system data (billing tools, knowledge blocks)
+        // not from the user's onboarded financial profile.
+        if (in_array($primary, QuerySchemas::FACTUAL_TYPES, true)) {
             return $this->pass();
         }
 
@@ -46,12 +49,32 @@ class KycGateChecker
 
         // Check universal requirements
         $universalMissing = $this->checkUniversalRequirements($user);
+        event(new GateChecked(
+            gate: 'kyc',
+            module: 'global',
+            passed: empty($universalMissing),
+            context: [
+                'missing' => array_map(fn ($m) => is_array($m) ? ($m['label'] ?? $m) : $m, $universalMissing),
+                'user_id' => $user->id,
+            ],
+            atMicrotime: microtime(true),
+        ));
         $allMissing = array_merge($allMissing, $universalMissing);
 
         // Check module-specific requirements for ALL classified modules
         $modules = QuerySchemas::getModulesForClassification($classification);
         foreach ($modules as $module) {
             $moduleMissing = $this->checkModuleRequirements($user, $module);
+            event(new GateChecked(
+                gate: 'kyc',
+                module: $module,
+                passed: empty($moduleMissing),
+                context: [
+                    'missing' => array_map(fn ($m) => is_array($m) ? ($m['label'] ?? $m) : $m, $moduleMissing),
+                    'user_id' => $user->id,
+                ],
+                atMicrotime: microtime(true),
+            ));
             $allMissing = array_merge($allMissing, $moduleMissing);
         }
 

@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateLifeEventRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\LifeEvent;
 use App\Services\Goals\LifeEventService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -198,7 +199,7 @@ class LifeEventController extends Controller
 
         try {
             $occurredAt = $request->input('occurred_at')
-                ? \Carbon\Carbon::parse($request->input('occurred_at'))
+                ? Carbon::parse($request->input('occurred_at'))
                 : null;
 
             $event = $this->lifeEventService->markCompleted($event, $occurredAt);

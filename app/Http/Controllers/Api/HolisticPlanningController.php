@@ -11,6 +11,7 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\RecommendationTracking;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Coordination\CashFlowCoordinator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -296,7 +297,7 @@ class HolisticPlanningController extends Controller
     /**
      * Extract demands from recommendation tracking records
      *
-     * @param  \Illuminate\Database\Eloquent\Collection  $recommendations
+     * @param  Collection  $recommendations
      */
     private function extractDemandsFromTracking($recommendations): array
     {

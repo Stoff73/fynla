@@ -34,9 +34,16 @@ import { initSessionLifecycle } from './services/sessionLifecycleService';
 import { isNativePlatform, getToken, getItem } from './services/tokenStorage';
 import { initAppLifecycle, attemptBiometricLogin } from './mobile/appLifecycle';
 import logger from './utils/logger';
+import { captureSourceFromUrl } from './utils/sourceCapture';
 
 // One-time cleanup: remove legacy auth_token from localStorage (now managed via tokenStorage)
 localStorage.removeItem('auth_token');
+
+// First-touch marketing-channel attribution. If the user landed via
+// a Fynla social post (e.g. /savetax?utm_source=linkedin) the value
+// is stashed in sessionStorage and submitted with the registration
+// form so users.signup_source can be populated server-side.
+captureSourceFromUrl();
 
 // Create Vue app instance
 const app = createApp(App);

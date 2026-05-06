@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
+use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
@@ -197,7 +198,7 @@ class IHTController extends Controller
             'charitable_giving_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        $profile = \App\Models\Estate\IHTProfile::updateOrCreate(
+        $profile = IHTProfile::updateOrCreate(
             ['user_id' => $user->id],
             $validated
         );

@@ -20,8 +20,7 @@ class EngagedTrialerCampaign implements LifecycleCampaign
         private readonly LifecycleEngine $engine,
         private readonly LifecycleSnapshotService $snapshotService,
         private readonly LifecycleDiscountCodeGenerator $discountGenerator,
-    ) {
-    }
+    ) {}
 
     public function name(): string
     {

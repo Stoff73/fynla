@@ -7,6 +7,7 @@ namespace App\Services\Audit;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class AuditService
 {
@@ -71,7 +72,7 @@ class AuditService
     /**
      * Get audit logs for a user
      */
-    public function getUserLogs(User $user, int $limit = 100): \Illuminate\Support\Collection
+    public function getUserLogs(User $user, int $limit = 100): Collection
     {
         return AuditLog::byUser($user->id)
             ->orderByDesc('created_at')
@@ -82,7 +83,7 @@ class AuditService
     /**
      * Get recent auth logs
      */
-    public function getRecentAuthLogs(int $limit = 100): \Illuminate\Support\Collection
+    public function getRecentAuthLogs(int $limit = 100): Collection
     {
         return AuditLog::byEventType(AuditLog::EVENT_AUTH)
             ->orderByDesc('created_at')
@@ -93,7 +94,7 @@ class AuditService
     /**
      * Get logs for a specific model
      */
-    public function getModelLogs(string $modelType, ?int $modelId = null, int $limit = 100): \Illuminate\Support\Collection
+    public function getModelLogs(string $modelType, ?int $modelId = null, int $limit = 100): Collection
     {
         return AuditLog::byModel($modelType, $modelId)
             ->orderByDesc('created_at')
@@ -104,7 +105,7 @@ class AuditService
     /**
      * Get failed login attempts
      */
-    public function getFailedLoginAttempts(int $hours = 24, int $limit = 100): \Illuminate\Support\Collection
+    public function getFailedLoginAttempts(int $hours = 24, int $limit = 100): Collection
     {
         return AuditLog::byEventType(AuditLog::EVENT_AUTH)
             ->where('action', AuditLog::ACTION_LOGIN_FAILED)

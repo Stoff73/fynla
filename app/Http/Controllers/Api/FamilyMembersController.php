@@ -12,12 +12,15 @@ use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Models\FamilyMember;
 use App\Models\SpousePermission;
+use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class FamilyMembersController extends Controller
 {
@@ -64,7 +67,7 @@ class FamilyMembersController extends Controller
 
             // If this is a spouse and user has a spouse_id, get the spouse's email
             if ($member->relationship === 'spouse' && $user->spouse_id) {
-                $spouse = \App\Models\User::find($user->spouse_id);
+                $spouse = User::find($user->spouse_id);
                 $memberArray['email'] = $spouse ? $spouse->email : null;
             }
 
@@ -190,7 +193,7 @@ class FamilyMembersController extends Controller
         ]);
 
         // Check if spouse already has an account
-        $spouseUser = \App\Models\User::where('email', $spouseEmail)->first();
+        $spouseUser = User::where('email', $spouseEmail)->first();
 
         Log::info('Spouse user lookup result', [
             'found' => $spouseUser ? 'yes' : 'no',
@@ -270,7 +273,7 @@ class FamilyMembersController extends Controller
             // Link both users inside a transaction with pessimistic locking
             $familyMember = DB::transaction(function () use ($currentUser, $spouseUser, $data) {
                 // Lock spouse row to prevent concurrent linking by another user
-                $spouseUser = \App\Models\User::lockForUpdate()->find($spouseUser->id);
+                $spouseUser = User::lockForUpdate()->find($spouseUser->id);
                 if ($spouseUser->spouse_id && $spouseUser->spouse_id !== $currentUser->id) {
                     return null;
                 }
@@ -390,7 +393,7 @@ class FamilyMembersController extends Controller
         }
 
         // Spouse doesn't exist - create new user account inside a transaction
-        $temporaryPassword = \Illuminate\Support\Str::random(16);
+        $temporaryPassword = Str::random(16);
 
         [$familyMember, $spouseUser] = DB::transaction(function () use ($currentUser, $data, $spouseEmail, $temporaryPassword) {
             // Construct full name from name parts
@@ -398,12 +401,12 @@ class FamilyMembersController extends Controller
                 (isset($data['middle_name']) && $data['middle_name'] ? $data['middle_name'].' ' : '').
                 ($data['last_name'] ?? ''));
 
-            $spouseUser = \App\Models\User::create([
+            $spouseUser = User::create([
                 'first_name' => $data['first_name'] ?? '',
                 'surname' => $data['last_name'] ?? '',
                 'name' => $fullName,
                 'email' => $spouseEmail,
-                'password' => \Illuminate\Support\Facades\Hash::make($temporaryPassword),
+                'password' => Hash::make($temporaryPassword),
                 'must_change_password' => true,
                 'date_of_birth' => $data['date_of_birth'] ?? null,
                 'gender' => $data['gender'] ?? null,
@@ -532,7 +535,7 @@ class FamilyMembersController extends Controller
 
         // If this is a spouse and user has a spouse_id, get the spouse's email
         if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouse = \App\Models\User::find($user->spouse_id);
+            $spouse = User::find($user->spouse_id);
             $memberArray['email'] = $spouse ? $spouse->email : null;
         }
 
@@ -570,7 +573,7 @@ class FamilyMembersController extends Controller
 
         // If updating a spouse, sync relevant fields to the spouse user account
         if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouseUser = \App\Models\User::find($user->spouse_id);
+            $spouseUser = User::find($user->spouse_id);
             if ($spouseUser) {
                 $spouseUpdates = [];
 
@@ -630,7 +633,7 @@ class FamilyMembersController extends Controller
 
         // If deleting a spouse, clear the spouse linkage and delete reciprocal record
         if ($familyMember->relationship === 'spouse' && $user->spouse_id) {
-            $spouseUser = \App\Models\User::find($user->spouse_id);
+            $spouseUser = User::find($user->spouse_id);
 
             if ($spouseUser) {
                 // Delete the reciprocal family_member record on spouse's account

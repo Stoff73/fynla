@@ -4,7 +4,48 @@ declare(strict_types=1);
 
 namespace App\Http;
 
+use App\Http\Middleware\AdvisorImpersonationMiddleware;
+use App\Http\Middleware\AdvisorMiddleware;
+use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CaptureAwcCookie;
+use App\Http\Middleware\CheckFeatureAccess;
+use App\Http\Middleware\CheckSubscription;
+use App\Http\Middleware\EncryptCookies;
+use App\Http\Middleware\EnsureMFAVerified;
+use App\Http\Middleware\ETagResponse;
+use App\Http\Middleware\HasPermission;
+use App\Http\Middleware\HasRole;
+use App\Http\Middleware\IdempotencyKeyMiddleware;
+use App\Http\Middleware\IdentifyMobileClient;
+use App\Http\Middleware\InsightsSeoMetaInjector;
+use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\PreventRequestsDuringMaintenance;
+use App\Http\Middleware\PreviewWriteInterceptor;
+use App\Http\Middleware\RedirectIfAuthenticated;
+use App\Http\Middleware\SanitizeInput;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\TrimStrings;
+use App\Http\Middleware\TrustHosts;
+use App\Http\Middleware\TrustProxies;
+use App\Http\Middleware\ValidateSignature;
+use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Auth\Middleware\AuthenticateWithBasicAuth;
+use Illuminate\Auth\Middleware\Authorize;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
+use Illuminate\Auth\Middleware\RequirePassword;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+use Illuminate\Foundation\Http\Middleware\ValidatePostSize;
+use Illuminate\Http\Middleware\HandleCors;
+use Illuminate\Http\Middleware\SetCacheHeaders;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 class Kernel extends HttpKernel
 {
@@ -16,15 +57,15 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
-        \App\Http\Middleware\TrustHosts::class,
-        \App\Http\Middleware\TrustProxies::class,
-        \Illuminate\Http\Middleware\HandleCors::class,
-        \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
-        \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
-        \App\Http\Middleware\TrimStrings::class,
-        \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        \App\Http\Middleware\SecurityHeaders::class,
-        \App\Http\Middleware\CaptureAwcCookie::class,
+        TrustHosts::class,
+        TrustProxies::class,
+        HandleCors::class,
+        PreventRequestsDuringMaintenance::class,
+        ValidatePostSize::class,
+        TrimStrings::class,
+        ConvertEmptyStringsToNull::class,
+        SecurityHeaders::class,
+        CaptureAwcCookie::class,
     ];
 
     /**
@@ -34,22 +75,22 @@ class Kernel extends HttpKernel
      */
     protected $middlewareGroups = [
         'web' => [
-            \App\Http\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \App\Http\Middleware\VerifyCsrfToken::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            VerifyCsrfToken::class,
+            SubstituteBindings::class,
         ],
 
         'api' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\SanitizeInput::class, // SECURITY: Sanitize user input to prevent XSS
-            \App\Http\Middleware\AdvisorImpersonationMiddleware::class, // Swap auth user when advisor is impersonating
-            \App\Http\Middleware\PreviewWriteInterceptor::class, // Intercept writes for preview users
-            \App\Http\Middleware\CheckSubscription::class, // Feature-flagged subscription enforcement
+            EnsureFrontendRequestsAreStateful::class,
+            ThrottleRequests::class.':api',
+            SubstituteBindings::class,
+            SanitizeInput::class, // SECURITY: Sanitize user input to prevent XSS
+            AdvisorImpersonationMiddleware::class, // Swap auth user when advisor is impersonating
+            PreviewWriteInterceptor::class, // Intercept writes for preview users
+            CheckSubscription::class, // Feature-flagged subscription enforcement
         ],
     ];
 
@@ -61,27 +102,27 @@ class Kernel extends HttpKernel
      * @var array<string, class-string|string>
      */
     protected $middlewareAliases = [
-        'auth' => \App\Http\Middleware\Authenticate::class,
-        'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-        'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
-        'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
-        'can' => \Illuminate\Auth\Middleware\Authorize::class,
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
-        'precognitive' => \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
-        'signed' => \App\Http\Middleware\ValidateSignature::class,
-        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin' => \App\Http\Middleware\IsAdmin::class,
-        'mfa.verified' => \App\Http\Middleware\EnsureMFAVerified::class,
-        'role' => \App\Http\Middleware\HasRole::class,
-        'permission' => \App\Http\Middleware\HasPermission::class,
-        'identify.mobile' => \App\Http\Middleware\IdentifyMobileClient::class,
-        'etag' => \App\Http\Middleware\ETagResponse::class,
-        'agent.token' => \App\Http\Middleware\AgentTokenAuth::class,
-        'advisor' => \App\Http\Middleware\AdvisorMiddleware::class,
-        'advisor.impersonate' => \App\Http\Middleware\AdvisorImpersonationMiddleware::class,
-        'feature' => \App\Http\Middleware\CheckFeatureAccess::class,
-        'insights.seo' => \App\Http\Middleware\InsightsSeoMetaInjector::class,
+        'auth' => Authenticate::class,
+        'auth.basic' => AuthenticateWithBasicAuth::class,
+        'auth.session' => AuthenticateSession::class,
+        'cache.headers' => SetCacheHeaders::class,
+        'can' => Authorize::class,
+        'guest' => RedirectIfAuthenticated::class,
+        'password.confirm' => RequirePassword::class,
+        'precognitive' => HandlePrecognitiveRequests::class,
+        'signed' => ValidateSignature::class,
+        'throttle' => ThrottleRequests::class,
+        'verified' => EnsureEmailIsVerified::class,
+        'admin' => IsAdmin::class,
+        'mfa.verified' => EnsureMFAVerified::class,
+        'role' => HasRole::class,
+        'permission' => HasPermission::class,
+        'identify.mobile' => IdentifyMobileClient::class,
+        'etag' => ETagResponse::class,
+        'advisor' => AdvisorMiddleware::class,
+        'advisor.impersonate' => AdvisorImpersonationMiddleware::class,
+        'feature' => CheckFeatureAccess::class,
+        'insights.seo' => InsightsSeoMetaInjector::class,
+        'idempotent' => IdempotencyKeyMiddleware::class,
     ];
 }

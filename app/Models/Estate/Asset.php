@@ -32,7 +32,7 @@ class Asset extends Model
     ];
 
     protected $casts = [
-        'current_value' => 'decimal:2',
+        'current_value' => 'float',
         'is_iht_exempt' => 'boolean',
         'is_giftable' => 'boolean',
         'is_main_residence' => 'boolean',

@@ -23,6 +23,7 @@ const FeaturesPage = () => import('@/views/Public/FeaturesPage.vue');
 const FaqPage = () => import('@/views/Public/FaqPage.vue');
 const QuickStartPage = () => import('@/views/Public/QuickStartPage.vue');
 const CampaignPage = () => import('@/views/Public/CampaignPage.vue');
+const SaveTaxCampaignPage = () => import('@/views/Public/SaveTaxCampaignPage.vue');
 const NotFoundPage = () => import('@/views/Public/NotFoundPage.vue');
 const StartingOutPage = () => import('@/views/Public/stages/StartingOutPage.vue');
 const BuildingFoundationsPage = () => import('@/views/Public/stages/BuildingFoundationsPage.vue');
@@ -44,6 +45,8 @@ const StartingOutGuidePage = () => import('@/views/Public/learn/guide/StartingOu
 const GlossaryPage = () => import('@/views/Public/learn/GlossaryPage.vue');
 // Insights
 const InsightsHubPage = () => import('@/views/Public/insights/InsightsHubPage.vue');
+const NewsHubPage = () => import('@/views/Public/NewsHubPage.vue');
+const NewsArticlePage = () => import('@/views/Public/NewsArticlePage.vue');
 const PensionIhtChanges2027Page = () => import('@/views/Public/insights/PensionIhtChanges2027Page.vue');
 const IsaAllowance202526Page = () => import('@/views/Public/insights/IsaAllowance202526Page.vue');
 const InheritanceTaxExplainedPage = () => import('@/views/Public/insights/InheritanceTaxExplainedPage.vue');
@@ -125,6 +128,7 @@ const AdminPanel = () => import('@/views/Admin/AdminPanel.vue');
 const InsightsArticleListPage = () => import('@/views/Admin/Insights/ArticleListPage.vue');
 const InsightsArticleEditor = () => import('@/views/Admin/Insights/ArticleEditor.vue');
 const InsightsTemplateListPage = () => import('@/views/Admin/Insights/TemplateListPage.vue');
+const NewsSubscribersPage = () => import('@/views/Admin/NewsSubscribersPage.vue');
 const Version = () => import('@/views/Version.vue');
 const Help = () => import('@/views/Help.vue');
 const DebugEnv = () => import('@/views/DebugEnv.vue');
@@ -226,7 +230,7 @@ const routes = [
   {
     path: '/savetax',
     name: 'CampaignSaveTax',
-    component: CampaignPage,
+    component: SaveTaxCampaignPage,
     meta: { public: true },
   },
   {
@@ -367,6 +371,9 @@ const routes = [
   ...(import.meta.env.VITE_INSIGHTS_CMS_ENABLED === 'true'
     ? [{ path: '/insights/:slug', name: 'InsightArticle', component: InsightArticlePage, meta: { public: true } }]
     : []),
+  // News (DB-backed announcements / product updates / press)
+  { path: '/news', name: 'NewsHub', component: NewsHubPage, meta: { public: true } },
+  { path: '/news/:slug', name: 'NewsArticle', component: NewsArticlePage, meta: { public: true } },
   // Learn — Concept Explainers
   { path: '/learn/what-is-salary-sacrifice', name: 'LearnSalarySacrifice', component: WhatIsSalarySacrificePage, meta: { public: true } },
   { path: '/learn/what-is-an-lpa', name: 'LearnLPA', component: WhatIsAnLpaPage, meta: { public: true } },
@@ -546,6 +553,16 @@ const routes = [
         { label: 'Planning Assumptions', path: '/settings/assumptions' },
       ],
     },
+  },
+  {
+    // S0.5.u (BS-16): canonical billing entry point. SubscriptionManagement
+    // lives as a tab inside /profile; this route redirects so chat-emitted
+    // navigation events ('/settings/subscription' from the
+    // get_subscription_status tool result) land on the right tab.
+    path: '/settings/subscription',
+    name: 'SubscriptionSettings',
+    redirect: () => ({ path: '/profile', query: { section: 'subscription' } }),
+    meta: { requiresAuth: true },
   },
   {
     path: '/valuable-info',
@@ -908,6 +925,18 @@ const routes = [
     },
   },
   {
+    path: '/tax-strategy',
+    name: 'TaxStrategy',
+    component: () => import('@/views/TaxStrategy/TaxStrategyDashboard.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Tax Strategy', path: '/tax-strategy' },
+      ],
+    },
+  },
+  {
     path: '/actions/:planType/:actionId',
     name: 'ActionDetail',
     component: () => import('@/views/Actions/ActionDetailView.vue'),
@@ -1095,6 +1124,24 @@ const routes = [
     path: '/admin/insights/:id/edit',
     name: 'AdminInsightEdit',
     component: InsightsArticleEditor,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/documents',
+    name: 'admin.documents.index',
+    component: () => import('@/views/Admin/Documents/DocumentListPage.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/documents/:id/edit',
+    name: 'admin.documents.edit',
+    component: () => import('@/views/Admin/Documents/DocumentEditor.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/news-subscribers',
+    name: 'AdminNewsSubscribers',
+    component: NewsSubscribersPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

@@ -27,8 +27,7 @@ class LifecycleActionController extends Controller
 {
     public function __construct(
         private readonly TrialService $trialService,
-    ) {
-    }
+    ) {}
 
     public function restartTrial(Request $request): RedirectResponse
     {
@@ -46,7 +45,7 @@ class LifecycleActionController extends Controller
             return redirect('/dashboard');
         }
 
-        return redirect('/login?redirect=' . rawurlencode('/dashboard'));
+        return redirect('/login?redirect='.rawurlencode('/dashboard'));
     }
 
     public function applyDiscount(Request $request): RedirectResponse
@@ -61,13 +60,13 @@ class LifecycleActionController extends Controller
         // AppLayout's trial-expired modal picks up the code and threads it
         // through PlanSelectionModal → handlePlanSelect → /checkout?...&discount=CODE.
         // CheckoutPage's existing prefilledDiscountCode logic then auto-applies.
-        $target = '/dashboard?lifecycle_discount=' . rawurlencode($code);
+        $target = '/dashboard?lifecycle_discount='.rawurlencode($code);
 
         if (auth()->check() && auth()->id() === $userId) {
             return redirect($target);
         }
 
-        return redirect('/login?redirect=' . rawurlencode($target));
+        return redirect('/login?redirect='.rawurlencode($target));
     }
 
     public function feedback(Request $request): View
@@ -135,7 +134,7 @@ class LifecycleActionController extends Controller
             return redirect($profilePath);
         }
 
-        return redirect('/login?redirect=' . rawurlencode($profilePath));
+        return redirect('/login?redirect='.rawurlencode($profilePath));
     }
 
     private function markClicked(int $userId, string $campaign, string $action): void

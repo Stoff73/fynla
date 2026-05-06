@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use App\Models\TaxConfiguration;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,35 +17,51 @@ declare(strict_types=1);
 */
 
 uses(
-    Tests\TestCase::class,
-    Illuminate\Foundation\Testing\RefreshDatabase::class,
+    TestCase::class,
+    RefreshDatabase::class,
 )->in('Feature');
 
 uses(
-    Tests\TestCase::class,
-    Illuminate\Foundation\Testing\RefreshDatabase::class,
+    TestCase::class,
+    RefreshDatabase::class,
 )->in('Unit/Services', 'Unit/Observers');
 
 // Agent tests that need database access (RefreshDatabase)
 uses(
-    Tests\TestCase::class,
-    Illuminate\Foundation\Testing\RefreshDatabase::class,
+    TestCase::class,
+    RefreshDatabase::class,
 )->in('Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php');
 
 // BaseAgentTest is pure unit tests, no database needed
-uses(Tests\TestCase::class)->in('Unit/Agents/BaseAgentTest.php');
+uses(TestCase::class)->in('Unit/Agents/BaseAgentTest.php');
+
+// Mail render tests need Laravel app (config/url helpers) but no DB — factory()->make() only.
+uses(TestCase::class)->in('Unit/Mail');
 
 uses(
-    Tests\TestCase::class,
-    Illuminate\Foundation\Testing\RefreshDatabase::class,
+    TestCase::class,
+    RefreshDatabase::class,
 )->in('Integration');
+
+// Sprint 0 browser harness — every BS-NN scenario binds to the Browser
+// TestCase so the markPendingInteractiveRun() helper is in scope. No
+// RefreshDatabase: scenarios run against a seeded local DB driven by
+// `./dev.sh`, not the test schema.
+uses(Tests\Browser\TestCase::class)->in('Browser/scenarios');
+
+// Sprint 1 eval harness arch tests need `config()` to read fyn_eval.php.
+// No DB needed — these are pure config integrity checks.
+uses(TestCase::class)->in(
+    'Architecture/EvalScenarioCountTest.php',
+    'Architecture/EvalFloorIntegrityTest.php',
+);
 
 // Global setup for all tests that need TaxConfiguration
 beforeEach(function () {
     // Ensure active tax configuration exists for tests
-    if (class_exists(\App\Models\TaxConfiguration::class)) {
-        if (! \App\Models\TaxConfiguration::where('is_active', true)->exists()) {
-            \App\Models\TaxConfiguration::factory()->create(['is_active' => true]);
+    if (class_exists(TaxConfiguration::class)) {
+        if (! TaxConfiguration::where('is_active', true)->exists()) {
+            TaxConfiguration::factory()->create(['is_active' => true]);
         }
     }
 })->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php', 'Integration');

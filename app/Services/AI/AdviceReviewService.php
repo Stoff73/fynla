@@ -11,7 +11,7 @@ use App\Models\User;
  * Detects when user data has changed since the last advice was given,
  * and identifies modules due for annual review.
  *
- * Used by SystemPromptBuilder to inject <review_due> prompts.
+ * Used by AdvicePromptBuilder to inject <review_due> prompts.
  */
 class AdviceReviewService
 {

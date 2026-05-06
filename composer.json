@@ -14,13 +14,16 @@
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
+        "mews/purifier": "^3.4",
         "openai-php/client": "^0.19.1",
         "phpoffice/phpspreadsheet": "^5.3",
         "pragmarx/google2fa-laravel": "^2.3",
-        "smalot/pdfparser": "^2.12"
+        "smalot/pdfparser": "^2.12",
+        "symfony/yaml": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
+        "justinrainbow/json-schema": "^6.8",
         "laravel/pint": "^1.0",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",

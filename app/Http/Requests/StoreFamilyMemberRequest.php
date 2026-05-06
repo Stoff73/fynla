@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -53,7 +54,7 @@ class StoreFamilyMemberRequest extends FormRequest
             }
 
             try {
-                $dob = \Carbon\Carbon::parse($this->date_of_birth);
+                $dob = Carbon::parse($this->date_of_birth);
             } catch (\Exception $e) {
                 $validator->errors()->add('date_of_birth', 'Please provide a valid date.');
 

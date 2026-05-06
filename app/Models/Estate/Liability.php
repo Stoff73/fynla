@@ -36,9 +36,9 @@ class Liability extends Model
     ];
 
     protected $casts = [
-        'current_balance' => 'decimal:2',
-        'monthly_payment' => 'decimal:2',
-        'interest_rate' => 'decimal:2',
+        'current_balance' => 'float',
+        'monthly_payment' => 'float',
+        'interest_rate' => 'float',
         'maturity_date' => 'date',
         'is_priority_debt' => 'boolean',
         'fixed_until' => 'date',
@@ -65,7 +65,7 @@ class Liability extends Model
      */
     public function trust(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Estate\Trust::class);
+        return $this->belongsTo(Trust::class);
     }
 
     /**

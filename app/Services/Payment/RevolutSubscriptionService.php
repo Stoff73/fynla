@@ -104,7 +104,7 @@ class RevolutSubscriptionService
 
         $body = [
             'name' => "Fynla {$plan->name} Plan",
-            'trial_duration' => 'P' . ($plan->trial_days ?? 7) . 'D',
+            'trial_duration' => 'P'.($plan->trial_days ?? 7).'D',
             'variations' => [
                 [
                     'phases' => [

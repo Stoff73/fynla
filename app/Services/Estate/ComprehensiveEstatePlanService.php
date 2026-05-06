@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\ActuarialLifeTable;
+use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
+use App\Models\Estate\Liability;
 use App\Models\FamilyMember;
+use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 use App\Traits\CalculatesOwnershipShare;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -166,7 +170,7 @@ class ComprehensiveEstatePlanService
     private function convertToAssetModels(Collection $aggregatedAssets, User $user): Collection
     {
         return $aggregatedAssets->map(function ($asset) use ($user) {
-            return new \App\Models\Estate\Asset([
+            return new Asset([
                 'user_id' => $user->id,
                 'asset_type' => $asset->asset_type,
                 'asset_name' => $asset->asset_name,
@@ -185,7 +189,7 @@ class ComprehensiveEstatePlanService
             return 20;
         }
 
-        $age = $user->age ?? \Carbon\Carbon::parse($user->date_of_birth)->age;
+        $age = $user->age ?? Carbon::parse($user->date_of_birth)->age;
         $gender = $user->gender ?? 'male';
 
         // Query actuarial life tables (same approach as IHTCalculationService)
@@ -247,7 +251,7 @@ class ComprehensiveEstatePlanService
         // Calculate age from date of birth
         $age = 'Not provided';
         if ($user->date_of_birth) {
-            $age = \Carbon\Carbon::parse($user->date_of_birth)->age;
+            $age = Carbon::parse($user->date_of_birth)->age;
         }
 
         // Get children and step-children from user's family members
@@ -307,7 +311,7 @@ class ComprehensiveEstatePlanService
         return [
             'name' => $user->name,
             'email' => $user->email,
-            'date_of_birth' => $user->date_of_birth ? \Carbon\Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not provided',
+            'date_of_birth' => $user->date_of_birth ? Carbon::parse($user->date_of_birth)->format('d/m/Y') : 'Not provided',
             'age' => $age,
             'gender' => ucfirst($user->gender ?? 'Not specified'),
             'marital_status' => ucfirst(str_replace('_', ' ', $user->marital_status ?? 'single')),
@@ -522,7 +526,7 @@ class ComprehensiveEstatePlanService
         $liabilities = [];
 
         // Get mortgages where user is owner OR joint_owner, with property addresses
-        $mortgages = \App\Models\Mortgage::forUserOrJoint($userId)
+        $mortgages = Mortgage::forUserOrJoint($userId)
             ->with('property:id,address_line_1')
             ->get();
 
@@ -543,7 +547,7 @@ class ComprehensiveEstatePlanService
         }
 
         // Get other liabilities where user is owner OR joint_owner
-        $otherLiabilities = \App\Models\Estate\Liability::forUserOrJoint($userId)
+        $otherLiabilities = Liability::forUserOrJoint($userId)
             ->get();
 
         foreach ($otherLiabilities as $liability) {

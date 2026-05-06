@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\SavingsAccount;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\SavingsAccount>
+ * @extends Factory<SavingsAccount>
  */
 class SavingsAccountFactory extends Factory
 {
@@ -19,7 +21,7 @@ class SavingsAccountFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'account_type' => fake()->randomElement(['easy_access', 'notice', 'fixed_rate']),
             'institution' => fake()->company(),
             'account_number' => fake()->numerify('########'),

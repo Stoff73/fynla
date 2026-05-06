@@ -84,7 +84,7 @@ class Invoice extends Model
                 ->where('id', 1)
                 ->update(['next_value' => $nextValue + 1]);
 
-            return 'FYN-INV-' . str_pad((string) $nextValue, 6, '0', STR_PAD_LEFT);
+            return 'FYN-INV-'.str_pad((string) $nextValue, 6, '0', STR_PAD_LEFT);
         });
     }
 

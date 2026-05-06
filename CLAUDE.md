@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 696 |
-| PHP Services | 248 |
-| Controllers | 100 |
-| Models | 99 |
-| Vuex Stores | 33 |
+| Vue Components | 726 |
+| PHP Services | 297 |
+| Controllers | 109 |
+| Models | 110 |
+| Vuex Stores | 35 |
 | Agents | 9 |
 
 **Production**: https://fynla.org | **Version**: v1.0
@@ -93,6 +93,13 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 **Database** (`database/`): See `database/CLAUDE.md` for detailed conventions.
 
 **Tests** (`tests/`): See `tests/CLAUDE.md` for detailed conventions.
+
+**Fyn AI — Two-Fyn architecture (canonical contract).** Source of truth: `April/April24Updates/spec/00-canonical.md`. Fyn has two states behind one chat surface — the user never sees or feels the switch.
+- **Onboarding Fyn** (`app/Services/Onboarding/OnboardingChatDirector`) is the **only** state that enters or edits information. It runs the bubble-driven onboarding flow and the post-onboarding `handleInlineCapture` entry point. Both write to the database.
+- **Advice Fyn** (`app/Services/AI/AdviceFyn`) is **read-only**. It answers user questions using the recommendation engine, risk module, and every other engine/module. It exposes **zero** `create_*` / `update_*` / `delete_*` / `set_expenditure` / `capture_*` tools — every persistent record-creation tool (including `create_what_if_scenario`, which persists a `WhatIfScenario` row) is in `AdviceFyn::WRITE_TOOLS` and stripped from the catalogue.
+- **Write intents in advice mode** flow through `delegate_to_capture` (LLM tool call) → `AdviceFyn::wrapStream` → `OnboardingChatDirector::handleInlineCapture` → the same direct-write handlers in `CoordinatingAgent`. The synthetic `handoff` SSE event is consumed internally and never reaches the frontend (INV-2.4.1).
+- **No `FynPersonaOrchestrator`**, no invoker, no registry, no `DataCapturePromptBuilder`. The dispatch is one if-statement in `AiChatController::sendMessage` keyed on `users.onboarding_completed`.
+- **No frontend persona signals.** No `persona_state_change` SSE event. No "capturing" pill. Input placeholder invariant. Any UI that distinguishes the two states violates the contract.
 
 ## Working Style
 
@@ -184,6 +191,81 @@ The design system is the single source of truth for all visual decisions. Never 
 ### 13. No Scores in User-Facing UI
 Scores (numerical ratings like "75/100", adequacy scores, diversification scores, portfolio health scores) must never appear in user-facing UI. This includes score badges, score metric cards, score-formatted values, and score-based narrative text. Scores oversimplify complex financial positions and can mislead users. Instead, use descriptive text, specific metrics (currency values, percentages, time periods), and actionable guidance.
 
+### 14. All Pages Must Wrap in AppLayout
+Every routed Vue view MUST wrap its template in `<AppLayout>` (authenticated pages) or `<PublicLayout>` (public pages) — never ship a chrome-less page. Mobile routes under `/m/*` use `<MobileLayout>`. Without the layout the user has no top nav, no sidebar, no footer, and no way to navigate back — a hard dead-end.
+
+Pattern (see `views/Admin/AdminPanel.vue`):
+```vue
+<template>
+  <AppLayout>
+    <!-- page content -->
+  </AppLayout>
+</template>
+<script>
+import AppLayout from '@/layouts/AppLayout.vue';
+export default { components: { AppLayout, ... } };
+</script>
+```
+
+The only exception is when the user explicitly says "standalone" / "chrome-less" / "no layout". When refactoring an existing view onto a new route, confirm the destination view is layout-wrapped before claiming done.
+
+### 15. LOOP UNTIL CORRECT — NON-NEGOTIABLE
+
+**FOR ALL TESTS AND WHEN CSJ POINTS AT A SPECIFIC PLAN AND SAYS "MAKE THIS WORK", I LOOP UNTIL IT IS GREEN PER THAT PLAN. I DO NOT STOP. I DO NOT HAND BACK. I DO NOT DECLARE PARTIAL SUCCESS. I DO NOT WRITE APOLOGIES INSTEAD OF FIXES.**
+
+**The loop is:**
+1. Use /sytemic-debugging skill to Diagnose the failure with file:line evidence (DB, audit, network, code paths) — never speculate.
+2. Fix the root cause in code.
+3. Re-verify in the browser end-to-end via Playwright (click, fill, submit, observe DB + SSE + UI).
+4. If still RED, return to step 1 with the new evidence. **Repeat until GREEN exactly as the plan defines GREEN.**
+
+**Acceptance is defined by the plan, not by me.** For BS-NN scenarios in `April/April24Updates/plan/`, the docblock in `tests/Browser/scenarios/BS-NN-*.php` is the contract — every assertion must hold (DB row, SSE shape, audit chain, UI card, no fabricated success).
+
+**The only acceptable exits from the loop are:**
+- (a) The test is GREEN per the plan's full acceptance criteria, verified in the live browser.
+- (b) I hit a question that genuinely requires a CSJ decision the plan does not answer. Before exiting under (b) I must have exhausted the plan, the spec, the canonical contract, and the relevant memory files. Asking "what should I try next?" is **not** an acceptable exit — that's me handing the work back.
+
+**Forbidden inside the loop:**
+- Apologies without an attached fix attempt.
+- Marking a task complete on partial evidence.
+- Declaring something "good enough" because the plan didn't anticipate the bug — bugs uncovered while looping route through the plan's own bug-fix sub-task pattern (see Sprint 0 plan §S0.16b: "any failures route through dedicated bug-fix sub-tasks against the relevant Sprint 0 file"). **Routing means I open and fix the sub-task in the same loop, then re-verify BS-NN. It does not mean I hand back.**
+- Stopping to write reports, summaries, or session notes mid-loop. Reports come AFTER GREEN.
+
+**Ownership:** This rule is OWNED by CSJ. The mirror copies in `MEMORY.md` (under "Top laws") and the fynlaBrain vault are read-only references — the source of truth is this section of CLAUDE.md.
+
+### 16. Icons — Functional Only, Decorative Banned
+
+**The guiding principle: icons are allowed ONLY when they are functionally necessary. Decorative icons are banned everywhere.**
+
+"Functionally necessary" means the icon is the ONLY way to identify or operate a UI element. The canonical example is the collapsed side nav: when `AppNavbar` is minimised, labels are hidden and icons are the sole way to tell nav items apart. Remove the icon and the user can't navigate. That's functional.
+
+"Decorative" means the icon is there for visual balance, personality, brand flavour, or because the label would "feel bare" without it. That is banned everywhere.
+
+**Explicitly banned surfaces (no icons, no emoji, no glyphs, ever):**
+- **Fyn chat window** — Fyn's message text, quick reply bubbles, chat header chrome, system messages, streaming indicators, delete/collapse/new-conversation buttons. Fyn speaks in plain text with no decorative glyphs.
+- **Dashboard cards** — every module card on `/dashboard`, every summary card, every metric tile, every empty-state card.
+- **Detail views** — every module page (`/net-worth/*`, `/protection`, `/estate`, `/retirement`, `/goals`, `/plans/*`, `/trusts`, etc.), every drill-down panel, every tabbed sub-view inside those pages.
+
+**Explicitly allowed surface:**
+- **Side nav (`AppNavbar` sidebar)** — icons are required because the nav collapses to an icon-only mode where labels are hidden. Both expanded and collapsed modes may use icons. This is the ONE canonical example of functional necessity.
+
+**Other surfaces (ask before adding or removing):**
+Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty states that are NOT on cards, settings pages, admin pages, onboarding wizards, and the mobile app. If you need to add or remove an icon on any of these, ASK CSJ first. Do not guess. Do not copy patterns from elsewhere without checking. If CSJ hasn't said, the default is NO icon.
+
+**Specific bans that apply anywhere (even the allowed side nav):**
+- Emoji in strings, labels, bubbles, tooltips, AI responses, system prompts, commit messages, code comments, docs, markdown, JSON, DB rows, or migration files — use text.
+- Unicode symbols as icons (★, ✓, ✗, →, ←, ⚠, ℹ, etc.) — use text.
+- CSS `::before` / `::after` pseudo-elements that inject glyphs or icon-font codepoints.
+- Icon fonts as a whole class (font-awesome, material-icons, anything requiring a webfont).
+- Mascot/character images used as inline icons. The Fyn character is permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon.
+
+**Enforcement:**
+- When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
+- When editing code on a banned surface, if you find existing icons, you may remove them as part of your change if it is in-scope — but removing them is optional unless CSJ specifically asks.
+- When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
+
+**Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
+
 ## Vault Reference (fynlaBrain)
 
 The project knowledge base is at `/Users/CSJ/Desktop/fynlaBrain/` (693 Obsidian docs). **Before working on any module, read the relevant vault docs.**
@@ -225,7 +307,7 @@ Fynla runs on two environments, isolated database, code, and credentials:
 | Env | URL | Purpose | Branch | Server path | SSH alias |
 |-----|-----|---------|--------|-------------|-----------|
 | **Production** | `https://fynla.org` | Live customers — real charges, real emails | `main` | `~/www/fynla.org/public_html/` | `ssh.fynla.org:18765` as `u2783-hrf1k8bpfg02` |
-| **Dev / staging** | `https://csjones.co/fynla` | Pre-production testing — Revolut sandbox, throwaway DB | `dev` | `~/www/csjones.co/public_html/fynla/` | `ssh.csjones.co:18765` as `u163-ptanegf9edny` |
+| **Dev / staging** | `https://csjones.co/fynla` | Pre-production testing — Revolut sandbox, throwaway DB | `dev` | `~/www/csjones.co/fynla-app/` (Laravel root; `public_html/fynla` is a symlink to its `public/`) | `ssh.csjones.co:18765` as `u163-ptanegf9edny` |
 
 **Work always flows `feature → dev → main`, never skipping the dev gate.** See the branch workflow section below.
 
@@ -234,16 +316,17 @@ Fynla runs on two environments, isolated database, code, and credentials:
 ### Branch workflow
 
 ```
-feature/<owner>/<short-task>   ──PR──►   dev   ──PR──►   main
+<feature-branch>   ──PR──►   dev   ──PR──►   main
 ```
 
 - `main` = exactly what's running on `fynla.org`. Protected. Only `@Stoff73` can merge.
 - `dev` = exactly what's running on `csjones.co/fynla`. Protected. Only `@Stoff73` can merge.
-- `feature/<owner>/<task>` = working branches. Naming is **mandatory**:
-  - `feature/csj/<task>` — your own work
-  - `feature/icecube/<task>` — `icecube-acc`
-  - `feature/phailanx/<task>` — `Phailanx`
-  - Any other prefix is wrong and the PR will be closed.
+- **Feature branches** = working branches. Branch off `dev`, not `main`. Naming:
+  - **CSJ's own work:** any short descriptive name is fine — camelCase or kebab-case. Examples: `onboardingFyn`, `fyn-quick-start`, `lifecycle-email-engine`, `revolutLive`. No prefix required.
+  - **External contributors (mandatory prefix for traceability):**
+    - `feature/icecube/<task>` — `icecube-acc`
+    - `feature/phailanx/<task>` — `Phailanx`
+  - PRs from contributors without the correct prefix will be closed.
 - **All PRs target `dev`**, never `main` directly (except the periodic `dev → main` release PR which only `@Stoff73` opens).
 - `.github/CODEOWNERS` forces `@Stoff73` as a required reviewer on every PR.
 
@@ -274,22 +357,29 @@ The scripts set different Vite environment variables so the SPA routing and asse
 
 ### Deploying to dev (csjones.co/fynla)
 
-1. Work on a `feature/<owner>/<task>` branch, open PR → `dev`
-2. After merge: `git checkout dev && git pull`
-3. Build: `./deploy/csjones-fynla/build.sh`
-4. Upload `public/build/` + changed PHP files to `~/www/csjones.co/public_html/fynla/` via SiteGround File Manager or `rsync`
-5. Upload `deploy/csjones-fynla/.htaccess` to `~/www/csjones.co/public_html/fynla/public/.htaccess` (only if routing rules changed)
-6. SSH in and finalise:
+The csjones server is now a real git checkout tracking `origin/dev`. Source-tree drift is gone — every deploy pulls exactly what's on the remote. The only thing you upload manually is the compiled `public/build/` bundle (not in git).
+
+1. Work on a feature branch off `dev`, open PR → `dev`
+2. After merge, locally: `git checkout dev && git pull`
+3. Build the SPA bundle locally: `./deploy/csjones-fynla/build.sh`
+4. Upload `public/build/` to `~/www/csjones.co/fynla-app/public/build/` (SiteGround File Manager or `scp -r`). `public/build/` is gitignored so `git pull` won't manage it.
+5. SSH in and pull source + finalise:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
-cd ~/www/csjones.co/public_html/fynla
+cd ~/www/csjones.co/fynla-app
+git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
 php artisan migrate --force
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
 ```
 
-7. Smoke test `https://csjones.co/fynla`
-8. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh` — see rule above)
+6. Smoke test `https://csjones.co/fynla`
+7. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh` — see rule above)
+
+**Why this works without clobbering env config:**
+- `.env` is gitignored — never touched.
+- `public/.htaccess` has `git update-index --skip-worktree` set on csjones, so `git pull` ignores it. The dev `/fynla/` rewrite-base version stays in place. If routing rules change in the source template (`deploy/csjones-fynla/.htaccess`), copy it manually: `cp deploy/csjones-fynla/.htaccess public/.htaccess` after pull.
+- `public/storage` is intentionally absent on csjones (Apache 403s symlinks there; Laravel `/storage/{path}` route in `routes/web.php` handles requests instead). Don't run `php artisan storage:link` on csjones.
 
 **First-time dev setup** (one-time only): see `deploy/csjones-fynla/BOOTSTRAP.md` for the full provision-and-deploy guide.
 

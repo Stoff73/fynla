@@ -130,6 +130,8 @@ arch('services are organized by module')
     ->toBeClasses()
     ->ignoring([
         'App\Services\Documents\FieldMappers\FieldMapperInterface',
+        'App\Services\Lifecycle\Contracts\LifecycleCampaign',
+        'App\Services\Tax\Strategies\Contract\TaxStrategy',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()
@@ -156,11 +158,24 @@ arch('all agents have analyze method')
     ->ignoring('App\Agents\BaseAgent');
 
 // Test: Test classes follow naming conventions
+//
+// Sprint 1 eval harness exception: tests/Feature/Fyn/Eval/{EvalRunner,
+// MockedProviderClient, AssertionHelpers, EvalReport, EvalResult}.php are
+// helper classes consumed by Pest tests in the same directory, not Pest
+// tests themselves. They live under tests/Feature/ per plan/11-sprint-1-plan.md
+// S1.1, so we explicitly ignore them from the Test-suffix rule.
 arch('test classes end with Test suffix')
     ->expect('Tests\Unit')
     ->toHaveSuffix('Test')
     ->and('Tests\Feature')
     ->toHaveSuffix('Test')
+    ->ignoring([
+        'Tests\Feature\Fyn\Eval\EvalRunner',
+        'Tests\Feature\Fyn\Eval\MockedProviderClient',
+        'Tests\Feature\Fyn\Eval\AssertionHelpers',
+        'Tests\Feature\Fyn\Eval\EvalReport',
+        'Tests\Feature\Fyn\Eval\EvalResult',
+    ])
     ->and('Tests\Architecture')
     ->toHaveSuffix('Test');
 

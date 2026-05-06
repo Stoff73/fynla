@@ -7,6 +7,7 @@ use App\Models\Estate\LpaAttorney;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
@@ -46,7 +47,7 @@ describe('GET /api/estate/lpa', function () {
     it('requires authentication', function () {
         $this->withHeaders(['Authorization' => '']);
         // Create a fresh request without sanctum
-        $response = $this->withoutMiddleware(\Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class)
+        $response = $this->withoutMiddleware(CheckForAnyAbility::class)
             ->getJson('/api/estate/lpa');
 
         // The auth:sanctum middleware should handle this

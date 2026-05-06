@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Agents\ProtectionAgent;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Support\Facades\Cache;
 
@@ -109,7 +110,7 @@ describe('Protection Cache Invalidation', function () {
         expect($cachedBefore)->not->toBeNull();
 
         // Invalidate using the centralised service
-        $service = app(\App\Services\Cache\CacheInvalidationService::class);
+        $service = app(CacheInvalidationService::class);
         $service->invalidateForUser($user->id);
 
         // Verify cache was cleared

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\User;
+use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\LifeEventCashFlowService;
 use App\Services\Investment\MonteCarloSimulator;
 use App\Services\Risk\RiskPreferenceService;
@@ -25,7 +26,7 @@ class RetirementProjectionService
         private readonly RiskPreferenceService $riskService,
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventCashFlowService $lifeEventCashFlowService,
-        private readonly \App\Services\Cache\CacheInvalidationService $cacheInvalidation,
+        private readonly CacheInvalidationService $cacheInvalidation,
         private readonly RequiredCapitalCalculator $requiredCapitalCalculator
     ) {}
 

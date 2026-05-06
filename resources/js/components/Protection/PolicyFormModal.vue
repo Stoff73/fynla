@@ -643,8 +643,43 @@ export default {
 
   watch: {
     pendingFill: {
-      handler(fill) {
+      handler(fill, previous) {
         if (fill && fill.entityType === 'protection_policy' && fill.fields) {
+          // B-1 — when the modal stays mounted between queued fills
+          // (multi-entity messages like "Aviva life £300k and Vitality
+          // CI £100k"), we must reset the form data so the previous
+          // entity's values (provider, coverage, dates) don't bleed
+          // into the new one. Only reset if the previous fill was also
+          // a protection_policy — the initial mount path leaves
+          // formData at its data() defaults, so no reset needed.
+          if (previous && previous.entityType === 'protection_policy') {
+            Object.assign(this.formData, {
+              policyType: '',
+              life_policy_type: '',
+              provider: '',
+              policy_number: '',
+              coverage_amount: 0,
+              start_value: 0,
+              decreasing_rate: 0,
+              premium_amount: 0,
+              premium_frequency: 'monthly',
+              start_date: '',
+              end_date: '',
+              term_years: null,
+              in_trust: false,
+              is_mortgage_protection: false,
+              beneficiary_name: '',
+              beneficiary_percentage: 100,
+              additional_beneficiaries: '',
+              benefit_frequency: 'monthly',
+              deferred_period_weeks: null,
+              benefit_period_months: null,
+              coverage_type: 'accident_and_sickness',
+              notes: '',
+            });
+            this.errors = {};
+          }
+
           // Set policyType immediately before the field sequence starts —
           // this controls which conditional fields are visible in the form
           if (fill.fields.policyType) {

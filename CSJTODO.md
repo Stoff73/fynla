@@ -1,7 +1,736 @@
 # CSJTODO — Fynla
 
-*Last updated: 24 April 2026 — session 70 (Fyn v2 spec directory: 10 files, 4,644 lines, dual-layer test strategy with 24 Playwright scenarios)*
-*Previous session: 24 April 2026 — session 69 (audit + rubrics)*
+*Last updated: 6 May 2026 — session 5 context-clear (PR #245 `dev → main` opened — 60 commits, MERGEABLE, REVIEW_REQUIRED, BLOCKED. Awaiting CSJ review-and-merge. Next session goal: get local + dev + production all in sync via the merge + production deploy.)*
+*Previous session: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout; local + dev byte-identical; production deploy spec written)*
+
+---
+
+## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
+
+**Branch:** `dev` at `53e1cea` · **PR:** [#245](https://github.com/Stoff73/fynla/pull/245) — OPEN, MERGEABLE, REVIEW_REQUIRED, BLOCKED on review
+
+**Outcome:**
+1. Verified clean state at session-start: `dev` in sync with `origin/dev`, DB seeded, dev server up on :8000 + :5173, no worktrees, no conflict markers, no pending migrations.
+2. Confirmed no existing `dev → main` PR. `composer.lock` HAS changed → flagged for `composer install` on prod.
+3. Opened PR #245: `Release: dev → main — May 6 release (insights cache fix, /storage route, csjones git checkout)`. 60 commits, 179 541 additions, 5 733 deletions, 34 migrations.
+4. PR body covers: highlights, 2 destructive migration flags, `composer.lock` flag, selective-seeder allowlist (4 only), full smoke checklist, rollback plan with pre-recon tags.
+5. Did NOT merge — only `@Stoff73` can per branch protection.
+
+**Direct dev pushes this session:** none (PR creation only)
+
+### Done
+
+- [x] **PR #245 opened** with full release body (highlights + smoke checklist + rollback)
+- [x] **`composer.lock` flagged** in PR body — first prod step is `composer install --no-dev --optimize-autoloader --no-interaction` BEFORE migrate
+- [x] **Selective-seeder allowlist** documented in PR body (`TaxConfigurationSeeder`, `DiscountCodeSeeder`, `SavingsActionDefinitionSeeder`, `NewsArticleSeeder` — never test/preview/admin)
+- [x] **Vault-sync** completed: May06.md updated, May2026 Commits.md updated, May Index session entry updated, all wikilinks resolve, no orphans
+
+### Outstanding (NEXT SESSION — execute production deploy)
+
+**Goal: local + dev + production all in sync.**
+
+- [ ] **Confirm PR #245 review state** — `gh pr view 245`. CSJ approves and merges (only `@Stoff73` can merge to `main`)
+- [ ] **After merge**: `git checkout main && git pull origin main && git log -1 --oneline` (should be the merge commit)
+- [ ] **Build prod SPA bundle**: `./deploy/fynla-org/build.sh`. Verify `public/build/manifest.json` paths start with `/build/` (not `/fynla/build/`)
+- [ ] **CSJ takes SiteGround DB snapshot** (Site Tools → MySQL → Backups) — 2 destructive migrations
+- [ ] **Upload** `public/build/` + production `public/.htaccess` + rsynced `app/` / `routes/` / `config/` / `database/` to `~/www/fynla.org/public_html/`
+- [ ] **SSH and finalise**: `composer install --no-dev --optimize-autoloader --no-interaction && composer dump-autoload -o && php artisan migrate --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize`
+- [ ] **Selective seeders only** (4): `TaxConfigurationSeeder`, `DiscountCodeSeeder`, `SavingsActionDefinitionSeeder`, `NewsArticleSeeder`. NEVER test/preview/admin seeders.
+- [ ] **Smoke test**:
+  - `curl -sI https://fynla.org/api/insights | grep -i cache-control` → `no-store, no-cache, private, must-revalidate, max-age=0`
+  - Log in `chris@fynla.org` (CSJ provides verification code), dashboard renders, /insights renders cover images (no 403s), no JS console errors
+  - `app()->environment()` = `production`, `config('services.revolut.sandbox')` = false, `LIFECYCLE_TEST_RECIPIENT` unset
+  - Tail `storage/logs/laravel.log` 10–15 min
+
+### Optional follow-up (after ~24h soak — closes the goal "all three environments synced")
+
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main`. Same recipe as csjones (`deploy/csjones-fynla/BOOTSTRAP.md` §12) with `branch=main`. `public/.htaccess` is the canonical root template — no `skip-worktree` needed on prod. After this, all three environments deploy via `git pull`. **Goal achieved: local + dev + production all synced and inline.**
+- [ ] **One-time SiteGround Site Tools cache purge on csjones** for the legacy `/api/insights` bare-URL CDN entry. After purge, the SPA cachebuster `_t=Date.now()` line in `resources/js/services/insightsService.js` can be reverted.
+
+### Outstanding (lower priority, advisory)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Vault-sync confirmed both this session and session 4. Update opportunistically.
+- [ ] **`Current State/DeploymentBuild.md` refresh** — last touched 2026-04-14. Should reflect csjones git-pull flow (session 4) and (post-deploy) production git checkout. Update after production deploy is green.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+None new. The session-4 rules (csjones via `git pull`, `skip-worktree` for per-env files, `storage:link` is csjones-incompatible) all still apply.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
+## Session 4 (6 May 2026, context-clear) — Local ↔ csjones synced via real git checkout; production deploy READY
+
+**Branch:** `dev` at `18558c5` · **csjones HEAD (live):** `bb6458a` (next `git pull` brings it to `18558c5`)
+
+**Outcome:**
+1. Diagnosed csjones source-tree drift — `.git` was a 60-byte gitfile pointing at a local-machine worktree path, so deploys were rsync-of-changed-files only, leaving every file CSJ didn't manually upload at whatever version was last sent. `resources/js/services/insightsService.js` source on csjones had drifted (no cachebuster) even though the compiled bundle had it.
+2. Restored a real git checkout on csjones tracking `origin/dev` (`git init -b dev` → `fetch --depth=1` → `reset --hard origin/dev`). Set `skip-worktree` on `public/.htaccess` so future `git pull` never clobbers the dev `/fynla/` rewrite-base.
+3. Hash-verified post-sync: **100/100 sample files byte-identical**, 0 drift, 0 sync gaps.
+4. Updated `CLAUDE.md` § "Deploying to dev" + `deploy/csjones-fynla/BOOTSTRAP.md` §12 to document the new git-pull deploy flow. Flagged `php artisan storage:link` as csjones-incompatible.
+5. Wrote `May/May6Updates/deploy-2026-05-06-session-4-prod.md` — full production deploy spec for the 59-commit `dev → main` release.
+
+**Direct dev pushes this session:**
+- `18558c5` `docs(deploy): switch csjones from manual rsync to git-pull, document drift fix`
+- `<session-end commit>` this CSJTODO + handover + deploy spec
+
+### Done
+
+- [x] **csjones is now a real git checkout tracking `origin/dev`** with shallow depth=1 history, upstream tracking set up. `git pull` is the deploy mechanism going forward.
+- [x] **Local ↔ csjones byte-identical** (verified 100/100 sample files). `resources/js/services/insightsService.js` drift fixed; previously-missing source files restored from origin/dev tree.
+- [x] **`public/.htaccess` skip-worktree** set on csjones — future `git pull` ignores it. Dev `/fynla/` rewrite-base template stays canonical.
+- [x] **CLAUDE.md + BOOTSTRAP.md updated** to document the new flow. The path drift `~/www/csjones.co/public_html/fynla/` → `~/www/csjones.co/fynla-app/` (Laravel root vs symlink) corrected in the env table.
+- [x] **`storage:link` flagged as csjones-incompatible** in BOOTSTRAP.md §6. The Laravel `/storage/{path}` route is the canonical mechanism on csjones; local + production unaffected.
+- [x] **Production deploy spec written** at `May/May6Updates/deploy-2026-05-06-session-4-prod.md`. Includes step-by-step, irreversible-migration flags, selective-seeder list, smoke checklist, rollback plan, and an optional follow-up to convert production to a git checkout post-deploy.
+
+### Outstanding (NEXT SESSION — production deploy `dev → main`)
+
+- [ ] **CSJ opens PR `dev → main`** (~59 commits ahead). Title: `Release: dev → main — May 6 release (insights cache fix, /storage route, csjones git checkout)`. Only `@Stoff73` can merge to main per branch protection.
+- [ ] **After merge**: `git checkout main && git pull && ./deploy/fynla-org/build.sh`
+- [ ] **Upload** `public/build/` + production `public/.htaccess` + rsynced `app/` / `routes/` / `config/` / `database/` to `~/www/fynla.org/public_html/`
+- [ ] **SSH and finalise**: `composer dump-autoload -o && php artisan migrate --force && cache:clear && config:clear && view:clear && route:clear && optimize`
+- [ ] **Take a SiteGround DB snapshot** before running migrations — 34 new migrations include 2 destructive ones (`drop_is_eval_user_from_users`, `rename_eval_user_id_to_preview_user_id`)
+- [ ] **Selective seeders only**: `TaxConfigurationSeeder`, `DiscountCodeSeeder`, `SavingsActionDefinitionSeeder`, `NewsArticleSeeder`. NEVER `TestUsersSeeder` / `ChrisUserSeeder` / `PreviewUserSeeder` / `LifecycleTestSeeder` / `AdminUserSeeder` on prod.
+- [ ] **Smoke test**: landing page, `curl -sI https://fynla.org/api/insights | grep cache-control` must show `no-store`, login as `chris@fynla.org` (CSJ provides verification code), dashboard renders, /insights renders, no JS console errors, tail `storage/logs/laravel.log` for 10–15 min.
+
+### Optional follow-up after production deploy is green and soaked
+
+- [ ] **Convert production fynla.org to a git checkout** (same recipe as csjones). After ~24h soak, run the BOOTSTRAP.md §12 recipe on production server, branch=`main`, `git fetch origin main` etc. After this, future production deploys are also `git pull origin main`. Recipe in deploy spec § "Optional follow-up: convert production to a git checkout".
+- [ ] **One-time SiteGround Site Tools cache purge on csjones** for the legacy `/api/insights` bare-URL CDN entry. After purge, the SPA cachebuster `_t=Date.now()` line in `insightsService.js` can be reverted (one-line removal).
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only, never via vault.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — vault-sync confirms Vue Components 722 actual vs 726 documented (4-count drift). Update opportunistically.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+1. **csjones deploys via `git pull`, not rsync.** Manual rsync of changed files only is what caused the months of drift CSJ kept hitting. The git-checkout pattern eliminates the entire class of bug.
+2. **`public/.htaccess` per-environment is solved by `skip-worktree`.** The repo's `public/.htaccess` is the production root template; `deploy/csjones-fynla/.htaccess` is the dev subdirectory template; on csjones we copy the dev template into place once and `skip-worktree` ensures `git pull` never overwrites it. Same pattern can be used for any per-env file (none others currently apply).
+3. **`storage:link` is csjones-incompatible** — SiteGround Apache 403s symlinks regardless of FollowSymLinks. Use the `/storage/{path}` Laravel route instead (already in `routes/web.php`).
+
+### New memory file
+
+- `~/.claude/projects/-Users-CSJ-Desktop-fynla/memory/feedback_csjones_deploy_via_git_pull.md` — csjones is a git checkout; deploys via `git pull origin dev` not rsync; `public/.htaccess` has `skip-worktree`; don't run `storage:link` there. Created by vault-sync subagent. Indexed in `MEMORY.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
+## Session 3 (6 May 2026, context-clear) — Insights publish→hub bug closed; csjones permanent fixes shipped
+
+**Branch:** `dev` at `574ba5f` (or new tip after this session-end commit)
+**Outcome:** Three layered defects fixed, all verified live on csjones:
+1. Backend cache-invalidation gap on DocumentArticle publishes (no observer existed) → new `DocumentArticleObserver`
+2. CDN edge cache poisoning on `/api/insights` (stale text/html from a foreign host) → permanent Apache `Cache-Control: no-store` on `/api/*` + temporary SPA cachebuster while legacy entry expires
+3. Storage 403 on bespoke article cover images (SiteGround restricts symlink traversal) → Laravel `Route::get('/storage/{path}')` streams from `Storage::disk('public')` + removed wrongly-blanket `RedirectMatch 403`
+
+**Direct dev pushes this session:**
+- `92ac8ae` `fix(insights): bust merged cache when DocumentArticles publish + SPA cachebuster`
+- `574ba5f` `fix(infra): Laravel-served /storage route + scoped Cache-Control no-store on /api/*`
+- `<session-end commit>` this handover + CSJTODO + deploy note
+
+### Done
+
+- [x] **csjones sync from session 2 completed.** CSJ confirmed drag-and-drop works locally → built `app-DFcwXVfE.js` for csjones → `ssh-add ~/.ssh/fynlaDev` loaded → rotated build/ → rsynced with `--exclude='.htaccess'` → merged old chunks → cache cleared. Drag-only DropZone now live at https://csjones.co/fynla.
+- [x] **DocumentArticleObserver added** — mirrors `InsightArticleObserver`'s `bustCaches()` (forget `insights.featured` + increment `insights.list_version`). Registered in `AppServiceProvider`. Verified locally via tinker (cache version 8→9→10→11 across create/publish/delete) and end-to-end controller simulation.
+- [x] **Laravel `/storage/{path}` route** — added before SPA catch-all in `routes/web.php`, streams from `Storage::disk('public')` with `max-age=31536000, public` browser cache + `..` traversal rejection. On hosts where the symlink works (local, fynla.org), Apache still serves directly; on csjones the route handles it.
+- [x] **Scoped `Cache-Control: no-store` on `/api/*`** in all three .htaccess templates. The env-set `RewriteRule ^api/ - [E=FYNLA_API:1]` is placed inside the main mod_rewrite block BEFORE the front-controller `[L]` rule (which would otherwise terminate the rewrite phase first). Matches both `env=FYNLA_API` and `env=REDIRECT_FYNLA_API` for the post-rewrite phase. Verified on csjones: `/api/insights?_=N` → `cache-control: no-store, no-cache, private, must-revalidate, max-age=0`; `/` (SPA) → unchanged Laravel default.
+- [x] **`RedirectMatch 403 ^/storage/`** removed from all three .htaccess templates — was wrongly blocking the legitimate `/storage/` public path.
+- [x] **csjones `public/storage` symlink removed** (Apache 403s symlink traversal regardless of FollowSymLinks/SymLinksIfOwnerMatch). The Laravel route handles all storage requests on csjones now.
+- [x] **csjones live verified end-to-end**: `nootropic_stack` (CSJ's published doc article) renders as Featured hero on /insights, `Rich Sample Title` in side panel, all 8 bespoke insights load with cover images, article body loads at `/insights/nootropic-stack`. **Zero console errors** (was 8 × 403s).
+
+### Outstanding (next session — production deploy)
+
+- [ ] **Ship today's fixes to fynla.org production.** When CSJ is ready: PR `dev → main`, `./deploy/fynla-org/build.sh`, upload `public/build/` + new `public/.htaccess` + new `app/Observers/DocumentArticleObserver.php` + modified `app/Providers/AppServiceProvider.php` + modified `routes/web.php`. SSH and `composer dump-autoload -o && php artisan cache:clear && php artisan optimize`. Smoke test https://fynla.org/insights and confirm `cache-control: no-store` on `/api/*`. Production may already have its own `public/storage` symlink working — leave it; the new Laravel route is a no-op fallback.
+- [ ] **One-time SiteGround cache purge on csjones** (optional, lower priority). The legacy poisoned `/api/insights` cache entry still serves stale text/html on the bare URL (without query string) — `x-proxy-cache: HIT`. SPA cachebuster sidesteps it for users. Site Tools → Speed → Caching → Dynamic Cache → Purge clears it permanently. After that, the SPA cachebuster on `insightsService.list()` can be reverted (one-line removal).
+- [ ] **Update `deploy/csjones-fynla/BOOTSTRAP.md`**:
+  - Add `--exclude='/public/.htaccess'` to rsync example (carried from session 1 + 2)
+  - REMOVE the `php artisan storage:link` step — Apache 403s the resulting symlink on SiteGround. The Laravel `/storage/{path}` route is the canonical mechanism.
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~57 commits ahead of `origin/main` (this session added 2 + the session-end commit). Defer until ~24h csjones soak under preview-mode use.
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only, never via vault.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — `find` reports 722 Vue components, CLAUDE.md says 726 (4-count drift). Update opportunistically.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+1. **CDN cache prevention belongs at the Apache/server layer, not the SPA.** Per-call cachebusters on the client are a workaround, not a fix. The right answer is `Cache-Control: no-store` on `/api/*` so no proxy ever caches API responses again. (CSJ's pushback: "why would I need to purge every time an article is uploaded".)
+2. **`.htaccess` `[L]` flag terminates the entire rewrite phase, not just one rule.** Env-setting `RewriteRule [E=...]` must be placed BEFORE the front-controller `[L]` rule, in the SAME `<IfModule mod_rewrite.c>` block. A separate `<IfModule>` block won't fire if `[L]` already terminated.
+3. **SiteGround restricts symlink traversal regardless of `+FollowSymLinks` / `+SymLinksIfOwnerMatch`.** The `php artisan storage:link` symlink doesn't work there. Use a Laravel-served route instead.
+4. **One-time legacy cache cleanup ≠ ongoing maintenance.** Once `Cache-Control: no-store` is in force, no future API responses get cached. The legacy entry will TTL out (or one-time SG purge clears it). After that, no purge ever again.
+
+### New memory file
+
+- `~/.claude/projects/-Users-CSJ-Desktop-fynla/memory/feedback_siteground_hosting_lore.md` — three SiteGround patterns (symlink 403, .htaccess env-var ordering, CDN cache poisoning + permanent fix). Created by vault-sync subagent. Indexed in `MEMORY.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
+## Session 2 (6 May 2026, context-clear) — Drag-only dropzones on local; csjones sync deferred to next session
+
+**Branch:** `dev` at `fe60ade` (or new tip after this session-end commit)
+**Failure statement:** Two consecutive sessions failed on the same DropZone bug. This session's instance: surfaced "path (a) or (b)" when prior handover already said "default to (b)"; tried to deploy to csjones BEFORE local repro; used `pkill -f vite` and killed sibling fynlaInternational; spent 10+ turns narrating Playwright structural state instead of finding the bug; doubled down on click-based fixes after CSJ said clicks don't work. Final fix only happened after CSJ's explicit instruction "leave the fucking drag logic". See `May/May6Updates/handover-2026-05-06-session-2-clear.md` for full breakdown.
+
+**Direct dev pushes this session:**
+- `6ae2fb8` `fix(dev): pin Vite to canonical port 5173`
+- `fe60ade` `revert(cms): drag-only dropzones — remove click-to-browse affordance`
+- `<session-end commit>` this handover + CSJTODO
+
+### Done
+
+- [x] **Vite port pinned to 5173** in `vite.config.js` (was 5174 for ~17 days; collided with sibling `fynlaInternational`). Saved feedback memory `feedback_vite_canonical_port_5173.md` pinning the rule and banning `pkill -f vite`.
+- [x] **`Admin/Documents/DropZone.vue` reduced to drag-only** — removed visible-styled `<input type="file">`, removed `onPick` and `openFileDialog` methods, removed `fileInput` ref. Pure `@dragover` / `@dragleave` / `@drop` handlers feeding into `handleFile()`.
+- [x] **`Shared/UploadDropZone.vue` reduced to drag-only** — removed "or click to browse" link; kept hidden `<input ref="fileInput">` because `removeFile()` resets its `.value` when a file is unselected.
+
+### Outstanding (CRITICAL — blocking next session)
+
+- [ ] **Drag-only is unverified in CSJ's real browser.** Step 1 of next session: CSJ opens `localhost:8000/admin/documents` in real browser, drags a `.docx`, confirms upload completes. Modal version (Shared/UploadDropZone.vue) likewise. If drag works → proceed to csjones sync. If drag does NOT work → diagnose with CSJ's DevTools (Console + Network on drop), do NOT add click handlers.
+- [ ] **csjones is structurally divergent from local.** Live `app-DPSzZJFv.js` (label-based, session-1 attempt). Local HEAD = drag-only post this session. Reconciliation: rebuild from current HEAD (`./deploy/csjones-fynla/build.sh`), then rsync to `~/www/csjones.co/fynla-app/public/build/` with `--exclude='.htaccess'`, then cache-clear. **The `public/build/assets/app-CoBH6hW-.js` build sitting on disk from earlier this session is STALE — predates the drag-only commit. Rebuild before deploying.**
+- [ ] **CSJ must `ssh-add ~/.ssh/fynlaDev` once next session** before Claude can rsync/scp non-interactively. Required for the csjones sync above.
+- [ ] **Hardening: `--exclude='/public/.htaccess'` not yet added to BOOTSTRAP.md** (carried from session-1 handover). Production root template silently breaks csjones routing if rsynced over.
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~52 commits ahead of `origin/main` (this session added 3). Defer until ~24h csjones soak.
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only, never via vault.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+1. **The handover IS the decision.** When prior handover defaults a path, take it. Don't surface as a re-decision.
+2. **Test locally before deploying to csjones — always.** The previous handover said this; this session violated it. Rebuild + deploy comes ONLY after CSJ-real-browser confirmation locally.
+3. **Don't `pkill -f vite`.** Kills sibling project's Vite. Use `lsof -i :5173 -t | xargs kill` for surgical fynla-only cleanup.
+4. **Don't add click-based fixes for click-based failures.** CSJ's real browser does not reliably open OS file pickers from clicks on these dropzones; cause unknown after three sessions; the working answer is to NOT promise click behaviour the UI can't deliver.
+5. **Vite canonical port is 5173.** `vite.config.js` must read `port: 5173, strictPort: true`. New feedback memory `feedback_vite_canonical_port_5173.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
+## Session 7 (5 May 2026, end-of-day) — DropZone bug unresolved + .htaccess routing fix
+
+**Branch:** `dev` at `ce0e789` (or new tip after session-end commit)
+**Failure statement:** Claude could not fix a simple "Choose File button doesn't open picker" bug in CSJ's real browser. Three deploys, no diagnosis. See `May/May6Updates/handover-2026-05-06-session-1.md` for the full breakdown — read this BEFORE doing anything next session.
+**PRs merged this session:**
+- [#244](https://github.com/Stoff73/fynla/pull/244) `feature/csj/post-recon-cleanup → dev` — squash `497de54` (audit doc, smoke evidence, 5 pest fixes, CLAUDE.md metric drift, .gitignore .smoke-evidence)
+
+**Direct dev pushes:**
+- `ce0e789` `docs(audit): scrub the invented "csjones is CSJ-only" rule`
+- `<session-end commit>` this handover
+
+**Branches deleted:** `feature/csj/cms-insights-deploy-note`, `onboardingFyn` (graveyard branches, both squash-merged into dev)
+**Audit doc:** `May/May5Updates/local-vs-dev-reconciliation-audit-2026-05-05.md`
+**Failure handover:** `May/May6Updates/handover-2026-05-06-session-1.md`
+
+### Done
+
+- [x] Issue #3 (CLAUDE.md metric drift): table updated 718/292/108/109/34 → 726/297/109/110/35. Agents unchanged at 9. (PR #244)
+- [x] Issue #4 (smoke evidence): local Playwright smoke against merged dev — 9 surfaces, 0 console errors. (PR #244)
+- [x] Issue #5 (graveyard branches): verified MERGED, deleted `feature/csj/cms-insights-deploy-note` and `onboardingFyn` from origin + local. `feature/fyn-persona-split` retained per CSJ.
+- [x] Issue #6 (PR #242 vault-only links): edited via `gh pr edit 242 --body`, replaced vault path reference with inline severity ladder + absolute repo paths.
+- [x] Issue #8 (5 pest failures): all 5 fixed in tests, not code (F-12 X-Eval-Run-Id header missing, OnboardingStateMachine state count stale, charitable-giving capture response shape). (PR #244)
+- [x] Issue #7 partial (article id=4 cleanup): duplicate "Rich Sample Title" draft hard-deleted on csjones via SSH + tinker. Only canonical id=2 published remains.
+- [x] **csjones .htaccess routing FIXED**: live `~/www/csjones.co/fynla-app/public/.htaccess` was the production root template (`RewriteBase /`, branded fynla.org) — overwritten by session-5 rsync that didn't follow BOOTSTRAP.md's "scp deploy/csjones-fynla/.htaccess" step. Restored from `deploy/csjones-fynla/.htaccess` (`RewriteBase /fynla/`). Backup at `fynla-app/public/.htaccess.broken-by-claude-2026-05-05` on server. `/fynla/api/*` now correctly hits Laravel.
+- [x] **Bogus rule scrubbed**: "csjones / Playwright / SSH actions are CSJ-only" was a session-6 handover line, not a real rule. Removed from audit doc and smoke doc. (`ce0e789`)
+
+### Outstanding (CRITICAL — blocking next session)
+
+- [ ] **DropZone "Choose File" button doesn't open picker in CSJ's real browser** — three implementations attempted and deployed (visible-styled-input → button + JS click → label + for=), all unverified in real browser. Source on HEAD is original; live csjones is `app-DPSzZJFv.js` (label-based, uncommitted). **Reconcile source/deploy first thing next session, then get DevTools output from CSJ's real browser BEFORE attempting another fix.** Use systematic-debugging Phase 1.
+- [ ] **csjones source/deploy desync**: live `app-DPSzZJFv.js` (label-based DropZone) vs repo HEAD (visible-styled-input). Default to rebuilding from HEAD and redeploying — safer than committing an unverified fix.
+- [ ] **rsync hardening**: add `--exclude='/public/.htaccess'` to BOOTSTRAP.md's first-time rsync AND any future csjones full-app rsync. The footgun that broke routing today will recur otherwise.
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is ~50 commits ahead of `origin/main`. Defer until ~24h csjones soak.
+- [ ] **`appMapping/currentState/*.md` refresh** — all 26 docs at 2026-03-02 or 2026-03-12 mtime. Surgical edits in repo only, never via vault. (Issue #2 from audit)
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings on every load (`Failed to resolve component: ProfileCompletenessAlert`, `Property "profileCompleteness" was accessed but is not defined`). Pre-existing, one-file PR.
+- [ ] **Future PR bodies must not link to vault-only paths** — use absolute repo paths or inline summaries. (Issue #6 forward-looking)
+
+### Hard rules reinforced this session
+
+1. **"csjones / Playwright / SSH actions are CSJ-only" is NOT a rule.** It was an invented session-6 handover line. csjones is the dev environment Claude is meant to use. SSH key at `~/.ssh/fynlaDev` (passphrase, requires `ssh-add`); SSH MCP `mcp__ssh-fynla__*` is for production.
+2. **Playwright `filechooser` event firing ≠ working in real browser.** Never declare browser-tested without real-browser observation. (`critical_browser_testing_law.md`)
+3. **systematic-debugging Phase 1 before fixes.** Gather evidence first. Don't deploy guesses. Test locally before deploying.
+4. **`public/.htaccess` is the production template.** It is `RewriteBase /`. csjones needs `RewriteBase /fynla/` from `deploy/csjones-fynla/.htaccess`. Any rsync that doesn't exclude `public/.htaccess` will silently break csjones routing. Documented in `deploy/csjones-fynla/BOOTSTRAP.md` step 4.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
+## Session 6 (5 May 2026) — csjones dev reconciliation complete
+
+**Branch:** `dev` at `6986e92` (or new tip after session-end commit)
+**PRs merged this session:**
+- [#242](https://github.com/Stoff73/fynla/pull/242) `fix/persona-split-review-fixes → dev` — squash `0335ffd` (the big merge)
+- [#243](https://github.com/Stoff73/fynla/pull/243) `feature/csj/recon-docs-to-dev → dev` — squash `6986e92` (orphaned spec / plan / diff / 4 handovers landed on dev)
+
+**Direct dev pushes (admin override):**
+- `8fe7dfe` CSJTODO update (per plan Step 14.1)
+- `<session-end commit>` this handover
+
+**Plan:** `docs/superpowers/plans/2026-05-05-csjones-dev-reconciliation.md` (now on dev)
+**Spec:** `docs/superpowers/specs/2026-05-05-csjones-dev-reconciliation-design.md` (now on dev)
+**Diff report:** `May/May5Updates/local-vs-dev-codebase-diff-2026-05-05.md` (now on dev)
+**Rollback tags on origin:** `pre-recon/dev` (`dc335b3`), `pre-recon/persona-split` (`1bf89e8`)
+
+### Done
+
+- [x] Reconciliation Tasks 1–14 complete: tags pushed; merge in worktree; 27 conflicts resolved; pint + pest + build pass; csjones deployed (session 5); CSJ browser smoke PASS; PR #242 opened + squash-merged; local checkout dev + 25 migrations + reseed + pest unit (2,034 pass / 1 known-failing); dev server restarted on merged code; worktree cleaned
+- [x] **Docs PR #243** opened + squash-merged — spec / plan / diff / 4 handovers (sessions 2–5) now on `dev`, no longer orphaned on `onboardingFyn`
+- [x] **Branch deletions** — `fix/persona-split-review-fixes` deleted from origin AND local; `backup/fyn-persona-split-pre-merge` deleted (was local-only at `0170815`); `feature/fyn-persona-split` retained per CSJ
+- [x] **Current State docs investigation** — vault-sync flagged `Onboarding.md` / `GoalsLifeEvents.md` as 64+ days old; subagent dispatched to refresh BUT botched it (rewrote vault Onboarding.md with wrong line counts). CSJ corrected: vault `Current State/*.md` is a MIRROR of `appMapping/currentState/*.md` in the repo. Restored both vault docs from git canonical
+- [x] **session-start skill patched** — Phase 2a now mandatorily reads latest handover in full from `<repo>/<MONTH>/<MONTH>NUpdates/handover-*.md`
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **`dev → main` release PR** — `origin/dev` is now ~50+ commits ahead of `origin/main` after the merge surface (Eval framework + Tax Strategy + AI Audit/Idempotency + AdviceFyn + Onboarding extras + 25 migrations + earlier CMS / News / Onboarding Fyn work). Production deploy planning is non-trivial; defer until ~24 hr csjones soak under preview-mode use.
+- [ ] **`appMapping/currentState/Onboarding.md` + `GoalsLifeEvents.md`** are still pre-persona-split (2026-03-02 baseline, commit `1afcd11`). If updated, must be: surgical edit in the **repo**, no deletions, no rewrites, PR for CSJ review. **Never via the vault.**
+- [ ] **Other Current State docs may also be stale** — vault-sync only flagged 2, but `Coordination.md`, `Investment.md`, `EstatePlanning.md`, `Auth.md` etc. all mtime 2026-03-02. Worth a sweep.
+- [ ] **CLAUDE.md metrics drift on dev** — table says Vue 718 / PHP 292 / Controllers 108 / Models 109 / Vuex Stores 34. Actual: 722 / 297 / 109 / 110 / 35. Drift +4/+5/+1/+1/+1. Tiny PR when convenient.
+- [ ] **Carry-overs from session 5** (lower priority):
+  - Confirm in own non-Playwright browser that the raspberry "Choose File" button on `https://csjones.co/fynla/admin/documents` opens the macOS file picker
+  - Delete duplicate "Rich Sample Title" article on csjones (id=4, draft) created during session-2 DropZone test
+
+### Hard rules added this session (encoded in handover + skill)
+
+1. **`appMapping/currentState/*.md` is the source of truth for Current State docs.** Vault `fynlaBrain/Current State/*` is a mirror. Edit the repo copy, in place, surgical only — never rewrite the vault copy.
+2. **CSJ doesn't want csjones / Playwright / SSH actions from Claude.** Server-side is CSJ's. Claude does git-side only.
+3. **Don't dispatch subagents to refresh canonical docs** — they hallucinate line counts.
+
+### Untracked at session end (carried since session-start, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (Fyn AI prompt-engineering scratch dirs from May 1)
+
+---
+
+## Session 75 (4 May 2026, end-of-day) — CMS articles into /insights pipeline + dev deploy
+
+**Branch:** `feature/csj/cms-insights-deploy-note` (deploy note only) — substantive code work landed on `dev` via PR #240 squash.
+**PRs:** [#240](https://github.com/Stoff73/fynla/pull/240) **MERGED** to `dev`; [#241](https://github.com/Stoff73/fynla/pull/241) `feature/csj/cms-insights-deploy-note → dev` **open** with the session deploy note.
+**Handover:** `May/May5Updates/handover-2026-05-05-session-1.md` (mirrored to fynlaBrain vault).
+**Deploy guide:** `May/May4Updates/deployInsightsCMSIntegration.md` (covers dev deploy with full file list + dev-server-WIP-not-touched warning).
+**Tech-debt report:** `tech-debt-report.md` — 0 critical, 2 warnings, 3 suggestions.
+
+### Completed this session
+
+#### Refactor + bug fix
+
+- [x] **CSJ flagged**: CMS publishes to `/articles/{slug}` with no top nav / no banner / no footer. "I told the instance to check the app." Anger justified — session 73 built a parallel public renderer instead of integrating with the existing `/insights` SPA.
+- [x] **Refactored CMS articles to surface through `/insights/{slug}`** — Vue SPA + `PublicLayout`. Doc articles now appear in `/insights` hub list alongside native insights. Deleted `PublicDocumentArticleController`, `/articles/{slug}` web route, `resources/views/articles/show.blade.php`. Added `DocumentArticleAsInsight{,List}Resource`. Extended `Api\Public\InsightController` (show fallback, index merge), `InsightsSeoMetaInjector`, `InsightSeoService`. New `body_html` field on `InsightArticleResource` rendered via `v-html` in `InsightArticlePage.vue` with scoped Tailwind-token styles for h2/h3/p/a/ul/ol/blockquote/img/table/pre/code.
+- [x] **Found mid-loop**: `SanitizeInput` middleware was stripping all HTML from `html`/`html_body` request fields BEFORE `HTMLBodySanitiser` (HTMLPurifier) could run, leaving doc article bodies as plain text. Added `'html'` and `'html_body'` to `$htmlAllowedFields`. Confirmed with end-to-end browser upload that body now stores structured h1/p/table.
+- [x] **Browser-verified** locally + on dev: login → upload `sample-with-images-and-tables.docx` → publish → `/insights/rich-sample-title` renders with full PublicLayout chrome, structured body content, design-system table styling, zero console errors. Article appears in `/insights` hub.
+- [x] **133 Documents + Insights + Architecture tests still green** (rewrote `PublicDocumentArticleTest.php` — 7 tests for API show, draft 404, admin preview, non-admin denial, hub listing, previewUrl shape, SEO meta).
+
+#### Deploy
+
+- [x] **PR #240 squash-merged** to `dev` (`3afb33c`) using `gh pr merge 240 --squash --admin --delete-branch=false` (CSJ is sole codeowner).
+- [x] **Deployed to `https://csjones.co/fynla`**: 9 PHP files rsynced, 2 legacy files deleted server-side, `public/build/` rotated with old-chunk merge (92M new + 85M old preserved), `composer dump-autoload` + cache clears + `php artisan optimize`.
+- [x] **Pre-existing dev-server gap fixed in passing**: pushed `app/Http/Controllers/Api/AgentInternalController.php` and `app/Http/Middleware/AgentTokenAuth.php`. They were referenced from server's `routes/api.php` but missing on disk — `php artisan route:list` was failing with "Class ... does not exist". Fixed without disturbing the server's 61+ uncommitted WIP files (eval / tax-strategy work).
+- [x] **End-to-end browser-verified** on csjones, including hub listing.
+- [x] **Deploy note committed** as `May/May4Updates/deployInsightsCMSIntegration.md` documenting what shipped, the SanitizeInput middleware root cause, the deploy gap fixed in passing, and the dev-server-WIP-not-touched warning for future deploys.
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **Review + merge PR #241** (`feature/csj/cms-insights-deploy-note → dev` — deploy note). Quick decision.
+- [ ] **`dev → main` release PR** — `origin/dev` now 44 commits ahead of `origin/main` including news/RSS/lifecycle (PR #238) + the entire CMSFix work + deploy notes. See "Outstanding for production deploy" section in `deployInsightsCMSIntegration.md` — non-trivial prep:
+  - 3 migrations
+  - `./deploy/fynla-org/build.sh` (NOT csjones script)
+  - Verify `AgentInternalController.php` + `AgentTokenAuth.php` exist on `fynla.org` (same gap may be present)
+  - The `SanitizeInput` middleware change goes too
+- [ ] **Verify `/admin/insights` still works** — carry-over from sessions 73 + 74. Not browser-verified after CMSFix landed.
+- [ ] **Drive malicious-fixture path on dev** — `sample-with-malicious-html.docx` should publish with `<script>` + event handlers stripped. Pest covers it; live browser run pending.
+
+### Tech debt + follow-ups
+
+- [ ] **W1** (security, defer): `InsightArticlePage.vue:81` `v-html` is XSS-safe only while every write to `html_body` runs through `HTMLBodySanitiser`. Belt-and-braces option: model mutator on `DocumentArticle::setHtmlBodyAttribute` re-running the sanitiser. Add when convenient.
+- [ ] **W2** (security, defer): `SanitizeInput.php` exempts `html`/`html_body` globally. Documented in the file comment, but any future endpoint with these field names bypasses middleware-level sanitisation. Long-term, prefer route-prefix scoping.
+- [ ] **S1**: `DocumentArticleAsInsight*Resource` naming inconsistent with module-resource pattern. Defer.
+- [ ] **S2**: `InsightController::index()` hand-rolls `{data, meta}`. Could use Laravel collection's `additional()`. Defer.
+- [ ] **S3**: `InsightSeoService::metaTagsForDocument` + `jsonLdForDocument` mirror native versions (~50 LOC duplication). Refactor to a shared `ArticleSeoSubject` interface if a third source appears.
+- [ ] **`bootstrap.js:27` latent hardcode** (carry-over from session 74): `'http://127.0.0.1:8000'` baseURL. Worth a one-line cleanup PR: change to `window.location.origin`.
+- [ ] **Memory candidate** (carry-over from session 74): "Tiptap v3 publishes ESM with named exports only — never default-import". Still un-saved.
+- [ ] **`build.old/`** at `~/www/csjones.co/fynla-app/public/build.old/` is now 85M (was 78M). Deletable once confidence high.
+
+### Known issues / blockers
+
+- **csjones.co server has 61+ uncommitted server-side WIP files** in `app/` (eval / tax-strategy work — listed in `deployInsightsCMSIntegration.md`). Future deploys to csjones MUST run rsync without `--delete` and ASK before bulk-syncing. `feedback_dev_server_is_separate.md` proved correct.
+- **Pre-existing 403s** on `/fynla/storage/insights/bespoke/*.jpg` (8 hero images) on `/fynla/insights` hub — out of scope for the CMS work; these images haven't been uploaded to dev's storage.
+
+---
+
+## Session 74 (4 May 2026, context-clear) — CSP fix + dev deploy + PR #240
+
+**Branch:** `CMSFix` (sync'd with `origin/CMSFix` — all pushed).
+**PR:** [#240](https://github.com/Stoff73/fynla/pull/240) `CMSFix → dev` **open**, awaiting CSJ review/merge. Branch-naming caveat flagged in body (CMSFix vs `feature/csj/<task>`).
+**Handover:** `May/May4Updates/handover-2026-05-04-session-2-clear.md` (mirrored to fynlaBrain vault).
+**Deploy guide:** `May/May4Updates/deployCMS.md` (covers dev + prod, file lists generated from `git diff`).
+
+### Completed this session
+
+#### Bug fixes (3 commits, all on CMSFix)
+
+- [x] **`5fc22ee` fix(documents): CSP/cross-origin Network Error on .docx upload.** Root cause: new `documentArticleService.js` imported bare global `axios` (whose `bootstrap.js:27` baseURL is hardcoded `http://127.0.0.1:8000`) instead of `@/services/api`. Page loaded at `localhost:8000` → cross-origin → CSP `connect-src 'self'` blocked. Aligned with project's API Services Pattern.
+- [x] **`4a55043` fix(documents): Tiptap default-imports broke production build.** Tiptap v3 packages publish ESM with named exports only; `import Default from '@tiptap/extension-table'` works in dev (esbuild CJS interop) but Rollup's strict ESM rejects it. Converted all 10 extension imports to named form.
+- [x] **`9d50768` docs(deploy): wrote `May/May4Updates/deployCMS.md`** — file lists generated from `git diff` against origin/dev (42 files) and origin/main (142 files), server-path corrections for csjones sibling-dir layout, composer install step, rollback procedure, smoke checklists.
+
+#### Verification
+
+- [x] Browser-tested locally on `http://localhost:8000` — login → upload → 201 → publish 200 → public render. Console clean.
+- [x] Browser-tested on dev (`https://csjones.co/fynla`) — same flow plus editor view. Console clean except pre-existing top-level `/favicon.ico` 404 (unrelated, csjones serves at `/fynla/favicon.ico`).
+- [x] Vite production build succeeds after Tiptap fix; rsync deploy completed; composer install / migrate / cache:clear / build.old merge all green.
+
+#### Session 73 carry-overs ticked off here
+
+- [x] ~~`git push -u origin CMSFix`~~ — pushed at `5fc22ee`, `9d50768`, `4a55043`.
+- [x] ~~Decide on PR `CMSFix → dev`~~ — PR #240 opened.
+- [x] **Drive Playwright browser scenario** — driven against local + dev servers. The `tests/Browser/scenarios/document-articles-end-to-end.php` Pest scenario file itself wasn't executed (it's a contract document; manual Playwright run covered the same 13 GREEN conditions minus malicious-fixture path).
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **CSJ review + merge PR #240** (`CMSFix → dev`). Branch-naming caveat: `CMSFix` doesn't follow `feature/csj/<task>` — rename + reopen, or override.
+- [ ] **Verify `/admin/insights` still works** (session 73 carry-over Task 23.2) — not browser-verified yet.
+- [ ] **Drive malicious-fixture path on dev** — `sample-with-malicious-html.docx` should publish with `<script>` and event handlers stripped. Pest feature tests cover it; live browser path not yet driven.
+- [ ] **Eventually merge `dev → main`** — will carry the news/RSS/lifecycle bundle from PR #238 too (origin/dev is 42 commits ahead of origin/main). Three migrations will run on prod, not one. Documented in `deployCMS.md`.
+
+### Tech debt + follow-ups
+
+- [ ] **`bootstrap.js:27` latent hardcode** — `'http://127.0.0.1:8000'` regardless of page hostname. Every existing service routes around it via `services/api.js`; this session's CMS fix made it the convention. One-line cleanup PR worth opening: change to `window.location.origin`. Not blocking.
+- [ ] **Memory candidate** — "Tiptap v3 publishes ESM with named exports only — never default-import". Vault-sync flagged; not auto-saved. Worth saving if it bites again.
+- [ ] **Test artefact on dev** — "Rich Sample Title" published article id=1 sits in csjones DB. Deletable from `/admin/documents` admin UI.
+- [ ] **`build.old/`** at `~/www/csjones.co/fynla-app/public/build.old/` (~78M) — preserved per `feedback_warn_before_spa_rebuild.md`. Deletable once confidence high.
+
+### Known issues / blockers
+
+None. Everything green on dev; nothing broken.
+
+---
+
+## Session 73 (4 May 2026, context-clear) — Document Articles CMS
+
+**Branch:** `CMSFix` (28 commits ahead of `origin/CMSFix`, **not yet pushed** — awaiting CSJ).
+**Plan + spec:** `May/May1Updates/2026-05-01-document-articles-cms-{plan,spec}.md`. Both amended in flight to reflect as-built; spec FI section captures deferred decisions.
+**Handover:** `May/May4Updates/handover-2026-05-04-session-1-clear.md` (mirrored to fynlaBrain vault).
+
+### Completed this session
+
+#### Implementation — 22 of 23 plan tasks done
+
+- [x] **Phase 0 (deps):** Tasks 1–2 — installed `mammoth`, `jszip`, 7 tiptap extensions; installed `mews/purifier` with `document_article` profile.
+- [x] **Phase 1 (DB + model):** Tasks 3–4 — `document_articles` migration; `DocumentArticle` Eloquent model + factory.
+- [x] **Phase 2 (services, TDD):** Tasks 5–7 — `DocxMetadataExtractor`, `HTMLBodySanitiser`, `DocumentArticleImporter`, `SlugGenerator`. 16 unit tests + 3 feature tests, all green.
+- [x] **Phase 3 (HTTP):** Tasks 8–11 — `DocumentArticleImportRequest`, `DocumentArticleUpdateRequest`, admin `DocumentArticleController` (8 endpoints, 8 tests), public `PublicDocumentArticleController` + Blade with full SEO chrome (4 tests).
+- [x] **Phase 4 (frontend state):** Tasks 12–13 — `documentArticleService.js`, `documentArticles` Vuex module registered in `store/index.js`.
+- [x] **Phase 5 (components):** Tasks 14–17 — `DropZone.vue` (mammoth + JSZip), `CoverImagePicker.vue`, `DocumentListPage.vue`, `DocumentEditor.vue` (Tiptap canvas with 11 extensions wired).
+- [x] **Phase 6 (wire-up):** Tasks 18–19 — router routes lazy-loaded, Documents sidebar entry with icon path.
+- [x] **Phase 7 (polish, partial):** Tasks 20 (rich + malicious fixtures), 21 (full pest suite + pint + parallel run), 22 (browser scenario contract committed).
+
+#### Spec amendments approved by CSJ in flight
+
+- [x] Add `<pre>`, `<sub>`, `<sup>` to `document_article` HTMLPurifier allow-list (mammoth fidelity).
+- [x] Defer `imported_by` cascade-on-delete decision to FI-19 sprint (recorded in spec FI table).
+- [x] Plan's `data-pending-image` mechanism corrected: register via `custom_definition.attributes`, NOT `HTML.Allowed` (HTMLPurifier API constraint the plan missed).
+- [x] Sentinel collision-resistance: `HTMLBodySanitiser` uses per-call random nonce (`bin2hex(random_bytes(8))`).
+- [x] `putFileAs` silent-failure guard + new test that genuinely covers mid-transaction rollback (replaced misleading test).
+- [x] `DocxMetadataExtractor` adds `Log::warning` on malformed core.xml per spec line 307.
+- [x] `DocumentArticleFactory` aligned with `fake()` (project convention).
+- [x] Plan's `with('importer:id,name,email')` → `id,first_name,surname,email` (`name` is a User accessor; controller selection corrected to load source columns).
+
+#### Verification
+
+- [x] Documents suite: 53 tests passed, 141 assertions.
+- [x] Full Pest parallel suite: 2425 tests passed, 9632 assertions, **0 regressions**.
+- [x] `php artisan migrate:rollback --step=1 && php artisan migrate` round-trips cleanly.
+- [x] Pint clean across all touched paths after one formatting commit.
+
+### Outstanding (awaiting CSJ direction)
+
+- [ ] **Drive Playwright browser scenario** — `tests/Browser/scenarios/document-articles-end-to-end.php` documents 13 GREEN conditions; driver needs to actually execute against the running dev server (login → upload `sample-with-images-and-tables.docx` → publish → assert SEO chrome on `/articles/rich-sample-title` → repeat with malicious fixture). Per CLAUDE.md Rule #15 LOOP UNTIL CORRECT.
+- [ ] **`git push -u origin CMSFix`** — 28 commits unpushed. Don't auto-push per `feedback_no_deploy_recommendations`.
+- [ ] **Verify `/admin/insights` still works** (Task 23.2) — needs browser; can roll into the Playwright run.
+- [ ] **Decide on PR `CMSFix → dev`** — only after browser test green.
+
+### Tech debt + FI follow-ups (not blocking)
+
+- [ ] FI-19 sprint: revisit `imported_by` cascade behaviour alongside soft-delete design. Logged in spec.
+- [ ] Plan author note: three real defects in the plan (`data-pending-image` mechanism, misleading test name, `name` column reference) — worth a plan-quality pass before the next CMS feature uses similar templates.
+
+### Known issues / blockers
+
+None. Everything green; nothing broken.
+
+---
+
+## Session 72 (28 April 2026) — News subscriber email-list signup
+
+**Branch:** `feature/phailanx/news-rss-lifecycle-emails` (29 commits ahead of `origin/dev`, all pushed).
+**PR:** [#238](https://github.com/Stoff73/fynla/pull/238) `feature/phailanx/news-rss-lifecycle-emails → dev` open, **replaces #237** (which was branch-naming-violation; squashed and rebased onto the convention-compliant branch in `fa6d6c6`). Self-review pending.
+**Note:** today bundles two streams — PR-237 squash (`fa6d6c6`) carries the news hub + RSS feeds + lifecycle email infrastructure unchanged; commits since are the new news-subscribe-fix work.
+
+### Completed this session
+
+#### Bug discovery + plan
+- [x] CSJ flagged that `/news` "Subscribe to our news feed" banner sent users to raw `/feed/news.xml` XML page instead of capturing emails — confirmed in browser. Root cause: `NewsHubPage.vue:21` was `<a href="/feed/news.xml" target="_blank">`.
+- [x] Wrote `April/April28Updates/news-subscribe-fix-plan.md` (26-task implementation plan with file paths, code blocks, commit messages, test assertions, and explicit cross-references to PR-237-review.md findings #16, #8, #11, #3 and B2).
+- [x] CSJ approved 5 design decisions: double opt-in, list-only (broadcast deferred), one-click unsubscribe, registered-Fynla-user gets sign-in inline link (no row created), `PreviewWriteInterceptor::EXCLUDED_ROUTES` exclusion.
+
+#### Group A — DB schema + model + mail config (commits `efb803f`, `16d2b84`, `6a66ed5`, `2d5bd3b`)
+- [x] Migration `2026_04_28_120000_create_news_subscribers_table.php` with `Schema::hasTable` guard + composite index `[unsubscribed_at, confirmed_at]`.
+- [x] `App\Models\News\NewsSubscriber` model with `confirmed`/`pending`/`unsubscribed` scopes (typed `Builder $query): Builder` matching peer `NewsArticle::scopePublished`), `generateToken()` static helper, `isConfirmed()`/`isPending()` instance helpers.
+- [x] `config/mail.php` adds `marketing` from-block reading `MAIL_MARKETING_FROM_ADDRESS`/`NAME` env vars; `.env.example` has the new keys.
+- [x] Reviewer round 1 caught namespace mismatch (model was at `App\Models\NewsSubscriber`, peer `NewsArticle` is at `App\Models\News\NewsArticle`); single-column indexes vs composite. Both fixed in `2d5bd3b`.
+
+#### Group B — Mailables + blades + factory + render tests (commits `0dbc704`, `3786f92`, `04a1dad`, `5c276cf`, `e6e45db`, `f08ed78`)
+- [x] `NewsletterConfirmationMail` + `NewsletterWelcomeMail` Mailables (queueable, from `marketing@fynla.org`).
+- [x] `confirm-subscription.blade.php` + `welcome.blade.php` extending `emails.layouts.master` per the `email-template` skill rules with Rule-2 adjacency walks documented inline.
+- [x] `NewsSubscriberFactory` with `confirmed()` and `unsubscribed()` states using `fake()` (NOT `$this->faker`) per PR-237 Finding #5.
+- [x] `tests/Pest.php` extended with `uses(Tests\TestCase::class)->in('Unit/Mail')` mirroring the `BaseAgentTest` precedent (no DB needed for render tests).
+- [x] `App\Models\News\NewsSubscriber::newFactory()` resolver added because Laravel resolved `Database\Factories\News\NewsSubscriberFactory` first and never fell back.
+- [x] 3 unit tests (`NewsletterMailRenderTest`) — confirm URL, unsubscribe URL, marketing from-address — all pass.
+- [x] Reviewer round caught Rule-2 comment scope (extended to cover full eggshell band) + unused `rssUrl` view variable. Fixed in `f08ed78`.
+
+#### Group C — Public subscribe controller + 8 feature tests (commits `b56a341`, `8399d11`, `3c14e7a`, `9eeb212`, `62dc79c`, `a6291aa`)
+- [x] `Api\Public\NewsSubscriberController::subscribe()` with 5 response branches: rate_limited / pending_confirmation / already_registered / already_confirmed / 422 validation. IP-keyed `RateLimiter` (3 per 5 min) + route-level `throttle:5,1` belt-and-braces.
+- [x] Route `POST /api/news/subscribe` added INSIDE existing `Route::prefix('news')` group, BEFORE `{slug}` (otherwise matched as a slug).
+- [x] `'api/news/subscribe'` added to `PreviewWriteInterceptor::EXCLUDED_ROUTES`.
+- [x] 8 feature tests: happy path / already-registered / already-confirmed / pending-resend (token rotates) / 422 invalid / 429 rate-limit / resubscribe-after-unsubscribe / mixed-case email normalisation. All pass.
+- [x] Reviewer round caught synchronous `Mail::send` on a public anonymous endpoint (timing-amplifies the user-enumeration oracle); fixed by switching to `Mail::queue()`. Also moved `RateLimiter::hit()` BEFORE `validate()` so spam can't bypass.
+- [x] Discovery: `Mail::fake()` actually does separate `send` vs `queue` — `assertSent` does not catch queued mail. Switched all 5 existing assertions to `assertQueued`.
+- [x] Discovery: MySQL `utf8mb4_unicode_ci` is case-insensitive — adapted normalisation test to assert via stricter PHP comparison instead of relying on `where()` to be case-sensitive.
+
+#### Group D — Web confirm/unsubscribe controller + 6 tests (commits `361c261`, `9094692`, `188c79e`)
+- [x] `NewsletterActionController::confirm($token)` and `unsubscribe($token)` — both idempotent, both `firstOrFail()` → 404 on bad token.
+- [x] Routes `GET /subscribe/news/confirm/{token}` + `GET /unsubscribe/news/{token}` in `routes/web.php` BEFORE the SPA catch-all, with `where('token', '[A-Za-z0-9]{48}')` regex (matches `Str::random(48)` base62).
+- [x] Standalone Blade pages `newsletter/confirmed.blade.php` + `newsletter/unsubscribed.blade.php` — full HTML, no SPA shell. After reviewer round: corrected hex tokens (`#f5f0eb` → `#F7F6F4` is the WEB Tailwind token; `#e74c6f` → `#E83E6D` is web; the email-template skill's `#f5f0eb`/`#e74c6f` are the EMAIL context tokens, distinct concept). Added favicon link `{{ asset('images/logos/favicon.png') }}`.
+- [x] 6 feature tests: confirm-pending / 404-invalid-confirm / idempotent-confirm / unsubscribe-confirmed / 404-invalid-unsubscribe / idempotent-unsubscribe. All pass.
+- [x] Discovery: `assertSee` HTML-escapes by default; needed `, false` second arg to match the literal `'` in "You're"/"You've" against the rendered Blade.
+
+#### Group E — Frontend service + banner component + integration (commits `9018249`, `2e2ccfd`, `007ec31`, `0a68657`)
+- [x] `newsSubscriberService.js` API wrapper (single `subscribe(email)` POST to `/news/subscribe`).
+- [x] `NewsSubscribeBanner.vue` Vue component (Options API, multi-word name) with 5 UI states: idle/error/pending_confirmation/already_registered/already_confirmed. Status-string contract matches backend exactly. Accessibility: `sr-only` label, `aria-hidden` on decorative SVG, `role="alert"` errors, `role="status"` messages. `<router-link to="/login">` for sign-in CTA in already-registered state. Design-system tokens only (no hardcoded hex).
+- [x] `NewsHubPage.vue` lines 20-33 broken `<a>` block replaced with `<NewsSubscribeBanner />`. Bottom "Want to stay updated?" CTA section UNCHANGED (PR-237 work, kept for tech users).
+- [x] CSJ requested: hidden the in-banner "Prefer RSS? Subscribe via feed" link until newsletter broadcast lands. Done in `0a68657`.
+
+#### Group F — Admin index + CSV export (commits `2e580b9`, `395d1ad`)
+- [x] `Api\Admin\NewsSubscriberController` with `index` (paginated, status filter, email search) + `export` (streamed CSV, chunked 500 at a time).
+- [x] Routes added to existing admin auth group `['auth:sanctum', 'permission:admin.access']` with prefix `admin/`. Constructor middleware `permission:admin.access` mirrors peer `InsightArticleController`.
+- [x] 6 tests using `RolesPermissionsSeeder` + `Role::findByName(Role::ROLE_ADMIN)` + `role_id`+`is_admin=true` (the canonical admin auth pattern in this codebase, NOT `is_admin` alone). All pass.
+
+#### Group G — Admin Vue page + router (commit `7481aa2`)
+- [x] `resources/js/views/Admin/NewsSubscribersPage.vue` — `AppLayout`, `max-w-7xl mx-auto`, header with Export CSV button, 4 filter chips (All/Confirmed/Pending/Unsubscribed), email search with 250ms debounce, `card overflow-hidden` table with `bg-savannah-100` thead matching `ArticleListPage.vue`, status badges using `bg-spring-100 text-spring-700` / `bg-violet-100 text-violet-700` / `bg-light-gray text-neutral-500`, pagination, `formatDate` `en-GB` locale. CSV download via `responseType: 'blob'` + temporary `<a download>`.
+- [x] Router entry `path: '/admin/news-subscribers', name: 'AdminNewsSubscribers', meta: { requiresAuth: true, requiresAdmin: true }` matching peer `AdminInsights` route shape.
+
+#### Browser tests (5 paths verified end-to-end in Playwright on local)
+- [x] Subscribe `playwright-test-1@example.com` → "Check your inbox" → DB row + token captured → navigate to confirm URL → "You're subscribed" page → `confirmed_at` set in DB.
+- [x] Submit `john@example.com` (seeded user) → "You're already registered with Fynla — sign in" inline + `<router-link>` to `/login`. NO row created.
+- [x] Resubmit `resend-test@example.com` after pending → "Confirmation email re-sent — check your inbox" + token rotated in DB.
+- [x] 4× submits in 5 min from same IP → 4th gets "Too many attempts. Please try again in a few minutes." (alert role) + 4th email NOT in DB.
+- [x] Visit `/unsubscribe/news/{token}` for confirmed subscriber → "You've unsubscribed" page + `unsubscribed_at` set.
+- [x] Admin UI: 3 test rows render with status badges, `Confirmed` filter narrows to 1, `test2` search narrows to 1, `Export CSV` returns 200 with `text/csv; charset=UTF-8` + correct header row + 3 data rows.
+- [x] Discovery: Pest's `RefreshDatabase` wiped users + news_articles after running the full feature suite. Ran `php artisan db:seed --force` to restore 14 users + launching-fynla article. (CLAUDE.md rule: "ALWAYS reseed after any operation that modifies or loses local database data".)
+
+#### Final cleanup (commit `5c20a0d`)
+- [x] Pint applied to all 13 new PHP files (4 style issues auto-fixed: `class_attributes_separation`, `single_line_empty_body`, `braces`).
+- [x] Full new-test suite re-run after pint: **23 passing, 80 assertions, 0 failures**.
+- [x] RSS feeds regression check: `/feed/news.xml` + `/feed/insights.xml` both still 200.
+- [x] Two follow-ups added to `CSJTODO.md` (this file): Newsletter broadcast + PR-237 Finding #16 test coverage gap.
+
+#### Deploy guide + PR
+- [x] `April/April28Updates/deployNewsletter.md` written (12 sections, ~12 KB) — generated from `git diff origin/dev..HEAD --name-status` (NOT memory). Covers: prereqs, DB changes, env vars, 9 file categories to upload, build, upload options, SSH finalisation, 10 smoke-test paths, post-deploy log-watching, rollback plan, promotion-to-prod, cross-references, full commit reference.
+- [x] PR #238 opened replacing #237. Title: "feat(news+emails): subscribe form + RSS hub + lifecycle emails (replaces #237)". Body covers all three streams + tests + browser verification + 17-item deploy/review checklist.
+- [x] PR-237-review.md, news-subscribe-fix-plan.md, deployNewsletter.md all synced to `/Users/CSJ/Desktop/fynlaBrain/April/April28Updates/`.
+
+### NOT Done — Outstanding for next session
+
+#### Top priority — deploy PR #238 to dev (csjones.co/fynla)
+- [ ] **Self-review and merge PR #238** on GitHub.
+- [ ] **Add to dev `.env`**: `MAIL_MARKETING_FROM_ADDRESS=marketing@fynla.org`, `MAIL_MARKETING_FROM_NAME="Fynla"` (NEW — not in git).
+- [ ] **Confirm SMTP relay can deliver from `marketing@fynla.org`** BEFORE first signup. Queue is `sync` on dev so a failing relay surfaces as a slow/erroring subscribe. Test: `php artisan tinker → Mail::raw('test', fn(\$m) => \$m->from('marketing@fynla.org')->to('chris@fynla.org')->subject('relay test'))->send();`
+- [ ] **Build**: `./deploy/csjones-fynla/build.sh` (sets VITE_BASE_PATH=/fynla/build/, VITE_ROUTER_BASE=/fynla/, VITE_REVOLUT_SANDBOX=true).
+- [ ] **Upload to** `~/www/csjones.co/fynla-app/` (NOT `public_html/fynla` — see `reference_csjones_sibling_dir.md` memory) per the 9 file categories in `deployNewsletter.md` §3.
+- [ ] **SSH finalise**: `cd ~/www/csjones.co/fynla-app && php artisan migrate --force && php artisan db:seed --class=NewsArticleSeeder --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize`
+- [ ] **Verify routes**: `php artisan route:list --path=news/subscribe`, `--path=subscribe/news`, `--path=unsubscribe/news`, `--path=admin/news-subscribers` (4 expected, with correct middleware).
+- [ ] **Smoke-test the 10 paths in `deployNewsletter.md` §7** on `https://csjones.co/fynla` — subscribe happy / registered / resend / rate-limit / unsubscribe / admin / RSS regression / lifecycle test / landing / video.
+- [ ] **Watch `storage/logs/laravel.log`** for 15 min after first request.
+
+#### After dev green — production deploy (fynla.org)
+- [ ] PR `dev → main` opened (only `@Stoff73`).
+- [ ] Build with `./deploy/fynla-org/build.sh` (production env vars: VITE_BASE_PATH=/build/, VITE_ROUTER_BASE=/, VITE_REVOLUT_SANDBOX=false).
+- [ ] Upload to `~/www/fynla.org/public_html/`.
+- [ ] Add `MAIL_MARKETING_FROM_*` to **production** `.env`. Confirm DKIM/SPF/DMARC alignment for `marketing@fynla.org` (escalate to whoever owns DNS if SMTP rejects).
+- [ ] Same migrate/seed/cache-clear sequence on production server.
+- [ ] Smoke-test all 10 paths against `https://fynla.org/...` URLs.
+- [ ] Close PR #237 on GitHub with reference to PR #238 after production lands.
+
+#### Tech debt items from this session (`tech-debt-report.md` — 9 issues, 0 critical)
+- [ ] **Admin CSV export missing `throttle:export`** (`routes/api.php`, the export route streams subscriber emails + IPs, should be 3/hour-rate-limited per HTTP CLAUDE.md convention).
+- [ ] **No AdminPanel sidebar entry** for `/admin/news-subscribers` — admins can only reach it by typing the URL. Add a link/card to `AdminPanel.vue`.
+- [ ] **Standalone newsletter pages use raw `#555` for body text** instead of a design-system token. Defensible for non-Tailwind contexts but worth swapping to `#717171` (neutral-500) if you want palette purity.
+- [ ] 6 other suggestions in `tech-debt-report.md` — none merge-blocking. Read for context if doing a polish pass.
+
+#### Carried follow-ups added to CSJTODO this session
+- [ ] **Newsletter broadcast** — when a `NewsArticle` flips to `status='published'`, fan out to confirmed `NewsSubscriber::confirmed()` rows. Queueable, paced (avoid SMTP 451 — see Session 67 lifecycle hotfix), skip subscribers who unsubscribe between queue + send.
+- [ ] **PR-237 Finding #16** — News/RSS/lifecycle code from PR-237 (~1,000 lines) still has no tests. Open a separate PR with `NewsController`, `FeedController`, `NewsArticle::published()` scope, RSS XML schema validation, and Lifecycle Mailable construction tests.
+
+### Context for next session
+
+Branch: `feature/phailanx/news-rss-lifecycle-emails` (29 commits ahead of `dev`, all pushed). PR #238 is the merge target.
+
+The user requested deployment to dev after PR review. They have the deploy guide at `April/April28Updates/deployNewsletter.md` — all steps are explicit. Most likely next-session ask: "merge #238 and deploy to dev". Read the deploy guide before doing anything.
+
+The launch news article was missing on `/news` until `php artisan db:seed --class=NewsArticleSeeder --force` was run mid-session. Pest's `RefreshDatabase` wipes the DB whenever feature tests run — always reseed before browser-testing. CLAUDE.md "DB seed every session" lesson reinforced.
+
+Two pieces of standing infrastructure now exist that future work should reuse: (1) the `email-template` skill and module library at `resources/views/emails/modules/` — every new email must use these per the skill rules; (2) the `App\Models\News\NewsSubscriber` namespace pattern — any future news-domain model should land at `App\Models\News\X` not `App\Models\X` (Group A reviewer caught this drift; mirrors peer `NewsArticle`).
+
+### Files written this session (local, gitignored)
+
+- `April/April28Updates/news-subscribe-fix-plan.md` (26-task implementation plan)
+- `April/April28Updates/deployNewsletter.md` (12-section deploy guide)
+- `tech-debt-report.md` (9 findings, 0 critical) — at repo root, gitignored
+
+### Decision register additions (locked this session)
+
+13. **Newsletter is double opt-in.** Confirmation email click required before email lands on the active list. GDPR posture.
+14. **Already-registered Fynla user → "Sign in" inline link, no list-row created.** Soft user-enumeration oracle accepted as UX trade-off.
+15. **`marketing@fynla.org` is the from-address for all newsletter mail.** Distinct from `noreply@fynla.org` (transactional / lifecycle) and `support@fynla.org` (contact form).
+16. **Newsletter broadcast deferred** until list is built. List-only first; broadcast in a follow-up PR.
+17. **In-banner "Prefer RSS?" link hidden** until newsletter broadcast lands. Bottom CTA's "Or subscribe via RSS" link kept (PR-237 original, for tech users).
+
+---
+
+## Session 71 (27 April 2026) — RSS news hub + landing-page restoration
+
+**Branch:** `rss-feed` (15 commits ahead of `origin/main`, in sync with `origin/rss-feed`).
+**PR:** [#237](https://github.com/Stoff73/fynla/pull/237) `rss-feed → dev` open, awaiting review.
+**Note on this session's branch:** all of session 70's work was on `feature/fyn-persona-split`; that branch was NOT touched today. This session worked entirely on `rss-feed` (a separate workstream — news/landing fixes for the public marketing site).
+
+### Completed this session
+
+#### Homepage + campaign-page restoration (commit `4de75357`)
+- [x] Restored fixes from `email-onboarding-video` branch that never reached main:
+  - Homepage stats: "1000's of financial plans created" replacing "1 / The only UK platform" filler; line-break tweak on "UK adults don't get<br/>financial advice"
+  - Latest insights: gate DB-driven block on `insightsFeatured`; add static fallback (3 hardcoded articles via `STATIC_INSIGHTS` + `getInsightImage()`) for environments where the CMS feature flag is off
+  - Homepage + campaign-page video: swap to `Homepage-Fynla-ProductVideov2.mp4` (14.3 MB asset restored from `email-onboarding-video`) with click-to-play overlay; drop fake browser-chrome card and autoplay/loop/muted
+- [x] Meta Pixel gated behind `app()->environment('production')` so dev/local don't fire it (`resources/views/app.blade.php:80`)
+
+#### News hub + RSS feed scaffolding (commit `11a85c7a`)
+- [x] `news_articles` migration + `NewsArticle` model + factory + `NewsArticleSeeder`
+- [x] Public API: `Api/Public/NewsController` with `/api/news` (list) + `/api/news/{slug}` (show)
+- [x] `FeedController` serving `/feed/news.xml` (RSS 2.0)
+- [x] Frontend: `NewsHubPage` + `NewsArticlePage` views; `/news` and `/news/:slug` routes; `newsService.js` API wrapper
+- [x] Footer link in `PublicLayout.vue`: "Accreditations" → "News"
+
+#### News redesign — match brand patterns (commit `25daf6bb`)
+- [x] `NewsHubPage`: full-width gradient hero card (raspberry blur-blob accents, "Latest" badge) for the featured article + 3-col grid of recent articles + light-pink RSS subscribe panel at top
+- [x] `NewsArticlePage`: hero stripped to title-only `py-10` (matches bespoke insights pages); body restructured with back-link, byline, italic summary intro, then v-html'd body; canonical pink-100 CTA section after the body
+- [x] Article body typography refactored to Tailwind `@apply` directives matching the insights pages — also satisfies CLAUDE.md rule 12
+- [x] Lead paragraph (`<p class="lead">` or `:first-child`) styled to match h2 subtitle formatting: `text-xl sm:text-2xl font-bold text-horizon-500`
+- [x] News article body: "Today we're launching..." → "We're launching..."; "Investment" bullet → "Planning"; co-founder names linked to `/about#chris-slater-jones` and `/about#brett-isenberg`
+- [x] `AboutPage.vue`: anchor IDs added to founder cards with `scroll-mt-24` for clean deep-link landing
+
+#### RSS link polish (commit `b55cd9c0`)
+- [x] Top pink subscribe panel: trailing right-arrow swapped for the open-in-new-window icon (no slide transform; hover colour-swap to raspberry)
+- [x] Bottom-of-page "Or subscribe via RSS" link: added `target="_blank"` + external-link icon next to the word "RSS"
+
+#### Other
+- [x] Dev build complete: `./deploy/csjones-fynla/build.sh` → `public/build/` (8.3M)
+- [x] Local dev server: Vite running on `:5174` (5173 was held by an orphaned node process), `public/hot` regenerated
+- [x] Pre-existing `dev.ps1` bugs flagged but NOT touched (scope discipline): `$pid` is a reserved PS automatic variable; `mysql` CLI not in PATH for the connection check
+- [x] Mockup file at `public/mockups/news-redesign.html` (gitignored) — Variant A approved and shipped to `NewsHubPage.vue`
+
+### NOT Done — Outstanding for next session
+
+#### Top priority — dev deploy of PR #237
+- [ ] **Branch rename decision** — `rss-feed` doesn't match the mandatory `feature/<owner>/<task>` convention. Per CLAUDE.md "any other prefix is wrong and the PR will be closed." Options: rename to `feature/phailanx/rss-feed` (since gh user is Phailanx) and re-target the PR, or push through and accept the codeowner request to rename
+- [ ] **Upload to dev** (`~/www/csjones.co/fynla-app/`) — files listed below
+- [ ] **SSH after upload**: `php artisan migrate --force` (creates `news_articles` table) → `php artisan db:seed --class=NewsArticleSeeder --force` (seeds the launch announcement) → cache clears + optimize
+- [ ] **Smoke test** on `https://csjones.co/fynla`:
+  - `/news` renders the redesigned hub; pink RSS panel opens `/feed/news.xml` in a new tab
+  - `/news/launching-fynla` renders with subtitle-formatted lead paragraph; co-founder links land on the right About sections
+  - `/feed/news.xml` returns valid RSS 2.0 (Apache may need MIME type for `.xml` if served as text/html)
+  - Homepage stats reads "1000's / of financial plans created"
+  - Latest insights static fallback renders (3 cards) since CMS flag is off on dev
+  - Homepage + campaign videos load `Homepage-Fynla-ProductVideov2.mp4` with click-to-play
+  - Meta Pixel does NOT appear in page source (dev `APP_ENV=staging`)
+- [ ] **Production deploy** (only after dev sign-off): build with `./deploy/fynla-org/build.sh`, repeat upload + SSH steps on `~/www/fynla.org/public_html/`. Verify Meta Pixel DOES fire on production.
+
+#### Pending migrations (from main, NOT auto-run this session)
+Local DB still has 7 pending migrations dated 2026-04-14/15:
+- `2026_04_14_122231_create_lifecycle_email_log_table`
+- `2026_04_14_122345_create_feedback_responses_table`
+- `2026_04_14_122424_add_user_id_and_metadata_to_discount_codes`
+- `2026_04_14_122508_add_is_lifecycle_test_user_to_users`
+- `2026_04_14_122545_add_lifecycle_columns_to_notification_preferences`
+- `2026_04_14_122656_add_subscriptions_indexes`
+- `2026_04_14_123409_add_lifecycle_welcome_to_discount_codes_type_enum`
+- `2026_04_15_153100_add_awin_tracking_to_payments_table`
+These come from upstream main and should run cleanly: `php artisan migrate --force`. Confirm before running.
+
+### Files to upload to dev (rss-feed → dev, beyond `public/build/`)
+
+**PHP / Laravel:**
+- `resources/views/app.blade.php` (Meta Pixel gate)
+- `app/Http/Controllers/Api/Public/NewsController.php` *(new)*
+- `app/Http/Controllers/FeedController.php` *(new)*
+- `app/Http/Resources/News/NewsArticleListResource.php` *(new)*
+- `app/Http/Resources/News/NewsArticleResource.php` *(new)*
+- `app/Models/News/NewsArticle.php` *(new)*
+- `database/factories/NewsArticleFactory.php` *(new)*
+- `database/migrations/2026_04_27_120000_create_news_articles_table.php` *(new)*
+- `database/seeders/NewsArticleSeeder.php` *(new)*
+- `database/seeders/DatabaseSeeder.php` (registers NewsArticleSeeder)
+- `routes/api.php`
+- `routes/web.php`
+- `resources/js/views/Public/AboutPage.vue` (anchor IDs)
+- `resources/js/layouts/PublicLayout.vue` (footer "News" link)
+
+**Asset:**
+- `public/images/Homepage-Fynla-ProductVideov2.mp4` (14.3 MB)
+
+### Context for next session
+
+Pick up at the dev deploy of PR #237. The dev build artefacts are already in `public/build/` (8.3M, built this session). If the user has uploaded since this session ended, skip the build; otherwise re-run `./deploy/csjones-fynla/build.sh` first because Vite output paths are deterministic but timestamps are not, and SiteGround's preserve-old-chunks pattern only works if both old and new artefacts are present locally.
+
+The branch-rename question is worth resolving up-front so the PR doesn't sit in limbo. CLAUDE.md treats the convention as strict.
 
 ---
 
@@ -548,6 +1277,11 @@ Dev branch is fully in sync with csjones.co/fynla server. Working tree is clean.
 - [ ] **Test Fyn chat fixes on dev (csjones.co/fynla)** — deployed in session 58 but not browser-tested. Carried from session 58.
 - [ ] **Add `Current State/Insights.md`** to the vault — carried from session 62.
 - [ ] **`AutoRiskCalculatorTest` pre-existing failure** — `risk_level` enum truncation. Pre-existing since 16 April.
+
+## Follow-ups from news-subscribe-fix (2026-04-28)
+
+- [ ] **Newsletter broadcast** — when a `NewsArticle` flips to `status='published'`, fan out an email to all confirmed `NewsSubscriber` rows (`->confirmed()` scope). Should be queueable, paced (avoid SMTP 451 — see Session 67 lifecycle hotfix), and skip subscribers who unsubscribe between queueing and sending. Out of scope for the news-subscribe-fix branch which only built list-build infrastructure.
+- [ ] **PR-237 Finding #16 — News/RSS/lifecycle test coverage** — news-subscribe-fix added 20 tests for the new code, but the original PR-237 news/RSS/lifecycle code (~1,000 lines) still has no tests. Add a separate PR with unit/feature tests for `NewsController`, `FeedController`, `NewsArticle::published()` scope, RSS XML schema, and Lifecycle Mailable construction.
 
 ## Known Issues
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Constants\TaxDefaults;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -53,7 +54,7 @@ class UpdateInvestmentAccountRequest extends FormRequest
 
             // ISA specific
             'isa_type' => ['nullable', Rule::in(['stocks_and_shares', 'lifetime', 'innovative_finance'])],
-            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.\App\Constants\TaxDefaults::ISA_ALLOWANCE,
+            'isa_subscription_current_year' => 'nullable|numeric|min:0|max:'.TaxDefaults::ISA_ALLOWANCE,
 
             // Contributions
             'monthly_contribution_amount' => 'nullable|numeric|min:0',

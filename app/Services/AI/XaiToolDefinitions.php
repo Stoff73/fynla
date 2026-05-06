@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Constants\UpdateRecordAllowlist;
+
 /**
  * xAI-optimised tool definitions with strict function calling.
  *
@@ -30,6 +32,7 @@ class XaiToolDefinitions
             ...$this->analysisTools(),
             ...$this->taxTools(),
             ...$this->planGenerationTools(),
+            ...$this->billingTools(),
         ];
 
         if (! $isPreviewMode) {
@@ -40,6 +43,7 @@ class XaiToolDefinitions
                 $this->additionalCreationTools(),
                 $this->dataModificationTools(),
                 $this->profileTools(),
+                $this->campaignSaveTaxTools(),
             );
         }
 
@@ -133,9 +137,11 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'list_records',
-                'List existing records of a given type with IDs and key details. Use this BEFORE calling update_record to find the correct entity_id. '
-                .'Also use when the user asks "what accounts do I have?" or "show me my pensions". '
-                .'The <existing_records> section in the system prompt already has a snapshot — use this tool for a fresh, detailed lookup.',
+                'List existing records of a given type with IDs, key details, balances, interest rates, and values. Use this BEFORE calling update_record to find the correct entity_id. '
+                .'Use this for factual questions about the user\'s accounts — balances, interest rates, providers, policy details. '
+                .'For example: "how much interest will I earn?" → list_records(savings_account) to get balances and rates. '
+                .'"What pensions do I have?" → list_records(dc_pension). '
+                .'This tool returns raw data. For full module analysis (recommendations, gaps, capacity), use get_module_analysis instead.',
                 [
                     'entity_type' => [
                         'type' => 'string',
@@ -159,7 +165,9 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'get_module_analysis',
-                'Get detailed financial analysis for a specific module. Returns personalised analysis based on the user\'s actual financial data.',
+                'Run a comprehensive financial analysis for a module — returns recommendations, gaps, capacity assessments, and projections. '
+                .'Only use this when the user needs analysis, advice, or recommendations (e.g. "am I saving enough?", "analyse my estate", "what should I do about my pension?"). '
+                .'Do NOT use for simple data lookups like account balances, interest rates, or tax allowances — use list_records or get_tax_information instead.',
                 [
                     'module' => [
                         'type' => 'string',
@@ -168,6 +176,25 @@ class XaiToolDefinitions
                     ],
                 ],
                 ['module']
+            ),
+            $this->wrapTool(
+                'search_conversation_index',
+                'Search the user\'s prior conversations for context on a topic or entity. Returns up to 10 prior conversations matching the supplied keywords/entity types, ordered by recency. '
+                .'Use ONLY when the <known_facts> block is silent on the field you need and you need to know what the user has discussed in earlier sessions (e.g. they say "as we talked about last time" — search for the relevant topic to recover the thread). '
+                .'Do NOT use this as a substitute for list_records or get_module_analysis — those return current authoritative data; this returns historical conversational context.',
+                [
+                    'topic_keywords' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string'],
+                        'description' => 'Module-level topic tags to match against the conversation index topics field. Allowed values: protection, savings, investment, retirement, estate_planning, goals_life_events, tax_optimisation, family, property, mortgage, billing, general.',
+                    ],
+                    'entity_types' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string'],
+                        'description' => 'Entity types to match against the entities_mentioned field. Allowed values: life_insurance_policy, dc_pension, db_pension, isa, gia, savings_account, property, mortgage, credit_card, family_member, goal, life_event, will, trust, business_interest, chattel.',
+                    ],
+                ],
+                []
             ),
             $this->wrapTool(
                 'get_recommendations',
@@ -185,7 +212,10 @@ class XaiToolDefinitions
         return [
             $this->wrapTool(
                 'get_tax_information',
-                'Get current UK tax year information for a specific topic. ALWAYS use this tool when the user asks about tax thresholds, allowances, rates, or any financial product tax treatment. Never state tax values from memory — always retrieve them. Use income_definitions to get the user\'s detailed income breakdown including adjusted net income, threshold income, and tapered pension allowances.',
+                'Get current UK tax year information for a specific topic. ALWAYS use this tool when the user asks about tax thresholds, allowances, rates, or any financial product tax treatment. Never state tax values from memory — always retrieve them. '
+                .'Key topics: savings_config (Personal Savings Allowance, starting rate for savings, dividend allowance), '
+                .'income_tax (tax bands, personal allowance), isa_allowances (ISA annual limits), pension_allowances (Annual Allowance, Lifetime Allowance), '
+                .'income_definitions (user\'s adjusted net income, threshold income, tapered allowances).',
                 [
                     'topic' => [
                         'type' => 'string',
@@ -274,7 +304,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_goal',
                 'Create a new financial goal. Use when the user wants to save for something specific. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple goals.',
                 [
                     'name' => ['type' => 'string', 'description' => 'Name of the goal (e.g. "Holiday Fund", "House Deposit", "Emergency Fund")'],
                     'target_amount' => ['type' => 'number', 'description' => 'Target amount in pounds (£)'],
@@ -288,7 +318,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_life_event',
                 'Create a future life event that impacts the user\'s financial plan. Use for expected income (inheritance, bonus, property sale) or expenses (large purchase, wedding, home improvement). '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple life events.',
                 [
                     'event_name' => ['type' => 'string', 'description' => 'Short name for the event (e.g. "Parents\' Estate", "Kitchen Renovation", "Work Bonus")'],
                     'event_type' => [
@@ -313,7 +343,7 @@ class XaiToolDefinitions
                 'create_savings_account',
                 'Create a bank account or savings product. Use for current accounts, savings accounts, Cash ISAs, premium bonds, or NS&I products. '
                 .'Call this tool IMMEDIATELY when the user mentions any bank account or cash savings. '
-                .'IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple accounts (e.g. "I have a Halifax ISA and a Nationwide saver" → two tool calls).',
                 [
                     'account_name' => ['type' => 'string', 'description' => 'Name of the account (e.g. "Nationwide Cash ISA", "HSBC Current Account", "Marcus Savings")'],
                     'account_type' => $this->nullableEnum(
@@ -427,7 +457,7 @@ class XaiToolDefinitions
                 'create_holding',
                 'Add a holding to an EXISTING investment account that was already created WITHOUT holdings. Use this ONLY when the user wants to add holdings to an account that already exists and has no holdings. '
                 .'If the user is creating a NEW account AND mentions holdings at the same time, use create_investment_account with the holdings parameter instead. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple holdings (e.g. "in my SIPP I hold Apple and Microsoft" → two tool calls).',
                 [
                     'account_name' => ['type' => 'string', 'description' => 'Name or provider of the investment account to add the holding to (e.g. "Vanguard ISA", "Hargreaves Lansdown"). Must match an existing account.'],
                     'security_name' => ['type' => 'string', 'description' => 'Name of the fund, ETF, or share (e.g. "Vanguard FTSE All-World", "iShares Core MSCI World")'],
@@ -448,7 +478,7 @@ class XaiToolDefinitions
                 'create_pension',
                 'Create a pension for the user. Handles both Defined Contribution (DC: workplace, SIPP, personal) and Defined Benefit (DB: final salary, career average). '
                 .'Call this tool IMMEDIATELY when the user mentions a pension. Fill in every field you can. '
-                .'IMPORTANT: Do NOT call any other creation tools in the same turn as create_pension. '
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple pensions (e.g. "I have a workplace DC and a SIPP" → two tool calls). '
                 .'If the user mentions a pension without specifying DC or DB, ask: "Is this a workplace pension where your employer contributes, or a final salary/career average scheme?"',
                 [
                     'pension_category' => ['type' => 'string', 'enum' => ['dc', 'db'], 'description' => '"dc" for Defined Contribution (workplace, SIPP, personal). "db" for Defined Benefit (final salary, career average).'],
@@ -494,8 +524,8 @@ class XaiToolDefinitions
                 .'The form will be opened, filled, and saved automatically. After saving, confirm what was added '
                 .'and ask if they want to update any details (postcode, monthly costs, etc.) or add another property. '
                 .'Infer sensible values: if they say "my house" assume main_residence, if they say "our house" assume joint ownership. '
-                .'IMPORTANT: Do NOT call any other creation tools (create_family_member, navigate_to_page, etc.) in the same turn as create_property. '
-                .'The property form fill needs the page to stay on /net-worth/property until saved. Add family members in a follow-up message.',
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple properties (e.g. "main residence and a buy-to-let" → two tool calls) — the frontend queue saves them in order. '
+                .'Do NOT call navigate_to_page or get_module_analysis in the same turn as create_property — those interrupt the form fill.',
                 [
                     // ── Basic (truly required) ──
                     'property_type' => [
@@ -581,7 +611,8 @@ class XaiToolDefinitions
                 'create_mortgage',
                 'Add a mortgage to an existing property. Use when the user mentions a mortgage separately from a property. '
                 .'Call this tool IMMEDIATELY with whatever details the user provided. Set null for anything not mentioned. '
-                .'The form will be filled in front of the user. After filling, ask if they want to add more details before saving.',
+                .'The form will be filled in front of the user. After filling, ask if they want to add more details before saving. '
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple mortgages.',
                 [
                     'property_address_hint' => ['type' => ['string', 'null'], 'description' => 'A hint to match the property — address, postcode, or "my main home". System fuzzy-matches.'],
                     'lender_name' => ['type' => ['string', 'null'], 'description' => 'Mortgage lender name (e.g. "Halifax").'],
@@ -613,7 +644,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_protection_policy',
                 'Create a protection insurance policy. Handles life insurance, critical illness, and income protection. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple policies (e.g. "Aviva life insurance £300k and Vitality critical illness £100k" → two tool calls).',
                 [
                     'policy_type' => [
                         'type' => 'string',
@@ -626,9 +657,10 @@ class XaiToolDefinitions
                     'premium_amount' => ['type' => ['number', 'null'], 'description' => 'Premium amount (£).'],
                     'premium_frequency' => $this->nullableEnum(['monthly', 'annually'], 'How often premiums are paid. Default "monthly".'),
                     'policy_term_years' => ['type' => ['integer', 'null'], 'description' => 'Policy term in years (not for whole of life).'],
+                    'policy_start_date' => ['type' => ['string', 'null'], 'description' => 'Policy start date. Pass the user-supplied phrase verbatim (e.g. "today", "26 April 2026", "last Monday") — the server parses it deterministically.'],
                     'in_trust' => ['type' => ['boolean', 'null'], 'description' => 'Whether written in trust for IHT. Default false.'],
                 ],
-                ['policy_type', 'provider', 'sum_assured', 'benefit_amount', 'premium_amount', 'premium_frequency', 'policy_term_years', 'in_trust']
+                ['policy_type', 'provider', 'sum_assured', 'benefit_amount', 'premium_amount', 'premium_frequency', 'policy_term_years', 'policy_start_date', 'in_trust']
             ),
         ];
     }
@@ -653,7 +685,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_liability',
                 'Create a liability. Use for any debt: credit cards, loans, student loans, car finance, overdrafts. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple liabilities.',
                 [
                     'liability_name' => ['type' => 'string', 'description' => 'Name of the liability (e.g. "Barclays Visa", "Halifax Personal Loan", "BMW Car Finance")'],
                     'liability_type' => ['type' => 'string', 'enum' => ['personal_loan', 'credit_card', 'student_loan', 'hire_purchase', 'secured_loan', 'overdraft', 'business_loan', 'other'], 'description' => 'Type. "hire_purchase" for car finance/HP. "personal_loan" for bank loans. "credit_card" for credit cards. "student_loan" for student loans. "overdraft" for bank overdrafts.'],
@@ -666,7 +698,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_estate_gift',
                 'Record a gift for Inheritance Tax planning (7-year rule). Use when the user mentions gifts they have made to family, friends, trusts, or charities. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple gifts.',
                 [
                     'gift_date' => ['type' => 'string', 'description' => 'Date the gift was made (YYYY-MM-DD). Must be in the past. If user says "last Christmas" calculate the date. If user says "3 years ago" calculate from today.'],
                     'recipient' => ['type' => 'string', 'description' => 'Full name of the recipient (e.g. "Emma Smith", "Oxfam", "Smith Family Trust"). Use the person\'s actual name, not "my daughter" or "my son".'],
@@ -684,6 +716,109 @@ class XaiToolDefinitions
                 ],
                 ['gift_date', 'recipient', 'gift_type', 'gift_value', 'notes']
             ),
+            $this->wrapTool(
+                'create_will',
+                'Record the user\'s will details. Use for existing wills only — the Will Builder UI remains the tool for drafting a new will from scratch.',
+                [
+                    'executor_name' => ['type' => 'string', 'description' => 'Full name of the primary executor.'],
+                    'residuary_beneficiary' => ['type' => ['string', 'null'], 'description' => 'Named primary residuary beneficiary.'],
+                    'guardian_for_minors' => ['type' => ['string', 'null'], 'description' => 'Named guardian for minor children, if any.'],
+                    'specific_gifts' => ['type' => ['string', 'null'], 'description' => 'Free-text description of specific gifts (item, recipient).'],
+                    'spouse_primary_beneficiary' => ['type' => ['boolean', 'null'], 'description' => 'Whether the spouse is the primary beneficiary.'],
+                ],
+                ['executor_name', 'residuary_beneficiary', 'guardian_for_minors', 'specific_gifts', 'spouse_primary_beneficiary']
+            ),
+            $this->wrapTool(
+                'update_will',
+                'Update an existing will record. Use when the user amends their will details.',
+                [
+                    'executor_name' => ['type' => ['string', 'null']],
+                    'residuary_beneficiary' => ['type' => ['string', 'null']],
+                    'guardian_for_minors' => ['type' => ['string', 'null']],
+                    'specific_gifts' => ['type' => ['string', 'null']],
+                    'spouse_primary_beneficiary' => ['type' => ['boolean', 'null']],
+                ],
+                ['executor_name', 'residuary_beneficiary', 'guardian_for_minors', 'specific_gifts', 'spouse_primary_beneficiary']
+            ),
+            $this->wrapTool(
+                'create_power_of_attorney',
+                <<<'DESC'
+                Record a Lasting Power of Attorney. UK has two types: Property & Financial Affairs and Health & Welfare. You MAY call this tool multiple times in the same turn — if the user has BOTH a property_financial AND a health_welfare LPA, call create_power_of_attorney TWICE in your first response.
+
+                STATUS IS MANDATORY — extract it from the user's wording:
+                  • "registered", "in force", "active with OPG", "registered with the Office of the Public Guardian" → status = "registered"
+                  • "draft", "signed but not registered", "not yet registered", "sent off for registration", "being registered", "pending" → status = "draft"
+                  • No signal at all → default to "draft"
+
+                NEVER drop status=registered when the user said so. Example:
+                  User: "I have a registered property and financial LPA with my brother Tom"
+                  → create_power_of_attorney(lpa_type='property_financial', primary_attorney_name='Tom', status='registered').
+                DESC,
+                [
+                    'lpa_type' => ['type' => 'string', 'enum' => ['property_financial', 'health_welfare'], 'description' => 'LPA type.'],
+                    'primary_attorney_name' => ['type' => 'string', 'description' => 'Full name of the primary attorney.'],
+                    'replacement_attorney_name' => ['type' => ['string', 'null'], 'description' => 'Optional replacement attorney.'],
+                    'status' => ['type' => ['string', 'null'], 'enum' => ['draft', 'registered', null], 'description' => 'LPA status. If user says "registered" / "in force" / "active with OPG" → "registered". If user says "draft" / "not registered" / "pending" / "being registered" → "draft". Default "draft" if not stated.'],
+                    'opg_reference' => ['type' => ['string', 'null'], 'description' => 'Office of the Public Guardian reference, if registered.'],
+                ],
+                ['lpa_type', 'primary_attorney_name', 'replacement_attorney_name', 'status', 'opg_reference']
+            ),
+            $this->wrapTool(
+                'update_power_of_attorney',
+                'Update an existing LPA record — status change, OPG reference, attorney amendments.',
+                [
+                    'lpa_id' => ['type' => 'integer', 'description' => 'ID of the LPA.'],
+                    'status' => ['type' => ['string', 'null'], 'enum' => ['draft', 'registered', null]],
+                    'opg_reference' => ['type' => ['string', 'null']],
+                    'primary_attorney_name' => ['type' => ['string', 'null']],
+                    'replacement_attorney_name' => ['type' => ['string', 'null']],
+                ],
+                ['lpa_id', 'status', 'opg_reference', 'primary_attorney_name', 'replacement_attorney_name']
+            ),
+        ];
+    }
+
+    /**
+     * Handoff tools for the onboarding inline-capture turn. See
+     * AiToolDefinitions::handoffTools. Uses the wrapTool helper for
+     * consistency with other xAI tool shapes.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function handoffTools(): array
+    {
+        return [
+            $this->wrapTool(
+                HandoffContract::DELEGATE_TO_CAPTURE,
+                'Internal. Emit when you (advice Fyn) cannot answer without data the user has not supplied, or when the user asks for an inline capture. Never shown to the user.',
+                [
+                    'reason' => ['type' => 'string', 'description' => 'Why capture is needed.'],
+                    'entity_types' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Record types to capture.'],
+                    'fields_needed' => ['type' => ['array', 'null'], 'items' => ['type' => 'string'], 'description' => 'Optional specific fields required.'],
+                ],
+                ['reason', 'entity_types', 'fields_needed']
+            ),
+            $this->wrapTool(
+                HandoffContract::CAPTURE_COMPLETE,
+                'Internal. Emit when you (data-capture Fyn) have finished capturing. Orchestrator returns control to advice Fyn.',
+                [
+                    'summary' => ['type' => 'string', 'description' => 'Short user-facing recap.'],
+                    'records_created' => [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'type' => ['type' => 'string'],
+                                'id' => ['type' => ['integer', 'string']],
+                            ],
+                            'required' => ['type', 'id'],
+                            'additionalProperties' => false,
+                        ],
+                        'description' => 'Records created or updated.',
+                    ],
+                ],
+                ['summary', 'records_created']
+            ),
         ];
     }
 
@@ -697,7 +832,7 @@ class XaiToolDefinitions
                 'Set the user\'s monthly expenditure by category. Call this IMMEDIATELY when the user mentions their spending, bills, or monthly outgoings. '
                 .'Fill in every category the user mentions and set null for anything not mentioned. '
                 .'The form will be opened, filled, and saved automatically. '
-                .'IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'This tool captures all categories in a SINGLE call — do NOT call it multiple times per turn.',
                 [
                     // Essential Living
                     'rent' => ['type' => ['number', 'null'], 'description' => 'Monthly rent in pounds. Null if homeowner.'],
@@ -738,6 +873,98 @@ class XaiToolDefinitions
         ];
     }
 
+    // ─── SaveTax campaign — sections 4-6 capture tools ──────────────────
+
+    /**
+     * SaveTax campaign capture tools (xAI-format mirror of AiToolDefinitions::campaignSaveTaxTools).
+     * Used in the path=campaign post-expenditure state-machine branch.
+     */
+    private function campaignSaveTaxTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'capture_salary_sacrifice',
+                'Set salary_sacrifice flag on a specific DC pension owned by the user, with an optional employer NI rebate share. Use during the SaveTax campaign occupational-scheme capture state.',
+                [
+                    'pension_id' => ['type' => 'integer', 'description' => 'ID of the dc_pension row to update.'],
+                    'salary_sacrifice' => ['type' => 'boolean', 'description' => 'true if pension contributions are made via salary sacrifice.'],
+                    'employer_ni_rebate_pct' => ['type' => ['number', 'null'], 'description' => 'Optional. Share of the employer National Insurance saving rebated back into the pension as a fraction between 0 and 1 (e.g. 0.5 for 50%).'],
+                ],
+                ['pension_id', 'salary_sacrifice', 'employer_ni_rebate_pct']
+            ),
+            $this->wrapTool(
+                'capture_spouse_work_status',
+                'Set whether the user\'s spouse currently works. Updates household_calculation_mode (dual_earner | single_earner_couple) and marriage_allowance_eligible accordingly.',
+                [
+                    'spouse_works' => ['type' => 'boolean', 'description' => 'true if spouse has earned income, false otherwise.'],
+                ],
+                ['spouse_works']
+            ),
+            $this->wrapTool(
+                'capture_spouse_household_data',
+                'Capture working-spouse data for dual_earner households (spouse_works=yes path). Writes to tax_strategy_household_inputs.',
+                [
+                    'spouse_annual_income' => ['type' => ['number', 'null'], 'description' => 'Spouse gross annual income in pounds.'],
+                    'spouse_employment_status' => $this->nullableEnum(['full_time', 'part_time', 'self_employed', 'retired'], 'Spouse employment status.'),
+                    'spouse_isa_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse current ISA balance in pounds.'],
+                    'spouse_psa_band' => $this->nullableEnum(['basic', 'higher', 'additional'], 'Spouse Personal Savings Allowance band.'),
+                    'spouse_unrealised_gains' => ['type' => ['number', 'null'], 'description' => 'Spouse unrealised capital gains.'],
+                    'spouse_annual_dividends' => ['type' => ['number', 'null'], 'description' => 'Spouse annual dividend income.'],
+                    'spouse_pension_input_annual' => ['type' => ['number', 'null'], 'description' => 'Spouse gross annual pension contribution.'],
+                ],
+                [
+                    'spouse_annual_income', 'spouse_employment_status', 'spouse_isa_balance',
+                    'spouse_psa_band', 'spouse_unrealised_gains', 'spouse_annual_dividends',
+                    'spouse_pension_input_annual',
+                ]
+            ),
+            $this->wrapTool(
+                'capture_spouse_non_working_assets',
+                'Capture standalone assets owned by a non-working spouse (single_earner_couple path). Used to compute available capacity for asset-shifting strategies and to size a non-earner spouse pension contribution.',
+                [
+                    'spouse_existing_isa_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone ISA balance.'],
+                    'spouse_existing_savings_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone bank/savings balance.'],
+                    'spouse_existing_investment_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing standalone investment account balance.'],
+                    'spouse_existing_dividend_holdings_value' => ['type' => ['number', 'null'], 'description' => 'Value of spouse\'s dividend-paying holdings.'],
+                    'spouse_existing_pension_balance' => ['type' => ['number', 'null'], 'description' => 'Spouse\'s existing personal-pension pot value.'],
+                ],
+                [
+                    'spouse_existing_isa_balance', 'spouse_existing_savings_balance',
+                    'spouse_existing_investment_balance', 'spouse_existing_dividend_holdings_value',
+                    'spouse_existing_pension_balance',
+                ]
+            ),
+            $this->wrapTool(
+                'capture_pension_history',
+                'Capture the user\'s gross pension contributions for each of the last 3 tax years. Used by the Pension Annual Allowance Carry-Forward strategy to compute unused AA the user could still pension-up. Pass each year individually using the canonical "YYYY/YY" tax-year format (e.g. "2024/25").',
+                [
+                    'history' => [
+                        'type' => 'array',
+                        'description' => 'List of tax_year + amount pairs. The strategy reads up to the most recent 3 entries.',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'tax_year' => ['type' => 'string', 'description' => 'UK tax year in "YYYY/YY" format (e.g. "2024/25").'],
+                                'pension_input_amount' => ['type' => 'number', 'description' => 'Gross pension input for that year in pounds.'],
+                            ],
+                            'required' => ['tax_year', 'pension_input_amount'],
+                            'additionalProperties' => false,
+                        ],
+                    ],
+                ],
+                ['history']
+            ),
+            $this->wrapTool(
+                'capture_charitable_giving',
+                'Capture the user\'s annual charitable donations covered by Gift Aid. Used by the Gift Aid Higher-Rate Relief strategy to compute the personal tax relief the user can reclaim via Self Assessment when they donate at the higher or additional rate.',
+                [
+                    'annual_donations' => ['type' => 'number', 'description' => 'Total annual Gift-Aid-eligible donations in pounds.'],
+                ],
+                ['annual_donations']
+            ),
+        ];
+    }
+
     // ─── Additional Creation ─────────────────────────────────────────
 
     private function additionalCreationTools(): array
@@ -747,8 +974,8 @@ class XaiToolDefinitions
                 'create_family_member',
                 'Add a family member. Use when the user mentions children, parents, step-children, dependents, or partners. '
                 .'For spouse: only use if the user explicitly asks to add their spouse — the system may already have a linked spouse account. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn. '
-                .'For multiple children, call this tool ONCE per child in separate turns.',
+                .'Call this tool IMMEDIATELY. '
+                .'You MAY call this tool multiple times in the same turn when the user mentions multiple family members — for two children, call create_family_member TWICE in your first response (e.g. "I have a daughter Emily age 8 and a son James age 5" → two tool calls).',
                 [
                     'first_name' => ['type' => 'string', 'description' => 'First name of the family member'],
                     'surname' => ['type' => ['string', 'null'], 'description' => 'Surname/last name. If not mentioned, assume same as user.'],
@@ -772,7 +999,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_trust',
                 'Record a trust for estate planning. Use for discretionary trusts, bare trusts, life insurance trusts, loan trusts, discounted gift trusts, interest in possession trusts, and other UK trust types. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple trusts.',
                 [
                     'trust_name' => ['type' => 'string', 'description' => 'Name of the trust (e.g. "Smith Family Discretionary Trust")'],
                     'trust_type' => ['type' => 'string', 'enum' => ['discretionary', 'bare', 'interest_in_possession', 'life_insurance', 'loan', 'discounted_gift', 'accumulation_maintenance', 'mixed', 'settlor_interested'], 'description' => 'Type of trust. "discretionary" for family discretionary trusts. "bare" for bare/absolute trusts. "interest_in_possession" for life interest trusts. "life_insurance" for trusts holding life policies. "loan" for loan trusts. "discounted_gift" for DGTs. "accumulation_maintenance" for A&M trusts. "mixed" for combined trust types. "settlor_interested" when settlor/spouse can benefit.'],
@@ -788,7 +1015,7 @@ class XaiToolDefinitions
             $this->wrapTool(
                 'create_business_interest',
                 'Record a business interest or ownership. Handles sole trader, partnership, limited company, LLP. '
-                .'Call this tool IMMEDIATELY. IMPORTANT: Do NOT call any other creation tools in the same turn.',
+                .'Call this tool IMMEDIATELY. You MAY call this tool multiple times in the same turn when the user mentions multiple businesses.',
                 [
                     'business_name' => ['type' => 'string', 'description' => 'Name of the business (e.g. "Acme Technologies Ltd", "Smith Consulting")'],
                     'business_type' => ['type' => 'string', 'enum' => ['sole_trader', 'partnership', 'limited_company', 'llp', 'other'], 'description' => '"sole_trader" for self-employed. "partnership" for partnerships. "limited_company" for Ltd companies. "llp" for Limited Liability Partnerships. "other" for anything else.'],
@@ -804,7 +1031,7 @@ class XaiToolDefinitions
             ),
             $this->wrapTool(
                 'create_chattel',
-                'Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type "other" instead.',
+                'Record a personal valuable item. Use this for jewellery, art, fine art, wine, fine wine, antiques, collectibles, vehicles, watches, handbags, and other physical valuables. Do NOT use this for gold, silver, cryptocurrency, or financial investments — use create_investment_account with type "other" instead. You MAY call this tool multiple times in the same turn when the user mentions multiple items.',
                 [
                     'description' => ['type' => 'string', 'description' => 'Description of the item'],
                     'category' => ['type' => 'string', 'enum' => ['jewellery', 'art', 'antiques', 'collectibles', 'vehicles', 'other'], 'description' => 'Category of item'],
@@ -821,29 +1048,40 @@ class XaiToolDefinitions
 
     private function dataModificationTools(): array
     {
+        // xAI strict mode does not accept oneOf in function-calling parameters,
+        // so we expose the union of all allowed field names with
+        // additionalProperties:false. The runtime handler enforces the
+        // per-entity allowlist (UpdateRecordAllowlist::allowedFields).
+        $allFields = UpdateRecordAllowlist::allFieldNames();
+        $fieldProps = [];
+        foreach ($allFields as $field) {
+            $fieldProps[$field] = ['type' => ['string', 'number', 'boolean', 'null']];
+        }
+
         return [
             $this->wrapTool(
                 'update_record',
-                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling.',
+                'Update an existing record. Use when the user wants to change details of an existing financial record. Ask the user to confirm changes before calling. The handler enforces a per-entity allowlist — only fields documented for the chosen entity_type will be accepted; others return fields_not_allowed.',
                 [
                     'entity_type' => [
                         'type' => 'string',
-                        'enum' => ['goal', 'life_event', 'savings_account', 'investment_account', 'dc_pension', 'db_pension', 'property', 'mortgage', 'life_insurance', 'critical_illness', 'income_protection', 'estate_asset', 'estate_liability', 'estate_gift', 'family_member', 'trust', 'business_interest', 'chattel'],
+                        'enum' => UpdateRecordAllowlist::entityTypes(),
                         'description' => 'The type of record to update',
                     ],
                     'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to update'],
                     'fields' => [
                         'type' => 'object',
-                        'description' => 'Key-value pairs of fields to update. Only include fields that are changing.',
-                        'additionalProperties' => true,
+                        'description' => 'Key-value pairs to update. Allowed field names are constrained per entity_type (e.g. goal accepts goal_name/target_amount/target_date/priority/status; mortgage accepts outstanding_balance/interest_rate/monthly_payment but NOT start_date or mortgage_type). Inventing field names returns fields_not_allowed.',
+                        'properties' => $fieldProps,
+                        'additionalProperties' => false,
                     ],
                 ],
                 ['entity_type', 'entity_id', 'fields'],
-                false // Cannot use strict mode — fields object has dynamic keys
+                false // Cannot use strict mode — fields object is conditional on entity_type at runtime
             ),
             $this->wrapTool(
                 'delete_record',
-                'Delete an existing record. ALWAYS confirm with the user before deleting.',
+                'Delete an existing record. Two-phase confirmation: the first call returns a confirmation_token and preview_message — DO NOT delete on that turn; show the preview to the user and ask for confirmation. Only on a second call, echoing the exact same confirmation_token, does the deletion proceed. Tokens are bound to (user, entity_type, entity_id, today\'s date) and cannot be replayed across days.',
                 [
                     'entity_type' => [
                         'type' => 'string',
@@ -851,8 +1089,41 @@ class XaiToolDefinitions
                         'description' => 'The type of record to delete',
                     ],
                     'entity_id' => ['type' => 'integer', 'description' => 'The ID of the record to delete'],
+                    'confirmation_token' => [
+                        'type' => ['string', 'null'],
+                        'description' => 'Omit (or null) on the first call — you will receive a token. On the second call, pass the exact 64-character token from the first response. Without a matching token the call returns requires_confirmation again and does NOT delete.',
+                    ],
                 ],
-                ['entity_type', 'entity_id']
+                ['entity_type', 'entity_id', 'confirmation_token']
+            ),
+        ];
+    }
+
+    // ─── Billing ─────────────────────────────────────────────────────
+
+    /**
+     * Read-only, zero-parameter tools. Exposed in both preview and live mode.
+     */
+    private function billingTools(): array
+    {
+        return [
+            $this->wrapTool(
+                'get_subscription_status',
+                'Get the user\'s current subscription status — plan, billing cycle, current period end, trial end, next charge, and whether they have cancelled. Use when the user asks about their subscription, billing, when they will be charged next, whether their trial has ended, or whether their subscription is still active.',
+                [],
+                []
+            ),
+            $this->wrapTool(
+                'list_invoices',
+                'List the user\'s invoices in reverse chronological order (most recent first). Each row includes the invoice number, issued date, amount in pounds, currency, status, plan name, billing cycle, and a PDF download URL. Use when the user asks for their billing history, past invoices, or wants to download a receipt.',
+                [],
+                []
+            ),
+            $this->wrapTool(
+                'get_current_plan',
+                'Get the details of the user\'s current subscription plan — name, tier slug, billing cycle, price in pounds, and the list of features included. Use when the user asks what plan they are on, what features they have, or what they are paying.',
+                [],
+                []
             ),
         ];
     }

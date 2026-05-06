@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Models\NotificationPreference;
+use App\Models\Property;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign;
 use App\Services\Lifecycle\Campaigns\EngagedTrialerCampaign;
+use App\Services\Lifecycle\LifecycleEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
 
@@ -16,7 +21,7 @@ it('includes a user with module data, expired trial, registered 9+ days ago', fu
         'status' => 'expired',
         'trial_ends_at' => now()->subDays(2),
     ]);
-    \App\Models\Property::factory()->create(['user_id' => $user->id]);
+    Property::factory()->create(['user_id' => $user->id]);
 
     $campaign = app(EngagedTrialerCampaign::class);
     expect($campaign->eligibleUsers()->pluck('id'))->toContain($user->id);
@@ -46,7 +51,7 @@ it('has correct name and priority', function () {
 // and is equally valid for testing the preference filter in the engine.
 
 it('engine excludes users who have opted out via notification_preferences', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
 
     $user = User::factory()->create(['created_at' => now()->subDays(9)]);
     Subscription::factory()->create([
@@ -56,7 +61,7 @@ it('engine excludes users who have opted out via notification_preferences', func
     ]);
     // No module data → empty trialer
 
-    \App\Models\NotificationPreference::create([
+    NotificationPreference::create([
         'user_id' => $user->id,
         'lifecycle_empty_trialer' => false,
         'lifecycle_engaged_trialer' => true,
@@ -65,17 +70,17 @@ it('engine excludes users who have opted out via notification_preferences', func
         'lifecycle_lapsed_subscriber' => true,
     ]);
 
-    config(['lifecycle.campaigns' => [\App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign::class]]);
+    config(['lifecycle.campaigns' => [EmptyTrialerCampaign::class]]);
 
-    $engine = app(\App\Services\Lifecycle\LifecycleEngine::class);
+    $engine = app(LifecycleEngine::class);
     $stats = $engine->run();
 
     expect($stats['empty_trialer']['sent'])->toBe(0);
-    \Illuminate\Support\Facades\Mail::assertNothingSent();
+    Mail::assertNothingSent();
 });
 
 it('engine includes users with no notification_preferences row at all', function () {
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
 
     $user = User::factory()->create(['created_at' => now()->subDays(9)]);
     Subscription::factory()->create([
@@ -85,11 +90,11 @@ it('engine includes users with no notification_preferences row at all', function
     ]);
 
     // Explicitly DO NOT create a notification_preferences row
-    expect(\App\Models\NotificationPreference::where('user_id', $user->id)->exists())->toBeFalse();
+    expect(NotificationPreference::where('user_id', $user->id)->exists())->toBeFalse();
 
-    config(['lifecycle.campaigns' => [\App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign::class]]);
+    config(['lifecycle.campaigns' => [EmptyTrialerCampaign::class]]);
 
-    $engine = app(\App\Services\Lifecycle\LifecycleEngine::class);
+    $engine = app(LifecycleEngine::class);
     $stats = $engine->run();
 
     expect($stats['empty_trialer']['sent'])->toBe(1);

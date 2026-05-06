@@ -5,12 +5,21 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Constants\TaxDefaults;
+use App\Models\CashAccount;
+use App\Models\DBPension;
+use App\Models\DCPension;
+use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
+use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Estate\Will;
 use App\Models\EstateActionDefinition;
+use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
+use App\Models\Mortgage;
+use App\Models\Property;
+use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
@@ -289,8 +298,8 @@ class EstateActionDefinitionService
         // This is a periodic reminder that triggers for any user
         // who has pensions or life insurance policies
         $hasPolicies = LifeInsurancePolicy::where('user_id', $user->id)->exists();
-        $hasPensions = \App\Models\DCPension::where('user_id', $user->id)->exists()
-            || \App\Models\DBPension::where('user_id', $user->id)->exists();
+        $hasPensions = DCPension::where('user_id', $user->id)->exists()
+            || DBPension::where('user_id', $user->id)->exists();
 
         if (! $hasPolicies && ! $hasPensions) {
             return [];
@@ -331,22 +340,22 @@ class EstateActionDefinitionService
         $total = 0.0;
 
         // Properties
-        $total += (float) \App\Models\Property::where('user_id', $user->id)->sum('current_value');
+        $total += (float) Property::where('user_id', $user->id)->sum('current_value');
 
         // Investment accounts
-        $total += (float) \App\Models\Investment\InvestmentAccount::where('user_id', $user->id)->sum('current_value');
+        $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
 
         // Savings accounts
-        $total += (float) \App\Models\SavingsAccount::where('user_id', $user->id)->sum('current_balance');
+        $total += (float) SavingsAccount::where('user_id', $user->id)->sum('current_balance');
 
         // Cash accounts
-        $total += (float) \App\Models\CashAccount::where('user_id', $user->id)->sum('current_balance');
+        $total += (float) CashAccount::where('user_id', $user->id)->sum('current_balance');
 
         // Estate assets
-        $total += (float) \App\Models\Estate\Asset::where('user_id', $user->id)->sum('current_value');
+        $total += (float) Asset::where('user_id', $user->id)->sum('current_value');
 
         // DC Pensions (death benefit)
-        $total += (float) \App\Models\DCPension::where('user_id', $user->id)->sum('current_fund_value');
+        $total += (float) DCPension::where('user_id', $user->id)->sum('current_fund_value');
 
         // Life insurance (death benefit adds to estate if not in trust)
         $total += (float) LifeInsurancePolicy::where('user_id', $user->id)
@@ -354,8 +363,8 @@ class EstateActionDefinitionService
             ->sum('cover_amount');
 
         // Subtract liabilities
-        $total -= (float) \App\Models\Mortgage::where('user_id', $user->id)->sum('current_balance');
-        $total -= (float) \App\Models\Estate\Liability::where('user_id', $user->id)->sum('amount');
+        $total -= (float) Mortgage::where('user_id', $user->id)->sum('current_balance');
+        $total -= (float) Liability::where('user_id', $user->id)->sum('amount');
 
         return max(0.0, $total);
     }
