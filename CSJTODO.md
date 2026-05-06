@@ -1,7 +1,66 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 5 context-clear (PR #245 `dev → main` opened — 60 commits, MERGEABLE, REVIEW_REQUIRED, BLOCKED. Awaiting CSJ review-and-merge. Next session goal: get local + dev + production all in sync via the merge + production deploy.)*
-*Previous session: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout; local + dev byte-identical; production deploy spec written)*
+*Last updated: 6 May 2026 — session 6 end-of-day wrap (PR #245 production deploy executed end-to-end + PR #246/#247 cache-control middleware shipped. Local + dev + production all in sync at `3c69ecd`. Zero data loss, zero open issues.)*
+*Previous session: 6 May 2026 — session 5 context-clear (PR #245 opened, awaiting merge)*
+
+---
+
+## Session 6 (6 May 2026, end-of-day) — PR #245 deployed to prod + PR #246/#247 cache-control follow-up shipped
+
+**Branch:** `main` at `3c69ecd` · **Production HEAD:** `3c69ecd` (in sync with local + dev)
+
+**Outcome:**
+1. **PR #245 (`dev → main` May 6 release) merged** via `gh pr merge 245 --merge --admin` (CSJ admin override per branch protection). Merge commit `eddeffa`. 60 commits, 30 migrations, ~179k additions, ~5.7k deletions.
+2. **Production deploy executed end-to-end**: mysqldump snapshot (`~/db-snapshot-pre-deploy-20260506-131738.sql.gz`, 2.9 MB gzipped, 5,203 lines) → rsync of source dirs + build + prod `.htaccess` (md5-verified) → `composer install --no-dev` (27 packages installed/upgraded) → `composer dump-autoload -o` → `migrate --force` (all 30 in order, zero errors) → cache clears → optimize → 4 selective seeders (TaxConfig, DiscountCode, SavingsActionDefinition, NewsArticle).
+3. **Browser smoke pass**: login `chris@fynla.org` (verification code from CSJ) → dashboard rendered with all module cards, Net Worth £618,250, Tax 2026/27 active, Profile 89% / Scenario 100% → `/insights` rendered 5 articles → zero JS console errors. **58 users pre = 58 users post (zero data loss)**, tables 121 → 132.
+4. **Cache-control issue investigated live on prod**: `.htaccess` rules from PR #245 silently no-op on the fynla.org SiteGround vhost — verified by toggling diagnostic X-headers. mod_headers IS loaded (`Header always set` works) but conditional matching (`<If>`, `SetEnvIf env=`, `RewriteRule [E=…]` consumed by `Header set env=…`) all fail. **Same pattern works on csjones.co/fynla** — vhost-level vendor difference. Two new memory files saved: `feedback_siteground_prod_vhost_no_conditionals.md` and `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`.
+5. **PR #246 drafted, merged, shipped**: new `App\Http\Middleware\ApiCacheHeaders` registered as first entry in `'api'` middleware group. Sets `Cache-Control: no-store, no-cache, private, must-revalidate, max-age=0` (Symfony alphabetises directives, same set), `Pragma: no-cache`, `Expires: 0` on every `/api/*` response — bypasses Apache entirely, runs identically on every host. 4 Pest tests, all passing. Merged via PR #247 (`dev → main` admin override) at `3c69ecd`. Deployed to prod (rsync 2 PHP files, dump-autoload, cache:clear). Live verification: `/api/insights` now returns the no-store header; `/` (web group) unchanged; `/build/*` (static) unchanged.
+6. **Tech debt audit clean**: 0 issues across the 3 files added (`ApiCacheHeaders.php`, `Kernel.php`, `ApiCacheHeadersTest.php`). See `tech-debt-report.md`.
+7. **Vault sync executed via Haiku 4.5 subagent** at high effort: `May06.md` git history created (13 commits), `May 2026 Commits.md` updated, `May Index.md` session 6 entry added, `Current State/DeploymentBuild.md` refreshed (v0.7.0 → v1.0, csjones git-pull workflow noted), Home.md updated. 0 broken wikilinks, 0 orphaned files. 2 memory suggestions promoted to memory files (saved this session).
+
+**Direct main pushes this session:**
+- `eddeffa` Release: dev → main — May 6 release (PR #245 merge commit)
+- `3c69ecd` Release: Cache-Control middleware fix (PR #246) (PR #247 merge commit)
+- `<session-end commit>` this CSJTODO + handover + memory updates + tech-debt-report
+
+### Done
+
+- [x] **PR #245 merged + production deploy executed** — local + dev + prod synced at `3c69ecd`
+- [x] **DB snapshot taken** (`~/db-snapshot-pre-deploy-20260506-131738.sql.gz`)
+- [x] **All 30 migrations ran clean** — zero data loss (58 users intact, 132 tables)
+- [x] **4 selective seeders run** — TaxConfig, DiscountCode, SavingsActionDefinition, NewsArticle
+- [x] **Browser smoke pass on prod** — login → dashboard → /insights, zero JS console errors
+- [x] **Cache-control fix shipped via Laravel middleware** (PR #246/#247) — verified live on prod
+- [x] **Two new memory files saved** — `feedback_siteground_prod_vhost_no_conditionals.md` + `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`
+- [x] **Vault sync clean** (subagent) — git history, May Index, DeploymentBuild.md refresh, all wikilinks resolve
+
+### Outstanding (next session — small follow-ups, none blocking)
+
+- [ ] **Smoke prod once after overnight soak** — `curl -sI https://fynla.org/api/insights` should still show no-store; landing 200; /insights renders
+- [ ] **Revert SPA cachebuster** in `resources/js/services/insightsService.js` (`_t=Date.now()` line) — now redundant since `ApiCacheHeaders` middleware does the same job. Small frontend rebuild + upload `public/build/` + cache:clear. Standalone PR when convenient.
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main`. Recipe: `deploy/csjones-fynla/BOOTSTRAP.md` §12 with `branch=main`, no `skip-worktree` (prod uses canonical root template). After: all three environments deploy via `git pull`. Wait for ~24h soak before doing it.
+- [ ] **`public/.htaccess` cache-control rules cleanup** — now functionally redundant with the middleware. Harmless on hosts where they fire (csjones), so cleanup is cosmetic. Could simplify to just the unconditional rules + remove the env-var/`<If>` machinery.
+- [ ] **Optional: SiteGround Site Tools cache purge on csjones** — only if the legacy `/api/insights` poisoned-CDN entry is still observed. Manual UI step. After purge, the same `_t=Date.now()` line on csjones source is also revertable.
+
+### Outstanding (lower priority, advisory)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Vault-sync confirmed again this session. Update opportunistically.
+- [ ] **`Current State/DeploymentBuild.md`** — refreshed by vault-sync today; could still use a once-over to add production deploy details (composer install ordering, snapshot pattern) when convenient.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+- **`gh pr merge --admin` for solo-reviewer PRs** — established pattern when CSJ is both author and sole reviewer per branch protection (`@Stoff73` required). Confirmed legitimate on PR #245 and #247 today. See `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`.
+- **SiteGround prod vhost silently drops conditional Apache directives** — per-route response-header logic on prod must use Laravel middleware, not `.htaccess` conditionals. csjones DOES support conditionals — the dev/prod difference is real. See `feedback_siteground_prod_vhost_no_conditionals.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
 
