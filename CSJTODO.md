@@ -1,7 +1,70 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout tracking origin/dev. Source-tree drift eliminated — local and dev are byte-identical, kept in sync via `git pull`. Production deploy spec ready: PR `dev → main` is the next session's first action)*
-*Previous session: 6 May 2026 — session 3 context-clear (insights publish→hub bug closed; csjones session-3 fixes live)*
+*Last updated: 6 May 2026 — session 5 context-clear (PR #245 `dev → main` opened — 60 commits, MERGEABLE, REVIEW_REQUIRED, BLOCKED. Awaiting CSJ review-and-merge. Next session goal: get local + dev + production all in sync via the merge + production deploy.)*
+*Previous session: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout; local + dev byte-identical; production deploy spec written)*
+
+---
+
+## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
+
+**Branch:** `dev` at `53e1cea` · **PR:** [#245](https://github.com/Stoff73/fynla/pull/245) — OPEN, MERGEABLE, REVIEW_REQUIRED, BLOCKED on review
+
+**Outcome:**
+1. Verified clean state at session-start: `dev` in sync with `origin/dev`, DB seeded, dev server up on :8000 + :5173, no worktrees, no conflict markers, no pending migrations.
+2. Confirmed no existing `dev → main` PR. `composer.lock` HAS changed → flagged for `composer install` on prod.
+3. Opened PR #245: `Release: dev → main — May 6 release (insights cache fix, /storage route, csjones git checkout)`. 60 commits, 179 541 additions, 5 733 deletions, 34 migrations.
+4. PR body covers: highlights, 2 destructive migration flags, `composer.lock` flag, selective-seeder allowlist (4 only), full smoke checklist, rollback plan with pre-recon tags.
+5. Did NOT merge — only `@Stoff73` can per branch protection.
+
+**Direct dev pushes this session:** none (PR creation only)
+
+### Done
+
+- [x] **PR #245 opened** with full release body (highlights + smoke checklist + rollback)
+- [x] **`composer.lock` flagged** in PR body — first prod step is `composer install --no-dev --optimize-autoloader --no-interaction` BEFORE migrate
+- [x] **Selective-seeder allowlist** documented in PR body (`TaxConfigurationSeeder`, `DiscountCodeSeeder`, `SavingsActionDefinitionSeeder`, `NewsArticleSeeder` — never test/preview/admin)
+- [x] **Vault-sync** completed: May06.md updated, May2026 Commits.md updated, May Index session entry updated, all wikilinks resolve, no orphans
+
+### Outstanding (NEXT SESSION — execute production deploy)
+
+**Goal: local + dev + production all in sync.**
+
+- [ ] **Confirm PR #245 review state** — `gh pr view 245`. CSJ approves and merges (only `@Stoff73` can merge to `main`)
+- [ ] **After merge**: `git checkout main && git pull origin main && git log -1 --oneline` (should be the merge commit)
+- [ ] **Build prod SPA bundle**: `./deploy/fynla-org/build.sh`. Verify `public/build/manifest.json` paths start with `/build/` (not `/fynla/build/`)
+- [ ] **CSJ takes SiteGround DB snapshot** (Site Tools → MySQL → Backups) — 2 destructive migrations
+- [ ] **Upload** `public/build/` + production `public/.htaccess` + rsynced `app/` / `routes/` / `config/` / `database/` to `~/www/fynla.org/public_html/`
+- [ ] **SSH and finalise**: `composer install --no-dev --optimize-autoloader --no-interaction && composer dump-autoload -o && php artisan migrate --force && php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize`
+- [ ] **Selective seeders only** (4): `TaxConfigurationSeeder`, `DiscountCodeSeeder`, `SavingsActionDefinitionSeeder`, `NewsArticleSeeder`. NEVER test/preview/admin seeders.
+- [ ] **Smoke test**:
+  - `curl -sI https://fynla.org/api/insights | grep -i cache-control` → `no-store, no-cache, private, must-revalidate, max-age=0`
+  - Log in `chris@fynla.org` (CSJ provides verification code), dashboard renders, /insights renders cover images (no 403s), no JS console errors
+  - `app()->environment()` = `production`, `config('services.revolut.sandbox')` = false, `LIFECYCLE_TEST_RECIPIENT` unset
+  - Tail `storage/logs/laravel.log` 10–15 min
+
+### Optional follow-up (after ~24h soak — closes the goal "all three environments synced")
+
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main`. Same recipe as csjones (`deploy/csjones-fynla/BOOTSTRAP.md` §12) with `branch=main`. `public/.htaccess` is the canonical root template — no `skip-worktree` needed on prod. After this, all three environments deploy via `git pull`. **Goal achieved: local + dev + production all synced and inline.**
+- [ ] **One-time SiteGround Site Tools cache purge on csjones** for the legacy `/api/insights` bare-URL CDN entry. After purge, the SPA cachebuster `_t=Date.now()` line in `resources/js/services/insightsService.js` can be reverted.
+
+### Outstanding (lower priority, advisory)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Vault-sync confirmed both this session and session 4. Update opportunistically.
+- [ ] **`Current State/DeploymentBuild.md` refresh** — last touched 2026-04-14. Should reflect csjones git-pull flow (session 4) and (post-deploy) production git checkout. Update after production deploy is green.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+None new. The session-4 rules (csjones via `git pull`, `skip-worktree` for per-env files, `storage:link` is csjones-incompatible) all still apply.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
 
