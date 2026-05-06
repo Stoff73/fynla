@@ -307,7 +307,7 @@ Fynla runs on two environments, isolated database, code, and credentials:
 | Env | URL | Purpose | Branch | Server path | SSH alias |
 |-----|-----|---------|--------|-------------|-----------|
 | **Production** | `https://fynla.org` | Live customers — real charges, real emails | `main` | `~/www/fynla.org/public_html/` | `ssh.fynla.org:18765` as `u2783-hrf1k8bpfg02` |
-| **Dev / staging** | `https://csjones.co/fynla` | Pre-production testing — Revolut sandbox, throwaway DB | `dev` | `~/www/csjones.co/public_html/fynla/` | `ssh.csjones.co:18765` as `u163-ptanegf9edny` |
+| **Dev / staging** | `https://csjones.co/fynla` | Pre-production testing — Revolut sandbox, throwaway DB | `dev` | `~/www/csjones.co/fynla-app/` (Laravel root; `public_html/fynla` is a symlink to its `public/`) | `ssh.csjones.co:18765` as `u163-ptanegf9edny` |
 
 **Work always flows `feature → dev → main`, never skipping the dev gate.** See the branch workflow section below.
 
@@ -357,22 +357,29 @@ The scripts set different Vite environment variables so the SPA routing and asse
 
 ### Deploying to dev (csjones.co/fynla)
 
+The csjones server is now a real git checkout tracking `origin/dev`. Source-tree drift is gone — every deploy pulls exactly what's on the remote. The only thing you upload manually is the compiled `public/build/` bundle (not in git).
+
 1. Work on a feature branch off `dev`, open PR → `dev`
-2. After merge: `git checkout dev && git pull`
-3. Build: `./deploy/csjones-fynla/build.sh`
-4. Upload `public/build/` + changed PHP files to `~/www/csjones.co/public_html/fynla/` via SiteGround File Manager or `rsync`
-5. Upload `deploy/csjones-fynla/.htaccess` to `~/www/csjones.co/public_html/fynla/public/.htaccess` (only if routing rules changed)
-6. SSH in and finalise:
+2. After merge, locally: `git checkout dev && git pull`
+3. Build the SPA bundle locally: `./deploy/csjones-fynla/build.sh`
+4. Upload `public/build/` to `~/www/csjones.co/fynla-app/public/build/` (SiteGround File Manager or `scp -r`). `public/build/` is gitignored so `git pull` won't manage it.
+5. SSH in and pull source + finalise:
 
 ```bash
 ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
-cd ~/www/csjones.co/public_html/fynla
+cd ~/www/csjones.co/fynla-app
+git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
 php artisan migrate --force
-php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
 ```
 
-7. Smoke test `https://csjones.co/fynla`
-8. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh` — see rule above)
+6. Smoke test `https://csjones.co/fynla`
+7. If a dev DB reset is needed: `php artisan db:seed --force` (NEVER `migrate:fresh` — see rule above)
+
+**Why this works without clobbering env config:**
+- `.env` is gitignored — never touched.
+- `public/.htaccess` has `git update-index --skip-worktree` set on csjones, so `git pull` ignores it. The dev `/fynla/` rewrite-base version stays in place. If routing rules change in the source template (`deploy/csjones-fynla/.htaccess`), copy it manually: `cp deploy/csjones-fynla/.htaccess public/.htaccess` after pull.
+- `public/storage` is intentionally absent on csjones (Apache 403s symlinks there; Laravel `/storage/{path}` route in `routes/web.php` handles requests instead). Don't run `php artisan storage:link` on csjones.
 
 **First-time dev setup** (one-time only): see `deploy/csjones-fynla/BOOTSTRAP.md` for the full provision-and-deploy guide.
 
