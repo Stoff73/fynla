@@ -6,6 +6,7 @@ namespace App\Http;
 
 use App\Http\Middleware\AdvisorImpersonationMiddleware;
 use App\Http\Middleware\AdvisorMiddleware;
+use App\Http\Middleware\ApiCacheHeaders;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CaptureAwcCookie;
 use App\Http\Middleware\CheckFeatureAccess;
@@ -84,6 +85,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            ApiCacheHeaders::class, // Force no-store on all /api/* responses (Apache .htaccess unreliable on SiteGround vhost)
             EnsureFrontendRequestsAreStateful::class,
             ThrottleRequests::class.':api',
             SubstituteBindings::class,
