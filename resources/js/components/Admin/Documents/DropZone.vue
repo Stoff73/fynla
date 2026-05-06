@@ -8,17 +8,7 @@
     >
         <div v-if="!isProcessing" class="text-center w-full">
             <p class="text-sm font-bold text-horizon-700">Drop a Word document here</p>
-            <p class="text-xs text-horizon-500 mt-1 mb-3">.docx, max 10 MB</p>
-            <input
-                type="file"
-                accept=".docx"
-                :disabled="isProcessing"
-                @change="onPick"
-                class="block mx-auto text-xs text-horizon-500
-                       file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0
-                       file:text-xs file:font-bold file:bg-raspberry-500 file:text-eggshell-50
-                       hover:file:bg-raspberry-600 file:cursor-pointer cursor-pointer"
-            />
+            <p class="text-xs text-horizon-500 mt-1">.docx, max 10 MB</p>
         </div>
         <div v-else class="text-center">
             <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin mx-auto"></div>
@@ -46,11 +36,6 @@ export default {
             this.isDragging = false;
             const file = event.dataTransfer.files[0];
             if (file) this.handleFile(file);
-        },
-        onPick(event) {
-            const file = event.target.files[0];
-            if (file) this.handleFile(file);
-            event.target.value = '';
         },
         async handleFile(file) {
             if (!file.name.toLowerCase().endsWith('.docx')) {

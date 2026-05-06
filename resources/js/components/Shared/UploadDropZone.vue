@@ -35,16 +35,6 @@
         <p class="text-neutral-500 font-medium">
           Drag and drop your document here
         </p>
-        <p class="text-neutral-500 text-sm mt-1">
-          or
-          <button
-            type="button"
-            class="text-violet-600 hover:text-violet-700 font-medium"
-            @click="openFileDialog"
-          >
-            click to browse
-          </button>
-        </p>
       </div>
 
       <!-- Supported formats -->
