@@ -1,7 +1,72 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 3 context-clear (insights publish→hub bug closed end-to-end on csjones: DocumentArticleObserver + Laravel /storage route + scoped Cache-Control: no-store on /api/*. Production templates updated, deploy pending)*
-*Previous session: 6 May 2026 — session 2 context-clear (drag-only DropZones, csjones sync deferred)*
+*Last updated: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout tracking origin/dev. Source-tree drift eliminated — local and dev are byte-identical, kept in sync via `git pull`. Production deploy spec ready: PR `dev → main` is the next session's first action)*
+*Previous session: 6 May 2026 — session 3 context-clear (insights publish→hub bug closed; csjones session-3 fixes live)*
+
+---
+
+## Session 4 (6 May 2026, context-clear) — Local ↔ csjones synced via real git checkout; production deploy READY
+
+**Branch:** `dev` at `18558c5` · **csjones HEAD (live):** `bb6458a` (next `git pull` brings it to `18558c5`)
+
+**Outcome:**
+1. Diagnosed csjones source-tree drift — `.git` was a 60-byte gitfile pointing at a local-machine worktree path, so deploys were rsync-of-changed-files only, leaving every file CSJ didn't manually upload at whatever version was last sent. `resources/js/services/insightsService.js` source on csjones had drifted (no cachebuster) even though the compiled bundle had it.
+2. Restored a real git checkout on csjones tracking `origin/dev` (`git init -b dev` → `fetch --depth=1` → `reset --hard origin/dev`). Set `skip-worktree` on `public/.htaccess` so future `git pull` never clobbers the dev `/fynla/` rewrite-base.
+3. Hash-verified post-sync: **100/100 sample files byte-identical**, 0 drift, 0 sync gaps.
+4. Updated `CLAUDE.md` § "Deploying to dev" + `deploy/csjones-fynla/BOOTSTRAP.md` §12 to document the new git-pull deploy flow. Flagged `php artisan storage:link` as csjones-incompatible.
+5. Wrote `May/May6Updates/deploy-2026-05-06-session-4-prod.md` — full production deploy spec for the 59-commit `dev → main` release.
+
+**Direct dev pushes this session:**
+- `18558c5` `docs(deploy): switch csjones from manual rsync to git-pull, document drift fix`
+- `<session-end commit>` this CSJTODO + handover + deploy spec
+
+### Done
+
+- [x] **csjones is now a real git checkout tracking `origin/dev`** with shallow depth=1 history, upstream tracking set up. `git pull` is the deploy mechanism going forward.
+- [x] **Local ↔ csjones byte-identical** (verified 100/100 sample files). `resources/js/services/insightsService.js` drift fixed; previously-missing source files restored from origin/dev tree.
+- [x] **`public/.htaccess` skip-worktree** set on csjones — future `git pull` ignores it. Dev `/fynla/` rewrite-base template stays canonical.
+- [x] **CLAUDE.md + BOOTSTRAP.md updated** to document the new flow. The path drift `~/www/csjones.co/public_html/fynla/` → `~/www/csjones.co/fynla-app/` (Laravel root vs symlink) corrected in the env table.
+- [x] **`storage:link` flagged as csjones-incompatible** in BOOTSTRAP.md §6. The Laravel `/storage/{path}` route is the canonical mechanism on csjones; local + production unaffected.
+- [x] **Production deploy spec written** at `May/May6Updates/deploy-2026-05-06-session-4-prod.md`. Includes step-by-step, irreversible-migration flags, selective-seeder list, smoke checklist, rollback plan, and an optional follow-up to convert production to a git checkout post-deploy.
+
+### Outstanding (NEXT SESSION — production deploy `dev → main`)
+
+- [ ] **CSJ opens PR `dev → main`** (~59 commits ahead). Title: `Release: dev → main — May 6 release (insights cache fix, /storage route, csjones git checkout)`. Only `@Stoff73` can merge to main per branch protection.
+- [ ] **After merge**: `git checkout main && git pull && ./deploy/fynla-org/build.sh`
+- [ ] **Upload** `public/build/` + production `public/.htaccess` + rsynced `app/` / `routes/` / `config/` / `database/` to `~/www/fynla.org/public_html/`
+- [ ] **SSH and finalise**: `composer dump-autoload -o && php artisan migrate --force && cache:clear && config:clear && view:clear && route:clear && optimize`
+- [ ] **Take a SiteGround DB snapshot** before running migrations — 34 new migrations include 2 destructive ones (`drop_is_eval_user_from_users`, `rename_eval_user_id_to_preview_user_id`)
+- [ ] **Selective seeders only**: `TaxConfigurationSeeder`, `DiscountCodeSeeder`, `SavingsActionDefinitionSeeder`, `NewsArticleSeeder`. NEVER `TestUsersSeeder` / `ChrisUserSeeder` / `PreviewUserSeeder` / `LifecycleTestSeeder` / `AdminUserSeeder` on prod.
+- [ ] **Smoke test**: landing page, `curl -sI https://fynla.org/api/insights | grep cache-control` must show `no-store`, login as `chris@fynla.org` (CSJ provides verification code), dashboard renders, /insights renders, no JS console errors, tail `storage/logs/laravel.log` for 10–15 min.
+
+### Optional follow-up after production deploy is green and soaked
+
+- [ ] **Convert production fynla.org to a git checkout** (same recipe as csjones). After ~24h soak, run the BOOTSTRAP.md §12 recipe on production server, branch=`main`, `git fetch origin main` etc. After this, future production deploys are also `git pull origin main`. Recipe in deploy spec § "Optional follow-up: convert production to a git checkout".
+- [ ] **One-time SiteGround Site Tools cache purge on csjones** for the legacy `/api/insights` bare-URL CDN entry. After purge, the SPA cachebuster `_t=Date.now()` line in `insightsService.js` can be reverted (one-line removal).
+
+### Outstanding (lower priority, awaiting CSJ direction)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only, never via vault.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — vault-sync confirms Vue Components 722 actual vs 726 documented (4-count drift). Update opportunistically.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+1. **csjones deploys via `git pull`, not rsync.** Manual rsync of changed files only is what caused the months of drift CSJ kept hitting. The git-checkout pattern eliminates the entire class of bug.
+2. **`public/.htaccess` per-environment is solved by `skip-worktree`.** The repo's `public/.htaccess` is the production root template; `deploy/csjones-fynla/.htaccess` is the dev subdirectory template; on csjones we copy the dev template into place once and `skip-worktree` ensures `git pull` never overwrites it. Same pattern can be used for any per-env file (none others currently apply).
+3. **`storage:link` is csjones-incompatible** — SiteGround Apache 403s symlinks regardless of FollowSymLinks. Use the `/storage/{path}` Laravel route instead (already in `routes/web.php`).
+
+### New memory file
+
+- `~/.claude/projects/-Users-CSJ-Desktop-fynla/memory/feedback_csjones_deploy_via_git_pull.md` — csjones is a git checkout; deploys via `git pull origin dev` not rsync; `public/.htaccess` has `skip-worktree`; don't run `storage:link` there. Created by vault-sync subagent. Indexed in `MEMORY.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
 
