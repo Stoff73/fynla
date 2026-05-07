@@ -245,6 +245,27 @@ const authService = {
     });
     return response.data;
   },
+
+  /**
+   * Check restoration eligibility for an existing-but-deleted account.
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<{ restoration_token: string }>}
+   */
+  async restoreCheck(email, password) {
+    const response = await api.post('/auth/restore/check', { email, password });
+    return response.data;
+  },
+
+  /**
+   * Restore an account previously scheduled for deletion.
+   * @param {string} restorationToken
+   * @returns {Promise}
+   */
+  async restore(restorationToken) {
+    const response = await api.post('/auth/restore', { restoration_token: restorationToken });
+    return response.data;
+  },
 };
 
 export default authService;

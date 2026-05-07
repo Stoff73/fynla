@@ -42,6 +42,11 @@
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
 
+        <!-- Scheduled Deletion Banner — appears when the authenticated user has
+             `deletion_scheduled_for` set (grace-period scheduled deletion).
+             Renders a violet info bar with a "Cancel scheduled deletion" button. -->
+        <ScheduledDeletionBanner v-if="isAuthenticated && !isPreviewMode" />
+
         <!-- Data Retention Overlay (non-dismissable modal for grace period users).
              Suppressed on /checkout because the user is already in the subscribe flow. -->
         <DataRetentionOverlay
@@ -152,6 +157,7 @@ import AppNavbar from '@/components/AppNavbar.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
 import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
+import ScheduledDeletionBanner from '@/components/Account/ScheduledDeletionBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 import AiChatButton from '@/components/Shared/AiChatButton.vue';
@@ -178,6 +184,7 @@ export default {
     AppFooter,
     PreviewBanner,
     TrialCountdownBanner,
+    ScheduledDeletionBanner,
     DataRetentionOverlay,
     InfoGuidePanel,
     AiChatButton,
