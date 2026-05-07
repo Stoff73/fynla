@@ -84,3 +84,18 @@ it('accounts:send-deletion-reminders sends 7-day and 1-day reminders idempotentl
     Mail::assertQueued(AccountDeletionReminder7DaysEmail::class, 1);
     Mail::assertQueued(AccountDeletionReminder1DayEmail::class, 1);
 });
+
+it('accounts:purge-after-retention hard-purges users past purge_eligible_at', function () {
+    $user = User::factory()->create([
+        'deleted_at' => now()->subYears(8),
+        'deletion_reason' => 'user_requested',
+        'deletion_source' => 'settings_privacy',
+        'purge_eligible_at' => now()->subDays(1),
+    ]);
+
+    Artisan::call('accounts:purge-after-retention');
+
+    // RetentionPurgeService::purgeUser scrubs PII (sets first_name=null etc.)
+    $u = User::withTrashed()->find($user->id);
+    expect($u->first_name)->toBeNull();
+});
