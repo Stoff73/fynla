@@ -614,11 +614,17 @@ export default {
         );
 
         if (response.logout_required) {
-          // Account deleted - log out and redirect
+          // Account deleted immediately - log out and redirect
           await this.$store.dispatch('auth/logout');
           this.$router.push('/login');
+        } else if (response.type === 'account_scheduled') {
+          // Paid account: deletion scheduled for end of period
+          this.$toast?.success?.(response.message) || alert(response.message);
+          this.closeDeletionWizard();
+          // Refresh auth user so the scheduled-deletion banner + privacy panel render
+          await this.$store.dispatch('auth/fetchUser');
         } else {
-          // Data deleted - show success and reload
+          // Data-only deletion - show success and reload
           this.$toast?.success?.('Your data has been deleted') ||
             alert('Your data has been deleted');
           this.closeDeletionWizard();
