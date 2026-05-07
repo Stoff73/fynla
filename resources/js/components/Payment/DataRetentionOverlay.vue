@@ -62,7 +62,7 @@
           <!-- Delete confirmation -->
           <div v-if="showDeleteConfirmation" class="border border-raspberry-600/20 rounded-lg p-4 bg-raspberry-100/50">
             <p class="text-body-sm font-medium text-raspberry-600 mb-3">
-              This action is permanent and cannot be undone. All your financial plans, policies, pensions, investments, savings, goals, and documents will be deleted.
+              Your account will be deleted. Your records are retained for {{ retentionYears }} years for regulatory compliance, after which they are permanently removed. You can restore your account at any time within that period by signing in.
             </p>
             <label for="delete-password" class="block text-body-sm text-neutral-500 mb-1.5">
               Enter your password:
@@ -139,6 +139,7 @@ export default {
     const currentPassword = ref('');
     const deleting = ref(false);
     const deleteError = ref(null);
+    const retentionYears = ref(7);
     let countdownInterval = null;
 
     const fetchSubscriptionStatus = async () => {
@@ -181,8 +182,9 @@ export default {
           current_password: currentPassword.value,
         });
 
-        // Redirect to landing page after successful deletion
-        window.location.href = '/';
+        // Redirect to login after successful deletion. Full reload (not
+        // $router.push) so the SPA discards the deleted user's stale state.
+        window.location.href = '/login';
       } catch (err) {
         logger.error('Failed to delete all data', err);
         deleteError.value = err.response?.data?.error || 'Failed to delete data. Please try again.';
@@ -211,6 +213,7 @@ export default {
       currentPassword,
       deleting,
       deleteError,
+      retentionYears,
       confirmDeleteAll,
     };
   },
