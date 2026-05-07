@@ -178,6 +178,7 @@ Route::prefix('auth')->group(function () {
             Route::post('/erasure/verify', [GDPRController::class, 'verifyErasure'])->middleware('throttle:sensitive');
             Route::post('/erasure/execute', [GDPRController::class, 'executeErasure'])->middleware('throttle:sensitive');
             Route::post('/erasure/resend-code', [GDPRController::class, 'resendDeletionCode'])->middleware('throttle:sensitive');
+            Route::post('/erasure/cancel-scheduled', [GDPRController::class, 'cancelScheduledDeletion'])->middleware('throttle:5,1');
 
             // Legacy erasure endpoints (deprecated, kept for backwards compatibility)
             Route::post('/erasure', [GDPRController::class, 'requestErasure'])->middleware('throttle:sensitive');
