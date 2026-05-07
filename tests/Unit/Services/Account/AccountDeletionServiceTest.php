@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Mail\Account\AccountDeletionCancelledEmail;
 use App\Mail\Account\AccountDeletionScheduledEmail;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -57,4 +58,32 @@ it('scheduleDeletion refuses if user is already deleted', function () {
         'settings_privacy',
         now()->addDays(14)
     ))->toThrow(RuntimeException::class, 'already deleted');
+});
+
+it('cancelScheduledDeletion clears columns, audit logs, queues email', function () {
+    $user = User::factory()->create([
+        'deletion_scheduled_for' => now()->addDays(7),
+        'deletion_reason' => 'user_requested',
+        'deletion_source' => 'settings_privacy',
+    ]);
+
+    app(AccountDeletionService::class)->cancelScheduledDeletion($user);
+
+    $user->refresh();
+    expect($user->deletion_scheduled_for)->toBeNull();
+    expect($user->deletion_reason)->toBeNull();
+    expect($user->deletion_source)->toBeNull();
+
+    Mail::assertQueued(AccountDeletionCancelledEmail::class);
+
+    expect(AuditLog::where('user_id', $user->id)
+        ->where('action', AuditLog::ACTION_ACCOUNT_DELETION_CANCELLED)
+        ->count())->toBe(1);
+});
+
+it('cancelScheduledDeletion refuses if user is not scheduled', function () {
+    $user = User::factory()->create();
+
+    expect(fn () => app(AccountDeletionService::class)->cancelScheduledDeletion($user))
+        ->toThrow(RuntimeException::class, 'not scheduled');
 });

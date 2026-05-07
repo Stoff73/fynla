@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Account;
 
+use App\Mail\Account\AccountDeletionCancelledEmail;
 use App\Mail\Account\AccountDeletionScheduledEmail;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -56,8 +57,29 @@ class AccountDeletionService
 
     public function cancelScheduledDeletion(User $user): void
     {
-        // Implemented in Task 2.2
-        throw new \LogicException('Not yet implemented');
+        if (! $user->isScheduledForDeletion()) {
+            throw new \RuntimeException('User is not scheduled for deletion.');
+        }
+
+        DB::transaction(function () use ($user) {
+            $this->auditService->logGDPR(
+                AuditLog::ACTION_ACCOUNT_DELETION_CANCELLED,
+                $user->id,
+                [
+                    'previous_reason' => $user->deletion_reason,
+                    'previous_source' => $user->deletion_source,
+                    'previous_scheduled_for' => $user->deletion_scheduled_for?->toIso8601String(),
+                ]
+            );
+
+            $user->update([
+                'deletion_scheduled_for' => null,
+                'deletion_reason' => null,
+                'deletion_source' => null,
+            ]);
+
+            Mail::to($user->email)->queue(new AccountDeletionCancelledEmail($user));
+        });
     }
 
     public function deleteAccount(User $user, string $reason, string $source): void
