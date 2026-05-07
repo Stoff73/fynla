@@ -1,9 +1,48 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 5 context-clear (PR #245 `dev → main` opened — 60 commits, MERGEABLE, REVIEW_REQUIRED, BLOCKED. Awaiting CSJ review-and-merge. Next session goal: get local + dev + production all in sync via the merge + production deploy.)*
-*Previous session: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout; local + dev byte-identical; production deploy spec written)*
+*Last updated: 7 May 2026 — session 3 context-clear (account deletion rework: audit + spec + plan written and committed to `accountDeletionRework` branch off dev; implementation NOT started; next session begins plan execution from Task 0.1)*
+*Previous session: 7 May 2026 — session 2 (source-control hygiene: PRs #248/#251/#252 merged, PR #249 parked)*
 
 ---
+
+## Session 3 (7 May 2026, context-clear) — Account deletion rework designed, implementation pending
+
+**Branch:** `accountDeletionRework` at `aeb1168` (off `dev`, 1 commit ahead) · **Pushed:** yes
+
+**Outcome:**
+1. Audited current account-deletion feature; found 4 issues, 2 critical: `life_events.joint_owner_id` FK is `RESTRICT` (will block hard-delete of any user who's a joint owner of a life event); and `DataPurgeService::getDeletionOrder()` calls `DELETE WHERE user_id` on `data_retention_email_log` and `renewal_reminder_log`, which only have `subscription_id` — this is the 500 CSJ has been hitting on the retention-overlay "Delete & Start Again" CTA.
+2. Designed retention-first soft-delete model with proration via scheduled deletion at end of paid period, restoration on return, and 7-year hard-purge cron. Key shift: no user-facing action ever destroys data; that's the eventual cron's job after `purge_eligible_at` elapses.
+3. Spec at `fynlaFeatuuresModules/accDeletion/design.md` (21 sections). Plan at `fynlaFeatuuresModules/accDeletion/plan.md` (11 phases, ~40 tasks, TDD where applicable). Original audit at `fynlaFeatuuresModules/accDeletion/accDeletion.md`.
+
+### Done
+
+- [x] Audit committed
+- [x] Spec written and self-reviewed (CSJ approved with one amendment: proration via scheduled deletion + email reminders)
+- [x] Implementation plan written
+- [x] Branch `accountDeletionRework` pushed to origin
+
+### Outstanding (NEXT SESSION — start implementation)
+
+- [ ] **Pick approach**: Subagent-Driven (recommended, fresh subagent per task) vs Inline Execution (in-session with checkpoints). CSJ has not yet chosen.
+- [ ] **Begin Task 0.1** (pre-flight branch verification + clean state + baseline test green)
+- [ ] **Phase 1** Foundation: `config/retention.php`, three migrations (deletion-tracking columns, life_events FK fix, legacy_purged backfill), User model casts/helpers, audit log action constants
+- [ ] **Phase 2** Core service `AccountDeletionService` with all four methods TDD
+- [ ] **Phases 3–11** per plan
+
+### Hard rules reinforced this session
+
+- **Vault sync via Haiku 4.5 subagent is unreliable.** This session's vault-sync fabricated 11 commit hashes and an entire alternate session narrative about UK pack relocation R-6/R-7 work that never happened on this repo. Restored `May Index.md`, `Git History/May2026/May07.md`, `May2026 Commits.md`, and `Home.md` totals. Future runs: cross-verify any commit hash with `git cat-file -e` before trusting subagent vault output.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md` (still untracked from May 1)
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (Fyn AI prompt-engineering scratch dirs from May 1)
+
+---
+
+## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
 
 ## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
 
