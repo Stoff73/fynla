@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Account;
 
 use App\Mail\Account\AccountDeletionCancelledEmail;
+use App\Mail\Account\AccountDeletionConfirmationEmail;
 use App\Mail\Account\AccountDeletionScheduledEmail;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -84,8 +85,43 @@ class AccountDeletionService
 
     public function deleteAccount(User $user, string $reason, string $source): void
     {
-        // Implemented in Task 2.3
-        throw new \LogicException('Not yet implemented');
+        DB::transaction(function () use ($user, $reason, $source) {
+            $this->auditService->logGDPR(
+                AuditLog::ACTION_ACCOUNT_DELETED,
+                $user->id,
+                [
+                    'reason' => $reason,
+                    'source' => $source,
+                ]
+            );
+
+            // Revoke Sanctum tokens
+            DB::table('personal_access_tokens')
+                ->where('tokenable_type', User::class)
+                ->where('tokenable_id', $user->id)
+                ->delete();
+
+            // Delete sessions
+            DB::table('user_sessions')->where('user_id', $user->id)->delete();
+
+            // Cancel an active subscription only — leave others (expired/trialing/cancelled) alone
+            DB::table('subscriptions')
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->update(['status' => 'cancelled', 'updated_at' => now()]);
+
+            $retentionYears = (int) config('retention.account_years', 7);
+
+            $user->update([
+                'deletion_scheduled_for' => null,
+                'deletion_reason' => $reason,
+                'deletion_source' => $source,
+                'purge_eligible_at' => now()->addYears($retentionYears),
+            ]);
+            $user->delete(); // soft-delete via SoftDeletes trait
+
+            Mail::to($user->email)->queue(new AccountDeletionConfirmationEmail($user));
+        });
     }
 
     public function restoreAccount(User $user): void
