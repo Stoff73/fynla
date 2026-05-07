@@ -7,6 +7,7 @@ namespace App\Services\Account;
 use App\Mail\Account\AccountDeletionCancelledEmail;
 use App\Mail\Account\AccountDeletionConfirmationEmail;
 use App\Mail\Account\AccountDeletionScheduledEmail;
+use App\Mail\Account\AccountRestorationConfirmationEmail;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Audit\AuditService;
@@ -126,7 +127,28 @@ class AccountDeletionService
 
     public function restoreAccount(User $user): void
     {
-        // Implemented in Task 2.4
-        throw new \LogicException('Not yet implemented');
+        if (! $user->canBeRestored()) {
+            throw new \RuntimeException('Account cannot be restored.');
+        }
+
+        DB::transaction(function () use ($user) {
+            $this->auditService->logGDPR(
+                AuditLog::ACTION_ACCOUNT_RESTORED,
+                $user->id,
+                [
+                    'previous_reason' => $user->deletion_reason,
+                    'previous_source' => $user->deletion_source,
+                ]
+            );
+
+            $user->update([
+                'restored_at' => now(),
+                'purge_eligible_at' => null,
+                // deletion_reason and deletion_source intentionally NOT cleared (audit history)
+            ]);
+            $user->restore();
+
+            Mail::to($user->email)->queue(new AccountRestorationConfirmationEmail($user));
+        });
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Mail\Account\AccountDeletionCancelledEmail;
 use App\Mail\Account\AccountDeletionConfirmationEmail;
 use App\Mail\Account\AccountDeletionScheduledEmail;
+use App\Mail\Account\AccountRestorationConfirmationEmail;
 use App\Models\AuditLog;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
@@ -169,4 +170,38 @@ it('deleteAccount with non-active subscription leaves status alone', function ()
     );
 
     expect(Subscription::where('user_id', $user->id)->first()->status)->toBe('expired');
+});
+
+it('restoreAccount un-soft-deletes and writes audit + email', function () {
+    $user = User::factory()->create();
+    app(AccountDeletionService::class)->deleteAccount($user, 'user_requested', 'settings_privacy');
+
+    $user = User::withTrashed()->find($user->id);
+    expect($user->trashed())->toBeTrue();
+
+    app(AccountDeletionService::class)->restoreAccount($user);
+
+    $user->refresh();
+    expect($user->trashed())->toBeFalse();
+    expect($user->restored_at)->not->toBeNull();
+    expect($user->purge_eligible_at)->toBeNull();
+    // deletion_reason and deletion_source persist for audit
+    expect($user->deletion_reason)->toBe('user_requested');
+
+    expect(AuditLog::where('user_id', $user->id)
+        ->where('action', AuditLog::ACTION_ACCOUNT_RESTORED)->count())->toBe(1);
+
+    Mail::assertQueued(AccountRestorationConfirmationEmail::class);
+});
+
+it('restoreAccount refuses for legacy_purged users', function () {
+    $user = User::factory()->create([
+        'deleted_at' => now()->subYears(2),
+        'deletion_reason' => 'legacy_purged',
+    ]);
+
+    $user = User::withTrashed()->find($user->id);
+
+    expect(fn () => app(AccountDeletionService::class)->restoreAccount($user))
+        ->toThrow(RuntimeException::class, 'cannot be restored');
 });
