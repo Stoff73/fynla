@@ -57,3 +57,21 @@ it('Settings → Privacy on user with no paid sub deletes immediately', function
     $response->assertOk();
     expect(User::withTrashed()->find($user->id)->trashed())->toBeTrue();
 });
+
+it('payment.deleteAllData calls AccountDeletionService and clears tokens/sessions', function () {
+    $user = User::factory()->create(['password' => bcrypt('p')]);
+    Subscription::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'expired',
+        'data_retention_starts_at' => now()->subDays(5),
+    ]);
+    Sanctum::actingAs($user);
+
+    $response = $this->postJson('/api/payment/delete-all-data', [
+        'confirmation_text' => 'DELETE',
+        'current_password' => 'p',
+    ]);
+
+    $response->assertOk();
+    expect(User::withTrashed()->find($user->id)->trashed())->toBeTrue();
+});
