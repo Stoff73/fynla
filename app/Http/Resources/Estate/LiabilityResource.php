@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Estate;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,9 @@ class LiabilityResource extends JsonResource
             'user_id' => $this->user_id,
             'ownership_type' => $this->ownership_type,
             'joint_owner_id' => $this->joint_owner_id,
+            'joint_owner_deactivated' => $this->joint_owner_id
+                ? User::withTrashed()->where('id', $this->joint_owner_id)->whereNotNull('deleted_at')->exists()
+                : false,
             'trust_id' => $this->trust_id,
             'liability_type' => $this->liability_type,
             'country' => $this->country,
