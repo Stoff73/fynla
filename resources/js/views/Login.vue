@@ -32,6 +32,13 @@
       @success="handlePasswordResetSuccess"
     />
 
+    <!-- Restore Account Modal -->
+    <RestoreAccountModal
+      v-bind="restoreModal"
+      @cancel="onRestoreCancel"
+      @restored="onRestored"
+    />
+
     <div class="max-w-2xl w-full">
       <div class="auth-card rounded-2xl py-8 pb-12 px-6 sm:px-12 lg:px-16 space-y-6">
         <div>
@@ -163,6 +170,7 @@ import ChangePasswordModal from '../components/Auth/ChangePasswordModal.vue';
 import VerificationCodeModal from '../components/Auth/VerificationCodeModal.vue';
 import MFAVerifyModal from '../components/Auth/MFAVerifyModal.vue';
 import ForgotPasswordModal from '../components/Auth/ForgotPasswordModal.vue';
+import RestoreAccountModal from '@/components/Account/RestoreAccountModal.vue';
 import authService from '../services/authService';
 import api from '../services/api';
 
@@ -174,6 +182,7 @@ export default {
     VerificationCodeModal,
     MFAVerifyModal,
     ForgotPasswordModal,
+    RestoreAccountModal,
   },
 
   setup() {
@@ -197,6 +206,15 @@ export default {
     const pendingMfaToken = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
+
+    const restoreModal = ref({
+      visible: false,
+      firstName: '',
+      deletedAt: '',
+      restorationToken: '',
+      requiresPasswordVerification: false,
+      email: '',
+    });
 
     // Post-login redirect target from ?redirect= query param (used by
     // lifecycle magic links to route users back to checkout, profile,
@@ -254,6 +272,20 @@ export default {
           email: form.value.email,
           password: form.value.password,
         });
+
+        // Account is soft-deleted but restorable — show restore modal
+        // instead of completing login.
+        if (response.data.account_deleted_restorable) {
+          restoreModal.value = {
+            visible: true,
+            firstName: response.data.first_name || '',
+            deletedAt: response.data.deleted_at || '',
+            restorationToken: response.data.restoration_token || '',
+            requiresPasswordVerification: false,
+            email: form.value.email,
+          };
+          return;
+        }
 
         // Check if MFA verification is required
         if (response.data.requires_mfa) {
@@ -375,6 +407,35 @@ export default {
       // The modal shows a success message and closes
     };
 
+    const onRestoreCancel = () => {
+      restoreModal.value = {
+        visible: false,
+        firstName: '',
+        deletedAt: '',
+        restorationToken: '',
+        requiresPasswordVerification: false,
+        email: '',
+      };
+    };
+
+    const onRestored = async (result) => {
+      // result = { token, user, redirect_to } from POST /api/auth/restore
+      await authService.setToken(result.token);
+      store.commit('auth/setToken', result.token);
+
+      // Reset cross-user caches before fetching the restored user.
+      store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
+
+      try {
+        await store.dispatch('auth/fetchUser');
+      } catch (e) {
+        // fetchUser failure shouldn't block redirect — token is set.
+      }
+
+      restoreModal.value.visible = false;
+      router.push(result.redirect_to || '/subscription/select');
+    };
+
     return {
       form,
       errors,
@@ -389,6 +450,7 @@ export default {
       pendingChallengeToken,
       pendingMfaToken,
       pendingEmail,
+      restoreModal,
       logoUrl: '/images/logos/LogoHiResFynlaDark.png',
       handleLogin,
       handleVerified,
@@ -397,6 +459,8 @@ export default {
       handleMFAClose,
       handlePasswordChanged,
       handlePasswordResetSuccess,
+      onRestoreCancel,
+      onRestored,
     };
   },
 };

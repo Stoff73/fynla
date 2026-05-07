@@ -10,6 +10,13 @@
       @close="handleVerificationClose"
     />
 
+    <!-- Restore Account Modal -->
+    <RestoreAccountModal
+      v-bind="restoreModal"
+      @cancel="onRestoreCancel"
+      @restored="onRestored"
+    />
+
     <div class="max-w-2xl w-full">
       <div class="auth-card rounded-2xl py-8 px-6 sm:px-12 lg:px-16 space-y-6">
         <div>
@@ -190,6 +197,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import VerificationCodeModal from '@/components/Auth/VerificationCodeModal.vue';
+import RestoreAccountModal from '@/components/Account/RestoreAccountModal.vue';
 import storage from '@/utils/storage';
 import api from '@/services/api';
 import authService from '@/services/authService';
@@ -201,6 +209,7 @@ export default {
 
   components: {
     VerificationCodeModal,
+    RestoreAccountModal,
   },
 
   setup() {
@@ -235,6 +244,15 @@ export default {
     const pendingId = ref(null);
     const pendingEmail = ref('');
     const isSubmitting = ref(false);
+
+    const restoreModal = ref({
+      visible: false,
+      firstName: '',
+      deletedAt: '',
+      restorationToken: '',
+      requiresPasswordVerification: false,
+      email: '',
+    });
 
     const loading = computed(() => store.getters['auth/loading'] || isSubmitting.value);
 
@@ -292,6 +310,21 @@ export default {
         // second registration attempt in the same browser session does
         // not silently inherit it.
         if (capturedSource) clearCapturedSource();
+
+        // Email belongs to a soft-deleted but restorable account — show
+        // the restore modal. The modal collects the password and calls
+        // /auth/restore/check before /auth/restore.
+        if (response.data.account_deleted_restorable) {
+          restoreModal.value = {
+            visible: true,
+            firstName: response.data.first_name || '',
+            deletedAt: response.data.deleted_at || '',
+            restorationToken: '',
+            requiresPasswordVerification: true,
+            email: form.value.email,
+          };
+          return;
+        }
 
         // Check if verification is required
         if (response.data.requires_verification) {
@@ -378,6 +411,36 @@ export default {
       pendingEmail.value = '';
     };
 
+    const onRestoreCancel = () => {
+      restoreModal.value = {
+        visible: false,
+        firstName: '',
+        deletedAt: '',
+        restorationToken: '',
+        requiresPasswordVerification: false,
+        email: '',
+      };
+    };
+
+    const onRestored = async (result) => {
+      // result = { token, user, redirect_to } from POST /api/auth/restore
+      await authService.setToken(result.token);
+      store.commit('auth/setToken', result.token);
+
+      // Reset cross-user caches so a returning restored user does not
+      // inherit any stale chat / dashboard state.
+      store.dispatch('aiChat/reset', null, { root: true }).catch(() => {});
+
+      try {
+        await store.dispatch('auth/fetchUser');
+      } catch (e) {
+        // fetchUser failure shouldn't block redirect — token is set.
+      }
+
+      restoreModal.value.visible = false;
+      router.push(result.redirect_to || '/subscription/select');
+    };
+
     return {
       cookiesAccepted,
       handleAcceptCookiesForRegistration,
@@ -389,9 +452,12 @@ export default {
       showVerificationModal,
       pendingId,
       pendingEmail,
+      restoreModal,
       handleRegister,
       handleVerified,
       handleVerificationClose,
+      onRestoreCancel,
+      onRestored,
       logoImage: '/images/logos/LogoHiResFynlaDark.png',
     };
   },
