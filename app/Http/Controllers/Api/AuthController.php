@@ -58,6 +58,19 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        // Trashed-email detection: if a soft-deleted account exists for this email,
+        // surface restorability rather than creating a new pending registration.
+        $existing = User::withTrashed()->where('email', $request->input('email'))->first();
+        if ($existing && $existing->trashed() && $existing->deletion_reason !== 'legacy_purged') {
+            return response()->json([
+                'account_deleted_restorable' => true,
+                'requires_password_verification' => true,
+                'deleted_at' => $existing->deleted_at->toIso8601String(),
+                'deletion_reason' => $existing->deletion_reason,
+                'first_name' => $existing->first_name,
+            ]);
+        }
+
         // Check if email is already registered as a verified user
         $existingUser = User::where('email', $request->email)->first();
         if ($existingUser) {

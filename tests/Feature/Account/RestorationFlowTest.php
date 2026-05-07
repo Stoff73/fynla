@@ -46,3 +46,20 @@ it('login of legacy_purged user returns generic 401', function () {
 
     $response->assertStatus(401);
 });
+
+it('register with email of soft-deleted user returns restorable response', function () {
+    $existing = User::factory()->create(['password' => bcrypt('old-pass')]);
+    app(AccountDeletionService::class)->deleteAccount($existing, 'user_requested', 'settings_privacy');
+
+    $response = $this->postJson('/api/auth/register', [
+        'email' => $existing->email,
+        'password' => 'NewAttemptedPass123!',
+        'password_confirmation' => 'NewAttemptedPass123!',
+        'first_name' => 'Different',
+        'surname' => 'Person',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('account_deleted_restorable', true)
+        ->assertJsonPath('requires_password_verification', true);
+});
