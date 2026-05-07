@@ -183,6 +183,11 @@ class User extends Authenticatable
         return $this->hasOne(Subscription::class);
     }
 
+    public function deletionReminderLog()
+    {
+        return $this->hasMany(AccountDeletionReminderLog::class);
+    }
+
     /**
      * Get all of the user's subscriptions over their lifetime.
      * Used by the lifecycle email engine for eligibility queries that

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Mail\Account\AccountDeletionReminder1DayEmail;
+use App\Mail\Account\AccountDeletionReminder7DaysEmail;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -62,4 +64,23 @@ it('accounts:execute-grace-deletions skips preview users', function () {
     Artisan::call('accounts:execute-grace-deletions');
 
     expect(User::find($user->id))->not->toBeNull();
+});
+
+it('accounts:send-deletion-reminders sends 7-day and 1-day reminders idempotently', function () {
+    $u7 = User::factory()->create([
+        'deletion_scheduled_for' => now()->addDays(7)->addHour(),
+        'deletion_reason' => 'user_requested',
+        'deletion_source' => 'settings_privacy',
+    ]);
+    $u1 = User::factory()->create([
+        'deletion_scheduled_for' => now()->addHours(20),
+        'deletion_reason' => 'user_requested',
+        'deletion_source' => 'settings_privacy',
+    ]);
+
+    Artisan::call('accounts:send-deletion-reminders');
+    Artisan::call('accounts:send-deletion-reminders'); // idempotent
+
+    Mail::assertQueued(AccountDeletionReminder7DaysEmail::class, 1);
+    Mail::assertQueued(AccountDeletionReminder1DayEmail::class, 1);
 });
