@@ -1,7 +1,69 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 6 end-of-day wrap (PR #245 production deploy executed end-to-end + PR #246/#247 cache-control middleware shipped. Local + dev + production all in sync at `3c69ecd`. Zero data loss, zero open issues.)*
-*Previous session: 6 May 2026 — session 5 context-clear (PR #245 opened, awaiting merge)*
+*Last updated: 7 May 2026 — session 2 context-clear wrap (source-control hygiene: 35→3 branches, 5→0 stashes, 3 PRs merged, 1 PR parked. No runtime code changed.)*
+*Previous session: 6 May 2026 — session 6 end-of-day (PR #245/#246/#247 prod deploy + cache-control middleware)*
+
+---
+
+## Session 2 (7 May 2026, context-clear) — Branch & stash cleanup, skill restoration
+
+**Branch:** `main` at `1cdf46d` · **Tree:** clean · **Today's commits:** 6 (all merged through dev → main)
+
+**Outcome:**
+1. **Inventoried all 35 branches** — categorised into pushed/synced, unmerged-with-unique-work, fully-merged-stale.
+2. **27 fully-merged branches deleted** (local + origin) — `fynImprovement`, `UI`, `FynChat`, `onboardingBug`, `claude/clever-torvalds`, `bugs`, `estateDash`, `referFriend`, `revolutLive`, `uiFixes`, `fynUpgrade`, `claudeReview`, `awinIntegrate`, `awinPlusDev`, `invoiceFix`, `mobile-updates`, `pension-fix`, `genUIFixes`, `session67-investment-fix`, `lifecycle-rate-limit`, `api-no-store-cache`, `phailanx/news-rss-lifecycle-emails`, `main-test-fixes`, plus 4 small stale branches (`fynChatFix`, `cacheFix`, `gitignore-claude-skills`, `session-52-csjtodo-update`).
+3. **2 large dead-architecture branches dropped**: `feature/csj/sprint0-rebase` (117k lines on rejected `FynPersonaOrchestrator`) + `fynNew` (44k lines on rejected `RuleBasedRouter` paradigm). Confirmed via grep that current main forbids both abstractions.
+4. **`feature/fyn-persona-split` (282 commits)** confirmed as squash-merged via PR #242 — deleted.
+5. **2 worthwhile branches salvaged into fresh PRs off dev**:
+   - **PR #248** (excalidraw skill) — merged into dev, then released to main via PR #250.
+   - **PR #249** (Python Agent SDK sidecar) — opened then **PARKED** with `[PARKED]` title prefix and unpark-criteria comment. Memory file `reference_pr249_python_sidecar_parked.md` created and indexed in `MEMORY.md`.
+6. **Mid-session discovery and fix**: `session-start`, `session-end`, `vault-sync` skills were missing/stale in the project (only living in `~/.claude/skills/`), and `.gitignore` line 42 was actively excluding `.claude/skills/session-end/` from being tracked. Restored latest from global via **PR #251**, removed the gitignore rule, released to main via **PR #252**. Also enabled `disable-model-invocation: false` on `vault-context` per the user's edit.
+7. **5 stashes audited and dropped** — all stale (Feb-Mar dates, all from deleted branches): WIP on `main` ×2, WIP on `feature/mobile-app-phase0`, WIP on `uiUpdate` ×2.
+8. **Vault sync executed via Haiku 4.5 subagent** at high effort: 16 changed files synced (May1-7Updates), `May07.md` git history created (6 commits), `May 2026 Commits.md` corrected (was 46, actually 30 — typo from parallel fynlaInternational project bleed), `May Index.md` updated, Home.md git table refreshed. 0 broken wikilinks. 1 frontmatter fix (May Index `date` field).
+
+**PR merges this session (all `gh pr merge --merge --admin`):**
+- `4fa9378` Merge PR #248 (excalidraw skill → dev)
+- `bd67016` Merge PR #250 (release dev → main, excalidraw)
+- `d98a6e9` Merge PR #251 (skill restoration → dev)
+- `1cdf46d` Merge PR #252 (release dev → main, skill restoration)
+
+### Done
+
+- [x] **All 35 branches triaged** — kept only main, dev, and the parked Python sidecar branch
+- [x] **2 PRs merged + 2 release PRs merged** (PRs #248, #250, #251, #252)
+- [x] **PR #249 parked** with `[PARKED]` title + comment + memory entry
+- [x] **Session-management skills restored to repo** + `.gitignore` rule removed
+- [x] **Vault sync clean** (subagent) — git history, May Index, Home.md, all wikilinks resolve
+- [x] **Stashes cleared** (all 5 dropped after audit)
+
+### Outstanding (next session)
+
+- [ ] **PR #249 (Python sidecar) remains parked** — see `reference_pr249_python_sidecar_parked.md` for unpark triggers (premium-tier use case + entry point + engineered prompts + e2e test in dev). Don't auto-delete the branch.
+- [ ] **Decide on the pre-existing untracked files** at repo root — `FCA/`, `FCAsuperchargeApp.md`, `FCA-Supercharged-Sandbox-Application-Draft.md`, `Fynla-Narrative-Memo-Template.docx`, `May/May1Updates/deployFynFix.md`, `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/`. Either commit, gitignore, or move out of the repo.
+
+### Carried over from session 6
+
+- [ ] **Smoke prod once after overnight soak** — `curl -sI https://fynla.org/api/insights` should still show no-store; landing 200; /insights renders
+- [ ] **Revert SPA cachebuster** in `resources/js/services/insightsService.js` — now redundant after `ApiCacheHeaders` middleware shipped
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main` — recipe in `deploy/csjones-fynla/BOOTSTRAP.md` §12. After ~24h prod soak.
+- [ ] **`public/.htaccess` cache-control rules cleanup** — now redundant with middleware
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at March 2026 mtime
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings, pre-existing
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Confirmed again this session. Update opportunistically.
+
+### Hard rules reinforced this session
+
+- **`.claude/skills/` directory should be tracked end-to-end** — no gitignore rules excluding individual skills. The `~/.claude/skills/` global directory is for personal/cross-project skills only; project-specific skills (`session-start`, `session-end`, `vault-sync`, etc.) live in the repo so a fresh checkout has them.
+- **Don't drop branches that look "merged" without verifying** — `git merge-base --is-ancestor` and `comm -23 <(git ls-tree branch) <(git ls-tree main)` are the safe checks. The +N/-M divergence numbers are misleading after squash merges.
+
+### Untracked at session end (pre-existing, carried, NOT introduced this session)
+
+- `FCA-Supercharged-Sandbox-Application-Draft.md`
+- `FCA/`
+- `FCAsuperchargeApp.md`
+- `Fynla-Narrative-Memo-Template.docx`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/`
 
 ---
 
