@@ -1,7 +1,7 @@
 ---
 name: vault-context
 description: Load project knowledge from the fynlaBrain Obsidian vault for a specific module or topic. Surfaces architecture docs, current state, recent fixes/bugs, session history, feedback rules, and reports. Use when starting work on any module, before dispatching sub-agents, or when you need context about how something was built or what bugs have been fixed. Triggers on "/vault-context", "load vault", "check vault", "vault context", or before any feature/fix work on a module.
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Vault Context — Load Project Knowledge
