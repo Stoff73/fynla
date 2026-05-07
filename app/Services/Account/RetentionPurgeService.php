@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Payment;
+namespace App\Services\Account;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class DataPurgeService
+class RetentionPurgeService
 {
     /**
-     * Permanently delete all financial data for a user.
+     * Permanently purge all data for a user after the retention period has elapsed.
      *
      * Cascades through all modules (Protection, Savings, Investment,
      * Retirement, Estate, Goals, Properties, Documents) respecting
@@ -23,7 +23,7 @@ class DataPurgeService
      *
      * @return array{tables_purged: int, records_deleted: int}
      */
-    public function purgeUserData(User $user): array
+    public function purgeUser(User $user): array
     {
         $userId = $user->id;
         $userEmail = $user->email;
@@ -327,8 +327,9 @@ class DataPurgeService
             'erasure_requests',
 
             // ── Subscription / Billing ──
-            'data_retention_email_log',
-            'renewal_reminder_log',
+            // NB: data_retention_email_log and renewal_reminder_log are intentionally
+            // excluded — they have only subscription_id (no user_id) and cascade from
+            // the subscriptions delete below.
             'trial_reminder_log',
             'payments',
             'subscriptions',
