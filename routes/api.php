@@ -1016,6 +1016,16 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('holistic')->group(fu
     Route::patch('/recommendations/{id}/notes', [HolisticPlanningController::class, 'updateRecommendationNotes']);
 });
 
+// Internal Agent API routes (Python Agent SDK sidecar callbacks)
+Route::prefix('internal/agent')->middleware('agent.token')->group(function () {
+    Route::get('/analysis/{module}', [\App\Http\Controllers\Api\AgentInternalController::class, 'moduleAnalysis']);
+    Route::get('/tax/{topic}', [\App\Http\Controllers\Api\AgentInternalController::class, 'taxInformation']);
+    Route::post('/scenario', [\App\Http\Controllers\Api\AgentInternalController::class, 'scenario']);
+    Route::post('/prerequisite-check', [\App\Http\Controllers\Api\AgentInternalController::class, 'prerequisiteCheck']);
+    Route::get('/user-context/{userId}', [\App\Http\Controllers\Api\AgentInternalController::class, 'userContext']);
+    Route::get('/recommendations', [\App\Http\Controllers\Api\AgentInternalController::class, 'recommendations']);
+});
+
 // Unified Recommendations routes (Phase 5)
 Route::middleware('auth:sanctum')->prefix('recommendations')->group(function () {
     // Main recommendations endpoints

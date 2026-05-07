@@ -126,5 +126,6 @@ class Kernel extends HttpKernel
         'feature' => CheckFeatureAccess::class,
         'insights.seo' => InsightsSeoMetaInjector::class,
         'idempotent' => IdempotencyKeyMiddleware::class,
+        'agent.token' => \App\Http\Middleware\AgentTokenAuth::class,
     ];
 }
