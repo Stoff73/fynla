@@ -63,3 +63,36 @@ it('register with email of soft-deleted user returns restorable response', funct
         ->assertJsonPath('account_deleted_restorable', true)
         ->assertJsonPath('requires_password_verification', true);
 });
+
+it('restore endpoint with valid token un-soft-deletes the user and returns Sanctum token', function () {
+    $user = User::factory()->create(['password' => bcrypt('p')]);
+    app(AccountDeletionService::class)->deleteAccount($user, 'user_requested', 'settings_privacy');
+
+    // Get the restoration token via login flow
+    $login = $this->postJson('/api/auth/login', ['email' => $user->email, 'password' => 'p']);
+    $token = $login->json('restoration_token');
+
+    $response = $this->postJson('/api/auth/restore', ['restoration_token' => $token]);
+
+    $response->assertOk()
+        ->assertJsonStructure(['token', 'user' => ['id', 'email'], 'redirect_to']);
+
+    expect(User::find($user->id))->not->toBeNull();
+    expect(User::find($user->id)->trashed())->toBeFalse();
+});
+
+it('restore endpoint with invalid token returns 401', function () {
+    $response = $this->postJson('/api/auth/restore', ['restoration_token' => 'definitely-not-real']);
+    $response->assertStatus(401);
+});
+
+it('restore/check endpoint with email + password returns a fresh restoration_token', function () {
+    $user = User::factory()->create(['password' => bcrypt('p')]);
+    app(AccountDeletionService::class)->deleteAccount($user, 'user_requested', 'settings_privacy');
+
+    $response = $this->postJson('/api/auth/restore/check', [
+        'email' => $user->email, 'password' => 'p',
+    ]);
+
+    $response->assertOk()->assertJsonStructure(['restoration_token']);
+});

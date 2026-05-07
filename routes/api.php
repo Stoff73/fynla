@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdvisorController;
 use App\Http\Controllers\Api\AiAuditController;
 use App\Http\Controllers\Api\AiChatController;
+use App\Http\Controllers\Api\Auth\RestoreAccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
@@ -118,6 +119,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:5,1');
+    Route::post('/restore/check', [RestoreAccountController::class, 'check'])->middleware('throttle:5,1');
+    Route::post('/restore', [RestoreAccountController::class, 'restore'])->middleware('throttle:5,1');
 
     // Beacon logout - accepts token in body for browser/tab close handling
     // No auth middleware since sendBeacon cannot set Authorization header
