@@ -17,7 +17,7 @@
       <div class="bg-eggshell-500 py-14 lg:py-16">
         <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="mb-10 lg:mb-12">
-            <span class="inline-block text-xs font-mono uppercase tracking-widest text-raspberry-500 mb-2">Tax year {{ taxYear }}</span>
+            <span class="inline-block text-xs uppercase tracking-widest text-raspberry-500 mb-2">Tax year {{ taxYear }}</span>
             <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-horizon-500 leading-tight">Your allowances</h2>
           </div>
 
@@ -37,7 +37,7 @@
                     <p class="text-sm font-semibold text-horizon-500">{{ item.label }}</p>
                     <p class="text-xs text-neutral-500 mt-0.5">{{ item.note }}</p>
                   </div>
-                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap font-mono">{{ formatAmount(item) }}</span>
+                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap">{{ formatAmount(item) }}</span>
                 </li>
               </ul>
             </div>
@@ -57,13 +57,13 @@
                     <p class="text-sm font-semibold text-horizon-500">{{ item.label }}</p>
                     <p class="text-xs text-neutral-500 mt-0.5">{{ item.note }}</p>
                   </div>
-                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap font-mono">{{ formatAmount(item) }}</span>
+                  <span class="text-lg font-bold text-raspberry-500 whitespace-nowrap">{{ formatAmount(item) }}</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          <p class="text-base sm:text-lg text-neutral-500 leading-relaxed mt-12 max-w-3xl">
+          <p class="text-base sm:text-lg text-neutral-500 leading-relaxed mt-12">
             Knowing how to get the most out of, and use your allowances can be tricky.
             <span class="font-semibold text-horizon-500">Fyn can help.</span>
             Here are a few common situations where the right allowance — or the right account — can save you thousands.
@@ -71,11 +71,35 @@
         </div>
       </div>
 
+      <!-- What does this mean? -->
+      <div class="bg-horizon-500 py-14 lg:py-16">
+        <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-10 lg:mb-12 leading-tight">What does this mean?</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            <div>
+              <p class="text-xs uppercase tracking-widest text-raspberry-300 mb-3">Total available allowances {{ taxYear }}</p>
+              <p class="text-7xl md:text-8xl font-black text-white leading-none tracking-tight">{{ formattedTotal }}</p>
+            </div>
+            <div>
+              <p class="text-white/80 text-base sm:text-lg leading-relaxed mb-6">
+                That's the combined value of the tax-free and tax-relievable allowances available to every UK taxpayer each year. From income you can earn free of tax, to ISA savings sheltered from capital gains and dividends, to pension contributions that attract full tax relief — the system offers significant scope to keep more of what you earn. The challenge is knowing which allowances apply to your situation and how to use them together effectively.
+              </p>
+              <router-link
+                :to="campaignRegistrationLink"
+                class="inline-block px-6 py-3 bg-spring-500 hover:bg-spring-600 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Register to save tax
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Examples — "Could this be you?" -->
       <div class="bg-light-pink-100 py-14 lg:py-16">
         <div class="campaign-inner max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="mb-10 lg:mb-12">
-            <span class="inline-block text-xs font-mono uppercase tracking-widest text-raspberry-500 mb-2">Real-life examples</span>
+            <span class="inline-block text-xs uppercase tracking-widest text-raspberry-500 mb-2">Real-life examples</span>
             <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-horizon-500 leading-tight">Could this be you?</h2>
           </div>
 
@@ -86,18 +110,12 @@
               class="bg-white rounded-2xl border border-light-gray p-6 lg:p-7 flex flex-col"
             >
               <h3 class="text-xl font-bold text-horizon-500 mb-3">{{ example.title }}</h3>
-              <p class="text-sm text-neutral-500 leading-relaxed flex-1" v-html="example.body"></p>
-              <router-link
-                :to="campaignRegistrationLink"
-                class="mt-5 inline-block px-5 py-2.5 bg-raspberry-500 hover:bg-raspberry-600 text-white text-sm font-semibold rounded-lg transition-colors text-left"
-              >
-                Register now to ask Fyn
-              </router-link>
+              <p class="text-sm text-neutral-500 leading-relaxed" v-html="example.body"></p>
             </article>
           </div>
 
           <div class="text-center mt-12">
-            <p class="text-sm text-neutral-500 mb-4">Got a different question? Just ask.</p>
+            <p class="text-sm text-neutral-500 mb-4">Get started now</p>
             <router-link
               :to="campaignRegistrationLink"
               class="inline-block px-8 py-3 bg-spring-500 hover:bg-spring-600 text-white text-base font-semibold rounded-lg transition-colors"
@@ -146,6 +164,14 @@ export default {
   components: { PublicLayout, StaticFynChat },
   mixins: [currencyMixin],
 
+  computed: {
+    formattedTotal() {
+      const total = [...this.incomeAllowances, ...this.investmentAllowances]
+        .reduce((sum, item) => sum + (item.amount || 0), 0);
+      return this.formatCurrency(total);
+    },
+  },
+
   data() {
     return {
       campaignRegistrationLink: { path: '/register', query: { from: 'savetax' } },
@@ -155,15 +181,15 @@ export default {
       examples: [
         {
           title: 'Non-working spouse',
-          body: 'If no income is earned, a non-earning spouse can still receive up to <span class="font-bold text-horizon-500 font-mono">£18,750</span> per year of income tax-free by combining the Personal Allowance, Starting Rate for Savings and Personal Savings Allowance.',
+          body: 'If no income is earned, a non-earning spouse can still receive up to <span class="font-bold text-horizon-500">£18,750</span> per year of income tax-free by combining the Personal Allowance, Starting Rate for Savings and Personal Savings Allowance.',
         },
         {
           title: 'High income tax trap',
-          body: 'If you earn above <span class="font-bold text-horizon-500 font-mono">£100,000</span> per year, you may have some of your income taxed at an effective rate of <span class="font-bold text-horizon-500 font-mono">60%</span> due to the tapered withdrawal of your Personal Allowance.',
+          body: 'If you earn above <span class="font-bold text-horizon-500">£100,000</span> per year, you may have some of your income taxed at an effective rate of <span class="font-bold text-horizon-500">60%</span> due to the tapered withdrawal of your Personal Allowance.',
         },
         {
           title: 'Investment Accounts',
-          body: 'Just using these, you can take up to <span class="font-bold text-horizon-500 font-mono">£3,000</span> per year of tax-free gains and <span class="font-bold text-horizon-500 font-mono">£500</span> per year of tax-free dividend income — on top of your ISA.',
+          body: 'Just using these, you can take up to <span class="font-bold text-horizon-500">£3,000</span> per year of tax-free gains and <span class="font-bold text-horizon-500">£500</span> per year of tax-free dividend income — on top of your ISA.',
         },
         {
           title: 'National Insurance contributions',
