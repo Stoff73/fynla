@@ -62,11 +62,11 @@ class RestoreAccountController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $user->only(['id', 'email', 'first_name', 'surname']),
-            // TODO: spec/design call for a dedicated /subscription/select page
-            // (design.md:259, plan.md:3075). Page was never built — repointing
-            // to /pricing as a working destination so restored users can pick
-            // a plan via the existing checkout flow. Track separately.
-            'redirect_to' => '/pricing',
+            // Land restored users on the authenticated dashboard with a query
+            // flag that opens PlanSelectionModal in-app (handled in AppLayout).
+            // Avoids bouncing the user out to the public /pricing landing page
+            // and reuses the same modal flow as the navbar "Choose a Plan" CTA.
+            'redirect_to' => '/dashboard?openPricing=1',
         ]);
     }
 

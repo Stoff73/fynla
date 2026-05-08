@@ -433,7 +433,7 @@ export default {
       }
 
       restoreModal.value.visible = false;
-      router.push(result.redirect_to || '/subscription/select');
+      router.push(result.redirect_to || '/dashboard?openPricing=1');
     };
 
     return {
