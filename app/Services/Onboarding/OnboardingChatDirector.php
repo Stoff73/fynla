@@ -1689,11 +1689,11 @@ PROMPT;
         // During multi-turn onboarding (especially the SaveTax 6-8 turn flow)
         // the user may re-mention records they already described in an earlier
         // turn ("the Aviva life cover I told you about"). The known_facts
-        // block reduces re-asking, but the LLM is not perfectly disciplined at
-        // 0.7 temperature and can still re-emit a create_* tool. The advice
-        // path is protected by RecordDuplicateChecker; until now the onboarding
-        // path was not. Mirror the same guard here so multi-turn capture cannot
-        // create duplicates. We map the focus to the entity_type the checker
+        // block reduces re-asking, but even at temperature 0 the LLM can
+        // still re-emit a create_* tool. The advice path is protected by
+        // RecordDuplicateChecker; until now the onboarding path was not.
+        // Mirror the same guard here so multi-turn capture cannot create
+        // duplicates. We map the focus to the entity_type the checker
         // recognises; estate / business / savetax fall through (no checker
         // mapping — handler-level dedup remains the floor for those).
         $entityType = match ($selection) {
