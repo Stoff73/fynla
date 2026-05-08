@@ -39,9 +39,9 @@ return [
 
     'xai' => [
         'api_key' => env('XAI_API_KEY', ''),
-        'chat_model' => env('XAI_CHAT_MODEL', 'grok-4-1-fast-non-reasoning'),
-        'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4-1-fast-non-reasoning'),
-        'vision_model' => env('XAI_VISION_MODEL', 'grok-4-1-fast-non-reasoning'),
+        'chat_model' => env('XAI_CHAT_MODEL', 'grok-4.3'),
+        'advanced_chat_model' => env('XAI_ADVANCED_CHAT_MODEL', 'grok-4.3'),
+        'vision_model' => env('XAI_VISION_MODEL', 'grok-4.3'),
         'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
     ],
 

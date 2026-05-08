@@ -284,7 +284,7 @@ class DocumentProcessor
                     $extraction = DocumentExtraction::create([
                         'document_id' => $document->id,
                         'extraction_version' => 1,
-                        'model_used' => config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning'),
+                        'model_used' => config('services.xai.vision_model', 'grok-4.3'),
                         'raw_response' => json_encode($extracted),
                         'extracted_fields' => $extracted,
                         'field_confidence' => $extracted['confidence'] ?? [],

@@ -17,7 +17,7 @@ trait HasAiGuardrails
 {
     private const DEFAULT_MODEL_ANTHROPIC = 'claude-haiku-4-5-20251001';
 
-    private const DEFAULT_MODEL_XAI = 'grok-4-1-fast-reasoning';
+    private const DEFAULT_MODEL_XAI = 'grok-4.3';
 
     /**
      * Get the active AI provider, checking admin toggle (cache) first, then .env.
