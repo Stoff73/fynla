@@ -74,6 +74,10 @@ class UserResource extends JsonResource
             'annual_charitable_donations' => $this->annual_charitable_donations,
             'is_gift_aid' => $this->is_gift_aid,
             'is_registered_blind' => $this->is_registered_blind,
+            // Account deletion lifecycle
+            'deletion_scheduled_for' => $this->deletion_scheduled_for,
+            'deletion_reason' => $this->deletion_reason,
+            'restored_at' => $this->restored_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'spouse' => $this->when($this->relationLoaded('spouse'), function () {

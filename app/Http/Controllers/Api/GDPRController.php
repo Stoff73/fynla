@@ -12,10 +12,10 @@ use App\Models\DataExport;
 use App\Models\ErasureRequest;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Services\Account\AccountDeletionService;
 use App\Services\Audit\AuditService;
 use App\Services\Auth\MFAService;
 use App\Services\GDPR\ConsentService;
-use App\Services\GDPR\DataErasureService;
 use App\Services\GDPR\DataExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +31,7 @@ class GDPRController extends Controller
 
     public function __construct(
         private readonly DataExportService $exportService,
-        private readonly DataErasureService $erasureService,
+        private readonly AccountDeletionService $deletionService,
         private readonly ConsentService $consentService,
         private readonly MFAService $mfaService,
         private readonly AuditService $auditService
@@ -197,10 +197,25 @@ class GDPRController extends Controller
             ], 403);
         }
 
-        $erasureRequest = $this->erasureService->requestErasure(
-            $request->user(),
-            $request->reason
-        );
+        $user = $request->user();
+
+        // Check for existing pending request
+        $erasureRequest = ErasureRequest::where('user_id', $user->id)
+            ->whereIn('status', [ErasureRequest::STATUS_PENDING, ErasureRequest::STATUS_PROCESSING])
+            ->first();
+
+        if (! $erasureRequest) {
+            $erasureRequest = ErasureRequest::create([
+                'user_id' => $user->id,
+                'reason' => $request->reason,
+                'status' => ErasureRequest::STATUS_PENDING,
+            ]);
+
+            $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_REQUESTED, $user->id, [
+                'request_id' => $erasureRequest->id,
+                'reason' => $request->reason,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -267,10 +282,10 @@ class GDPRController extends Controller
             ], 400);
         }
 
-        $this->erasureService->confirmErasure($erasureRequest);
+        $erasureRequest->confirm();
+        $erasureRequest->complete([], 'legacy_endpoint');
 
-        // Process immediately (in production, this might be queued)
-        $this->erasureService->processErasure($erasureRequest);
+        $this->deletionService->deleteAccount($request->user(), 'user_requested', 'gdpr_legacy');
 
         return response()->json([
             'success' => true,
@@ -294,14 +309,14 @@ class GDPRController extends Controller
             ], 404);
         }
 
-        try {
-            $this->erasureService->cancelErasure($erasureRequest);
-        } catch (\RuntimeException $e) {
+        if ($erasureRequest->isCompleted() || $erasureRequest->isCancelled()) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Cannot cancel a completed or already cancelled request.',
             ], 400);
         }
+
+        $erasureRequest->cancel();
 
         return response()->json([
             'success' => true,
@@ -512,34 +527,53 @@ class GDPRController extends Controller
 
         // Execute deletion based on type
         if ($session['type'] === 'account') {
-            // Full account deletion - creates erasure request and processes immediately
-            $erasureRequest = $this->erasureService->requestErasure($user, 'Self-service account deletion');
-            $this->erasureService->confirmErasure($erasureRequest);
-            $this->erasureService->processErasure($erasureRequest, 'self-service');
+            $sub = $user->subscription;
+            $hasActivePaid = $sub
+                && $sub->status === 'active'
+                && $sub->current_period_end
+                && $sub->current_period_end->isFuture();
+
+            if ($hasActivePaid) {
+                $this->deletionService->scheduleDeletion(
+                    $user,
+                    'user_requested',
+                    'settings_privacy',
+                    $sub->current_period_end
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Your account is scheduled for deletion on '.$sub->current_period_end->format('j F Y').'.',
+                    'type' => 'account_scheduled',
+                    'logout_required' => false,
+                    'scheduled_deletion_at' => $sub->current_period_end->toIso8601String(),
+                ]);
+            }
+
+            $this->deletionService->deleteAccount($user, 'user_requested', 'settings_privacy');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Your account and all associated data has been deleted.',
+                'message' => 'Your account has been deleted.',
                 'type' => 'account',
                 'logout_required' => true,
             ]);
-        } else {
-            // Data-only deletion - keep account but clear financial data
-            $deletedCategories = $this->erasureService->deleteDataOnly($user);
-
-            $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_COMPLETED, $user->id, [
-                'type' => 'data_only',
-                'categories_deleted' => $deletedCategories,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Your financial data has been deleted. Your account remains active.',
-                'type' => 'data',
-                'logout_required' => false,
-                'deleted_categories' => $deletedCategories,
-            ]);
         }
+
+        // Data-only deletion path: keep account but clear financial data
+        $user->update([
+            'employment_status' => null,
+            'salary' => null,
+            'national_insurance_number' => null,
+        ]);
+        $this->auditService->logGDPR(AuditLog::ACTION_ERASURE_COMPLETED, $user->id, ['type' => 'data_only']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your financial data has been deleted. Your account remains active.',
+            'type' => 'data',
+            'logout_required' => false,
+        ]);
     }
 
     /**
@@ -609,5 +643,28 @@ class GDPRController extends Controller
         }
 
         return Hash::check($code, $storedCode['code']);
+    }
+
+    /**
+     * Cancel a scheduled (not yet executed) account deletion.
+     * POST /auth/gdpr/erasure/cancel-scheduled
+     */
+    public function cancelScheduledDeletion(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->isScheduledForDeletion()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No scheduled deletion to cancel.',
+            ], 422);
+        }
+
+        $this->deletionService->cancelScheduledDeletion($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Scheduled deletion cancelled.',
+        ]);
     }
 }

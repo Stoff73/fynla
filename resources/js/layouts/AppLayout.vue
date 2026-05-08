@@ -42,6 +42,11 @@
         <!-- Offline Indicator Banner -->
         <OfflineBanner />
 
+        <!-- Scheduled Deletion Banner — appears when the authenticated user has
+             `deletion_scheduled_for` set (grace-period scheduled deletion).
+             Renders a violet info bar with a "Cancel scheduled deletion" button. -->
+        <ScheduledDeletionBanner v-if="isAuthenticated && !isPreviewMode" />
+
         <!-- Data Retention Overlay (non-dismissable modal for grace period users).
              Suppressed on /checkout because the user is already in the subscribe flow. -->
         <DataRetentionOverlay
@@ -152,6 +157,7 @@ import AppNavbar from '@/components/AppNavbar.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
 import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
+import ScheduledDeletionBanner from '@/components/Account/ScheduledDeletionBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
 import AiChatButton from '@/components/Shared/AiChatButton.vue';
@@ -178,6 +184,7 @@ export default {
     AppFooter,
     PreviewBanner,
     TrialCountdownBanner,
+    ScheduledDeletionBanner,
     DataRetentionOverlay,
     InfoGuidePanel,
     AiChatButton,
@@ -313,6 +320,13 @@ export default {
       }
     },
 
+    // Watch for ?openPricing=1 arriving via in-app navigation (e.g. router.push
+    // after a successful restore). Mounted handles the initial-page-load case;
+    // this handles SPA-internal transitions.
+    '$route.query.openPricing'(value) {
+      if (value) this.maybeOpenPricingFromQuery();
+    },
+
     // Profile-review pause routing. When the onboarding director emits
     // `onboarding_layout_change { mode: 'standard' }` (entering
     // profile_review_family or profile_review_expenditure), route the main
@@ -352,6 +366,12 @@ export default {
     if (this.isAuthenticated) {
       this.checkTrialStatus();
     }
+
+    // Honour ?openPricing=1 — set by RestoreAccountController after a
+    // successful account restore, and reusable elsewhere when we want to
+    // pop the plan-selection modal on landing without forcing the user to
+    // click through DataRetentionOverlay first.
+    this.maybeOpenPricingFromQuery();
 
     // Listen for Fyn chat toggle from child views (e.g. Dashboard)
     this._onFynToggle = () => this.toggleChat();
@@ -464,6 +484,24 @@ export default {
     handleSubscribeFromOverlay() {
       this.planModalDismissable = true;
       this.showTrialExpiredModal = true;
+    },
+
+    // Opens PlanSelectionModal when the URL carries ?openPricing=1. Used by
+    // the post-restore redirect (see RestoreAccountController). Reuses the
+    // same dismissable-plan-modal path as DataRetentionOverlay's "Subscribe
+    // Now" CTA so the modal sits above the grace-period overlay if present.
+    // Strips the query param after triggering so a refresh / back-nav does
+    // not re-pop the modal.
+    maybeOpenPricingFromQuery() {
+      if (!this.$route.query.openPricing) return;
+      if (!this.isAuthenticated || this.isPreviewMode) return;
+
+      this.handleSubscribeFromOverlay();
+
+      const { openPricing, ...rest } = this.$route.query;
+      this.$router
+        .replace({ path: this.$route.path, query: rest })
+        .catch(() => {});
     },
 
     handleTrialModalClose() {

@@ -37,6 +37,7 @@ class PropertyResource extends JsonResource
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
             'joint_ownership_type' => $this->joint_ownership_type,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'equity' => $this->equity,
             'outstanding_mortgage' => $this->outstanding_mortgage,
             'monthly_rental_income' => $this->when(

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdvisorController;
 use App\Http\Controllers\Api\AiAuditController;
 use App\Http\Controllers\Api\AiChatController;
+use App\Http\Controllers\Api\Auth\RestoreAccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\BusinessInterestController;
@@ -118,6 +119,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('/verify-code', [AuthController::class, 'verifyCode'])->middleware('throttle:10,1');
     Route::post('/resend-code', [AuthController::class, 'resendCode'])->middleware('throttle:5,1');
+    Route::post('/restore/check', [RestoreAccountController::class, 'check'])->middleware('throttle:5,1');
+    Route::post('/restore', [RestoreAccountController::class, 'restore'])->middleware('throttle:5,1');
 
     // Beacon logout - accepts token in body for browser/tab close handling
     // No auth middleware since sendBeacon cannot set Authorization header
@@ -175,6 +178,7 @@ Route::prefix('auth')->group(function () {
             Route::post('/erasure/verify', [GDPRController::class, 'verifyErasure'])->middleware('throttle:sensitive');
             Route::post('/erasure/execute', [GDPRController::class, 'executeErasure'])->middleware('throttle:sensitive');
             Route::post('/erasure/resend-code', [GDPRController::class, 'resendDeletionCode'])->middleware('throttle:sensitive');
+            Route::post('/erasure/cancel-scheduled', [GDPRController::class, 'cancelScheduledDeletion'])->middleware('throttle:5,1');
 
             // Legacy erasure endpoints (deprecated, kept for backwards compatibility)
             Route::post('/erasure', [GDPRController::class, 'requestErasure'])->middleware('throttle:sensitive');
@@ -1058,7 +1062,7 @@ Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::post('/confirm', [PaymentController::class, 'confirmPayment'])->middleware('throttle:10,1');
     Route::post('/upgrade', [PaymentController::class, 'upgradeSubscription'])->middleware('throttle:10,1');
     Route::post('/cancel-subscription', [PaymentController::class, 'cancelSubscription'])->middleware('throttle:1,1');
-    Route::post('/delete-all-data', [PaymentController::class, 'deleteAllData'])->middleware('throttle:1,5');
+    Route::post('/delete-all-data', [PaymentController::class, 'deleteAllData'])->middleware('throttle:5,5');
     Route::post('/validate-discount', [PaymentController::class, 'validateDiscountCode'])->middleware('throttle:20,1');
     Route::get('/invoices/{invoice}', [PaymentController::class, 'showInvoice'])->middleware('throttle:30,1');
     Route::get('/invoices/{invoice}/download', [PaymentController::class, 'downloadInvoice'])->middleware('throttle:10,1');

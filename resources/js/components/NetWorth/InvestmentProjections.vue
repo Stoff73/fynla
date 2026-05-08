@@ -114,7 +114,9 @@
           <!-- Joint Owner (for joint non-ISA accounts) -->
           <div v-else-if="account.ownership_type === 'joint' && account.joint_owner_name" class="bg-purple-50 rounded-lg p-4 border border-purple-200">
             <p class="text-sm text-neutral-500">Joint Owner</p>
-            <p class="text-xl font-bold text-purple-700">{{ account.joint_owner_name }}</p>
+            <p class="text-xl font-bold text-purple-700">
+              {{ account.joint_owner_name }}<span v-if="account.joint_owner_deactivated" class="ml-1 text-xs font-normal text-neutral-400">(Deactivated)</span>
+            </p>
             <p class="text-xs text-neutral-500 mt-1">{{ 100 - (account.ownership_percentage ?? 50) }}% share</p>
           </div>
           <!-- Holdings count (fallback) -->
