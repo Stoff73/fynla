@@ -187,7 +187,11 @@ export default {
         window.location.href = '/login';
       } catch (err) {
         logger.error('Failed to delete all data', err);
-        deleteError.value = err.response?.data?.error || 'Failed to delete data. Please try again.';
+        if (err.response?.status === 429) {
+          deleteError.value = 'Too many attempts. Please wait a few minutes and try again.';
+        } else {
+          deleteError.value = err.response?.data?.message || 'Failed to delete data. Please try again.';
+        }
         deleting.value = false;
       }
     };
