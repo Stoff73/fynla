@@ -212,7 +212,10 @@ final class QuerySchemas
             '/\b(take|go|navigate|show)\s+(me\s+)?(to|the)\b/i',
             '/\bgo\s+to\b/i',
             '/\bopen\s+(my|the)\b/i',
-            '/\bshow\s+me\s+(my|the)\s+(dashboard|profile|settings|account|page|section|area|tab|view|panel|home|menu)\b/i',
+            // "Show me my X" — exclude wealth-summary phrases so they reach
+            // HOLISTIC_HEALTH for the chat answer instead of being treated
+            // as a page navigation.
+            '/\bshow\s+me\s+(my|the)\s+(?!net\s+worth\b|combined\s+wealth\b|total\s+wealth\b)\w/i',
         ],
         self::BILLING => [
             '/\binvoice(s)?\b/i',
