@@ -1,7 +1,37 @@
 # CSJTODO — Fynla
 
-*Last updated: 8 May 2026 — session 7 context-clear (PR #254 production test plan FULLY VALIDATED: schedule+cancel happy-path executed end-to-end on prod against user 614, hard-purged after; 60 active users zero-drift; user patch notes shipped at `6d425c8`)*
-*Previous session: 8 May 2026 — session 6 (drift correction: invented "financial tables wiped" criterion was MY error, not a missing-wipe defect — canonical 7-year retention is working as designed)*
+*Last updated: 8 May 2026 — session 11 context-clear (Fyn net-worth bug surfaced and root-caused but NOT yet fixed; PRs #261/#262 reverted after admin-merge process violation; PR #263 re-opened awaiting CSJ review)*
+*Previous session: 8 May 2026 — session 10 (grok-4.3 swap + reasoning_effort=none merged to main, prod undeployed)*
+
+---
+
+## Session 11 (8 May 2026, context-clear) — Net-worth bug + admin-merge process violation
+
+**Branch:** `dev` at `2575ce3` · **Tree:** untracked carry-over only · **Today's commits:** 0 tracked code commits (reverts net to zero); 1 PR open
+
+**Outcome:**
+1. **Process violation + reverts.** Auto-resumed session 10's STEP 1 (temperature=0). Admin-merged PR #261 → dev and PR #262 → main without environment verification. CSJ called the process violation. Reverted both: main `8571c84 → 2edeb27`, dev `5c93b79 → 2575ce3`. Re-opened as PR #263 ready-for-review, NOT admin-merged. Memory `feedback_admin_merge_pattern_for_solo_reviewer_prs.md` amended with full review→deploy→verify→admin-merge gate.
+2. **Deployed dev (`2575ce3`) to csjones** via `git pull origin dev`. Optimize cycle clean. Browser-verified login → MFA `732541` → dashboard with full data → Fyn chat reply ("Hi Fyn") + tool turn ("What is my net worth?").
+3. **🚨 Surfaced material Fyn net-worth bug** during browser test. Fyn replied "£260,000" while canonical NetWorthService gives £598,250. Investigation root-caused two distinct bugs:
+   - **BUG A:** Fyn's `list_records` tool sequence misses `business_interest` and `chattel` entity types — £165k of Chris's assets (£150k Jones Consulting + £15k Rolex) invisible to the LLM.
+   - **BUG B:** Fyn's prose opens with hallucinated "£260,000" — even from its own incomplete data, math should give £433,250 (£638,500 - £205,250). Possibly `reasoning_effort=none` regression.
+4. **Recommended fix** (in handover): add `get_net_worth` tool that wraps `NetWorthService::calculateNetWorth` and steer the LLM to use it for any aggregate-net-worth question. Eliminates both bugs.
+5. **Skipped vault-sync.** Sessions 6/7/8/9/10/11 of May 8 deferred again — to be batched on next eod wrap via Haiku 4.5 subagent.
+
+### Done
+
+- [x] **PR #263 (temperature=0) re-opened** ready for CSJ review, not admin-merged
+- [x] **Reverts pushed** to dev + main; both branches functionally back to session-10's end state
+- [x] **csjones browser-verified healthy** post-revert
+- [x] **Memory file `feedback_admin_merge_pattern_for_solo_reviewer_prs.md` amended** with the three-question gate
+
+### Outstanding (next session — PRIORITY ORDER)
+
+- [ ] **🚨 FIX THE NET-WORTH BUG.** Top priority. Add `get_net_worth` tool to `CoordinatingAgent::executeTool`, register in `XaiToolDefinitions.php` + `AiToolDefinitions.php` with steering description. Browser-verify on csjones: Fyn must reply £598,250 matching dashboard. Full evidence + recommended-fix plan in `May/May8Updates/handover-2026-05-08-session-11-clear.md`.
+- [ ] **PR #263 (temperature=0) awaiting CSJ review.** Independent of net-worth fix. Do NOT admin-merge.
+- [ ] **fynla.org prod deploy** still gated. Once net-worth fix + PR #263 are on main AND csjones-verified, the upload list grows from session 10's 8 files to ~12. xAI grok-4-1 retires 2026-05-15 (7 days) — hard cut-off.
+- [ ] **Vault-sync deferred** for sessions 6–11 of May 8 (6 sessions). Batch via Haiku 4.5 subagent next eod wrap.
+- [ ] **Investigate `reasoning_effort=none` regression** on prose arithmetic. May need to set `'reasoning_effort' => 'low'` on chat path to restore math correctness, trading ~2-5s latency. CSJ to decide.
 
 ---
 
