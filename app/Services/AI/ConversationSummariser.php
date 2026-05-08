@@ -127,7 +127,7 @@ PROMPT;
                 ->timeout(self::TIMEOUT_SECONDS)
                 ->post(self::ENDPOINT, [
                     'model' => $model,
-                    'max_tokens' => self::MAX_TOKENS,
+                    'max_completion_tokens' => self::MAX_TOKENS,
                     'reasoning_effort' => 'none',
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [

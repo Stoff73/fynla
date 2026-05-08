@@ -236,7 +236,7 @@ class AIExtractionService
             'Content-Type' => 'application/json',
         ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
             'model' => $model,
-            'max_tokens' => self::MAX_TOKENS,
+            'max_completion_tokens' => self::MAX_TOKENS,
             'reasoning_effort' => 'none',
             'messages' => [
                 ['role' => 'user', 'content' => $content],
@@ -324,7 +324,7 @@ class AIExtractionService
                 'Content-Type' => 'application/json',
             ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
                 'model' => $model,
-                'max_tokens' => self::MAX_TOKENS,
+                'max_completion_tokens' => self::MAX_TOKENS,
                 'reasoning_effort' => 'none',
                 'messages' => [
                     ['role' => 'user', 'content' => $fullPrompt],

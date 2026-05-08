@@ -260,7 +260,7 @@ trait HasAiGuardrails
             return 'Configuration issue — please contact support.';
         }
 
-        if (str_contains($errorLower, 'context_length') || str_contains($errorLower, 'token') || str_contains($errorLower, 'too many tokens') || str_contains($errorLower, 'max_tokens')) {
+        if (str_contains($errorLower, 'context_length') || str_contains($errorLower, 'token') || str_contains($errorLower, 'too many tokens') || str_contains($errorLower, 'max_tokens') || str_contains($errorLower, 'max_completion_tokens')) {
             return 'This conversation has become quite long. Starting a new conversation may help.';
         }
 

@@ -245,7 +245,7 @@ trait HasAiChat
                     $params = [
                         'model' => $model,
                         'messages' => $xaiMessages,
-                        'max_tokens' => $maxTokens,
+                        'max_completion_tokens' => $maxTokens,
                         'temperature' => 0,
                         'reasoning_effort' => 'none',
                         'stream' => true,
@@ -1132,6 +1132,7 @@ trait HasAiChat
         if (str_contains($msg, 'invalid_request')
             || str_contains($msg, 'context_length')
             || str_contains($msg, 'max_tokens')
+            || str_contains($msg, 'max_completion_tokens')
             || str_contains($msg, 'tool_use_id')) {
             return false;
         }
