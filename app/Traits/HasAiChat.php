@@ -247,6 +247,7 @@ trait HasAiChat
                         'messages' => $xaiMessages,
                         'max_tokens' => $maxTokens,
                         'temperature' => 0,
+                        'reasoning_effort' => 'none',
                         'stream' => true,
                         'stream_options' => ['include_usage' => true],
                     ];
