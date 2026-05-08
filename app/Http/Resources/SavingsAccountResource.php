@@ -31,6 +31,7 @@ class SavingsAccountResource extends JsonResource
             'access_type' => $this->access_type,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'country' => $this->country,
             'is_emergency_fund' => $this->is_emergency_fund,
             'include_in_retirement' => $this->include_in_retirement,

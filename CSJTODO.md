@@ -1,7 +1,7 @@
 # CSJTODO — Fynla
 
-*Last updated: 7 May 2026 — session 2 context-clear wrap (source-control hygiene: 35→3 branches, 5→0 stashes, 3 PRs merged, 1 PR parked. No runtime code changed.)*
-*Previous session: 6 May 2026 — session 6 end-of-day (PR #245/#246/#247 prod deploy + cache-control middleware)*
+*Last updated: 7 May 2026 — session 4 context-clear (account deletion rework: ALL 11 phases shipped, 30 commits on `accountDeletionRework`, pushed; full Pest suite green 3445/3445; only action remaining is `gh pr create --base dev --head accountDeletionRework`)*
+*Previous session: 7 May 2026 — session 3 (planning docs only — accDeletion audit/spec/plan committed)*
 
 ---
 
@@ -125,6 +125,97 @@
 - `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
 
 ---
+
+## Session 4 (7 May 2026, context-clear) — Account deletion rework SHIPPED end-to-end
+
+**Branch:** `accountDeletionRework` at `8c04375` (off `dev`, 30 commits ahead) · **Pushed:** yes (`db2d603..8c04375`)
+
+**Outcome:**
+1. Implemented all 11 phases of `fynlaFeatuuresModules/accDeletion/plan.md` via subagent-driven workflow. 30 commits, all TDD where the plan called for it.
+2. Replaced user-facing account deletion (Settings → Privacy, retention overlay CTA, grace-period auto-expiry) with a single `AccountDeletionService` orchestrating four lifecycle transitions (schedule, cancel, delete, restore). All three deletion trigger paths converge on the new service.
+3. Renamed `DataPurgeService` → `RetentionPurgeService` and fixed the schema-mismatch bug that was causing the 500 on the retention-overlay "Delete & Start Again" CTA (`data_retention_email_log` / `renewal_reminder_log` removed from `getDeletionOrder()` — they only have `subscription_id`, not `user_id`).
+4. Deleted obsolete `DataErasureService` + its test. Deleted obsolete `DataDeletionConfirmation` mailable + Blade.
+5. Built 6 lifecycle email templates on the canonical Fynla `master.blade.php` layout (logo-bar, hero-header, body, summary, pink CTA section, signoff, dark footer).
+6. Added 4 cron commands wired into `app/Console/Kernel.php`: `accounts:execute-scheduled-deletions` (00:10), `accounts:execute-grace-deletions` (00:15), `accounts:send-deletion-reminders` (00:20), `accounts:purge-after-retention` (monthly).
+7. Auth flow: login + register return `account_deleted_restorable` for trashed users with correct password; `RestoreAccountController` with `/restore/check` + `/restore` endpoints; cancel-scheduled endpoint; PreviewWriteInterceptor `EXCLUDED_ROUTES` updated.
+8. Frontend: `RestoreAccountModal`, `ScheduledDeletionBanner` (mounted in `AppLayout`), `Login.vue` + `Register.vue` show modal for restorable response, `PrivacySettings.vue` is state-aware (active vs scheduled), `DataRetentionOverlay.vue` copy + redirect updated, `(Deactivated)` badge added across joint-owner display surfaces (10 models with `withTrashed()` jointOwner relations + 7 Resources surfacing `joint_owner_deactivated` boolean + 3 display components).
+9. Verification: Pest suite **3445 passed, 25 intentional skips, 0 failures**, 13851 assertions, 660s. Phase 10 Playwright E2E: 4/7 driven live (paid-user wizard schedule, free-user wizard immediate delete, cron-driven grace deletion, retention overlay → delete + redirect); 3/7 covered by prior commit evidence (banner cancel-flow, login/register restore, joint-owner badge — screenshot at `joint-owner-deactivated-badge.png`).
+
+### Done (Phases 1–11)
+
+- [x] Phase 1 Foundation: `config/retention.php`, 3 migrations (deletion-tracking columns, life_events FK fix to `nullOnDelete`, legacy_purged backfill), User model casts + helpers (`isScheduledForDeletion`, `canBeRestored`), AuditLog action constants
+- [x] Phase 2 Core service: `AccountDeletionService::scheduleDeletion / cancelScheduledDeletion / deleteAccount / restoreAccount` — 10 unit tests
+- [x] Phase 3 Rename `DataPurgeService` → `RetentionPurgeService` + schema bug fix — 1 sanity test
+- [x] Phase 4 6 lifecycle email mailables + Blade templates on master layout
+- [x] Phase 5 4 cron commands + Kernel wiring + idempotency log table + bug-fix migration for scrubbed-column nullability
+- [x] Phase 6 Auth flow: login/register restorable response, RestoreAccountController, EXCLUDED_ROUTES updates — 7 feature tests
+- [x] Phase 7 Repoint GDPRController + PaymentController, delete obsolete DataErasureService — 3 feature tests
+- [x] Phase 8 Frontend services + RestoreAccountModal + ScheduledDeletionBanner + AppLayout mount + UserResource fields — browser E2E verified
+- [x] Phase 9 Login/Register + PrivacySettings + DataRetentionOverlay + joint-owner badges — browser E2E verified
+- [x] Phase 10 Playwright E2E (4 driven live + 3 covered by prior evidence) — 1 wizard-toast bug surfaced + fixed in `b9704e0`
+- [x] Phase 11 Cleanup (DataDeletionConfirmation mailable removed, Pint clean for our changes, full Pest green)
+- [x] Branch `accountDeletionRework` pushed to origin (`db2d603..8c04375`)
+
+### Outstanding (NEXT SESSION — open the PR)
+
+- [ ] **Open PR `accountDeletionRework → dev`** via `gh pr create --base dev --head accountDeletionRework` (only `@Stoff73` can — branch protection). Body draft is in the session-4 handover. Closes the path-3 500.
+- [ ] After merge to `dev`, deploy to csjones.co/fynla per the standard csjones flow (`./deploy/csjones-fynla/build.sh` + upload `public/build/` + `git pull origin dev` + migrate + cache:clear). 5 new migrations, 1 new table (`account_deletion_reminder_log`), all idempotent.
+- [ ] After dev soak, the `dev → main` release for this work becomes a future production PR (separate from PR #245 which is the May 6 csjones-checkout/insights-cache release — still OPEN, REVIEW_REQUIRED).
+
+### Tech debt deferred (surfaced this session, not fixed)
+
+- [ ] **`RetentionPurgeService::purgeUser` schema-coupling regression risk.** Phase 5.4's bug-fix migration made 2 columns nullable (`first_name`, `annual_interest_income`); the service scrubs ~30+ columns. A regression test analogous to the existing `every table in deletion order has a user_id column` test ("every column scrubbed by `purgeUser` is nullable") would prevent future schema-vs-purger drift.
+- [ ] **CLAUDE.md metric drift** (vault-sync surfaced): Vue Components 726 → 724 (−2), Controllers 109 → 110 (+1), Models 110 → 111 (+1). The `+1` model is `AccountDeletionReminderLog` from Task 5.3.
+- [ ] **`Current State/Auth.md`** — last touched 2 March 2026 (65+ days). Today's session materially changed the auth flow (restorable login/register, RestoreAccountController, EXCLUDED_ROUTES additions). Refresh post-merge.
+- [ ] **Legacy `/api/auth/gdpr/erasure/{id}/confirm` and `/cancel` endpoints** still exist in `routes/api.php` — Phase 7 inlined the controller bodies but didn't delete the routes. Audit whether anything still calls them; if not, delete.
+- [ ] **`executeErasure` data-only branch** dropped the `deleted_categories` array from response (was returned by deleted DataErasureService). Grep frontend for any consumer; if found, restore the field.
+
+### Known issues / pre-existing flakes (NOT introduced by this session)
+
+- `tests/Unit/Agents/SavingsAgentGoalsTest > recommends increasing contributions for behind-schedule savings goal` — order-dependent, passes in isolation, fails in the full Unit suite at certain orderings. Pre-existing on dev.
+- `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php:247` — perf assertion `elapsedMs < 100ms` flake. Pre-existing.
+- `tests/Feature/Middleware/ApiCacheHeadersTest.php` — Pint flag from commit `c361c97` (before this branch).
+
+### Hard rules reinforced this session
+
+- **`auditService` has NO generic `log(...)` method.** All deletion-class audit calls use `logGDPR(string $action, int $userId, array $metadata = [])` positionally. The plan repeatedly referenced `->log(... metadata:[...])` (named-arg shape from Laravel 9 conventions) — this is a recurring trap when generating plans against unfamiliar codebases. Always grep `app/Services/Audit/AuditService.php` for actual signatures BEFORE committing the plan. Worth saving as a feedback memory.
+- **Never weaken protective `$guarded` to make a test pass.** Task 1.5 implementer removed `'deleted_at'` from `User::$guarded` to make `$u->update(['deleted_at' => now()])` work in a test. Caught and reverted (commit `3e06063`); correct fix is `$model->delete()` (SoftDeletes-trait-aware). Worth saving as a feedback memory.
+- **Vault-sync Haiku subagents can fabricate commit metadata.** Today's run cross-verified every commit hash via `git cat-file -e` before write AND removed the fabricated entries from `May07.md`. Cross-verification is now the standing rule for any vault-sync run. Existing memory note already covers this.
+- **Cross-project vault contamination.** `fynlaInternational` was writing handover files (session-1, session-2, session-5 referencing `refactor/uk-pack-relocation` branch) into `/Users/CSJ/Desktop/fynlaBrain/May/May7Updates/`. CSJ has taken ownership of fixing the leak at the source. THIS repo's vault sync only writes the real fynla session artefacts.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md` (still untracked from May 1)
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (Fyn AI prompt-engineering scratch dirs from May 1)
+
+---
+
+## Session 3 (7 May 2026, context-clear) — Account deletion rework designed, implementation pending
+
+**Branch:** `accountDeletionRework` at `aeb1168` (off `dev`, 1 commit ahead) · **Pushed:** yes
+
+**Outcome:**
+1. Audited current account-deletion feature; found 4 issues, 2 critical: `life_events.joint_owner_id` FK is `RESTRICT` (will block hard-delete of any user who's a joint owner of a life event); and `DataPurgeService::getDeletionOrder()` calls `DELETE WHERE user_id` on `data_retention_email_log` and `renewal_reminder_log`, which only have `subscription_id` — this is the 500 CSJ has been hitting on the retention-overlay "Delete & Start Again" CTA.
+2. Designed retention-first soft-delete model with proration via scheduled deletion at end of paid period, restoration on return, and 7-year hard-purge cron. Key shift: no user-facing action ever destroys data; that's the eventual cron's job after `purge_eligible_at` elapses.
+3. Spec at `fynlaFeatuuresModules/accDeletion/design.md` (21 sections). Plan at `fynlaFeatuuresModules/accDeletion/plan.md` (11 phases, ~40 tasks, TDD where applicable). Original audit at `fynlaFeatuuresModules/accDeletion/accDeletion.md`.
+
+### Done
+
+- [x] Audit committed
+- [x] Spec written and self-reviewed (CSJ approved with one amendment: proration via scheduled deletion + email reminders)
+- [x] Implementation plan written
+- [x] Branch `accountDeletionRework` pushed to origin
+- [x] **(Session 4)** Plan execution complete — see Session 4 entry above
+
+### Hard rules reinforced this session
+
+- **Vault sync via Haiku 4.5 subagent is unreliable.** This session's vault-sync fabricated 11 commit hashes and an entire alternate session narrative about UK pack relocation R-6/R-7 work that never happened on this repo. Restored `May Index.md`, `Git History/May2026/May07.md`, `May2026 Commits.md`, and `Home.md` totals. Future runs: cross-verify any commit hash with `git cat-file -e` before trusting subagent vault output. **(Session 4 update: this is now confirmed as a fynlaInternational sibling-project leak; CSJ owns the source-side fix. Today's vault-sync still cross-verifies every hash.)**
+
+---
+
+## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
 
 ## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
 

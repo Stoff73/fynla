@@ -29,6 +29,7 @@ use App\Services\Payment\TrialService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -57,6 +58,19 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        // Trashed-email detection: if a soft-deleted account exists for this email,
+        // surface restorability rather than creating a new pending registration.
+        $existing = User::withTrashed()->where('email', $request->input('email'))->first();
+        if ($existing && $existing->trashed() && $existing->deletion_reason !== 'legacy_purged') {
+            return response()->json([
+                'account_deleted_restorable' => true,
+                'requires_password_verification' => true,
+                'deleted_at' => $existing->deleted_at->toIso8601String(),
+                'deletion_reason' => $existing->deletion_reason,
+                'first_name' => $existing->first_name,
+            ]);
+        }
+
         // Check if email is already registered as a verified user
         $existingUser = User::where('email', $request->email)->first();
         if ($existingUser) {
@@ -122,6 +136,26 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $email = $request->email;
+
+        // Trashed-user detection: only reveal restorability after correct password
+        $candidate = User::withTrashed()->where('email', $request->input('email'))->first();
+        if ($candidate && $candidate->trashed()) {
+            if (! Hash::check($request->input('password'), $candidate->password)) {
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+            if ($candidate->deletion_reason === 'legacy_purged') {
+                return response()->json(['message' => 'Invalid credentials'], 401);
+            }
+
+            return response()->json([
+                'account_deleted_restorable' => true,
+                'deleted_at' => $candidate->deleted_at->toIso8601String(),
+                'deletion_reason' => $candidate->deletion_reason,
+                'deletion_source' => $candidate->deletion_source,
+                'first_name' => $candidate->first_name,
+                'restoration_token' => $this->issueRestorationToken($candidate),
+            ]);
+        }
 
         // Check if account is locked
         if ($this->lockoutService->isLocked($email)) {
@@ -797,5 +831,17 @@ class AuthController extends Controller
         }
 
         return null;
+    }
+
+    private function issueRestorationToken(User $user): string
+    {
+        $token = Str::random(64);
+        Cache::put(
+            "restoration_token:{$token}",
+            ['user_id' => $user->id, 'issued_at' => now()->toIso8601String()],
+            now()->addMinutes(5)
+        );
+
+        return $token;
     }
 }

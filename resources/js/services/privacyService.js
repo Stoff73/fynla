@@ -104,6 +104,16 @@ const privacyService = {
     });
     return response.data;
   },
+
+  /**
+   * Cancel a scheduled (grace-period) account deletion before it executes.
+   * Clears `deletion_scheduled_for` on the user record.
+   * @returns {Promise}
+   */
+  async cancelScheduledDeletion() {
+    const response = await api.post('/auth/gdpr/erasure/cancel-scheduled');
+    return response.data;
+  },
 };
 
 export default privacyService;

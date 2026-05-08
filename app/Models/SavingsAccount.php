@@ -88,7 +88,7 @@ class SavingsAccount extends Model
      */
     public function jointOwner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'joint_owner_id');
+        return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
     }
 
     /**

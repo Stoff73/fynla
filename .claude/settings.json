@@ -14,6 +14,29 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/context-watch.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/precompact-handover.sh",
+            "timeout": 30,
+            "statusMessage": "Writing safety-net handover before compaction..."
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {

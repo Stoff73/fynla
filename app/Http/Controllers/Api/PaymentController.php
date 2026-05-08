@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Jobs\FireAwinConversionJob;
-use App\Mail\DataDeletionConfirmation;
 use App\Mail\PaymentConfirmation;
 use App\Mail\SubscriptionCancellation;
 use App\Models\Invoice;
@@ -15,8 +14,8 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Services\Account\AccountDeletionService;
 use App\Services\Marketing\AwinTrackingService;
-use App\Services\Payment\DataPurgeService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\InvoiceService;
 use App\Services\Payment\ReferralService;
@@ -42,7 +41,7 @@ class PaymentController extends Controller
         private readonly RevolutSubscriptionService $subscriptionService,
         private readonly DiscountCodeService $discountCodeService,
         private readonly InvoiceService $invoiceService,
-        private readonly DataPurgeService $purgeService,
+        private readonly AccountDeletionService $deletionService,
         private readonly ReferralService $referralService,
         private readonly AwinTrackingService $awinTracking
     ) {}
@@ -799,31 +798,12 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'Data deletion is only available during the grace period'], 403);
         }
 
-        $firstName = $user->first_name;
-        $email = $user->email;
-
         try {
-            $result = $this->purgeService->purgeUserData($user);
-
-            Log::info('User initiated data deletion', [
-                'user_id' => $user->id,
-                'records_deleted' => $result['records_deleted'],
-                'tables_purged' => $result['tables_purged'],
-            ]);
-
-            // Send deletion confirmation email
-            try {
-                Mail::to($email)->send(new DataDeletionConfirmation($firstName ?? 'User', $email));
-            } catch (\Exception $e) {
-                Log::error('Failed to send data deletion confirmation email', [
-                    'email' => $email,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            $this->deletionService->deleteAccount($user, 'user_requested', 'expiration_modal');
 
             return response()->json([
                 'success' => true,
-                'message' => 'All your data has been permanently deleted.',
+                'message' => 'Your account has been deleted.',
             ]);
         } catch (\Throwable $e) {
             Log::error('User-initiated data deletion failed', [
