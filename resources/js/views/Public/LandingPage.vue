@@ -417,7 +417,19 @@
           </div>
         </div>
 
-        <div class="text-center mt-6">
+        <!-- Latest news banner -->
+        <div v-if="insightsSupporting[0]" class="max-w-6xl mx-auto mt-4">
+          <router-link
+            :to="'/insights/' + insightsSupporting[0].slug"
+            class="flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 hover:shadow-md transition-shadow no-underline"
+          >
+            <span class="flex-shrink-0 text-xs font-bold uppercase tracking-wide text-raspberry-500">Latest news</span>
+            <span class="w-px h-4 bg-light-gray flex-shrink-0"></span>
+            <span class="text-sm text-horizon-500 font-medium truncate">{{ insightsSupporting[0].title }}</span>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-5">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">
             See all insights &rarr;
           </router-link>
@@ -446,7 +458,19 @@
             </div>
           </router-link>
         </div>
-        <div class="text-center mt-6">
+        <!-- Latest news banner -->
+        <div class="max-w-5xl mx-auto mt-4">
+          <router-link
+            :to="staticInsights[0].slug"
+            class="flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 hover:shadow-md transition-shadow no-underline"
+          >
+            <span class="flex-shrink-0 text-xs font-bold uppercase tracking-wide text-raspberry-500">Latest news</span>
+            <span class="w-px h-4 bg-light-gray flex-shrink-0"></span>
+            <span class="text-sm text-horizon-500 font-medium truncate">{{ staticInsights[0].title }}</span>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-5">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">See all insights &rarr;</router-link>
         </div>
       </div>
