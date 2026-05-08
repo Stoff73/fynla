@@ -128,6 +128,7 @@ PROMPT;
                 ->post(self::ENDPOINT, [
                     'model' => $model,
                     'max_tokens' => self::MAX_TOKENS,
+                    'reasoning_effort' => 'none',
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
