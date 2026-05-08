@@ -15,9 +15,10 @@ use OpenAI\Resources\Chat;
  * Uses the OpenAI SDK with a custom base URI pointing to xAI's API.
  * All xAI models are OpenAI-compatible, so the SDK works directly.
  *
- * Guzzle is configured with a 120-second timeout to accommodate
- * reasoning models (grok-4-1-fast-reasoning) which may "think"
- * for 30-60+ seconds before streaming any response chunks.
+ * Guzzle is configured with a 120-second timeout. The chat path runs on
+ * grok-4-1-fast-non-reasoning which streams within a few seconds; the
+ * generous timeout exists in case XAI_CHAT_MODEL is overridden to a
+ * reasoning variant for evals or one-off testing.
  */
 class XaiClient
 {
@@ -99,7 +100,7 @@ class XaiClient
      */
     public static function chatModel(): string
     {
-        return config('services.xai.chat_model', 'grok-4-1-fast-reasoning');
+        return config('services.xai.chat_model', 'grok-4-1-fast-non-reasoning');
     }
 
     /**
@@ -107,7 +108,7 @@ class XaiClient
      */
     public static function advancedModel(): string
     {
-        return config('services.xai.advanced_chat_model', 'grok-4-1-fast-reasoning');
+        return config('services.xai.advanced_chat_model', 'grok-4-1-fast-non-reasoning');
     }
 
     /**

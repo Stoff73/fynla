@@ -246,7 +246,7 @@ trait HasAiChat
                         'model' => $model,
                         'messages' => $xaiMessages,
                         'max_tokens' => $maxTokens,
-                        'temperature' => 0.7,
+                        'temperature' => 0,
                         'stream' => true,
                         'stream_options' => ['include_usage' => true],
                     ];
