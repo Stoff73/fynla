@@ -212,7 +212,7 @@ final class QuerySchemas
             '/\b(take|go|navigate|show)\s+(me\s+)?(to|the)\b/i',
             '/\bgo\s+to\b/i',
             '/\bopen\s+(my|the)\b/i',
-            '/\bshow\s+me\s+(my|the)\b/i',
+            '/\bshow\s+me\s+(my|the)\s+(dashboard|profile|settings|account|page|section|area|tab|view|panel|home|menu)\b/i',
         ],
         self::BILLING => [
             '/\binvoice(s)?\b/i',
@@ -227,6 +227,11 @@ final class QuerySchemas
             '/\bmy\s+plan\b/i',
         ],
         self::HOLISTIC_HEALTH => [
+            '/\bnet\s+worth\b/i',
+            '/\b(how\s+much|what)\s+(am|are)\s+(i|we)\s+worth\b/i',
+            '/\b(total|combined)\s+wealth\b/i',
+            '/\bwhat\s+do\s+i\s+own\b/i',
+            '/\bshow\s+me\s+my\s+net\s+worth\b/i',
             '/\b(financial|total|overall|full)\s+(health|review|position|picture|summary|overview)\b/i',
             '/\bwhat\s+should\s+i\s+(focus|prioriti[sz]e|do\s+first|do\s+with)\b/i',
             '/\b(bonus|windfall|lump\s+sum|inheritance).*\b(what|how|where|should)\b/i',
@@ -371,13 +376,7 @@ final class QuerySchemas
             '/\bhow\s+much\s+.*spare\b/i',
             '/\bhow\s+much\s+.*left\s+over\b/i',
         ],
-        self::GENERAL => [
-            '/\bnet\s+worth\b/i',
-            '/\bwhat\s+(do\s+i\s+have|are\s+my|is\s+my)\b/i',
-            '/\bhow\s+much\s+(do\s+i|is|are)\b/i',
-            '/\blist\s+(my|all)\b/i',
-            '/\bsummar/i',
-        ],
+        self::GENERAL => [],
     ];
 
     // ─── KYC Requirements ────────────────────────────────────────────
