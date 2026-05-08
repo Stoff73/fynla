@@ -1,9 +1,221 @@
 # CSJTODO — Fynla
 
-*Last updated: 6 May 2026 — session 5 context-clear (PR #245 `dev → main` opened — 60 commits, MERGEABLE, REVIEW_REQUIRED, BLOCKED. Awaiting CSJ review-and-merge. Next session goal: get local + dev + production all in sync via the merge + production deploy.)*
-*Previous session: 6 May 2026 — session 4 context-clear (csjones restored to a real git checkout; local + dev byte-identical; production deploy spec written)*
+*Last updated: 7 May 2026 — session 4 context-clear (account deletion rework: ALL 11 phases shipped, 30 commits on `accountDeletionRework`, pushed; full Pest suite green 3445/3445; only action remaining is `gh pr create --base dev --head accountDeletionRework`)*
+*Previous session: 7 May 2026 — session 3 (planning docs only — accDeletion audit/spec/plan committed)*
 
 ---
+
+## Session 2 (7 May 2026, context-clear) — Branch & stash cleanup, skill restoration
+
+**Branch:** `main` at `1cdf46d` · **Tree:** clean · **Today's commits:** 6 (all merged through dev → main)
+
+**Outcome:**
+1. **Inventoried all 35 branches** — categorised into pushed/synced, unmerged-with-unique-work, fully-merged-stale.
+2. **27 fully-merged branches deleted** (local + origin) — `fynImprovement`, `UI`, `FynChat`, `onboardingBug`, `claude/clever-torvalds`, `bugs`, `estateDash`, `referFriend`, `revolutLive`, `uiFixes`, `fynUpgrade`, `claudeReview`, `awinIntegrate`, `awinPlusDev`, `invoiceFix`, `mobile-updates`, `pension-fix`, `genUIFixes`, `session67-investment-fix`, `lifecycle-rate-limit`, `api-no-store-cache`, `phailanx/news-rss-lifecycle-emails`, `main-test-fixes`, plus 4 small stale branches (`fynChatFix`, `cacheFix`, `gitignore-claude-skills`, `session-52-csjtodo-update`).
+3. **2 large dead-architecture branches dropped**: `feature/csj/sprint0-rebase` (117k lines on rejected `FynPersonaOrchestrator`) + `fynNew` (44k lines on rejected `RuleBasedRouter` paradigm). Confirmed via grep that current main forbids both abstractions.
+4. **`feature/fyn-persona-split` (282 commits)** confirmed as squash-merged via PR #242 — deleted.
+5. **2 worthwhile branches salvaged into fresh PRs off dev**:
+   - **PR #248** (excalidraw skill) — merged into dev, then released to main via PR #250.
+   - **PR #249** (Python Agent SDK sidecar) — opened then **PARKED** with `[PARKED]` title prefix and unpark-criteria comment. Memory file `reference_pr249_python_sidecar_parked.md` created and indexed in `MEMORY.md`.
+6. **Mid-session discovery and fix**: `session-start`, `session-end`, `vault-sync` skills were missing/stale in the project (only living in `~/.claude/skills/`), and `.gitignore` line 42 was actively excluding `.claude/skills/session-end/` from being tracked. Restored latest from global via **PR #251**, removed the gitignore rule, released to main via **PR #252**. Also enabled `disable-model-invocation: false` on `vault-context` per the user's edit.
+7. **5 stashes audited and dropped** — all stale (Feb-Mar dates, all from deleted branches): WIP on `main` ×2, WIP on `feature/mobile-app-phase0`, WIP on `uiUpdate` ×2.
+8. **Vault sync executed via Haiku 4.5 subagent** at high effort: 16 changed files synced (May1-7Updates), `May07.md` git history created (6 commits), `May 2026 Commits.md` corrected (was 46, actually 30 — typo from parallel fynlaInternational project bleed), `May Index.md` updated, Home.md git table refreshed. 0 broken wikilinks. 1 frontmatter fix (May Index `date` field).
+
+**PR merges this session (all `gh pr merge --merge --admin`):**
+- `4fa9378` Merge PR #248 (excalidraw skill → dev)
+- `bd67016` Merge PR #250 (release dev → main, excalidraw)
+- `d98a6e9` Merge PR #251 (skill restoration → dev)
+- `1cdf46d` Merge PR #252 (release dev → main, skill restoration)
+
+### Done
+
+- [x] **All 35 branches triaged** — kept only main, dev, and the parked Python sidecar branch
+- [x] **2 PRs merged + 2 release PRs merged** (PRs #248, #250, #251, #252)
+- [x] **PR #249 parked** with `[PARKED]` title + comment + memory entry
+- [x] **Session-management skills restored to repo** + `.gitignore` rule removed
+- [x] **Vault sync clean** (subagent) — git history, May Index, Home.md, all wikilinks resolve
+- [x] **Stashes cleared** (all 5 dropped after audit)
+
+### Outstanding (next session)
+
+- [ ] **PR #249 (Python sidecar) remains parked** — see `reference_pr249_python_sidecar_parked.md` for unpark triggers (premium-tier use case + entry point + engineered prompts + e2e test in dev). Don't auto-delete the branch.
+- [ ] **Decide on the pre-existing untracked files** at repo root — `FCA/`, `FCAsuperchargeApp.md`, `FCA-Supercharged-Sandbox-Application-Draft.md`, `Fynla-Narrative-Memo-Template.docx`, `May/May1Updates/deployFynFix.md`, `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/`. Either commit, gitignore, or move out of the repo.
+
+### Carried over from session 6
+
+- [ ] **Smoke prod once after overnight soak** — `curl -sI https://fynla.org/api/insights` should still show no-store; landing 200; /insights renders
+- [ ] **Revert SPA cachebuster** in `resources/js/services/insightsService.js` — now redundant after `ApiCacheHeaders` middleware shipped
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main` — recipe in `deploy/csjones-fynla/BOOTSTRAP.md` §12. After ~24h prod soak.
+- [ ] **`public/.htaccess` cache-control rules cleanup** — now redundant with middleware
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at March 2026 mtime
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings, pre-existing
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Confirmed again this session. Update opportunistically.
+
+### Hard rules reinforced this session
+
+- **`.claude/skills/` directory should be tracked end-to-end** — no gitignore rules excluding individual skills. The `~/.claude/skills/` global directory is for personal/cross-project skills only; project-specific skills (`session-start`, `session-end`, `vault-sync`, etc.) live in the repo so a fresh checkout has them.
+- **Don't drop branches that look "merged" without verifying** — `git merge-base --is-ancestor` and `comm -23 <(git ls-tree branch) <(git ls-tree main)` are the safe checks. The +N/-M divergence numbers are misleading after squash merges.
+
+### Untracked at session end (pre-existing, carried, NOT introduced this session)
+
+- `FCA-Supercharged-Sandbox-Application-Draft.md`
+- `FCA/`
+- `FCAsuperchargeApp.md`
+- `Fynla-Narrative-Memo-Template.docx`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/`
+
+---
+
+## Session 6 (6 May 2026, end-of-day) — PR #245 deployed to prod + PR #246/#247 cache-control follow-up shipped
+
+**Branch:** `main` at `3c69ecd` · **Production HEAD:** `3c69ecd` (in sync with local + dev)
+
+**Outcome:**
+1. **PR #245 (`dev → main` May 6 release) merged** via `gh pr merge 245 --merge --admin` (CSJ admin override per branch protection). Merge commit `eddeffa`. 60 commits, 30 migrations, ~179k additions, ~5.7k deletions.
+2. **Production deploy executed end-to-end**: mysqldump snapshot (`~/db-snapshot-pre-deploy-20260506-131738.sql.gz`, 2.9 MB gzipped, 5,203 lines) → rsync of source dirs + build + prod `.htaccess` (md5-verified) → `composer install --no-dev` (27 packages installed/upgraded) → `composer dump-autoload -o` → `migrate --force` (all 30 in order, zero errors) → cache clears → optimize → 4 selective seeders (TaxConfig, DiscountCode, SavingsActionDefinition, NewsArticle).
+3. **Browser smoke pass**: login `chris@fynla.org` (verification code from CSJ) → dashboard rendered with all module cards, Net Worth £618,250, Tax 2026/27 active, Profile 89% / Scenario 100% → `/insights` rendered 5 articles → zero JS console errors. **58 users pre = 58 users post (zero data loss)**, tables 121 → 132.
+4. **Cache-control issue investigated live on prod**: `.htaccess` rules from PR #245 silently no-op on the fynla.org SiteGround vhost — verified by toggling diagnostic X-headers. mod_headers IS loaded (`Header always set` works) but conditional matching (`<If>`, `SetEnvIf env=`, `RewriteRule [E=…]` consumed by `Header set env=…`) all fail. **Same pattern works on csjones.co/fynla** — vhost-level vendor difference. Two new memory files saved: `feedback_siteground_prod_vhost_no_conditionals.md` and `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`.
+5. **PR #246 drafted, merged, shipped**: new `App\Http\Middleware\ApiCacheHeaders` registered as first entry in `'api'` middleware group. Sets `Cache-Control: no-store, no-cache, private, must-revalidate, max-age=0` (Symfony alphabetises directives, same set), `Pragma: no-cache`, `Expires: 0` on every `/api/*` response — bypasses Apache entirely, runs identically on every host. 4 Pest tests, all passing. Merged via PR #247 (`dev → main` admin override) at `3c69ecd`. Deployed to prod (rsync 2 PHP files, dump-autoload, cache:clear). Live verification: `/api/insights` now returns the no-store header; `/` (web group) unchanged; `/build/*` (static) unchanged.
+6. **Tech debt audit clean**: 0 issues across the 3 files added (`ApiCacheHeaders.php`, `Kernel.php`, `ApiCacheHeadersTest.php`). See `tech-debt-report.md`.
+7. **Vault sync executed via Haiku 4.5 subagent** at high effort: `May06.md` git history created (13 commits), `May 2026 Commits.md` updated, `May Index.md` session 6 entry added, `Current State/DeploymentBuild.md` refreshed (v0.7.0 → v1.0, csjones git-pull workflow noted), Home.md updated. 0 broken wikilinks, 0 orphaned files. 2 memory suggestions promoted to memory files (saved this session).
+
+**Direct main pushes this session:**
+- `eddeffa` Release: dev → main — May 6 release (PR #245 merge commit)
+- `3c69ecd` Release: Cache-Control middleware fix (PR #246) (PR #247 merge commit)
+- `<session-end commit>` this CSJTODO + handover + memory updates + tech-debt-report
+
+### Done
+
+- [x] **PR #245 merged + production deploy executed** — local + dev + prod synced at `3c69ecd`
+- [x] **DB snapshot taken** (`~/db-snapshot-pre-deploy-20260506-131738.sql.gz`)
+- [x] **All 30 migrations ran clean** — zero data loss (58 users intact, 132 tables)
+- [x] **4 selective seeders run** — TaxConfig, DiscountCode, SavingsActionDefinition, NewsArticle
+- [x] **Browser smoke pass on prod** — login → dashboard → /insights, zero JS console errors
+- [x] **Cache-control fix shipped via Laravel middleware** (PR #246/#247) — verified live on prod
+- [x] **Two new memory files saved** — `feedback_siteground_prod_vhost_no_conditionals.md` + `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`
+- [x] **Vault sync clean** (subagent) — git history, May Index, DeploymentBuild.md refresh, all wikilinks resolve
+
+### Outstanding (next session — small follow-ups, none blocking)
+
+- [ ] **Smoke prod once after overnight soak** — `curl -sI https://fynla.org/api/insights` should still show no-store; landing 200; /insights renders
+- [ ] **Revert SPA cachebuster** in `resources/js/services/insightsService.js` (`_t=Date.now()` line) — now redundant since `ApiCacheHeaders` middleware does the same job. Small frontend rebuild + upload `public/build/` + cache:clear. Standalone PR when convenient.
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main`. Recipe: `deploy/csjones-fynla/BOOTSTRAP.md` §12 with `branch=main`, no `skip-worktree` (prod uses canonical root template). After: all three environments deploy via `git pull`. Wait for ~24h soak before doing it.
+- [ ] **`public/.htaccess` cache-control rules cleanup** — now functionally redundant with the middleware. Harmless on hosts where they fire (csjones), so cleanup is cosmetic. Could simplify to just the unconditional rules + remove the env-var/`<If>` machinery.
+- [ ] **Optional: SiteGround Site Tools cache purge on csjones** — only if the legacy `/api/insights` poisoned-CDN entry is still observed. Manual UI step. After purge, the same `_t=Date.now()` line on csjones source is also revertable.
+
+### Outstanding (lower priority, advisory)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Vault-sync confirmed again this session. Update opportunistically.
+- [ ] **`Current State/DeploymentBuild.md`** — refreshed by vault-sync today; could still use a once-over to add production deploy details (composer install ordering, snapshot pattern) when convenient.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+- **`gh pr merge --admin` for solo-reviewer PRs** — established pattern when CSJ is both author and sole reviewer per branch protection (`@Stoff73` required). Confirmed legitimate on PR #245 and #247 today. See `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`.
+- **SiteGround prod vhost silently drops conditional Apache directives** — per-route response-header logic on prod must use Laravel middleware, not `.htaccess` conditionals. csjones DOES support conditionals — the dev/prod difference is real. See `feedback_siteground_prod_vhost_no_conditionals.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
+## Session 4 (7 May 2026, context-clear) — Account deletion rework SHIPPED end-to-end
+
+**Branch:** `accountDeletionRework` at `8c04375` (off `dev`, 30 commits ahead) · **Pushed:** yes (`db2d603..8c04375`)
+
+**Outcome:**
+1. Implemented all 11 phases of `fynlaFeatuuresModules/accDeletion/plan.md` via subagent-driven workflow. 30 commits, all TDD where the plan called for it.
+2. Replaced user-facing account deletion (Settings → Privacy, retention overlay CTA, grace-period auto-expiry) with a single `AccountDeletionService` orchestrating four lifecycle transitions (schedule, cancel, delete, restore). All three deletion trigger paths converge on the new service.
+3. Renamed `DataPurgeService` → `RetentionPurgeService` and fixed the schema-mismatch bug that was causing the 500 on the retention-overlay "Delete & Start Again" CTA (`data_retention_email_log` / `renewal_reminder_log` removed from `getDeletionOrder()` — they only have `subscription_id`, not `user_id`).
+4. Deleted obsolete `DataErasureService` + its test. Deleted obsolete `DataDeletionConfirmation` mailable + Blade.
+5. Built 6 lifecycle email templates on the canonical Fynla `master.blade.php` layout (logo-bar, hero-header, body, summary, pink CTA section, signoff, dark footer).
+6. Added 4 cron commands wired into `app/Console/Kernel.php`: `accounts:execute-scheduled-deletions` (00:10), `accounts:execute-grace-deletions` (00:15), `accounts:send-deletion-reminders` (00:20), `accounts:purge-after-retention` (monthly).
+7. Auth flow: login + register return `account_deleted_restorable` for trashed users with correct password; `RestoreAccountController` with `/restore/check` + `/restore` endpoints; cancel-scheduled endpoint; PreviewWriteInterceptor `EXCLUDED_ROUTES` updated.
+8. Frontend: `RestoreAccountModal`, `ScheduledDeletionBanner` (mounted in `AppLayout`), `Login.vue` + `Register.vue` show modal for restorable response, `PrivacySettings.vue` is state-aware (active vs scheduled), `DataRetentionOverlay.vue` copy + redirect updated, `(Deactivated)` badge added across joint-owner display surfaces (10 models with `withTrashed()` jointOwner relations + 7 Resources surfacing `joint_owner_deactivated` boolean + 3 display components).
+9. Verification: Pest suite **3445 passed, 25 intentional skips, 0 failures**, 13851 assertions, 660s. Phase 10 Playwright E2E: 4/7 driven live (paid-user wizard schedule, free-user wizard immediate delete, cron-driven grace deletion, retention overlay → delete + redirect); 3/7 covered by prior commit evidence (banner cancel-flow, login/register restore, joint-owner badge — screenshot at `joint-owner-deactivated-badge.png`).
+
+### Done (Phases 1–11)
+
+- [x] Phase 1 Foundation: `config/retention.php`, 3 migrations (deletion-tracking columns, life_events FK fix to `nullOnDelete`, legacy_purged backfill), User model casts + helpers (`isScheduledForDeletion`, `canBeRestored`), AuditLog action constants
+- [x] Phase 2 Core service: `AccountDeletionService::scheduleDeletion / cancelScheduledDeletion / deleteAccount / restoreAccount` — 10 unit tests
+- [x] Phase 3 Rename `DataPurgeService` → `RetentionPurgeService` + schema bug fix — 1 sanity test
+- [x] Phase 4 6 lifecycle email mailables + Blade templates on master layout
+- [x] Phase 5 4 cron commands + Kernel wiring + idempotency log table + bug-fix migration for scrubbed-column nullability
+- [x] Phase 6 Auth flow: login/register restorable response, RestoreAccountController, EXCLUDED_ROUTES updates — 7 feature tests
+- [x] Phase 7 Repoint GDPRController + PaymentController, delete obsolete DataErasureService — 3 feature tests
+- [x] Phase 8 Frontend services + RestoreAccountModal + ScheduledDeletionBanner + AppLayout mount + UserResource fields — browser E2E verified
+- [x] Phase 9 Login/Register + PrivacySettings + DataRetentionOverlay + joint-owner badges — browser E2E verified
+- [x] Phase 10 Playwright E2E (4 driven live + 3 covered by prior evidence) — 1 wizard-toast bug surfaced + fixed in `b9704e0`
+- [x] Phase 11 Cleanup (DataDeletionConfirmation mailable removed, Pint clean for our changes, full Pest green)
+- [x] Branch `accountDeletionRework` pushed to origin (`db2d603..8c04375`)
+
+### Outstanding (NEXT SESSION — open the PR)
+
+- [ ] **Open PR `accountDeletionRework → dev`** via `gh pr create --base dev --head accountDeletionRework` (only `@Stoff73` can — branch protection). Body draft is in the session-4 handover. Closes the path-3 500.
+- [ ] After merge to `dev`, deploy to csjones.co/fynla per the standard csjones flow (`./deploy/csjones-fynla/build.sh` + upload `public/build/` + `git pull origin dev` + migrate + cache:clear). 5 new migrations, 1 new table (`account_deletion_reminder_log`), all idempotent.
+- [ ] After dev soak, the `dev → main` release for this work becomes a future production PR (separate from PR #245 which is the May 6 csjones-checkout/insights-cache release — still OPEN, REVIEW_REQUIRED).
+
+### Tech debt deferred (surfaced this session, not fixed)
+
+- [ ] **`RetentionPurgeService::purgeUser` schema-coupling regression risk.** Phase 5.4's bug-fix migration made 2 columns nullable (`first_name`, `annual_interest_income`); the service scrubs ~30+ columns. A regression test analogous to the existing `every table in deletion order has a user_id column` test ("every column scrubbed by `purgeUser` is nullable") would prevent future schema-vs-purger drift.
+- [ ] **CLAUDE.md metric drift** (vault-sync surfaced): Vue Components 726 → 724 (−2), Controllers 109 → 110 (+1), Models 110 → 111 (+1). The `+1` model is `AccountDeletionReminderLog` from Task 5.3.
+- [ ] **`Current State/Auth.md`** — last touched 2 March 2026 (65+ days). Today's session materially changed the auth flow (restorable login/register, RestoreAccountController, EXCLUDED_ROUTES additions). Refresh post-merge.
+- [ ] **Legacy `/api/auth/gdpr/erasure/{id}/confirm` and `/cancel` endpoints** still exist in `routes/api.php` — Phase 7 inlined the controller bodies but didn't delete the routes. Audit whether anything still calls them; if not, delete.
+- [ ] **`executeErasure` data-only branch** dropped the `deleted_categories` array from response (was returned by deleted DataErasureService). Grep frontend for any consumer; if found, restore the field.
+
+### Known issues / pre-existing flakes (NOT introduced by this session)
+
+- `tests/Unit/Agents/SavingsAgentGoalsTest > recommends increasing contributions for behind-schedule savings goal` — order-dependent, passes in isolation, fails in the full Unit suite at certain orderings. Pre-existing on dev.
+- `tests/Unit/Services/Tax/TaxStrategyCalculatorTest.php:247` — perf assertion `elapsedMs < 100ms` flake. Pre-existing.
+- `tests/Feature/Middleware/ApiCacheHeadersTest.php` — Pint flag from commit `c361c97` (before this branch).
+
+### Hard rules reinforced this session
+
+- **`auditService` has NO generic `log(...)` method.** All deletion-class audit calls use `logGDPR(string $action, int $userId, array $metadata = [])` positionally. The plan repeatedly referenced `->log(... metadata:[...])` (named-arg shape from Laravel 9 conventions) — this is a recurring trap when generating plans against unfamiliar codebases. Always grep `app/Services/Audit/AuditService.php` for actual signatures BEFORE committing the plan. Worth saving as a feedback memory.
+- **Never weaken protective `$guarded` to make a test pass.** Task 1.5 implementer removed `'deleted_at'` from `User::$guarded` to make `$u->update(['deleted_at' => now()])` work in a test. Caught and reverted (commit `3e06063`); correct fix is `$model->delete()` (SoftDeletes-trait-aware). Worth saving as a feedback memory.
+- **Vault-sync Haiku subagents can fabricate commit metadata.** Today's run cross-verified every commit hash via `git cat-file -e` before write AND removed the fabricated entries from `May07.md`. Cross-verification is now the standing rule for any vault-sync run. Existing memory note already covers this.
+- **Cross-project vault contamination.** `fynlaInternational` was writing handover files (session-1, session-2, session-5 referencing `refactor/uk-pack-relocation` branch) into `/Users/CSJ/Desktop/fynlaBrain/May/May7Updates/`. CSJ has taken ownership of fixing the leak at the source. THIS repo's vault sync only writes the real fynla session artefacts.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md` (still untracked from May 1)
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (Fyn AI prompt-engineering scratch dirs from May 1)
+
+---
+
+## Session 3 (7 May 2026, context-clear) — Account deletion rework designed, implementation pending
+
+**Branch:** `accountDeletionRework` at `aeb1168` (off `dev`, 1 commit ahead) · **Pushed:** yes
+
+**Outcome:**
+1. Audited current account-deletion feature; found 4 issues, 2 critical: `life_events.joint_owner_id` FK is `RESTRICT` (will block hard-delete of any user who's a joint owner of a life event); and `DataPurgeService::getDeletionOrder()` calls `DELETE WHERE user_id` on `data_retention_email_log` and `renewal_reminder_log`, which only have `subscription_id` — this is the 500 CSJ has been hitting on the retention-overlay "Delete & Start Again" CTA.
+2. Designed retention-first soft-delete model with proration via scheduled deletion at end of paid period, restoration on return, and 7-year hard-purge cron. Key shift: no user-facing action ever destroys data; that's the eventual cron's job after `purge_eligible_at` elapses.
+3. Spec at `fynlaFeatuuresModules/accDeletion/design.md` (21 sections). Plan at `fynlaFeatuuresModules/accDeletion/plan.md` (11 phases, ~40 tasks, TDD where applicable). Original audit at `fynlaFeatuuresModules/accDeletion/accDeletion.md`.
+
+### Done
+
+- [x] Audit committed
+- [x] Spec written and self-reviewed (CSJ approved with one amendment: proration via scheduled deletion + email reminders)
+- [x] Implementation plan written
+- [x] Branch `accountDeletionRework` pushed to origin
+- [x] **(Session 4)** Plan execution complete — see Session 4 entry above
+
+### Hard rules reinforced this session
+
+- **Vault sync via Haiku 4.5 subagent is unreliable.** This session's vault-sync fabricated 11 commit hashes and an entire alternate session narrative about UK pack relocation R-6/R-7 work that never happened on this repo. Restored `May Index.md`, `Git History/May2026/May07.md`, `May2026 Commits.md`, and `Home.md` totals. Future runs: cross-verify any commit hash with `git cat-file -e` before trusting subagent vault output. **(Session 4 update: this is now confirmed as a fynlaInternational sibling-project leak; CSJ owns the source-side fix. Today's vault-sync still cross-verifies every hash.)**
+
+---
+
+## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
 
 ## Session 5 (6 May 2026, context-clear) — PR #245 (dev → main release) opened; awaiting CSJ merge
 

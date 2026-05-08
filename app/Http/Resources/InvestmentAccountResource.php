@@ -36,6 +36,7 @@ class InvestmentAccountResource extends JsonResource
             'contribution_frequency' => $this->contribution_frequency,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'country' => $this->country,
             'tax_year' => $this->tax_year,
             'platform_fee_percent' => $this->platform_fee_percent,

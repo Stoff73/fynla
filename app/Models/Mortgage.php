@@ -88,6 +88,14 @@ class Mortgage extends Model
     }
 
     /**
+     * Get the joint owner of this mortgage.
+     */
+    public function jointOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
+    }
+
+    /**
      * Scope to a specific mortgage type.
      */
     public function scopeOfType($query, string $type)

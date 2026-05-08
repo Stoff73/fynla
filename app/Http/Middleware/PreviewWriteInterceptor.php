@@ -62,6 +62,9 @@ class PreviewWriteInterceptor
         'api/auth/password-reset/verify-mfa',    // Allow password reset
         'api/auth/password-reset/mfa-recovery',  // Allow password reset
         'api/auth/password-reset/reset',         // Allow password reset
+        'api/auth/restore',                      // Allow soft-deleted account restoration
+        'api/auth/restore/check',                // Allow soft-deleted account restoration check
+        'api/auth/gdpr/erasure/cancel-scheduled', // Allow cancelling a scheduled deletion
         'api/onboarding',         // Allow onboarding to work in preview mode
         'api/documents/upload',   // Allow document upload & AI extraction
         'api/documents/upload-only', // Allow document upload without extraction

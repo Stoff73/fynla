@@ -105,12 +105,31 @@
         <div class="section-header">
           <h2 class="section-title">Delete Your Data or Account</h2>
         </div>
-        <p class="section-description">
-          Choose to delete your financial data while keeping your account, or permanently delete your entire account.
-        </p>
-        <div class="section-actions">
-          <button class="btn btn-danger" @click="openDeletionWizard">
-            Manage Account Deletion
+
+        <template v-if="!isScheduledForDeletion">
+          <p class="section-description">
+            Choose to delete your financial data while keeping your account, or permanently delete your entire account.
+          </p>
+          <div class="section-actions">
+            <button class="btn btn-danger" @click="openDeletionWizard">
+              Manage Account Deletion
+            </button>
+          </div>
+        </template>
+
+        <div v-else class="bg-violet-100 border border-violet-300 rounded-lg p-6">
+          <h3 class="text-h4 text-violet-700 mb-2">Account scheduled for deletion</h3>
+          <p class="text-body text-neutral-700 mb-4">
+            Your account will be deleted on
+            <strong>{{ formatScheduledDate(scheduledDate) }}</strong>.
+            Your records will be retained for {{ retentionYears }} years
+            after that for regulatory compliance.
+          </p>
+          <div v-if="cancelError" class="bg-raspberry-100 border border-raspberry-300 rounded-md p-3 mb-4">
+            <p class="text-body-sm text-raspberry-700">{{ cancelError }}</p>
+          </div>
+          <button class="btn-primary" :disabled="cancelling" @click="onCancelScheduled">
+            {{ cancelling ? 'Cancelling…' : 'Cancel scheduled deletion' }}
           </button>
         </div>
       </div>
@@ -384,6 +403,11 @@ export default {
         error: null,
       },
 
+      // Scheduled-deletion cancellation state
+      cancelling: false,
+      cancelError: null,
+      retentionYears: 7,
+
       // Code input state
       codeDigits: ['', '', '', '', '', ''],
       codeInputRefs: [],
@@ -391,6 +415,12 @@ export default {
     };
   },
   computed: {
+    isScheduledForDeletion() {
+      return !!this.$store.state.auth.user?.deletion_scheduled_for;
+    },
+    scheduledDate() {
+      return this.$store.state.auth.user?.deletion_scheduled_for;
+    },
     requiredConfirmationPhrase() {
       return this.deletionWizard.type === 'account'
         ? 'Delete my Account'
@@ -584,11 +614,17 @@ export default {
         );
 
         if (response.logout_required) {
-          // Account deleted - log out and redirect
+          // Account deleted immediately - log out and redirect
           await this.$store.dispatch('auth/logout');
           this.$router.push('/login');
+        } else if (response.type === 'account_scheduled') {
+          // Paid account: deletion scheduled for end of period
+          this.$toast?.success?.(response.message) || alert(response.message);
+          this.closeDeletionWizard();
+          // Refresh auth user so the scheduled-deletion banner + privacy panel render
+          await this.$store.dispatch('auth/fetchUser');
         } else {
-          // Data deleted - show success and reload
+          // Data-only deletion - show success and reload
           this.$toast?.success?.('Your data has been deleted') ||
             alert('Your data has been deleted');
           this.closeDeletionWizard();
@@ -674,6 +710,26 @@ export default {
           this.codeInputRefs[0].focus();
         }
       });
+    },
+
+    formatScheduledDate(d) {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      });
+    },
+
+    async onCancelScheduled() {
+      this.cancelling = true;
+      this.cancelError = null;
+      try {
+        await privacyService.cancelScheduledDeletion();
+        await this.$store.dispatch('auth/fetchUser');
+      } catch (e) {
+        this.cancelError = e.response?.data?.message || 'Could not cancel. Please try again.';
+      } finally {
+        this.cancelling = false;
+      }
     },
   },
 };

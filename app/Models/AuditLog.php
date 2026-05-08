@@ -90,6 +90,16 @@ class AuditLog extends Model
 
     public const ACTION_ERASURE_COMPLETED = 'erasure_completed';
 
+    public const ACTION_ACCOUNT_DELETION_SCHEDULED = 'account_deletion_scheduled';
+
+    public const ACTION_ACCOUNT_DELETION_CANCELLED = 'account_deletion_cancelled';
+
+    public const ACTION_ACCOUNT_DELETED = 'account_deleted';
+
+    public const ACTION_ACCOUNT_RESTORED = 'account_restored';
+
+    public const ACTION_ACCOUNT_PURGED = 'account_purged';
+
     /**
      * User relationship
      */
@@ -205,6 +215,11 @@ class AuditLog extends Model
             self::ACTION_EXPORT_COMPLETED => 'Data export completed',
             self::ACTION_ERASURE_REQUESTED => 'Account deletion requested',
             self::ACTION_ERASURE_COMPLETED => 'Account deletion completed',
+            self::ACTION_ACCOUNT_DELETION_SCHEDULED => 'Account deletion scheduled',
+            self::ACTION_ACCOUNT_DELETION_CANCELLED => 'Account deletion cancelled',
+            self::ACTION_ACCOUNT_DELETED => 'Account deleted',
+            self::ACTION_ACCOUNT_RESTORED => 'Account restored',
+            self::ACTION_ACCOUNT_PURGED => 'Account purged',
             default => ucfirst(str_replace('_', ' ', $this->action)),
         };
     }

@@ -154,6 +154,10 @@ class User extends Authenticatable
         'is_lifecycle_test_user' => 'boolean',
         // SaveTax campaign — household tax-strategy
         'marriage_allowance_eligible' => 'boolean',
+        // Account deletion lifecycle
+        'deletion_scheduled_for' => 'datetime',
+        'restored_at' => 'datetime',
+        'purge_eligible_at' => 'datetime',
     ];
 
     /**
@@ -177,6 +181,11 @@ class User extends Authenticatable
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class);
+    }
+
+    public function deletionReminderLog()
+    {
+        return $this->hasMany(AccountDeletionReminderLog::class);
     }
 
     /**
@@ -773,5 +782,25 @@ class User extends Authenticatable
         }
 
         return 'Domicile status not set. Please update your profile.';
+    }
+
+    /**
+     * Account is scheduled for deletion but not yet executed.
+     */
+    public function isScheduledForDeletion(): bool
+    {
+        return $this->deletion_scheduled_for !== null
+            && $this->deleted_at === null;
+    }
+
+    /**
+     * Account is currently in the deleted state and within the retention window
+     * (i.e. data still on disk and the row is soft-deleted, not legacy-purged).
+     */
+    public function canBeRestored(): bool
+    {
+        return $this->trashed()
+            && $this->deletion_reason !== 'legacy_purged'
+            && ($this->purge_eligible_at === null || $this->purge_eligible_at->isFuture());
     }
 }

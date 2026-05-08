@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Mail\DataDeletionConfirmation;
+use App\Mail\Account\AccountDeletionConfirmationEmail;
 use App\Mail\DataRetentionWarning;
 use App\Mail\DeletionVerificationCode;
 use App\Mail\PaymentConfirmation;
@@ -160,6 +160,6 @@ class SendTestEmails extends Command
 
     private function sendDeletionConfirm(string $to, User $user): void
     {
-        Mail::to($to)->send(new DataDeletionConfirmation($user->first_name, $user->email));
+        Mail::to($to)->send(new AccountDeletionConfirmationEmail($user));
     }
 }

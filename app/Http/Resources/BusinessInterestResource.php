@@ -27,6 +27,7 @@ class BusinessInterestResource extends JsonResource
             'company_number' => $this->company_number,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'current_valuation' => $this->current_valuation,
             'valuation_date' => $this->valuation_date?->toDateString(),
             'valuation_method' => $this->valuation_method,

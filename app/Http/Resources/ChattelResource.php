@@ -37,6 +37,7 @@ class ChattelResource extends JsonResource
             'category' => $this->chattel_type,
             'ownership_type' => $this->ownership_type,
             'ownership_percentage' => $this->ownership_percentage,
+            'joint_owner_deactivated' => $this->relationLoaded('jointOwner') && $this->jointOwner && ! is_null($this->jointOwner->deleted_at),
             'purchase_price' => $this->purchase_price,
             'current_value' => $this->current_value,
             'purchase_date' => $this->purchase_date?->toDateString(),
