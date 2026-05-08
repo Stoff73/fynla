@@ -1,7 +1,52 @@
 # CSJTODO — Fynla
 
-*Last updated: 7 May 2026 — session 4 context-clear (account deletion rework: ALL 11 phases shipped, 30 commits on `accountDeletionRework`, pushed; full Pest suite green 3445/3445; only action remaining is `gh pr create --base dev --head accountDeletionRework`)*
-*Previous session: 7 May 2026 — session 3 (planning docs only — accDeletion audit/spec/plan committed)*
+*Last updated: 8 May 2026 — session 7 context-clear (PR #254 production test plan FULLY VALIDATED: schedule+cancel happy-path executed end-to-end on prod against user 614, hard-purged after; 60 active users zero-drift; user patch notes shipped at `6d425c8`)*
+*Previous session: 8 May 2026 — session 6 (drift correction: invented "financial tables wiped" criterion was MY error, not a missing-wipe defect — canonical 7-year retention is working as designed)*
+
+---
+
+## Session 7 (8 May 2026, context-clear) — PR #254 schedule+cancel happy-path GREEN; user patch notes shipped
+
+**Branch:** `dev` at `6d425c8` · **Tree:** untracked carry-over only · **Today's commits:** 1 (patch notes) + handover (Phase 10)
+
+**Outcome:**
+1. **Pivoted from session 6 drift** — CSJ called out that I was investigating an invented retention bug instead of following PR #254. Re-anchored on the PR body's "Test plan (production, after merge)" checkboxes.
+2. **Mapped PR #254 status across sessions 4–7**: 7 of 8 boxes already ✅ across sessions 4 + 5; only `schedule deletion → cancel — banner appears + clears` was unchecked.
+3. **Located the schedule branch trigger**: `GDPRController.php:529-551` requires `subscription.status='active' && current_period_end->isFuture()` — session 5's user 611 was a trial, which is why this branch was never exercised on prod.
+4. **Drove schedule+cancel end-to-end on prod**:
+   - Registered `chris+restoretest3@fynla.org` (user 614)
+   - Tinker'd subscription 73 to `status='active', current_period_end=now()+30d`
+   - Wizard 3-step (cache-bypass deletion code, type "Delete my Account") → backend hit schedule branch
+   - Verified DB: `deletion_scheduled_for=2026-06-07T15:35:15+01:00`, reason/source set, `deleted_at=null`
+   - Audit chain: `12220 erasure_requested` → `12221 account_deletion_scheduled` (with executes_at)
+   - `/dashboard` mounted `ScheduledDeletionBanner`: "Your account is scheduled for deletion on 7 June 2026 (30 days). Cancel scheduled deletion"
+   - Click Cancel → POST `/api/auth/gdpr/erasure/cancel-scheduled` → banner unmounted, all 3 deletion_* cols cleared
+   - Audit: `12222 account_deletion_cancelled` with `{previous_reason, previous_source, previous_scheduled_for}`
+5. **Cleanup**: hard-deleted user 614, sub 73, 7 audit_logs rows, 1 personal_access_token; cache + cookies cleared. **Final prod user count: 60 (zero drift, byte-identical to pre-test baseline).**
+6. **User-voice patch notes** for the 8 May release written to `May/May8Updates/user-patch-notes-2026-05-08.md`. Covers two-button deletion wizard, schedule-and-cancel banner, restore flow, lifecycle emails, 7-year retention rationale, plus cache/redirect/restore-landing follow-ups. Pushed at `6d425c8`.
+
+### Done
+
+- [x] **PR #254 production test plan FULLY VALIDATED** — all 8 boxes green across sessions 4/5/7
+- [x] **Schedule+cancel happy-path GREEN end-to-end** on prod against user 614
+- [x] **Test data fully cleaned** — 60 active users baseline preserved
+- [x] **User patch notes shipped** for 8 May release (`6d425c8`)
+
+### Reframed (session 6 drift correction)
+
+- **`Delete my Data` not wiping financial tables is NOT a defect.** Canonical 7-year retention spec preserves records for FCA/GDPR compliance. The actual bug from session 6 (dashboard reads retention-flagged data as if live) is a frontend/backend filter bug, not a missing-wipe — fix is "dashboard treats retention-flagged users as empty", NOT "delete more rows".
+- **Memory file invalidations** (still on disk; superseded by session 7 handover):
+  - Session 4 handover claim "prod codes can't be read from DB" → wrong (`pending_registrations` AND `EmailVerificationCode` both readable on prod)
+  - Session 5 handover claim "`subscriptions.ends_at` is non-fillable" → wrong (column doesn't exist)
+  - Session 6 handover framing of `Delete my Data` as "Defect 1 - critical" → wrong (canonical spec)
+
+### Outstanding (next session — priority order)
+
+- [ ] **Defect 1 — audit-log FK violation when actor user is hard-deleted between requests.** `app/Models/AuditLog.php:137` does `auth()->id() ?? null` without verifying user exists. Defensive fix: drop user_id when User::find returns null, OR try/catch the audit insert. Add regression test. ~30 min PR. Low-priority but real.
+- [ ] **Bug 2 — dashboard reads retention-flagged data.** After `Delete My Data`, Profile Completeness still reports non-zero Family/Finances %. Fix path: read `April/April24Updates/spec/00-canonical.md` first → grep for `data_retention|retention_starts_at|purge_eligible_at|regulatory_retention` → find the canonical retention column → trace dashboard query (Vuex → backend → Profile Completeness service) → gate on retention flag. Re-test on `chris+restoretest4@fynla.org`. New acceptance: post-`Delete My Data`, dashboard 0% across the board.
+- [ ] **UI step-3 wizard copy alignment** — overpromises under 7-year retention. **CSJ copy call only — DO NOT change without explicit go-ahead.**
+- [ ] **`data-retention:send-warnings` SMTP rate-limit** — 8 user IDs failed today (580, 582, 583, 584, 586, 587, 590, 597). Queue-rate-limit at Mailable level OR sleep() between sends.
+- [ ] **Vault-sync deferred from session 7** — sessions 6/7 of May 8 not yet synced. Run via Haiku 4.5 subagent on next eod wrap. Should cover all of May 8 collectively (sessions 3, 4, 5, 6, 7 + the patch notes file + this CSJTODO entry).
 
 ---
 
