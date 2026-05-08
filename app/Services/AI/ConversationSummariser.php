@@ -128,7 +128,6 @@ PROMPT;
                 ->post(self::ENDPOINT, [
                     'model' => $model,
                     'max_tokens' => self::MAX_TOKENS,
-                    'temperature' => 0,
                     'reasoning_effort' => 'none',
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
