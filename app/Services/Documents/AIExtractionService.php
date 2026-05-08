@@ -236,7 +236,8 @@ class AIExtractionService
             'Content-Type' => 'application/json',
         ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
             'model' => $model,
-            'max_tokens' => self::MAX_TOKENS,
+            'max_completion_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
             'reasoning_effort' => 'none',
             'messages' => [
                 ['role' => 'user', 'content' => $content],
@@ -283,6 +284,7 @@ class AIExtractionService
         $response = Http::withHeaders($headers)->timeout(self::TIMEOUT_SECONDS)->post(self::ANTHROPIC_API_URL, [
             'model' => self::ANTHROPIC_MODEL,
             'max_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
             'messages' => [
                 [
                     'role' => 'user',
@@ -324,7 +326,8 @@ class AIExtractionService
                 'Content-Type' => 'application/json',
             ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
                 'model' => $model,
-                'max_tokens' => self::MAX_TOKENS,
+                'max_completion_tokens' => self::MAX_TOKENS,
+                'temperature' => 0,
                 'reasoning_effort' => 'none',
                 'messages' => [
                     ['role' => 'user', 'content' => $fullPrompt],
@@ -362,6 +365,7 @@ class AIExtractionService
         ])->timeout(self::TIMEOUT_SECONDS)->post(self::ANTHROPIC_API_URL, [
             'model' => self::ANTHROPIC_MODEL,
             'max_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
             'messages' => [
                 ['role' => 'user', 'content' => $fullPrompt],
             ],
