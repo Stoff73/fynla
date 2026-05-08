@@ -184,7 +184,9 @@ export default {
 
         // Redirect to login after successful deletion. Full reload (not
         // $router.push) so the SPA discards the deleted user's stale state.
-        window.location.href = '/login';
+        // Honour VITE_ROUTER_BASE so csjones (/fynla/) doesn't 404.
+        const routerBase = (import.meta.env.VITE_ROUTER_BASE || '/').replace(/\/$/, '');
+        window.location.href = `${routerBase}/login`;
       } catch (err) {
         logger.error('Failed to delete all data', err);
         if (err.response?.status === 429) {
