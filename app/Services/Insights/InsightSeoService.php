@@ -120,10 +120,10 @@ class InsightSeoService
         return rtrim(config('app.url'), '/')."/insights/{$article->slug}";
     }
 
-    private function imageUrl(?string $path): ?string
+    private function imageUrl(?string $path): string
     {
         if (! $path) {
-            return null;
+            return rtrim(config('app.url'), '/').'/images/logos/LogoHiResFynlaDark.png';
         }
 
         return rtrim(config('app.url'), '/').'/storage/'.$path;
