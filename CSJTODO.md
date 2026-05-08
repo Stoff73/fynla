@@ -5,6 +5,127 @@
 
 ---
 
+## Session 2 (7 May 2026, context-clear) — Branch & stash cleanup, skill restoration
+
+**Branch:** `main` at `1cdf46d` · **Tree:** clean · **Today's commits:** 6 (all merged through dev → main)
+
+**Outcome:**
+1. **Inventoried all 35 branches** — categorised into pushed/synced, unmerged-with-unique-work, fully-merged-stale.
+2. **27 fully-merged branches deleted** (local + origin) — `fynImprovement`, `UI`, `FynChat`, `onboardingBug`, `claude/clever-torvalds`, `bugs`, `estateDash`, `referFriend`, `revolutLive`, `uiFixes`, `fynUpgrade`, `claudeReview`, `awinIntegrate`, `awinPlusDev`, `invoiceFix`, `mobile-updates`, `pension-fix`, `genUIFixes`, `session67-investment-fix`, `lifecycle-rate-limit`, `api-no-store-cache`, `phailanx/news-rss-lifecycle-emails`, `main-test-fixes`, plus 4 small stale branches (`fynChatFix`, `cacheFix`, `gitignore-claude-skills`, `session-52-csjtodo-update`).
+3. **2 large dead-architecture branches dropped**: `feature/csj/sprint0-rebase` (117k lines on rejected `FynPersonaOrchestrator`) + `fynNew` (44k lines on rejected `RuleBasedRouter` paradigm). Confirmed via grep that current main forbids both abstractions.
+4. **`feature/fyn-persona-split` (282 commits)** confirmed as squash-merged via PR #242 — deleted.
+5. **2 worthwhile branches salvaged into fresh PRs off dev**:
+   - **PR #248** (excalidraw skill) — merged into dev, then released to main via PR #250.
+   - **PR #249** (Python Agent SDK sidecar) — opened then **PARKED** with `[PARKED]` title prefix and unpark-criteria comment. Memory file `reference_pr249_python_sidecar_parked.md` created and indexed in `MEMORY.md`.
+6. **Mid-session discovery and fix**: `session-start`, `session-end`, `vault-sync` skills were missing/stale in the project (only living in `~/.claude/skills/`), and `.gitignore` line 42 was actively excluding `.claude/skills/session-end/` from being tracked. Restored latest from global via **PR #251**, removed the gitignore rule, released to main via **PR #252**. Also enabled `disable-model-invocation: false` on `vault-context` per the user's edit.
+7. **5 stashes audited and dropped** — all stale (Feb-Mar dates, all from deleted branches): WIP on `main` ×2, WIP on `feature/mobile-app-phase0`, WIP on `uiUpdate` ×2.
+8. **Vault sync executed via Haiku 4.5 subagent** at high effort: 16 changed files synced (May1-7Updates), `May07.md` git history created (6 commits), `May 2026 Commits.md` corrected (was 46, actually 30 — typo from parallel fynlaInternational project bleed), `May Index.md` updated, Home.md git table refreshed. 0 broken wikilinks. 1 frontmatter fix (May Index `date` field).
+
+**PR merges this session (all `gh pr merge --merge --admin`):**
+- `4fa9378` Merge PR #248 (excalidraw skill → dev)
+- `bd67016` Merge PR #250 (release dev → main, excalidraw)
+- `d98a6e9` Merge PR #251 (skill restoration → dev)
+- `1cdf46d` Merge PR #252 (release dev → main, skill restoration)
+
+### Done
+
+- [x] **All 35 branches triaged** — kept only main, dev, and the parked Python sidecar branch
+- [x] **2 PRs merged + 2 release PRs merged** (PRs #248, #250, #251, #252)
+- [x] **PR #249 parked** with `[PARKED]` title + comment + memory entry
+- [x] **Session-management skills restored to repo** + `.gitignore` rule removed
+- [x] **Vault sync clean** (subagent) — git history, May Index, Home.md, all wikilinks resolve
+- [x] **Stashes cleared** (all 5 dropped after audit)
+
+### Outstanding (next session)
+
+- [ ] **PR #249 (Python sidecar) remains parked** — see `reference_pr249_python_sidecar_parked.md` for unpark triggers (premium-tier use case + entry point + engineered prompts + e2e test in dev). Don't auto-delete the branch.
+- [ ] **Decide on the pre-existing untracked files** at repo root — `FCA/`, `FCAsuperchargeApp.md`, `FCA-Supercharged-Sandbox-Application-Draft.md`, `Fynla-Narrative-Memo-Template.docx`, `May/May1Updates/deployFynFix.md`, `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/`. Either commit, gitignore, or move out of the repo.
+
+### Carried over from session 6
+
+- [ ] **Smoke prod once after overnight soak** — `curl -sI https://fynla.org/api/insights` should still show no-store; landing 200; /insights renders
+- [ ] **Revert SPA cachebuster** in `resources/js/services/insightsService.js` — now redundant after `ApiCacheHeaders` middleware shipped
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main` — recipe in `deploy/csjones-fynla/BOOTSTRAP.md` §12. After ~24h prod soak.
+- [ ] **`public/.htaccess` cache-control rules cleanup** — now redundant with middleware
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at March 2026 mtime
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings, pre-existing
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Confirmed again this session. Update opportunistically.
+
+### Hard rules reinforced this session
+
+- **`.claude/skills/` directory should be tracked end-to-end** — no gitignore rules excluding individual skills. The `~/.claude/skills/` global directory is for personal/cross-project skills only; project-specific skills (`session-start`, `session-end`, `vault-sync`, etc.) live in the repo so a fresh checkout has them.
+- **Don't drop branches that look "merged" without verifying** — `git merge-base --is-ancestor` and `comm -23 <(git ls-tree branch) <(git ls-tree main)` are the safe checks. The +N/-M divergence numbers are misleading after squash merges.
+
+### Untracked at session end (pre-existing, carried, NOT introduced this session)
+
+- `FCA-Supercharged-Sandbox-Application-Draft.md`
+- `FCA/`
+- `FCAsuperchargeApp.md`
+- `Fynla-Narrative-Memo-Template.docx`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/`
+
+---
+
+## Session 6 (6 May 2026, end-of-day) — PR #245 deployed to prod + PR #246/#247 cache-control follow-up shipped
+
+**Branch:** `main` at `3c69ecd` · **Production HEAD:** `3c69ecd` (in sync with local + dev)
+
+**Outcome:**
+1. **PR #245 (`dev → main` May 6 release) merged** via `gh pr merge 245 --merge --admin` (CSJ admin override per branch protection). Merge commit `eddeffa`. 60 commits, 30 migrations, ~179k additions, ~5.7k deletions.
+2. **Production deploy executed end-to-end**: mysqldump snapshot (`~/db-snapshot-pre-deploy-20260506-131738.sql.gz`, 2.9 MB gzipped, 5,203 lines) → rsync of source dirs + build + prod `.htaccess` (md5-verified) → `composer install --no-dev` (27 packages installed/upgraded) → `composer dump-autoload -o` → `migrate --force` (all 30 in order, zero errors) → cache clears → optimize → 4 selective seeders (TaxConfig, DiscountCode, SavingsActionDefinition, NewsArticle).
+3. **Browser smoke pass**: login `chris@fynla.org` (verification code from CSJ) → dashboard rendered with all module cards, Net Worth £618,250, Tax 2026/27 active, Profile 89% / Scenario 100% → `/insights` rendered 5 articles → zero JS console errors. **58 users pre = 58 users post (zero data loss)**, tables 121 → 132.
+4. **Cache-control issue investigated live on prod**: `.htaccess` rules from PR #245 silently no-op on the fynla.org SiteGround vhost — verified by toggling diagnostic X-headers. mod_headers IS loaded (`Header always set` works) but conditional matching (`<If>`, `SetEnvIf env=`, `RewriteRule [E=…]` consumed by `Header set env=…`) all fail. **Same pattern works on csjones.co/fynla** — vhost-level vendor difference. Two new memory files saved: `feedback_siteground_prod_vhost_no_conditionals.md` and `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`.
+5. **PR #246 drafted, merged, shipped**: new `App\Http\Middleware\ApiCacheHeaders` registered as first entry in `'api'` middleware group. Sets `Cache-Control: no-store, no-cache, private, must-revalidate, max-age=0` (Symfony alphabetises directives, same set), `Pragma: no-cache`, `Expires: 0` on every `/api/*` response — bypasses Apache entirely, runs identically on every host. 4 Pest tests, all passing. Merged via PR #247 (`dev → main` admin override) at `3c69ecd`. Deployed to prod (rsync 2 PHP files, dump-autoload, cache:clear). Live verification: `/api/insights` now returns the no-store header; `/` (web group) unchanged; `/build/*` (static) unchanged.
+6. **Tech debt audit clean**: 0 issues across the 3 files added (`ApiCacheHeaders.php`, `Kernel.php`, `ApiCacheHeadersTest.php`). See `tech-debt-report.md`.
+7. **Vault sync executed via Haiku 4.5 subagent** at high effort: `May06.md` git history created (13 commits), `May 2026 Commits.md` updated, `May Index.md` session 6 entry added, `Current State/DeploymentBuild.md` refreshed (v0.7.0 → v1.0, csjones git-pull workflow noted), Home.md updated. 0 broken wikilinks, 0 orphaned files. 2 memory suggestions promoted to memory files (saved this session).
+
+**Direct main pushes this session:**
+- `eddeffa` Release: dev → main — May 6 release (PR #245 merge commit)
+- `3c69ecd` Release: Cache-Control middleware fix (PR #246) (PR #247 merge commit)
+- `<session-end commit>` this CSJTODO + handover + memory updates + tech-debt-report
+
+### Done
+
+- [x] **PR #245 merged + production deploy executed** — local + dev + prod synced at `3c69ecd`
+- [x] **DB snapshot taken** (`~/db-snapshot-pre-deploy-20260506-131738.sql.gz`)
+- [x] **All 30 migrations ran clean** — zero data loss (58 users intact, 132 tables)
+- [x] **4 selective seeders run** — TaxConfig, DiscountCode, SavingsActionDefinition, NewsArticle
+- [x] **Browser smoke pass on prod** — login → dashboard → /insights, zero JS console errors
+- [x] **Cache-control fix shipped via Laravel middleware** (PR #246/#247) — verified live on prod
+- [x] **Two new memory files saved** — `feedback_siteground_prod_vhost_no_conditionals.md` + `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`
+- [x] **Vault sync clean** (subagent) — git history, May Index, DeploymentBuild.md refresh, all wikilinks resolve
+
+### Outstanding (next session — small follow-ups, none blocking)
+
+- [ ] **Smoke prod once after overnight soak** — `curl -sI https://fynla.org/api/insights` should still show no-store; landing 200; /insights renders
+- [ ] **Revert SPA cachebuster** in `resources/js/services/insightsService.js` (`_t=Date.now()` line) — now redundant since `ApiCacheHeaders` middleware does the same job. Small frontend rebuild + upload `public/build/` + cache:clear. Standalone PR when convenient.
+- [ ] **Convert production fynla.org to a git checkout** tracking `origin/main`. Recipe: `deploy/csjones-fynla/BOOTSTRAP.md` §12 with `branch=main`, no `skip-worktree` (prod uses canonical root template). After: all three environments deploy via `git pull`. Wait for ~24h soak before doing it.
+- [ ] **`public/.htaccess` cache-control rules cleanup** — now functionally redundant with the middleware. Harmless on hosts where they fire (csjones), so cleanup is cosmetic. Could simplify to just the unconditional rules + remove the env-var/`<If>` machinery.
+- [ ] **Optional: SiteGround Site Tools cache purge on csjones** — only if the legacy `/api/insights` poisoned-CDN entry is still observed. Manual UI step. After purge, the same `_t=Date.now()` line on csjones source is also revertable.
+
+### Outstanding (lower priority, advisory)
+
+- [ ] **`appMapping/currentState/*.md` refresh** — 26 docs at 2026-03-02/12 mtime. Surgical edits in repo only.
+- [ ] **`ProtectionDashboard.vue`** — 7 Vue render warnings (`Failed to resolve component: ProfileCompletenessAlert`, etc.). Pre-existing one-file PR.
+- [ ] **CLAUDE.md metric drift** — Vue Components 722 actual vs 726 documented (-4). Vault-sync confirmed again this session. Update opportunistically.
+- [ ] **`Current State/DeploymentBuild.md`** — refreshed by vault-sync today; could still use a once-over to add production deploy details (composer install ordering, snapshot pattern) when convenient.
+- [ ] **Future PR bodies must use absolute repo paths** — not vault-only paths.
+
+### Hard rules reinforced this session
+
+- **`gh pr merge --admin` for solo-reviewer PRs** — established pattern when CSJ is both author and sole reviewer per branch protection (`@Stoff73` required). Confirmed legitimate on PR #245 and #247 today. See `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`.
+- **SiteGround prod vhost silently drops conditional Apache directives** — per-route response-header logic on prod must use Laravel middleware, not `.htaccess` conditionals. csjones DOES support conditionals — the dev/prod difference is real. See `feedback_siteground_prod_vhost_no_conditionals.md`.
+
+### Untracked at session end (carried, intentional)
+
+- `Fynla-Narrative-Memo-Template.docx`
+- `FCA-Supercharged-Sandbox-Application-Draft.md` + `FCAsuperchargeApp.md` + `FCA/`
+- `May/May1Updates/deployFynFix.md`
+- `campaigns/`, `fyn/`, `personas/`, `prompts/`, `tools/` (May 1 Fyn AI prompt-engineering scratch dirs)
+
+---
+
 ## Session 4 (7 May 2026, context-clear) — Account deletion rework SHIPPED end-to-end
 
 **Branch:** `accountDeletionRework` at `8c04375` (off `dev`, 30 commits ahead) · **Pushed:** yes (`db2d603..8c04375`)
