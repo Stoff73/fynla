@@ -123,8 +123,9 @@ api.interceptors.response.use(
           if (isCapacitor && window.__appRouter) {
             window.__appRouter.push('/m/login');
           } else {
-            const basePath = window.location.pathname.includes('/fps/') ? '/fps' : '';
-            window.location.href = `${basePath}/login`;
+            // routerBase is defined at the top of this file from VITE_ROUTER_BASE.
+            // The previous `/fps/` check was stale legacy and broke csjones (/fynla/).
+            window.location.href = `${routerBase}/login`;
           }
         } else {
           // For auth endpoints, return the error to be handled by the component
