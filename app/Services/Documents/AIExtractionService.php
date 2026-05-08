@@ -125,7 +125,7 @@ class AIExtractionService
                 'document_id' => $document->id,
                 'extraction_version' => $version,
                 'model_used' => $response['model'] ?? (Cache::get('ai_provider', config('services.ai_provider', 'anthropic')) === 'xai'
-                    ? config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning')
+                    ? config('services.xai.vision_model', 'grok-4.3')
                     : self::ANTHROPIC_MODEL),
                 'input_tokens' => $response['usage']['input_tokens'] ?? null,
                 'output_tokens' => $response['usage']['output_tokens'] ?? null,
@@ -222,7 +222,7 @@ class AIExtractionService
             throw new RuntimeException('XAI_API_KEY is not configured');
         }
 
-        $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+        $model = config('services.xai.vision_model', 'grok-4.3');
 
         // Build image content block in OpenAI format
         $imageUrl = "data:{$mediaType};base64,{$base64}";
@@ -237,6 +237,7 @@ class AIExtractionService
         ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
             'model' => $model,
             'max_tokens' => self::MAX_TOKENS,
+            'reasoning_effort' => 'none',
             'messages' => [
                 ['role' => 'user', 'content' => $content],
             ],
@@ -316,7 +317,7 @@ class AIExtractionService
                 throw new RuntimeException('XAI_API_KEY is not configured');
             }
 
-            $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+            $model = config('services.xai.vision_model', 'grok-4.3');
 
             $response = Http::withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
@@ -324,6 +325,7 @@ class AIExtractionService
             ])->timeout(self::TIMEOUT_SECONDS)->post(self::XAI_API_URL, [
                 'model' => $model,
                 'max_tokens' => self::MAX_TOKENS,
+                'reasoning_effort' => 'none',
                 'messages' => [
                     ['role' => 'user', 'content' => $fullPrompt],
                 ],

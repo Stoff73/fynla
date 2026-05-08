@@ -27,11 +27,11 @@ use RuntimeException;
  * onboarding) or via the every-30-minute scheduler scan for stale
  * conversations whose `last_message_at` has moved past `summarised_at`.
  *
- * Provider: xAI grok-4-1-fast-non-reasoning. The cheap non-reasoning
- * model is appropriate for compression — see memory
- * `feedback_fyn_model_choice_is_deliberate.md`. The model name is
- * read from `services.xai.vision_model` (the existing alias for the
- * cheap non-reasoning model; not vision-specific).
+ * Provider: xAI grok-4.3 (successor to the retired grok-4-1-fast
+ * family). The model name is read from `services.xai.vision_model`
+ * (the existing alias used for cheap non-chat-path calls; the alias is
+ * historical and not vision-specific). See memory
+ * `feedback_fyn_model_choice_is_deliberate.md`.
  *
  * Failure mode: a single failed run logs a warning and leaves the row
  * un-summarised. The scheduler will retry on the next sweep. The job
@@ -98,7 +98,7 @@ class ConversationSummariser
             return null;
         }
 
-        $model = config('services.xai.vision_model', 'grok-4-1-fast-non-reasoning');
+        $model = config('services.xai.vision_model', 'grok-4.3');
 
         $systemPrompt = <<<'PROMPT'
 You compress a Fynla financial-planning chat transcript into a structured index entry. Output strict JSON matching this schema:
@@ -128,6 +128,7 @@ PROMPT;
                 ->post(self::ENDPOINT, [
                     'model' => $model,
                     'max_tokens' => self::MAX_TOKENS,
+                    'reasoning_effort' => 'none',
                     'response_format' => ['type' => 'json_object'],
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
