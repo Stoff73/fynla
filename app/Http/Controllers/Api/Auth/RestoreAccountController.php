@@ -62,7 +62,11 @@ class RestoreAccountController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $user->only(['id', 'email', 'first_name', 'surname']),
-            'redirect_to' => '/subscription/select',
+            // TODO: spec/design call for a dedicated /subscription/select page
+            // (design.md:259, plan.md:3075). Page was never built — repointing
+            // to /pricing as a working destination so restored users can pick
+            // a plan via the existing checkout flow. Track separately.
+            'redirect_to' => '/pricing',
         ]);
     }
 
