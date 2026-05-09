@@ -133,8 +133,10 @@ class AuditLog extends Model
         ?array $newValues = null,
         ?array $metadata = null
     ): self {
+        $candidateUserId = $userId ?? auth()->id();
+
         return self::create([
-            'user_id' => $userId ?? auth()->id(),
+            'user_id' => self::resolveUserIdForFk($candidateUserId),
             'event_type' => $eventType,
             'action' => $action,
             'model_type' => $modelType,
@@ -145,6 +147,24 @@ class AuditLog extends Model
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ]);
+    }
+
+    /**
+     * The audit_logs.user_id FK is nullOnDelete, so soft-deleted users still
+     * resolve and a hard-deleted user (DB row gone) must fall back to null —
+     * otherwise a stale session that still resolves to the purged ID would
+     * 500 on the next authenticated write. Soft-deleted users keep the row
+     * via withTrashed() so audit attribution survives deletion.
+     */
+    protected static function resolveUserIdForFk(?int $candidateUserId): ?int
+    {
+        if ($candidateUserId === null) {
+            return null;
+        }
+
+        return User::withTrashed()->whereKey($candidateUserId)->exists()
+            ? $candidateUserId
+            : null;
     }
 
     /**
