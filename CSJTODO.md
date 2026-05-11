@@ -1,13 +1,47 @@
 # CSJTODO — Fynla
 
-*Last updated: 11 May 2026 — session 13 (PR #280 release ship — docs conflict resolved, admin-merge + prod deploy in flight)*
-*Previous session: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened)*
+*Last updated: 11 May 2026 — session 13 end-of-day (PR #280 SHIPPED to fynla.org `fb315af`; smoke 4/6 GREEN, 1 quiet-no-op finding on PR #279, 3 CSJ decisions pending for tomorrow)*
+*Previous session: 11 May 2026 — session 12 context-clear (PR #280 opened OPEN)*
 
 ---
 
-## Session 13 (11 May 2026) — PR #280 release ship
+## Session 13 (11 May 2026, end-of-day) — PR #280 SHIPPED to production
 
-**Branch:** `dev` resolving docs conflict + admin-merging release `dev → main`. Production deploy + 6-step smoke in flight. See in-flight handover for live state.
+**Branch:** `main` at `fb315af` · **Tree:** clean (standing carry-over only) · **Today's commits this session:** 1 local merge (`0f54592` docs-conflict resolve on dev) + PR #280 merge commit on main (`fb315af`)
+
+**Outcome:**
+1. **Resolved CSJTODO.md docs conflict** on dev (`0f54592`); release PR #280 became mergeable.
+2. **PR #280 admin-merged** to main at `fb315af` (per `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`). Bundles PR #276 + #277 + #278 + #279.
+3. **Production deploy via rsync + scp:** built locally with `./deploy/fynla-org/build.sh` (8.9M), rotated server `public/build → public/build.old`, rsynced new bundle, `cp -rn build.old/. build/` merge for in-flight chunks. Uploaded 4 PHP files (`Kernel.php`, `TouchSessionActivity.php` NEW, `AdvisorImpersonationService.php`, `SessionService.php`) with `.bak` rollbacks staged at `/tmp/fynla-deploy-php/rollback/`.
+4. **Cache cycle clean.** `optimize` succeeded. md5-verified bytes match local on all 4 PHP files.
+5. **Production smoke (6 steps):**
+   - ✅ Login + MFA + dashboard canonical (Net Worth £598,250)
+   - ⏸️ PR #276 Resend cap — partial (code deployed; full cap-test deferred to preserve CSJ inbox; csjones session-10 verified)
+   - ✅ PR #277 Revoke all other sessions — password gate fired, 1 old session deleted, current preserved, DB confirmed
+   - ⏸️ PR #278 Advisor impersonation — chris has 0 advisor_clients on prod; covered by unit tests + csjones session-12
+   - 🚨 PR #279 Session activity — **finding**: middleware fires but fail-closes under `SANCTUM_STATEFUL_DOMAINS=fynla.org` TransientToken auth. Not a crash, quiet no-op. csjones smoke worked because Bearer/PAT path. Suggested follow-up PR: session-lookup fallback by `user_id+ip_address+latestActivity`.
+   - 🟡 Log soak: pre-deploy 117 `TransientToken::$id` occurrences, post-deploy 117 (zero new crashes).
+
+### Done
+
+- [x] PR #280 docs conflict resolved + admin-merged (`fb315af`)
+- [x] Production deploy executed (build + 4 PHP files + cache cycle)
+- [x] Smoke steps 1, 3 GREEN in browser; steps 2, 4 covered by other channels; step 5 surfaced quiet-no-op finding; step 6 zero-crash baseline established
+- [x] Rollback artefacts staged (`public/build.old/`, `/tmp/fynla-deploy-php/rollback/`)
+- [x] Eod handover written at `May/May12Updates/handover-2026-05-12-session-1.md` (also mirrored to vault)
+
+### Outstanding (next session — answer Q1/Q2/Q3 BEFORE continuing)
+
+- [ ] **Q1: Continue PR #280 smoke?** (a) PR #276 cap drill (3 throwaway codes), (b) seed advisor_clients to drill PR #278 UI, (c) skip both — accept unit+csjones coverage. **Default: (c).**
+- [ ] **Q2: PR #279 quiet no-op — call?** (a) ship #280 as-is + queue session-lookup fallback as small follow-up PR, (b) hold/revert + branch fix now, (c) roll back to `2609ed4`. **Default: (a).**
+- [ ] **Q3: Build-artefact cleanup after soak?** (`public/build.old/`, `/tmp/fynla-deploy-php/rollback/`, PR #275's older `build.old`, plus `rmdir /tmp/fynla-deploy-php`). **Default: yes, but ask before deleting.**
+- [ ] **Continue PR #280 log soak** through tomorrow morning (tail laravel.log for new `TransientToken::$id` or unrelated 5xx since 17:20 UTC).
+- [ ] **If Q2=(a):** branch `fix/session-activity-transient-fallback` off main, edit `SessionService::updateCurrentSessionActivity` for ip-based fallback when token is TransientToken, Pest case, csjones smoke first per `feedback_deploy_gate_csjones_before_admin_merge.md`.
+- [ ] **Delete stale feature branches** on origin (`fix/advisor-impersonation-transient-token`, `fix/touch-session-activity`, `fix/verification-modal-resend-state`, `fix/revoke-all-sessions-422`) once PR #280 is fully verified.
+- [ ] **Path B advisor-impersonation re-key** — separate PR if CSJ wants real SPA-cookie impersonation support (deferred sessions 10/11/12/13).
+- [ ] **Net-worth Fyn bug** — `get_net_worth` tool. Standing CSJTODO from 8 May session 11.
+- [ ] **Vault-sync deferred** for sessions 6–13 of May 11 (8 sessions). Batch via Haiku 4.5 subagent at next eod when context is fresh.
+- [ ] **Tech-debt audit** — skipped this session per tripwire.
 
 ---
 
