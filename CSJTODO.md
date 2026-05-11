@@ -1,7 +1,36 @@
 # CSJTODO — Fynla
 
-*Last updated: 8 May 2026 — session 11 context-clear (Fyn net-worth bug surfaced and root-caused but NOT yet fixed; PRs #261/#262 reverted after admin-merge process violation; PR #263 re-opened awaiting CSJ review)*
-*Previous session: 8 May 2026 — session 10 (grok-4.3 swap + reasoning_effort=none merged to main, prod undeployed)*
+*Last updated: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened `dev → main` covering #276/#277/#278/#279, awaiting CSJ admin-merge + production deploy)*
+*Previous session: 11 May 2026 — session 11 (PR #278 + #279 opened OPEN)*
+
+---
+
+## Session 12 (11 May 2026, context-clear) — Smoked + merged #278 + #279; release PR #280 opened
+
+**Branch:** `dev` at `8f5a882` · **Tree:** clean (untracked carry-over only) · **Today's commits:** 0 tracked code commits this session (work landed via admin-merge of pushed PRs)
+
+**Outcome:**
+1. **PR #278 (advisor-impersonation TransientToken guard) — GREEN + merged `0094e11`.** csjones smoke verified end-to-end via UI: chris@fynla.org → /advisor/clients → Enter Profile on James Carter → impersonation banner + client dashboard → Exit. Zero new TransientToken errors. Discovered csjones SPA uses Bearer/PAT (not cookie-stateful), so TransientToken HTTP-path covered exclusively by 5 Pest unit cases.
+2. **PR #279 (TouchSessionActivity middleware + 6th family fix) — GREEN + merged `8f5a882`.** csjones smoke: session 60 `last_activity_at` advanced 17:47:33 → 17:53:14 → 17:54:01 after API calls; Settings → Security UI confirms fresh "Last active". Zero new TransientToken errors.
+3. **csjones restored to dev tip `8f5a882ee`.** Final sanity verified: middleware still firing (`last_activity_at=17:57:05`).
+4. **Release PR #280 opened** (`dev → main`) covering #276 + #277 + #278 + #279. NOT admin-merged — CSJ owns release timing per `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`. Body has the 6-step prod smoke plan + exact upload file list.
+
+### Done
+
+- [x] PR #278 csjones smoke GREEN + admin-merged (`0094e11`)
+- [x] PR #279 csjones smoke GREEN + admin-merged (`8f5a882`)
+- [x] csjones restored to dev tip post-merge
+- [x] Release PR #280 (`dev → main`) opened, covering 4 PRs
+
+### Outstanding (next session — priority order)
+
+- [ ] **PR #280 admin-merge** — CSJ owns. `gh pr merge 280 --merge --admin`, then deploy to fynla.org per CLAUDE.md "Deploying to production". File list in PR #280 body.
+- [ ] **Production smoke** (6 steps in PR #280 body): login + MFA, Resend cap, Revoke other sessions, Advisor impersonation, Session activity, 10-15 min log monitor.
+- [ ] **Build-artefact cleanup on prod** — overdue per PR #275's 24h soak (eligible ~07:04 May 12). Blocked behind PR #280 release; do that first.
+- [ ] **Path B advisor-impersonation re-key** — separate PR if CSJ wants stateful SPA support (deferred from sessions 10 + 11 + 12).
+- [ ] **Net-worth Fyn bug** — add `get_net_worth` tool wrapping `NetWorthService::calculateNetWorth`. Standing item from 8 May session 11.
+- [ ] **Vault-sync deferred** for sessions 6–12 of May 11 (7 sessions). Batch via Haiku 4.5 subagent at next eod wrap.
+- [ ] **Delete stale feature branches** on origin (`fix/advisor-impersonation-transient-token`, `fix/touch-session-activity`) after PR #280 ships to main.
 
 ---
 
