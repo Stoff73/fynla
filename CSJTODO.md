@@ -1,7 +1,42 @@
 # CSJTODO — Fynla
 
-*Last updated: 8 May 2026 — session 16 end-of-day (PR #265 prod-verified GREEN; net-worth bug confirmed fixed live)*
-*Previous session: 8 May 2026 — session 15 context-clear (PR #265 merged, prod deployed mid-session, browser test interrupted by tripwire)*
+*Last updated: 11 May 2026 — session 13 (PR #280 release ship — docs conflict resolved, admin-merge + prod deploy in flight)*
+*Previous session: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened)*
+
+---
+
+## Session 13 (11 May 2026) — PR #280 release ship
+
+**Branch:** `dev` resolving docs conflict + admin-merging release `dev → main`. Production deploy + 6-step smoke in flight. See in-flight handover for live state.
+
+---
+
+## Session 12 (11 May 2026, context-clear) — Smoked + merged #278 + #279; release PR #280 opened
+
+**Branch:** `dev` at `8f5a882` · **Tree:** clean (untracked carry-over only) · **Today's commits:** 0 tracked code commits this session (work landed via admin-merge of pushed PRs)
+
+**Outcome:**
+1. **PR #278 (advisor-impersonation TransientToken guard) — GREEN + merged `0094e11`.** csjones smoke verified end-to-end via UI: chris@fynla.org → /advisor/clients → Enter Profile on James Carter → impersonation banner + client dashboard → Exit. Zero new TransientToken errors. Discovered csjones SPA uses Bearer/PAT (not cookie-stateful), so TransientToken HTTP-path covered exclusively by 5 Pest unit cases.
+2. **PR #279 (TouchSessionActivity middleware + 6th family fix) — GREEN + merged `8f5a882`.** csjones smoke: session 60 `last_activity_at` advanced 17:47:33 → 17:53:14 → 17:54:01 after API calls; Settings → Security UI confirms fresh "Last active". Zero new TransientToken errors.
+3. **csjones restored to dev tip `8f5a882ee`.** Final sanity verified: middleware still firing (`last_activity_at=17:57:05`).
+4. **Release PR #280 opened** (`dev → main`) covering #276 + #277 + #278 + #279. NOT admin-merged — CSJ owns release timing per `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`. Body has the 6-step prod smoke plan + exact upload file list.
+
+### Done
+
+- [x] PR #278 csjones smoke GREEN + admin-merged (`0094e11`)
+- [x] PR #279 csjones smoke GREEN + admin-merged (`8f5a882`)
+- [x] csjones restored to dev tip post-merge
+- [x] Release PR #280 (`dev → main`) opened, covering 4 PRs
+
+### Outstanding (next session — priority order)
+
+- [ ] **PR #280 admin-merge** — CSJ owns. `gh pr merge 280 --merge --admin`, then deploy to fynla.org per CLAUDE.md "Deploying to production". File list in PR #280 body.
+- [ ] **Production smoke** (6 steps in PR #280 body): login + MFA, Resend cap, Revoke other sessions, Advisor impersonation, Session activity, 10-15 min log monitor.
+- [ ] **Build-artefact cleanup on prod** — overdue per PR #275's 24h soak (eligible ~07:04 May 12). Blocked behind PR #280 release; do that first.
+- [ ] **Path B advisor-impersonation re-key** — separate PR if CSJ wants stateful SPA support (deferred from sessions 10 + 11 + 12).
+- [ ] **Net-worth Fyn bug** — add `get_net_worth` tool wrapping `NetWorthService::calculateNetWorth`. Standing item from 8 May session 11.
+- [ ] **Vault-sync deferred** for sessions 6–12 of May 11 (7 sessions). Batch via Haiku 4.5 subagent at next eod wrap.
+- [ ] **Delete stale feature branches** on origin (`fix/advisor-impersonation-transient-token`, `fix/touch-session-activity`) after PR #280 ships to main.
 
 ---
 
@@ -26,16 +61,16 @@
 - [x] **Session-15 handover late-committed** as `f15e068` (was untracked due to tripwire)
 - [x] **Eod handover written** at `May/May9Updates/handover-2026-05-09-session-1.md` (also mirrored to vault)
 
-### Outstanding (next session — priority order)
+### Outstanding (rolled forward — see top of file for current state)
 
 - [ ] **Delete prod rollback artefacts** once 24h of clean operation has passed: `~/www/fynla.org/public_html/public/build.old/` and `~/tmp/fynla-deploy-*.tar.gz`
-- [ ] **Write deferred `feedback_deploy_gate_csjones_before_admin_merge.md`** memory file (deferred from sessions 14, 15, 16) — rule: branch-to-csjones via git fetch+checkout BEFORE admin-merge, never after
+- [ ] **Write deferred `feedback_deploy_gate_csjones_before_admin_merge.md`** memory file (rule: branch-to-csjones via git fetch+checkout BEFORE admin-merge, never after) — ✅ now committed
 - [ ] **`AuditLog::log` FK violation** (Defect 1, ~30min PR) — `app/Models/AuditLog.php:137` does `auth()->id() ?? null` without verifying user exists; defensive fix + regression test
 - [ ] **Dashboard retention-flag bug** (Bug 2) — Profile Completeness reports non-zero Family/Finances % after `Delete My Data`; fix path in `April/April24Updates/spec/00-canonical.md`
 - [ ] **`data-retention:send-warnings` SMTP rate-limit** — 8 user IDs failing daily at 09:00; queue-rate-limit at Mailable level
 - [ ] **Investigate non-blocking JS warning** at `app-D5Vjrv3q.js:1322` ("Element not found") — likely `chatNavigationRouter.js` scrolling to stale DOM ref during nav; add null-guard
 - [ ] **Optional: probe `delegate_to_capture` write-intent flow on prod** with grok-4.3 to confirm AdviceFyn read-only contract still holds post-deploy
-- [ ] **Vault-sync for May 8 sessions 6–16** — should be batched in tonight's eod vault-sync; backfill via Haiku 4.5 subagent if anything's missed
+- [ ] **Vault-sync for May 8 sessions 6–16** — batched into May 11 vault-sync backlog
 
 ---
 

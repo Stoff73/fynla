@@ -67,16 +67,19 @@
                 <div class="text-center mb-6">
                     <button
                         @click="handleResend"
-                        :disabled="resending"
+                        :disabled="resending || !canResend"
                         class="text-sm text-raspberry-500 hover:text-raspberry-700 font-medium disabled:text-horizon-400 disabled:cursor-not-allowed transition-colors"
                     >
                         <span v-if="resending">Sending...</span>
                         <span v-else>Resend Code</span>
                     </button>
+                    <p v-if="!canResend" class="mt-2 text-xs text-neutral-500">
+                        Close this dialogue and sign in again to receive a new code.
+                    </p>
                 </div>
 
                 <!-- Help Text -->
-                <div class="text-center text-xs text-neutral-500">
+                <div v-if="canResend" class="text-center text-xs text-neutral-500">
                     <p>Didn't receive the email? Check your spam folder.</p>
                 </div>
 
@@ -130,6 +133,7 @@ export default {
         const error = ref(null);
         const verifying = ref(false);
         const resending = ref(false);
+        const canResend = ref(true);
 
         const fullCode = computed(() => codeDigits.value.join(''));
 
@@ -223,6 +227,8 @@ export default {
         };
 
         const handleResend = async () => {
+            if (!canResend.value) return;
+
             resending.value = true;
             error.value = null;
 
@@ -241,11 +247,23 @@ export default {
                 if (response.data.success) {
                     clearCode();
                     error.value = null;
+                    if (response.data.data?.can_resend === false || response.data.data?.remaining_resends === 0) {
+                        canResend.value = false;
+                    }
                 } else {
                     error.value = response.data.message || 'Failed to resend code';
+                    if (response.data.can_resend === false) {
+                        canResend.value = false;
+                    }
                 }
             } catch (err) {
+                const status = err.response?.status;
                 error.value = err.response?.data?.message || 'Failed to resend code';
+                // 422 = expired verification session (challenge_token unrecoverable),
+                // 429 = resend cap reached. Both unrecoverable in the current modal.
+                if (status === 422 || status === 429 || err.response?.data?.can_resend === false) {
+                    canResend.value = false;
+                }
             } finally {
                 resending.value = false;
             }
@@ -266,6 +284,7 @@ export default {
             if (newVal) {
                 clearCode();
                 error.value = null;
+                canResend.value = true;
                 nextTick(() => {
                     inputRefs.value[0]?.focus();
                 });
@@ -286,6 +305,7 @@ export default {
             error,
             verifying,
             resending,
+            canResend,
             handleInput,
             handleKeydown,
             handlePaste,
