@@ -8,6 +8,7 @@ use App\Models\AdvisorClient;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AdvisorImpersonationService
 {
@@ -26,7 +27,14 @@ class AdvisorImpersonationService
         abort_if($client->is_advisor, 403, 'Cannot enter another advisor account');
         abort_if($this->isImpersonating($advisor), 403, 'Already impersonating a client');
 
-        $tokenId = $advisor->currentAccessToken()->id;
+        $token = $advisor->currentAccessToken();
+        abort_if(
+            ! ($token instanceof PersonalAccessToken),
+            503,
+            'Advisor impersonation is not supported under cookie-based SPA authentication. Use a personal access token.'
+        );
+        $tokenId = $token->id;
+
         Cache::put(
             "advisor_impersonation:{$tokenId}",
             ['client_id' => $client->id, 'started_at' => now()],
@@ -43,7 +51,11 @@ class AdvisorImpersonationService
 
     public function exitClientProfile(User $advisor): void
     {
-        $tokenId = $advisor->currentAccessToken()->id;
+        $token = $advisor->currentAccessToken();
+        if (! ($token instanceof PersonalAccessToken)) {
+            return;
+        }
+        $tokenId = $token->id;
         $cached = Cache::get("advisor_impersonation:{$tokenId}");
 
         if ($cached) {
@@ -57,15 +69,21 @@ class AdvisorImpersonationService
 
     public function isImpersonating(User $advisor): bool
     {
-        $tokenId = $advisor->currentAccessToken()?->id;
+        $token = $advisor->currentAccessToken();
+        if (! ($token instanceof PersonalAccessToken)) {
+            return false;
+        }
 
-        return $tokenId && Cache::has("advisor_impersonation:{$tokenId}");
+        return Cache::has("advisor_impersonation:{$token->id}");
     }
 
     public function getImpersonatedClientId(User $advisor): ?int
     {
-        $tokenId = $advisor->currentAccessToken()?->id;
+        $token = $advisor->currentAccessToken();
+        if (! ($token instanceof PersonalAccessToken)) {
+            return null;
+        }
 
-        return Cache::get("advisor_impersonation:{$tokenId}")['client_id'] ?? null;
+        return Cache::get("advisor_impersonation:{$token->id}")['client_id'] ?? null;
     }
 }
