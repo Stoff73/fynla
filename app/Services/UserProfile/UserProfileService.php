@@ -581,9 +581,13 @@ class UserProfileService
     }
 
     /**
-     * Get family members including shared members from linked spouse
+     * Get family members including shared members from linked spouse.
+     *
+     * Falls back to a virtual spouse record constructed from the User model when
+     * `users.spouse_id` is set but no `family_members` row with `relationship='spouse'`
+     * exists — keeps `/api/user/profile` and `/api/user/family-members` in sync.
      */
-    private function getFamilyMembersWithSharing(User $user): array
+    public function getFamilyMembersWithSharing(User $user): array
     {
         // Get user's own family members
         $familyMembers = $user->familyMembers->map(function ($member) use ($user) {
