@@ -18,8 +18,7 @@ const privacyService = {
    */
   async updateConsent(consentType, granted) {
     const response = await api.put('/auth/gdpr/consents', {
-      consent_type: consentType,
-      granted,
+      consents: { [consentType]: granted },
     });
     return response.data;
   },
