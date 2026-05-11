@@ -444,12 +444,8 @@ export default {
     async loadConsents() {
       try {
         const response = await privacyService.getConsents();
-        const consents = response.data?.consents || [];
-        consents.forEach(consent => {
-          if (consent.consent_type === 'marketing') {
-            this.consents.marketing = consent.granted;
-          }
-        });
+        const consents = response.data?.consents || {};
+        this.consents.marketing = consents.marketing?.consented ?? false;
       } catch (error) {
         logger.error('Failed to load consents:', error);
       }
@@ -466,13 +462,20 @@ export default {
     async checkExportStatus() {
       try {
         const response = await privacyService.getExportStatus();
-        const exports = response.data?.exports || [];
-        const pending = exports.find(e => e.status === 'pending' || e.status === 'processing');
-        const completed = exports.find(e => e.status === 'completed');
-
-        this.pendingExport = pending;
-        this.completedExport = completed;
+        const exportData = response.data || null;
+        if (exportData?.status === 'pending' || exportData?.status === 'processing') {
+          this.pendingExport = exportData;
+          this.completedExport = null;
+        } else if (exportData?.status === 'completed') {
+          this.completedExport = exportData;
+          this.pendingExport = null;
+        }
       } catch (error) {
+        if (error.response?.status === 404) {
+          this.pendingExport = null;
+          this.completedExport = null;
+          return;
+        }
         logger.error('Failed to check export status:', error);
       }
     },
