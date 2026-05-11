@@ -11,6 +11,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Sleep;
 
 class SendDataRetentionWarnings extends Command
 {
@@ -23,6 +24,13 @@ class SendDataRetentionWarnings extends Command
      * Days 20-29 (daily urgency: 10 down to 1 day left).
      */
     private const EMAIL_DAYS = [1, 15, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29];
+
+    /**
+     * SiteGround SMTP relay caps at 10 messages/second (returns 451 transient
+     * errors above that). Pacing at 200ms between sends gives 5/s — safe under
+     * the limit even with retries and concurrent workload.
+     */
+    private const SMTP_THROTTLE_MICROSECONDS = 200_000;
 
     public function handle(): int
     {
@@ -88,6 +96,8 @@ class SendDataRetentionWarnings extends Command
                     'error' => $e->getMessage(),
                 ]);
             }
+
+            Sleep::usleep(self::SMTP_THROTTLE_MICROSECONDS);
         }
 
         $this->info("Sent {$sent} data retention warning email(s).");

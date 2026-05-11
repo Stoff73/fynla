@@ -11,12 +11,20 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Sleep;
 
 class SendTrialReminderEmails extends Command
 {
     protected $signature = 'trials:send-reminders';
 
     protected $description = 'Send trial expiration reminder emails at 3, 2, and 1 days before expiry';
+
+    /**
+     * SiteGround SMTP relay caps at 10 messages/second. Pace at 5/s to stay
+     * under the cap when this 09:00 cron fires alongside renewal-reminder
+     * and data-retention-warning crons that share the same SMTP relay.
+     */
+    private const SMTP_THROTTLE_MICROSECONDS = 200_000;
 
     public function handle(): int
     {
@@ -63,6 +71,8 @@ class SendTrialReminderEmails extends Command
                         'error' => $e->getMessage(),
                     ]);
                 }
+
+                Sleep::usleep(self::SMTP_THROTTLE_MICROSECONDS);
             }
         }
 

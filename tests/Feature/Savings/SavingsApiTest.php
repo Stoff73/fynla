@@ -108,6 +108,63 @@ describe('Savings API', function () {
             expect($account->is_isa)->toBeTrue();
             expect($account->isa_type)->toBe('cash');
         });
+
+        it('does not 500 when country arrives null in the payload', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Test Bank',
+                'current_balance' => 10000,
+                'country' => null,
+            ];
+
+            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+        });
+
+        it('does not 500 when country arrives empty string in the payload', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Test Bank',
+                'current_balance' => 100,
+                'country' => '',
+            ];
+
+            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+        });
+
+        it('preserves an explicitly-supplied country on create', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Bank of Ireland',
+                'current_balance' => 5000,
+                'country' => 'Ireland',
+            ];
+
+            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'Ireland',
+            ]);
+        });
     });
 
     describe('PUT /api/savings/accounts/{id}', function () {
@@ -138,6 +195,26 @@ describe('Savings API', function () {
             ]);
 
             $response->assertNotFound();
+        });
+
+        it('does not 500 when country arrives null on update — preserves existing value', function () {
+            $user = User::factory()->create();
+            $account = SavingsAccount::factory()->create([
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+
+            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+                'current_balance' => 22000,
+                'country' => null,
+            ]);
+
+            $response->assertOk();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'id' => $account->id,
+                'country' => 'United Kingdom',
+            ]);
         });
     });
 

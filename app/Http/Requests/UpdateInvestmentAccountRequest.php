@@ -26,6 +26,18 @@ class UpdateInvestmentAccountRequest extends FormRequest
     }
 
     /**
+     * The investment_accounts.country column is NOT NULL DEFAULT 'United Kingdom'.
+     * On update, dropping a null country preserves whatever value is already in
+     * the row instead of failing the FK with an explicit NULL.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
+            $this->offsetUnset('country');
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
