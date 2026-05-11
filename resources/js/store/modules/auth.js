@@ -9,6 +9,9 @@ const state = {
   permissions: [],
   loading: false,
   error: null,
+  // Populated by AppLayout.checkTrialStatus. Read by router/index.js feature-gating
+  // guard at line 1558 to enforce plan-tier access on URL-direct route hits.
+  subscriptionData: null,
 };
 
 const getters = {
@@ -212,6 +215,11 @@ const mutations = {
     state.user = null;
     state.role = null;
     state.permissions = [];
+    state.subscriptionData = null;
+  },
+
+  setSubscriptionData(state, data) {
+    state.subscriptionData = data;
   },
 
   setLoading(state, loading) {

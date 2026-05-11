@@ -10,7 +10,6 @@
       :subscription-data="subscriptionData"
       @toggle="toggleSideMenu"
       @update:mobile-open="sideMenuMobileOpen = $event"
-      @open-plan-modal="showPlanModal = true"
     />
 
     <!-- Mobile hamburger toggle -->
@@ -467,6 +466,7 @@ export default {
       try {
         const response = await api.get('/payment/trial-status');
         this.subscriptionData = response.data;
+        this.$store.commit('auth/setSubscriptionData', response.data);
         if (!response.data.has_subscription) return;
         const status = response.data.status;
         // For grace-period users, DataRetentionOverlay is the primary surface.
