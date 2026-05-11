@@ -21,17 +21,42 @@
 </template>
 
 <script>
+import { getRequiredTier, hasFeatureAccess } from '@/constants/featureGating';
+
+const ALL_TABS = [
+  { label: 'General', to: '/settings' },
+  { label: 'Personal Info', to: '/settings/personal' },
+  { label: 'Health', to: '/settings/health' },
+  { label: 'Family', to: '/settings/family' },
+  { label: 'Subscription', to: '/settings/subscription' },
+  { label: 'Notifications', to: '/settings/notifications' },
+  { label: 'Security', to: '/settings/security' },
+  { label: 'Privacy', to: '/settings/privacy' },
+  { label: 'Assumptions', to: '/settings/assumptions' },
+];
+
 export default {
   name: 'SettingsTabBar',
-  data() {
-    return {
-      tabs: [
-        { label: 'General', to: '/settings' },
-        { label: 'Security', to: '/settings/security' },
-        { label: 'Privacy', to: '/settings/privacy' },
-        { label: 'Assumptions', to: '/settings/assumptions' },
-      ],
-    };
+  computed: {
+    isPreviewMode() {
+      return this.$store.getters['preview/isPreviewMode'];
+    },
+    subscriptionData() {
+      return this.$store.state.auth.subscriptionData;
+    },
+    effectivePlan() {
+      if (this.isPreviewMode) return 'pro';
+      if (!this.subscriptionData) return 'pro';
+      if (this.subscriptionData.status === 'trialing') return 'pro';
+      return this.subscriptionData.plan || 'student';
+    },
+    tabs() {
+      return ALL_TABS.filter((tab) => {
+        const requiredTier = getRequiredTier(tab.to);
+        if (!requiredTier) return true;
+        return hasFeatureAccess(this.effectivePlan, requiredTier);
+      });
+    },
   },
   methods: {
     isActive(tab) {

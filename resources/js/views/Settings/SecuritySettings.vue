@@ -140,26 +140,11 @@
         <h2 class="section-title">Security Tips</h2>
       </div>
       <ul class="tips-list">
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Use a unique password for your Fynla account
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Enable two-factor authentication for additional security
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Review your active sessions regularly
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Never share your login credentials with anyone
-        </li>
-        <li>
-          <span class="tip-icon check">&#10003;</span>
-          Log out when using shared devices
-        </li>
+        <li>Use a unique password for your Fynla account</li>
+        <li>Enable two-factor authentication for additional security</li>
+        <li>Review your active sessions regularly</li>
+        <li>Never share your login credentials with anyone</li>
+        <li>Log out when using shared devices</li>
       </ul>
     </div>
 
@@ -503,16 +488,10 @@ export default {
 }
 
 .tips-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 0.5rem 0;
   @apply text-spring-800;
-}
-
-.tip-icon.check {
-  @apply text-spring-500;
-  font-weight: bold;
+  list-style: disc;
+  margin-left: 1.25rem;
 }
 
 /* Modal/button/form styles are in app.css */
