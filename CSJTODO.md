@@ -1,7 +1,13 @@
 # CSJTODO — Fynla
 
-*Last updated: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened `dev → main` covering #276/#277/#278/#279, awaiting CSJ admin-merge + production deploy)*
-*Previous session: 11 May 2026 — session 11 (PR #278 + #279 opened OPEN)*
+*Last updated: 11 May 2026 — session 13 (PR #280 release ship — docs conflict resolved, admin-merge + prod deploy in flight)*
+*Previous session: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened)*
+
+---
+
+## Session 13 (11 May 2026) — PR #280 release ship
+
+**Branch:** `dev` resolving docs conflict + admin-merging release `dev → main`. Production deploy + 6-step smoke in flight. See in-flight handover for live state.
 
 ---
 
@@ -31,6 +37,40 @@
 - [ ] **Net-worth Fyn bug** — add `get_net_worth` tool wrapping `NetWorthService::calculateNetWorth`. Standing item from 8 May session 11.
 - [ ] **Vault-sync deferred** for sessions 6–12 of May 11 (7 sessions). Batch via Haiku 4.5 subagent at next eod wrap.
 - [ ] **Delete stale feature branches** on origin (`fix/advisor-impersonation-transient-token`, `fix/touch-session-activity`) after PR #280 ships to main.
+
+---
+
+## Session 16 (8 May 2026, end-of-day) — PR #265 prod verification GREEN
+
+**Branch:** `main` at `f15e068` · **Tree:** standing carry-over only · **Today's commits:** 1 (late-commit of session-15 handover)
+
+**Outcome:**
+1. **Auto-resumed session 15's browser test on `https://fynla.org/login` MFA screen.** MFA `222750` (provided by CSJ pre-tripwire) was still valid → landed on `/dashboard`.
+2. **Dashboard verified canonical**: Net Worth £598,250 / Assets £803,500 / Liabilities £205,250 — bytes-identical to NetWorthService.
+3. **Three prod chat queries — ALL GREEN**:
+   - **Q1 "What is my net worth?"** → Fyn replied **£598,250** with breakdown matching dashboard, monthly surplus £705.59 context. **PR #265's classifier fix is verified live in production.** The bug from sessions 11–15 is fixed.
+   - **Q2 "show me my protection plans"** → frontend `chatNavigationRouter.js` intercepted, navigated to `/plans/protection`, page rendered fully (personalised letter, gaps, recommendations, conclusion).
+   - **Q3 "how do I optimise my retirement"** → DC pension £85k → projected £757,737 by 65 → ~£30,309/yr drawdown, flagged 2 missing data points, sensible next-step offer. Output style consistent with grok-4.3 + reasoning_effort=none + temperature=0.
+4. **Prod laravel.log clean during verification window** (20:28–20:31 UTC). Only entries today are the pre-existing 09:00 SMTP rate-limit and 13:54 audit_logs FK violation — both already in CSJTODO.
+5. **No code changes this session** — pure verification. Tech-debt audit skipped per session-end skill.
+
+### Done
+
+- [x] **PR #265 production verification COMPLETE** — all three canonical chat queries GREEN on `chris@fynla.org`
+- [x] **Net-worth bug confirmed fixed in prod** — £598,250 returned, matches NetWorthService canonical
+- [x] **Session-15 handover late-committed** as `f15e068` (was untracked due to tripwire)
+- [x] **Eod handover written** at `May/May9Updates/handover-2026-05-09-session-1.md` (also mirrored to vault)
+
+### Outstanding (rolled forward — see top of file for current state)
+
+- [ ] **Delete prod rollback artefacts** once 24h of clean operation has passed: `~/www/fynla.org/public_html/public/build.old/` and `~/tmp/fynla-deploy-*.tar.gz`
+- [ ] **Write deferred `feedback_deploy_gate_csjones_before_admin_merge.md`** memory file (rule: branch-to-csjones via git fetch+checkout BEFORE admin-merge, never after) — ✅ now committed
+- [ ] **`AuditLog::log` FK violation** (Defect 1, ~30min PR) — `app/Models/AuditLog.php:137` does `auth()->id() ?? null` without verifying user exists; defensive fix + regression test
+- [ ] **Dashboard retention-flag bug** (Bug 2) — Profile Completeness reports non-zero Family/Finances % after `Delete My Data`; fix path in `April/April24Updates/spec/00-canonical.md`
+- [ ] **`data-retention:send-warnings` SMTP rate-limit** — 8 user IDs failing daily at 09:00; queue-rate-limit at Mailable level
+- [ ] **Investigate non-blocking JS warning** at `app-D5Vjrv3q.js:1322` ("Element not found") — likely `chatNavigationRouter.js` scrolling to stale DOM ref during nav; add null-guard
+- [ ] **Optional: probe `delegate_to_capture` write-intent flow on prod** with grok-4.3 to confirm AdviceFyn read-only contract still holds post-deploy
+- [ ] **Vault-sync for May 8 sessions 6–16** — batched into May 11 vault-sync backlog
 
 ---
 
