@@ -25,6 +25,7 @@ use App\Http\Middleware\PreviewWriteInterceptor;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\SanitizeInput;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\TouchSessionActivity;
 use App\Http\Middleware\TrimStrings;
 use App\Http\Middleware\TrustHosts;
 use App\Http\Middleware\TrustProxies;
@@ -90,6 +91,7 @@ class Kernel extends HttpKernel
             ThrottleRequests::class.':api',
             SubstituteBindings::class,
             SanitizeInput::class, // SECURITY: Sanitize user input to prevent XSS
+            TouchSessionActivity::class, // Refresh user_sessions.last_activity_at on each authenticated request
             AdvisorImpersonationMiddleware::class, // Swap auth user when advisor is impersonating
             PreviewWriteInterceptor::class, // Intercept writes for preview users
             CheckSubscription::class, // Feature-flagged subscription enforcement

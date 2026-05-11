@@ -100,7 +100,7 @@ class SessionService
     {
         $currentToken = $user->currentAccessToken();
 
-        if (! $currentToken) {
+        if (! ($currentToken instanceof PersonalAccessToken)) {
             return;
         }
 
