@@ -303,7 +303,13 @@ class DecumulationPlanner
 
         $incomeTax = $this->taxConfig->getIncomeTax();
         $personalAllowance = (int) ($incomeTax['personal_allowance'] ?? 12570);
-        $higherRateThreshold = (int) ($incomeTax['higher_rate_threshold'] ?? 50270);
+        // The 'higher_rate_threshold' top-level key is not present in the
+        // seeded income_tax config — read it from the canonical place
+        // (bands[1].lower_limit, where the Higher Rate band begins) so the
+        // value tracks tax-year changes via the seeder. The literal fallback
+        // stays at 50,270 (2026/27) as a last-resort guard if bands is
+        // missing — REVIEW.md §4 Critical #5.
+        $higherRateThreshold = (int) ($incomeTax['bands'][1]['lower_limit'] ?? 50270);
 
         return [
             'phasing_strategy' => $phasingStrategy,
