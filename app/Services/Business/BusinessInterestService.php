@@ -181,8 +181,25 @@ class BusinessInterestService
             );
         }
         $badrRate = (float) $cgtConfig['business_asset_disposal_relief_rate'];
-        $higherRate = $cgtConfig['higher_rate'] ?? 0.20;
-        $basicRate = $cgtConfig['basic_rate'] ?? 0.10;
+
+        // Sibling defect to Wave 2.5: the prior `?? 0.20` / `?? 0.10` fallbacks
+        // were the pre-Autumn-2024 statutory CGT rates. Post-30-October-2024 they
+        // are 0.24 / 0.18 — silently falling back would surface 4-percentage-point
+        // wrong tax advice on every non-BADR business sale. Fail loud.
+        if (! isset($cgtConfig['higher_rate'])) {
+            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+                'higher_rate',
+                'CGT higher rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
+            );
+        }
+        if (! isset($cgtConfig['basic_rate'])) {
+            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+                'basic_rate',
+                'CGT basic rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
+            );
+        }
+        $higherRate = (float) $cgtConfig['higher_rate'];
+        $basicRate = (float) $cgtConfig['basic_rate'];
 
         // BADR lifetime limit
         $badrLimit = $cgtConfig['business_asset_disposal_relief_lifetime_limit'] ?? 1000000;
