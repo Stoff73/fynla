@@ -19,15 +19,30 @@ class BugReportController extends Controller
     /**
      * Submit a bug report.
      *
-     * Accepts bug reports from both authenticated and guest users.
-     * Rate limited to 5 reports per hour per user/IP.
+     * Authenticated users only (route is gated by `auth:sanctum`).
+     * Rate limited to 5 reports per hour per user.
+     *
+     * All user-supplied text is run through strip_tags() as defence-in-depth
+     * (the global SanitizeInput middleware also strips tags, but the
+     * controller defending its own surface is the secure pattern). The
+     * downstream Blade view (`resources/views/emails/bug-report.blade.php`)
+     * escapes via `{{ }}` so mail clients cannot interpret any residual
+     * HTML.
+     *
+     * Console logs are capped at 2048 chars to limit the size of
+     * attacker-controlled content that can be staged into an inbound
+     * email — see REVIEW Top-10 #8 / W1-M.
+     *
+     * Mail dispatch is queued so abuse can be detected before delivery
+     * (on `sync` queue connection the queued job still runs synchronously
+     * inside the request, but production uses a real connection).
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'description' => 'required|string|max:5000',
             'expected_behaviour' => 'nullable|string|max:2000',
-            'console_logs' => 'nullable|string|max:10000',
+            'console_logs' => 'nullable|string|max:2048',
             'page_url' => 'nullable|string|max:500',
             'user_agent' => 'nullable|string|max:500',
             'screen_size' => 'nullable|string|max:50',
@@ -35,19 +50,26 @@ class BugReportController extends Controller
             'client_timestamp' => 'nullable|string|max:50',
         ]);
 
-        // Get user info if authenticated
         $user = $request->user();
 
         $bugReportData = [
-            'user_id' => $user?->id,
-            'user_name' => $user ? trim(($user->first_name ?? '').' '.($user->last_name ?? '')) : null,
-            'user_email' => $user?->email,
-            'is_preview_user' => $user?->is_preview_user ?? false,
-            'description' => $validated['description'],
-            'expected_behaviour' => $validated['expected_behaviour'] ?? null,
-            'console_logs' => $validated['console_logs'] ?? null,
-            'page_url' => $validated['page_url'] ?? null,
-            'user_agent' => $validated['user_agent'] ?? null,
+            'user_id' => $user->id,
+            'user_name' => trim(($user->first_name ?? '').' '.($user->surname ?? '')),
+            'user_email' => $user->email,
+            'is_preview_user' => $user->is_preview_user ?? false,
+            'description' => strip_tags($validated['description']),
+            'expected_behaviour' => isset($validated['expected_behaviour'])
+                ? strip_tags($validated['expected_behaviour'])
+                : null,
+            'console_logs' => isset($validated['console_logs'])
+                ? strip_tags($validated['console_logs'])
+                : null,
+            'page_url' => isset($validated['page_url'])
+                ? strip_tags($validated['page_url'])
+                : null,
+            'user_agent' => isset($validated['user_agent'])
+                ? strip_tags($validated['user_agent'])
+                : null,
             'screen_size' => $validated['screen_size'] ?? null,
             'viewport_size' => $validated['viewport_size'] ?? null,
             'ip_address' => $request->ip(),
@@ -56,10 +78,10 @@ class BugReportController extends Controller
         ];
 
         try {
-            Mail::to('chris@fynla.org')->send(new BugReportMail($bugReportData));
+            Mail::to('chris@fynla.org')->queue(new BugReportMail($bugReportData));
 
             Log::info('Bug report submitted', [
-                'user_id' => $user?->id,
+                'user_id' => $user->id,
                 'ip' => $request->ip(),
             ]);
 
@@ -70,7 +92,7 @@ class BugReportController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to send bug report email', [
                 'error' => $e->getMessage(),
-                'user_id' => $user?->id,
+                'user_id' => $user->id,
             ]);
 
             return response()->json([
