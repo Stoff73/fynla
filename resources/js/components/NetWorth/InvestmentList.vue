@@ -870,7 +870,7 @@ export default {
   top: 8px;
   right: 8px;
   z-index: 10;
-  @apply px-2 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800;
+  @apply px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-800;
 }
 
 .retirement-badge-corner {
@@ -950,8 +950,8 @@ export default {
 }
 
 .badge-joint {
-  @apply bg-purple-100;
-  @apply text-purple-500;
+  @apply bg-violet-100;
+  @apply text-violet-500;
 }
 
 .badge-trust {
@@ -1167,7 +1167,7 @@ export default {
 }
 
 .summary-item.diversification {
-  @apply border-l-purple-500;
+  @apply border-l-violet-500;
 }
 
 .summary-label {

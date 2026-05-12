@@ -825,7 +825,7 @@ export default {
 }
 
 .badge-db {
-  @apply bg-purple-500;
+  @apply bg-violet-500;
   color: white;
 }
 

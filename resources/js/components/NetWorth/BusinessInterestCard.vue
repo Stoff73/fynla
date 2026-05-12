@@ -193,8 +193,8 @@ export default {
 }
 
 .type-llp {
-  @apply bg-purple-50;
-  @apply text-purple-800;
+  @apply bg-violet-50;
+  @apply text-violet-800;
 }
 
 .status-badge {

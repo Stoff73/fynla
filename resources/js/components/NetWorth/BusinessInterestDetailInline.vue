@@ -39,7 +39,7 @@
               v-if="business.is_primary_owner !== false"
               v-preview-disabled="'edit'"
               @click="$emit('edit', business)"
-              class="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-button hover:bg-purple-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-2 bg-violet-600 text-white rounded-button hover:bg-violet-700 transition-colors"
             >
               Edit
             </button>
@@ -58,8 +58,8 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div class="bg-savannah-100 rounded-lg p-4">
             <p class="text-sm text-neutral-500">Current Valuation</p>
-            <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(business.full_value || business.current_valuation) }}</p>
-            <p v-if="business.is_shared" class="text-sm text-purple-600 mt-1">
+            <p class="text-2xl font-bold text-violet-600">{{ formatCurrency(business.full_value || business.current_valuation) }}</p>
+            <p v-if="business.is_shared" class="text-sm text-violet-600 mt-1">
               Your {{ business.ownership_percentage }}% share: {{ formatCurrency(business.user_share) }}
             </p>
           </div>
@@ -231,7 +231,7 @@
             <div v-else-if="exitCalculation">
               <!-- Exit Scenario Summary -->
               <div class="bg-savannah-100 rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-purple-800 mb-4">If You Sold Today</h3>
+                <h3 class="text-lg font-semibold text-violet-800 mb-4">If You Sold Today</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <p class="text-sm text-neutral-500">Sale Proceeds (Your Share)</p>
@@ -249,7 +249,7 @@
                   </div>
                   <div>
                     <p class="text-sm text-neutral-500">Net Proceeds</p>
-                    <p class="text-xl font-bold text-purple-600">{{ formatCurrency(exitCalculation.post_tax_proceeds) }}</p>
+                    <p class="text-xl font-bold text-violet-600">{{ formatCurrency(exitCalculation.post_tax_proceeds) }}</p>
                   </div>
                 </div>
               </div>
@@ -530,15 +530,15 @@ export default {
     },
 
     getOwnershipBadgeClass(type) {
-      return type === 'joint' ? 'bg-purple-500 text-white' : 'bg-savannah-1000 text-white';
+      return type === 'joint' ? 'bg-violet-500 text-white' : 'bg-savannah-1000 text-white';
     },
 
     getBusinessTypeBadgeClass(type) {
       const classes = {
         sole_trader: 'bg-violet-500 text-white',
         partnership: 'bg-teal-500 text-white',
-        limited_company: 'bg-purple-500 text-white',
-        llp: 'bg-indigo-500 text-white',
+        limited_company: 'bg-violet-500 text-white',
+        llp: 'bg-violet-500 text-white',
         other: 'bg-savannah-1000 text-white',
       };
       return classes[type] || 'bg-savannah-1000 text-white';

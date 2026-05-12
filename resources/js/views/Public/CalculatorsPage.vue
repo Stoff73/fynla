@@ -218,7 +218,7 @@
                     @input="parseInputValue($event, mortgage, 'propertyValue')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="300,000"
                   />
                 </div>
@@ -233,7 +233,7 @@
                     @input="parseInputValue($event, mortgage, 'deposit')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="30,000"
                   />
                 </div>
@@ -253,7 +253,7 @@
                   min="5"
                   max="40"
                   step="1"
-                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-500"
                 />
                 <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>5 yrs</span>
@@ -267,7 +267,7 @@
                   v-model.number="mortgage.interestRate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="4.5"
                 />
               </div>
@@ -279,7 +279,7 @@
                     type="button"
                     @click="mortgage.repaymentType = 'repayment'"
                     class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
-                    :class="mortgage.repaymentType === 'repayment' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
+                    :class="mortgage.repaymentType === 'repayment' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
                   >
                     Repayment
                   </button>
@@ -287,7 +287,7 @@
                     type="button"
                     @click="mortgage.repaymentType = 'interest_only'"
                     class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
-                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
+                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
                   >
                     Interest Only
                   </button>
@@ -642,7 +642,7 @@
                     @input="parseInputValue($event, pension, 'currentValue')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="50,000"
                   />
                 </div>
@@ -657,7 +657,7 @@
                     @input="parseInputValue($event, pension, 'monthlyContribution')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="500"
                   />
                 </div>
@@ -670,7 +670,7 @@
                   <input
                     v-model.number="pension.currentAge"
                     type="number"
-                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="35"
                   />
                 </div>
@@ -680,7 +680,7 @@
                   <input
                     v-model.number="pension.retirementAge"
                     type="number"
-                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="65"
                   />
                 </div>
@@ -692,7 +692,7 @@
                   v-model.number="pension.growthRate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="5.0"
                 />
                 <p class="text-xs text-neutral-500 mt-1">Typical range: 4-7% for balanced portfolios</p>
@@ -708,7 +708,7 @@
 
             <div v-if="pension.result" class="bg-eggshell-500 rounded-xl p-6 border border-light-gray">
               <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
                 Projection
@@ -729,7 +729,7 @@
                 <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-3 bg-light-pink-100 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-horizon-500">Projected Pot at {{ pension.retirementAge }}</span>
-                  <span class="font-bold text-2xl text-purple-600">{{ formatCurrency(pension.result.projectedValue) }}</span>
+                  <span class="font-bold text-2xl text-violet-600">{{ formatCurrency(pension.result.projectedValue) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-neutral-500">Investment Growth</span>
@@ -1082,21 +1082,21 @@
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Salary (Applicant 1)</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="45,000" />
+                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="45,000" />
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Salary (Applicant 2, optional)</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="0" />
+                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="0" />
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Other Monthly Debt Commitments</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="200" />
+                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="200" />
                 </div>
                 <p class="text-xs text-neutral-500 mt-1">Loans, car finance, credit card minimums, etc.</p>
               </div>
@@ -1104,7 +1104,7 @@
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Deposit Available</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="25,000" />
+                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="25,000" />
                 </div>
               </div>
               <button @click="calculateMortgageAfford" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Affordability</button>
@@ -1114,12 +1114,12 @@
                 <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Estimated Maximum Borrowing</p>
                 <div class="flex items-baseline gap-4">
                   <div>
-                    <p class="text-3xl font-bold text-indigo-700">{{ formatCurrency(mortgageAfford.result.max4x) }}</p>
-                    <p class="text-xs text-indigo-500">at 4x income</p>
+                    <p class="text-3xl font-bold text-violet-700">{{ formatCurrency(mortgageAfford.result.max4x) }}</p>
+                    <p class="text-xs text-violet-500">at 4x income</p>
                   </div>
                   <div>
-                    <p class="text-3xl font-bold text-indigo-500">{{ formatCurrency(mortgageAfford.result.max45x) }}</p>
-                    <p class="text-xs text-indigo-500">at 4.5x income</p>
+                    <p class="text-3xl font-bold text-violet-500">{{ formatCurrency(mortgageAfford.result.max45x) }}</p>
+                    <p class="text-xs text-violet-500">at 4.5x income</p>
                   </div>
                 </div>
               </div>

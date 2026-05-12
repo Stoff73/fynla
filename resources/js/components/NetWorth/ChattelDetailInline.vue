@@ -548,8 +548,8 @@ export default {
 }
 
 .badge-purple {
-  @apply bg-purple-50;
-  @apply text-purple-800;
+  @apply bg-violet-50;
+  @apply text-violet-800;
 }
 
 .badge-green {
@@ -563,7 +563,7 @@ export default {
 }
 
 .badge-indigo {
-  @apply bg-indigo-100;
-  @apply text-indigo-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 </style>

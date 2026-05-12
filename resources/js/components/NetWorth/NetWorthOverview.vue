@@ -398,7 +398,7 @@ export default {
 }
 
 .asset-card.business-card:hover {
-  @apply border-purple-500;
+  @apply border-violet-500;
 }
 
 .asset-card.chattels-card:hover {
@@ -446,7 +446,7 @@ export default {
 
 .card-icon.cash {
   @apply bg-violet-100;
-  @apply text-purple-600;
+  @apply text-violet-600;
 }
 
 .card-icon.business {

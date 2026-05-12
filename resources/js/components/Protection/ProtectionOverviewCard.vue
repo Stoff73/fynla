@@ -562,7 +562,7 @@ export default {
 }
 
 .policy-count-badge-purple {
-  @apply bg-white text-purple-800 border-2 border-violet-500;
+  @apply bg-white text-violet-800 border-2 border-violet-500;
 }
 
 .policy-count-badge-teal {
@@ -620,7 +620,7 @@ export default {
 }
 
 .joint-badge-purple {
-  @apply bg-purple-600;
+  @apply bg-violet-600;
 }
 
 .joint-badge-teal {
@@ -647,7 +647,7 @@ export default {
 }
 
 .policy-premium-purple {
-  @apply text-purple-800;
+  @apply text-violet-800;
 }
 
 .policy-premium-teal {

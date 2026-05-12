@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-4">
+  <div class="bg-gradient-to-r from-blue-50 to-violet-50 rounded-lg border border-blue-200 p-4">
     <!-- Header -->
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold text-horizon-500">UK Tax & NI Summary</h3>

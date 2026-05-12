@@ -731,8 +731,8 @@ export default {
 }
 
 .summary-card.purple {
-  @apply bg-gradient-to-br from-purple-50 to-purple-100;
-  @apply border-purple-300;
+  @apply bg-gradient-to-br from-violet-50 to-violet-100;
+  @apply border-violet-300;
 }
 
 .summary-card.green {
@@ -746,7 +746,7 @@ export default {
 }
 
 .summary-card.indigo {
-  @apply bg-gradient-to-br from-indigo-50 to-indigo-100;
+  @apply bg-gradient-to-br from-violet-50 to-violet-100;
   @apply border-violet-200;
 }
 
@@ -826,7 +826,7 @@ export default {
 }
 
 .asset-card.pension {
-  @apply bg-purple-50 border-purple-200;
+  @apply bg-violet-50 border-violet-200;
 }
 
 .asset-card.investment {
@@ -1184,8 +1184,8 @@ export default {
 }
 
 .formula-icon.purple {
-  @apply bg-purple-100;
-  @apply text-purple-600;
+  @apply bg-violet-100;
+  @apply text-violet-600;
 }
 
 .formula-icon.green {

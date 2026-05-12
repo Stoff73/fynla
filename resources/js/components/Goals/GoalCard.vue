@@ -293,7 +293,7 @@ export default {
       const classes = {
         savings: 'bg-emerald-100 text-emerald-700',
         investment: 'bg-violet-100 text-violet-700',
-        property: 'bg-purple-100 text-purple-700',
+        property: 'bg-violet-100 text-violet-700',
         retirement: 'bg-violet-100 text-violet-700',
       };
       return classes[this.goal.assigned_module] || 'bg-savannah-100 text-neutral-500';

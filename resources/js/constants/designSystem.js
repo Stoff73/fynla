@@ -195,38 +195,44 @@ export const RISK_COLORS = {
 
 /**
  * Risk Level Tailwind Classes - For use in Vue components
- * Single source of truth for risk badge/indicator styling
+ * Single source of truth for risk badge/indicator styling.
+ *
+ * Mapped to the canonical Fynla palette (fynlaDesignGuide.md v1.2.0 +
+ * CLAUDE.md Rule #11) to replace the previous off-palette
+ * yellow/pink/green/teal/blue scheme. The gradient still tracks
+ * perceived risk — spring (safe/conservative) → horizon (calm) →
+ * savannah/horizon (neutral) → violet (caution) → raspberry (alert).
  */
 export const RISK_TAILWIND_CLASSES = {
   low: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-800',
-    border: 'border-yellow-200',
-    combined: 'bg-yellow-100 text-yellow-800',
+    bg: 'bg-spring-100',
+    text: 'text-spring-800',
+    border: 'border-spring-200',
+    combined: 'bg-spring-100 text-spring-800',
   },
   lower_medium: {
-    bg: 'bg-pink-100',
-    text: 'text-pink-800',
-    border: 'border-pink-200',
-    combined: 'bg-pink-100 text-pink-800',
+    bg: 'bg-horizon-100',
+    text: 'text-horizon-800',
+    border: 'border-horizon-200',
+    combined: 'bg-horizon-100 text-horizon-800',
   },
   medium: {
-    bg: 'bg-green-100',
-    text: 'text-green-800',
-    border: 'border-green-200',
-    combined: 'bg-green-100 text-green-800',
+    bg: 'bg-savannah-200',
+    text: 'text-horizon-800',
+    border: 'border-savannah-300',
+    combined: 'bg-savannah-200 text-horizon-800',
   },
   upper_medium: {
-    bg: 'bg-teal-100',
-    text: 'text-teal-800',
-    border: 'border-teal-200',
-    combined: 'bg-teal-100 text-teal-800',
+    bg: 'bg-violet-100',
+    text: 'text-violet-800',
+    border: 'border-violet-200',
+    combined: 'bg-violet-100 text-violet-800',
   },
   high: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-800',
-    border: 'border-blue-200',
-    combined: 'bg-blue-100 text-blue-800',
+    bg: 'bg-raspberry-100',
+    text: 'text-raspberry-800',
+    border: 'border-raspberry-200',
+    combined: 'bg-raspberry-100 text-raspberry-800',
   },
 };
 

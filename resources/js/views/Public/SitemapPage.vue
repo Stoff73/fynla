@@ -111,7 +111,7 @@
           <!-- Planning Modules -->
           <div class="bg-white rounded-xl shadow-sm p-6">
             <h2 class="text-xl font-semibold text-horizon-500 mb-4 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-5 h-5 mr-2 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               Planning Modules
@@ -119,31 +119,31 @@
             <p class="text-sm text-neutral-500 mb-3">Requires login</p>
             <ul class="space-y-3">
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Dashboard
               </li>
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Net Worth
               </li>
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Protection Planning
               </li>
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Savings & Goals
               </li>
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Investment Portfolio
               </li>
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Retirement Planning
               </li>
               <li class="flex items-center text-neutral-500">
-                <span class="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                <span class="w-2 h-2 bg-violet-400 rounded-full mr-3"></span>
                 Estate Planning
               </li>
             </ul>
