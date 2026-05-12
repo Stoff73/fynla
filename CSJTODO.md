@@ -1,7 +1,54 @@
 # CSJTODO — Fynla
 
-*Last updated: 11 May 2026 — session 13 (PR #280 release ship — docs conflict resolved, admin-merge + prod deploy in flight)*
-*Previous session: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened)*
+*Last updated: 12 May 2026 — session 6 context-clear (all four Wave 1/2 work items shipped as PRs #283–#286; salary sacrifice tax year confirmed as 2027/28)*
+*Previous session: 12 May 2026 — session 5 context-clear (audit-criticals + audit-quickwins PRs #281/#282 open)*
+
+---
+
+## Session 6 (12 May 2026, context-clear) — Wave 1/2 batch shipped: PRs #283, #284, #285, #286
+
+**Branch:** `dev` at `0f54592` (unchanged today) · **Tree:** clean (standing carry-over only) · **New PRs this session:** 4 · **Open PRs total against `dev`:** 6 (#281, #282, #283, #284, #285, #286)
+
+**Outcome:**
+1. **PR #283 (`audit-bugreport-hardening → dev`)** opened — W1-M BugReportController hardening (auth-only route, console_logs 2KB cap, defensive `strip_tags`, queue dispatch) + a 2nd commit fixing a pre-existing app-wide `HttpResponseException` → 500 bug in `app/Exceptions/Handler.php` (affected every named rate-limiter app-wide). 7 new Pest cases. https://github.com/Stoff73/fynla/pull/283
+2. **PR #284 (`audit-npm-deps → dev`)** opened — `npm audit fix` (7 advisories resolved: axios 1.7→1.16, postcss, fast-uri, babel-modules-systemjs, etc.) + axios SemVer hardening `^1.7.0 → ^1.15.2` + `serialize-javascript ^6.0.2` override for Node 18 PWA SW build compat + `docs/security/npm-audit-deferrals.md` per-package deferral rationale for the 5 root residuals. https://github.com/Stoff73/fynla/pull/284
+3. **PR #285 (`audit-consent-sse-cache → dev`)** opened — W1-L bounded-TTL consent recheck (default 2.0s, configurable via `ai_chat.consent_recheck_interval_seconds`). Existing strict-termination test reframed via `interval = 0`; new perf test asserts 1 hasConsent call for a 26-event stream. https://github.com/Stoff73/fynla/pull/285
+4. **PR #286 (`audit-wave2 → dev`)** opened — 6 commits: 2.1 purple/indigo→violet bulk migration (70 files, 312 occurrences); 2.2 RISK_TAILWIND_CLASSES palette refactor; 2.3 architecture tests for Rules #5 + #9; 2.4 IHTCalculationService persistence opt-in; 2.5 BusinessInterestService BADR fail-loud + dynamic rate text; 2.6 TaxDragCalculator yields from config + `forUserOrJoint` scope. https://github.com/Stoff73/fynla/pull/286
+5. **Salary sacrifice £2,000 cap effective year confirmed by CSJ: 2027/28.** Memory `project_salary_sacrifice_2k_upcoming_law.md` updated — prior hedge removed.
+
+### Done
+
+- [x] W1-M shipped as PR #283 (+ incidental handler-bug fix folded in)
+- [x] W1-N shipped as PR #284 (with deferral docs for the 5 residuals)
+- [x] W1-L shipped as PR #285 (bounded-TTL, contract preserved)
+- [x] Wave 2 batch shipped as PR #286 (6 commits)
+- [x] Salary sacrifice memory updated with confirmed 2027/28 effective year
+- [x] 16 new Pest cases added across the four PRs, all green
+- [x] Touched-module test sweeps (~836 tests) clean — only failure is the pre-existing `InvestmentControllerTest > PUT updates` full-suite flake (documented in #281)
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PRs #281–#286** in suggested order: #281 → #282 → #283 → #284 → #285 → #286. Each independent; use `gh pr merge <N> --merge --admin` per the established pattern.
+- [ ] **PR #284 override caveat** — after merge, ensure deploy scripts use `npm ci` (not `npm audit fix --force`) so the `serialize-javascript ^6.0.2` override holds and PWA SW continues to build.
+- [ ] **PR #286 visual smoke after deploy** — 70 files migrated from purple/indigo to violet. Any prior "purple as CTA" surface is now "violet as caution" — adjust copy or change to raspberry/horizon if a specific surface reads wrong.
+- [ ] **Salary sacrifice 2027/28 implementation** — now unblocked. Branch `audit-salary-sacrifice-2027-28` off `origin/dev` AFTER #281 merges (#281 touches TaxConfigurationSeeder.php; the new work also needs to touch it). Work pattern in `project_salary_sacrifice_2k_upcoming_law.md`.
+- [ ] **Deploy to dev (csjones.co/fynla)** — none of the six PRs deployed anywhere yet. After first merge, deploy per CLAUDE.md "Deploying to dev". `npm ci` required for #284's override.
+- [ ] **Sibling fallbacks in BusinessInterestService** — `higher_rate ?? 0.20`, `basic_rate ?? 0.10` (same defect shape as BADR; audit only called out BADR specifically). Follow-up.
+- [ ] **Pink-* off-palette usage** in `badge-vct` / `badge-eis` (8 occurrences, out of scope for the purple/indigo migration commit). Follow-up.
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker (Rule #13 false-positive "score" noise) and `router/index.js` parser (Rule #14 routed-view detection). Deferred from PR #286.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call, deferred from session 5.
+- [ ] **Vault-sync backlog** — May 11 sessions 6–12 + May 12 sessions 1–6. Batch via Haiku 4.5 subagent.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`. Standing from session 5.
+- [ ] **PR #280 admin-merge** — was in flight on 11 May session 13. Verify whether it merged + production smoke completed.
+
+### Branch / deploy state
+
+- All six audit branches pushed to origin
+- `dev` at `0f54592` (unchanged today)
+- `main` unchanged
+- csjones.co/fynla still tracks `main` at `f15e068` — none of the six PRs deployed
+- fynla.org unchanged
 
 ---
 
