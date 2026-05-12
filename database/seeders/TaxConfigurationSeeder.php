@@ -236,6 +236,15 @@ class TaxConfigurationSeeder extends Seeder
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
                 'lifetime_allowance_abolished' => true,
+                // Lump Sum Allowance (LSA) — caps tax-free PCLS at £268,275 since 6 April 2024
+                // when the LTA was abolished. Frozen until April 2031.
+                'lump_sum_allowance' => 268275,
+                // Lump Sum and Death Benefit Allowance (LSDBA) — caps total tax-free lump sums
+                // (PCLS + tax-free death benefits) at £1,073,100. Frozen until April 2031.
+                'lump_sum_and_death_benefit_allowance' => 1073100,
+                // PCLS rate — proportion of crystallised pension funds payable tax-free
+                // (subject to the LSA cap above).
+                'pcls_rate' => 0.25,
                 'carry_forward_years' => 3,
                 'tapered_annual_allowance' => [
                     'threshold_income' => 200000,
