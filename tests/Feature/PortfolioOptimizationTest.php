@@ -562,8 +562,10 @@ describe('Holdings CRUD Operations', function () {
         // Verify the update was successful
         $response->assertStatus(200);
 
-        // Verify the holding was updated
-        expect($holding->fresh()->current_price)->toBe(80.00);
+        // Verify the holding was updated. current_price casts to decimal:4
+        // per Holding model (audit S-02), so the raw attribute is a string.
+        // Compare as a float to assert the numeric value, not the cast shape.
+        expect((float) $holding->fresh()->current_price)->toBe(80.00);
     });
 
     it('can delete a holding', function () {

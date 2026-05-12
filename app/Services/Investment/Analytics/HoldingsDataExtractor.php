@@ -154,10 +154,12 @@ class HoldingsDataExtractor
             $expectedReturn = $this->stats->mean($holding->historical_returns);
         }
         // Method 2: Calculate from purchase price to current price
+        // Holding casts return decimal strings — cast to float at the
+        // boundary before numeric helpers with strict signatures.
         elseif ($holding->purchase_price && $holding->current_price && $holding->purchase_date) {
             $capitalReturn = $this->calculateAnnualizedReturn(
-                $holding->purchase_price,
-                $holding->current_price,
+                (float) $holding->purchase_price,
+                (float) $holding->current_price,
                 $holding->purchase_date
             );
             $expectedReturn = $capitalReturn;
@@ -169,7 +171,7 @@ class HoldingsDataExtractor
 
         // Add dividend yield if available
         if ($holding->dividend_yield) {
-            $expectedReturn += $holding->dividend_yield;
+            $expectedReturn += (float) $holding->dividend_yield;
         }
 
         // Ensure return is reasonable (between -50% and +100%)
