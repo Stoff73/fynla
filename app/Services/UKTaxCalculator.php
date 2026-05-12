@@ -686,10 +686,14 @@ class UKTaxCalculator
             }
         }
 
-        // Step 2: Calculate tax on interest income with Personal Savings Allowance
-        // PSA rates sourced from TaxConfigService (basic: £1,000, higher: £500, additional: £0)
+        // Step 2: Calculate tax on interest income with Starting Rate for Savings + PSA
+        // Order (HMRC ITA 2007 s12): non-savings consumes PA → SRS 0% band → PSA 0% band → standard bands.
+        // SRS is £5,000 reduced £1-for-£1 by non-savings income above the PA.
         if ($interestIncome > 0) {
-            // Determine PSA based on total income band
+            $srsBand = (float) ($incomeTax['starting_rate_for_savings']['band'] ?? 5000);
+            $nonSavingsAbovePA = max(0.0, $nonDividendNonInterestIncome - $personalAllowance);
+            $srsAvailable = max(0.0, $srsBand - $nonSavingsAbovePA);
+
             $psaBand = match (true) {
                 $totalIncome <= $basicRateLimit => 'basic',
                 $totalIncome <= $higherRateLimit => 'higher',
@@ -697,11 +701,15 @@ class UKTaxCalculator
             };
             $personalSavingsAllowance = $this->taxConfig->getPersonalSavingsAllowance($psaBand);
 
-            $taxableInterest = max(0, $interestIncome - $personalSavingsAllowance);
+            $srsUsed = min($interestIncome, $srsAvailable);
+            $interestAfterSrs = $interestIncome - $srsUsed;
+            $psaUsed = min($interestAfterSrs, (float) $personalSavingsAllowance);
+            $taxableInterest = max(0.0, $interestAfterSrs - $psaUsed);
 
             if ($taxableInterest > 0) {
-                // Interest is taxed at standard income tax rates based on total income
-                $incomeBeforeInterest = $nonDividendNonInterestIncome;
+                // The 0%-rated portions (SRS + PSA) still occupy band space, so the taxable
+                // remainder sits above non-savings + SRS used + PSA used.
+                $incomeBeforeInterest = $nonDividendNonInterestIncome + $srsUsed + $psaUsed;
 
                 // Tax interest at appropriate rate(s)
                 if ($incomeBeforeInterest + $taxableInterest <= $basicRateLimit) {
