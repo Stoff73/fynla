@@ -259,9 +259,11 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 - Icon fonts as a whole class (font-awesome, material-icons, anything requiring a webfont).
 - Mascot/character images used as inline icons. The Fyn character is permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon.
 
-**Enforcement:**
+**Enforcement (forward-only — existing violations grandfathered):**
+- **All current violations in the codebase are marked as allowed.** Do not retroactively rip out emoji, Unicode-as-icons, icon-font usage, decorative icons, or any other Rule #16 violation that already exists in the code today. Examples of current grandfathered violations include the emoji set in `resources/js/constants/goalIcons.js` (🔥 🎯 📈 ⭐ 🏆) and the `▲` / `▼` Unicode arrows in `resources/js/views/Admin/AdminDashboard.vue`. These stay. Do not flag them in audits, do not propose them for fixing in a PR, do not "tidy them up" while editing nearby code.
+- **Everything new must follow Rule #16 strictly.** Any new feature, new component, new page, new email, new admin tile, new chat element — must comply with every clause above from the moment it lands. There is no grace period for new code.
 - When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
-- When editing code on a banned surface, if you find existing icons, you may remove them as part of your change if it is in-scope — but removing them is optional unless CSJ specifically asks.
+- When editing code on a banned surface, you may remove existing violations as part of your change ONLY if CSJ has specifically asked. Otherwise leave them alone (the grandfathering clause above).
 - When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
 
 **Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
@@ -464,7 +466,7 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 
 ## UK Tax Context
 
-- Tax Year: April 6 - April 5 (active: 2025/26)
+- Tax Year: April 6 - April 5 (active: 2026/27)
 - IHT: 40% above NRB (£325k) + RNRB (£175k)
 - ISA: £20,000/year
 - Pension AA: £60,000
