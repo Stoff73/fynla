@@ -1,7 +1,51 @@
 # CSJTODO — Fynla
 
-*Last updated: 11 May 2026 — session 13 (PR #280 release ship — docs conflict resolved, admin-merge + prod deploy in flight)*
-*Previous session: 11 May 2026 — session 12 context-clear (PR #278 + #279 smoked GREEN on csjones + admin-merged; release PR #280 opened)*
+*Last updated: 12 May 2026 — session 5 context-clear (audit-criticals + audit-quickwins both PR-open; Wave 1 continuation queued)*
+*Previous session: 12 May 2026 — session 4 (audit-criticals Tier 1-3 complete; tripwire mid-suite)*
+
+---
+
+## Session 5 (12 May 2026, context-clear) — Two parallel audit PRs open + Wave 1 continuation queued
+
+**Branches:** `audit-criticals` at `7cdef41` (PR #281 OPEN) · `audit-quickwins` at `5c81faa` (PR #282 OPEN) · local on `audit-criticals` (clean tracked)
+
+**Outcome:**
+1. **PR #281** opened (`audit-criticals → dev`) — Tier 1-3 audit-critical fixes: PCLS LSA cap, SDLT FTB delegation, TransientToken family (3 new sites incl. real MFA bypass at `EnsureMFAVerified::handle`), users/Holding decimal precision, audit_logs covering index, goals migration down() safety. Full Pest: 3,542 passed / 25 skipped / 1 pre-existing flake (`InvestmentControllerTest > PUT updates` — passes in isolation, suite-scale only).
+2. **PR #282** opened (`audit-quickwins → dev`) — Wave 1: 10 commits, 18 files, +405/-110. Security headers (X-Frame-Options DENY canonical + X-XSS-Protection removed across 3 .htaccess), admin auto-promotion removed (login + registration), constant-time secret comparison (4 sites), eval routes fail-closed env whitelist, income-tax thresholds via bands[N].lower_limit (4 sites), operator-precedence fix (3 sites), DashboardAggregator per-module isolation, router meta gating via to.matched.some() (4 sites), DebugEnv AppLayout wrap, CLAUDE.md docs (Rule #16 forward-only + tax year 2026/27).
+3. **Rule #16 amended** to be forward-only — all current emoji/Unicode/icon violations grandfathered. Memory file `feedback_rule_16_grandfather_existing.md` written. MEMORY.md updated.
+4. **Salary sacrifice £2,000 cap** confirmed as upcoming UK statutory law (CSJ override of audit framing). Fix path is codify in TaxConfigService with `effective_from`, NOT remove. Memory file `project_salary_sacrifice_2k_upcoming_law.md` written.
+
+### Done
+
+- [x] PR #281 opened with full Pest evidence; 1 flake documented as pre-existing
+- [x] PR #282 opened (audit-quickwins, 10 commits, 98 tests green across touched surfaces)
+- [x] Rule #16 forward-only amendment committed + memory file written
+- [x] Salary sacrifice rule documented in memory for future implementation
+- [x] WIP commit `a5e4770` reworded to `f3be30e` "fix(audit): cast Holding fields to (float) at numeric boundaries (S-02 follow-up)" + force-pushed
+- [x] CLAUDE.md tax year bumped 2025/26 → 2026/27
+
+### Outstanding (next session, in this order)
+
+- [ ] **W1-M — BugReportController hardening** (REVIEW Top-10 #8). Branch `audit-bugreport-hardening` off origin/dev. Strip HTML server-side, cap console_logs to 2KB, queue + templated mail, consider auth-only.
+- [ ] **W1-N — npm audit fix** (REVIEW Top-10 #9). Branch `audit-npm-deps`. Biometric auth-bypass + axios + 9 others. iOS smoke MANDATORY after upgrade (Face ID is most-touched mobile flow).
+- [ ] **W1-L — Consent DB query cache at SSE start** (REVIEW §4 High #23). Branch `audit-consent-sse-cache`. `AiChatController.php:189` fires consent check per SSE event; cache once per stream.
+- [ ] **Wave 2 batch** (single branch `audit-wave2`, multiple commits): purple/indigo→violet bulk, RISK_TAILWIND_CLASSES palette refactor, arch tests for Rules #5/#9/#13/#14, IHTCalculationService save-on-read, BusinessInterestService BADR fallback, TaxDragCalculator stale rates + forUserOrJoint.
+- [ ] **Tier 1 #4 salary sacrifice follow-up** — needs CSJ confirmation of effective tax year (2027/28? 2028/29?) before implementation. Separate PR. Memory: `project_salary_sacrifice_2k_upcoming_law.md`.
+- [ ] **Investigate inter-test isolation flake** (`InvestmentControllerTest > PUT updates`) — passes in isolation/file scope, fails only at full-suite scale. Same family as `SavingsAgentGoalsTest` flake. Track polluting test.
+- [ ] **W1-H — Double `agent->analyze()` refactor** — deferred quickwin. Cache mitigates the perf cost; proper fix needs controller-pattern refactor (pass analysis data through request body).
+- [ ] **Vault-sync backlog** — sessions 6-12 of May 11 + this session 5. Batch via Haiku 4.5 subagent next eod wrap.
+- [ ] **Net-worth Fyn bug** — add `get_net_worth` tool wrapping `NetWorthService::calculateNetWorth`. Standing from 8 May session 11.
+- [ ] **Delete stale feature branches** on origin (`fix/advisor-impersonation-transient-token`, `fix/touch-session-activity`) after PR #280 hits main — verify status of #280 first.
+- [ ] **PR #280 release status** — was in flight on 11 May session 13. Verify whether it merged + production smoke completed.
+
+### Branch / deploy state
+
+- `audit-criticals` at `7cdef41` (origin synced; PR #281 OPEN against dev)
+- `audit-quickwins` at `5c81faa` (origin synced; PR #282 OPEN against dev) — local checkout is back on audit-criticals
+- `dev` at `0f54592` (last pull this session)
+- `main` unchanged this session
+- csjones.co/fynla still tracks `main` at `f15e068` — neither audit-criticals nor audit-quickwins deployed
+- fynla.org unchanged
 
 ---
 
