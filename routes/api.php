@@ -1334,9 +1334,12 @@ Route::middleware(['auth:sanctum', 'advisor'])
         Route::get('reports', 'reports');
     });
 
-// Bug Report route (works for both authenticated and guest users)
+// Bug Report route — authenticated users only (REVIEW Top-10 #8 / W1-M).
+// Modal is only mounted in authenticated chrome (SideMenu, AppNavbar), so
+// requiring auth here removes the unauthenticated phishing-content surface
+// described in the audit without affecting any legitimate caller.
 Route::post('/bug-report', [BugReportController::class, 'store'])
-    ->middleware('throttle:bug-reports');
+    ->middleware(['auth:sanctum', 'throttle:bug-reports']);
 
 // ===========================
 // Eval-only routes (HTTP-driven eval flow — see April27Updates plan).

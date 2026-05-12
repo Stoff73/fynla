@@ -8,6 +8,7 @@ use App\Http\Helpers\JsonResponseHelper;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -66,6 +67,25 @@ class Handler extends ExceptionHandler
 
         if ($exception instanceof AuthenticationException) {
             return JsonResponseHelper::unauthorized('Unauthenticated');
+        }
+
+        // HttpResponseException carries a pre-built Response (used by named
+        // rate-limiters with a ->response() callback, by abort_unless(), and
+        // by controllers that throw their own JSON responses). Without this
+        // branch the response is dropped and the generic 500 fallback below
+        // fires — so e.g. a throttled bug-report / mobile-dashboard / ai-chat
+        // request returns 500 instead of 429.
+        if ($exception instanceof HttpResponseException) {
+            $response = $exception->getResponse();
+            if ($response instanceof JsonResponse) {
+                return $response;
+            }
+            $content = $response->getContent();
+
+            return JsonResponseHelper::error(
+                $content !== false && $content !== '' ? $content : 'Request failed',
+                $response->getStatusCode()
+            );
         }
 
         // Default error response
