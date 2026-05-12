@@ -286,8 +286,8 @@ class TaxConfigurationSeeder extends Seeder
                         'apprentice' => 7.55,
                     ],
                     'conservative_proxy_floor' => 10000,         // Use auto-enrolment earnings trigger as proxy
-                    'nic_exemption_cap' => 2000,                 // From April 2029: only first £2,000 of employee salary sacrifice exempt from NICs
-                    'nic_exemption_cap_effective_date' => '2029-04-06', // When the cap takes effect
+                    'nic_exemption_cap' => 2000,                 // From April 2027: only first £2,000 of employee salary sacrifice exempt from NICs
+                    'nic_exemption_cap_effective_date' => '2027-04-06', // Start of 2027/28 tax year — CSJ confirmed 2026-05-12
                 ],
 
                 // Auto-enrolment thresholds
