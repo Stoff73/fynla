@@ -1176,16 +1176,26 @@ class RetirementStrategyService
     /**
      * Calculate the net cost of additional pension contributions.
      *
-     * First £2,000/year via salary sacrifice has zero cost (saves both tax AND NI).
-     * Above £2,000/year via relief at source: cost = contribution × (1 - marginal_tax_rate).
+     * From the NIC-exemption cap's effective date (2027-04-06 per Budget 2024 / CSJ
+     * confirmed 2026-05-12), only the first £2,000/year of employee salary sacrifice
+     * is exempt from NICs — beyond it, contributions flow via relief at source and
+     * cost the employee `contribution × (1 - marginal_tax_rate)`. Before that date
+     * the full sacrificed amount is NIC-exempt and treated as zero-cost.
      *
-     * Tax Year 2025/26: Salary sacrifice limit is £2,000.
+     * Cap value + effective date sourced from TaxConfigService
+     * (`pension.salary_sacrifice.nic_exemption_cap` / `*_effective_date`).
      */
     private function calculateNetCostOfContribution(float $additionalAnnual, User $user): float
     {
-        $salarySacrificeLimit = 2000.0;
+        $sacrificeConfig = $this->taxConfig->getPensionAllowances()['salary_sacrifice'] ?? [];
+        $cap = (float) ($sacrificeConfig['nic_exemption_cap'] ?? 0);
+        $effectiveDateString = $sacrificeConfig['nic_exemption_cap_effective_date'] ?? null;
 
-        // First £2,000 via salary sacrifice - no cost to employee
+        $capActive = $effectiveDateString
+            && now()->gte(\Carbon\Carbon::parse($effectiveDateString));
+        $salarySacrificeLimit = $capActive ? $cap : INF;
+
+        // Salary-sacrificed portion (within the cap when active) is zero-cost.
         $viaReliefAtSource = max(0, $additionalAnnual - $salarySacrificeLimit);
 
         if ($viaReliefAtSource <= 0) {
