@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureMFAVerified
@@ -28,8 +29,15 @@ class EnsureMFAVerified
         // For API token requests, check MFA claim on token
         if ($request->bearerToken()) {
             $user = $request->user();
-            if ($user && $user->mfa_enabled && ! $user->currentAccessToken()?->can('mfa_verified')) {
-                return response()->json(['message' => 'MFA verification required.'], 403);
+            if ($user && $user->mfa_enabled) {
+                $token = $user->currentAccessToken();
+
+                // TransientToken::can() returns true for every ability — never
+                // accept that as a valid MFA claim. Only a PersonalAccessToken
+                // can carry the persisted `mfa_verified` ability. Fail closed.
+                if (! ($token instanceof PersonalAccessToken) || ! $token->can('mfa_verified')) {
+                    return response()->json(['message' => 'MFA verification required.'], 403);
+                }
             }
 
             return $next($request);

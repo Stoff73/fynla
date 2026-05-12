@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\SanitizedErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class TokenRefreshController extends Controller
 {
@@ -18,6 +19,16 @@ class TokenRefreshController extends Controller
         try {
             $user = $request->user();
             $currentToken = $user->currentAccessToken();
+
+            // Mobile/bearer-only endpoint. Under cookie-based SPA auth
+            // currentAccessToken() returns a TransientToken which has no id
+            // and cannot be ->delete()'d. Fail closed rather than crash.
+            if (! ($currentToken instanceof PersonalAccessToken)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token refresh requires Bearer authentication. Cookie-based session authentication is not supported on this endpoint.',
+                ], 400);
+            }
 
             // Revoke the current token
             $currentToken->delete();

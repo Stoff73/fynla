@@ -6,6 +6,7 @@ namespace App\Services\Eval;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * April30Updates F-12 — defence-in-depth on the eval-only Sanctum
@@ -44,6 +45,14 @@ final class EvalBypassGate
 
         $token = $user->currentAccessToken();
         if ($token === null) {
+            return false;
+        }
+
+        // Security boundary: only Personal Access Tokens carry persisted
+        // abilities. TransientToken (stateful SPA cookie auth) reports
+        // `can($anything)` as true and has no `abilities` array — never
+        // honour a bypass under that path. Fail closed.
+        if (! ($token instanceof PersonalAccessToken)) {
             return false;
         }
 
