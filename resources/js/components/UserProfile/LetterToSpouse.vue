@@ -332,7 +332,7 @@
                   <div class="flex flex-col gap-1 items-end">
                     <span v-if="account.is_isa || account.account_type === 'cash_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
                     <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
-                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">Tenants in Common</span>
                   </div>
                 </div>
                 <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.current_balance) }}</div>
@@ -389,7 +389,7 @@
                     <span v-if="account.account_type === 'stocks_and_shares_isa'" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">ISA</span>
                     <span v-else-if="account.account_type === 'gia'" class="text-xs bg-savannah-100 text-neutral-500 px-2 py-0.5 rounded">General Investment Account</span>
                     <span v-if="account.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
-                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tenants in Common</span>
+                    <span v-else-if="account.ownership_type === 'tenants_in_common'" class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">Tenants in Common</span>
                   </div>
                 </div>
                 <div class="mt-2 text-lg font-semibold text-horizon-500">{{ formatCurrency(account.current_value) }}</div>
@@ -480,7 +480,7 @@
                   </div>
                   <div class="flex flex-col gap-1 items-end">
                     <span v-if="liability.ownership_type === 'joint'" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Joint</span>
-                    <span v-else-if="liability.ownership_type === 'tenants_in_common'" class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">TIC</span>
+                    <span v-else-if="liability.ownership_type === 'tenants_in_common'" class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">TIC</span>
                   </div>
                 </div>
                 <div class="mt-2 font-semibold text-red-600">{{ formatCurrency(liability.current_balance) }}</div>
@@ -1712,7 +1712,7 @@ export default {
 
     ownershipBadgeClass(type) {
       if (type === 'joint') return 'bg-blue-100 text-blue-700';
-      if (type === 'tenants_in_common') return 'bg-purple-100 text-purple-700';
+      if (type === 'tenants_in_common') return 'bg-violet-100 text-violet-700';
       return 'bg-savannah-100 text-neutral-500';
     },
 
@@ -1741,7 +1741,7 @@ export default {
     },
 
     getPensionTypeBadgeClass(type) {
-      if (type === 'db') return 'bg-indigo-100 text-indigo-700';
+      if (type === 'db') return 'bg-violet-100 text-violet-700';
       if (type === 'sipp') return 'bg-blue-100 text-blue-700';
       return 'bg-blue-100 text-blue-700';
     },
@@ -1758,7 +1758,7 @@ export default {
     getBequestTypeBadgeClass(type) {
       if (type === 'percentage') return 'bg-blue-100 text-blue-700';
       if (type === 'specific_amount') return 'bg-green-100 text-green-700';
-      if (type === 'specific_asset') return 'bg-purple-100 text-purple-700';
+      if (type === 'specific_asset') return 'bg-violet-100 text-violet-700';
       return 'bg-savannah-100 text-neutral-500';
     },
 

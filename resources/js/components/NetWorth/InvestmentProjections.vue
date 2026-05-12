@@ -72,9 +72,9 @@
             <p class="text-sm text-neutral-500">Average Fund Fee (OCF)</p>
             <p class="text-2xl font-bold text-violet-600">{{ weightedAverageOCF.toFixed(2) }}%</p>
           </div>
-          <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <div class="bg-violet-50 rounded-lg p-4 border border-violet-200">
             <p class="text-sm text-neutral-500">Advisor Fee</p>
-            <p class="text-2xl font-bold text-purple-600">{{ (advisorFeePercent || 0).toFixed(2) }}%</p>
+            <p class="text-2xl font-bold text-violet-600">{{ (advisorFeePercent || 0).toFixed(2) }}%</p>
           </div>
           <div class="bg-raspberry-50 rounded-lg p-4 border border-raspberry-200">
             <p class="text-sm text-neutral-500">Total Annual Cost</p>
@@ -112,9 +112,9 @@
             <p class="text-xs text-neutral-500 mt-1">{{ formatCurrency(isaRemaining) }} remaining</p>
           </div>
           <!-- Joint Owner (for joint non-ISA accounts) -->
-          <div v-else-if="account.ownership_type === 'joint' && account.joint_owner_name" class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <div v-else-if="account.ownership_type === 'joint' && account.joint_owner_name" class="bg-violet-50 rounded-lg p-4 border border-violet-200">
             <p class="text-sm text-neutral-500">Joint Owner</p>
-            <p class="text-xl font-bold text-purple-700">
+            <p class="text-xl font-bold text-violet-700">
               {{ account.joint_owner_name }}<span v-if="account.joint_owner_deactivated" class="ml-1 text-xs font-normal text-neutral-400">(Deactivated)</span>
             </p>
             <p class="text-xs text-neutral-500 mt-1">{{ 100 - (account.ownership_percentage ?? 50) }}% share</p>
@@ -1196,7 +1196,7 @@ export default {
 }
 
 .badge-individual { @apply bg-savannah-100 text-neutral-500; }
-.badge-joint { @apply bg-purple-50 text-purple-600; }
+.badge-joint { @apply bg-violet-50 text-violet-600; }
 .badge-trust { @apply bg-violet-100 text-violet-800; }
 .badge-other { @apply bg-savannah-100 text-neutral-500; }
 .badge-employee-scheme { @apply bg-teal-100 text-teal-800; }
@@ -1282,7 +1282,7 @@ export default {
 }
 
 .summary-item.blue { @apply bg-violet-50; }
-.summary-item.purple { @apply bg-purple-50; }
+.summary-item.purple { @apply bg-violet-50; }
 
 .summary-item-label {
   display: block;

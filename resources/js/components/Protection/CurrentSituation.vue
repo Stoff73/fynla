@@ -435,7 +435,7 @@
           <div class="text-xs text-horizon-400 hidden sm:block">lump sum</div>
         </div>
         <div class="text-center">
-          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 mb-1">
+          <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-violet-600 mb-1">
             {{ formatCurrency(sicknessCover) }}
           </div>
           <div class="text-xs sm:text-sm text-neutral-500">Sickness Cover</div>

@@ -151,8 +151,8 @@ export default {
 }
 
 .card-icon.trusts {
-  @apply bg-purple-100;
-  @apply text-purple-600;
+  @apply bg-violet-100;
+  @apply text-violet-600;
 }
 
 .card-title-section {

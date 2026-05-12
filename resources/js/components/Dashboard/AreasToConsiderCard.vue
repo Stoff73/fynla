@@ -146,8 +146,8 @@ export default {
           description: 'Important info for loved ones',
           route: '/valuable-info?section=letter',
           icon: 'document',
-          iconBgClass: 'bg-purple-100',
-          iconClass: 'text-purple-600',
+          iconBgClass: 'bg-violet-100',
+          iconClass: 'text-violet-600',
           priority: 1,
         });
       }
@@ -231,8 +231,8 @@ export default {
           description: 'Track your retirement savings',
           route: '/net-worth/retirement',
           icon: 'calendar',
-          iconBgClass: 'bg-indigo-100',
-          iconClass: 'text-indigo-600',
+          iconBgClass: 'bg-violet-100',
+          iconClass: 'text-violet-600',
           priority: 6,
         });
       }

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="trusts-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-500 transition-all duration-200 border border-light-gray"
+    class="trusts-overview-card bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 hover:border-violet-500 transition-all duration-200 border border-light-gray"
     @click="navigateToTrusts"
   >
     <!-- Loading State -->
@@ -287,7 +287,7 @@ export default {
 .trust-value {
   font-weight: 600;
   font-size: 14px;
-  @apply text-purple-600;
+  @apply text-violet-600;
   white-space: nowrap;
   margin-left: 12px;
 }

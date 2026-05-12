@@ -49,7 +49,7 @@
           <!-- Stocks & Shares ISA -->
           <div
             v-if="stocksISAUsed > 0"
-            class="bg-purple-500 flex items-center justify-center text-xs text-white font-medium"
+            class="bg-violet-500 flex items-center justify-center text-xs text-white font-medium"
             :style="{ width: stocksISAPercent + '%' }"
             :title="`Stocks ISA: ${formatCurrency(stocksISAUsed)}`"
           >
@@ -71,7 +71,7 @@
 
       <div class="text-center p-3 bg-eggshell-500 rounded-lg">
         <p class="text-sm text-neutral-500 mb-1">Stocks & Shares ISA</p>
-        <p class="text-lg font-bold text-purple-700">{{ formatCurrency(stocksISAUsed) }}</p>
+        <p class="text-lg font-bold text-violet-700">{{ formatCurrency(stocksISAUsed) }}</p>
       </div>
 
       <div class="text-center p-3 bg-eggshell-500 rounded-lg">
