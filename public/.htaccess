@@ -61,10 +61,13 @@
 # =============================================================================
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header unset X-Powered-By
+    # X-Frame-Options is set to DENY by SecurityHeaders middleware — do NOT
+    # re-add here. Apache "Header set" runs after PHP and would override the
+    # stricter middleware value with the previously-set SAMEORIGIN.
+    # X-XSS-Protection is deprecated and can introduce its own XSS issues
+    # (Chrome's auditor that consumed it was removed in 2018). Do NOT re-add.
 </IfModule>
 
 # =============================================================================
