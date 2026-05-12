@@ -525,8 +525,13 @@ class RetirementActionDefinitionService
         $taxBands = $this->taxConfig->get('income_tax.bands') ?? [];
         $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? TaxDefaults::PERSONAL_ALLOWANCE);
         $incomeTaxBands = $this->taxConfig->getIncomeTax();
-        $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
-        $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
+        // The flat 'additional_rate_threshold' / 'higher_rate_threshold' keys
+        // aren't present in the seeded income_tax config — read from
+        // bands[N].lower_limit (the canonical place those values live).
+        // TaxDefaults stays as the final guard if bands is malformed.
+        // REVIEW.md §4 Critical #5 (same pattern as DecumulationPlanner:303).
+        $additionalRateThreshold = (float) ($incomeTaxBands['bands'][2]['lower_limit'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
+        $higherRateThreshold = (float) ($incomeTaxBands['bands'][1]['lower_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
         $taxBand = 'basic';
         if ($grossIncome > $additionalRateThreshold) {
             $taxBand = 'additional';
@@ -664,8 +669,13 @@ class RetirementActionDefinitionService
         // Step 2: Tax band determination
         $personalAllowance = (float) ($this->taxConfig->get('income_tax.personal_allowance') ?? TaxDefaults::PERSONAL_ALLOWANCE);
         $incomeTaxBands = $this->taxConfig->getIncomeTax();
-        $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
-        $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
+        // The flat 'additional_rate_threshold' / 'higher_rate_threshold' keys
+        // aren't present in the seeded income_tax config — read from
+        // bands[N].lower_limit (the canonical place those values live).
+        // TaxDefaults stays as the final guard if bands is malformed.
+        // REVIEW.md §4 Critical #5 (same pattern as DecumulationPlanner:303).
+        $additionalRateThreshold = (float) ($incomeTaxBands['bands'][2]['lower_limit'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
+        $higherRateThreshold = (float) ($incomeTaxBands['bands'][1]['lower_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
         $taxBand = 'basic';
         if ($grossIncome > $additionalRateThreshold) {
             $taxBand = 'additional';
@@ -808,8 +818,13 @@ class RetirementActionDefinitionService
 
         // Step 2: Tax band (determines marginal rate for excess charge)
         $incomeTaxBands = $this->taxConfig->getIncomeTax();
-        $additionalRateThreshold = (float) ($incomeTaxBands['additional_rate_threshold'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
-        $higherRateThreshold = (float) ($incomeTaxBands['higher_rate_threshold'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
+        // The flat 'additional_rate_threshold' / 'higher_rate_threshold' keys
+        // aren't present in the seeded income_tax config — read from
+        // bands[N].lower_limit (the canonical place those values live).
+        // TaxDefaults stays as the final guard if bands is malformed.
+        // REVIEW.md §4 Critical #5 (same pattern as DecumulationPlanner:303).
+        $additionalRateThreshold = (float) ($incomeTaxBands['bands'][2]['lower_limit'] ?? TaxDefaults::ADDITIONAL_RATE_THRESHOLD);
+        $higherRateThreshold = (float) ($incomeTaxBands['bands'][1]['lower_limit'] ?? TaxDefaults::HIGHER_RATE_THRESHOLD);
         $taxBand = 'basic';
         if ($grossIncome > $additionalRateThreshold) {
             $taxBand = 'additional';
