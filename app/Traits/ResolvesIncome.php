@@ -45,13 +45,28 @@ trait ResolvesIncome
             return 0.0;
         }
 
+        // Adjusted Net Income deductions for PA-taper consistency (HMRC ITA 2007 s58).
+        $pensionContributions = 0.0;
+        if ($user->relationLoaded('dcPensions') || $user->dcPensions()->exists()) {
+            foreach ($user->dcPensions as $pension) {
+                $salary = (float) ($pension->annual_salary ?? 0);
+                $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
+                $pensionContributions += $salary * ($employeePercent / 100);
+            }
+        }
+        $giftAidGross = $user->is_gift_aid
+            ? (float) ($user->annual_charitable_donations ?? 0) * 1.25
+            : 0.0;
+
         $taxResult = $this->getIncomeTaxCalculator()->calculateNetIncome(
             $employmentIncome,
             $selfEmploymentIncome,
             $rentalIncome,
             $dividendIncome,
             $interestIncome,
-            $otherIncome
+            $otherIncome,
+            $pensionContributions,
+            $giftAidGross
         );
 
         return (float) ($taxResult['net_income'] ?? 0);

@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
@@ -68,7 +69,7 @@ beforeEach(function () {
         ]);
 
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
-    $childBenefitService = new ChildBenefitService($mockTaxConfig);
+    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig));
     $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService);
 
     // Create a household
