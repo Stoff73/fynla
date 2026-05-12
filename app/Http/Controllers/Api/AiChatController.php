@@ -178,15 +178,36 @@ class AiChatController extends Controller
                     ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute)
                     : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute);
 
+                // W1-L (REVIEW §4 High #23). The S0.9 contract requires the
+                // stream to terminate if the user withdraws ai_chat consent
+                // mid-flight (PUT /api/user/consents → consented=false). The
+                // pre-W1-L implementation queried `hasConsent` on every SSE
+                // event, which for token-streamed responses is ~50–100 queries
+                // per second per stream.
+                //
+                // We bound that to at most one query per
+                // `consent_recheck_interval_seconds` (default 2.0). The
+                // entry-point gate at line 149 already confirmed consent for
+                // this request, so we start the in-stream loop with
+                // `$consentValid = true` and only re-query after the interval
+                // elapses. Withdrawal latency is bounded by the interval —
+                // 2s is well within "without undue delay" (ICO guidance for
+                // GDPR Art. 7(3)) and imperceptible against the user gesture
+                // of toggling consent in another tab. Tests override via
+                // `config()->set('ai_chat.consent_recheck_interval_seconds', 0)`
+                // to assert the strict per-event behaviour.
+                $consentRecheckInterval = (float) config('ai_chat.consent_recheck_interval_seconds', 2.0);
+                $lastConsentCheckAt = microtime(true);
+                $consentValid = true;
+
                 foreach ($generator as $event) {
-                    // S0.9 — mid-stream consent re-check. If the user
-                    // withdraws ai_chat consent while the stream is in
-                    // flight (PUT /api/user/consents → consented=false),
-                    // emit a terminal consent_required event and close
-                    // the stream. hasConsent() runs a fresh indexed
-                    // EXISTS query so it picks up the withdrawal even
-                    // though $user is closed-over.
-                    if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+                    $now = microtime(true);
+                    if ($now - $lastConsentCheckAt >= $consentRecheckInterval) {
+                        $consentValid = $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT);
+                        $lastConsentCheckAt = $now;
+                    }
+
+                    if (! $consentValid) {
                         echo 'data: '.json_encode([
                             'type' => 'consent_required',
                             'required' => 'ai_chat',
