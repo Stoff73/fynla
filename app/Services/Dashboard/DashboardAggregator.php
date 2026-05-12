@@ -26,19 +26,44 @@ class DashboardAggregator
      */
     public function aggregateOverviewData(int $userId): array
     {
-        try {
-            return [
-                'protection' => $this->getProtectionSummary($userId),
-                'savings' => $this->getSavingsSummary($userId),
-                'investment' => $this->getInvestmentSummary($userId),
-                'retirement' => $this->getRetirementSummary($userId),
-                'estate' => $this->getEstateSummary($userId),
-            ];
-        } catch (\Exception $e) {
-            // Log error but don't fail entirely - return partial data
-            \Log::error('Failed to aggregate dashboard data: '.$e->getMessage());
+        // Isolate each module so a single failure surfaces an explicit error
+        // marker for that module rather than blanking the whole dashboard.
+        // Previously: any exception in any module fed the catch block and the
+        // entire return was [] — every other module's data was lost silently
+        // (REVIEW.md §4 High #26).
+        return [
+            'protection' => $this->safeSummary($userId, 'protection', fn () => $this->getProtectionSummary($userId)),
+            'savings' => $this->safeSummary($userId, 'savings', fn () => $this->getSavingsSummary($userId)),
+            'investment' => $this->safeSummary($userId, 'investment', fn () => $this->getInvestmentSummary($userId)),
+            'retirement' => $this->safeSummary($userId, 'retirement', fn () => $this->getRetirementSummary($userId)),
+            'estate' => $this->safeSummary($userId, 'estate', fn () => $this->getEstateSummary($userId)),
+        ];
+    }
 
-            return [];
+    /**
+     * Run a single module summary callable, capture exceptions, and return
+     * either the summary array or a `_error` marker so the frontend can
+     * render a per-module fallback rather than a blank dashboard.
+     */
+    private function safeSummary(int $userId, string $module, \Closure $callable): array
+    {
+        try {
+            return $callable();
+        } catch (\Throwable $e) {
+            \Log::error('Dashboard module summary failed', [
+                'user_id' => $userId,
+                'module' => $module,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return [
+                '_error' => true,
+                '_module' => $module,
+                '_message' => 'Module data temporarily unavailable',
+            ];
         }
     }
 
@@ -47,26 +72,40 @@ class DashboardAggregator
      */
     public function aggregateAlerts(int $userId): array
     {
+        // Per-module isolation so one failure does not drop alerts from all
+        // other modules (REVIEW.md §4 High #26 — same family as
+        // aggregateOverviewData above).
+        $alerts = [];
+
+        $alerts = array_merge($alerts, $this->safeAlerts($userId, 'protection', fn () => $this->getProtectionAlerts($userId)));
+        $alerts = array_merge($alerts, $this->safeAlerts($userId, 'savings', fn () => $this->getSavingsAlerts($userId)));
+        $alerts = array_merge($alerts, $this->safeAlerts($userId, 'investment', fn () => $this->getInvestmentAlerts($userId)));
+        $alerts = array_merge($alerts, $this->safeAlerts($userId, 'retirement', fn () => $this->getRetirementAlerts($userId)));
+        $alerts = array_merge($alerts, $this->safeAlerts($userId, 'estate', fn () => $this->getEstateAlerts($userId)));
+
+        // Sort by severity (critical > important > info)
+        usort($alerts, function ($a, $b) {
+            $severityOrder = ['critical' => 0, 'important' => 1, 'info' => 2];
+
+            return ($severityOrder[$a['severity']] ?? 2) <=> ($severityOrder[$b['severity']] ?? 2);
+        });
+
+        return $alerts;
+    }
+
+    private function safeAlerts(int $userId, string $module, \Closure $callable): array
+    {
         try {
-            $alerts = [];
-
-            // Collect alerts from each module
-            $alerts = array_merge($alerts, $this->getProtectionAlerts($userId));
-            $alerts = array_merge($alerts, $this->getSavingsAlerts($userId));
-            $alerts = array_merge($alerts, $this->getInvestmentAlerts($userId));
-            $alerts = array_merge($alerts, $this->getRetirementAlerts($userId));
-            $alerts = array_merge($alerts, $this->getEstateAlerts($userId));
-
-            // Sort by severity (critical > important > info)
-            usort($alerts, function ($a, $b) {
-                $severityOrder = ['critical' => 0, 'important' => 1, 'info' => 2];
-
-                return ($severityOrder[$a['severity']] ?? 2) <=> ($severityOrder[$b['severity']] ?? 2);
-            });
-
-            return $alerts;
-        } catch (\Exception $e) {
-            \Log::error('Failed to aggregate alerts: '.$e->getMessage());
+            return $callable();
+        } catch (\Throwable $e) {
+            \Log::error('Dashboard module alerts failed', [
+                'user_id' => $userId,
+                'module' => $module,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
 
             return [];
         }
