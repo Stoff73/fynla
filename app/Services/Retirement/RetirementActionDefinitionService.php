@@ -1979,7 +1979,8 @@ class RetirementActionDefinitionService
         }
 
         // Step 6: Recommendation
-        $taxFreeLump = round($totalDCValue * 0.25, 0);
+        // PCLS capped at the Lump Sum Allowance (£268,275) — was uncapped 0.25 × pot.
+        $taxFreeLump = round($this->taxConfig->calculatePCLS((float) $totalDCValue), 0);
         $trace[] = [
             'question' => 'What is the recommended action?',
             'data_field' => 'Recommendation',

@@ -80,6 +80,16 @@ class TaxConfigurationSeeder extends Seeder
                 'personal_allowance_taper_threshold' => 100000,
                 'personal_allowance_taper_rate' => 0.5,
 
+                // Top-level aliases for absolute band thresholds. Match
+                // bands[0]['upper_limit'] and bands[1]['upper_limit'] respectively.
+                // Many services (DecumulationPlanner, RetirementActionDefinitionService,
+                // SavingsActionDefinitionService, PSACalculator, TaxOptimisationService,
+                // TaxActionDefinitionService, AdvicePromptBuilder) expect these keys
+                // and silently fall back to literals when missing. Keep aliases in sync
+                // with the bands when overriding for historical years.
+                'higher_rate_threshold' => 50270,
+                'additional_rate_threshold' => 125140,
+
                 'bands' => [
                     [
                         'name' => 'Basic Rate',
@@ -236,6 +246,15 @@ class TaxConfigurationSeeder extends Seeder
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
                 'lifetime_allowance_abolished' => true,
+                // Lump Sum Allowance (LSA) — caps tax-free PCLS at £268,275 since 6 April 2024
+                // when the LTA was abolished. Frozen until April 2031.
+                'lump_sum_allowance' => 268275,
+                // Lump Sum and Death Benefit Allowance (LSDBA) — caps total tax-free lump sums
+                // (PCLS + tax-free death benefits) at £1,073,100. Frozen until April 2031.
+                'lump_sum_and_death_benefit_allowance' => 1073100,
+                // PCLS rate — proportion of crystallised pension funds payable tax-free
+                // (subject to the LSA cap above).
+                'pcls_rate' => 0.25,
                 'carry_forward_years' => 3,
                 'tapered_annual_allowance' => [
                     'threshold_income' => 200000,
@@ -1447,6 +1466,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['income_tax']['bands'][1]['max'] = 150000;
         $config['income_tax']['bands'][2]['lower_limit'] = 150000;
         $config['income_tax']['bands'][2]['min'] = 150000;
+        $config['income_tax']['additional_rate_threshold'] = 150000;
 
         // 2021/22 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 12300;

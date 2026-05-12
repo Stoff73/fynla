@@ -223,13 +223,16 @@ class DecumulationPlanner
     /**
      * Calculate Pension Commencement Lump Sum (PCLS) strategy.
      *
-     * PCLS = 25% of pension value, tax-free.
+     * PCLS = 25% of pension value, tax-free, capped at the Lump Sum Allowance
+     * (LSA, £268,275 since LTA abolition April 2024).
+     *
+     * TODO(audit-criticals): pass real lsa_used when per-user tracking lands.
      *
      * @param  float  $pensionValue  Total DC pension value
      */
     public function calculatePCLSStrategy(float $pensionValue): array
     {
-        $pclsAmount = $pensionValue * 0.25;
+        $pclsAmount = $this->taxConfig->calculatePCLS($pensionValue);
         $remainingPot = $pensionValue - $pclsAmount;
 
         // Calculate income from remaining pot using safe withdrawal rate

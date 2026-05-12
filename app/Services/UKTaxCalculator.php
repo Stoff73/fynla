@@ -637,11 +637,13 @@ class UKTaxCalculator
         // Get income tax bands (stored as array in seeder)
         $bands = $incomeTax['bands'];
 
-        // Calculate absolute thresholds
-        // Basic rate band ends at personal_allowance + band max
-        $basicRateLimit = $personalAllowance + $bands[0]['max']; // £12,570 + £37,700 = £50,270
-        // Higher rate band ends at personal_allowance + band max
-        $higherRateLimit = $personalAllowance + $bands[1]['max']; // £12,570 + £150,000 = £162,570 (for historical)
+        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
+        // The legacy `PA + bands[1].max` was wrong because bands[1].max is the absolute
+        // £125,140 ATR rather than a band width. Audit finding #5.
+        $basicRateLimit = (float) ($incomeTax['higher_rate_threshold']
+            ?? ($personalAllowance + $bands[0]['max']));
+        $higherRateLimit = (float) ($incomeTax['additional_rate_threshold']
+            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max'])));
 
         // Tax rates are stored as decimals (0.20 for 20%)
         $basicRate = $bands[0]['rate'];
