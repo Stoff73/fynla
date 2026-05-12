@@ -1,7 +1,60 @@
 # CSJTODO — Fynla
 
-*Last updated: 12 May 2026 — session 6 context-clear (all four Wave 1/2 work items shipped as PRs #283–#286; salary sacrifice tax year confirmed as 2027/28)*
-*Previous session: 12 May 2026 — session 5 context-clear (audit-criticals + audit-quickwins PRs #281/#282 open)*
+*Last updated: 12 May 2026 — session 7 context-clear (Wave 1/2 PRs #281–#286 merged + csjones deployed; 3 Phase B PRs #287/#288/#289 opened)*
+*Previous session: 12 May 2026 — session 6 context-clear (PRs #283–#286 opened)*
+
+---
+
+## Session 7 (12 May 2026, context-clear) — Audit batch merged + csjones deployed + 3 Phase B PRs opened
+
+**Branch:** `dev` at `8949a4f2b` (advanced from `0f54592` via 6 merge commits this session) · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 6 · **New PRs opened this session:** 3 · **Open PRs total against `dev`:** 3 (#287, #288, #289)
+
+**Outcome:**
+1. **PRs #281–#286 merged** into `dev` in suggested order via `gh pr merge <N> --merge --admin`. One conflict on #281 (CSJTODO.md session-5-vs-6 log) resolved by taking dev's version (strict superset). All 6 origin feature branches deleted post-merge.
+2. **Dev deployed to csjones.co/fynla** end-to-end: `npm ci` locally (PR #284 override safety net), `./deploy/csjones-fynla/build.sh`, scp via preserve-old-chunks pattern, `git pull origin dev` on server (hit `public/.htaccess` skip-worktree pull conflict — disabled, reset, pulled, copied deploy template, re-enabled), 2 migrations clean, full cache + autoload + optimize cycle. Smoke verified: HTTP 200 + `x-frame-options: DENY` (PR #282 live) + chris@fynla.org login → /fynla/dashboard with canonical Net Worth £598,250 and zero JS errors.
+3. **PR #287 (`audit-starting-rate-savings → dev`)** opened — Starting Rate for Savings applied in `UKTaxCalculator::calculateIncomeTax` (REVIEW §4 Critical #12 / Phase B #4). HMRC ordering: non-savings consumes PA → SRS 0% (tapered £1-for-£1 by non-savings above PA) → PSA 0% → bands. SRS value from `income_tax.starting_rate_for_savings.band` (already seeded). 5 Pest cases. 170 Tax-module tests green. NOTE: `calculateInterestTaxDetailed` (TaxBandTracker-routed) is NOT modified — follow-up. https://github.com/Stoff73/fynla/pull/287
+4. **PR #288 (`audit-salary-sacrifice-2027-28 → dev`)** opened — £2,000 salary sacrifice NIC cap codified with `effective_from: 2027-04-06` (CSJ-confirmed Budget date; seeder's prior `2029-04-06` corrected). `RetirementStrategyService::calculateNetCostOfContribution` now reads from TaxConfigService and date-gates. **Behaviour change:** users contributing > £2k/year via salary sacrifice will see £0 net cost immediately (was over-stated); flips at 2027-04-06 automatically. 4 Pest cases via `Carbon::setTestNow`. 67 Retirement-module tests green. https://github.com/Stoff73/fynla/pull/288
+5. **PR #289 (`audit-businessinterest-sibling-fallbacks → dev`)** opened — `BusinessInterestService` `higher_rate ?? 0.20` / `basic_rate ?? 0.10` (pre-30-Oct-2024 CGT rates) replaced with fail-loud `FinancialCalculationException::taxConfigError`. Matches Wave 2.5 BADR pattern. 2 new Pest cases. 4 Business-module tests green. https://github.com/Stoff73/fynla/pull/289
+
+### Done
+
+- [x] PRs #281–#286 merged + origin feature branches deleted
+- [x] Dev deployed to csjones.co/fynla (live at `8949a4f2b` + .htaccess template applied + 2 migrations + smoke green)
+- [x] PR #287 (Starting Rate for Savings) opened
+- [x] PR #288 (Salary sacrifice 2027/28) opened
+- [x] PR #289 (BADR-sibling fail-loud) opened
+- [x] 11 new Pest cases added across 3 PRs, all green
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PRs #287 → #288 → #289** (independent; admin-merge pattern). After merges: sync local dev + delete the 3 remote feature branches.
+- [ ] **Adjusted Net Income proper deductions** (REVIEW §4 High #35) — currently computed as gross; affects PA-taper accuracy. Branch `audit-adjusted-net-income` off latest dev.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (follow-up from #287) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Ship session 6 batch to production (fynla.org)** — open release PR `dev → main`. Body must call out PR #284 `npm ci` requirement + PR #282 .htaccess template change. 2 prod migrations to run.
+- [ ] **Deploy csjones again** AFTER #287/#288/#289 merge (no need to redeploy in between).
+- [ ] **PR #284 override caveat** standing — any deploy must use `npm ci`, never `npm audit fix --force`.
+- [ ] **Frontend `taxConfig.js` hydrate from backend** (REVIEW §4 High #28) — currently hardcoded constants stale to backend.
+- [ ] **`RebalancingCalculator.vue:246` hardcoded taxRate: 0.20** (REVIEW §4 High #29) — single-site fix.
+- [ ] **CoordinatingAgent 7 raw `orWhere` joint queries** → `forUserOrJoint` scope (REVIEW §4 High #32).
+- [ ] **6 ownership_type enums missing `tenants_in_common`** (REVIEW §4 High #33, Rule #5).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser. Carry-over from session 6.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc. across remaining tax services (Phase B #1 systemic fix: `TaxConfigService::require()` helper).
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call, deferred from session 5.
+- [ ] **Vault-sync backlog** — May 11 sessions 6–12 + May 12 sessions 1–7. Batch via Haiku 4.5 subagent.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`. Standing from session 5.
+
+### Tech debt deferred (from this session)
+
+- `public/.htaccess` skip-worktree quirk: git pull blocks when remote tree touches the file even with skip-worktree set. Workaround pattern documented in handover. Consider adding to `feedback_csjones_deploy_via_git_pull.md` memory.
+
+### Branch / deploy state
+
+- All 3 new audit branches pushed to origin (PRs #287/#288/#289 OPEN)
+- `dev` at `8949a4f2b` (carries all 6 merged audit PRs from sessions 5/6)
+- `main` unchanged (`f15e068`) — production still pre-audit
+- csjones.co/fynla updated to `8949a4f2b` + .htaccess template applied
+- fynla.org unchanged
 
 ---
 
