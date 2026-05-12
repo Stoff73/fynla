@@ -72,3 +72,40 @@ it('throws FinancialCalculationException when BADR rate is missing from config (
     expect(fn () => $service->calculateExitScenario($business))
         ->toThrow(\App\Exceptions\FinancialCalculationException::class);
 });
+
+/**
+ * Sibling defect to Wave 2.5: prior `?? 0.20` / `?? 0.10` fallbacks for the
+ * CGT higher/basic rates were the pre-30-October-2024 statutory rates.
+ * Post-Autumn-2024 they are 0.24 / 0.18. Silent fall-back would surface
+ * 4-percentage-point wrong tax advice on every non-BADR business sale.
+ * Fail-loud matches the BADR pattern above.
+ */
+it('throws FinancialCalculationException when CGT higher_rate is missing from config (sibling fail-loud)', function () {
+    $user = User::factory()->create();
+    $business = makeBusinessInterest($user->id);
+
+    $activeConfig = \App\Models\TaxConfiguration::where('is_active', true)->first();
+    $config = $activeConfig->config_data;
+    unset($config['capital_gains_tax']['higher_rate']);
+    $activeConfig->update(['config_data' => $config]);
+
+    $service = new BusinessInterestService(new \App\Services\TaxConfigService);
+
+    expect(fn () => $service->calculateExitScenario($business))
+        ->toThrow(\App\Exceptions\FinancialCalculationException::class);
+});
+
+it('throws FinancialCalculationException when CGT basic_rate is missing from config (sibling fail-loud)', function () {
+    $user = User::factory()->create();
+    $business = makeBusinessInterest($user->id);
+
+    $activeConfig = \App\Models\TaxConfiguration::where('is_active', true)->first();
+    $config = $activeConfig->config_data;
+    unset($config['capital_gains_tax']['basic_rate']);
+    $activeConfig->update(['config_data' => $config]);
+
+    $service = new BusinessInterestService(new \App\Services\TaxConfigService);
+
+    expect(fn () => $service->calculateExitScenario($business))
+        ->toThrow(\App\Exceptions\FinancialCalculationException::class);
+});
