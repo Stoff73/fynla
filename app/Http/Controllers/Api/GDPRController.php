@@ -423,7 +423,10 @@ class GDPRController extends Controller
         $session = Cache::get($cacheKey);
 
         // Validate session exists and matches token
-        if (! $session || $session['token'] !== $request->session_token) {
+        // Constant-time comparison — session_token is a secret. Using !== leaks
+        // timing per matching byte and can be exploited to recover the token.
+        // hash_equals is timing-safe (REVIEW.md §4 High #19).
+        if (! $session || ! is_string($session['token'] ?? null) || ! hash_equals($session['token'], (string) $request->session_token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired session. Please start again.',
@@ -499,7 +502,10 @@ class GDPRController extends Controller
         $session = Cache::get($cacheKey);
 
         // Validate session exists, matches token, and is verified
-        if (! $session || $session['token'] !== $request->session_token) {
+        // Constant-time comparison — session_token is a secret. Using !== leaks
+        // timing per matching byte and can be exploited to recover the token.
+        // hash_equals is timing-safe (REVIEW.md §4 High #19).
+        if (! $session || ! is_string($session['token'] ?? null) || ! hash_equals($session['token'], (string) $request->session_token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired session. Please start again.',
@@ -591,7 +597,10 @@ class GDPRController extends Controller
         $session = Cache::get($cacheKey);
 
         // Validate session
-        if (! $session || $session['token'] !== $request->session_token) {
+        // Constant-time comparison — session_token is a secret. Using !== leaks
+        // timing per matching byte and can be exploited to recover the token.
+        // hash_equals is timing-safe (REVIEW.md §4 High #19).
+        if (! $session || ! is_string($session['token'] ?? null) || ! hash_equals($session['token'], (string) $request->session_token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired session. Please start again.',
