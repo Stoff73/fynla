@@ -1,7 +1,67 @@
 # CSJTODO — Fynla
 
-*Last updated: 12 May 2026 — session 7 context-clear (Wave 1/2 PRs #281–#286 merged + csjones deployed; 3 Phase B PRs #287/#288/#289 opened)*
-*Previous session: 12 May 2026 — session 6 context-clear (PRs #283–#286 opened)*
+*Last updated: 12 May 2026 — session 8 end-of-day wrap (PRs #287/#288/#289 merged; PR #290 Adjusted Net Income opened)*
+*Previous session: 12 May 2026 — session 7 context-clear (Wave 1/2 PRs #281–#286 merged + csjones deployed; 3 Phase B PRs #287/#288/#289 opened)*
+
+---
+
+## Session 8 (12 May 2026, end-of-day) — Phase B PRs #287/#288/#289 merged + PR #290 opened
+
+**Branch:** `audit-adjusted-net-income` at `25ddfb7` (PR #290 head) · `dev` at `0379450` · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 3 · **New PRs opened this session:** 1 · **Open PRs total against `dev`:** 1 (#290)
+
+**Outcome:**
+1. **PRs #287, #288, #289 admin-merged** into `dev` (merge commits `ef78fa9`, `ec5ad5a`, `0379450`). All 3 origin feature branches deleted post-merge.
+2. **PR #290 (`audit-adjusted-net-income → dev`)** opened — Adjusted Net Income proper deductions. PA-taper in `UKTaxCalculator::calculateIncomeTax` + `Investment/DividendTaxCalculator::calculate` now uses ANI (HMRC ITA 2007 s35-s37) instead of gross income. `Benefits/ChildBenefitService::calculateAdjustedNetIncome` delegates to `IncomeDefinitionsService`. Backwards-compatible engine API with default `$pensionContributions = 0`, `$giftAidGross = 0` params; highest-impact callers (`UserProfileService`, `PersonalAccountsService::calculateProfitAndLoss`, `ResolvesIncome` trait) updated to pass real values. 11 new Pest cases. 1,091 touched-module tests green. **Behaviour change:** £110k+£10k-pension user saves £5,000 of income tax (PA preserved by ANI fix); £75k+£20k-pension HICBC user goes from £1,054.95 wrongly charged to £0. https://github.com/Stoff73/fynla/pull/290
+3. **CI status at session close:** PR #290 logic-guard + snyk pending, GitGuardian green.
+4. **No deploys this session.** csjones.co/fynla still on `dev@8949a4f2b` (session 7 deploy — now 3 PRs behind, will be 4 once #290 merges).
+5. **Tech-debt audit skipped** under context-budget pressure (tripwire fired at ~314k tokens).
+6. **Vault-sync deferred** — backlog now May 11 sessions 6–12 + May 12 sessions 1–8.
+
+### Done
+
+- [x] PR #287 merged + origin branch deleted
+- [x] PR #288 merged + origin branch deleted
+- [x] PR #289 merged + origin branch deleted
+- [x] PR #290 (Adjusted Net Income) opened — branch tip `25ddfb7`
+- [x] 11 new Pest cases added in PR #290, all green
+- [x] 1,091-test touched-module sweep green, zero regressions
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PR #290** once CI green. `gh pr checks 290`, `gh pr merge 290 --merge --admin --delete-branch`. Sync local dev after.
+- [ ] **Deploy `dev` to csjones.co/fynla** to validate 4-PR audit batch (#287/#288/#289/#290). Follow CLAUDE.md "Deploying to dev". `npm ci` + .htaccess template + skip-worktree workaround caveats apply.
+- [ ] **Vault-sync backlog** — May 11 sessions 6–12 + May 12 sessions 1–8. Batch via Haiku 4.5 subagent.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (follow-up from #287) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled.
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 deductions; engine no longer over-tapers when given correct inputs but these callers don't pass real values yet.
+- [ ] **Tech-debt audit on PR #290 changes** — skipped this session due to context pressure; run when changes are merged.
+- [ ] **Consolidate 3 pension-contribution calculation methods** — `IncomeDefinitionsService::getPensionContributions`, `PersonalAccountsService::calculateCashflow:226`, `UserProfileService::calculateAnnualPensionContributions` all compute pension contributions slightly differently (workplace-only filter vs no filter). Single source of truth needed. Surfaced during PR #290.
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main`. Body must call out PR #284 `npm ci` requirement + PR #282 .htaccess template change + (now) PR #290 behaviour change for pension contributors. 2 prod migrations to run.
+- [ ] **PR #284 override caveat** standing — any deploy must use `npm ci`, never `npm audit fix --force`.
+- [ ] **Frontend `taxConfig.js` hydrate from backend** (REVIEW §4 High #28).
+- [ ] **`RebalancingCalculator.vue:246` hardcoded taxRate: 0.20** (REVIEW §4 High #29) — single-site fix.
+- [ ] **CoordinatingAgent 7 raw `orWhere` joint queries** → `forUserOrJoint` scope (REVIEW §4 High #32).
+- [ ] **6 ownership_type enums missing `tenants_in_common`** (REVIEW §4 High #33, Rule #5).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc. (Phase B #1: `TaxConfigService::require()` helper).
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`. Standing from session 5.
+
+### Tech debt deferred (from this session)
+
+- Three different pension-contribution calculation methods across the codebase (see Outstanding list above).
+- `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` callers using default-0 ANI deductions (PR #290 documented as out-of-scope follow-up).
+- Gift Aid BRT-band extension not modelled (HMRC higher-rate relief mechanism for Gift Aid).
+- Tech-debt-session audit skipped on PR #290 (context budget).
+
+### Branch / deploy state
+
+- `audit-adjusted-net-income` at `25ddfb7` pushed (PR #290 OPEN)
+- `dev` at `0379450` (carries 3 audit PRs merged this session on top of session 7's batch)
+- `main` unchanged at `f15e068` — production still pre-audit
+- csjones.co/fynla still on `dev@8949a4f2b` (3 PRs behind — to become 4 once #290 merges)
+- fynla.org unchanged
 
 ---
 
