@@ -38,7 +38,7 @@ Findings are tagged with **confidence** (low/med/high) and **severity** (critica
 | Rule #13 No scores in user-facing UI | 6 surfaces (some dead) | high |
 | Rule #14 AppLayout wrap | 1 confirmed routed violation | high |
 | Rule #15 Loop until correct | 1 test `.skip` (dashboard sort) | low |
-| Rule #16 Icons (decorative banned) | Dashboard 14 files, detail 19 files, Goals emoji | high |
+| Rule #16 Icons (decorative banned) | Dashboard 14 files + detail 19 files **grandfathered 2026-05-12**; Goals emoji + Unicode glyphs OPEN — pending CSJ ruling on strict subclass | grandfathered + open |
 | Two-Fyn architecture | 0 forbidden artefacts present | — (clean) |
 | Dead code (Vue components) | ~106 candidates, ≥30 confirmed | high |
 | Dead code (PHP) | 2 services, 1 controller | medium |
@@ -236,11 +236,11 @@ Two TODO-style comments in production tests:
 
 - `/Users/CSJ/Desktop/fynla/resources/js/components/Admin/EvalRecordings.vue:504, 510, 513, 547` — multiple `TODO` strings INSIDE generated markdown templates ("assess whether engine output is surfaced …"). These are CONTENT outputs (eval reviewers fill them in), not abandoned code paths. Acceptable.
 
-### Rule #16 — Icons (Functional Only) — HIGH
+### Rule #16 — Icons (Functional Only) — AMENDED 2026-05-12
 
-This rule is the **largest open compliance gap** in the codebase.
+> **CSJ reinterpretation 2026-05-12:** The icon set currently in the site is **canonical and grandfathered**. Rule #16 going forward bans **NEW** icons in dashboard cards / detail views / Fyn chat, not the existing ones. The findings below are retained as a frozen-set inventory: the listed files are the canonical icon surface and may not gain new icon entries without explicit CSJ approval. **Emoji and Unicode-as-icons are open questions** — Rule #16 bans them as a strict subclass that applies anywhere, including allowed surfaces. CSJ has not yet ruled on whether `goalIcons.js` emoji and the ▲/▼/✓/✗/⚠/💡/🔥/🏆/etc. literals across components are also grandfathered.
 
-**Dashboard cards** (banned surface) — 14 files use `<svg>` icons:
+**Dashboard cards** (banned surface for NEW icons) — 14 files already ship `<svg>` icons (canonical, grandfathered):
 
 - `/Users/CSJ/Desktop/fynla/resources/js/components/Dashboard/DashboardCard.vue` — chevron icon for `clickable` cards.
 - `/Users/CSJ/Desktop/fynla/resources/js/components/Dashboard/TaxOptimisationCard.vue:92`
@@ -259,7 +259,7 @@ This rule is the **largest open compliance gap** in the codebase.
 
   Note: several of these are themselves dead code (see Dead Code), but `AreasToConsiderCard`, `AreasToCompleteCard`, `JourneyCard`, `LifeTimelineCard`, `DashboardCard` are wired into `views/Dashboard.vue`.
 
-**Detail views** (banned surface) — confirmed SVG icons present:
+**Detail views** (banned surface for NEW icons) — confirmed SVG icons present (canonical, grandfathered):
 
 - `/Users/CSJ/Desktop/fynla/resources/js/views/NetWorth/CashOverview.vue` — 9 inline SVGs.
 - `/Users/CSJ/Desktop/fynla/resources/js/views/Retirement/Projections.vue` — 4 (also dead, but in tree).
@@ -272,7 +272,9 @@ This rule is the **largest open compliance gap** in the codebase.
 - `/Users/CSJ/Desktop/fynla/resources/js/views/Retirement/PensionDetail.vue` — 1.
 - `/Users/CSJ/Desktop/fynla/resources/js/views/Protection/ProtectionDashboard.vue` — 1.
 
-**Emoji and Unicode glyphs** in `.vue` and `.js` files — 72 hits total. Spot-check of worst offenders:
+**Emoji and Unicode glyphs** in `.vue` and `.js` files — 72 hits total. **OPEN — pending CSJ ruling on Rule #16 strict subclass.** The grandfathering of canonical icons does NOT automatically extend to emoji or Unicode-as-icons; the rule lists both as bans that apply anywhere (including allowed surfaces). CSJ must explicitly decide whether to (a) grandfather these as well, freezing the set, or (b) treat the strict subclass as still in force and require replacement with text/SVG.
+
+Spot-check of worst offenders (for the decision call):
 
 - `/Users/CSJ/Desktop/fynla/resources/js/constants/goalIcons.js` — emoji map:
   - line 7 `emergency_fund: '🛡️'`, 11 `retirement: '☀️'`, 12 `wealth_accumulation: '📈'`, 14 `holiday: '✈️'`, 17 `custom: '⭐'`, 27 fallback `'🎯'`.
@@ -654,7 +656,7 @@ These are findings I'd surface to CSJ even though they aren't strictly on my aud
 **Critical (block release)** — 0.
 
 **High (act this sprint)**:
-- Rule #16: Dashboard cards and detail views ship with decorative SVG icons (14 + 19 files); Goals UI uses emoji as icons throughout.
+- Rule #16: Dashboard cards + detail view SVG icons **GRANDFATHERED 2026-05-12** (canonical set frozen — no new icons). Goals UI emoji and ▲/▼/✓/✗/⚠/💡/🔥/🏆 Unicode literals **OPEN — pending CSJ ruling** on the strict subclass that bans them everywhere. Phase B follow-up: ESLint/Pest rule to block new icon imports + emoji insertions on banned surfaces, regardless of the strict-subclass ruling.
 - Rule #14: `views/NetWorth/CashOverview.vue` ships without `AppLayout` wrap.
 - Rule #13: `AssetLocationOptimizer.vue`, `DiversificationTab.vue`, and likely `TaxOptimizationOverview.vue` render numeric scores in user-facing UI.
 - Dead code: `~100 Vue components` orphan, `LifeEventAllocationController.php`, `EstateActionDefinitionService.php` (371 lines), `IHTStrategyGeneratorService.php` (363 lines), `utils/ownership.js` (canonical-but-orphaned).

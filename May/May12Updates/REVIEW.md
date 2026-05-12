@@ -15,7 +15,7 @@ This is the executive synthesis. Each domain has a full report linked below; thi
 | Domain | File | Lines | Findings |
 |--------|------|-------|----------|
 | Backend (Laravel/PHP) | [`review-backend.md`](review-backend.md) | 461 | 4 critical, 12 important, 11 medium-low |
-| Frontend (Vue/JS) | [`review-frontend.md`](review-frontend.md) | 727 | 8 critical, 19 important, 22 medium-low |
+| Frontend (Vue/JS) | [`review-frontend.md`](review-frontend.md) | 727 | 2 critical (C-1 Rule #14, C-2 Rule #12 hex), 6 grandfathered (Rule #16 reinterpretation), 2 open (emoji/Unicode pending CSJ), 19 important, 22 medium-low |
 | Security audit (OWASP + Fynla-specific) | [`review-security.md`](review-security.md) | 770 | 0 critical, 6 high, 17 medium, 19 low, 11 info |
 | Database (schema/queries) | [`review-database.md`](review-database.md) | 1398 | 10 critical, 37 high, 50 medium-low |
 | Tax / HMRC compliance | [`review-tax-compliance.md`](review-tax-compliance.md) | 851 | 4 critical, 30+ high-medium, P0–P3 list |
@@ -45,7 +45,7 @@ That said, several themes recur across multiple domains that need attention:
 
 **Testing coverage is the weakest dimension.** 175 of 290 services (60%) have no unit test. 4 of 9 agents are completely untested (Estate, Investment, Retirement, TaxOptimisation). 22 tax tests mock `TaxConfigService` and assert on the mocked literals — silently defeating the no-hardcoded-tax-values rule at the test layer.
 
-**Design system compliance is mostly clean — except icons.** Zero `amber-*` / `orange-*`. No `'sole'` enum. No `v-if`+`v-for`. But ~14 dashboard cards and ~19 detail-view components ship decorative icons in violation of Rule #16. The Goals module uses emoji throughout via `goalIcons.js` (🔥 🎯 📈 ⭐ 🏆). 72 Unicode glyph hits across `resources/js/`.
+**Design system compliance is clean.** Zero `amber-*` / `orange-*`. No `'sole'` enum. No `v-if`+`v-for`. **Per CSJ's 2026-05-12 reinterpretation of Rule #16, the icon set currently in the site is canonical and grandfathered** — the rule going forward is "no NEW icons in banned surfaces", not "remove existing ones". The ~14 dashboard cards and ~19 detail-view components that ship icons today (DashboardCard, AlertsPanel, AreasToConsiderCard, ProfileCompletionCards, JourneyCard, AdvisorDashboard, AnnualAllowanceTracker, etc.) all stand. **One open question for CSJ:** Rule #16 still explicitly bans **emoji** even in allowed surfaces — `resources/js/constants/goalIcons.js` uses emoji throughout (🔥 🎯 📈 ⭐ 🏆) and is consumed across the Goals UI. Flagged separately for CSJ decision: are goal emojis also grandfathered, or do they need to come out?
 
 ---
 
@@ -168,21 +168,16 @@ Most critical:
 
 ---
 
-### #10 — Rule #16 violation: decorative icons in dashboard cards and detail views
-**Domain:** Frontend + Conventions · **Severity:** High · **Confidence:** 85-95
-**Files (worst offenders):**
-- `resources/js/components/Dashboard/DashboardCard.vue:32-34` — chevron icon on every clickable card (cascading impact via reuse)
-- `resources/js/components/Dashboard/AlertsPanel.vue:23-60` — severity icons
-- `resources/js/components/Dashboard/AreasToConsiderCard.vue:19-50`
-- `resources/js/components/Dashboard/ProfileCompletionCards.vue:17-34`
-- `resources/js/components/Dashboard/JourneyCard.vue:8-31`
-- `resources/js/views/Advisor/AdvisorDashboard.vue:8-31`
-- `resources/js/components/Retirement/AnnualAllowanceTracker.vue:125-140`
-- `resources/js/constants/goalIcons.js` — emoji map consumed across Goals UI (🔥 🎯 📈 ⭐ 🏆)
+### #10 — Closed: Rule #16 reinterpretation (icons grandfathered)
+**Domain:** Frontend + Conventions · **Severity:** Closed · **Confidence:** N/A
 
-Rule #16 explicitly bans decorative icons in dashboard cards, detail views, and Fyn chat. Side nav is the ONE allowed surface. Conventions agent found 14 dashboard files + 19 detail-view files in violation.
+Originally raised as a Rule #16 violation across ~14 dashboard files + ~19 detail-view files. **Closed by CSJ on 2026-05-12:** the icon set currently in the site is canonical and grandfathered. Rule #16 going forward bans **NEW** icons in dashboard cards, detail views, and Fyn chat — existing icons stand. The components originally flagged (`DashboardCard.vue` chevron, `AlertsPanel.vue` severity icons, `AreasToConsiderCard.vue` keyed icons, `ProfileCompletionCards.vue` iconPath, `JourneyCard.vue` status icon, `AdvisorDashboard.vue` stat-card icons, `AnnualAllowanceTracker.vue` warning icons) all stand.
 
-**Note on `AiChatPanel.vue:38`:** Fyn avatar `<img>` in chat header is a borderline case — Rule #16 explicitly forbids mascot images as inline icons but this could be argued as functional (service identity). Flagged for CSJ judgment.
+**Open question for CSJ — emoji specifically:** `resources/js/constants/goalIcons.js` uses emoji (🔥 🎯 📈 ⭐ 🏆) across the Goals UI. Rule #16 explicitly bans emoji as a strict subclass — independent of the icon grandfathering decision. Need explicit CSJ ruling: are these emoji grandfathered too, or do they need to come out?
+
+**Phase B follow-up:** Add an ESLint custom rule and/or Pest architecture test that blocks **new** SVG icon imports / emoji insertions in `resources/js/components/Dashboard/`, `resources/js/views/<Module>/`, and `resources/js/components/Chat/`. This prevents Rule #16 regression on banned surfaces without forcing a cosmetic purge of canonical icons.
+
+**Note on `AiChatPanel.vue:38`:** Fyn avatar `<img>` in chat header. Functional (service identity) and now grandfathered under the canonical set.
 
 ---
 
@@ -284,7 +279,6 @@ This is the most load-bearing architectural contract in the codebase right now a
 | 11 | Tax | `UKTaxCalculator.php:644`, `TaxBandTracker.php:38` | Band ceiling formula bug (latent) |
 | 12 | Tax | `UKTaxCalculator.php:687-740` | Starting Rate for Savings not applied — over-tax non-earner savers by £1k |
 | 13 | Frontend | `DebugEnv.vue:1-25` | Routed view without `AppLayout` wrapper (Rule #14) |
-| 14 | Frontend | 8 dashboard / detail components | Rule #16 decorative icon violations (DashboardCard cascades) |
 
 ### High (sprint priority)
 
@@ -373,7 +367,7 @@ These are user-visible numeric errors or security boundary failures. Don't ship 
 4. **Starting Rate for Savings** (non-earner savings tax over-charge)
 5. **`audit_logs` partition + covering index**
 6. **Down-migration safety audit** — find every `truncate()` / `dropIfExists()` in `down()`
-7. **Rule #16 icon purge** — start with `DashboardCard.vue` (cascading impact)
+7. **Rule #16 enforcement going forward** — add ESLint/Pest rule that blocks NEW icon imports + emoji literals in dashboard / detail / chat surfaces. Existing icons are grandfathered per CSJ's 2026-05-12 decision; this prevents regression. Pending CSJ ruling on goal-emoji grandfathering.
 8. **Replace `purple-*` / `indigo-*`** with `violet-*` (bulk)
 9. **`RISK_TAILWIND_CLASSES`** palette refactor
 10. **Architecture tests** for Rules #5, #9, #13, #14 (cheap, high-signal)

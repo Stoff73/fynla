@@ -1,11 +1,15 @@
 # Frontend Code Review — `/Users/CSJ/Desktop/fynla/resources/js/`
 
-**Date:** 2026-05-12
+**Date:** 2026-05-12 (amended 2026-05-12 session 3)
 **Scope:** 733 Vue components, 134 JS files, 35 Vuex modules, 45 services. Reviewed against CLAUDE.md Rules #4, #6, #9, #10, #11, #12, #13, #14, #16.
+
+**Amendment 2026-05-12 (CSJ):** Rule #16 reinterpreted — existing site icons are canonical and grandfathered. Critical-tag count adjusted: original 8 critical → **1 critical (C-1, Rule #14) + 1 critical hex-in-attribute (C-2 Rule #12 portion) + 6 grandfathered (C-3 through C-8) + 2 open (L-5 emoji, M-11 Unicode-as-icons) pending CSJ ruling on the stricter Rule #16 subclass**. L-3 (Dashboard banners) and L-4 (Fyn avatar) also moved to grandfathered.
 
 ---
 
 ## CRITICAL
+
+> **Rule #16 reinterpretation (2026-05-12, CSJ):** Findings originally raised as Rule #16 violations because they ship decorative icons on dashboards / detail views are **grandfathered as of 2026-05-12**. The current icon set is canonical. Rule #16 going forward bans **NEW** icons on banned surfaces only. C-2 through C-8 below have been re-tagged accordingly. The `stroke="#5854E6"` (and `#E83E6D`) finding in C-2 is preserved as a separate **Rule #12** hex-in-attribute issue — that one stands. Emoji (Rule #16 strict subclass) and Unicode glyph findings are flagged separately for CSJ decision because the Rule #16 ban on emoji is stricter than the icon ban.
 
 ### C-1: `DebugEnv.vue` renders without AppLayout (Rule #14)
 
@@ -20,35 +24,31 @@ The route has `requiresAuth: true, requiresAdmin: true, devOnly: true` — those
 
 ---
 
-### C-2: `AdvisorDashboard.vue` uses decorative icons in stat cards (Rule #16)
+### C-2: `AdvisorDashboard.vue` — hardcoded hex in SVG `stroke` attributes (Rule #12)
 
 **File:** `resources/js/views/Advisor/AdvisorDashboard.vue:8-31`
-**Confidence:** 95 | **Severity:** Critical (Rule #16 violation)
+**Confidence:** 95 | **Severity:** Critical (Rule #12 hex-in-attribute)
 
-The Advisor Dashboard stat cards each have a coloured icon container with an inline SVG icon for decoration — a person icon for "Active Clients", a calendar icon for "Reviews Due", etc. These icons are decorative: the label text immediately below them already identifies the metric. Rule #16 explicitly bans decorative icons in detail views.
+> **Rule #16 portion of this finding: GRANDFATHERED 2026-05-12.** The stat-card icons themselves stand under CSJ's canonical-set reinterpretation.
+
+The remaining (still-critical) issue is hardcoded stroke hex values:
 
 ```html
-<!-- lines 8-14 -->
-<div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5854E6" stroke-width="2">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-  </svg>
-</div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5854E6" stroke-width="2">
 ```
 
-Also note the hardcoded stroke hex `stroke="#5854E6"` and `stroke="#E83E6D"` — these are palette values (violet-500, raspberry-500) but are hardcoded in attribute form rather than using Tailwind token classes. This violates Rule #12 (no hardcoded hex outside `designSystem.js`-level constants).
+`stroke="#5854E6"` and `stroke="#E83E6D"` are palette values (violet-500, raspberry-500) but are hardcoded in attribute form rather than using Tailwind token classes. This violates Rule #12 (no hardcoded hex outside `designSystem.js`-level constants).
 
-**Fix:** Remove the icon containers from stat cards. If a coloured accent is still desired, use a simple coloured border-left or dot. Replace `stroke="#5854E6"` with `class="text-violet-500"` + `stroke="currentColor"` if the icon is retained elsewhere.
+**Fix:** Replace `stroke="#5854E6"` and `stroke="#E83E6D"` with `class="text-violet-500"` / `class="text-raspberry-500"` + `stroke="currentColor"`. Keep the icons in place — only the hex literals are the violation.
 
 ---
 
-### C-3: `AlertsPanel.vue` uses decorative icons in a dashboard card (Rule #16)
+### C-3: `AlertsPanel.vue` severity icons — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Dashboard/AlertsPanel.vue:23-60`
-**Confidence:** 92 | **Severity:** Critical
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-Every alert row has an SVG severity icon (X-circle for critical, warning triangle for important, info circle for others). These icons add visual weight to distinguish severity, but the alert message text itself already conveys severity. Rule #16 bans icons in dashboard cards. `AlertsPanel` is rendered in the Dashboard view.
+Every alert row has an SVG severity icon (X-circle for critical, warning triangle for important, info circle for others). Originally flagged as a Rule #16 violation; **CSJ grandfathered the existing icon set on 2026-05-12**. These icons stand. Going forward, do not add new icon variants here without explicit CSJ approval. No fix required.
 
 The alert's text content — and the coloured border classes — are sufficient to distinguish severity without icons.
 
@@ -56,66 +56,48 @@ The alert's text content — and the coloured border classes — are sufficient 
 
 ---
 
-### C-4: `AreasToConsiderCard.vue` uses decorative icons in a dashboard card (Rule #16)
+### C-4: `AreasToConsiderCard.vue` keyed icons — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Dashboard/AreasToConsiderCard.vue:19-50`
-**Confidence:** 92 | **Severity:** Critical
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-The card renders named SVG icons (document, calendar, shield, chart, cash, target, currency, home) keyed off `area.icon`. These are purely decorative — the `area.title` label immediately follows. Rule #16 bans icons in dashboard cards.
-
-**Fix:** Remove the icon block (lines 19–50). Let the card title and description carry the content.
+Named SVG icons keyed off `area.icon` (document, calendar, shield, chart, cash, target, currency, home). Originally flagged as Rule #16; **grandfathered as canonical icon set on 2026-05-12**. The `area.icon` key family is now closed — any **new** area type added later must NOT introduce a new icon entry. No fix required.
 
 ---
 
-### C-5: `ProfileCompletionCards.vue` uses decorative icons in a dashboard card (Rule #16)
+### C-5: `ProfileCompletionCards.vue` iconPath + chevron — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Dashboard/ProfileCompletionCards.vue:17-34`
-**Confidence:** 90 | **Severity:** Critical
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-Each profile completion card has an SVG icon (`card.iconPath`) and a trailing chevron SVG. Both are decorative since the `card.actionText` label identifies the action. Rule #16 bans icons in dashboard cards.
-
-**Fix:** Remove both SVG elements. The `card.actionText` button is self-describing without the icon.
+Each profile completion card has an SVG icon (`card.iconPath`) plus a trailing chevron SVG. Originally flagged as Rule #16; **grandfathered on 2026-05-12** — both stand. No fix required.
 
 ---
 
-### C-6: `JourneyCard.vue` uses decorative icons in a dashboard card (Rule #16)
+### C-6: `JourneyCard.vue` status icon — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Dashboard/JourneyCard.vue:8-31`
-**Confidence:** 88 | **Severity:** Critical
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-The card renders a status icon (checkmark SVG for completed, a journey-type SVG otherwise) alongside the journey title. Since the status is already represented textually (`journey.status`, `statusText`, progress bar), the icon is decorative.
-
-**Fix:** Remove the icon `<div>` (lines 8-31). Use text or progress-bar only.
+Status icon (checkmark SVG for completed, journey-type SVG otherwise) alongside the journey title. Originally flagged as Rule #16; **grandfathered on 2026-05-12**. No fix required.
 
 ---
 
-### C-7: `DashboardCard.vue` renders a decorative chevron icon (Rule #16)
+### C-7: `DashboardCard.vue` trailing chevron — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Dashboard/DashboardCard.vue:32-34`
-**Confidence:** 87 | **Severity:** Critical
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-The generic `DashboardCard` component renders a trailing chevron SVG (`v-else-if="clickable"`) on every clickable dashboard card. This chevron is purely decorative — clickability is already conveyed by cursor style and the card click handler. Rule #16 bans icons in dashboard cards.
-
-```html
-<svg v-else-if="clickable" class="w-4 h-4 text-neutral-400 flex-shrink-0 mt-1" ...>
-  <path ... d="M9 5l7 7-7 7" />
-</svg>
-```
-
-Since `DashboardCard` is the base for many module summary cards, this single fix has broad reach.
-
-**Fix:** Remove the SVG element entirely from `DashboardCard.vue` line 32-34.
+Trailing chevron SVG rendered on every clickable card. Originally flagged as Rule #16 (with cascading impact across many module summary cards); **grandfathered on 2026-05-12** as part of the canonical icon set. No fix required. New `DashboardCard` variants must reuse this same chevron — adding a different icon family would be a Rule #16 violation under the new framing.
 
 ---
 
-### C-8: `AnnualAllowanceTracker.vue` uses decorative icons in a detail view (Rule #16)
+### C-8: `AnnualAllowanceTracker.vue` warning icons — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Retirement/AnnualAllowanceTracker.vue:125-140`
-**Confidence:** 85 | **Severity:** Critical
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-The MPAA warning block and the Tapered Allowance block each have a warning SVG icon. This is a detail view component (rendered inside the Retirement module). Rule #16 bans icons in detail views.
-
-**Fix:** Remove both SVG elements (lines 125 and 139). The coloured background band and bold text heading already distinguish these notices.
+Warning SVGs on the MPAA and Tapered Allowance blocks. Originally flagged as Rule #16 (detail view); **grandfathered on 2026-05-12**. No fix required.
 
 ---
 
@@ -186,9 +168,9 @@ return n.toLocaleString('en-GB');
 
 Also line 200: `Math.abs(n).toLocaleString('en-GB')` for the delta formatter. These are admin-only surfaces, but Rule #6 applies everywhere: use `currencyMixin` or `currency.js` utilities, do not re-implement formatting.
 
-Note also line 199: `const sign = n > 0 ? '▲' : '▼';` — Unicode glyphs (▲ ▼) used as directional indicators. Rule #16 bans Unicode symbols used as icons/glyphs in any surface.
+Note also line 199: `const sign = n > 0 ? '▲' : '▼';` — Unicode glyphs used as directional indicators. See M-11 for the Rule #16 status (open, pending CSJ ruling on Unicode-as-icons).
 
-**Fix:** Replace with `formatNumber()` from `currencyMixin`. Replace Unicode arrows with text labels like "Up" / "Down" or the CSS `rotate` utility on a text character.
+**Fix:** Replace with `formatNumber()` from `currencyMixin`. The Unicode arrow fix is gated on the M-11 CSJ decision.
 
 ---
 
@@ -548,18 +530,22 @@ Duplicate of M-9 — same pattern in the `RiskProfileSummary` component which mi
 
 ---
 
-### M-11: `AdminDashboard.vue` — Unicode directional glyphs ▲ ▼ (Rule #16)
+### M-11: `AdminDashboard.vue` — Unicode directional glyphs ▲ ▼ — OPEN (CSJ decision pending)
 
 **File:** `resources/js/components/Admin/AdminDashboard.vue:199`
-**Confidence:** 85 | **Severity:** Medium
+**Confidence:** 85 | **Severity:** Open — pending CSJ decision
 
 ```javascript
 const sign = n > 0 ? '▲' : '▼';
 ```
 
-Rule #16 explicitly bans Unicode symbols (★, ✓, ✗, →, ←, ⚠, ℹ, etc.) as icons. `▲` and `▼` are Unicode glyphs used as visual indicators.
+**Rule #16 grandfathering does NOT automatically cover Unicode-as-icons** — the rule explicitly lists "Unicode symbols as icons (★, ✓, ✗, →, ←, ⚠, ℹ, etc.) — use text" as a specific ban that applies anywhere. CSJ's 2026-05-12 reinterpretation covered SVG icons in the canonical set; Unicode-as-icons is a stricter subclass and needs an explicit ruling. Grouped with L-5 (emoji) for the same decision call.
 
-**Fix:** Replace with text or CSS-only indicators, e.g. `n > 0 ? 'Up' : 'Down'` or a Tailwind-rotated caret.
+**Fix (if (b) below is chosen):** Replace with text or CSS-only indicators, e.g. `n > 0 ? 'Up' : 'Down'` or a Tailwind-rotated caret.
+
+**Two paths for CSJ to choose** (apply same answer to L-5 emoji):
+- **(a) Grandfather Unicode-as-icons too** — `▲` / `▼` stand. Add a frozen-set rule.
+- **(b) Unicode-as-icon ban stays strict** — replace with text labels.
 
 ---
 
@@ -628,40 +614,36 @@ And in scoped CSS:
 
 ---
 
-### L-3: `Dashboard.vue` — inline SVG icons in UI banners (Rule #16 — ambiguous surface)
+### L-3: `Dashboard.vue` — SVG icons in UI banners — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/views/Dashboard.vue:18-43, 56-57`
-**Confidence:** 75 | **Severity:** Low
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-The 2FA security reminder banner (lines 18-43) and the investment knowledge nudge banner (lines 53-57) both have SVG icons inside circular containers. Rule #16 says "Other surfaces (modals, alerts... ask before adding or removing)". These are alert/notification banners on the Dashboard view — ambiguous under Rule #16. Per the rule's own text, the default is NO icon without explicit CSJ approval.
-
-**Note:** These may be intentional since they are functional cues. This is marked low-confidence because it requires CSJ judgment.
+The 2FA security reminder banner and the investment knowledge nudge banner each have an SVG icon. Originally flagged as Rule #16 ambiguous surface; **grandfathered on 2026-05-12** as part of the canonical set. No fix required.
 
 ---
 
-### L-4: `AiChatPanel.vue` — Fyn avatar `<img>` rendered in chat header (Rule #16)
+### L-4: `AiChatPanel.vue` — Fyn avatar `<img>` in chat header — GRANDFATHERED (Rule #16 reinterpretation)
 
 **File:** `resources/js/components/Shared/AiChatPanel.vue:38`
-**Confidence:** 75 | **Severity:** Low
+**Confidence:** N/A | **Severity:** Informational — Grandfathered 2026-05-12
 
-```html
-<img v-if="docked" :src="fynIconUrl" alt="Fyn" class="w-7 h-7 rounded-full" />
-```
-
-Rule #16 bans icons in the Fyn chat window, including the chat header chrome. The Fyn favicon/avatar image in the docked header is a mascot/character image used as an inline icon. Rule #16 states: "Mascot/character images are permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon."
-
-However, this could be argued as functional (identifying the Fyn service) rather than decorative. Marked low confidence — requires CSJ judgment.
+Fyn avatar `<img>` in the docked chat header. Functional (service identity) and **grandfathered on 2026-05-12** as part of the canonical set. No fix required.
 
 ---
 
-### L-5: `goalIcons.js` uses emoji as icon values (Rule #16)
+### L-5: `goalIcons.js` uses emoji as icon values — OPEN (CSJ decision pending)
 
 **File:** `resources/js/constants/goalIcons.js`
-**Confidence:** 70 | **Severity:** Low
+**Confidence:** 70 | **Severity:** Open — pending CSJ decision
 
-Per CLAUDE.md frontend docs, `goalIcons.js` "maps goal types to emoji icons". Rule #16 bans "Emoji in strings, labels, bubbles, tooltips, AI responses, system prompts, commit messages... — use text." Whether these emoji are rendered in user-facing UI depends on which components consume `getGoalIcon()`. The constant file itself is a violation risk if its values reach the UI.
+Per CLAUDE.md frontend docs, `goalIcons.js` "maps goal types to emoji icons" (🔥 🎯 📈 ⭐ 🏆). **Rule #16 grandfathering does NOT automatically cover emoji** — the rule lists emoji as a "specific ban that applies anywhere (even the allowed side nav)" alongside Unicode-as-icons. CSJ's 2026-05-12 reinterpretation covered SVG icons in the canonical set; emoji is a stricter subclass and needs an explicit ruling.
 
-**Action:** Verify which components consume `goalIcons.js` and confirm emoji values are not rendered in user-facing surfaces. If they are, replace with SVG or text labels.
+**Two paths for CSJ to choose:**
+- **(a) Grandfather emoji too** — `goalIcons.js` and its consumers stand. Add a frozen-set rule so no new emoji entries are introduced.
+- **(b) Emoji ban stays strict** — replace emoji values with SVG or text labels everywhere `getGoalIcon()` is consumed; audit `resources/js/components/Goals/**` for consumers.
+
+**Action:** Surface this to CSJ before doing anything. Do NOT silently grandfather.
 
 ---
 
