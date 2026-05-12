@@ -1340,9 +1340,12 @@ Route::post('/bug-report', [BugReportController::class, 'store'])
 
 // ===========================
 // Eval-only routes (HTTP-driven eval flow — see April27Updates plan).
-// Refused in production both at the controller and at the route level.
+// Fail-closed: registered ONLY when APP_ENV is one of local/testing/staging.
+// Anything else (production, unset APP_ENV, typo) skips registration entirely.
+// REVIEW.md §4 High #20 — previous `! environment('production')` guard
+// failed open on unset/misconfigured APP_ENV.
 // ===========================
-if (! app()->environment('production')) {
+if (app()->environment(['local', 'testing', 'staging'])) {
     Route::middleware(['throttle:20,1'])->prefix('eval')->group(function () {
         Route::post('/login/{personaId}', [EvalAuthController::class, 'login']);
         Route::middleware('auth:sanctum')->group(function () {
