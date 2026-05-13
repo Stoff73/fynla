@@ -564,6 +564,11 @@ class UKTaxCalculator
      * @param  float  $dividendIncome  Dividend income
      * @param  float  $interestIncome  Interest income (savings)
      * @param  float  $otherIncome  Other taxable income
+     * @param  float  $pensionContributions  Gross employee pension contributions (relief-at-source).
+     *                                       Deducted from taxable earned income AND from ANI for PA taper.
+     * @param  float  $giftAidGross  Grossed-up Gift Aid donations.
+     *                               Deducted from ANI for PA taper only — taxable income is not
+     *                               reduced (basic-rate relief is given to the charity at source).
      * @return array Net income breakdown with tax and NI details
      */
     public function calculateNetIncome(
@@ -572,13 +577,23 @@ class UKTaxCalculator
         float $rentalIncome = 0,
         float $dividendIncome = 0,
         float $interestIncome = 0,
-        float $otherIncome = 0
+        float $otherIncome = 0,
+        float $pensionContributions = 0,
+        float $giftAidGross = 0
     ): array {
         $grossIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $dividendIncome + $interestIncome + $otherIncome;
 
-        // Calculate Income Tax (including interest and dividend income)
+        // Calculate Income Tax — pension is deducted from earned income before band
+        // allocation (net-pay model), and both pension + Gift Aid reduce ANI for the
+        // PA taper. See calculateIncomeTax for the ANI-aware taper logic.
         $nonDividendNonInterestIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $otherIncome;
-        $incomeTax = $this->calculateIncomeTax($nonDividendNonInterestIncome, $interestIncome, $dividendIncome);
+        $incomeTax = $this->calculateIncomeTax(
+            $nonDividendNonInterestIncome,
+            $interestIncome,
+            $dividendIncome,
+            $pensionContributions,
+            $giftAidGross
+        );
 
         // Calculate National Insurance
         $class1NI = $this->calculateClass1NI($employmentIncome); // Employees
@@ -612,12 +627,17 @@ class UKTaxCalculator
      * Calculate UK Income Tax using active tax year rates from TaxConfigService.
      * Supports:
      * - Income tax bands (basic, higher, additional)
-     * - Personal allowance
+     * - Personal allowance with Adjusted-Net-Income taper (HMRC ITA 2007 s35-s37)
      * - Personal Savings Allowance (£1,000 basic rate, £500 higher rate, £0 additional rate)
      * - Dividend allowance and dividend-specific rates
      */
-    private function calculateIncomeTax(float $nonDividendNonInterestIncome, float $interestIncome, float $dividendIncome): float
-    {
+    private function calculateIncomeTax(
+        float $nonDividendNonInterestIncome,
+        float $interestIncome,
+        float $dividendIncome,
+        float $pensionContributions = 0,
+        float $giftAidGross = 0
+    ): float {
         // Get tax configuration from service
         $incomeTax = $this->taxConfig->getIncomeTax();
         $dividendTax = $this->taxConfig->getDividendTax();
@@ -625,11 +645,18 @@ class UKTaxCalculator
         $personalAllowance = $incomeTax['personal_allowance'];
         $dividendAllowance = $dividendTax['allowance'];
 
-        // Apply Personal Allowance taper for incomes above £100,000
+        // Deduct pension contributions from taxable earned income (net-pay model — caller
+        // is expected to pass gross earned income; pension is excluded from the tax base).
+        $nonDividendNonInterestIncome = max(0.0, $nonDividendNonInterestIncome - $pensionContributions);
+
+        // Apply Personal Allowance taper using Adjusted Net Income (NOT gross). ANI =
+        // (gross total income) − pension − Gift Aid. Since pension has already been
+        // subtracted from $nonDividendNonInterestIncome above, only Gift Aid remains.
         $totalIncomePre = $nonDividendNonInterestIncome + $interestIncome + $dividendIncome;
+        $adjustedNetIncome = max(0.0, $totalIncomePre - $giftAidGross);
         $taperThreshold = $incomeTax['personal_allowance_taper_threshold'] ?? 100000;
-        if ($totalIncomePre > $taperThreshold) {
-            $excess = $totalIncomePre - $taperThreshold;
+        if ($adjustedNetIncome > $taperThreshold) {
+            $excess = $adjustedNetIncome - $taperThreshold;
             $reduction = floor($excess / 2);
             $personalAllowance = max(0, $personalAllowance - $reduction);
         }

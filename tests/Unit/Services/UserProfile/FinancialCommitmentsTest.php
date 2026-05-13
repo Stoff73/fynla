@@ -13,6 +13,7 @@ use App\Models\TaxConfiguration;
 use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 use App\Services\UserProfile\UserProfileService;
@@ -26,7 +27,7 @@ beforeEach(function () {
     $this->assetAggregator = new CrossModuleAssetAggregator;
     $taxConfigService = app(TaxConfigService::class);
     $this->taxCalculator = new UKTaxCalculator($taxConfigService);
-    $this->childBenefitService = new ChildBenefitService($taxConfigService);
+    $this->childBenefitService = new ChildBenefitService($taxConfigService, new IncomeDefinitionsService($taxConfigService));
     $this->service = new UserProfileService($this->assetAggregator, $this->taxCalculator, $this->childBenefitService);
     $this->user = User::factory()->create();
 });

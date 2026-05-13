@@ -31,11 +31,22 @@ class PersonalAccountsService
      */
     public function calculateProfitAndLoss(User $user, Carbon $startDate, Carbon $endDate): array
     {
-        // Load relationships
-        $user->load(['properties', 'mortgages', 'dbPensions', 'statePension']);
+        // Load relationships — dcPensions needed for ANI-aware tax calculation.
+        $user->load(['properties', 'mortgages', 'dcPensions', 'dbPensions', 'statePension']);
 
         // Calculate pension income from DB pensions and state pension
         $pensionIncome = $this->calculateAnnualPensionIncome($user);
+
+        // Deductions for Adjusted Net Income (PA taper).
+        $pensionContributions = $user->dcPensions->sum(function ($pension) {
+            $salary = (float) ($pension->annual_salary ?? 0);
+            $employeePercent = (float) ($pension->employee_contribution_percent ?? 0);
+
+            return $salary * ($employeePercent / 100);
+        });
+        $giftAidGross = $user->is_gift_aid
+            ? (float) ($user->annual_charitable_donations ?? 0) * 1.25
+            : 0.0;
 
         // Calculate income line items
         $income = [
@@ -128,7 +139,9 @@ class PersonalAccountsService
             (float) ($user->annual_rental_income ?? 0),
             (float) ($user->annual_dividend_income ?? 0),
             (float) ($user->annual_interest_income ?? 0),
-            (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0) + $pensionIncome
+            (float) ($user->annual_other_income ?? 0) + (float) ($user->annual_trust_income ?? 0) + $pensionIncome,
+            $pensionContributions,
+            $giftAidGross
         );
 
         return [
