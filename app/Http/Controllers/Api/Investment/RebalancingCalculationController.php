@@ -118,7 +118,7 @@ class RebalancingCalculationController extends Controller
                 $cgtAllowance = $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000;
                 $cgtOptions = [
                     'cgt_allowance' => $validated['cgt_allowance'] ?? $cgtAllowance,
-                    'tax_rate' => $validated['tax_rate'] ?? 0.20,
+                    'tax_rate' => $validated['tax_rate'] ?? null,
                     'loss_carryforward' => $validated['loss_carryforward'] ?? 0,
                 ];
 
@@ -225,7 +225,7 @@ class RebalancingCalculationController extends Controller
             $cgtAllowance = $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000;
             $cgtOptions = [
                 'cgt_allowance' => $validated['cgt_allowance'] ?? $cgtAllowance,
-                'tax_rate' => $validated['tax_rate'] ?? 0.20,
+                'tax_rate' => $validated['tax_rate'] ?? null,
             ];
 
             $comparison = $this->taxAwareRebalancer->compareStrategies(
@@ -291,7 +291,7 @@ class RebalancingCalculationController extends Controller
             $cgtAllowance = $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000;
             $cgtOptions = [
                 'cgt_allowance' => $validated['cgt_allowance'] ?? $cgtAllowance,
-                'tax_rate' => $validated['tax_rate'] ?? 0.20,
+                'tax_rate' => $validated['tax_rate'] ?? null,
             ];
 
             $result = $this->taxAwareRebalancer->rebalanceWithinCGTAllowance(
@@ -445,7 +445,7 @@ class RebalancingCalculationController extends Controller
                             $holdings,
                             [
                                 'cgt_allowance' => $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000,
-                                'tax_rate' => 0.20,
+                                'tax_rate' => null,
                                 'loss_carryforward' => 0,
                             ]
                         );
