@@ -12,7 +12,6 @@ use App\Models\Investment\RiskProfile;
 use App\Services\Investment\Rebalancing\DriftAnalyzer;
 use App\Services\Investment\Rebalancing\RebalancingCalculator;
 use App\Services\Investment\Rebalancing\TaxAwareRebalancer;
-use App\Services\TaxConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,8 +26,7 @@ class RebalancingCalculationController extends Controller
     public function __construct(
         private readonly RebalancingCalculator $rebalancingCalculator,
         private readonly TaxAwareRebalancer $taxAwareRebalancer,
-        private readonly DriftAnalyzer $driftAnalyzer,
-        private readonly TaxConfigService $taxConfig
+        private readonly DriftAnalyzer $driftAnalyzer
     ) {}
 
     /**
@@ -115,9 +113,8 @@ class RebalancingCalculationController extends Controller
 
             // Apply CGT optimization if requested
             if ($validated['optimize_for_cgt'] ?? false) {
-                $cgtAllowance = $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000;
                 $cgtOptions = [
-                    'cgt_allowance' => $validated['cgt_allowance'] ?? $cgtAllowance,
+                    'cgt_allowance' => $validated['cgt_allowance'] ?? null,
                     'tax_rate' => $validated['tax_rate'] ?? null,
                     'loss_carryforward' => $validated['loss_carryforward'] ?? 0,
                 ];
@@ -222,9 +219,8 @@ class RebalancingCalculationController extends Controller
             )['actions'];
 
             // Compare CGT
-            $cgtAllowance = $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000;
             $cgtOptions = [
-                'cgt_allowance' => $validated['cgt_allowance'] ?? $cgtAllowance,
+                'cgt_allowance' => $validated['cgt_allowance'] ?? null,
                 'tax_rate' => $validated['tax_rate'] ?? null,
             ];
 
@@ -288,9 +284,8 @@ class RebalancingCalculationController extends Controller
             )['actions'];
 
             // Constrain to CGT allowance
-            $cgtAllowance = $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000;
             $cgtOptions = [
-                'cgt_allowance' => $validated['cgt_allowance'] ?? $cgtAllowance,
+                'cgt_allowance' => $validated['cgt_allowance'] ?? null,
                 'tax_rate' => $validated['tax_rate'] ?? null,
             ];
 
@@ -444,7 +439,7 @@ class RebalancingCalculationController extends Controller
                             $rebalanceResult['actions'],
                             $holdings,
                             [
-                                'cgt_allowance' => $this->taxConfig->getCapitalGainsTax()['annual_exempt_amount'] ?? 3000,
+                                'cgt_allowance' => null,
                                 'tax_rate' => null,
                                 'loss_carryforward' => 0,
                             ]
@@ -453,7 +448,7 @@ class RebalancingCalculationController extends Controller
                         $response['rebalancing_actions'] = $cgtResult['optimized_actions'] ?? $rebalanceResult['actions'];
                         $response['cgt_analysis'] = [
                             'total_gains' => $cgtResult['cgt_analysis']['total_gains'] ?? 0,
-                            'allowance_used' => min($cgtResult['cgt_analysis']['total_gains'] ?? 0, 3000),
+                            'allowance_used' => $cgtResult['cgt_analysis']['allowance_used'] ?? 0,
                             'cgt_liability' => $cgtResult['cgt_analysis']['cgt_liability'] ?? 0,
                         ];
                     }

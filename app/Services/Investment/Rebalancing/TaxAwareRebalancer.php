@@ -18,10 +18,11 @@ use Illuminate\Support\Collection;
  * - CGT rates on non-residential assets: 18% (basic rate) or 24% (higher rate)
  * - Can offset losses against gains
  *
- * The service resolves the user's marginal CGT rate from caller-supplied
- * `options['tax_rate']` first, then falls back to the active TaxConfiguration's
- * `basic_rate`. It NEVER hardcodes a numeric fallback — a missing config value
- * is treated as a deploy/seeding bug and surfaces as FinancialCalculationException.
+ * The service resolves both the marginal CGT rate AND the annual exempt amount
+ * from caller-supplied options first, then falls back to the active
+ * TaxConfiguration. It NEVER hardcodes a numeric fallback — a missing config
+ * value is treated as a deploy/seeding bug and surfaces as
+ * FinancialCalculationException (Wave 2.5 BADR-sibling pattern).
  */
 class TaxAwareRebalancer
 {
@@ -43,7 +44,7 @@ class TaxAwareRebalancer
         array $options = []
     ): array {
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
-        $cgtAllowance = $options['cgt_allowance'] ?? (float) ($cgtConfig['annual_exempt_amount'] ?? 3000);
+        $cgtAllowance = $this->resolveCgtAllowance($options, $cgtConfig);
         $taxRate = $this->resolveTaxRate($options, $cgtConfig);
         $lossCarryforward = $options['loss_carryforward'] ?? 0;
 
@@ -465,7 +466,7 @@ class TaxAwareRebalancer
         array $options = []
     ): array {
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
-        $cgtAllowance = $options['cgt_allowance'] ?? (float) ($cgtConfig['annual_exempt_amount'] ?? 3000);
+        $cgtAllowance = $this->resolveCgtAllowance($options, $cgtConfig);
         $taxRate = $this->resolveTaxRate($options, $cgtConfig);
 
         // Calculate CGT for all actions
@@ -568,5 +569,38 @@ class TaxAwareRebalancer
         }
 
         return (float) $cgtConfig['basic_rate'];
+    }
+
+    /**
+     * Resolve the annual CGT exempt amount to apply.
+     *
+     * Caller-supplied `options['cgt_allowance']` wins (lets the controller pass
+     * an explicit override from a validated request). Otherwise fall back to
+     * the active TaxConfiguration's `annual_exempt_amount`. The prior
+     * `?? 3000` fallback was the post-30-October-2024 statutory amount;
+     * silently using it after HMRC changes the figure would under-state
+     * taxable gains every rebalance. Same Wave 2.5 BADR-sibling fail-loud
+     * philosophy as resolveTaxRate() (PR #289 / PR #291).
+     *
+     * @param  array  $options  Options array from the public method
+     * @param  array  $cgtConfig  Already-resolved CGT config slice
+     * @return float Annual CGT exempt amount in £
+     *
+     * @throws FinancialCalculationException when neither options['cgt_allowance']
+     *         nor `$cgtConfig['annual_exempt_amount']` is available.
+     */
+    private function resolveCgtAllowance(array $options, array $cgtConfig): float
+    {
+        if (isset($options['cgt_allowance']) && $options['cgt_allowance'] !== null) {
+            return (float) $options['cgt_allowance'];
+        }
+        if (! isset($cgtConfig['annual_exempt_amount'])) {
+            throw FinancialCalculationException::taxConfigError(
+                'annual_exempt_amount',
+                'CGT annual exempt amount missing from active TaxConfiguration — refusing to fall back to a stale default (£3,000).'
+            );
+        }
+
+        return (float) $cgtConfig['annual_exempt_amount'];
     }
 }
