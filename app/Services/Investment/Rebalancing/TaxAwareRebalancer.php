@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Rebalancing;
 
+use App\Exceptions\FinancialCalculationException;
 use App\Models\Investment\Holding;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
@@ -12,10 +13,15 @@ use Illuminate\Support\Collection;
  * Tax-aware rebalancing optimizer
  * Minimizes Capital Gains Tax liability when executing rebalancing trades
  *
- * UK CGT Rules (2025/26):
+ * UK CGT Rules (post-30-October-2024):
  * - Annual exemption: £3,000
- * - CGT rates: 10% (basic rate) or 20% (higher rate) for most assets
+ * - CGT rates on non-residential assets: 18% (basic rate) or 24% (higher rate)
  * - Can offset losses against gains
+ *
+ * The service resolves the user's marginal CGT rate from caller-supplied
+ * `options['tax_rate']` first, then falls back to the active TaxConfiguration's
+ * `basic_rate`. It NEVER hardcodes a numeric fallback — a missing config value
+ * is treated as a deploy/seeding bug and surfaces as FinancialCalculationException.
  */
 class TaxAwareRebalancer
 {
@@ -38,7 +44,7 @@ class TaxAwareRebalancer
     ): array {
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
         $cgtAllowance = $options['cgt_allowance'] ?? (float) ($cgtConfig['annual_exempt_amount'] ?? 3000);
-        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['basic_rate'] ?? 0.10);
+        $taxRate = $this->resolveTaxRate($options, $cgtConfig);
         $lossCarryforward = $options['loss_carryforward'] ?? 0;
 
         // Separate buy and sell actions
@@ -93,7 +99,8 @@ class TaxAwareRebalancer
         $taxLossOpportunities = $this->identifyTaxLossHarvesting(
             $holdings,
             $cgtAnalysis,
-            $cgtAllowance
+            $cgtAllowance,
+            $taxRate
         );
 
         return [
@@ -242,12 +249,14 @@ class TaxAwareRebalancer
      * @param  Collection  $holdings  All user holdings
      * @param  array  $cgtAnalysis  CGT analysis from rebalancing
      * @param  float  $cgtAllowance  Annual CGT allowance
+     * @param  float  $taxRate  Marginal CGT rate the user would otherwise pay on the offsettable gains
      * @return array Tax-loss harvesting opportunities
      */
     private function identifyTaxLossHarvesting(
         Collection $holdings,
         array $cgtAnalysis,
-        float $cgtAllowance
+        float $cgtAllowance,
+        float $taxRate
     ): array {
         // Only consider if there are taxable gains
         if ($cgtAnalysis['taxable_gains'] <= 0) {
@@ -284,7 +293,7 @@ class TaxAwareRebalancer
                 'current_value' => $currentValue,
                 'cost_basis' => $costBasis,
                 'holding_period_days' => $this->calculateHoldingPeriod($holding),
-                'potential_tax_benefit' => abs($unrealizedGainLoss) * 0.20, // Assume 20% rate
+                'potential_tax_benefit' => abs($unrealizedGainLoss) * $taxRate,
                 'rationale' => sprintf(
                     'Sell to realize £%s loss, offsetting gains and reducing CGT',
                     number_format(abs($unrealizedGainLoss), 2)
@@ -297,7 +306,7 @@ class TaxAwareRebalancer
 
         // Calculate potential total tax saving
         $totalPotentialLosses = array_sum(array_column($opportunities, 'unrealized_loss'));
-        $potentialTaxSaving = min($totalPotentialLosses, $cgtAnalysis['taxable_gains']) * 0.20;
+        $potentialTaxSaving = min($totalPotentialLosses, $cgtAnalysis['taxable_gains']) * $taxRate;
 
         return [
             'opportunities' => $opportunities,
@@ -457,7 +466,7 @@ class TaxAwareRebalancer
     ): array {
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
         $cgtAllowance = $options['cgt_allowance'] ?? (float) ($cgtConfig['annual_exempt_amount'] ?? 3000);
-        $taxRate = $options['tax_rate'] ?? (float) ($cgtConfig['basic_rate'] ?? 0.10);
+        $taxRate = $this->resolveTaxRate($options, $cgtConfig);
 
         // Calculate CGT for all actions
         $actionsWithCGT = $this->calculateCGTForSellActions(
@@ -527,5 +536,37 @@ class TaxAwareRebalancer
                 count($actions) - count($selectedActions)
             ),
         ];
+    }
+
+    /**
+     * Resolve the marginal CGT rate to apply.
+     *
+     * Caller-supplied `options['tax_rate']` wins (the user's actual marginal
+     * rate from the request). Otherwise fall back to the active
+     * TaxConfiguration's `basic_rate`. The prior `?? 0.10` fallback was the
+     * pre-30-October-2024 statutory CGT basic rate; silently using it post-2024
+     * would under-state CGT by 8 percentage points on every rebalance. Same
+     * fail-loud philosophy as Wave 2.5 BADR sibling fix (PR #289).
+     *
+     * @param  array  $options  Options array from the public method
+     * @param  array  $cgtConfig  Already-resolved CGT config slice
+     * @return float Marginal CGT rate (0..1)
+     *
+     * @throws FinancialCalculationException when neither options['tax_rate']
+     *         nor `$cgtConfig['basic_rate']` is available.
+     */
+    private function resolveTaxRate(array $options, array $cgtConfig): float
+    {
+        if (isset($options['tax_rate']) && $options['tax_rate'] !== null) {
+            return (float) $options['tax_rate'];
+        }
+        if (! isset($cgtConfig['basic_rate'])) {
+            throw FinancialCalculationException::taxConfigError(
+                'basic_rate',
+                'CGT basic rate missing from active TaxConfiguration — refusing to fall back to a stale default (pre-30-October-2024 0.10).'
+            );
+        }
+
+        return (float) $cgtConfig['basic_rate'];
     }
 }

@@ -1,7 +1,65 @@
 # CSJTODO — Fynla
 
-*Last updated: 12 May 2026 — session 8 end-of-day wrap (PRs #287/#288/#289 merged; PR #290 Adjusted Net Income opened)*
-*Previous session: 12 May 2026 — session 7 context-clear (Wave 1/2 PRs #281–#286 merged + csjones deployed; 3 Phase B PRs #287/#288/#289 opened)*
+*Last updated: 13 May 2026 — session 2 context-clear (PR #290 merged + csjones deployed + PR #291 opened)*
+*Previous session: 13 May 2026 — session 1 end-of-day (PR #290 Adjusted Net Income opened)*
+
+---
+
+## Session 2 (13 May 2026, context-clear) — PR #290 merged + csjones deployed + PR #291 opened
+
+**Branch:** `audit-rebalancing-cgt-rates` at `461d4c5` (PR #291 head) · `dev` at `f22c9b988` · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 1 · **New PRs opened this session:** 1 · **Open PRs total against `dev`:** 1 (#291)
+
+**Outcome:**
+1. **PR #290 admin-merged** into `dev` (merge commit `f22c9b988`). Origin branch deleted.
+2. **Deployed `dev → csjones.co/fynla`** end-to-end: `npm ci` + `./deploy/csjones-fynla/build.sh` locally, preserve-old-chunks pattern via scp, clean `git pull origin dev` (no .htaccess workaround needed — file not in this batch's diff), 0 new migrations, full cache cycle. Smoke verified: chris@fynla.org login + MFA (code via SSH-fetched staging DB lookup) → /fynla/dashboard with canonical Net Worth £598,250 and zero JS errors.
+3. **Vault-sync backlog cleared** (Haiku 4.5 subagent at high effort) — 27 files synced (May 11 sessions 6–12 + May 12 sessions 1–8 + May 13 session 1). May11.md/May12.md/May13.md git history created + May 2026 monthly index updated to 211 commits / 13 active days. 8 review files got frontmatter; May Index session entries added. Flagged: UKTaxes.md 7-day stale despite audit batch touching tax engines.
+4. **PR #291 (`audit-rebalancing-cgt-rates → dev`)** opened — fail-loud on missing CGT basic_rate in Rebalancing service (REVIEW §4 High #29). 6 hardcoded site fixes (4 service-level: 2 `?? 0.10` fallbacks + 2 `* 0.20` hardcoded in tax-loss harvesting; 4 controller-level `?? 0.20` defaults → `?? null`). Wave 2.5 BADR-sibling pattern: caller's `options['tax_rate']` → cgtConfig basic_rate → `FinancialCalculationException::taxConfigError`. `identifyTaxLossHarvesting` now threads resolved rate. 7 new Pest cases. 380-test Investment + Business + Architecture sweep clean. https://github.com/Stoff73/fynla/pull/291
+5. **Surfaced finding:** `RebalancingCalculator.vue` (the file REVIEW #29 actually named) is **dead code** — zero imports anywhere in `resources/js`. Backend fix shipped; CSJ to decide on the orphan file.
+6. **Tech-debt-session audit skipped** under context-budget pressure (tripwire at ~259k). PR #291 changes implicitly audited via the 380-test sweep but no formal audit ran.
+
+### Done
+
+- [x] PR #290 merged + origin branch deleted
+- [x] csjones deployed end-to-end + smoke green
+- [x] Vault-sync backlog (May 11 s6–12 + May 12 s1–8 + May 13 s1) cleared
+- [x] PR #291 (Rebalancing CGT fail-loud) opened — branch tip `461d4c5`
+- [x] 7 new Pest cases in PR #291, all green
+- [x] 380-test Investment + Business + Architecture sweep green, zero regressions
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PR #291** once CI fully reports. `gh pr checks 291`, `gh pr merge 291 --merge --admin --delete-branch`. Sync local dev after.
+- [ ] **Tech-debt-session audit on PR #291 changes** — skipped this session, run when merged.
+- [ ] **RebalancingCalculator.vue orphan** (REVIEW #29 frontend half) — CSJ to choose: delete the file or restore the missing wire-up. Separate PR.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (follow-up from #287) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled.
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions.
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290.
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#291. Body must call out PR #284 `npm ci` + PR #282 .htaccess template + PR #290 behaviour change + PR #291 CGT rate change (0.18/0.24 instead of 0.10/0.20). 2 prod migrations to run.
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`.
+- [ ] **Refresh `UKTaxes.md`** Current State doc (7-day stale; audit batch touches PA-taper, SRS, salary sacrifice, ANI, BADR).
+- [ ] **Frontend `taxConfig.js` hydrate from backend** (REVIEW §4 High #28).
+- [ ] **CoordinatingAgent 7 raw `orWhere` joint queries** → `forUserOrJoint` scope (REVIEW §4 High #32).
+- [ ] **6 ownership_type enums missing `tenants_in_common`** (REVIEW §4 High #33, Rule #5).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`.
+
+### Tech debt deferred (from this session)
+
+- Tech-debt-session audit skipped on PR #291 (context budget).
+- `RebalancingCalculator.vue` dead code (REVIEW #29 frontend half) — Task #5 captured; CSJ to direct.
+- `UKTaxes.md` vault Current State doc 7-day stale.
+
+### Branch / deploy state
+
+- `audit-rebalancing-cgt-rates` at `461d4c5` pushed (PR #291 OPEN — logic-guard ✅ snyk ✅ GitGuardian pending)
+- `dev` at `f22c9b988` (carries 4-PR audit batch: #287/#288/#289/#290; #291 will be the 5th when merged)
+- `main` unchanged at `f15e068` — production still pre-audit
+- csjones.co/fynla on `dev@f22c9b988` — live (will be 1 PR behind once #291 merges; bundle next deploy)
+- fynla.org unchanged
 
 ---
 
