@@ -19,8 +19,8 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
@@ -346,7 +346,8 @@ class EstateActionDefinitionService
         $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
 
         // Savings accounts
-        $total += (float) SavingsAccount::where('user_id', $user->id)->sum('current_balance');
+        $savingsCollection = app(SavingsStore::class)->forUser($user);
+        $total += (float) $savingsCollection->where('user_id', $user->id)->sum('current_balance');
 
         // Cash accounts
         $total += (float) CashAccount::where('user_id', $user->id)->sum('current_balance');
