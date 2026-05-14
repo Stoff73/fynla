@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\Investment\FeeImpactController;
 use App\Http\Controllers\Api\Investment\GoalProgressController;
 use App\Http\Controllers\Api\Investment\InvestmentScenarioController;
 use App\Http\Controllers\Api\Investment\ModelPortfolioController;
+use App\Http\Controllers\Api\Investment\AccountRebalancingController;
 use App\Http\Controllers\Api\Investment\PerformanceAttributionController;
 use App\Http\Controllers\Api\Investment\PortfolioStrategyController;
 use App\Http\Controllers\Api\Investment\RebalancingActionsController;
@@ -561,8 +562,8 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::put('/{id}', [InvestmentController::class, 'updateAccount']);
         Route::delete('/{id}', [InvestmentController::class, 'destroyAccount']);
         Route::get('/{id}/projections', [InvestmentController::class, 'getAccountProjections']);
-        Route::get('/{id}/rebalancing', [RebalancingCalculationController::class, 'getAccountRebalancing']);
-        Route::patch('/{id}/rebalancing-threshold', [RebalancingCalculationController::class, 'updateRebalancingThreshold']);
+        Route::get('/{id}/rebalancing', [AccountRebalancingController::class, 'getAccountRebalancing']);
+        Route::patch('/{id}/rebalancing-threshold', [AccountRebalancingController::class, 'updateRebalancingThreshold']);
         Route::get('/{id}/diversification', [InvestmentController::class, 'getAccountDiversification']);
         Route::patch('/{id}/toggle-retirement', [InvestmentController::class, 'toggleRetirementInclusion']);
     });
