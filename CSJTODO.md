@@ -1,7 +1,74 @@
 # CSJTODO — Fynla
 
-*Last updated: 13 May 2026 — session 2 context-clear (PR #290 merged + csjones deployed + PR #291 opened)*
-*Previous session: 13 May 2026 — session 1 end-of-day (PR #290 Adjusted Net Income opened)*
+*Last updated: 13 May 2026 — session 3 end-of-day (PR #291 merged + PR #292 CGT allowance fail-loud opened, all CI green)*
+*Previous session: 13 May 2026 — session 2 context-clear (PR #290 merged + csjones deployed + PR #291 opened)*
+
+---
+
+## Session 3 (13 May 2026, end-of-day) — PR #291 merged + tech-debt audit + PR #292 (CGT allowance fail-loud) opened
+
+**Branch:** `audit-rebalancing-cgt-allowance` at `a456d27` (PR #292 head) · `dev` at `41981c2` · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 1 · **New PRs opened this session:** 1 · **Open PRs total against `dev`:** 1 (#292)
+
+**Outcome:**
+1. **PR #291 admin-merged** into `dev` (merge commit `41981c2`). Origin branch deleted. WIP context-handover commit landed cleanly alongside the fix.
+2. **Tech-debt-session audit ran on PR #291's three files** — surfaced 7 findings (1 critical + 4 warnings + 2 suggestions). Full report at `tech-debt-report.md`. Dominant pattern: PR #291 fixed CGT *rate* fail-loud but left exact-twin sibling soft-fallbacks for CGT *allowance* on the same lines of code.
+3. **PR #292 (`audit-rebalancing-cgt-allowance → dev`)** opened — addresses the critical + 2 sibling warnings from the audit. New `resolveCgtAllowance()` helper mirrors `resolveTaxRate()` shape (caller wins → config fallback → throws `FinancialCalculationException::taxConfigError`). 2 service-level `?? 3000` fallbacks → helper. 4 controller-level `?? 3000` → `?? null` (service handles lookup). Critical fix at line 456: `min($total_gains, 3000)` → `$cgtResult['cgt_analysis']['allowance_used']`. `TaxConfigService` dep removed from controller constructor (dead after dedupe). 6 new Pest cases. 430-test Investment + Architecture sweep clean. **All 3 CI checks GREEN** (logic-guard ✅ snyk ✅ GitGuardian ✅). https://github.com/Stoff73/fynla/pull/292
+4. **No deploys this session.** csjones.co/fynla still on `dev@f22c9b988` (now 1 PR behind; will be 2 PRs behind once #292 merges — bundle next deploy).
+5. **Vault-sync subagent went off-rails** — wrote a fynlaInternational handover into the shared vault's May14Updates folder. UK Fynla EOD mirrored as `-ukfynla` suffix to avoid clobber. See known-issues below.
+
+### Done
+
+- [x] PR #291 merged + origin branch deleted
+- [x] Tech-debt audit on PR #291 changes — 7 findings surfaced
+- [x] PR #292 (CGT allowance fail-loud sibling) opened — branch tip `a456d27`, all CI green
+- [x] 6 new Pest cases in PR #292, all green (13 total CGT-fail-loud test cases now)
+- [x] 430-test Investment + Architecture sweep green, zero regressions
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PR #292** — `gh pr checks 292` (all green at session close) → `gh pr merge 292 --merge --admin --delete-branch`. Sync local dev.
+- [ ] **Tech-debt-session audit on PR #292 changes** — quick check on the 3 modified files post-merge.
+- [ ] **Resolve vault-sync rogue-file issue** — surface to CSJ; decide whether to delete or rename `/Users/CSJ/Desktop/fynlaBrain/May/May14Updates/handover-2026-05-14-session-1.md` (fynlaInternational content); update session-end skill mirror-naming to prevent recurrence.
+- [ ] **Tech-debt audit remaining findings (Warning #4 + #5)** — split `RebalancingCalculationController` (639 lines) + extract `resolveAccountRiskProfile()` from the 154-line `getAccountRebalancing` god-method. Same-file follow-up.
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50. Update CLAUDE.md table in a doc-only PR when convenient.
+- [ ] **Tech debt suggestions #6 + #7** — Extract `unsetCgtConfigKey()` test helper when a third sibling test arrives. Drop step 3 from `optimizeSellOrder` docblock (unimplemented promise).
+- [ ] **REVIEW §4 High #28** — Frontend `taxConfig.js` hydrate from backend.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 6 ownership_type enums missing `tenants_in_common`.
+- [ ] **RebalancingCalculator.vue orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Separate PR.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled.
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions.
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290.
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#292 (12 PRs deep). Body must call out PR #284 `npm ci` + PR #282 .htaccess template + PR #290 behaviour change + PR #291 CGT rate change + PR #292 CGT allowance fail-loud (no happy-path behaviour change). 2 prod migrations to run.
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`.
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 8-day stale; audit batch touches PA-taper, SRS, salary sacrifice, ANI, BADR, CGT).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`.
+
+### Tech debt deferred (from this session)
+
+- Tech-debt audit on PR #292 not yet run (deferred to post-merge).
+- `RebalancingCalculationController` god-method extraction + file split (audit Warnings #4 + #5).
+- Test helper extraction + `optimizeSellOrder` docblock cleanup (audit Suggestions #6 + #7).
+- Vault-sync subagent rogue-file behaviour — skill needs a project-discriminator fix.
+- CLAUDE.md metric table drift (+6 service dirs, +5 API services).
+
+### Known issues
+
+- **Vault-sync subagent off-rails** — wrote fynlaInternational handover into shared vault's May14Updates. UK Fynla handover mirrored as `-ukfynla` suffix.
+- **Shared vault cross-project pollution** — fynlaBrain is used by UK Fynla AND fynlaInternational; May Index narrative currently leans fynlaInternational. Worth a CSJ decision about vault split vs project-discriminator.
+
+### Branch / deploy state
+
+- `audit-rebalancing-cgt-allowance` at `a456d27` pushed (PR #292 OPEN — all CI green)
+- `dev` at `41981c2` (carries 5-PR audit batch including #291; will carry #292 next)
+- `main` unchanged at `f15e068` — production still pre-audit
+- csjones.co/fynla on `dev@f22c9b988` — live (will be 2 PRs behind once #292 merges; bundle next deploy)
+- fynla.org unchanged
 
 ---
 
