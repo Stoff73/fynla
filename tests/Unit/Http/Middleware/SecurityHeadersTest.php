@@ -5,9 +5,6 @@ declare(strict_types=1);
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Tests\TestCase;
-
-uses(TestCase::class);
 
 describe('SecurityHeaders middleware', function () {
     beforeEach(function () {
