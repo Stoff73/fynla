@@ -7,14 +7,6 @@ use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsStore;
-use Database\Seeders\TaxConfigurationSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-
-uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    $this->seed(TaxConfigurationSeeder::class);
-});
 
 it('SavingsStore::create persists a SavingsAccount through the canonical write path', function () {
     $user = User::factory()->create();

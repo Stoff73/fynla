@@ -12,7 +12,6 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
-use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -22,7 +21,6 @@ class SavingsStore
     public const ENTITY_KEY = 'savings_account';
 
     public function __construct(
-        private readonly SavingsAccountNormaliser $normaliser,
         private readonly TierGate $tierGate,
     ) {}
 
@@ -88,9 +86,12 @@ class SavingsStore
     public function delete(int $id, User $user, string $reason): void
     {
         $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
-        $account->delete();
 
-        event(new SavingsAccountDeleted($id, $user, $reason));
+        DB::transaction(function () use ($account, $id, $user, $reason) {
+            $account->delete();
+
+            event(new SavingsAccountDeleted($id, $user, $reason));
+        });
     }
 
     public function restore(int $id, User $user): SavingsAccount
@@ -99,11 +100,14 @@ class SavingsStore
             ->where('id', $id)
             ->where('user_id', $user->id)
             ->firstOrFail();
-        $account->restore();
 
-        event(new SavingsAccountRestored($account, $user));
+        return DB::transaction(function () use ($account, $user) {
+            $account->restore();
 
-        return $account;
+            event(new SavingsAccountRestored($account, $user));
+
+            return $account;
+        });
     }
 
     // ---------- Internal ----------

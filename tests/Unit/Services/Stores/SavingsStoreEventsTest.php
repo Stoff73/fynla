@@ -9,15 +9,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsStore;
-use Database\Seeders\TaxConfigurationSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
-
-uses(RefreshDatabase::class);
-
-beforeEach(function () {
-    $this->seed(TaxConfigurationSeeder::class);
-});
 
 it('SavingsStore::create emits SavingsAccountCreated', function () {
     Event::fake();
