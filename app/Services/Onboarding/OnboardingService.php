@@ -16,10 +16,12 @@ use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
 use App\Models\Property;
 use App\Models\RetirementProfile;
-use App\Models\SavingsAccount;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -729,22 +731,25 @@ class OnboardingService
                         ?? User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
-                SavingsAccount::create([
-                    'user_id' => $userId,
-                    'institution' => $cashData['institution'],
-                    'account_type' => $cashData['account_type'],
-                    'country' => $cashData['country'] ?? 'United Kingdom',
-                    'current_balance' => $currentBalance,
-                    'interest_rate' => isset($cashData['interest_rate']) ? $cashData['interest_rate'] / 100 : 0,
-                    'ownership_type' => $ownershipType,
-                    'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
-                    'joint_owner_id' => $jointOwnerId,
-                    'is_isa' => $isCashISA,
-                    'isa_type' => $isCashISA ? 'cash' : null,
-                    'isa_subscription_year' => $isCashISA ? $this->taxConfig->getTaxYear() : null,
-                    'isa_subscription_amount' => $isCashISA ? $isaAllowanceUsed : null,
-                    'access_type' => $this->mapAccessType($cashData['account_type']),
-                ]);
+                app(SavingsStore::class)->create(
+                    app(SavingsAccountNormaliser::class)->fromForm([
+                        'institution' => $cashData['institution'],
+                        'account_type' => $cashData['account_type'],
+                        'country' => $cashData['country'] ?? 'United Kingdom',
+                        'current_balance' => $currentBalance,
+                        'interest_rate' => isset($cashData['interest_rate']) ? $cashData['interest_rate'] / 100 : 0,
+                        'ownership_type' => $ownershipType,
+                        'ownership_percentage' => $ownershipType === 'joint' ? 50.00 : 100.00,
+                        'joint_owner_id' => $jointOwnerId,
+                        'is_isa' => $isCashISA,
+                        'isa_type' => $isCashISA ? 'cash' : null,
+                        'isa_subscription_year' => $isCashISA ? $this->taxConfig->getTaxYear() : null,
+                        'isa_subscription_amount' => $isCashISA ? $isaAllowanceUsed : null,
+                        'access_type' => $this->mapAccessType($cashData['account_type']),
+                    ]),
+                    User::findOrFail($userId),
+                    IngestSource::FORM
+                );
             }
         }
     }
