@@ -420,6 +420,25 @@ it('GoalPlanService find by linked_savings_account_id returns same account after
     expect($postRefactor->institution)->toBe('GoalBank');
 });
 
+it('GoalPlanService store->find scopes to user — cross-user account id returns null (deliberate semantic narrowing)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $otherUser = User::factory()->create(['is_preview_user' => false]);
+
+    $foreignAccount = SavingsAccount::factory()->create([
+        'user_id' => $otherUser->id,
+        'institution' => 'ForeignBank',
+        'current_balance' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+
+    // Pre-refactor `SavingsAccount::find($id)` would have returned the row regardless of ownership.
+    // Post-refactor `store->find($id, $user)` returns null when the account is owned by another user
+    // and the requesting user is not joint_owner_id. This is a deliberate, safer narrowing.
+    expect(SavingsAccount::find($foreignAccount->id))->not->toBeNull();
+    expect(app(SavingsStore::class)->find($foreignAccount->id, $user))->toBeNull();
+});
+
 it('SavingsPlanService produces identical plan account collection after store migration', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $jointUser = User::factory()->create(['is_preview_user' => false]);
@@ -533,3 +552,27 @@ it('InvestmentPlanService cash account filter results identical after store migr
     expect($preRefactor->first()->account_name)->toBe('EligibleCash');
     expect($postRefactor->first()->account_name)->toBe('EligibleCash');
 });
+
+it('BasePlanService::resolveFundingSource returns null result when goal references a deleted user (regression)', function () {
+    // Pre-refactor used raw $userId in WHERE so missing user → empty Builder result, no crash.
+    // Post-refactor uses User::find($userId) + Collection chain — null user must short-circuit.
+    $orphanGoal = new \App\Models\Goal([
+        'name' => 'Orphan',
+        'target_amount' => 10000,
+        'current_amount' => 0,
+        'target_date' => now()->addYear(),
+        'priority' => 'high',
+    ]);
+    $orphanGoal->user_id = 99999999;  // non-existent user
+
+    // BasePlanService is abstract — use a concrete subclass that inherits resolveFundingSource.
+    $service = app(\App\Services\Plans\SavingsPlanService::class);
+    $reflection = new ReflectionClass(\App\Services\Plans\BasePlanService::class);
+    $method = $reflection->getMethod('resolveFundingSource');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($service, $orphanGoal);
+
+    expect($result)->toBe(['name' => null, 'warning' => null]);
+});
+

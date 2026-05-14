@@ -158,7 +158,7 @@ class InvestmentPlanService extends BasePlanService
             ->with('holdings')
             ->get();
 
-        $savingsAccounts = app(SavingsStore::class)->forUser(User::find($userId));
+        $savingsAccounts = ($u = User::find($userId)) ? app(SavingsStore::class)->forUser($u) : collect();
 
         // ── Phase 1: DB-driven trigger recommendations ──
         $accountFeeAnalyses = $investmentAccounts->map(

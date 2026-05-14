@@ -93,7 +93,8 @@ class SavingsPlanService extends BasePlanService
         $savingsAnalysis = $preComputedData['savings_analysis'] ?? $this->savingsAgent->analyze($userId);
         $investmentAnalysis = $preComputedData['investment_analysis'] ?? $this->investmentAgent->analyze($userId);
 
-        $savingsAccounts = $preComputedData['savings_accounts'] ?? app(SavingsStore::class)->forUser(User::find($userId));
+        $savingsAccounts = $preComputedData['savings_accounts']
+            ?? (($u = User::find($userId)) ? app(SavingsStore::class)->forUser($u) : collect());
         $investmentAccounts = $preComputedData['investment_accounts'] ?? InvestmentAccount::forUserOrJoint($userId)->get();
 
         $result = $this->actionDefinitionService->evaluateAgentActions(

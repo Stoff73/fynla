@@ -123,12 +123,15 @@ abstract class BasePlanService
      */
     private function resolveFundingSource(Goal $goal): array
     {
-        $userId = $goal->user_id;
-        $user = User::find($userId);
+        $user = User::find($goal->user_id);
+        if (! $user) {
+            return ['name' => null, 'warning' => null];
+        }
+
         $lumpSumNeeded = max(0, (float) $goal->target_amount - (float) $goal->current_amount);
 
         // Calculate the 6-month emergency threshold
-        $monthlyExpenditure = $user ? $this->resolveMonthlyExpenditure($user)['amount'] : 0.0;
+        $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
         $emergencyThreshold = $monthlyExpenditure * 6;
 
         // 1. Try liquid cash accounts (non-ISA, non-premium-bonds, non-notice)
@@ -153,7 +156,7 @@ abstract class BasePlanService
         }
 
         // 2. Fall back to GIA only (exclude ISA, pension, VCT, EIS, and employee schemes)
-        $gia = InvestmentAccount::where('user_id', $userId)
+        $gia = InvestmentAccount::where('user_id', $user->id)
             ->where('account_type', 'gia')
             ->orderByDesc('current_value')
             ->first();
