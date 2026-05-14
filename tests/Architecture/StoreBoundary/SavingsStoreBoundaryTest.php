@@ -39,11 +39,7 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 5 removes: read consumers (all listed in plan §"Modified files")
         'App\Agents\SavingsAgent',
         'App\Agents\InvestmentAgent',
-        'App\Services\Plans\BasePlanService',
-        'App\Services\Plans\GoalPlanService',
         'App\Services\Plans\RetirementPlanService',
-        'App\Services\Plans\SavingsPlanService',
-        'App\Services\Plans\InvestmentPlanService',
         'App\Services\Retirement\RetirementStrategyService',
         'App\Services\Retirement\RetirementIncomeService',
         'App\Services\Coordination\HouseholdPlanningService',

@@ -7,9 +7,9 @@ namespace App\Services\Plans;
 use App\Agents\InvestmentAgent;
 use App\Agents\SavingsAgent;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Savings\SavingsActionDefinitionService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 
 class SavingsPlanService extends BasePlanService
@@ -40,7 +40,7 @@ class SavingsPlanService extends BasePlanService
             ];
         }
 
-        $savingsAccounts = SavingsAccount::forUserOrJoint($userId)->get();
+        $savingsAccounts = app(SavingsStore::class)->forUser($user);
         $investmentAccounts = InvestmentAccount::forUserOrJoint($userId)->get();
 
         // 3. Get recommendations from DB-driven service
@@ -93,7 +93,7 @@ class SavingsPlanService extends BasePlanService
         $savingsAnalysis = $preComputedData['savings_analysis'] ?? $this->savingsAgent->analyze($userId);
         $investmentAnalysis = $preComputedData['investment_analysis'] ?? $this->investmentAgent->analyze($userId);
 
-        $savingsAccounts = $preComputedData['savings_accounts'] ?? SavingsAccount::forUserOrJoint($userId)->get();
+        $savingsAccounts = $preComputedData['savings_accounts'] ?? app(SavingsStore::class)->forUser(User::find($userId));
         $investmentAccounts = $preComputedData['investment_accounts'] ?? InvestmentAccount::forUserOrJoint($userId)->get();
 
         $result = $this->actionDefinitionService->evaluateAgentActions(
@@ -113,7 +113,7 @@ class SavingsPlanService extends BasePlanService
         $user = User::find($userId);
 
         $checks = [
-            'savings_accounts' => SavingsAccount::where('user_id', $userId)->exists(),
+            'savings_accounts' => $user && app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->isNotEmpty(),
             'income' => $user && ($user->annual_employment_income || $user->annual_self_employment_income),
             'expenditure' => $user && ($user->monthly_expenditure > 0 || $user->annual_expenditure > 0),
         ];

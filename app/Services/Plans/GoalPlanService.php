@@ -7,11 +7,11 @@ namespace App\Services\Plans;
 use App\Agents\GoalsAgent;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Goals\GoalAffordabilityService;
 use App\Services\Goals\GoalProgressService;
 use App\Services\Goals\GoalStrategyService;
+use App\Services\Stores\SavingsStore;
 
 class GoalPlanService extends BasePlanService
 {
@@ -201,7 +201,7 @@ class GoalPlanService extends BasePlanService
         // Linked accounts
         $linkedParts = [];
         if ($goal->linked_savings_account_id) {
-            $savingsAccount = SavingsAccount::find($goal->linked_savings_account_id);
+            $savingsAccount = app(SavingsStore::class)->find($goal->linked_savings_account_id, $user);
             if ($savingsAccount) {
                 $linkedParts[] = sprintf('your savings account at %s', $savingsAccount->institution ?: 'your bank');
             }

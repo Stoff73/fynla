@@ -6,8 +6,8 @@ namespace App\Services\Plans;
 
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Traits\FormatsCurrency;
 use App\Traits\ResolvesExpenditure;
 
@@ -132,11 +132,13 @@ abstract class BasePlanService
         $emergencyThreshold = $monthlyExpenditure * 6;
 
         // 1. Try liquid cash accounts (non-ISA, non-premium-bonds, non-notice)
-        $cashAccounts = SavingsAccount::where('user_id', $userId)
+        $cashAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->whereIn('account_type', self::CASH_ACCOUNT_TYPES)
-            ->orderByDesc('current_balance')
-            ->get();
+            ->sortByDesc('current_balance')
+            ->values();
 
         foreach ($cashAccounts as $account) {
             $balance = (float) $account->current_balance;

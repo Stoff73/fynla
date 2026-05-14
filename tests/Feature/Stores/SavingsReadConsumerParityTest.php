@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Models\Goal;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\Estate\EstateAssetAggregatorService;
+use App\Services\Plans\BasePlanService;
+use App\Services\Plans\InvestmentPlanService;
+use App\Services\Plans\SavingsPlanService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\SavingsStore;
 use App\Services\UserProfile\LetterToSpouseService;
 use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -315,4 +320,216 @@ it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with
 
     expect($ihtRec)->not->toBeNull();
     expect($ihtRec['estimated_impact'])->toBe(40000.0);
+});
+
+// PR 5c-1 parity tests — Plans cluster
+
+it('BasePlanService cash account funding source order is preserved after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    // Create cash accounts with varying balances and types
+    // The resolver filters: non-ISA, CASH_ACCOUNT_TYPES = ['current_account','instant_access','business_current','business_savings']
+    // orderByDesc current_balance → highest balance comes first
+    $highBalance = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'HighBalance',
+        'account_type' => 'instant_access',
+        'is_isa' => false,
+        'current_balance' => 20000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    $lowBalance = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'LowBalance',
+        'account_type' => 'current_account',
+        'is_isa' => false,
+        'current_balance' => 500,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // ISA — must be excluded from cash filter
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'ISAAccount',
+        'account_type' => 'instant_access',
+        'is_isa' => true,
+        'current_balance' => 50000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // Non-cash type — excluded
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'FixedRate',
+        'account_type' => 'fixed_rate',
+        'is_isa' => false,
+        'current_balance' => 30000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+
+    // Pre-refactor: direct Eloquent query
+    $cashAccountTypes = ['current_account', 'instant_access', 'business_current', 'business_savings'];
+    $preRefactorAccounts = SavingsAccount::where('user_id', $user->id)
+        ->where('is_isa', false)
+        ->whereIn('account_type', $cashAccountTypes)
+        ->orderByDesc('current_balance')
+        ->get();
+
+    // Post-refactor: via store + Collection methods
+    $store = app(SavingsStore::class);
+    $postRefactorAccounts = $store->forUser($user)
+        ->where('user_id', $user->id)
+        ->where('is_isa', false)
+        ->whereIn('account_type', $cashAccountTypes)
+        ->sortByDesc('current_balance')
+        ->values();
+
+    expect($preRefactorAccounts)->toHaveCount(2);
+    expect($postRefactorAccounts)->toHaveCount(2);
+
+    // Order is preserved: highest balance first
+    expect($preRefactorAccounts->first()->account_name)->toBe('HighBalance');
+    expect($postRefactorAccounts->first()->account_name)->toBe('HighBalance');
+    expect($preRefactorAccounts->last()->account_name)->toBe('LowBalance');
+    expect($postRefactorAccounts->last()->account_name)->toBe('LowBalance');
+});
+
+it('GoalPlanService find by linked_savings_account_id returns same account after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $account = SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'institution' => 'GoalBank',
+        'current_balance' => 5000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+
+    // Pre-refactor: SavingsAccount::find($id) — finds regardless of user ownership
+    $preRefactor = SavingsAccount::find($account->id);
+
+    // Post-refactor: store->find($id, $user) — scoped to user (owns this account → parity holds)
+    $store = app(SavingsStore::class);
+    $postRefactor = $store->find($account->id, $user);
+
+    expect($preRefactor)->not->toBeNull();
+    expect($postRefactor)->not->toBeNull();
+    expect($postRefactor->id)->toBe($preRefactor->id);
+    expect($postRefactor->institution)->toBe('GoalBank');
+});
+
+it('SavingsPlanService produces identical plan account collection after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $jointUser = User::factory()->create(['is_preview_user' => false]);
+
+    // Individual account
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_type' => 'easy_access',
+        'current_balance' => 3000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // Joint account where user is primary
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'joint_owner_id' => $jointUser->id,
+        'account_type' => 'notice',
+        'current_balance' => 8000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+    // Joint account where user is joint_owner_id (should be included by forUserOrJoint)
+    SavingsAccount::factory()->create([
+        'user_id' => $jointUser->id,
+        'joint_owner_id' => $user->id,
+        'account_type' => 'easy_access',
+        'current_balance' => 4000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+
+    // Pre-refactor: forUserOrJoint
+    $preRefactor = SavingsAccount::forUserOrJoint($user->id)->get();
+
+    // Post-refactor: store->forUser (same underlying scope)
+    $store = app(SavingsStore::class);
+    $postRefactor = $store->forUser($user);
+
+    expect($preRefactor->count())->toBe($postRefactor->count());
+    expect($preRefactor->pluck('id')->sort()->values()->toArray())
+        ->toBe($postRefactor->pluck('id')->sort()->values()->toArray());
+});
+
+it('InvestmentPlanService cash account filter results identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $fundingTypes = ['current_account', 'instant_access', 'business_current', 'business_savings'];
+
+    // Eligible: non-ISA, instant_access
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'EligibleCash',
+        'account_type' => 'instant_access',
+        'is_isa' => false,
+        'current_balance' => 15000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // Eligible: non-ISA, current_account
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'EligibleCurrent',
+        'account_type' => 'current_account',
+        'is_isa' => false,
+        'current_balance' => 2000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // Excluded: ISA
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'ISAAccount',
+        'account_type' => 'instant_access',
+        'is_isa' => true,
+        'current_balance' => 20000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // Excluded: wrong type
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'Notice',
+        'account_type' => 'notice',
+        'is_isa' => false,
+        'current_balance' => 10000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+
+    // Pre-refactor (site 9 / buildEligibleFundingAccounts pattern)
+    $preRefactor = SavingsAccount::where('user_id', $user->id)
+        ->where('is_isa', false)
+        ->whereIn('account_type', $fundingTypes)
+        ->orderByDesc('current_balance')
+        ->get();
+
+    // Post-refactor: store + Collection
+    $store = app(SavingsStore::class);
+    $postRefactor = $store->forUser($user)
+        ->where('user_id', $user->id)
+        ->where('is_isa', false)
+        ->whereIn('account_type', $fundingTypes)
+        ->sortByDesc('current_balance')
+        ->values();
+
+    expect($preRefactor->count())->toBe(2);
+    expect($postRefactor->count())->toBe(2);
+
+    expect($preRefactor->pluck('account_name')->toArray())
+        ->toBe($postRefactor->pluck('account_name')->toArray());
+    expect($preRefactor->first()->account_name)->toBe('EligibleCash');
+    expect($postRefactor->first()->account_name)->toBe('EligibleCash');
 });
