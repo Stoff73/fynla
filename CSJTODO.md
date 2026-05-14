@@ -1,9 +1,43 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 May 2026 — session 6 (PRs #300–#301 admin-merged — taxConfig rail extended with stamp duty + student loan + public dispatch; CalculatorsPage migrated; 4 missed importers surfaced)*
-*Previous session: 14 May 2026 — session 4 (PRs #295–#299 admin-merged — taxConfig rail fully traversed across all authenticated components)*
+*Last updated: 14 May 2026 — session 7 (PR #302 admin-merged — investment.js migrated; PR #303 OPEN awaiting CSJ iOS verification — 3 mobile files migrated)*
+*Previous session: 14 May 2026 — session 6 (PRs #300–#301 admin-merged — taxConfig rail extended with stamp duty + student loan + public dispatch; CalculatorsPage migrated; 4 missed importers surfaced)*
 
-> **Note re session 5:** A parallel context (worktree `cranky-lewin-6bc99c`) ran a major-overhaul brainstorming session and committed `handover-2026-05-14-session-5-clear.md` to dev directly. That work is independent of this session's web/dev taxConfig work — see the worktree's handover for system-overhaul sub-project 1 status. This session (6) continued the session-4 handover's "Pick up from here" roadmap on `dev`.
+> **Note re session 5:** A parallel context (worktree `cranky-lewin-6bc99c`) ran a major-overhaul brainstorming session and committed `handover-2026-05-14-session-5-clear.md` to dev directly. That work is independent of this session's web/dev taxConfig work — see the worktree's handover for system-overhaul sub-project 1 status.
+
+---
+
+## Session 7 (14 May 2026) — Sequence A steps 1+2: investment.js merged (PR #302); 3 mobile files PR'd (PR #303 awaiting iOS verification)
+
+**Branch:** `dev` at `ccff3a7` (post-#302 merge) · **Tree:** clean (only pre-existing untracked carry-overs) · **PRs opened this session:** 2 (#302 web-only, #303 mobile) · **PRs merged this session:** 1 (#302 admin-merged after browser verification) · **Open PRs against `dev`:** 1 (#303)
+
+**Outcome:**
+1. **Session 6's "Sequence A step 1" shipped as PR #302.** `store/modules/investment.js` — `ISA_ANNUAL_ALLOWANCE` constant import dropped, `isaAllowancePercentage` getter now resolves via `rootState.savings?.isaAllowance?.total_allowance || rootGetters['taxConfig/isaAnnualAllowance'] || 20000`. Browser-verified live on `/net-worth/investments` (john@example.com): empty-account path returns 0% (taxConfig fallback to 20000); injected ISA contribution of £5,000 returns 20% (savings store hydrated with 25000 wins over taxConfig — fallback order correct). Zero console errors. Admin-merged at `ccff3a7` per the established solo-reviewer admin-merge pattern. https://github.com/Stoff73/fynla/pull/302
+2. **Session 6's "Sequence A step 2" prepared as PR #303 — OPEN awaiting iOS verification.** Three mobile files migrated in one PR:
+   - **`mobile/views/RetirementDetail.vue`** — `ANNUAL_ALLOWANCE` constant → `mapGetters('taxConfig', ['pensionAnnualAllowance'])` + new `annualAllowanceLimit` computed; template fallback chain updated.
+   - **`mobile/views/EstateDetail.vue`** — `IHT_NIL_RATE_BAND` + `IHT_RESIDENCE_NIL_RATE_BAND` constants → `mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand'])` chained through `nrb()` / `rnrb()` computed.
+   - **`mobile/learn/learnTopics.js`** — static array → `getLearnTopics(store)` function (architectural rework, plus `getTopicById(store, topicId)` signature change); 2 callers updated (`LearnHub.vue`, `LearnTopicDetail.vue`).
+   - Browser-verified on web dev server: `/m/learn` renders all 8 cards; `/m/learn/pensions` interpolates £60,000 / £241.30 / 2026/27 correctly from the taxConfig store; `/m/module/retirement` with injected DC pension + null `standard_allowance` falls through to taxConfig.pensionAnnualAllowance = 60000 (£60,000 standard, £15,000 used, £45,000 remaining all in DOM); `/m/module/estate` computes `nrb=325000` and `rnrb=175000` via the taxConfig store (live `secondDeathPlanning` payload uses `nrb_individual` not `nil_rate_band` so the first two fallback links are undefined as designed). Zero console errors on any view.
+   - Production iOS-style `npm run build` (`VITE_PLATFORM=ios VITE_DISABLE_PWA=true VITE_BASE_PATH=/ VITE_API_BASE_URL=https://fynla.org`) completed cleanly in 1m 24s, no compile errors.
+   - **NOT admin-merged** — `./deploy/mobile/build-ios.sh` + iOS simulator/device verification is required per CLAUDE.md mobile section + `feedback_ios_testing_checklist`. CSJ must complete that before this PR ships.
+   - https://github.com/Stoff73/fynla/pull/303
+3. **Sequence A step 3 — cleanup PR (delete `resources/js/constants/taxConfig.js`) is BLOCKED behind PR #303.** Cannot open until #303 merges to dev — deleting the constants file while dev still has 3 mobile importers would break the Vite build. Once #303 lands, the next session can open the cleanup PR off the new dev tip.
+
+### Done
+
+- [x] Session-start: branch `dev` at `f8a99be` post pull, DB seeded, dev server :8000/:5173 already running, latest handover (session 6 clear) read in full
+- [x] PR #302: `investment.js` migrated, browser-verified empty + populated paths, admin-merged at `ccff3a7`
+- [x] PR #303 OPEN: 3 mobile files migrated (`RetirementDetail.vue`, `EstateDetail.vue`, `learnTopics.js`) + 2 callers updated (`LearnHub.vue`, `LearnTopicDetail.vue`); browser-verified on web dev server for all four mobile routes; production iOS-style `npm run build` clean
+- [x] CSJTODO updated with session-7 entry + flag that step 3 cleanup PR is blocked behind #303
+
+### Outstanding (next session — priority order)
+
+- [ ] **CSJ to run `./deploy/mobile/build-ios.sh` + iOS sim/device test for PR #303** — covers the three mobile views. Once green, admin-merge #303 per the established pattern.
+- [ ] **Sequence A step 3 — open the cleanup PR** branched off the post-#303 dev tip. One commit: `git rm resources/js/constants/taxConfig.js`. Pre-deletion grep `from '@/constants/taxConfig'` AND `@/constants/taxConfig` must both return zero hits.
+- [ ] **Deploy csjones** — now **13 PRs behind** `dev` (#291–#302, with #303 to follow). Smoke includes both `/api/tax/config` + `/api/public/tax-config` + CalculatorsPage stamp duty/student loan correctness; mobile dashboard if #303 lands in this bundle.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope (carry-forward)
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common` (carry-forward)
+- [ ] All other carry-forward items from session 6 stand (vault sync, stale worktree, etc. — see Session 6 entry below)
 
 ---
 
