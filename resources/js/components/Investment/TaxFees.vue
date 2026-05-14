@@ -138,7 +138,6 @@
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { CGT_ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'TaxFees',
@@ -158,6 +157,7 @@ export default {
       'isaAllowancePercentage',
       'analysis',
     ]),
+    ...mapGetters('taxConfig', ['cgtAnnualAllowance', 'isaAnnualAllowance']),
 
     taxEfficiencyLabel() {
       if (this.taxEfficiencyScore >= 80) return 'Highly Efficient';
@@ -183,17 +183,17 @@ export default {
     },
 
     isaAllowanceAmount() {
-      return ISA_ANNUAL_ALLOWANCE;
+      return this.isaAnnualAllowance;
     },
 
     cgtAllowanceAmount() {
-      return CGT_ANNUAL_ALLOWANCE;
+      return this.cgtAnnualAllowance;
     },
   },
 
   methods: {
     calculateCGT(unrealisedGain) {
-      const taxableGain = Math.max(0, unrealisedGain - CGT_ANNUAL_ALLOWANCE);
+      const taxableGain = Math.max(0, unrealisedGain - this.cgtAnnualAllowance);
       const cgtRate = 0.20; // Higher rate taxpayer
       return taxableGain * cgtRate;
     },
