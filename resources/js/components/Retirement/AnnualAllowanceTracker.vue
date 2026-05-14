@@ -150,9 +150,8 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ANNUAL_ALLOWANCE, MONEY_PURCHASE_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 import logger from '@/utils/logger';
 export default {
@@ -162,12 +161,12 @@ export default {
   data() {
     return {
       selectedTaxYear: getCurrentTaxYear(),
-      mpaaLimit: MONEY_PURCHASE_ANNUAL_ALLOWANCE,
     };
   },
 
   computed: {
     ...mapState('retirement', ['annualAllowance', 'dcPensions', 'profile']),
+    ...mapGetters('taxConfig', { pensionAnnualAllowance: 'pensionAnnualAllowance', mpaaLimit: 'moneyPurchaseAnnualAllowance' }),
 
     currentTaxYear() {
       return getCurrentTaxYear();
@@ -188,14 +187,14 @@ export default {
     currentAllowance() {
       // Check if MPAA triggered
       if (this.mpaaTriggered) {
-        return MONEY_PURCHASE_ANNUAL_ALLOWANCE;
+        return this.mpaaLimit;
       }
       // Check if tapered
       if (this.isTapered) {
-        return this.annualAllowance?.tapered_allowance || ANNUAL_ALLOWANCE;
+        return this.annualAllowance?.tapered_allowance || this.pensionAnnualAllowance;
       }
       // Standard allowance
-      return ANNUAL_ALLOWANCE;
+      return this.pensionAnnualAllowance;
     },
 
     calculatedContributions() {
@@ -295,14 +294,14 @@ export default {
     getHistoricalUnused(taxYear) {
       const used = this.getHistoricalContributions(taxYear);
       if (used === null) return null;
-      const standardAllowance = ANNUAL_ALLOWANCE;
+      const standardAllowance = this.pensionAnnualAllowance;
       return Math.max(0, standardAllowance - used);
     },
 
     getHistoricalPercent(taxYear) {
       const used = this.getHistoricalContributions(taxYear);
       if (used === null) return 0;
-      return Math.min(100, Math.round((used / ANNUAL_ALLOWANCE) * 100));
+      return Math.min(100, Math.round((used / this.pensionAnnualAllowance) * 100));
     },
   },
 
