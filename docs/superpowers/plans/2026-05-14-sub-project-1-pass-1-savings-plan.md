@@ -1254,8 +1254,15 @@ public function destroyAccount(Request $request, int $id): JsonResponse
     $user = $request->user();
 
     try {
+        // Capture joint_owner_id BEFORE delete so spouse cache invalidation still works.
+        $account = $this->savingsStore->find($id, $user);
+        if (! $account || $account->user_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Account not found or unauthorized'], 404);
+        }
+        $jointOwnerId = $account->joint_owner_id;
+
         $this->savingsStore->delete($id, $user, 'user_requested');
-        $this->cacheInvalidation->invalidateForUser($user->id);
+        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $jointOwnerId);
 
         return response()->json(['success' => true, 'message' => 'Savings account deleted successfully']);
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1289,7 +1296,7 @@ public function toggleRetirementInclusion(Request $request, int $id): JsonRespon
             IngestSource::FORM
         );
 
-        $this->cacheInvalidation->invalidateForUser($user->id);
+        $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $updated->joint_owner_id);
 
         return response()->json([
             'success' => true,

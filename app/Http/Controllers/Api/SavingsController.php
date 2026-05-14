@@ -372,8 +372,14 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
+            $account = $this->savingsStore->find($id, $user);
+            if (! $account || $account->user_id !== $user->id) {
+                return response()->json(['success' => false, 'message' => 'Account not found or unauthorized'], 404);
+            }
+            $jointOwnerId = $account->joint_owner_id;
+
             $this->savingsStore->delete($id, $user, 'user_requested');
-            $this->cacheInvalidation->invalidateForUser($user->id);
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $jointOwnerId);
 
             return response()->json(['success' => true, 'message' => 'Savings account deleted successfully']);
         } catch (ModelNotFoundException $e) {
@@ -405,7 +411,7 @@ class SavingsController extends Controller
                 IngestSource::FORM
             );
 
-            $this->cacheInvalidation->invalidateForUser($user->id);
+            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $updated->joint_owner_id);
 
             return response()->json([
                 'success' => true,
