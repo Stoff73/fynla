@@ -54,6 +54,10 @@ use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\WhatIf\WhatIfScenarioService;
@@ -2055,12 +2059,15 @@ class CoordinatingAgent extends BaseAgent
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver', 'savings_account', 'current_account', 'instant_access', 'fixed', 'cash_isa', 'junior_isa', 'premium_bonds', 'nsi'])],
+            'account_type' => ['nullable', Rule::in([
+                'easy_access', 'notice', 'fixed', 'fixed_term', 'regular_saver',
+                'cash_isa', 'junior_isa',
+            ])],
             'institution' => 'nullable|string|max:255',
-            'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'interest_rate' => 'nullable|numeric|min:0|max:20',
             'is_isa' => 'nullable|boolean',
             'is_emergency_fund' => 'nullable|boolean',
-            'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'regular_contribution_amount' => 'nullable|numeric|min:0',
         ]);
         if ($validationError) {
             return $validationError;
@@ -2071,52 +2078,22 @@ class CoordinatingAgent extends BaseAgent
             return $duplicateCheck;
         }
 
-        $isIsa = (bool) ($input['is_isa'] ?? false);
-        $accountType = $input['account_type'] ?? 'easy_access';
+        $canonical = app(SavingsAccountNormaliser::class)->fromFyn($input);
 
-        // AI tool enum → canonical DB value. `fixed_term`/`regular_saver` are
-        // AI-facing conveniences that map onto existing DB categories.
-        $dbAccountType = match ($accountType) {
-            'fixed_term' => 'fixed',
-            'regular_saver' => 'easy_access',
-            default => $accountType,
-        };
-
-        // ISA inference — if flagged ISA but account_type isn't already an
-        // ISA variant, promote to cash_isa so downstream ISA tracking works.
-        if ($isIsa && ! in_array($dbAccountType, ['cash_isa', 'junior_isa'], true)) {
-            $dbAccountType = 'cash_isa';
+        try {
+            $account = app(SavingsStore::class)->create(
+                $canonical,
+                $user,
+                IngestSource::FYN_AI
+            );
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for savings account.',
+            ];
         }
-
-        $accessType = match ($dbAccountType) {
-            'notice' => 'notice',
-            'fixed' => 'fixed',
-            default => 'immediate',
-        };
-
-        $payload = [
-            'user_id' => $user->id,
-            'account_name' => $input['account_name'],
-            'institution' => ! empty($input['institution']) ? $input['institution'] : $input['account_name'],
-            'account_type' => $dbAccountType,
-            'current_balance' => (float) $input['current_balance'],
-            'access_type' => $accessType,
-            'is_isa' => $isIsa,
-            'is_emergency_fund' => (bool) ($input['is_emergency_fund'] ?? false),
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100.00,
-        ];
-
-        // interest_rate / regular_contribution_amount are optional on the AI
-        // tool; only include them when actually supplied so DB defaults apply.
-        if (isset($input['interest_rate'])) {
-            $payload['interest_rate'] = (float) $input['interest_rate'];
-        }
-        if (isset($input['regular_contribution_amount'])) {
-            $payload['regular_contribution_amount'] = (float) $input['regular_contribution_amount'];
-        }
-
-        $account = DB::transaction(fn () => SavingsAccount::create($payload));
 
         $this->invalidateUserCache($user->id);
 
@@ -2126,7 +2103,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'savings_account',
             'entity_id' => $account->id,
             'name' => $account->account_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($canonical),
             'message' => "I've added your \"{$account->account_name}\" savings account.",
         ];
     }

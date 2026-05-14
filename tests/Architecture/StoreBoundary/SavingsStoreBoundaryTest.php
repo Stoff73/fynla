@@ -24,9 +24,9 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         'Database\Factories\SavingsAccountFactory',
 
         // Transition allowlist — removed by subsequent PRs in pass 1.
-        // PR 3 removes: CoordinatingAgent (Fyn AI tool path), OnboardingService
+        // PR 3 removed write path from CoordinatingAgent + OnboardingService;
+        // remaining read usages in CoordinatingAgent removed by PR 5.
         'App\Agents\CoordinatingAgent',
-        'App\Services\Onboarding\OnboardingService',
         'App\Services\Onboarding\AssetCaptureEntityExtractor', // reads only — kept on read consumers list
         // PR 4 removes: DocumentProcessor (upload path), PreviewController, seeders, console commands
         'App\Services\Documents\DocumentProcessor',

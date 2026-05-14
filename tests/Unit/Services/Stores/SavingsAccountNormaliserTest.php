@@ -56,3 +56,43 @@ describe('SavingsAccountNormaliser::fromForm', function () {
         expect($canonical['ownership_percentage'])->toBe(100.00);
     });
 });
+
+describe('SavingsAccountNormaliser::fromFyn', function () {
+    it('maps AI-facing account_type to DB-canonical value', function () {
+        $normaliser = new SavingsAccountNormaliser;
+
+        expect($normaliser->fromFyn(['account_name' => 'X', 'account_type' => 'fixed_term', 'current_balance' => 1000])['account_type'])
+            ->toBe('fixed');
+
+        expect($normaliser->fromFyn(['account_name' => 'X', 'account_type' => 'regular_saver', 'current_balance' => 100])['account_type'])
+            ->toBe('easy_access');
+    });
+
+    it('infers cash_isa when is_isa is true and account_type is not an ISA variant', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromFyn([
+            'account_name' => 'X',
+            'account_type' => 'easy_access',
+            'current_balance' => 1000,
+            'is_isa' => true,
+        ]);
+
+        expect($canonical['account_type'])->toBe('cash_isa');
+    });
+
+    it('defaults institution to account_name when missing', function () {
+        $canonical = (new SavingsAccountNormaliser)->fromFyn([
+            'account_name' => 'Halifax',
+            'current_balance' => 1000,
+        ]);
+
+        expect($canonical['institution'])->toBe('Halifax');
+    });
+
+    it('derives access_type from account_type', function () {
+        $normaliser = new SavingsAccountNormaliser;
+
+        expect($normaliser->fromFyn(['account_name' => 'X', 'account_type' => 'notice', 'current_balance' => 1])['access_type'])->toBe('notice');
+        expect($normaliser->fromFyn(['account_name' => 'X', 'account_type' => 'fixed_term', 'current_balance' => 1])['access_type'])->toBe('fixed');
+        expect($normaliser->fromFyn(['account_name' => 'X', 'current_balance' => 1])['access_type'])->toBe('immediate');
+    });
+});
