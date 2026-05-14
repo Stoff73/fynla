@@ -7,7 +7,8 @@ namespace App\Services\Shared;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\SavingsAccount;
+use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Support\Collection;
 
@@ -34,6 +35,10 @@ use Illuminate\Support\Collection;
 class CrossModuleAssetAggregator
 {
     use CalculatesOwnershipShare;
+
+    public function __construct(
+        private readonly SavingsStore $savingsStore,
+    ) {}
 
     /**
      * Get all cross-module assets for a user
@@ -134,8 +139,9 @@ class CrossModuleAssetAggregator
      */
     public function getSavingsAssets(int $userId): Collection
     {
-        return SavingsAccount::forUserOrJoint($userId)
-            ->get()
+        $user = User::findOrFail($userId);
+
+        return $this->savingsStore->forUser($user)
             ->map(function ($account) use ($userId) {
                 $userShare = $this->calculateUserShare($account, $userId);
                 $fullValue = $this->getFullValue($account);
@@ -203,8 +209,9 @@ class CrossModuleAssetAggregator
      */
     public function calculateCashTotal(int $userId): float
     {
-        return SavingsAccount::forUserOrJoint($userId)
-            ->get()
+        $user = User::findOrFail($userId);
+
+        return $this->savingsStore->forUser($user)
             ->sum(fn ($account) => $this->calculateUserShare($account, $userId));
     }
 
@@ -261,7 +268,7 @@ class CrossModuleAssetAggregator
                 'total' => $this->calculateInvestmentTotal($userId),
             ],
             'cash' => [
-                'count' => SavingsAccount::forUserOrJoint($userId)->count(),
+                'count' => $this->savingsStore->forUser(User::findOrFail($userId))->count(),
                 'total' => $this->calculateCashTotal($userId),
             ],
             'mortgages' => [
