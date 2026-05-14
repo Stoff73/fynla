@@ -1,6 +1,5 @@
 import investmentService from '@/services/investmentService';
 import { pollMonteCarloJob } from '@/utils/poller';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 const state = {
     accounts: [],
@@ -197,9 +196,10 @@ const getters = {
 
     // Get ISA allowance percentage used (based on contributions, not value)
     // Uses ISA allowance from savings store (fetched from TaxConfigService API)
-    isaAllowancePercentage: (state, getters, rootState) => {
-        // Get ISA allowance from savings store (API-backed) or use default
-        const isaAllowance = rootState.savings?.isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE;
+    isaAllowancePercentage: (state, getters, rootState, rootGetters) => {
+        const isaAllowance = rootState.savings?.isaAllowance?.total_allowance
+            || rootGetters['taxConfig/isaAnnualAllowance']
+            || 20000;
         const contributions = getters.totalISAContributions;
         return (contributions / isaAllowance) * 100;
     },
