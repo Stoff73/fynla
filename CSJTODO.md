@@ -1,7 +1,73 @@
 # CSJTODO — Fynla
 
-*Last updated: 13 May 2026 — session 3 end-of-day (PR #291 merged + PR #292 CGT allowance fail-loud opened, all CI green)*
-*Previous session: 13 May 2026 — session 2 context-clear (PR #290 merged + csjones deployed + PR #291 opened)*
+*Last updated: 14 May 2026 — session 2 context-clear (PR #292 merged + PR #293 controller split merged + vault rogue-file resolved + tripwire-driven session-end)*
+*Previous session: 14 May 2026 — session 1 end-of-day (carry-over from 13 May session 3)*
+
+---
+
+## Session 2 (14 May 2026, context-clear, tripwire at ~230k) — PR #292 + PR #293 admin-merged + vault rogue-file resolved
+
+**Branch:** `dev` at `9da84f7` (post-#293 merge) · **Tree:** clean · **PRs merged this session:** 2 (#292 + #293) · **New PRs opened this session:** 1 (#293, merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **PR #292 admin-merged** into `dev` (merge commit `23c3c18`). Origin branch deleted.
+2. **Tech-debt-session audit on PR #292 changes** ran — 6 findings written to `tech-debt-report.md` (0 critical, 3 warnings, 3 suggestions). 2 of the warnings were the carry-forward Warnings #1 + #2 from 2026-05-13 audit — both addressed by PR #293 below.
+3. **Vault rogue-file resolved** — fynlaInternational's `handover-2026-05-14-session-1.md` (4473 bytes, branch `refactor/uk-pack-relocation`) renamed to `handover-2026-05-14-session-1-international.md`. Both projects' vault handovers now have unambiguous project suffixes. Session-end skill itself does NOT yet enforce project-suffix mirror-naming — open follow-up.
+4. **PR #293 (`audit-rebalancing-controller-split → dev`)** opened, CI-green'd (all 3 checks pass) and admin-merged same-session (merge commit `9da84f7`). New `AccountRebalancingController` (317 lines) owns the 2 account-level routes; `resolveAccountRiskProfile()` extracted from the 154-line god-method (28-line helper); `RebalancingCalculationController` trimmed to 354 lines (was 634). 8 new feature tests in `tests/Feature/Api/AccountRebalancingControllerTest.php`. 262 Investment unit + Architecture sweep clean.
+5. **No deploys this session.** csjones.co/fynla still on `dev@f22c9b988` — now **3 PRs behind** (#291 + #292 + #293).
+6. **Tripwire fired at ~230k tokens** — session-end ran lean (skipped vault-sync; tech-debt audit had already run as a session task).
+
+### Done
+
+- [x] Merge PR #292 (CGT allowance fail-loud) into `dev`
+- [x] Tech-debt-session audit on PR #292 changes — 6 findings (0 critical, 3 warnings, 3 suggestions) written to `tech-debt-report.md`
+- [x] Resolve vault rogue-file — fynlaInternational handover renamed with `-international` suffix
+- [x] Tech-debt audit Warnings #1 + #2 (controller split + `resolveAccountRiskProfile()` extraction) — shipped via PR #293
+- [x] PR #293 opened, CI-green'd (all 3 checks), admin-merged same session
+- [x] 8 new feature tests in PR #293, all green (262 Investment unit + Architecture sweep clean)
+- [x] Local dev synced after both merges
+
+### Outstanding (next session — priority order)
+
+- [ ] **REVIEW §4 High #28** — Frontend `taxConfig.js` hydrate from backend. New `/api/tax/config` endpoint + Vuex store load on app boot + remove hardcoded fallbacks from `resources/js/constants/taxConfig.js`. **Recommended next.** Half-day scope.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour.
+- [ ] **REVIEW §4 High #33 / Rule #5** — Live-DB sweep revealed **9 tables** (not 6 as previous handover said) need `tenants_in_common`:
+  - 7 currently `('individual','joint','trust')`: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts`
+  - 2 currently `('individual','joint')` — also missing `trust`: `goals`, `life_events`
+  - Already canonical: `mortgages` (migration template from 2026_01_17), `properties`
+- [ ] **Deploy csjones** — bundle the 3 PRs (#291 + #292 + #293) — smoke check the new `AccountRebalancingController` routes
+- [ ] **Tech-debt Warning #3** (NEW) — `TaxAwareRebalancer.php` is 606 lines, past 500-line guideline. Service-file split candidate (`TaxLossHarvestingIdentifier` extraction). Lower priority than the controller split was.
+- [ ] **Suggestion #5** (CARRY-FORWARD) — drop unimplemented step 3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit, can roll into next PR as cleanup)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` when convenient (local git 2.10.1 lacks `worktree remove`)
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault
+- [ ] **Vault-sync skipped this session** (tripwire) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50 (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Separate PR.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` now carrying #281–#293 (13 PRs, 59 commits ahead of main). Body must call out PR #284 `npm ci`, PR #282 .htaccess, PR #290 behaviour change, PR #291 CGT rate change, PR #292 CGT allowance fail-loud, PR #293 controller split (no behaviour change, route reshape)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 9-day stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Known issues
+
+- **Vault is shared with fynlaInternational** — both projects write handovers to the same `May/May*Updates/` folders. Session 2 used `-ukfynla` suffix for the mirror to avoid clobber. Long-term fix: session-end skill should enforce project-suffix mirror-naming by default.
+- **Stale local worktree `cranky-lewin-6bc99c`** — clean, tracking origin/main; local git 2.10.1 lacks `worktree remove`. Not blocking.
+
+### Branch / deploy state
+
+- `dev` at `9da84f7` (post-#293 merge) — 59 commits ahead of `main`
+- `main` unchanged at `f15e068` — production still pre-audit-batch
+- csjones.co/fynla on `dev@f22c9b988` — now 3 PRs behind (bundle next deploy)
+- fynla.org unchanged
 
 ---
 
