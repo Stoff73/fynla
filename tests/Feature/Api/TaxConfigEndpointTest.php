@@ -85,6 +85,26 @@ it('returns the full payload structure for an authenticated user', function () {
                 ],
                 'dividend_tax' => ['allowance', 'basic_rate', 'higher_rate', 'additional_rate'],
                 'gifting_exemptions' => ['annual_exemption', 'small_gift_exemption'],
+                'stamp_duty' => [
+                    'england' => [
+                        'standard_bands',
+                        'ftb_bands',
+                        'ftb_max_price',
+                        'additional_surcharge',
+                        'non_uk_surcharge',
+                    ],
+                    'scotland' => [
+                        'lbtt_bands',
+                        'lbtt_additional_surcharge',
+                        'lbtt_non_uk_surcharge',
+                    ],
+                    'wales' => [
+                        'ltt_bands',
+                        'ltt_additional_surcharge',
+                        'ltt_non_uk_surcharge',
+                    ],
+                ],
+                'student_loan' => ['repayment_rate'],
                 'other' => ['hicbc_threshold', 'ssp_weekly_rate'],
             ],
         ]);
@@ -158,6 +178,61 @@ it('derives weekly state pension from the seeded annual figure', function () {
     // 2026/27 seeded value: full_new_state_pension = 12547.60 → weekly ≈ 241.30
     expect($data['pension']['state_pension_annual'])->toBe(12547.6)
         ->and($data['pension']['state_pension_weekly'])->toBe(241.30);
+});
+
+it('returns SDLT bands in upper-bound integer-percent shape', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $england = $this->getJson('/api/tax/config')->json('data.stamp_duty.england');
+
+    // 5 standard bands ending at the MAX_SAFE_INTEGER sentinel with the 12% top rate.
+    // Whole-number rates round-trip as int through JSON (json_decode collapses 2.0 → 2).
+    expect($england['standard_bands'])->toHaveCount(5);
+    expect($england['standard_bands'][0])->toBe(['threshold' => 125000, 'rate' => 0]);
+    expect($england['standard_bands'][1])->toBe(['threshold' => 250000, 'rate' => 2]);
+    expect($england['standard_bands'][2])->toBe(['threshold' => 925000, 'rate' => 5]);
+    expect($england['standard_bands'][3])->toBe(['threshold' => 1500000, 'rate' => 10]);
+    expect($england['standard_bands'][4])->toBe(['threshold' => 9007199254740991, 'rate' => 12]);
+
+    // First-time-buyer bands: 0% to £300k, 5% above (capped at FTB max price).
+    expect($england['ftb_bands'])->toHaveCount(2);
+    expect($england['ftb_bands'][0])->toBe(['threshold' => 300000, 'rate' => 0]);
+    expect($england['ftb_bands'][1])->toBe(['threshold' => 9007199254740991, 'rate' => 5]);
+
+    expect($england['ftb_max_price'])->toBe(500000)
+        ->and($england['additional_surcharge'])->toBe(5)
+        ->and($england['non_uk_surcharge'])->toBe(2);
+});
+
+it('returns LBTT and LTT bands and surcharges from the seeder', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $stampDuty = $this->getJson('/api/tax/config')->json('data.stamp_duty');
+
+    // Scotland LBTT: 5 bands, top rate 12%, additional surcharge raised to 8% Dec 2024.
+    expect($stampDuty['scotland']['lbtt_bands'])->toHaveCount(5);
+    expect($stampDuty['scotland']['lbtt_bands'][0])->toBe(['threshold' => 145000, 'rate' => 0]);
+    expect($stampDuty['scotland']['lbtt_bands'][4])->toBe(['threshold' => 9007199254740991, 'rate' => 12]);
+    expect($stampDuty['scotland']['lbtt_additional_surcharge'])->toBe(8)
+        ->and($stampDuty['scotland']['lbtt_non_uk_surcharge'])->toBe(2);
+
+    // Wales LTT: 5 bands including the non-integer 7.5% middle band.
+    expect($stampDuty['wales']['ltt_bands'])->toHaveCount(5);
+    expect($stampDuty['wales']['ltt_bands'][0])->toBe(['threshold' => 225000, 'rate' => 0]);
+    expect($stampDuty['wales']['ltt_bands'][1])->toBe(['threshold' => 400000, 'rate' => 6]);
+    expect($stampDuty['wales']['ltt_bands'][2])->toBe(['threshold' => 750000, 'rate' => 7.5]);
+    expect($stampDuty['wales']['ltt_bands'][3])->toBe(['threshold' => 1500000, 'rate' => 10]);
+    expect($stampDuty['wales']['ltt_bands'][4])->toBe(['threshold' => 9007199254740991, 'rate' => 12]);
+    expect($stampDuty['wales']['ltt_additional_surcharge'])->toBe(5)
+        ->and($stampDuty['wales']['ltt_non_uk_surcharge'])->toBe(2);
+});
+
+it('returns the seeded student loan repayment rate', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $data = $this->getJson('/api/tax/config')->json('data');
+
+    expect($data['student_loan']['repayment_rate'])->toBe(0.09);
 });
 
 it('reflects edits to the active config across requests', function () {

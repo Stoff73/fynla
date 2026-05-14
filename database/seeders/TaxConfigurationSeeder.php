@@ -608,6 +608,41 @@ class TaxConfigurationSeeder extends Seeder
                     ],
                     'non_resident_surcharge' => 0.02,  // 2% for non-UK residents
                 ],
+
+                // Land and Buildings Transaction Tax — Scotland
+                // Bands stored in lower-bound style (rate applies from threshold up),
+                // matching the existing 'residential' shape above.
+                'lbtt' => [
+                    'bands' => [
+                        ['threshold' => 0, 'rate' => 0.00],
+                        ['threshold' => 145000, 'rate' => 0.02],
+                        ['threshold' => 250000, 'rate' => 0.05],
+                        ['threshold' => 325000, 'rate' => 0.10],
+                        ['threshold' => 750000, 'rate' => 0.12],
+                    ],
+                    'additional_surcharge' => 0.08,  // 8% surcharge for additional dwellings (raised from 6% on 5 Dec 2024)
+                    'non_uk_surcharge' => 0.02,      // 2% for non-UK residents
+                ],
+
+                // Land Transaction Tax — Wales
+                'ltt' => [
+                    'bands' => [
+                        ['threshold' => 0, 'rate' => 0.00],
+                        ['threshold' => 225000, 'rate' => 0.06],
+                        ['threshold' => 400000, 'rate' => 0.075],
+                        ['threshold' => 750000, 'rate' => 0.10],
+                        ['threshold' => 1500000, 'rate' => 0.12],
+                    ],
+                    'additional_surcharge' => 0.05,  // 5% surcharge for additional dwellings (raised from 4% on 11 Dec 2024)
+                    'non_uk_surcharge' => 0.02,      // 2% for non-UK residents
+                ],
+            ],
+
+            // Student Loan Repayments
+            // 9% of income above the relevant plan threshold; rate is identical
+            // across Plans 1, 2, 4, 5; postgraduate loans use 6% (not stored yet).
+            'student_loan' => [
+                'repayment_rate' => 0.09,
             ],
 
             'assumptions' => [

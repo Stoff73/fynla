@@ -95,6 +95,26 @@ const getters = {
   annualGiftExemption: (state) => state.config?.gifting_exemptions?.annual_exemption ?? null,
   smallGiftExemption: (state) => state.config?.gifting_exemptions?.small_gift_exemption ?? null,
 
+  // Stamp Duty Land Tax — England
+  sdltStandardBands: (state) => state.config?.stamp_duty?.england?.standard_bands ?? null,
+  sdltFtbBands: (state) => state.config?.stamp_duty?.england?.ftb_bands ?? null,
+  sdltFtbMaxPrice: (state) => state.config?.stamp_duty?.england?.ftb_max_price ?? null,
+  sdltAdditionalSurcharge: (state) => state.config?.stamp_duty?.england?.additional_surcharge ?? null,
+  sdltNonUkSurcharge: (state) => state.config?.stamp_duty?.england?.non_uk_surcharge ?? null,
+
+  // Land and Buildings Transaction Tax — Scotland
+  lbttBands: (state) => state.config?.stamp_duty?.scotland?.lbtt_bands ?? null,
+  lbttAdditionalSurcharge: (state) => state.config?.stamp_duty?.scotland?.lbtt_additional_surcharge ?? null,
+  lbttNonUkSurcharge: (state) => state.config?.stamp_duty?.scotland?.lbtt_non_uk_surcharge ?? null,
+
+  // Land Transaction Tax — Wales
+  lttBands: (state) => state.config?.stamp_duty?.wales?.ltt_bands ?? null,
+  lttAdditionalSurcharge: (state) => state.config?.stamp_duty?.wales?.ltt_additional_surcharge ?? null,
+  lttNonUkSurcharge: (state) => state.config?.stamp_duty?.wales?.ltt_non_uk_surcharge ?? null,
+
+  // Student Loan
+  studentLoanRepaymentRate: (state) => state.config?.student_loan?.repayment_rate ?? null,
+
   // Other
   hicbcThreshold: (state) => state.config?.other?.hicbc_threshold ?? null,
   sspWeeklyRate: (state) => state.config?.other?.ssp_weekly_rate ?? null,
@@ -146,6 +166,27 @@ const actions = {
   // Delegates to fetchConfig so all bound components hydrate fully.
   async fetchActive({ dispatch }) {
     return dispatch('fetchConfig');
+  },
+
+  // Public counterpart of fetchConfig — used by PublicLayout on mount so that
+  // pages rendered for unauthenticated visitors (CalculatorsPage etc.) get
+  // the same hydrated snapshot. Same payload shape, different URL, no auth.
+  async fetchPublicConfig({ commit }) {
+    commit('setLoading', true);
+    commit('setError', null);
+    try {
+      const response = await api.get('/public/tax-config');
+      const data = response.data?.data ?? null;
+      commit('setConfig', data);
+      return data;
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || 'Failed to load tax configuration';
+      commit('setError', message);
+      logger.warn('taxConfig/fetchPublicConfig failed — falling back to hardcoded constants', error);
+      return null;
+    } finally {
+      commit('setLoading', false);
+    }
   },
 
   clear({ commit }) {
