@@ -553,6 +553,205 @@ it('InvestmentPlanService cash account filter results identical after store migr
     expect($postRefactor->first()->account_name)->toBe('EligibleCash');
 });
 
+// PR 5c-2 parity tests — Retirement cluster
+
+it('RetirementPlanService cash-account funding source read identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $cashTypes = ['current_account', 'instant_access', 'business_current', 'business_savings'];
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'BigCash',
+        'account_type' => 'instant_access',
+        'is_isa' => false,
+        'current_balance' => 15000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'SmallCash',
+        'account_type' => 'current_account',
+        'is_isa' => false,
+        'current_balance' => 1000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // ISA — must be excluded
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'CashISA',
+        'account_type' => 'instant_access',
+        'is_isa' => true,
+        'current_balance' => 20000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+
+    // Pre-refactor: SavingsAccount::where('user_id', $user->id)->where('is_isa', false)->whereIn('account_type', ...)->orderByDesc()->get()
+    $preRefactor = SavingsAccount::where('user_id', $user->id)
+        ->where('is_isa', false)
+        ->whereIn('account_type', $cashTypes)
+        ->orderByDesc('current_balance')
+        ->get();
+
+    // Post-refactor: store->forUser()->where()->whereIn()->sortByDesc()
+    $store = app(SavingsStore::class);
+    $postRefactor = $store->forUser($user)
+        ->where('user_id', $user->id)
+        ->where('is_isa', false)
+        ->whereIn('account_type', $cashTypes)
+        ->sortByDesc('current_balance')
+        ->values();
+
+    expect($preRefactor)->toHaveCount(2);
+    expect($postRefactor)->toHaveCount(2);
+    expect($preRefactor->first()->account_name)->toBe('BigCash');
+    expect($postRefactor->first()->account_name)->toBe('BigCash');
+    expect($preRefactor->pluck('account_name')->toArray())
+        ->toBe($postRefactor->pluck('account_name')->toArray());
+});
+
+it('RetirementStrategyService savings read identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'CashSavings',
+        'current_balance' => 8000,
+        'include_in_retirement' => true,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'EmptyAccount',
+        'current_balance' => 0,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // Different user — must be excluded
+    $other = User::factory()->create(['is_preview_user' => false]);
+    SavingsAccount::factory()->create([
+        'user_id' => $other->id,
+        'account_name' => 'OtherUser',
+        'current_balance' => 50000,
+    ]);
+
+    // Pre-refactor: SavingsAccount::where('user_id', $userId)->get()
+    $preRefactor = SavingsAccount::where('user_id', $user->id)->get();
+
+    // Post-refactor: store->forUser()->where('user_id', ...)
+    $store = app(SavingsStore::class);
+    $postRefactor = $store->forUser($user)->where('user_id', $user->id)->values();
+
+    expect($preRefactor->count())->toBe(2);
+    expect($postRefactor->count())->toBe(2);
+    expect($preRefactor->pluck('id')->sort()->values()->toArray())
+        ->toBe($postRefactor->pluck('id')->sort()->values()->toArray());
+});
+
+it('RetirementIncomeService household-savings forUsers parity on individual accounts (no joint involvement)', function () {
+    // Baseline parity: when no joint accounts exist, post-refactor forUsers
+    // returns the same set as pre-refactor whereIn('user_id', $userIds).
+    $userA = User::factory()->create(['is_preview_user' => false]);
+    $userB = User::factory()->create(['is_preview_user' => false]);
+    $userC = User::factory()->create(['is_preview_user' => false]);
+
+    $accA = SavingsAccount::factory()->create([
+        'user_id' => $userA->id, 'include_in_retirement' => true, 'is_isa' => true, 'current_balance' => 5000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    $accB = SavingsAccount::factory()->create([
+        'user_id' => $userB->id, 'include_in_retirement' => true, 'is_isa' => true, 'current_balance' => 3000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $userC->id, 'include_in_retirement' => true, 'is_isa' => true, 'current_balance' => 9999,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $userIds = [$userA->id, $userB->id];
+    $preRefactor = SavingsAccount::whereIn('user_id', $userIds)->where('include_in_retirement', true)->where('is_isa', true)->get();
+    $postRefactor = app(SavingsStore::class)->forUsers($userIds)->where('include_in_retirement', true)->where('is_isa', true)->values();
+
+    expect($preRefactor)->toHaveCount(2);
+    expect($postRefactor)->toHaveCount(2);
+    expect($preRefactor->pluck('id')->sort()->values()->toArray())
+        ->toBe($postRefactor->pluck('id')->sort()->values()->toArray());
+});
+
+it('RetirementIncomeService household-savings forUsers — DELIBERATE WIDENING: includes joint accounts where one requested user is the secondary owner', function () {
+    // Pre-refactor `whereIn('user_id', $userIds)` was strictly user_id-only — joint
+    // accounts where one of the requested users is the joint_owner_id (not user_id)
+    // were excluded. Post-refactor `forUsers` is OR-combined `(user_id IN OR joint_owner_id IN)`.
+    // For household-level retirement income calculations this widening is correct
+    // (household includes joint accounts regardless of which spouse is primary). This
+    // test makes the deliberate widening explicit so future readers understand the intent.
+    $userA = User::factory()->create(['is_preview_user' => false]);
+    $userB = User::factory()->create(['is_preview_user' => false]);
+    $userExternal = User::factory()->create(['is_preview_user' => false]);
+
+    // Joint account where userExternal is primary, userB is joint — pre-refactor missed this
+    $jointAccBSecondary = SavingsAccount::factory()->create([
+        'user_id' => $userExternal->id,
+        'joint_owner_id' => $userB->id,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+        'is_isa' => false,
+        'current_balance' => 8000,
+    ]);
+    // Plain individual for userA so pre-refactor returns at least one row
+    $accA = SavingsAccount::factory()->create([
+        'user_id' => $userA->id, 'is_isa' => false, 'current_balance' => 1000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $userIds = [$userA->id, $userB->id];
+    $preRefactor = SavingsAccount::whereIn('user_id', $userIds)->get();
+    $postRefactor = app(SavingsStore::class)->forUsers($userIds);
+
+    // Pre-refactor: only $accA (1 row) — joint where userB is secondary is missed
+    expect($preRefactor->pluck('id')->toArray())->toBe([$accA->id]);
+    // Post-refactor: $accA AND the joint account (2 rows) — correct household scope
+    expect($postRefactor->pluck('id')->sort()->values()->toArray())
+        ->toBe(collect([$accA->id, $jointAccBSecondary->id])->sort()->values()->toArray());
+});
+
+it('RetirementIncomeService id-based whereIn — DELIBERATE NARROWING: store->findMany excludes cross-user account ids (security fix)', function () {
+    // Reviewer-flagged HIGH/HIGH: pre-refactor `SavingsAccount::whereIn('id', $ids)->get()`
+    // returned ANY account whose id matched, regardless of ownership. Combined with
+    // client-supplied source_id values flowing through the controller, that was a data
+    // leak path. Post-refactor `store->findMany($ids, $user)` enforces ownership at the
+    // store boundary. This test makes the narrowing explicit.
+    $userA = User::factory()->create(['is_preview_user' => false]);
+    $userB = User::factory()->create(['is_preview_user' => false]);
+
+    $accA = SavingsAccount::factory()->create([
+        'user_id' => $userA->id,
+        'is_isa' => true,
+        'current_balance' => 10000,
+    ]);
+    $accB_foreign = SavingsAccount::factory()->create([
+        'user_id' => $userB->id,
+        'is_isa' => false,
+        'current_balance' => 4000,
+    ]);
+
+    $ids = [$accA->id, $accB_foreign->id];
+
+    // Pre-refactor returned BOTH accounts (the leak)
+    $preRefactor = SavingsAccount::whereIn('id', $ids)->get();
+    expect($preRefactor->count())->toBe(2);
+
+    // Post-refactor returns ONLY userA's account when userA is the requesting user
+    $store = app(SavingsStore::class);
+    $postRefactor = $store->findMany($ids, $userA);
+    expect($postRefactor->count())->toBe(1);
+    expect($postRefactor->pluck('id')->toArray())->toBe([$accA->id]);
+});
+
 it('BasePlanService::resolveFundingSource returns null result when goal references a deleted user (regression)', function () {
     // Pre-refactor used raw $userId in WHERE so missing user → empty Builder result, no crash.
     // Post-refactor uses User::find($userId) + Collection chain — null user must short-circuit.

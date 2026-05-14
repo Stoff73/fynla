@@ -107,3 +107,81 @@ it('SavingsStore::delete soft-deletes the account', function () {
     expect(SavingsAccount::find($account->id))->toBeNull();
     expect(SavingsAccount::withTrashed()->find($account->id))->not->toBeNull();
 });
+
+// PR 5c-2 — new read methods
+
+it('SavingsStore::forUsers returns accounts where any user_id is in the array (joint-aware)', function () {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+    $userC = User::factory()->create();
+
+    // userA individual
+    $acA = SavingsAccount::factory()->create(['user_id' => $userA->id, 'joint_owner_id' => null]);
+    // userA primary, userC joint
+    $acAC = SavingsAccount::factory()->create(['user_id' => $userA->id, 'joint_owner_id' => $userC->id]);
+    // userB primary, userC joint
+    $acBC = SavingsAccount::factory()->create(['user_id' => $userB->id, 'joint_owner_id' => $userC->id]);
+    // userC individual — should NOT appear when querying [A, B]
+    SavingsAccount::factory()->create(['user_id' => $userC->id, 'joint_owner_id' => null]);
+
+    $store = app(SavingsStore::class);
+    $result = $store->forUsers([$userA->id, $userB->id]);
+
+    expect($result->pluck('id')->sort()->values()->toArray())
+        ->toBe(collect([$acA->id, $acAC->id, $acBC->id])->sort()->values()->toArray());
+});
+
+it('SavingsStore::forUsers returns empty Collection for empty array', function () {
+    SavingsAccount::factory()->create();
+
+    $store = app(SavingsStore::class);
+    $result = $store->forUsers([]);
+
+    expect($result)->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+    expect($result)->toHaveCount(0);
+});
+
+it('SavingsStore::findMany returns only the requesting user\'s accounts (excludes cross-user ids)', function () {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+
+    $accA1 = SavingsAccount::factory()->create(['user_id' => $userA->id]);
+    $accB = SavingsAccount::factory()->create(['user_id' => $userB->id]);  // foreign — must be excluded
+    SavingsAccount::factory()->create(['user_id' => $userA->id]); // not in ids — must be excluded
+
+    $store = app(SavingsStore::class);
+    $result = $store->findMany([$accA1->id, $accB->id], $userA);
+
+    // Pre-refactor `whereIn('id', $ids)` returned BOTH; post-refactor user-scoped narrowing
+    // returns only accA1. This is the security fix surfaced by PR 5c-2 review.
+    expect($result->pluck('id')->toArray())->toBe([$accA1->id]);
+});
+
+it('SavingsStore::findMany includes joint-owner accounts where requesting user is secondary', function () {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+
+    $jointAcc = SavingsAccount::factory()->create([
+        'user_id' => $userA->id,
+        'joint_owner_id' => $userB->id,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+
+    $store = app(SavingsStore::class);
+    // userB requests the joint account — should be returned (joint_owner_id matches)
+    $result = $store->findMany([$jointAcc->id], $userB);
+
+    expect($result->pluck('id')->toArray())->toBe([$jointAcc->id]);
+});
+
+it('SavingsStore::findMany returns empty Collection for empty array', function () {
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create(['user_id' => $user->id]);
+
+    $store = app(SavingsStore::class);
+    $result = $store->findMany([], $user);
+
+    expect($result)->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+    expect($result)->toHaveCount(0);
+});
