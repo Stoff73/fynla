@@ -88,6 +88,19 @@ class SavingsStore
         });
     }
 
+    public function updateOrCreate(array $match, array $data, User $user, IngestSource $source): SavingsAccount
+    {
+        $existing = SavingsAccount::where('user_id', $user->id)
+            ->where($match)
+            ->first();
+
+        if ($existing) {
+            return $this->update($existing->id, $data, $user, $source);
+        }
+
+        return $this->create(array_merge($match, $data), $user, $source);
+    }
+
     // Primary owner only — joint owners cannot delete. Matches pre-store contract.
     public function delete(int $id, User $user, string $reason): void
     {

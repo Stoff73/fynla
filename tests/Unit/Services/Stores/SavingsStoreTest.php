@@ -60,6 +60,42 @@ it('SavingsStore::update mutates the account through the canonical write path', 
     expect((float) $updated->current_balance)->toBe(2500.00);
 });
 
+it('SavingsStore::updateOrCreate inserts when no match exists', function () {
+    $user = User::factory()->create();
+    $store = app(SavingsStore::class);
+
+    $account = $store->updateOrCreate(
+        match: ['account_name' => 'Chris Cash ISA'],
+        data: ['current_balance' => 5000, 'account_type' => 'cash_isa'],
+        user: $user,
+        source: IngestSource::SEEDER,
+    );
+
+    expect(SavingsAccount::count())->toBe(1);
+    expect($account->account_name)->toBe('Chris Cash ISA');
+});
+
+it('SavingsStore::updateOrCreate updates when match exists', function () {
+    $user = User::factory()->create();
+    $store = app(SavingsStore::class);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'account_name' => 'Chris Cash ISA',
+        'current_balance' => 1000,
+    ]);
+
+    $store->updateOrCreate(
+        match: ['account_name' => 'Chris Cash ISA'],
+        data: ['current_balance' => 5000],
+        user: $user,
+        source: IngestSource::SEEDER,
+    );
+
+    expect(SavingsAccount::count())->toBe(1);
+    expect((float) SavingsAccount::first()->current_balance)->toBe(5000.00);
+});
+
 it('SavingsStore::delete soft-deletes the account', function () {
     $user = User::factory()->create();
     $store = app(SavingsStore::class);

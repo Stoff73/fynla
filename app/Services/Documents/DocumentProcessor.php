@@ -21,6 +21,9 @@ use App\Services\Documents\FieldMappers\FieldMapperInterface;
 use App\Services\Documents\FieldMappers\InvestmentAccountMapper;
 use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
 use App\Services\Documents\FieldMappers\ProtectionMapper;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -400,8 +403,11 @@ class DocumentProcessor
                 } elseif ($category === 'cash_savings') {
                     $mapper = new FieldMappers\SavingsAccountMapper;
                     $mapped = $mapper->map($sheet['account'] ?? []);
-                    $mapped['user_id'] = $user->id;
-                    $model = SavingsAccount::create($mapped);
+                    $model = app(SavingsStore::class)->create(
+                        app(SavingsAccountNormaliser::class)->fromUpload($mapped),
+                        $user,
+                        IngestSource::UPLOAD
+                    );
                     $results[] = [
                         'sheet_name' => $sheet['sheet_name'],
                         'category' => $category,

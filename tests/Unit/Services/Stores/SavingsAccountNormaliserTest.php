@@ -57,6 +57,27 @@ describe('SavingsAccountNormaliser::fromForm', function () {
     });
 });
 
+describe('SavingsAccountNormaliser::fromUpload', function () {
+    it('maps a document-extraction shape to canonical', function () {
+        $extraction = [
+            'account_name' => 'NatWest current account',
+            'institution' => 'NatWest',
+            'current_balance' => 4250.55,
+            'account_type' => 'easy_access',
+            'source_document_id' => 42,    // upload-only metadata
+        ];
+
+        $canonical = (new SavingsAccountNormaliser)->fromUpload($extraction);
+
+        expect($canonical['account_name'])->toBe('NatWest current account');
+        expect((float) $canonical['current_balance'])->toBe(4250.55);
+        expect($canonical['ownership_type'])->toBe('individual');
+        expect($canonical['country'])->toBe('United Kingdom');
+        // source_document_id is dropped — it is not part of the SavingsAccount table
+        expect($canonical)->not->toHaveKey('source_document_id');
+    });
+});
+
 describe('SavingsAccountNormaliser::fromFyn', function () {
     it('maps AI-facing account_type to DB-canonical value', function () {
         $normaliser = new SavingsAccountNormaliser;
