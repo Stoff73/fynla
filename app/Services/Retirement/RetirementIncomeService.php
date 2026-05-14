@@ -1851,6 +1851,13 @@ class RetirementIncomeService
     {
         $balances = [];
 
+        // Resolve User once for ownership-scoped SavingsStore reads.
+        // If user is missing (e.g. mid-deletion), short-circuit before any account lookup.
+        $user = User::find($userId);
+        if (! $user) {
+            return $balances;
+        }
+
         // =============================================================================
         // CRITICAL: Build a lookup map from availableAccounts for CONSISTENT values
         // This ensures the projection uses the SAME values that were used to calculate
@@ -1951,7 +1958,7 @@ class RetirementIncomeService
 
         // ISAs (Cash/Savings) - only those explicitly allocated as cash ISAs
         if (! empty($cashIsaIds)) {
-            $isaAccounts = app(SavingsStore::class)->findManyById($cashIsaIds)->where('is_isa', true)->values();
+            $isaAccounts = app(SavingsStore::class)->findMany($cashIsaIds, $user)->where('is_isa', true)->values();
             foreach ($isaAccounts as $account) {
                 $fundKey = 'isa_savings_'.$account->id;
                 // Priority: 1) accountValueMap (from availableAccounts), 2) allocationBalances, 3) DB query
@@ -2056,7 +2063,7 @@ class RetirementIncomeService
 
         // Non-ISA Savings - only those in allocations
         if (! empty($savingsIds)) {
-            $savingsAccounts = app(SavingsStore::class)->findManyById($savingsIds)
+            $savingsAccounts = app(SavingsStore::class)->findMany($savingsIds, $user)
                 ->filter(fn ($a) => ! $a->is_isa)
                 ->values();
             foreach ($savingsAccounts as $account) {
@@ -2087,6 +2094,12 @@ class RetirementIncomeService
     private function initializeFundBalances(int $userId, array $incomeAllocations, float $projectedPensionPot = 0, int $yearsToRetirement = 0): array
     {
         $balances = [];
+
+        // Resolve User once for ownership-scoped SavingsStore reads.
+        $user = User::find($userId);
+        if (! $user) {
+            return $balances;
+        }
 
         // Build a set of account IDs that are actually in the income allocations
         $allocatedAccounts = [];
@@ -2128,7 +2141,7 @@ class RetirementIncomeService
 
         // ISAs (Savings) - only those in allocations
         if (! empty($isaIds)) {
-            $isaAccounts = app(SavingsStore::class)->findManyById($isaIds)->where('is_isa', true)->values();
+            $isaAccounts = app(SavingsStore::class)->findMany($isaIds, $user)->where('is_isa', true)->values();
             foreach ($isaAccounts as $account) {
                 $currentValue = (float) ($account->current_balance ?? 0);
                 $projectedValue = $currentValue * pow(1 + $cashGrowthRate, $yearsToRetirement);
@@ -2196,7 +2209,7 @@ class RetirementIncomeService
 
         // Non-ISA Savings - only those in allocations
         if (! empty($savingsIds)) {
-            $savingsAccounts = app(SavingsStore::class)->findManyById($savingsIds)
+            $savingsAccounts = app(SavingsStore::class)->findMany($savingsIds, $user)
                 ->filter(fn ($a) => ! $a->is_isa)
                 ->values();
             foreach ($savingsAccounts as $account) {
@@ -2212,9 +2225,10 @@ class RetirementIncomeService
     /**
      * Calculate annual withdrawals from allocations.
      */
-    private function calculateAnnualWithdrawals(array $incomeAllocations): array
+    private function calculateAnnualWithdrawals(int $userId, array $incomeAllocations): array
     {
         $withdrawals = [];
+        $user = User::find($userId);
 
         foreach ($incomeAllocations as $allocation) {
             $sourceType = $allocation['source_type'] ?? '';
@@ -2227,8 +2241,10 @@ class RetirementIncomeService
             if (in_array($sourceType, ['pension_pot_pcls', 'pension_pot_drawdown'])) {
                 $fundKey = 'pension_pot';
             } elseif ($sourceType === 'isa' && $sourceId) {
-                // Check if it's a savings ISA or investment ISA
-                $isSavingsIsa = app(SavingsStore::class)->findManyById([$sourceId])->where('is_isa', true)->isNotEmpty();
+                // Check if it's a savings ISA or investment ISA — user-scoped to prevent cross-user lookup
+                $isSavingsIsa = $user
+                    ? app(SavingsStore::class)->findMany([$sourceId], $user)->where('is_isa', true)->isNotEmpty()
+                    : false;
                 $fundKey = $isSavingsIsa ? 'isa_savings_'.$sourceId : 'isa_investment_'.$sourceId;
             } elseif ($sourceType === 'onshore_bond' && $sourceId) {
                 $fundKey = 'onshore_bond_'.$sourceId;

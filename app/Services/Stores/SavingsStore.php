@@ -59,18 +59,22 @@ class SavingsStore
     }
 
     /**
-     * Id-based read — unscoped. Returns all accounts whose id is in the supplied
-     * array. Caller is responsible for access trust. Used where no User object is
-     * in scope (e.g. private fund-initialisation methods that only have int $userId).
-     * Option B2 — see PR 5c-2 commit message for rationale.
+     * User-scoped, joint-aware id-based read. Returns only accounts in $ids
+     * the user owns or is the joint owner of. Returns an empty Collection for
+     * unknown ids or ids belonging to other users — preventing cross-user leakage
+     * even when callers pass externally-supplied id arrays (e.g. allocation
+     * payloads from HTTP requests).
      */
-    public function findManyById(array $ids): Collection
+    public function findMany(array $ids, User $user): Collection
     {
         if ($ids === []) {
             return new Collection;
         }
 
-        return SavingsAccount::query()->whereIn('id', $ids)->get();
+        return SavingsAccount::query()
+            ->whereIn('id', $ids)
+            ->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id))
+            ->get();
     }
 
     // ---------- Writes ----------
