@@ -15,6 +15,8 @@ use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
 use App\Services\Lifecycle\LifecycleEngine;
 use App\Services\Lifecycle\LifecycleSnapshotService;
 use App\Services\Plans\PlanConfigService;
+use App\Services\Stores\PermissiveTierGate;
+use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +56,12 @@ class AppServiceProvider extends ServiceProvider
                 return new Client(apiKey: $apiKey);
             });
         }
+
+        // TierGate — permissive default until sub-project 2 supplies the real impl
+        $this->app->bind(
+            TierGate::class,
+            PermissiveTierGate::class
+        );
 
         // LifecycleEngine is a singleton so its per-run caches
         // (trialAfterEndCandidates, cachedHasDataIds) are shared across every

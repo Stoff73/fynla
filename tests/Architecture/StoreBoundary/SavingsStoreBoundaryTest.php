@@ -1,0 +1,100 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Sub-Project 1, Pass 1 — Savings store boundary enforcement.
+ *
+ * Hard-fails CI on any direct mutation of App\Models\SavingsAccount
+ * outside the canonical write path (App\Services\Stores\SavingsStore).
+ *
+ * Allowlist (§14.2 of the spec): observers, migrations, seeders, console
+ * commands, the store itself, and pre-existing direct-mutation sites
+ * that subsequent PRs in this pass will migrate. Each entry below has a
+ * comment naming the PR that removes it.
+ */
+arch('SavingsAccount mutations only happen inside SavingsStore (plus transition allowlist)')
+    ->expect('App\Models\SavingsAccount')
+    ->toOnlyBeUsedIn([
+        // Permanent allowlist
+        'App\Services\Stores\SavingsStore',
+        'App\Services\Stores\Normalisers\SavingsAccountNormaliser',
+        'App\Observers\SavingsAccountGoalObserver',
+        'App\Observers\SavingsAccountRiskObserver',
+        'App\Models\\',                     // self-references in relationships
+        'Database\Factories\SavingsAccountFactory',
+
+        // Transition allowlist — removed by subsequent PRs in pass 1.
+        // PR 2 removes: SavingsController (HTTP form path)
+        'App\Http\Controllers\Api\SavingsController',
+        // PR 3 removes: CoordinatingAgent (Fyn AI tool path), OnboardingService
+        'App\Agents\CoordinatingAgent',
+        'App\Services\Onboarding\OnboardingService',
+        'App\Services\Onboarding\AssetCaptureEntityExtractor', // reads only — kept on read consumers list
+        // PR 4 removes: DocumentProcessor (upload path), PreviewController, seeders, console commands
+        'App\Services\Documents\DocumentProcessor',
+        'App\Http\Controllers\Api\PreviewController',
+        'Database\Seeders\PreviewUserSeeder',
+        'Database\Seeders\ChrisUserSeeder',
+        'Database\Seeders\LifecycleTestSeeder',
+        'App\Console\Commands\ResetPreviewData',
+        // PR 5 removes: read consumers (all listed in plan §"Modified files")
+        'App\Agents\SavingsAgent',
+        'App\Agents\InvestmentAgent',
+        'App\Services\Mobile\MobileDashboardAggregator',
+        'App\Services\Estate\EstateAssetAggregatorService',
+        'App\Services\Estate\EstateActionDefinitionService',
+        'App\Services\Plans\BasePlanService',
+        'App\Services\Plans\GoalPlanService',
+        'App\Services\Plans\RetirementPlanService',
+        'App\Services\Plans\SavingsPlanService',
+        'App\Services\Plans\InvestmentPlanService',
+        'App\Services\Retirement\RetirementStrategyService',
+        'App\Services\Retirement\RetirementIncomeService',
+        'App\Services\Coordination\HouseholdPlanningService',
+        'App\Services\Coordination\CashFlowCoordinator',
+        'App\Services\Tax\Strategies\JointSavingsStrategy',
+        'App\Services\Tax\Strategies\AssetShiftingBundleStrategy',
+        'App\Services\Tax\Strategies\PensionAACarryForwardStrategy',
+        'App\Services\Tax\Strategies\IsaTopUpStrategy',
+        'App\Services\Tax\TaxOptimisationService',
+        'App\Services\Tax\TaxStrategyMath',
+        'App\Services\Tax\TaxActionDefinitionService',
+        'App\Services\Savings\ISATracker',
+        'App\Services\Savings\SavingsActionDefinitionService',
+        'App\Services\Investment\Tax\ISAAllowanceOptimizer',
+        'App\Services\Investment\Tax\TaxOptimizationAnalyzer',
+        'App\Services\Investment\Recommendation\UserContextBuilder',
+        'App\Services\Shared\CrossModuleAssetAggregator',
+        'App\Services\Goals\LifeEventAllocationService',
+        'App\Services\AI\AdvicePromptBuilder',
+        'App\Services\AI\DuplicateAcknowledgement',
+        'App\Services\UserProfile\ProfileCompletenessChecker',
+        'App\Services\UserProfile\LetterToSpouseService',
+        'App\Models\Goal',
+        // Additional pre-existing consumers not listed in plan — added to allowlist at PR 1 discovery.
+        // These are read-only or infrastructure usages; migrated in later PRs.
+        'App\Providers\EventServiceProvider',
+        'App\Models\User',
+        'App\Models\SavingsGoal',
+        'App\Http\Resources\SavingsAccountResource',
+        'App\Http\Controllers\Api\Plans\PlanController',
+        'App\Events\Savings\SavingsAccountCreated',
+        'App\Events\Savings\SavingsAccountUpdated',
+        'App\Events\Savings\SavingsAccountRestored',
+        'App\Services\Savings\RateComparator',
+        'App\Services\Savings\LiquidityAnalyzer',
+        'App\Services\UserProfile\PersonalAccountsService',
+        'App\Services\UserProfile\UserProfileService',
+        'App\Services\Documents\DocumentTypeDetector',
+        'App\Services\Documents\FieldMappers\SavingsAccountMapper',
+        'App\Services\Eval\EvalHttpDriver',
+        'App\Services\NetWorth\NetWorthService',
+        'App\Services\Risk\AutoRiskCalculator',
+        'App\Console\Commands\SendSavingsAlerts',
+        'App\Console\Commands\EncryptExistingData',
+    ]);
+
+arch('App\Services\Stores classes use strict types')
+    ->expect('App\Services\Stores')
+    ->toUseStrictTypes();
