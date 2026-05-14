@@ -126,9 +126,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { IHT_NIL_RATE_BAND, IHT_RESIDENCE_NIL_RATE_BAND, IHT_RNRB_TAPER_THRESHOLD } from '@/constants/taxConfig';
 
 export default {
   name: 'NRBRNRBTracker',
@@ -170,22 +170,15 @@ export default {
     },
   },
 
-  data() {
-    return {
-      // UK IHT allowances (from taxConfig fallback constants)
-      nrbStandard: IHT_NIL_RATE_BAND,
-      rnrbStandard: IHT_RESIDENCE_NIL_RATE_BAND,
-      rnrbTaperingThreshold: IHT_RNRB_TAPER_THRESHOLD,
-    };
-  },
-
   computed: {
+    ...mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand', 'ihtRnrbTaperThreshold']),
+
     currentTaxYear() {
       return getCurrentTaxYear();
     },
 
     nrbTotal() {
-      return this.nrbStandard + (this.hasSpouseTransfer ? this.spouseNrbTransfer : 0);
+      return this.ihtNilRateBand + (this.hasSpouseTransfer ? this.spouseNrbTransfer : 0);
     },
 
     nrbRemaining() {
@@ -208,19 +201,19 @@ export default {
     },
 
     rnrbTapered() {
-      return this.estateValue > this.rnrbTaperingThreshold;
+      return this.estateValue > this.ihtRnrbTaperThreshold;
     },
 
     rnrbTotal() {
       if (!this.isRnrbEligible) return 0;
 
       if (this.rnrbTapered) {
-        const excess = this.estateValue - this.rnrbTaperingThreshold;
+        const excess = this.estateValue - this.ihtRnrbTaperThreshold;
         const reduction = excess / 2;
-        return Math.max(0, this.rnrbStandard - reduction);
+        return Math.max(0, this.ihtResidenceNilRateBand - reduction);
       }
 
-      return this.rnrbStandard;
+      return this.ihtResidenceNilRateBand;
     },
 
     rnrbRemaining() {
