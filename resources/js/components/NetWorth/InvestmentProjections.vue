@@ -461,10 +461,9 @@
 </template>
 
 <script>
-import { mapActions, mapState } from 'vuex';
+import { mapActions, mapState, mapGetters } from 'vuex';
 import VueApexCharts from 'vue3-apexcharts';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { TAX_CONFIG } from '@/constants/taxConfig';
 import { CHART_COLORS, ASSET_COLORS, PRIMARY_COLORS, SUCCESS_COLORS, BORDER_COLORS } from '@/constants/designSystem';
 
 // Data loading services
@@ -561,6 +560,7 @@ export default {
     ...mapState('auth', ['currentUser']),
     ...mapState('retirement', ['profile']),
     ...mapState('aiFormFill', ['pendingFill']),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
 
     // ---- Account type guards ----
     detailComponentType() {
@@ -618,7 +618,7 @@ export default {
 
     isaRemaining() {
       const contributions = this.account.isa_subscription_current_year || 0;
-      return Math.max(0, TAX_CONFIG.ISA_ANNUAL_ALLOWANCE - contributions);
+      return Math.max(0, this.isaAnnualAllowance - contributions);
     },
 
     // ---- Fee computations ----

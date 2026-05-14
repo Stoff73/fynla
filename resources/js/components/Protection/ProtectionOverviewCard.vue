@@ -210,9 +210,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import userProfileService from '@/services/userProfileService';
-import { SSP_WEEKLY_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'ProtectionOverviewCard',
@@ -267,6 +267,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['sspWeeklyRate']),
+
     // ===== DEBT PROTECTION (same as GapAnalysis) =====
     totalDebt() {
       return this.fetchedMortgageDebt + this.fetchedOtherDebt;
@@ -319,10 +321,6 @@ export default {
     // ===== SICKNESS COVER (same as GapAnalysis) =====
     isEmployee() {
       return this.fetchedEmploymentIncome > 0;
-    },
-
-    sspWeeklyRate() {
-      return SSP_WEEKLY_RATE;
     },
 
     sspAnnualEquivalent() {

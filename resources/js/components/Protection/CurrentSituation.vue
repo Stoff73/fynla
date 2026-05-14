@@ -468,7 +468,6 @@ import PolicyCard from './PolicyCard.vue';
 import DocumentUploadModal from '@/components/Shared/DocumentUploadModal.vue';
 import userProfileService from '@/services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SSP_WEEKLY_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'CurrentSituation',
@@ -506,6 +505,7 @@ export default {
       'totalPremium',
     ]),
     ...mapGetters('auth', ['currentUser']),
+    ...mapGetters('taxConfig', ['sspWeeklyRate']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -687,10 +687,6 @@ export default {
 
     isEmployee() {
       return this.fetchedEmploymentIncome > 0;
-    },
-
-    sspWeeklyRate() {
-      return SSP_WEEKLY_RATE;
     },
 
     sspAnnualEquivalent() {

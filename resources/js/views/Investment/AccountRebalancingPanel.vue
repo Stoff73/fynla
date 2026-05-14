@@ -204,7 +204,7 @@
           <div class="text-center p-4 bg-spring-50 rounded-lg border border-spring-200">
             <p class="text-sm text-neutral-500 mb-1">Allowance Used</p>
             <p class="text-2xl font-bold text-spring-600">{{ formatCurrency(rebalancingData.cgt_analysis.allowance_used) }}</p>
-            <p class="text-xs text-neutral-500">of £{{ cgtAnnualAllowance.toLocaleString() }} annual allowance</p>
+            <p class="text-xs text-neutral-500">of £{{ (cgtAnnualAllowance || 0).toLocaleString() }} annual allowance</p>
           </div>
           <div class="text-center p-4 rounded-lg border" :class="rebalancingData.cgt_analysis.cgt_liability > 0 ? 'bg-raspberry-50 border-raspberry-200' : 'bg-savannah-100 border-light-gray'">
             <p class="text-sm text-neutral-500 mb-1">Capital Gains Tax Liability</p>
@@ -260,9 +260,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import rebalancingService from '@/services/rebalancingService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CGT_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -279,7 +279,6 @@ export default {
 
   data() {
     return {
-      cgtAnnualAllowance: CGT_ANNUAL_ALLOWANCE,
       loading: false,
       error: null,
       rebalancingData: null,
@@ -297,6 +296,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['cgtAnnualAllowance']),
+
     // Risk profile computed properties
     riskProfile() {
       return this.rebalancingData?.risk_profile || {};
