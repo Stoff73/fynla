@@ -78,6 +78,7 @@ use App\Http\Controllers\Api\Public\InsightController;
 use App\Http\Controllers\Api\Public\NewsController;
 use App\Http\Controllers\Api\Public\NewsSubscriberController;
 use App\Http\Controllers\Api\Public\TaxAllowancesController;
+use App\Http\Controllers\Api\Public\TaxConfigController as PublicTaxConfigController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
@@ -203,6 +204,13 @@ Route::prefix('insights')->group(function () {
 // Used by marketing campaign pages (e.g. /savetax) to keep headline
 // figures in sync with the seeded tax-year configuration.
 Route::get('public/tax-allowances', [TaxAllowancesController::class, 'show'])
+    ->middleware('throttle:60,1');
+
+// Public tax-year snapshot — same shape as the authenticated /api/tax/config
+// endpoint, served unauthenticated so PublicLayout can hydrate the shared
+// taxConfig Vuex store before pages like CalculatorsPage render.
+// UK rates/thresholds are public-by-nature; rate-limit defends scraping.
+Route::get('public/tax-config', [PublicTaxConfigController::class, 'show'])
     ->middleware('throttle:60,1');
 
 // Public News API (no auth required)
