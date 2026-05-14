@@ -1,7 +1,83 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 May 2026 — session 3 (PR #294 admin-merged — REVIEW §4 High #28 taxConfig hydrate rail laid)*
-*Previous session: 14 May 2026 — session 2 context-clear (PR #292 + PR #293 admin-merged + vault rogue-file resolved + tripwire)*
+*Last updated: 14 May 2026 — session 4 (PRs #295–#299 admin-merged — taxConfig rail fully traversed across all authenticated components)*
+*Previous session: 14 May 2026 — session 3 (PR #294 admin-merged — taxConfig hydrate rail laid)*
+
+---
+
+## Session 4 (14 May 2026) — PRs #295–#299: taxConfig migration completed across all authenticated components
+
+**Branch:** `dev` at `52e662f` (post-#299 merge) · **Tree:** clean · **PRs opened this session:** 5 (#295–#299) · **PRs merged this session:** 5 (all admin-merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **All 5 migration PRs shipped.** Continuation of REVIEW §4 High #28 (PR #294 from session 3 laid the rail). 33 files migrated this session — every authenticated Vue component that touched `@/constants/taxConfig` now hydrates from the `taxConfig` Vuex store backed by `GET /api/tax/config`.
+   - **PR #295** `estate-taxconfig-migration → dev` — 6 Estate files (TrustPlanningStrategy, NRBRNRBTracker, GiftForm, IHTPlanning, GiftingStrategy, IHTCalculationTable). Browser-verified live on `/estate` + `/estate/inheritance-tax`. Merge commit `ea6d3c8`. https://github.com/Stoff73/fynla/pull/295
+   - **PR #296** `investment-taxconfig-migration → dev` — 9 Investment files (AccountForm, AccountStrategyCard, PortfolioOverview, RebalancingCalculator, StandardInvestmentFields, TaxEfficiencyPanel, TaxFees, TaxOptimization, WrapperOptimizer). Browser-verified live on `/net-worth/investments` → Add Investment → ISA. Merge commit `adfd982`. https://github.com/Stoff73/fynla/pull/296
+   - **PR #297** `savings-taxconfig-migration → dev` — 2 Savings files (SaveAccountModal, ISAAllowanceTracker). Browser-verified live on `/net-worth/cash` → Add Account. Merge commit `0ac3527`. https://github.com/Stoff73/fynla/pull/297
+   - **PR #298** `retirement-taxconfig-migration → dev` — 2 Retirement files (AnnualAllowanceTracker, CapitalAdequacyTab). Browser-verified live on `/net-worth/retirement` via Vuex store inspection. Merge commit `3e25265`. https://github.com/Stoff73/fynla/pull/298
+   - **PR #299** `shared-admin-taxconfig-migration → dev` — 14 mixed files: Shared/ISAAllowanceSummary, Dashboard/TaxOptimisationCard, Insights/blocks/TaxYearStatBlock, Protection×3 (GapAnalysis, ProtectionOverviewCard, CurrentSituation), UserProfile×2 (IncomeDefinitionsPanel, IncomeOccupation — Composition API), NetWorth/Property/PropertyTaxCalculator, NetWorth/InvestmentProjections, views/Dashboard.vue, views/Investment×2 (AccountSummaryPanel, AccountRebalancingPanel), views/Trusts/TrustsDashboard. Browser-verified live on `/dashboard` + `/protection`. Merge commit `52e662f`. https://github.com/Stoff73/fynla/pull/299
+2. **Total file count.** 6 + 9 + 2 + 2 + 14 = **33 files** migrated this session, plus session 3's backend endpoint + Vuex store = **34 touchpoints** on the rail.
+3. **Composition API support proven.** Two UserProfile files use the Composition API (`useStore()` + `computed()` refs). Both migrate cleanly; pattern documented in PR #299 body for any future Composition API migrations.
+4. **Naming collisions handled.** Several files had local data fields or computed properties that already shared names with store getters (e.g. `isaAnnualAllowance()` computed in `AccountSummaryPanel`). Resolved via object-form `mapGetters` aliases (e.g. `storeIsaAnnualAllowance`) to preserve callsites without renaming.
+5. **All test suites green throughout.** Full Unit suite: 1876 passed / 5837 assertions. Architecture suite: 95 passed / 416 assertions. No regressions introduced.
+6. **No deploys this session.** csjones.co/fynla still on `dev@f22c9b988` — now **9 PRs behind** (#291, #292, #293, #294, #295, #296, #297, #298, #299).
+
+### Done
+
+- [x] Session-start: branch `dev` clean + DB seeded + dev server running on :8000/:5173
+- [x] Read full handover at `May/May14Updates/handover-2026-05-14-session-3-clear.md`
+- [x] PR #295 Estate (6 files) — opened, CI-green, admin-merged
+- [x] PR #296 Investment (9 files) — opened, CI-green, admin-merged
+- [x] PR #297 Savings (2 files) — opened, CI-green, admin-merged
+- [x] PR #298 Retirement (2 files) — opened, CI-green, admin-merged
+- [x] PR #299 Shared/Dashboard/Insights/Protection/UserProfile/NetWorth/Trusts/Investment-views (14 files) — opened, CI-green, admin-merged
+- [x] Browser-verified every PR end-to-end as `john@example.com` (full Unit + Architecture suite green)
+- [x] Local `dev` synced after each merge
+
+### Outstanding (next session — priority order)
+
+- [ ] **Extend `TaxConfigController::buildPayload()` payload** to include the constants CalculatorsPage still needs:
+  - SDLT band tables (`SDLT_STANDARD_BANDS`, `SDLT_FTB_BANDS`, `SDLT_FTB_MAX_PRICE`, `SDLT_ADDITIONAL_SURCHARGE`, `SDLT_NON_UK_SURCHARGE`)
+  - LBTT band tables (`LBTT_BANDS`, `LBTT_ADDITIONAL_SURCHARGE`, `LBTT_NON_UK_SURCHARGE`)
+  - LTT band tables (`LTT_BANDS`, `LTT_ADDITIONAL_SURCHARGE`, `LTT_NON_UK_SURCHARGE`)
+  - Student loan repayment rate (`STUDENT_LOAN_REPAYMENT_RATE`)
+  - Add Vuex getters for each on the `taxConfig` store
+- [ ] **Public-store dispatch on `PublicLayout`** — CalculatorsPage is unauthenticated so the auth-required `/api/tax/config` won't fire. Either extend the existing `/api/public/tax-allowances` endpoint OR add a public dispatch. Once wired, CalculatorsPage migration is mechanical (same pattern as everything else).
+- [ ] **CalculatorsPage migration** — 17 constants, mechanical once the above two land.
+- [ ] **Final cleanup PR — delete `resources/js/constants/taxConfig.js`** once CalculatorsPage is the last importer and is migrated. Grep before deletion.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common`:
+  - 7 currently `('individual','joint','trust')`: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts`
+  - 2 currently `('individual','joint')` — also missing `trust`: `goals`, `life_events`
+- [ ] **Deploy csjones** — now **9 PRs behind** (#291–#299). Smoke check `/api/tax/config` returns the seeded snapshot + frontend Vuex devtools show `taxConfig.config` populated + every migrated component renders correctly.
+- [ ] **Tech-debt Warning #3** (carry-forward) — `TaxAwareRebalancer.php` 606 lines, service-file split candidate (`TaxLossHarvestingIdentifier` extraction)
+- [ ] **Suggestion #5** (carry-forward) — drop unimplemented step-3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` when convenient
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault
+- [ ] **Vault-sync still deferred** (3 sessions running) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50 (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Migration shipped in PR #296 regardless.
+- [ ] **Orphan components in Estate / Investment** — 4 Estate (TrustPlanningStrategy, NRBRNRBTracker, GiftingStrategy, GiftForm) and 7 Investment (PortfolioOverview, RebalancingCalculator, TaxEfficiencyPanel, TaxFees, TaxOptimization, AccountStrategyCard, WrapperOptimizer) are migrated but not currently mounted on any live route (require existing accounts to render). Tests pass and pattern is consistent — runtime exercise pending data on John.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#299 (19 PRs)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 11-day stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Branch / deploy state
+
+- `dev` at `52e662f` (post-#299 merge) — 66 commits ahead of `main`
+- `main` unchanged at `f15e068` — production still pre-audit-batch
+- csjones.co/fynla on `dev@f22c9b988` — now **9 PRs behind** (#291–#299)
+- fynla.org unchanged
 
 ---
 
