@@ -324,7 +324,7 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    :max="isJuniorISA ? JUNIOR_ISA_ALLOWANCE : ISA_ALLOWANCE"
+                    :max="isJuniorISA ? juniorIsaAllowance : isaAnnualAllowance"
                     class="w-full pl-8 pr-3 py-2 border border-violet-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white"
                     placeholder="0.00"
                   />
@@ -424,28 +424,28 @@
                     <div
                       v-if="otherCashISAUsed > 0"
                       class="bg-violet-500 h-full"
-                      :style="{ width: (otherCashISAUsed / ISA_ALLOWANCE * 100) + '%' }"
+                      :style="{ width: (otherCashISAUsed / isaAnnualAllowance * 100) + '%' }"
                       :title="`Other Cash ISAs: ${formatCurrency(otherCashISAUsed)}`"
                     ></div>
                     <!-- S&S ISA portion -->
                     <div
                       v-if="stocksISAUsed > 0"
                       class="bg-violet-500 h-full"
-                      :style="{ width: (stocksISAUsed / ISA_ALLOWANCE * 100) + '%' }"
+                      :style="{ width: (stocksISAUsed / isaAnnualAllowance * 100) + '%' }"
                       :title="`Stocks ISAs: ${formatCurrency(stocksISAUsed)}`"
                     ></div>
                     <!-- This account's subscription -->
                     <div
                       v-if="thisAccountSubscription > 0"
                       class="bg-spring-500 h-full"
-                      :style="{ width: (thisAccountSubscription / ISA_ALLOWANCE * 100) + '%' }"
+                      :style="{ width: (thisAccountSubscription / isaAnnualAllowance * 100) + '%' }"
                       :title="`This account: ${formatCurrency(thisAccountSubscription)}`"
                     ></div>
                     <!-- Planned contributions (lighter shade) -->
                     <div
                       v-if="plannedAnnualContribution > 0"
                       class="bg-violet-400 h-full"
-                      :style="{ width: Math.min(plannedAnnualContribution / ISA_ALLOWANCE * 100, 100 - totalUsedPercent) + '%' }"
+                      :style="{ width: Math.min(plannedAnnualContribution / isaAnnualAllowance * 100, 100 - totalUsedPercent) + '%' }"
                       :title="`Planned: ${formatCurrency(plannedAnnualContribution)}`"
                     ></div>
                   </div>
@@ -556,11 +556,10 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 import CountrySelector from '@/components/Shared/CountrySelector.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { ISA_ANNUAL_ALLOWANCE, JUNIOR_ISA_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -598,8 +597,6 @@ export default {
     return {
       submitting: false,
       isaAllowanceError: null,
-      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE,
-      JUNIOR_ISA_ALLOWANCE: JUNIOR_ISA_ALLOWANCE,
       formData: {
         institution: '',
         account_type: '',
@@ -630,6 +627,7 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance', 'juniorIsaAllowance']),
 
     stageFormConfig() {
       return this.$store.getters['lifeStage/formFields']('savings') || {};
@@ -854,17 +852,17 @@ export default {
 
     // Remaining allowance after all usage
     totalRemainingAllowance() {
-      return Math.max(0, this.ISA_ALLOWANCE - this.totalWithPlanned);
+      return Math.max(0, this.isaAnnualAllowance - this.totalWithPlanned);
     },
 
     // Percentage used (capped at 100)
     totalUsedPercent() {
-      return Math.min(100, (this.totalISAUsed / this.ISA_ALLOWANCE) * 100);
+      return Math.min(100, (this.totalISAUsed / this.isaAnnualAllowance) * 100);
     },
 
     // Class for remaining allowance display
     totalRemainingAllowanceClass() {
-      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-raspberry-600';
+      if (this.totalWithPlanned > this.isaAnnualAllowance) return 'text-raspberry-600';
       if (this.totalRemainingAllowance < 2000) return 'text-violet-600';
       return 'text-spring-600';
     },
@@ -995,8 +993,8 @@ export default {
 
       // Validate ISA allowance for non-Junior ISAs
       if ((this.formData.is_isa || this.isISAProductType) && !this.isJuniorISA) {
-        if (this.totalWithPlanned > this.ISA_ALLOWANCE) {
-          const excess = this.totalWithPlanned - this.ISA_ALLOWANCE;
+        if (this.totalWithPlanned > this.isaAnnualAllowance) {
+          const excess = this.totalWithPlanned - this.isaAnnualAllowance;
           this.isaAllowanceError = `Your planned ISA contributions would exceed the £20,000 allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
           this.submitting = false;
           return;
