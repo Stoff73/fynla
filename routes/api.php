@@ -90,6 +90,7 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\Tax\TaxOptimisationController;
+use App\Http\Controllers\Api\TaxConfigController;
 use App\Http\Controllers\Api\TaxProductInfoController;
 use App\Http\Controllers\Api\TaxSettingsController;
 use App\Http\Controllers\Api\TaxStrategyController;
@@ -1255,6 +1256,12 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])
 // which year to display and calculate allowances against. No sensitive admin
 // config is exposed here (that stays behind permission:admin.tax_config below).
 Route::middleware('auth:sanctum')->get('tax-year/current', [TaxYearController::class, 'current']);
+
+// Full tax-config snapshot — frontend hydrates the taxConfig Vuex store from
+// this so components no longer fall back to the hardcoded constants in
+// `resources/js/constants/taxConfig.js`. Same auth surface as `tax-year/current`
+// (UK tax values are public knowledge but we gate behind auth to avoid scrapers).
+Route::middleware('auth:sanctum')->get('tax/config', [TaxConfigController::class, 'show']);
 
 // Tax Settings routes (requires tax config permission)
 Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {
