@@ -1,7 +1,78 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 May 2026 — session 4 (PRs #295–#299 admin-merged — taxConfig rail fully traversed across all authenticated components)*
-*Previous session: 14 May 2026 — session 3 (PR #294 admin-merged — taxConfig hydrate rail laid)*
+*Last updated: 14 May 2026 — session 6 (PRs #300–#301 admin-merged — taxConfig rail extended with stamp duty + student loan + public dispatch; CalculatorsPage migrated; 4 missed importers surfaced)*
+*Previous session: 14 May 2026 — session 4 (PRs #295–#299 admin-merged — taxConfig rail fully traversed across all authenticated components)*
+
+> **Note re session 5:** A parallel context (worktree `cranky-lewin-6bc99c`) ran a major-overhaul brainstorming session and committed `handover-2026-05-14-session-5-clear.md` to dev directly. That work is independent of this session's web/dev taxConfig work — see the worktree's handover for system-overhaul sub-project 1 status. This session (6) continued the session-4 handover's "Pick up from here" roadmap on `dev`.
+
+---
+
+## Session 6 (14 May 2026) — PRs #300–#301: taxConfig rail extension + CalculatorsPage migration; 4 missed importers surfaced
+
+**Branch:** `dev` at `0b3c262` (post-#301 merge) · **Tree:** clean (only pre-existing untracked carry-overs) · **PRs opened this session:** 2 (#300, #301) · **PRs merged this session:** 2 (both admin-merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **Session 4's "Pick up from here" roadmap executed.** Steps 1+2 (backend payload extension + public dispatch) shipped as PR #300; step 3 (CalculatorsPage migration) shipped as PR #301. Step 4 (delete `taxConfig.js`) blocked by a discovery — see "Outstanding" below.
+   - **PR #300** `taxconfig-rail-extension → dev` — extends `TaxConfigSnapshotService` (new) + `TaxConfigController` to include SDLT/LBTT/LTT bands and student loan repayment rate; adds new `Api\Public\TaxConfigController` + `GET /api/public/tax-config` route serving the byte-identical payload unauthenticated; `PublicLayout` gains a `mounted` hook that fetches the snapshot via the new public action when the store isn't already loaded; 12 new Vuex getters; seeder gains `stamp_duty.lbtt`, `stamp_duty.ltt`, `student_loan` blocks; 13 feature tests pass (178 assertions); architecture suite green. Merge commit `31fe6a6`. https://github.com/Stoff73/fynla/pull/300
+   - **PR #301** `calculatorspage-taxconfig-migration → dev` — migrates `CalculatorsPage.vue` (the only authenticated-or-public web view still importing constants) off `@/constants/taxConfig`. 25 constants → 25 store getters via `mapGetters('taxConfig', [...])`; local `higherRateThreshold()` computed dropped (store getter has the same name and shape); browser-verified all 4 stamp duty buyer types × 3 countries (England SDLT £400k home mover £10k, England FTB £350k £2,500 saving £5k vs standard, Scotland LBTT £400k £13,350, Wales LTT £400k £10,500, Wales LTT £600k £25,500 incl. £15k in 7.5% non-integer band) + student loan calculator (£20/mo at 9% on £30k salary). Zero console errors. Merge commit `0b3c262`. https://github.com/Stoff73/fynla/pull/301
+2. **4 importers of `@/constants/taxConfig` were missed by session 4's audit.** The session-4 handover claimed `CalculatorsPage` was the only remaining importer; grepping after #301 revealed 4 more:
+   - `resources/js/mobile/learn/learnTopics.js:7` — `STATE_PENSION_WEEKLY`, `TAX_YEAR`, `PENSION_ANNUAL_ALLOWANCE` (used at module-load time in template-literal interpolation; needs architectural rework to take the store at consumption rather than a `mapGetters` swap)
+   - `resources/js/mobile/views/RetirementDetail.vue:97` — `ANNUAL_ALLOWANCE` (mobile Vue component, mapGetters-able but needs `./deploy/mobile/build-ios.sh` + iOS browser test per CLAUDE.md mobile section)
+   - `resources/js/mobile/views/EstateDetail.vue:96` — `IHT_NIL_RATE_BAND`, `IHT_RESIDENCE_NIL_RATE_BAND` (same — mobile, iOS test required)
+   - `resources/js/store/modules/investment.js:3` — `ISA_ANNUAL_ALLOWANCE` (Vuex store fallback inside `isaAllowancePercentage` getter; migration is `rootGetters['taxConfig/isaAnnualAllowance']` — easy, web-only, no iOS impact)
+3. **Cleanup PR (delete `resources/js/constants/taxConfig.js`) blocked.** Cannot ship until the 4 importers above are migrated. `taxConfig.js` self-describes as "FALLBACK values only" so leaving it for now is functionally safe — but the rail goal is full removal, so this is real outstanding work, not a non-issue.
+
+### Done
+
+- [x] Session-start: branch `dev` at `529a53e`, DB seeded, dev server running on :8000/:5173
+- [x] Read full handover at `May/May14Updates/handover-2026-05-14-session-4-clear.md`
+- [x] PR #300: `TaxConfigSnapshotService` + new public controller + Vuex `fetchPublicConfig` + PublicLayout dispatch + 13 feature tests
+- [x] Browser-verified PR #300 end-to-end (unauth `/calculators` fires `GET /api/public/tax-config`; auth `/dashboard` fires `GET /api/tax/config`; no double-fetch when authenticated)
+- [x] PR #301: CalculatorsPage migrated (25 constants → 25 store getters)
+- [x] Browser-verified PR #301 across all 4 buyer types × 3 countries + student loan calculator
+- [x] Architecture suite + Feature/Api/TaxConfig* suites green throughout
+- [x] CSJTODO updated with session-6 entry + 4-missed-importer flag
+- [x] Discovery surfaced: session-4 handover's "CalculatorsPage is the only remaining importer" claim was incomplete
+
+### Outstanding (next session — priority order)
+
+- [ ] **Migrate the 4 missed importers** before the cleanup PR can ship:
+  - **`store/modules/investment.js`** — easy 1-line change: add `rootGetters` 4th arg to `isaAllowancePercentage` getter, fall through `rootState.savings?.isaAllowance?.total_allowance || rootGetters['taxConfig/isaAnnualAllowance'] || 20000`
+  - **`mobile/views/RetirementDetail.vue`** — `mapGetters('taxConfig', ['pensionAnnualAllowance'])`, swap callsites (3 usages in template). Requires `./deploy/mobile/build-ios.sh` + iOS device test per `feedback_ios_testing_checklist.md`
+  - **`mobile/views/EstateDetail.vue`** — `mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand'])`, swap 4 callsites. Same iOS testing requirement
+  - **`mobile/learn/learnTopics.js`** — needs architectural rework: convert `learnTopics` from a static array (built at import time with template-literal interpolation) to a function `getLearnTopics(store)` that takes the store and computes strings on demand. Update the 1-2 callers to invoke it with the store. Also needs iOS testing.
+- [ ] **Final cleanup PR — delete `resources/js/constants/taxConfig.js`** once all 4 above are migrated. Grep `from '@/constants/taxConfig'` and `@/constants/taxConfig` (both forms) before deletion.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour. (Carry-forward from session 4)
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common`. (Carry-forward from session 4)
+- [ ] **Deploy csjones** — now **11 PRs behind** `dev` (#291–#301). Smoke check the new `/api/tax/config` + `/api/public/tax-config` endpoints + Vuex hydration on both auth and public routes + CalculatorsPage stamp duty + student loan correctness.
+- [ ] **Tech-debt Warning #3** (carry-forward) — `TaxAwareRebalancer.php` 606 lines split candidate
+- [ ] **Suggestion #5** (carry-forward) — drop unimplemented step-3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` — but ONLY when CSJ confirms the parallel session-5 worktree work is preserved or merged elsewhere. Do not delete blind: it has uncommitted-pushed work on `claude/cranky-lewin-6bc99c` containing the system-overhaul design doc.
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault (carry-forward)
+- [ ] **Vault-sync still deferred** (4 sessions running counting this one) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50, plus new `Services/TaxConfigSnapshotService.php` (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up
+- [ ] **Orphan components in Estate / Investment** (carry-forward) — 4 Estate + 7 Investment files migrated but not currently mounted on any live route
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up)
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up)
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#301 (21 PRs)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 11+ days stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Branch / deploy state
+
+- `dev` at `0b3c262` (post-#301 merge) — 69 commits ahead of `main`
+- `main` unchanged at `f15e068`
+- csjones.co/fynla on `dev@f22c9b988` — now **11 PRs behind** (#291–#301)
+- fynla.org unchanged
 
 ---
 
