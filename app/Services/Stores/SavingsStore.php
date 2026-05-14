@@ -134,6 +134,7 @@ class SavingsStore
             'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
             'country' => 'sometimes|nullable|string|max:255',
+            'include_in_retirement' => 'sometimes|boolean',
         ];
 
         $validator = Validator::make($data, $rules);

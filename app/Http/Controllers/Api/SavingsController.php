@@ -14,7 +14,6 @@ use App\Http\Requests\Savings\UpdateSavingsAccountRequest;
 use App\Http\Requests\Savings\UpdateSavingsGoalRequest;
 use App\Http\Resources\SavingsAccountResource;
 use App\Http\Traits\SanitizedErrorResponse;
-use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Goals\GoalStrategyService;
@@ -24,6 +23,10 @@ use App\Services\Plans\SavingsPlanService;
 use App\Services\Savings\FSCSAssessor;
 use App\Services\Savings\ISATracker;
 use App\Services\Savings\PSACalculator;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
@@ -54,7 +57,9 @@ class SavingsController extends Controller
         private readonly SavingsPlanService $savingsPlanService,
         private readonly PSACalculator $psaCalculator,
         private readonly FSCSAssessor $fscsAssessor,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly SavingsStore $savingsStore,
+        private readonly SavingsAccountNormaliser $normaliser,
     ) {}
 
     /**
@@ -67,9 +72,7 @@ class SavingsController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get accounts where user is owner OR joint_owner
-        $accounts = SavingsAccount::forUserOrJoint($user->id)
-            ->limit(100)
-            ->get();
+        $accounts = $this->savingsStore->forUser($user)->take(100);
 
         // Transform accounts using resource and add calculated fields
         $accounts = $accounts->map(function ($account) use ($user) {
@@ -122,7 +125,7 @@ class SavingsController extends Controller
 
         // FSCS exposure summary
         $fscsExposure = null;
-        $rawAccounts = SavingsAccount::forUserOrJoint($user->id)->get();
+        $rawAccounts = $this->savingsStore->forUser($user);
         if ($rawAccounts->isNotEmpty()) {
             try {
                 $fscsExposure = $this->fscsAssessor->assessExposure($rawAccounts);
@@ -260,39 +263,12 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            $data = $request->validated();
-            $data['user_id'] = $user->id;
-
-            // Set default ownership type if not provided
-            $data['ownership_type'] = $data['ownership_type'] ?? 'individual';
-
-            // Set default ownership percentage if not provided
-            if (! isset($data['ownership_percentage'])) {
-                $data['ownership_percentage'] = 100.00;
-            }
-
-            // For joint ownership, default to 50/50 split if not specified or 100
-            if ($data['ownership_type'] === 'joint' && $data['ownership_percentage'] == 100.00) {
-                $data['ownership_percentage'] = 50.00;
-            }
-
-            // ISA accounts must always be United Kingdom
-            // Non-ISA accounts default to United Kingdom if not provided
-            if (isset($data['is_isa']) && $data['is_isa']) {
-                $data['country'] = 'United Kingdom';
-            } elseif (! isset($data['country']) || $data['country'] === null) {
-                $data['country'] = 'United Kingdom';
-            }
-
-            // Single-record pattern: Store FULL balance directly (no splitting)
-            // current_balance already contains the full account balance from the form
-
-            $account = SavingsAccount::create($data);
+            $canonical = $this->normaliser->fromForm($request->validated());
+            $account = $this->savingsStore->create($canonical, $user, IngestSource::FORM);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
 
-            // Add calculated fields to response using resource
-            $accountData = (new SavingsAccountResource($account))->toArray(request());
+            $accountData = (new SavingsAccountResource($account))->toArray($request);
             $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
             $accountData['full_balance'] = (float) $account->current_balance;
             $accountData['is_primary_owner'] = true;
@@ -303,6 +279,8 @@ class SavingsController extends Controller
                 'message' => 'Savings account created successfully',
                 'data' => $accountData,
             ], 201);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Creating savings account');
         }
@@ -319,14 +297,13 @@ class SavingsController extends Controller
 
         try {
             // Single-record pattern: Allow access if user is owner OR joint_owner
-            // Load owner and joint_owner relationships
-            $account = SavingsAccount::with(['user:id,first_name,surname', 'jointOwner:id,first_name,surname'])
-                ->where('id', $id)
-                ->where(function ($query) use ($user) {
-                    $query->where('user_id', $user->id)
-                        ->orWhere('joint_owner_id', $user->id);
-                })
-                ->firstOrFail();
+            $account = $this->savingsStore->find($id, $user);
+            if (! $account) {
+                return response()->json(['success' => false, 'message' => 'Account not found'], 404);
+            }
+
+            // Load owner relationship data for name display
+            $account->loadMissing(['user:id,first_name,surname', 'jointOwner:id,first_name,surname']);
 
             $accountData = (new SavingsAccountResource($account))->toArray(request());
             $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
@@ -343,11 +320,6 @@ class SavingsController extends Controller
                 'success' => true,
                 'data' => $accountData,
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account not found',
-            ], 404);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Fetching savings account');
         }
@@ -364,43 +336,16 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            // Only primary owner can update
-            $account = SavingsAccount::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
-
-            // Get validated data and enforce ISA country rule
-            $data = $request->validated();
-            if (isset($data['is_isa']) && $data['is_isa']) {
-                $data['country'] = 'United Kingdom';
-            }
-
-            // Single-record pattern: Handle ownership percentage when changing to/from joint
-            $ownershipType = $data['ownership_type'] ?? $account->ownership_type;
-            $jointOwnerId = $data['joint_owner_id'] ?? $account->joint_owner_id;
-
-            if ($ownershipType === 'joint' && $jointOwnerId) {
-                // Switching to joint or already joint - default to 50% if not specified
-                if (! isset($data['ownership_percentage'])) {
-                    $data['ownership_percentage'] = 50.00;
-                }
-            } elseif ($ownershipType === 'individual') {
-                // Switching to individual - reset to 100%
-                $data['ownership_percentage'] = 100.00;
-                $data['joint_owner_id'] = null;
-            }
-
-            // Single-record pattern: Update directly (no reciprocal)
-            $account->update($data);
+            $canonical = $this->normaliser->fromForm($request->validated());
+            $account = $this->savingsStore->update($id, $canonical, $user, IngestSource::FORM);
 
             $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
 
-            $freshAccount = $account->fresh();
-            $accountData = (new SavingsAccountResource($freshAccount))->toArray(request());
-            $accountData['user_share'] = $this->calculateUserShare($freshAccount, $user->id);
-            $accountData['full_balance'] = (float) $freshAccount->current_balance;
+            $accountData = (new SavingsAccountResource($account))->toArray($request);
+            $accountData['user_share'] = $this->calculateUserShare($account, $user->id);
+            $accountData['full_balance'] = (float) $account->current_balance;
             $accountData['is_primary_owner'] = true;
-            $accountData['is_shared'] = $this->isSharedOwnership($freshAccount);
+            $accountData['is_shared'] = $this->isSharedOwnership($account);
 
             return response()->json([
                 'success' => true,
@@ -408,10 +353,9 @@ class SavingsController extends Controller
                 'data' => $accountData,
             ]);
         } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account not found or unauthorized',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Account not found or unauthorized'], 404);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Updating savings account');
         }
@@ -428,27 +372,12 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            // Only primary owner can delete
-            $account = SavingsAccount::where('id', $id)
-                ->where('user_id', $user->id)
-                ->firstOrFail();
+            $this->savingsStore->delete($id, $user, 'user_requested');
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
-            $jointOwnerId = $account->joint_owner_id;
-
-            // Single-record pattern: Just delete the one record
-            $account->delete();
-
-            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $jointOwnerId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Savings account deleted successfully',
-            ]);
+            return response()->json(['success' => true, 'message' => 'Savings account deleted successfully']);
         } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account not found or unauthorized',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Account not found or unauthorized'], 404);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Deleting savings account');
         }
@@ -464,35 +393,24 @@ class SavingsController extends Controller
         $user = $request->user();
 
         try {
-            // Allow toggle if user is owner OR joint_owner
-            $account = SavingsAccount::where('id', $id)
-                ->where(function ($query) use ($user) {
-                    $query->where('user_id', $user->id)
-                        ->orWhere('joint_owner_id', $user->id);
-                })
-                ->firstOrFail();
+            $current = $this->savingsStore->find($id, $user);
+            if (! $current) {
+                return response()->json(['success' => false, 'message' => 'Account not found'], 404);
+            }
 
-            // Toggle the flag
-            $account->include_in_retirement = ! $account->include_in_retirement;
-            $account->save();
+            $updated = $this->savingsStore->update(
+                $id,
+                ['include_in_retirement' => ! $current->include_in_retirement],
+                $user,
+                IngestSource::FORM
+            );
 
-            $this->cacheInvalidation->invalidateForUserAndSpouse($user->id, $account->joint_owner_id);
+            $this->cacheInvalidation->invalidateForUser($user->id);
 
             return response()->json([
                 'success' => true,
-                'message' => $account->include_in_retirement
-                    ? 'Account included in retirement planning'
-                    : 'Account excluded from retirement planning',
-                'data' => [
-                    'id' => $account->id,
-                    'include_in_retirement' => $account->include_in_retirement,
-                ],
+                'data' => ['include_in_retirement' => $updated->include_in_retirement],
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account not found or unauthorized',
-            ], 404);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Toggling retirement inclusion');
         }
