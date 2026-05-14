@@ -24,8 +24,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         'Database\Factories\SavingsAccountFactory',
 
         // Transition allowlist — removed by subsequent PRs in pass 1.
-        // PR 2 removes: SavingsController (HTTP form path)
-        'App\Http\Controllers\Api\SavingsController',
         // PR 3 removes: CoordinatingAgent (Fyn AI tool path), OnboardingService
         'App\Agents\CoordinatingAgent',
         'App\Services\Onboarding\OnboardingService',

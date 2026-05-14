@@ -29,6 +29,7 @@ class StoreSavingsAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'account_name' => 'nullable|string|max:255',
             'account_type' => 'nullable|string|max:255',
             'institution' => 'nullable|string|max:255',
             'account_number' => [

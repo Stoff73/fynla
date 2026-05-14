@@ -7,6 +7,7 @@ use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -278,6 +279,55 @@ describe('Savings API', function () {
                         'goals',
                     ],
                 ]);
+        });
+    });
+
+    describe('SavingsStore integration via HTTP', function () {
+        it('HTTP POST /api/savings/accounts persists via SavingsStore with IngestSource::FORM', function () {
+            $user = User::factory()->create(['is_preview_user' => false]);
+            Sanctum::actingAs($user);
+
+            $response = $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Halifax Easy Saver',
+                'account_type' => 'easy_access',
+                'institution' => 'Halifax',
+                'current_balance' => 12000,
+                'interest_rate' => 4.2,
+                'is_isa' => false,
+            ]);
+
+            $response->assertCreated();
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'account_name' => 'Halifax Easy Saver',
+                'ownership_type' => 'individual',
+                'country' => 'United Kingdom',
+            ]);
+            $account = SavingsAccount::where('user_id', $user->id)->where('account_name', 'Halifax Easy Saver')->firstOrFail();
+            expect((float) $account->ownership_percentage)->toBe(100.0);
+            expect((float) $account->current_balance)->toBe(12000.0);
+        });
+
+        it('HTTP POST infers UK country and 50/50 split for joint ISA', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Joint Cash ISA',
+                'account_type' => 'cash_isa',
+                'current_balance' => 8000,
+                'is_isa' => true,
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+            ])->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'account_name' => 'Joint Cash ISA',
+                'country' => 'United Kingdom',
+            ]);
+            $account = SavingsAccount::where('account_name', 'Joint Cash ISA')->firstOrFail();
+            expect((float) $account->ownership_percentage)->toBe(50.0);
         });
     });
 
