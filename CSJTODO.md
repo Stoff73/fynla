@@ -1,7 +1,72 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 May 2026 — session 2 context-clear (PR #292 merged + PR #293 controller split merged + vault rogue-file resolved + tripwire-driven session-end)*
-*Previous session: 14 May 2026 — session 1 end-of-day (carry-over from 13 May session 3)*
+*Last updated: 14 May 2026 — session 3 (PR #294 admin-merged — REVIEW §4 High #28 taxConfig hydrate rail laid)*
+*Previous session: 14 May 2026 — session 2 context-clear (PR #292 + PR #293 admin-merged + vault rogue-file resolved + tripwire)*
+
+---
+
+## Session 3 (14 May 2026) — PR #294 opened: taxConfig hydrate-from-backend rail laid
+
+**Branch:** `dev` at `c8bac98` (post-#294 merge) · **Tree:** clean · **PRs opened this session:** 1 (#294) · **PRs merged this session:** 1 (#294, admin-merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **REVIEW §4 High #28 — first of three PRs shipped.** PR #294 (`taxconfig-hydrate-from-backend → dev`) opened. Adds `GET /api/tax/config` returning a curated tax-year snapshot from `TaxConfigService` (ISA, pension, income tax, NI, CGT, IHT, dividend, gifting, HICBC, SSP), extends the `taxConfig` Vuex store with ~40 getters, and switches all three dispatch sites (App.vue boot, auth.js login, Admin/TaxSettings.vue active-year switch) from `fetchActive` to the new `fetchConfig`. 7 new feature tests + 97 assertions, all green. Architecture suite + sibling tax tests clean (51 passed / 168 assertions). Browser-verified end-to-end with `john@example.com` — `GET /api/tax/config` fires on boot, Vuex getters return seeded 2026/27 values. https://github.com/Stoff73/fynla/pull/294
+2. **No cross-request controller cache** — `TaxConfigService` is request-scoped; a longer-lived cache would go stale when admin edits the active year (the existing `/api/public/tax-allowances` endpoint suffers this 1-hour staleness). Documented in the PR body.
+3. **Components NOT migrated this PR.** `taxConfig.js` constants file is unchanged. Migration of the ~30 component touchpoints to `mapGetters` is the next 4-6 follow-up PRs (one per module).
+
+### Done
+
+- [x] Session-start: branch `dev` clean + DB seeded + dev server running on :8000/:5173
+- [x] Read full handover at `May/May14Updates/handover-2026-05-14-session-2-clear.md`
+- [x] Backend `/api/tax/config` endpoint shipped (`TaxConfigController`, route, 7 feature tests, 97 assertions)
+- [x] `taxConfig` Vuex store extended with full snapshot + ~40 getters
+- [x] 3 dispatch sites switched to `fetchConfig` (App.vue mount, auth.js fetchUser, Admin/TaxSettings.vue active-year save)
+- [x] Browser-verified: john@example.com login → GET /api/tax/config 200 → Vuex getters hydrated
+- [x] PR #294 opened against `dev`
+- [x] All 3 CI checks green (GitGuardian, logic-guard, Snyk) — admin-merged same session (merge commit `c8bac98`). Origin branch deleted.
+- [x] Local `dev` synced post-merge
+
+### Outstanding (next session — priority order)
+- [ ] **PR #295+ — component migration (REVIEW §4 #28 continuation)** — switch ~30 Vue components from `import { ISA_ANNUAL_ALLOWANCE, … } from '@/constants/taxConfig'` → `mapGetters('taxConfig', ['isaAnnualAllowance', …])`. Suggested split (one PR per module):
+  - **Estate** — `TrustPlanningStrategy.vue`, `NRBRNRBTracker.vue`, `GiftForm.vue`, `IHTPlanning.vue`, `GiftingStrategy.vue`, `IHTCalculationTable.vue`
+  - **Investment** — `AccountStrategyCard.vue`, `TaxEfficiencyPanel.vue`, `WrapperOptimizer.vue`, `TaxOptimization.vue`, `TaxFees.vue`, `PortfolioOverview.vue`, `AccountForm.vue`, `StandardInvestmentFields.vue`, `RebalancingCalculator.vue`
+  - **Savings** — `SaveAccountModal.vue`, `ISAAllowanceTracker.vue`
+  - **Retirement** — `AnnualAllowanceTracker.vue`, `CapitalAdequacyTab.vue`
+  - **Shared / Dashboard / Insights** — `ISAAllowanceSummary.vue`, `TaxOptimisationCard.vue`, `TaxYearStatBlock.vue`
+  - **Admin** — `TaxSettings.vue` (already dispatches `fetchConfig` post-save; should also read from store getters where it currently re-fetches from `tax-settings` API)
+- [ ] **Final PR — remove hardcoded fallbacks** from `resources/js/constants/taxConfig.js` once nothing imports them. Grep before deletion.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common`:
+  - 7 currently `('individual','joint','trust')`: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts`
+  - 2 currently `('individual','joint')` — also missing `trust`: `goals`, `life_events`
+- [ ] **Deploy csjones** — now 4 PRs behind (#291 + #292 + #293 + #294 once merged). Smoke check `/api/tax/config` returns the seeded snapshot + frontend Vuex devtools show `taxConfig.config` populated.
+- [ ] **Tech-debt Warning #3** (carry-forward) — `TaxAwareRebalancer.php` 606 lines, service-file split candidate (`TaxLossHarvestingIdentifier` extraction)
+- [ ] **Suggestion #5** (carry-forward) — drop unimplemented step-3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` when convenient
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault
+- [ ] **Vault-sync still deferred** (2 sessions running) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50 (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Will become part of the Investment migration PR above.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#294 (14 PRs once #294 merges)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 10-day stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Branch / deploy state
+
+- `dev` at `c8bac98` (post-#294 merge) — 61 commits ahead of `main`
+- `main` unchanged at `f15e068` — production still pre-audit-batch
+- csjones.co/fynla on `dev@f22c9b988` — now **4 PRs behind** (#291 + #292 + #293 + #294)
+- fynla.org unchanged
 
 ---
 
