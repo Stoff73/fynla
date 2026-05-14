@@ -28,11 +28,12 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // remaining read usages in CoordinatingAgent removed by PR 5.
         'App\Agents\CoordinatingAgent',
         'App\Services\Onboarding\AssetCaptureEntityExtractor', // reads only — kept on read consumers list
-        // PR 4 removes: DocumentProcessor (upload path), PreviewController, seeders, console commands
+        // PR 4 removed write path from PreviewController + ChrisUserSeeder (imports cleaned).
+        // DocumentProcessor (SavingsAccount::class mapper key at line 483) and
+        // PreviewUserSeeder (delete + linkGoalsToAccounts reads) retain read-only usages
+        // removed in PR 5.
         'App\Services\Documents\DocumentProcessor',
-        'App\Http\Controllers\Api\PreviewController',
         'Database\Seeders\PreviewUserSeeder',
-        'Database\Seeders\ChrisUserSeeder',
         'Database\Seeders\LifecycleTestSeeder',
         'App\Console\Commands\ResetPreviewData',
         // PR 5 removes: read consumers (all listed in plan §"Modified files")

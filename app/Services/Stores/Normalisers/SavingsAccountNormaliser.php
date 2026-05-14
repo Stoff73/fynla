@@ -45,6 +45,39 @@ class SavingsAccountNormaliser
     }
 
     /**
+     * Map document-extraction output to the canonical-array shape.
+     * Document extraction never produces ownership info, so we default
+     * to individual ownership at 100% — the user can edit afterwards.
+     * Source-document linkage (e.g. source_document_id) is handled by
+     * the upload controller after the store call returns the account.
+     */
+    public function fromUpload(array $extraction): array
+    {
+        $canonical = [
+            'account_name' => $extraction['account_name'] ?? $extraction['institution'] ?? 'Imported account',
+            'account_type' => $extraction['account_type'] ?? 'easy_access',
+            'institution' => $extraction['institution'] ?? ($extraction['account_name'] ?? null),
+            'current_balance' => (float) ($extraction['current_balance'] ?? 0),
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+            'country' => $extraction['country'] ?? 'United Kingdom',
+        ];
+
+        foreach (['interest_rate', 'is_isa', 'is_emergency_fund', 'access_type'] as $optional) {
+            if (array_key_exists($optional, $extraction)) {
+                $canonical[$optional] = $extraction[$optional];
+            }
+        }
+
+        // ISA → UK enforced
+        if (! empty($canonical['is_isa'])) {
+            $canonical['country'] = 'United Kingdom';
+        }
+
+        return $canonical;
+    }
+
+    /**
      * Map Fyn AI tool params to the canonical-array shape consumed by
      * SavingsStore::create(). Replicates the AI-enum-to-DB-value mapping
      * and ISA inference that previously lived in
