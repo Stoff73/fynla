@@ -31,11 +31,16 @@ it('SavingsStore::create persists a SavingsAccount through the canonical write p
     expect(SavingsAccount::count())->toBe(1);
 });
 
-it('SavingsStore::create rejects writes with missing required fields', function () {
+it('SavingsStore::create rejects writes that violate canonical-shape rules', function () {
+    // The store mirrors StoreSavingsAccountRequest (no field is strictly required at
+    // store level), so we trigger a validation failure via an out-of-range enum.
     $user = User::factory()->create();
     $store = app(SavingsStore::class);
 
-    expect(fn () => $store->create(['institution' => 'Aviva'], $user, IngestSource::FORM))
+    expect(fn () => $store->create([
+        'account_name' => 'Aviva',
+        'ownership_type' => 'sole', // not in canonical enum (individual|joint|trust)
+    ], $user, IngestSource::FORM))
         ->toThrow(StoreValidationException::class);
 
     expect(SavingsAccount::count())->toBe(0);

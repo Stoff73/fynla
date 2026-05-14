@@ -18,7 +18,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
     ->toOnlyBeUsedIn([
         // Permanent allowlist
         'App\Services\Stores\SavingsStore',
-        'App\Services\Stores\Normalisers\SavingsAccountNormaliser',
         'App\Observers\SavingsAccountGoalObserver',
         'App\Observers\SavingsAccountRiskObserver',
         'App\Models\\',                     // self-references in relationships

@@ -25,6 +25,12 @@ class SavingsAccountNormaliser
             $data['ownership_percentage'] = 50.00;
         }
 
+        // Clear any stale joint_owner_id when switching back to individual ownership.
+        // Matches SavingsController::updateAccount (line 390).
+        if ($data['ownership_type'] === 'individual') {
+            $data['joint_owner_id'] = null;
+        }
+
         // ISA accounts must always be United Kingdom.
         // Non-ISA accounts default to United Kingdom if not provided.
         if (! empty($data['is_isa'])) {

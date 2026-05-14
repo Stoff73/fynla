@@ -54,10 +54,10 @@ class SavingsStore
             );
         }
 
-        $modelPayload = array_merge($data, ['user_id' => $user->id]);
+        $attributes = array_merge($data, ['user_id' => $user->id]);
 
-        return DB::transaction(function () use ($modelPayload, $user, $source) {
-            $account = SavingsAccount::create($modelPayload);
+        return DB::transaction(function () use ($attributes, $user, $source) {
+            $account = SavingsAccount::create($attributes);
 
             event(new SavingsAccountCreated($account, $user, $source));
 
@@ -65,6 +65,11 @@ class SavingsStore
         });
     }
 
+    /**
+     * Update the savings account. Only the primary owner (user_id) may mutate;
+     * joint owners have read-only access via find() / forUser(). Matches the
+     * pre-store SavingsController::updateAccount contract.
+     */
     public function update(int $id, array $data, User $user, IngestSource $source): SavingsAccount
     {
         $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
@@ -83,6 +88,7 @@ class SavingsStore
         });
     }
 
+    // Primary owner only — joint owners cannot delete. Matches pre-store contract.
     public function delete(int $id, User $user, string $reason): void
     {
         $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
@@ -114,18 +120,20 @@ class SavingsStore
 
     private function validateCanonical(array $data, bool $partial = false): void
     {
+        // Mirrors StoreSavingsAccountRequest / UpdateSavingsAccountRequest — the store does
+        // not tighten the outer contract. Canonical-shape sanity check, not a stricter gate.
         $rules = [
-            'account_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
-            'current_balance' => ($partial ? 'sometimes|' : 'required|').'numeric|min:0',
+            'account_name' => 'sometimes|string|max:255',
+            'current_balance' => 'nullable|numeric|min:0',
             'account_type' => 'sometimes|string|max:255',
             'institution' => 'sometimes|string|max:255',
-            'interest_rate' => 'sometimes|numeric|min:0|max:20',
+            'interest_rate' => 'sometimes|nullable|numeric|min:0|max:20',
             'is_isa' => 'sometimes|boolean',
             'is_emergency_fund' => 'sometimes|boolean',
             'ownership_type' => 'sometimes|in:individual,joint,trust',
-            'ownership_percentage' => 'sometimes|numeric|min:0|max:100',
+            'ownership_percentage' => 'sometimes|nullable|numeric|min:0|max:100',
             'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
-            'country' => 'sometimes|string|max:255',
+            'country' => 'sometimes|nullable|string|max:255',
         ];
 
         $validator = Validator::make($data, $rules);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Events\Savings\SavingsAccountCreated;
 use App\Events\Savings\SavingsAccountDeleted;
+use App\Events\Savings\SavingsAccountRestored;
 use App\Events\Savings\SavingsAccountUpdated;
 use App\Models\SavingsAccount;
 use App\Models\User;
@@ -17,7 +18,7 @@ it('SavingsStore::create emits SavingsAccountCreated', function () {
 
     app(SavingsStore::class)->create([
         'account_name' => 'X', 'current_balance' => 100,
-        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'UK',
+        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
     ], $user, IngestSource::FORM);
 
     Event::assertDispatched(SavingsAccountCreated::class);
@@ -43,4 +44,15 @@ it('SavingsStore::delete emits SavingsAccountDeleted', function () {
     app(SavingsStore::class)->delete($account->id, $user, 'user_requested');
 
     Event::assertDispatched(SavingsAccountDeleted::class);
+});
+
+it('SavingsStore::restore emits SavingsAccountRestored', function () {
+    Event::fake();
+    $user = User::factory()->create();
+    $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
+    $account->delete(); // soft-delete first
+
+    app(SavingsStore::class)->restore($account->id, $user);
+
+    Event::assertDispatched(SavingsAccountRestored::class);
 });
