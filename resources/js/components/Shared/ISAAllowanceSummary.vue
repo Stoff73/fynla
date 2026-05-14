@@ -116,17 +116,10 @@
 import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'ISAAllowanceSummary',
   mixins: [currencyMixin],
-
-  data() {
-    return {
-      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE, // Fallback from taxConfig.js; prefer API value
-    };
-  },
 
   computed: {
     currentTaxYear() {
@@ -139,6 +132,7 @@ export default {
     ...mapGetters('investment', {
       investmentISASubscription: 'investmentISASubscription',
     }),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
 
     cashISAUsed() {
       return this.savingsCashISASubscription || 0;
@@ -153,19 +147,19 @@ export default {
     },
 
     remaining() {
-      return Math.max(0, this.ISA_ALLOWANCE - this.totalUsed);
+      return Math.max(0, this.isaAnnualAllowance - this.totalUsed);
     },
 
     usagePercent() {
-      return Math.round((this.totalUsed / this.ISA_ALLOWANCE) * 100);
+      return Math.round((this.totalUsed / this.isaAnnualAllowance) * 100);
     },
 
     isOverLimit() {
-      return this.totalUsed > this.ISA_ALLOWANCE;
+      return this.totalUsed > this.isaAnnualAllowance;
     },
 
     formattedAllowance() {
-      return this.formatCurrency(this.ISA_ALLOWANCE);
+      return this.formatCurrency(this.isaAnnualAllowance);
     },
 
     formattedTotalUsed() {

@@ -103,22 +103,11 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE, CGT_ANNUAL_ALLOWANCE, DIVIDEND_ALLOWANCE } from '@/constants/taxConfig';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
 
 export default {
   name: 'TaxOptimisationCard',
   mixins: [currencyMixin],
-
-  data() {
-    return {
-      // UK Tax Year allowances (from taxConfig.js fallback constants)
-      isaLimit: ISA_ANNUAL_ALLOWANCE,
-      pensionLimit: ANNUAL_ALLOWANCE,
-      cgtLimit: CGT_ANNUAL_ALLOWANCE,
-      dividendLimit: DIVIDEND_ALLOWANCE,
-    };
-  },
 
   computed: {
     ...mapState('savings', ['accounts']),
@@ -126,6 +115,12 @@ export default {
     ...mapState('retirement', ['annualAllowance', 'dcPensions']),
     ...mapGetters('investment', ['totalISAContributions']),
     ...mapGetters('userProfile', ['totalAnnualIncome', 'incomeOccupation']),
+    ...mapGetters('taxConfig', {
+      isaLimit: 'isaAnnualAllowance',
+      pensionLimit: 'pensionAnnualAllowance',
+      cgtLimit: 'cgtAnnualAllowance',
+      dividendLimit: 'dividendAllowance',
+    }),
 
     // Check if user has dividend income
     hasDividendIncome() {
