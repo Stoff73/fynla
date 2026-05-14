@@ -163,9 +163,10 @@ const actions = {
       commit('lifeStage/setCurrentStage', data.user?.life_stage || null, { root: true });
       commit('lifeStage/setDataCompletedSteps', data.data_completed_steps || [], { root: true });
 
-      // Load the active tax year so every allowance/tax-year label across
-      // the app reflects the admin-selected year (not the calendar year).
-      dispatch('taxConfig/fetchActive', null, { root: true }).catch(() => {});
+      // Hydrate the full tax-config snapshot so every allowance / threshold /
+      // rate across the app reflects the admin-selected year (not the
+      // calendar year, and not the hardcoded constants).
+      dispatch('taxConfig/fetchConfig', null, { root: true }).catch(() => {});
 
       return data.user;
     } catch (error) {
