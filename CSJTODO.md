@@ -1,9 +1,47 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 May 2026 — session 7 (PR #302 admin-merged — investment.js migrated; PR #303 OPEN awaiting CSJ iOS verification — 3 mobile files migrated)*
-*Previous session: 14 May 2026 — session 6 (PRs #300–#301 admin-merged — taxConfig rail extended with stamp duty + student loan + public dispatch; CalculatorsPage migrated; 4 missed importers surfaced)*
+*Last updated: 14 May 2026 — session 9 (PR #304 OPEN — REVIEW §4 High #32 forUserOrJoint scope migration; PR #303 still OPEN awaiting CSJ iOS verification)*
+*Previous session: 14 May 2026 — session 7 (PR #302 admin-merged — investment.js migrated; PR #303 OPEN awaiting iOS verification)*
 
-> **Note re session 5:** A parallel context (worktree `cranky-lewin-6bc99c`) ran a major-overhaul brainstorming session and committed `handover-2026-05-14-session-5-clear.md` to dev directly. That work is independent of this session's web/dev taxConfig work — see the worktree's handover for system-overhaul sub-project 1 status.
+> **Note re sessions 5 + 8:** A parallel context (worktree `cranky-lewin-6bc99c`) is running a major system-overhaul brainstorming/planning track. It committed `handover-2026-05-14-session-5-clear.md` (design doc) and `handover-2026-05-14-session-8-clear.md` (sub-project 1 / pass 1 Savings canonical-store plan, 2,934 lines) directly to dev. That work is independent of the main dev-branch web/mobile taxConfig + REVIEW audit work. This handover is session 9 to avoid filename collision with the worktree's session 8.
+
+---
+
+## Session 9 (14 May 2026) — REVIEW §4 High #32 shipped (PR #304 open); awaiting iOS verification on PR #303
+
+**Branch:** `dev` at `2c3a18a` (unchanged — session 7's tip) · **Tree:** clean (only pre-existing untracked carry-overs) · **PRs opened this session:** 1 (#304) · **PRs merged this session:** 0 · **Open PRs against `dev`:** 2 (#303 mobile-taxconfig awaiting iOS verification; #304 coordinatingagent-foruserorjoint-scope awaiting admin-merge)
+
+**Outcome:**
+1. **REVIEW §4 High #32 shipped as PR #304.** `app/Agents/CoordinatingAgent.php::handleListRecords` — 7 raw `where('user_id', $userId)->orWhere('joint_owner_id', $userId)` calls migrated to the existing `HasJointOwnership::forUserOrJoint` scope. Branched off `dev` at `2c3a18a`; one commit (`33831a7`); pushed; opened https://github.com/Stoff73/fynla/pull/304. The `mortgage` case uses `whereHas('property', fn ($q) => $q->forUserOrJoint($userId))` — the closure form preserves the nested grouping correctly. All 7 target models (`SavingsAccount`, `InvestmentAccount`, `Property`, `Mortgage`, `BusinessInterest`, `Chattel`, `Liability`) already use the `HasJointOwnership` trait — no model changes needed. Why it matters: the raw `orWhere` form is unsafe under composition (operator precedence: OR < AND), so any future global scope or chained `where` would silently widen results. The scope wraps the OR in a `Builder` closure.
+2. **Equivalence verified at row-ID level.** Tinker harness on `preview_young_family@fynla.local` (uid 711, spouse uid 712): SavingsAccount 4/4 + 2/2 match, InvestmentAccount 1/1 + 0/0 match, Property 1/1 + 1/1 match, BusinessInterest 0/0 + 0/0 match, Chattel 0/0 + 0/0 match, Liability 1/1 + 0/0 match, Mortgage (whereHas) 1/1 + 1/1 match. Every sorted row-ID list identical raw vs scoped on both primary and joint sides.
+3. **CSJ retrospective questions answered.** "Where are tasks coming from?" — three-doc provenance: handover (immediate pickup), CSJTODO.md (standing backlog), `fynlaBrain/May/May12Updates/REVIEW.md` (the audit doc you commissioned 2 days ago, ~46 numbered High findings). "How many REVIEW items closed in 2 days?" — Critical 9/10 (PRs #281–#284, #287, Wave 2 in #286); High ~13/32 substantially closed (#19, #20, #21, #22, #23, #26, #27, #28 ~95%, #29, #32 just shipped, #34, #35, #44 partial); §3 cross-cutting 3/7. Roughly 25 distinct REVIEW findings cleared since 12 May.
+
+### Done
+
+- [x] Session-start: branch `dev` at `2c3a18a`, DB seeded, dev server :8000/:5173 already running, latest handover (session 7 clear) read in full, REVIEW.md provenance located at `fynlaBrain/May/May12Updates/REVIEW.md`
+- [x] Verified gate state: `grep -rln "from '@/constants/taxConfig'" resources/js/` returns exactly the 3 mobile importers in PR #303 — step 3 cleanup genuinely blocked
+- [x] PR #304 OPEN: 7 raw `orWhere` joint queries in `CoordinatingAgent::handleListRecords` migrated to `forUserOrJoint` scope; equivalence verified via tinker on user with real joint records; architecture + Agents unit suites green; pint clean
+- [x] Handover written + mirrored to vault as `session-9-clear.md` (skipping session-8 to avoid collision with the parallel worktree's session-8-clear.md)
+
+### Outstanding (next session — priority order)
+
+- [ ] **CSJ to admin-merge PR #304** once CI green: `gh pr merge 304 --merge --admin`. Pure equivalence refactor, no UI surface, safe to admin-merge per `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`. Ticks off REVIEW §4 High #32.
+- [ ] **CSJ to run `./deploy/mobile/build-ios.sh` + iOS sim/device test for PR #303** — covers the three mobile views (`/m/learn`, `/m/learn/pensions`, `/m/module/retirement`, `/m/module/estate`). Once green, admin-merge #303.
+- [ ] **Sequence A step 3 — open the cleanup PR** branched off the post-#303 dev tip. One commit: `git rm resources/js/constants/taxConfig.js`. Pre-deletion grep `from '@/constants/taxConfig'` AND `@/constants/taxConfig` must both return zero hits.
+- [ ] **Deploy csjones** — now **14 PRs behind** `dev` once #303 + #304 land (#291–#304 + cleanup). Smoke includes both `/api/tax/config` + `/api/public/tax-config` + CalculatorsPage stamp duty/student loan + mobile dashboard if #303 lands in this bundle.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common` enum expansion. Migration template: `2026_01_17_100145_add_tenants_in_common_to_mortgages_ownership_type.php`. Tables: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts` (currently `('individual','joint','trust')`); plus `goals`, `life_events` (currently `('individual','joint')` — both `tenants_in_common` AND `trust` missing). (Carry-forward from session 4.)
+- [ ] **REVIEW §4 High #24** — CoordinatingAgent / RetirementController double `agent->analyze()` call (carry-forward, small win)
+- [ ] **REVIEW §4 High #25** — `PensionContributionOptimizer.php:461` operator-precedence bug `(float) $x ?? 0` (single-site fix)
+- [ ] **REVIEW §4 High #45** — ~106 Vue orphans (needs dedicated audit)
+- [ ] **Vault-sync overdue (6 sessions deferred)** — next EOD session-end MUST catch up. Sessions 2, 3, 4, 6, 7, 9 all deferred.
+- [ ] All other carry-forward items from session 7 stand (stale worktree, `dev → main` release PR, tech-debt backlog, etc. — see Session 7 entry below)
+
+### Branch / deploy state
+
+- `dev` at `2c3a18a` (unchanged from session 7) — 72 commits ahead of `main`
+- `main` unchanged
+- csjones.co/fynla still on `dev@f22c9b988` — now 14 PRs behind once #303 + #304 land
+- fynla.org unchanged
 
 ---
 
