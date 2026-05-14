@@ -73,7 +73,7 @@ class SavingsStore
     public function update(int $id, array $data, User $user, IngestSource $source): SavingsAccount
     {
         $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
-        $this->validateCanonical($data, partial: true);
+        $this->validateCanonical($data);
 
         return DB::transaction(function () use ($account, $data, $user, $source) {
             // fill before getDirty so the dirty diff is captured correctly
@@ -118,7 +118,7 @@ class SavingsStore
 
     // ---------- Internal ----------
 
-    private function validateCanonical(array $data, bool $partial = false): void
+    private function validateCanonical(array $data): void
     {
         // Mirrors StoreSavingsAccountRequest / UpdateSavingsAccountRequest — the store does
         // not tighten the outer contract. Canonical-shape sanity check, not a stricter gate.

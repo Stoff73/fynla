@@ -39,17 +39,20 @@ describe('SavingsAccountNormaliser::fromForm', function () {
         expect($canonical['country'])->toBe('United Kingdom'); // default for non-ISA
     });
 
-    it('clears stale joint_owner_id when switching to individual ownership', function () {
+    it('resets ownership_percentage and clears joint_owner_id when switching to individual ownership', function () {
         // Re-submit pattern: edit form flips joint → individual but still carries the
-        // joint_owner_id from the previous state. Matches SavingsController:390.
+        // joint_owner_id and a 50% ownership_percentage from the previous state.
+        // Both must be forced to sole-owner defaults. Matches SavingsController:387-391.
         $canonical = (new SavingsAccountNormaliser)->fromForm([
             'account_name' => 'Solo savings',
             'current_balance' => 1000,
             'ownership_type' => 'individual',
             'joint_owner_id' => 42,
+            'ownership_percentage' => 50,
         ]);
 
         expect($canonical['ownership_type'])->toBe('individual');
         expect($canonical['joint_owner_id'])->toBeNull();
+        expect($canonical['ownership_percentage'])->toBe(100.00);
     });
 });

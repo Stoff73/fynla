@@ -51,6 +51,7 @@ it('SavingsStore::restore emits SavingsAccountRestored', function () {
     $user = User::factory()->create();
     $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
     $account->delete(); // soft-delete first
+    expect($account->fresh()->trashed())->toBeTrue(); // guard: ensure delete took effect before restore
 
     app(SavingsStore::class)->restore($account->id, $user);
 
