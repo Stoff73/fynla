@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Retirement;
 
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
+use App\Services\Stores\SavingsStore;
 use App\Models\User;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
@@ -2134,7 +2134,10 @@ class RetirementStrategyService
         }
 
         // Get savings accounts (cash)
-        $savingsAccounts = SavingsAccount::where('user_id', $userId)->get();
+        $savingsUser = User::find($userId);
+        $savingsAccounts = $savingsUser
+            ? app(SavingsStore::class)->forUser($savingsUser)->where('user_id', $userId)->values()
+            : collect();
         foreach ($savingsAccounts as $account) {
             $value = (float) ($account->current_balance ?? 0);
             if ($value > 0) {

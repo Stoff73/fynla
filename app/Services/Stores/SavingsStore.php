@@ -39,6 +39,40 @@ class SavingsStore
         return SavingsAccount::forUserOrJoint($user->id)->get();
     }
 
+    /**
+     * Multi-user, joint-aware read. Returns every SavingsAccount where any
+     * supplied user ID appears as primary owner or joint owner.
+     * Used by household / multi-user contexts (e.g. RetirementIncomeService).
+     */
+    public function forUsers(array $userIds): Collection
+    {
+        if ($userIds === []) {
+            return new Collection;
+        }
+
+        return SavingsAccount::query()
+            ->where(function ($q) use ($userIds) {
+                $q->whereIn('user_id', $userIds)
+                  ->orWhereIn('joint_owner_id', $userIds);
+            })
+            ->get();
+    }
+
+    /**
+     * Id-based read — unscoped. Returns all accounts whose id is in the supplied
+     * array. Caller is responsible for access trust. Used where no User object is
+     * in scope (e.g. private fund-initialisation methods that only have int $userId).
+     * Option B2 — see PR 5c-2 commit message for rationale.
+     */
+    public function findManyById(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return SavingsAccount::query()->whereIn('id', $ids)->get();
+    }
+
     // ---------- Writes ----------
 
     public function create(array $data, User $user, IngestSource $source): SavingsAccount

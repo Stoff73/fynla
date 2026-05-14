@@ -107,3 +107,61 @@ it('SavingsStore::delete soft-deletes the account', function () {
     expect(SavingsAccount::find($account->id))->toBeNull();
     expect(SavingsAccount::withTrashed()->find($account->id))->not->toBeNull();
 });
+
+// PR 5c-2 — new read methods
+
+it('SavingsStore::forUsers returns accounts where any user_id is in the array (joint-aware)', function () {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+    $userC = User::factory()->create();
+
+    // userA individual
+    $acA = SavingsAccount::factory()->create(['user_id' => $userA->id, 'joint_owner_id' => null]);
+    // userA primary, userC joint
+    $acAC = SavingsAccount::factory()->create(['user_id' => $userA->id, 'joint_owner_id' => $userC->id]);
+    // userB primary, userC joint
+    $acBC = SavingsAccount::factory()->create(['user_id' => $userB->id, 'joint_owner_id' => $userC->id]);
+    // userC individual — should NOT appear when querying [A, B]
+    SavingsAccount::factory()->create(['user_id' => $userC->id, 'joint_owner_id' => null]);
+
+    $store = app(SavingsStore::class);
+    $result = $store->forUsers([$userA->id, $userB->id]);
+
+    expect($result->pluck('id')->sort()->values()->toArray())
+        ->toBe(collect([$acA->id, $acAC->id, $acBC->id])->sort()->values()->toArray());
+});
+
+it('SavingsStore::forUsers returns empty Collection for empty array', function () {
+    SavingsAccount::factory()->create();
+
+    $store = app(SavingsStore::class);
+    $result = $store->forUsers([]);
+
+    expect($result)->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+    expect($result)->toHaveCount(0);
+});
+
+it('SavingsStore::findManyById returns all matching accounts by id regardless of user', function () {
+    $userA = User::factory()->create();
+    $userB = User::factory()->create();
+
+    $acc1 = SavingsAccount::factory()->create(['user_id' => $userA->id]);
+    $acc2 = SavingsAccount::factory()->create(['user_id' => $userB->id]);
+    SavingsAccount::factory()->create(['user_id' => $userA->id]); // not in ids
+
+    $store = app(SavingsStore::class);
+    $result = $store->findManyById([$acc1->id, $acc2->id]);
+
+    expect($result->pluck('id')->sort()->values()->toArray())
+        ->toBe(collect([$acc1->id, $acc2->id])->sort()->values()->toArray());
+});
+
+it('SavingsStore::findManyById returns empty Collection for empty array', function () {
+    SavingsAccount::factory()->create();
+
+    $store = app(SavingsStore::class);
+    $result = $store->findManyById([]);
+
+    expect($result)->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+    expect($result)->toHaveCount(0);
+});
