@@ -102,7 +102,6 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'ISAAllowanceTracker',
@@ -114,6 +113,7 @@ export default {
     ...mapGetters('auth', ['currentUser']),
     ...mapState('netWorth', ['overview']),
     ...mapState('investment', { investmentAccounts: 'accounts' }),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
 
     userAge() {
       const dob = this.currentUser?.date_of_birth;
@@ -135,7 +135,7 @@ export default {
 
     // The full ISA allowance from store (API-backed) or fallback
     overallAllowance() {
-      return this.isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE;
+      return this.isaAllowance?.total_allowance || this.isaAnnualAllowance;
     },
 
     // The ISA allowance excluding LISA when LISA-eligible
