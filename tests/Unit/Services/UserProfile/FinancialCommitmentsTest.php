@@ -24,7 +24,7 @@ beforeEach(function () {
         TaxConfiguration::factory()->create(['is_active' => true]);
     }
 
-    $this->assetAggregator = new CrossModuleAssetAggregator;
+    $this->assetAggregator = app(CrossModuleAssetAggregator::class);
     $taxConfigService = app(TaxConfigService::class);
     $this->taxCalculator = new UKTaxCalculator($taxConfigService);
     $this->childBenefitService = new ChildBenefitService($taxConfigService, new IncomeDefinitionsService($taxConfigService));

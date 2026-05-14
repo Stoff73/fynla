@@ -140,7 +140,7 @@ class EstateActionDefinitionService
         $results = [];
         foreach ($policies as $policy) {
             $vars = [
-                'policy_value' => '£'.number_format((float) ($policy->cover_amount ?? 0), 0),
+                'policy_value' => '£'.number_format((float) ($policy->sum_assured ?? 0), 0),
             ];
             $results[] = $this->buildRecommendation($definition, $vars, $priority);
             $priority++;
@@ -361,11 +361,11 @@ class EstateActionDefinitionService
         // Life insurance (death benefit adds to estate if not in trust)
         $total += (float) LifeInsurancePolicy::where('user_id', $user->id)
             ->where('in_trust', false)
-            ->sum('cover_amount');
+            ->sum('sum_assured');
 
         // Subtract liabilities
-        $total -= (float) Mortgage::where('user_id', $user->id)->sum('current_balance');
-        $total -= (float) Liability::where('user_id', $user->id)->sum('amount');
+        $total -= (float) Mortgage::where('user_id', $user->id)->sum('outstanding_balance');
+        $total -= (float) Liability::where('user_id', $user->id)->sum('current_balance');
 
         return max(0.0, $total);
     }

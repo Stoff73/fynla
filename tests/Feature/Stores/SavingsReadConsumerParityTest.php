@@ -8,6 +8,7 @@ use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\UserProfile\LetterToSpouseService;
+use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -279,4 +280,39 @@ it('LetterToSpouseService bank accounts info lists all single-owner accounts', f
     expect($info)->toContain('JointBank');
     // The joint user's own account must not appear
     expect($info)->not->toContain('OtherBank');
+});
+
+it('EstateActionDefinitionService::evaluateActions surfaces iht_exceeds_nrb with correct estimated_impact when savings push estate above NRB+RNRB', function () {
+    $this->seed(EstateActionDefinitionSeeder::class);
+
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    // £400k individual savings — counts toward estimateEstateValue via store->forUser()->where(user_id)->sum
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => 400000,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100,
+    ]);
+    // £200k joint-as-primary — full balance also included (matches pre-refactor where('user_id') semantics)
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'joint_owner_id' => User::factory()->create(['is_preview_user' => false])->id,
+        'current_balance' => 200000,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50,
+    ]);
+
+    // Savings line of estimateEstateValue = 400000 + 200000 = 600000
+    // No properties, investments, cash, estate assets, DC pensions, life insurance, mortgages or liabilities
+    // → estate value = 600000; NRB+RNRB defaults = 325000 + 175000 = 500000
+    // → excess = 100000; IHT @ 40% = 40000
+
+    $result = app(EstateActionDefinitionService::class)->evaluateActions($user);
+
+    $ihtRec = collect($result['recommendations'])
+        ->firstWhere('definition_key', 'iht_exceeds_nrb');
+
+    expect($ihtRec)->not->toBeNull();
+    expect($ihtRec['estimated_impact'])->toBe(40000.0);
 });

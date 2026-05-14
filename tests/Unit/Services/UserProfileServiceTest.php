@@ -18,7 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $aggregator = new CrossModuleAssetAggregator;
+    $aggregator = app(CrossModuleAssetAggregator::class);
 
     // Mock TaxConfigService for UKTaxCalculator
     $mockTaxConfig = Mockery::mock(TaxConfigService::class);
