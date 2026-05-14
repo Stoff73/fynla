@@ -39,8 +39,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 5 removes: read consumers (all listed in plan §"Modified files")
         'App\Agents\SavingsAgent',
         'App\Agents\InvestmentAgent',
-        'App\Services\Estate\EstateAssetAggregatorService',
-        'App\Services\Estate\EstateActionDefinitionService',
         'App\Services\Plans\BasePlanService',
         'App\Services\Plans\GoalPlanService',
         'App\Services\Plans\RetirementPlanService',
@@ -66,7 +64,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         'App\Services\AI\AdvicePromptBuilder',
         'App\Services\AI\DuplicateAcknowledgement',
         'App\Services\UserProfile\ProfileCompletenessChecker',
-        'App\Services\UserProfile\LetterToSpouseService',
         'App\Models\Goal',
         // Additional pre-existing consumers not listed in plan — added to allowlist at PR 1 discovery.
         // These are read-only or infrastructure usages; migrated in later PRs.
