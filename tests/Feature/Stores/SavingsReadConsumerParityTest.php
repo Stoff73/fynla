@@ -8,14 +8,16 @@ use App\Models\User;
 use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\Estate\EstateAssetAggregatorService;
 use App\Services\Plans\BasePlanService;
-use App\Services\Plans\InvestmentPlanService;
 use App\Services\Plans\SavingsPlanService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\SavingsStore;
+use App\Services\Tax\TaxStrategyMath;
+use App\Services\TaxConfigService;
 use App\Services\UserProfile\LetterToSpouseService;
 use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
@@ -208,7 +210,7 @@ it('EstateActionDefinitionService savings sum uses single-owner semantics (where
     expect($preRefactorSum)->toBe(30000.0);
 
     // Post-refactor: store->forUser()->where('user_id', ...)->sum() must produce identical result
-    $store = app(\App\Services\Stores\SavingsStore::class);
+    $store = app(SavingsStore::class);
     $collection = $store->forUser($user);
     $postRefactorSum = (float) $collection->where('user_id', $user->id)->sum('current_balance');
     expect($postRefactorSum)->toBe(30000.0);
@@ -755,7 +757,7 @@ it('RetirementIncomeService id-based whereIn — DELIBERATE NARROWING: store->fi
 it('BasePlanService::resolveFundingSource returns null result when goal references a deleted user (regression)', function () {
     // Pre-refactor used raw $userId in WHERE so missing user → empty Builder result, no crash.
     // Post-refactor uses User::find($userId) + Collection chain — null user must short-circuit.
-    $orphanGoal = new \App\Models\Goal([
+    $orphanGoal = new Goal([
         'name' => 'Orphan',
         'target_amount' => 10000,
         'current_amount' => 0,
@@ -765,8 +767,8 @@ it('BasePlanService::resolveFundingSource returns null result when goal referenc
     $orphanGoal->user_id = 99999999;  // non-existent user
 
     // BasePlanService is abstract — use a concrete subclass that inherits resolveFundingSource.
-    $service = app(\App\Services\Plans\SavingsPlanService::class);
-    $reflection = new ReflectionClass(\App\Services\Plans\BasePlanService::class);
+    $service = app(SavingsPlanService::class);
+    $reflection = new ReflectionClass(BasePlanService::class);
     $method = $reflection->getMethod('resolveFundingSource');
     $method->setAccessible(true);
 
@@ -775,3 +777,256 @@ it('BasePlanService::resolveFundingSource returns null result when goal referenc
     expect($result)->toBe(['name' => null, 'warning' => null]);
 });
 
+// PR 5d parity tests — Tax strategies cluster
+
+it('JointSavingsStrategy:56 sole-name non-ISA read identical after store migration (joint excluded)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+
+    // Sole-name non-ISA accounts — must be included
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 10000,
+        'interest_rate' => 0.04, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 5000,
+        'interest_rate' => 4.0, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // ISA — must be excluded
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 20000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint account owned by user (joint_owner_id set) — must be excluded (whereNull guard)
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 99999,
+        'joint_owner_id' => $spouse->id, 'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+    // Joint account owned by SPOUSE with user as joint_owner_id — forUser() is
+    // joint-aware and would surface this; the Collection where('user_id') post-filter
+    // must exclude it (proves single-owner semantics preserved).
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'is_isa' => false, 'current_balance' => 88888,
+        'joint_owner_id' => $user->id, 'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+
+    $preRefactor = SavingsAccount::query()
+        ->where('user_id', $user->id)
+        ->whereNull('joint_owner_id')
+        ->where('is_isa', false)
+        ->get(['current_balance', 'interest_rate']);
+
+    $postRefactor = app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)
+        ->whereNull('joint_owner_id')
+        ->where('is_isa', false);
+
+    expect($preRefactor)->toHaveCount(2);
+    expect($postRefactor)->toHaveCount(2);
+    expect((float) $postRefactor->sum('current_balance'))->toBe((float) $preRefactor->sum('current_balance'));
+    expect((float) $postRefactor->sum('current_balance'))->toBe(15000.0);
+    // Average interest-rate parity (the other column the strategy consumes via ->map()).
+    $rate = fn ($acc) => ((float) $acc->interest_rate) > 1 ? ((float) $acc->interest_rate) / 100 : (float) $acc->interest_rate;
+    expect((float) $postRefactor->map($rate)->avg())->toBe((float) $preRefactor->map($rate)->avg());
+});
+
+it('AssetShiftingBundleStrategy:64 single-owner non-ISA read identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 7000,
+        'interest_rate' => 0.03, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 12000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = SavingsAccount::query()
+        ->where('user_id', $user->id)->where('is_isa', false)
+        ->get(['current_balance', 'interest_rate']);
+    $postRefactor = app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)->where('is_isa', false);
+
+    expect((float) $postRefactor->sum('current_balance'))->toBe((float) $preRefactor->sum('current_balance'));
+    expect((float) $postRefactor->sum('current_balance'))->toBe(7000.0);
+});
+
+it('PensionAACarryForwardStrategy:95 single-owner non-ISA liquid-wealth sum identical', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 25000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 50000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = (float) SavingsAccount::query()
+        ->where('user_id', $user->id)->where('is_isa', false)->sum('current_balance');
+    $postRefactor = (float) app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)->where('is_isa', false)->sum('current_balance');
+
+    expect($postRefactor)->toBe($preRefactor);
+    expect($postRefactor)->toBe(25000.0);
+});
+
+it('IsaTopUpStrategy:43 single-owner non-ISA balance sum identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 3000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 4500,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = (float) SavingsAccount::query()
+        ->where('user_id', $user->id)->where('is_isa', false)->sum('current_balance');
+    $postRefactor = (float) app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)->where('is_isa', false)->sum('current_balance');
+
+    expect($postRefactor)->toBe($preRefactor);
+    expect($postRefactor)->toBe(7500.0);
+});
+
+it('TaxOptimisationService:113,126,424 ISA / non-ISA / spouse-ISA reads identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+
+    // user cash ISA (account_type isa)
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'isa', 'is_isa' => true,
+        'isa_subscription_amount' => 8000, 'current_balance' => 8000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // user non-ISA
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 6000, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // spouse cash ISA
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'account_type' => 'isa', 'is_isa' => true,
+        'isa_subscription_amount' => 3000, 'current_balance' => 3000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    // :113 — user cash ISAs subscribed
+    $preISA = (float) SavingsAccount::where('user_id', $user->id)
+        ->where('account_type', 'isa')->get()->sum('isa_subscription_amount');
+    $postISA = (float) app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)->where('account_type', 'isa')->sum('isa_subscription_amount');
+    expect($postISA)->toBe($preISA);
+    expect($postISA)->toBe(8000.0);
+
+    // :126 — user non-ISA balance
+    $preNon = (float) SavingsAccount::where('user_id', $user->id)
+        ->where('account_type', '!=', 'isa')->sum('current_balance');
+    $postNon = (float) app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)->where('account_type', '!=', 'isa')->sum('current_balance');
+    expect($postNon)->toBe($preNon);
+    expect($postNon)->toBe(6000.0);
+
+    // :424 — spouse cash ISA subscribed
+    $preSpouse = (float) SavingsAccount::where('user_id', $spouse->id)
+        ->where('account_type', 'isa')->sum('isa_subscription_amount');
+    $postSpouse = (float) app(SavingsStore::class)->forUser($spouse)
+        ->where('user_id', $spouse->id)->where('account_type', 'isa')->sum('isa_subscription_amount');
+    expect($postSpouse)->toBe($preSpouse);
+    expect($postSpouse)->toBe(3000.0);
+});
+
+it('TaxStrategyMath::estimateAnnualInterest output identical after store migration (joint excluded)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+
+    // £10k @ 4% (percent convention) + £5k @ 0.03 (decimal convention) = 400 + 150 = 550
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 10000,
+        'interest_rate' => 4.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 5000,
+        'interest_rate' => 0.03, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // ISA excluded
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 20000,
+        'interest_rate' => 5.0, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint owned by spouse with user as joint_owner_id — forUser() is joint-aware;
+    // post-filter where('user_id') must exclude it from estimateAnnualInterest.
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'is_isa' => false, 'current_balance' => 100000,
+        'interest_rate' => 5.0, 'joint_owner_id' => $user->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+
+    $math = app(TaxStrategyMath::class);
+    expect($math->estimateAnnualInterest($user))->toBe(550.0);
+});
+
+it('TaxStrategyMath::estimateIsaSubscriptionsThisYear only sums current-year ISA balances (Carbon filter parity)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    $taxYearStart = app(TaxConfigService::class)->getEffectiveFrom();
+    expect($taxYearStart)->not->toBe('');
+
+    // Current-year ISA — created after tax-year start: counted
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 12000,
+        'created_at' => Carbon::parse($taxYearStart)->addDays(10),
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Old ISA — created before tax-year start: excluded
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'current_balance' => 25000,
+        'created_at' => Carbon::parse($taxYearStart)->subDays(30),
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Non-ISA — always excluded
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => false, 'current_balance' => 9000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    // Pre-refactor: SQL where created_at >= taxYearStart
+    $preRefactor = (float) SavingsAccount::query()
+        ->where('user_id', $user->id)->where('is_isa', true)
+        ->where('created_at', '>=', $taxYearStart)->sum('current_balance');
+
+    $math = app(TaxStrategyMath::class);
+    $post = $math->estimateIsaSubscriptionsThisYear($user);
+
+    expect($post)->toBe($preRefactor);
+    expect($post)->toBe(12000.0);
+});
+
+it('TaxActionDefinitionService:110,291 cash-ISA subscribed read identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'isa', 'is_isa' => true,
+        'isa_subscription_amount' => 4500, 'current_balance' => 4500,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 9000, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = (float) SavingsAccount::where('user_id', $user->id)
+        ->where('account_type', 'isa')->sum('isa_subscription_amount');
+    $postRefactor = (float) app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)->where('account_type', 'isa')->sum('isa_subscription_amount');
+
+    expect($postRefactor)->toBe($preRefactor);
+    expect($postRefactor)->toBe(4500.0);
+});

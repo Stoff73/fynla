@@ -7,7 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
-use App\Models\SavingsAccount;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -40,7 +40,9 @@ final class IsaTopUpStrategy implements TaxStrategy
             return [];
         }
 
-        $nonIsaBalance = (float) SavingsAccount::query()
+        // forUser() is joint-aware; the Collection-level where('user_id')
+        // post-filter preserves the original single-owner sum.
+        $nonIsaBalance = (float) app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->sum('current_balance');

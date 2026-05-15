@@ -8,7 +8,7 @@ use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
 use App\Models\PensionInputHistory;
-use App\Models\SavingsAccount;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -92,7 +92,9 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
 
         // Gate by liquid wealth — recommending carry-forward to someone who
         // has < £10k of non-ISA liquid savings is non-actionable advice.
-        $liquidWealth = (float) SavingsAccount::query()
+        // forUser() is joint-aware; the Collection-level where('user_id')
+        // post-filter preserves the original single-owner sum.
+        $liquidWealth = (float) app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->sum('current_balance');
