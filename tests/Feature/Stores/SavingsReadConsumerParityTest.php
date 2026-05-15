@@ -1508,19 +1508,23 @@ it('DuplicateAcknowledgement::savingsDescriptors returns ONLY the recent (<24h) 
 it('DuplicateAcknowledgement::savingsDescriptors picks the HIGHEST-id row when two recent rows match (sortByDesc(id)->first() == latest(id)->first() parity)', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
 
-    // Two recent matching rows differing by id; the higher-id (later-created)
-    // must be the one described — proves latest('id') parity.
+    // Two recent matching rows differing by id; the higher-id row must be
+    // the one described — proves latest('id') parity. Timestamps are
+    // deliberately INVERTED relative to id: the LOWER-id row is the MORE
+    // recent one (both still inside the 24h cutoff, so both stay eligible).
+    // This way the test only passes if selection is genuinely by id — a
+    // buggy sortByDesc('created_at') would pick the lower-id row and fail.
     SavingsAccount::factory()->create([
         'user_id' => $user->id, 'institution' => 'Nationwide', 'is_isa' => false,
         'account_type' => 'easy_access', 'current_balance' => 1000,
         'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
-        'created_at' => now()->subHours(5),
+        'created_at' => now()->subHours(2),
     ]);
-    $newer = SavingsAccount::factory()->create([
+    $higherId = SavingsAccount::factory()->create([
         'user_id' => $user->id, 'institution' => 'Nationwide', 'is_isa' => false,
         'account_type' => 'easy_access', 'current_balance' => 8800,
         'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
-        'created_at' => now()->subHours(3),
+        'created_at' => now()->subHours(6),
     ]);
 
     $service = app(DuplicateAcknowledgement::class);
@@ -1533,9 +1537,10 @@ it('DuplicateAcknowledgement::savingsDescriptors picks the HIGHEST-id row when t
     ]);
 
     expect($descriptors)->toHaveCount(1);
-    // Highest-id row's balance (8,800), not the older 1,000.
+    // Highest-id row's balance (8,800) even though it is the OLDER row —
+    // proves id ordering, not created_at ordering.
     expect($descriptors[0])->toContain('8,800');
-    expect($newer->current_balance)->toEqual(8800);
+    expect($higherId->current_balance)->toEqual(8800);
 });
 
 it('ProfileCompletenessChecker::hasAssets is TRUE when the user has a savings account and FALSE when they have none', function () {
