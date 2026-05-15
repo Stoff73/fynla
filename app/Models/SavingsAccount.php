@@ -53,6 +53,13 @@ class SavingsAccount extends Model
         'beneficiary_dob',
         // Retirement planning
         'include_in_retirement',
+        // Canonical derived columns (sub-project 1, pass 1 — materialised by SavingsStore)
+        'balance_gbp',
+        'balance_gbp_calculated_at',
+        'annual_interest_projected_gbp',
+        'annual_interest_projected_gbp_calculated_at',
+        'isa_allowance_used_pct',
+        'isa_allowance_used_pct_calculated_at',
     ];
 
     protected $hidden = [
@@ -73,6 +80,13 @@ class SavingsAccount extends Model
         'planned_lump_sum_date' => 'date',
         'beneficiary_dob' => 'date',
         'include_in_retirement' => 'boolean',
+        // Canonical derived columns (sub-project 1, pass 1)
+        'balance_gbp' => 'decimal:2',
+        'balance_gbp_calculated_at' => 'datetime',
+        'annual_interest_projected_gbp' => 'decimal:2',
+        'annual_interest_projected_gbp_calculated_at' => 'datetime',
+        'isa_allowance_used_pct' => 'decimal:2',
+        'isa_allowance_used_pct_calculated_at' => 'datetime',
     ];
 
     /**

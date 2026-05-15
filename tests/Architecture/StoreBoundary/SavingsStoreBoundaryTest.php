@@ -18,9 +18,16 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
     ->toOnlyBeUsedIn([
         // Permanent allowlist
         'App\Services\Stores\SavingsStore',
+        // PR 6 — derived-column calculator. Part of the canonical write path:
+        // invoked ONLY by SavingsStore::recalculateDerived(), takes a
+        // SavingsAccount instance and reads its properties to compute the
+        // materialised columns. No queries, no mutations — a pure read-of-a
+        // -passed-model helper, conceptually an internal of the store itself.
+        // Legitimate type-hint reference, like the Goal relationship entries.
+        'App\Services\Stores\Recalc\SavingsAccountDerivedColumnCalculator',
         'App\Observers\SavingsAccountGoalObserver',
         'App\Observers\SavingsAccountRiskObserver',
-        'App\Models\\',                     // self-references in relationships
+        'App\Models\\',                     // self-references in relationships (incl. SavingsAccountValueSnapshot belongsTo)
         'Database\Factories\SavingsAccountFactory',
 
         // Transition allowlist — removed by subsequent PRs in pass 1.
@@ -124,6 +131,13 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         'App\Services\Risk\AutoRiskCalculator',
         'App\Console\Commands\SendSavingsAlerts',
         'App\Console\Commands\EncryptExistingData',
+        // PR 6 — one-off backfill of the canonical derived columns for
+        // existing rows. Console-command category (per the test docblock's
+        // permanent allowlist: "observers, migrations, seeders, console
+        // commands, the store itself"). Reads via SavingsAccount::chunkById
+        // and forceFill/saveQuietly the derived columns only — a controlled
+        // one-shot migration-style backfill, not a runtime write path.
+        'App\Console\Commands\BackfillSavingsDerivedColumns',
     ]);
 
 arch('App\Services\Stores classes use strict types')
