@@ -3,123 +3,111 @@
 declare(strict_types=1);
 
 /**
- * Sub-Project 1, Pass 1 — Savings store boundary enforcement.
+ * Sub-Project 1, Pass 1 — Savings store boundary enforcement (LOCKED).
  *
- * Hard-fails CI on any direct mutation of App\Models\SavingsAccount
- * outside the canonical write path (App\Services\Stores\SavingsStore).
+ * Pass 1 is complete. This allowlist is now FINAL: every direct mutation
+ * and statically-resolvable query of App\Models\SavingsAccount flows through
+ * the canonical write/read set (SavingsStore + its derived calculator),
+ * with the remaining entries being spec §14.2 permanents (observers,
+ * factory, events, model-relationship/self refs, console commands, seeders,
+ * resource) and a small set of documented residual NON-QUERY references
+ * (class-name args, type hints, relationship definitions, polymorphic
+ * dynamic dispatch, and out-of-sub-project-1-scope read/infra consumers).
  *
- * Allowlist (§14.2 of the spec): observers, migrations, seeders, console
- * commands, the store itself, and pre-existing direct-mutation sites
- * that subsequent PRs in this pass will migrate. Each entry below has a
- * comment naming the PR that removes it.
+ * No transition entries remain — the "PR 5x will remove" language has been
+ * replaced with permanent/documented-residual framing. Each entry below is
+ * classified. Removing any entry whose file still references SavingsAccount
+ * will turn this suite RED: that means the entry is still load-bearing, not
+ * that the rule should be weakened.
  */
-arch('SavingsAccount mutations only happen inside SavingsStore (plus transition allowlist)')
+arch('SavingsAccount mutations and reads only happen inside the savings canonical set + documented exceptions')
     ->expect('App\Models\SavingsAccount')
     ->toOnlyBeUsedIn([
-        // Permanent allowlist
+        // ---- Canonical write/read set ----
+        // The single canonical write path. All create/update/delete/restore
+        // and all joint-aware reads funnel through here.
         'App\Services\Stores\SavingsStore',
-        // PR 6 — derived-column calculator. Part of the canonical write path:
-        // invoked ONLY by SavingsStore::recalculateDerived(), takes a
-        // SavingsAccount instance and reads its properties to compute the
-        // materialised columns. No queries, no mutations — a pure read-of-a
-        // -passed-model helper, conceptually an internal of the store itself.
-        // Legitimate type-hint reference, like the Goal relationship entries.
+        // Part of the canonical write path: invoked ONLY by
+        // SavingsStore::recalculateDerived(), takes a SavingsAccount instance
+        // and reads its properties to compute the materialised columns.
+        // No queries, no mutations — conceptually an internal of the store.
         'App\Services\Stores\Recalc\SavingsAccountDerivedColumnCalculator',
+
+        // ---- Spec §14.2 permanent allowlist ----
+        // Observers (recalc / goal-link side effects), the factory, the
+        // domain events, model self/relationship references, the API
+        // resource, controlled console commands, and seeders. These are
+        // permanent by design — never migrated behind the store.
         'App\Observers\SavingsAccountGoalObserver',
         'App\Observers\SavingsAccountRiskObserver',
-        'App\Models\\',                     // self-references in relationships (incl. SavingsAccountValueSnapshot belongsTo)
+        'App\Models\\',                     // self-references + relationship defs (Goal, SavingsGoal, User, SavingsAccountValueSnapshot belongsTo)
         'Database\Factories\SavingsAccountFactory',
-
-        // Transition allowlist — removed by subsequent PRs in pass 1.
-        // PR 3 removed write path from CoordinatingAgent + OnboardingService;
-        // its handleListRecords read query (the case 'savings_account' arm)
-        // was migrated to SavingsStore::forUser() in PR 5h. CoordinatingAgent
-        // STAYS allowlisted: it retains SavingsAccount::class as a
-        // generic-duplicate-checker argument (checkForDuplicate(
-        // SavingsAccount::class, ...) ~L2076) and as an entity type-map value
-        // ('savings_account' => SavingsAccount::class ~L4270) — non-query
-        // class-name references the arch static analysis still sees.
-        'App\Agents\CoordinatingAgent',
-        // PR 4 removed write path from PreviewController + ChrisUserSeeder (imports cleaned).
-        // DocumentProcessor (SavingsAccount::class mapper key at line 483) and
-        // PreviewUserSeeder (delete + linkGoalsToAccounts reads) retain read-only usages
-        // removed in PR 5.
-        'App\Services\Documents\DocumentProcessor',
-        'Database\Seeders\PreviewUserSeeder',
-        'Database\Seeders\LifecycleTestSeeder',
-        'App\Console\Commands\ResetPreviewData',
-        // PR 5 removes: read consumers (all listed in plan §"Modified files")
-        // PR 5d removed: Tax strategies cluster (JointSavingsStrategy,
-        // AssetShiftingBundleStrategy, PensionAACarryForwardStrategy,
-        // IsaTopUpStrategy, TaxOptimisationService, TaxStrategyMath,
-        // TaxActionDefinitionService) — now read via SavingsStore.
-        // PR 5e removed: Investment ISA consumers cluster
-        // (ISAAllowanceOptimizer, TaxOptimizationAnalyzer,
-        // UserContextBuilder) — now read via SavingsStore.
-        // PR 5f removed: CashFlowCoordinator — fully migrated, no residual
-        // SavingsAccount reference (import dropped).
-        // PR 5g removed: AI prompt + profile cluster — AdvicePromptBuilder,
-        // DuplicateAcknowledgement, ProfileCompletenessChecker, and
-        // AssetCaptureEntityExtractor — all four fully cleared (import
-        // dropped, sole query site migrated to SavingsStore::forUser());
-        // AssetCaptureEntityExtractor lost its "// reads only" line too.
-        // PR 5h removed: Agents + savings-internal cluster — SavingsAgent,
-        // InvestmentAgent, and SavingsActionDefinitionService — all three
-        // fully cleared (import dropped, sole query sites migrated to
-        // SavingsStore::forUser()). SavingsActionDefinitionService's
-        // $user->savingsAccounts() / $goal->savingsAccounts() relationship
-        // reads do not name the SavingsAccount class and stay (plan §5.5 —
-        // relationship reads are allowed). CoordinatingAgent + ISATracker +
-        // Goal STAY allowlisted with documented residual non-query refs
-        // (see below + the CoordinatingAgent note above).
-        //
-        // Residual reference — STAYS. The store boundary bans savings
-        // *queries/mutations* outside SavingsStore; the arch static analysis
-        // can only see statically-resolvable SavingsAccount::where(...) calls.
-        // The files below had ALL their statically-visible query sites
-        // migrated but retain a SavingsAccount reference that cannot
-        // be removed without an out-of-scope refactor:
-        //  - HouseholdPlanningService retains a dynamically-dispatched cross-model
-        //    query in calculateJointAssetsPassingToSurvivor: it iterates an
-        //    $assetTypes list (incl. SavingsAccount::class) and calls
-        //    $modelClass::where(...)->get(). This IS a savings query, but via static
-        //    dispatch the arch check cannot see it. Extracting that polymorphic
-        //    joint-asset sweep into a store-aware helper is out of scope for PR 5f;
-        //    HPS stays allowlisted until a dedicated follow-up PR. Its two direct
-        //    SavingsAccount::where query sites (gatherAssetsForUser, calculateISAUsage)
-        //    ARE migrated in PR 5f.
-        //  - LifeEventAllocationService retains the ?SavingsAccount return
-        //    type on findCashAccountModel (plus the instanceof check at the
-        //    determineISAAllocation result builder) — genuine non-query
-        //    references; all of its query sites are migrated in PR 5f.
-        //  - ISATracker retains a SavingsAccount type hint on the public
-        //    calculateProjectedSubscription(SavingsAccount $account) method
-        //    signature — a genuine non-query reference (mirrors the LEAS
-        //    ?SavingsAccount precedent). All SIX of its direct query sites
-        //    (getISAAllowanceStatus cash/LISA, the calendar-year estimate
-        //    loop, updateISAUsage cash/LISA, calculateProjectedSubscriptions)
-        //    ARE migrated to SavingsStore::forUser() in PR 5h, with the
-        //    nested where(fn(){orWhere}) boolean groups translated to exact
-        //    ->filter() predicates. Dropping the type hint is an out-of-scope
-        //    signature refactor; ISATracker stays allowlisted.
-        //  - Goal retains SavingsAccount::class only in belongsTo /
-        //    belongsToMany relationship definitions (plan §5.5 — relationship
-        //    reads are allowed); no direct queries. Goal.php is NOT modified
-        //    by PR 5h and stays allowlisted.
-        'App\Services\Coordination\HouseholdPlanningService',
-        'App\Services\Goals\LifeEventAllocationService',
-        'App\Services\Savings\ISATracker',
-        'App\Models\Goal',
-        // Additional pre-existing consumers not listed in plan — added to allowlist at PR 1 discovery.
-        // These are read-only or infrastructure usages; migrated in later PRs.
-        'App\Providers\EventServiceProvider',
-        'App\Models\User',
-        'App\Models\SavingsGoal',
         'App\Http\Resources\SavingsAccountResource',
-        'App\Http\Controllers\Api\Plans\PlanController',
         'App\Events\Savings\SavingsAccountCreated',
         'App\Events\Savings\SavingsAccountUpdated',
         'App\Events\Savings\SavingsAccountRestored',
+        // Console commands — controlled one-shot / scheduled jobs, not a
+        // runtime write path (spec §14.2 "console commands" category).
+        'App\Console\Commands\ResetPreviewData',
+        'App\Console\Commands\SendSavingsAlerts',
+        'App\Console\Commands\EncryptExistingData',
+        // One-off backfill of the canonical derived columns for existing
+        // rows: reads via SavingsAccount::chunkById and forceFill/saveQuietly
+        // the derived columns only — a migration-style backfill.
+        'App\Console\Commands\BackfillSavingsDerivedColumns',
+        // Seeders (test/preview/lifecycle persona fixtures) — §14.2 permanent.
+        'Database\Seeders\PreviewUserSeeder',
+        'Database\Seeders\LifecycleTestSeeder',
+
+        // ---- Documented residual NON-QUERY references ----
+        // These files retain a SavingsAccount reference that is NOT a
+        // statically-resolvable query/mutation. Removing the residual would
+        // require an out-of-scope signature/relationship refactor; the
+        // canonical contract (no savings queries/mutations outside the
+        // store) still holds because none of these issue a SavingsAccount
+        // query that bypasses the store.
+        //
+        //  - CoordinatingAgent: SavingsAccount::class as a generic
+        //    duplicate-checker argument (checkForDuplicate(SavingsAccount::class, …))
+        //    and as an entity type-map value ('savings_account' => SavingsAccount::class).
+        //    Non-query class-name references only; its prior read query
+        //    (handleListRecords 'savings_account' arm) is migrated to
+        //    SavingsStore::forUser().
+        'App\Agents\CoordinatingAgent',
+        //  - ISATracker: a SavingsAccount type hint on the public
+        //    calculateProjectedSubscription(SavingsAccount $account) signature.
+        //    Non-query type reference; all six of its direct query sites are
+        //    migrated to SavingsStore::forUser().
+        'App\Services\Savings\ISATracker',
+        //  - Goal: SavingsAccount::class only in belongsTo / belongsToMany
+        //    relationship definitions (relationship reads are allowed); no
+        //    direct queries.
+        'App\Models\Goal',
+        //  - HouseholdPlanningService: a dynamically-dispatched cross-model
+        //    sweep ($modelClass::where(...) over an $assetTypes list incl.
+        //    SavingsAccount::class) the static analysis cannot resolve.
+        //    Its two direct SavingsAccount::where sites are migrated; the
+        //    polymorphic sweep is an out-of-scope follow-up.
+        'App\Services\Coordination\HouseholdPlanningService',
+        //  - DocumentProcessor: SavingsAccount::class as a field-mapper key.
+        //    Non-query class-name reference.
+        'App\Services\Documents\DocumentProcessor',
+        //  - LifeEventAllocationService: a ?SavingsAccount return type on
+        //    findCashAccountModel plus an instanceof check; all query sites
+        //    migrated.
+        'App\Services\Goals\LifeEventAllocationService',
+
+        // ---- Out-of-sub-project-1-scope read / infra references ----
+        // These were never in the 5x read-consumer migration scope: they are
+        // read-only or framework-infra usages (event wiring, polymorphic
+        // model maps, eval driver, plan controller, document detection,
+        // net-worth/personal-accounts aggregation). Kept allowlisted as
+        // out-of-scope read/infra references; a future sub-project may route
+        // them through the store, but pass 1 does not.
+        'App\Providers\EventServiceProvider',
+        'App\Models\User',
+        'App\Models\SavingsGoal',
+        'App\Http\Controllers\Api\Plans\PlanController',
         'App\Services\Savings\RateComparator',
         'App\Services\Savings\LiquidityAnalyzer',
         'App\Services\UserProfile\PersonalAccountsService',
@@ -129,15 +117,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         'App\Services\Eval\EvalHttpDriver',
         'App\Services\NetWorth\NetWorthService',
         'App\Services\Risk\AutoRiskCalculator',
-        'App\Console\Commands\SendSavingsAlerts',
-        'App\Console\Commands\EncryptExistingData',
-        // PR 6 — one-off backfill of the canonical derived columns for
-        // existing rows. Console-command category (per the test docblock's
-        // permanent allowlist: "observers, migrations, seeders, console
-        // commands, the store itself"). Reads via SavingsAccount::chunkById
-        // and forceFill/saveQuietly the derived columns only — a controlled
-        // one-shot migration-style backfill, not a runtime write path.
-        'App\Console\Commands\BackfillSavingsDerivedColumns',
     ]);
 
 arch('App\Services\Stores classes use strict types')

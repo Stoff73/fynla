@@ -12,6 +12,37 @@ class AuditLog extends Model
 {
     public $timestamps = false;
 
+    /**
+     * Request-scoped metadata context merged into every data-change audit
+     * row written while the context is active. Set/cleared by withContext()
+     * (try/finally), so it never leaks to a subsequent unrelated write.
+     * Default empty => logDataChange() behaves exactly as before (null
+     * metadata) for non-store writes and all other models.
+     *
+     * @var array<string, mixed>
+     */
+    protected static array $dataChangeContext = [];
+
+    /**
+     * Run $callback with $context merged into the metadata of any
+     * data-change audit row written during the callback (including rows
+     * created by the auto-fired Auditable trait hooks). Always restored to
+     * the prior context afterwards, even on exception.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public static function withContext(array $context, callable $callback): mixed
+    {
+        $previous = self::$dataChangeContext;
+        self::$dataChangeContext = array_merge($previous, $context);
+
+        try {
+            return $callback();
+        } finally {
+            self::$dataChangeContext = $previous;
+        }
+    }
+
     protected $fillable = [
         'user_id',
         'event_type',
@@ -191,7 +222,8 @@ class AuditLog extends Model
             get_class($model),
             $model->getKey(),
             $oldValues,
-            $newValues
+            $newValues,
+            self::$dataChangeContext === [] ? null : self::$dataChangeContext
         );
     }
 

@@ -8,6 +8,7 @@ use App\Events\Savings\SavingsAccountCreated;
 use App\Events\Savings\SavingsAccountDeleted;
 use App\Events\Savings\SavingsAccountRestored;
 use App\Events\Savings\SavingsAccountUpdated;
+use App\Models\AuditLog;
 use App\Models\SavingsAccount;
 use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
@@ -98,7 +99,7 @@ class SavingsStore
 
         $attributes = array_merge($data, ['user_id' => $user->id]);
 
-        return DB::transaction(function () use ($attributes, $user, $source) {
+        return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($attributes, $user, $source) {
             $account = SavingsAccount::create($attributes);
 
             $this->recalculateDerived($account, $source, 'create');
@@ -106,7 +107,7 @@ class SavingsStore
             event(new SavingsAccountCreated($account, $user, $source));
 
             return $account;
-        });
+        }));
     }
 
     /**
@@ -119,7 +120,7 @@ class SavingsStore
         $account = SavingsAccount::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $this->validateCanonical($data);
 
-        return DB::transaction(function () use ($account, $data, $user, $source) {
+        return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($account, $data, $user, $source) {
             // fill before getDirty so the dirty diff is captured correctly
             $account->fill($data);
             $dirty = $account->getDirty();
@@ -131,7 +132,7 @@ class SavingsStore
             event(new SavingsAccountUpdated($fresh, $dirty, $user, $source));
 
             return $fresh;
-        });
+        }));
     }
 
     public function updateOrCreate(array $match, array $data, User $user, IngestSource $source): SavingsAccount
