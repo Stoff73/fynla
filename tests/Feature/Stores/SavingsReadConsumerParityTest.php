@@ -7,6 +7,9 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\Estate\EstateAssetAggregatorService;
+use App\Services\Investment\Recommendation\UserContextBuilder;
+use App\Services\Investment\Tax\ISAAllowanceOptimizer;
+use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
 use App\Services\Plans\BasePlanService;
 use App\Services\Plans\SavingsPlanService;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -1029,4 +1032,149 @@ it('TaxActionDefinitionService:110,291 cash-ISA subscribed read identical after 
 
     expect($postRefactor)->toBe($preRefactor);
     expect($postRefactor)->toBe(4500.0);
+});
+
+// PR 5e parity tests — Investment ISA consumers cluster
+
+it('ISAAllowanceOptimizer::calculateAllowanceUsage cash + LISA savings figures identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'current_balance' => 12000, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'lifetime_isa', 'is_isa' => true,
+        'current_balance' => 4000, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Non-ISA — must be excluded by the whereIn account_type filter
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 99999, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $usage = app(ISAAllowanceOptimizer::class)
+        ->calculateAllowanceUsage($user->id, '2025/26');
+
+    expect($usage['cash_isa'])->toBe(12000.0);
+    expect($usage['lifetime_isa'])->toBe(4000.0);
+    expect($usage['breakdown']['savings_accounts'])->toBe(2);
+});
+
+it('ISAAllowanceOptimizer::calculateAllowanceUsage non-existent userId returns the same zeroed structure (collect() empty-equivalent)', function () {
+    $usage = app(ISAAllowanceOptimizer::class)
+        ->calculateAllowanceUsage(999999, '2025/26');
+
+    expect($usage['cash_isa'])->toBe(0.0);
+    expect($usage['lifetime_isa'])->toBe(0.0);
+    expect($usage['stocks_and_shares_isa'])->toBe(0.0);
+    expect($usage['total_used'])->toBe(0.0);
+    expect($usage['breakdown']['savings_accounts'])->toBe(0);
+});
+
+it('TaxOptimizationAnalyzer::analyzeCompleteTaxPosition savings-only structure parity after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 15000, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $result = app(TaxOptimizationAnalyzer::class)
+        ->analyzeCompleteTaxPosition($user->id);
+
+    expect($result['success'])->toBeTrue();
+    expect($result)->toHaveKey('current_position');
+});
+
+it('TaxOptimizationAnalyzer::analyzeCompleteTaxPosition non-existent userId returns no-accounts failure (collect() empty-equivalent)', function () {
+    $result = app(TaxOptimizationAnalyzer::class)
+        ->analyzeCompleteTaxPosition(999999);
+
+    expect($result)->toBe([
+        'success' => false,
+        'message' => 'No investment or savings accounts found',
+    ]);
+});
+
+it('UserContextBuilder::build emergency-fund total INCLUDES joint non-ISA account (site 86 joint-aware path preserved, NO single-owner post-filter)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+
+    // Single-owner non-ISA account owned by user — £X
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 30000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint NON-ISA account owned by SPOUSE with user as joint_owner_id — £Y.
+    // forUser() is joint-aware (forUserOrJoint) — this MUST be included in the
+    // emergency-fund total. If a single-owner where('user_id') post-filter were
+    // wrongly added at site 86 this would be excluded (the regression we guard).
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 20000, 'joint_owner_id' => $user->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+
+    $context = app(UserContextBuilder::class)->build($user);
+
+    // £X + £Y = 30000 + 20000 — joint account INCLUDED.
+    expect($context['emergency_fund']['total_savings'])->toBe(50000.0);
+});
+
+it('UserContextBuilder::build ISA-used reflects single-owner cash-ISA current-year subscription (site 65)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+    $isaAllowance = app(TaxConfigService::class)->getISAAllowances()['annual_allowance'];
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => $taxYear, 'isa_subscription_amount' => 5000,
+        'current_balance' => 5000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Different-year subscription — must be excluded by the isa_subscription_year filter
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => '2020/21', 'isa_subscription_amount' => 9000,
+        'current_balance' => 9000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $context = app(UserContextBuilder::class)->build($user);
+
+    expect($context['allowances']['isa_used'])->toBe(5000.0);
+    expect($context['allowances']['isa_remaining'])->toBe(round($isaAllowance - 5000.0, 2));
+});
+
+it('UserContextBuilder::buildSpouseContext spouse cash-ISA single-owner read identical after store migration (site 464)', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false, 'marital_status' => 'married',
+    ]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+    $user->spouse_id = $spouse->id;
+    $user->save();
+
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => $taxYear, 'isa_subscription_amount' => 7000,
+        'current_balance' => 7000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = (float) SavingsAccount::where('user_id', $spouse->id)
+        ->whereIn('account_type', ['isa', 'cash_isa'])
+        ->where('isa_subscription_year', $taxYear)
+        ->sum('isa_subscription_amount');
+    $postRefactor = (float) app(SavingsStore::class)->forUser($spouse)
+        ->where('user_id', $spouse->id)
+        ->whereIn('account_type', ['isa', 'cash_isa'])
+        ->where('isa_subscription_year', $taxYear)
+        ->sum('isa_subscription_amount');
+
+    expect($postRefactor)->toBe($preRefactor);
+    expect($postRefactor)->toBe(7000.0);
 });

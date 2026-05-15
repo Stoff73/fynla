@@ -45,11 +45,11 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // AssetShiftingBundleStrategy, PensionAACarryForwardStrategy,
         // IsaTopUpStrategy, TaxOptimisationService, TaxStrategyMath,
         // TaxActionDefinitionService) — now read via SavingsStore.
+        // PR 5e removed: Investment ISA consumers cluster
+        // (ISAAllowanceOptimizer, TaxOptimizationAnalyzer,
+        // UserContextBuilder) — now read via SavingsStore.
         'App\Services\Savings\ISATracker',
         'App\Services\Savings\SavingsActionDefinitionService',
-        'App\Services\Investment\Tax\ISAAllowanceOptimizer',
-        'App\Services\Investment\Tax\TaxOptimizationAnalyzer',
-        'App\Services\Investment\Recommendation\UserContextBuilder',
         'App\Services\Goals\LifeEventAllocationService',
         'App\Services\AI\AdvicePromptBuilder',
         'App\Services\AI\DuplicateAcknowledgement',
