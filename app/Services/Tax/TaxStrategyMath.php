@@ -6,8 +6,8 @@ namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
 use App\Models\DCPension;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -161,10 +161,11 @@ final class TaxStrategyMath
 
     public function estimateAnnualInterest(User $user): float
     {
-        return (float) SavingsAccount::query()
+        // forUser() is joint-aware; the Collection-level where('user_id')
+        // post-filter preserves the original single-owner sum.
+        return (float) app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', false)
-            ->get()
             ->sum(function ($acc) {
                 // interest_rate convention is mixed across the codebase
                 // (factory writes decimals 0.04, seeders + onboarding write
@@ -194,15 +195,20 @@ final class TaxStrategyMath
         // Replace with a per-subscription log when one exists.
         $taxYearStart = $this->taxConfig->getEffectiveFrom();
 
-        $query = SavingsAccount::query()
+        // forUser() is joint-aware; the Collection-level where('user_id')
+        // post-filter preserves the original single-owner sum.
+        $accounts = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->where('is_isa', true);
 
         if ($taxYearStart !== '') {
-            $query->where('created_at', '>=', $taxYearStart);
+            // created_at is a Carbon cast; Collection::where string comparison
+            // is unreliable, so filter explicitly against a parsed boundary.
+            $boundary = Carbon::parse($taxYearStart);
+            $accounts = $accounts->filter(fn ($a) => $a->created_at >= $boundary);
         }
 
-        return (float) $query->sum('current_balance');
+        return (float) $accounts->sum('current_balance');
     }
 
     public function estimatePensionContributionThisYear(User $user, ?TaxStrategyOverridesDTO $overrides): float
