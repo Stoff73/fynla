@@ -1464,7 +1464,7 @@ class CoordinatingAgent extends BaseAgent
 
         switch ($entityType) {
             case 'savings_account':
-                $items = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = SavingsAccount::forUserOrJoint($userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_balance;
@@ -1477,7 +1477,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'investment_account':
-                $items = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = InvestmentAccount::forUserOrJoint($userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_value;
@@ -1498,7 +1498,7 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'scheme_type' => $p->scheme_type, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years, 'pensionable_salary' => $p->pensionable_salary ? (float) $p->pensionable_salary : null, 'normal_retirement_age' => $p->normal_retirement_age, 'spouse_pension_percent' => $p->spouse_pension_percent ? (float) $p->spouse_pension_percent : null, 'lump_sum_entitlement' => $p->lump_sum_entitlement ? (float) $p->lump_sum_entitlement : null, 'inflation_protection' => $p->inflation_protection])->toArray();
                 break;
             case 'property':
-                $items = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Property::with('mortgages')->forUserOrJoint($userId)->get();
                 $records = $items->map(function ($p) use ($ownershipFields) {
                     $fields = $ownershipFields($p);
                     $total = (float) $p->current_value;
@@ -1520,7 +1520,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'mortgage':
-                $items = Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
+                $items = Mortgage::whereHas('property', fn ($q) => $q->forUserOrJoint($userId))->with('property')->get();
                 $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
                 break;
             case 'life_insurance':
@@ -1540,15 +1540,15 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value, 'initial_value' => $t->initial_value ? (float) $t->initial_value : null, 'creation_date' => $t->trust_creation_date?->format('Y-m-d'), 'settlor' => $t->settlor, 'beneficiaries' => $t->beneficiaries, 'trustees' => $t->trustees, 'purpose' => $t->purpose, 'is_relevant_property_trust' => (bool) $t->is_relevant_property_trust, 'retained_income_annual' => $t->retained_income_annual ? (float) $t->retained_income_annual : null, 'loan_amount' => $t->loan_amount ? (float) $t->loan_amount : null, 'is_active' => (bool) $t->is_active])->toArray();
                 break;
             case 'business_interest':
-                $items = BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = BusinessInterest::forUserOrJoint($userId)->get();
                 $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation, 'annual_revenue' => $b->annual_revenue ? (float) $b->annual_revenue : null, 'annual_profit' => $b->annual_profit ? (float) $b->annual_profit : null, 'annual_dividend_income' => $b->annual_dividend_income ? (float) $b->annual_dividend_income : null, 'trading_status' => $b->trading_status, 'employee_count' => $b->employee_count, 'acquisition_date' => $b->acquisition_date?->format('Y-m-d'), 'acquisition_cost' => $b->acquisition_cost ? (float) $b->acquisition_cost : null, 'bpr_eligible' => $b->bpr_eligible], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
-                $items = Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Chattel::forUserOrJoint($userId)->get();
                 $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'name' => $c->name, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value, 'purchase_price' => $c->purchase_price ? (float) $c->purchase_price : null, 'purchase_date' => $c->purchase_date?->format('Y-m-d'), 'make' => $c->make, 'model' => $c->model, 'year' => $c->year], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
-                $items = Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Liability::forUserOrJoint($userId)->get();
                 $records = $items->map(fn ($l) => array_merge(['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance, 'interest_rate' => $l->interest_rate ? (float) $l->interest_rate : null, 'monthly_payment' => $l->monthly_payment ? (float) $l->monthly_payment : null, 'maturity_date' => $l->maturity_date?->format('Y-m-d'), 'is_priority_debt' => (bool) $l->is_priority_debt], $ownershipFields($l)))->toArray();
                 break;
             case 'estate_gift':
