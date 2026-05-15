@@ -3,10 +3,21 @@
 declare(strict_types=1);
 
 use App\Models\SavingsAccount;
+use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsStore;
+use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Database\Eloquent\Collection;
+
+// Canonical store create()/update() now materialises ISA-allowance-used %
+// via TaxConfigService::getISAAllowances(). Seed the real tax configuration
+// (same pattern as SavingsReadConsumerParityTest) so the ISA derived-column
+// path has an active tax year.
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+});
 
 it('SavingsStore::create persists a SavingsAccount through the canonical write path', function () {
     $user = User::factory()->create();
@@ -137,7 +148,7 @@ it('SavingsStore::forUsers returns empty Collection for empty array', function (
     $store = app(SavingsStore::class);
     $result = $store->forUsers([]);
 
-    expect($result)->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+    expect($result)->toBeInstanceOf(Collection::class);
     expect($result)->toHaveCount(0);
 });
 
@@ -182,6 +193,72 @@ it('SavingsStore::findMany returns empty Collection for empty array', function (
     $store = app(SavingsStore::class);
     $result = $store->findMany([], $user);
 
-    expect($result)->toBeInstanceOf(\Illuminate\Database\Eloquent\Collection::class);
+    expect($result)->toBeInstanceOf(Collection::class);
     expect($result)->toHaveCount(0);
+});
+
+it('SavingsStore::create materialises balance_gbp and writes initial snapshot', function () {
+    $user = User::factory()->create();
+    $store = app(SavingsStore::class);
+
+    $account = $store->create([
+        'account_name' => 'Halifax', 'current_balance' => 1000, 'interest_rate' => 4.0,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
+    ], $user, IngestSource::FORM);
+
+    expect((float) $account->balance_gbp)->toBe(1000.00);
+    expect((float) $account->annual_interest_projected_gbp)->toBe(40.00);
+    expect($account->balance_gbp_calculated_at)->not->toBeNull();
+
+    expect(SavingsAccountValueSnapshot::where('savings_account_id', $account->id)->count())
+        ->toBeGreaterThanOrEqual(2); // balance + interest snapshots
+});
+
+it('SavingsStore::create materialises annual interest identically for percent and decimal interest_rate conventions', function () {
+    $user = User::factory()->create();
+    $store = app(SavingsStore::class);
+
+    // Percent convention (onboarding/seeders): interest_rate 4.0
+    $percentAcc = $store->create([
+        'account_name' => 'Percent', 'current_balance' => 1000, 'interest_rate' => 4.0,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
+    ], $user, IngestSource::FORM);
+
+    // Decimal convention (factory): interest_rate 0.04
+    $decimalAcc = $store->create([
+        'account_name' => 'Decimal', 'current_balance' => 1000, 'interest_rate' => 0.04,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
+    ], $user, IngestSource::FORM);
+
+    expect((float) $percentAcc->annual_interest_projected_gbp)->toBe(40.00);
+    expect((float) $decimalAcc->annual_interest_projected_gbp)->toBe(40.00);
+});
+
+it('SavingsStore::update fires snapshot only when policy threshold exceeded', function () {
+    $user = User::factory()->create();
+    $store = app(SavingsStore::class);
+
+    $account = $store->create([
+        'account_name' => 'Halifax', 'current_balance' => 1000,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100, 'country' => 'United Kingdom',
+    ], $user, IngestSource::FORM);
+
+    $initialSnapshotCount = SavingsAccountValueSnapshot::where('savings_account_id', $account->id)->count();
+
+    // Sub-threshold change — no new snapshot. The spec §10.3 balance policy
+    // fires when |Δ| > £100 OR relative change > 1%. From a £1,000 base a
+    // sub-threshold delta must be < £10 (and < £100). £1,005 = £5 / 0.5%.
+    // (The plan's draft used £1,020, but that is a 2% move which DOES exceed
+    // the spec-defined 1% relative threshold — fixture corrected, policy
+    // left at the spec contract.)
+    $store->update($account->id, ['current_balance' => 1005], $user, IngestSource::FORM);
+
+    expect(SavingsAccountValueSnapshot::where('savings_account_id', $account->id)->count())
+        ->toBe($initialSnapshotCount);
+
+    // Super-threshold change — snapshot fires
+    $store->update($account->id, ['current_balance' => 5000], $user, IngestSource::FORM);
+
+    expect(SavingsAccountValueSnapshot::where('savings_account_id', $account->id)->count())
+        ->toBeGreaterThan($initialSnapshotCount);
 });

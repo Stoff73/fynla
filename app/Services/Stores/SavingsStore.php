@@ -9,9 +9,12 @@ use App\Events\Savings\SavingsAccountDeleted;
 use App\Events\Savings\SavingsAccountRestored;
 use App\Events\Savings\SavingsAccountUpdated;
 use App\Models\SavingsAccount;
+use App\Models\SavingsAccountValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\Recalc\SavingsAccountDerivedColumnCalculator;
+use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -22,6 +25,7 @@ class SavingsStore
 
     public function __construct(
         private readonly TierGate $tierGate,
+        private readonly SavingsAccountDerivedColumnCalculator $derivedCalc,
     ) {}
 
     // ---------- Reads ----------
@@ -53,7 +57,7 @@ class SavingsStore
         return SavingsAccount::query()
             ->where(function ($q) use ($userIds) {
                 $q->whereIn('user_id', $userIds)
-                  ->orWhereIn('joint_owner_id', $userIds);
+                    ->orWhereIn('joint_owner_id', $userIds);
             })
             ->get();
     }
@@ -97,6 +101,8 @@ class SavingsStore
         return DB::transaction(function () use ($attributes, $user, $source) {
             $account = SavingsAccount::create($attributes);
 
+            $this->recalculateDerived($account, $source, 'create');
+
             event(new SavingsAccountCreated($account, $user, $source));
 
             return $account;
@@ -119,6 +125,8 @@ class SavingsStore
             $dirty = $account->getDirty();
             $account->save();
             $fresh = $account->fresh();
+
+            $this->recalculateDerived($fresh, $source, 'update');
 
             event(new SavingsAccountUpdated($fresh, $dirty, $user, $source));
 
@@ -168,6 +176,64 @@ class SavingsStore
     }
 
     // ---------- Internal ----------
+
+    /**
+     * Materialise the canonical derived columns onto the row and write
+     * value snapshots per the per-column SnapshotPolicy. Called inside the
+     * create()/update() DB transaction, after the row is persisted.
+     */
+    private function recalculateDerived(SavingsAccount $account, IngestSource $source, string $reason): void
+    {
+        $derived = $this->derivedCalc->calculate($account);
+        $now = now();
+
+        $oldValues = [
+            'balance_gbp' => $account->balance_gbp !== null ? (float) $account->balance_gbp : null,
+            'annual_interest_projected_gbp' => $account->annual_interest_projected_gbp !== null ? (float) $account->annual_interest_projected_gbp : null,
+            'isa_allowance_used_pct' => $account->isa_allowance_used_pct !== null ? (float) $account->isa_allowance_used_pct : null,
+        ];
+
+        $account->fill([
+            'balance_gbp' => $derived['balance_gbp'],
+            'balance_gbp_calculated_at' => $now,
+            'annual_interest_projected_gbp' => $derived['annual_interest_projected_gbp'],
+            'annual_interest_projected_gbp_calculated_at' => $now,
+            'isa_allowance_used_pct' => $derived['isa_allowance_used_pct'],
+            'isa_allowance_used_pct_calculated_at' => $now,
+        ])->save();
+
+        $policies = [
+            'balance_gbp' => SnapshotPolicies::savingsAccountBalance(),
+            'annual_interest_projected_gbp' => SnapshotPolicies::savingsAnnualInterestProjected(),
+            'isa_allowance_used_pct' => SnapshotPolicies::savingsIsaAllowanceUsedPct(),
+        ];
+
+        foreach ($policies as $column => $policy) {
+            // A null derived value means the metric is not applicable to this
+            // account (e.g. no interest_rate, or not an ISA). Recording a
+            // snapshot for an absent metric would spuriously fire on every
+            // write (old===null short-circuits shouldSnapshot to true), so
+            // skip — only materialised values are snapshotted.
+            if ($derived[$column] === null) {
+                continue;
+            }
+
+            if (! $policy->shouldSnapshot($oldValues[$column], $derived[$column])) {
+                continue;
+            }
+
+            SavingsAccountValueSnapshot::create([
+                'savings_account_id' => $account->id,
+                'column_name' => $column,
+                'value' => $derived[$column] ?? 0,
+                'currency' => 'GBP',
+                'value_gbp' => $derived[$column],
+                'taken_at' => $now,
+                'trigger_reason' => $reason,
+                'ingest_source' => $source->value,
+            ]);
+        }
+    }
 
     private function validateCanonical(array $data): void
     {
