@@ -27,7 +27,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 3 removed write path from CoordinatingAgent + OnboardingService;
         // remaining read usages in CoordinatingAgent removed by PR 5.
         'App\Agents\CoordinatingAgent',
-        'App\Services\Onboarding\AssetCaptureEntityExtractor', // reads only — kept on read consumers list
         // PR 4 removed write path from PreviewController + ChrisUserSeeder (imports cleaned).
         // DocumentProcessor (SavingsAccount::class mapper key at line 483) and
         // PreviewUserSeeder (delete + linkGoalsToAccounts reads) retain read-only usages
@@ -48,6 +47,11 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // UserContextBuilder) — now read via SavingsStore.
         // PR 5f removed: CashFlowCoordinator — fully migrated, no residual
         // SavingsAccount reference (import dropped).
+        // PR 5g removed: AI prompt + profile cluster — AdvicePromptBuilder,
+        // DuplicateAcknowledgement, ProfileCompletenessChecker, and
+        // AssetCaptureEntityExtractor — all four fully cleared (import
+        // dropped, sole query site migrated to SavingsStore::forUser());
+        // AssetCaptureEntityExtractor lost its "// reads only" line too.
         //
         // Residual reference — STAYS. The store boundary bans savings
         // *queries/mutations* outside SavingsStore; the arch static analysis
@@ -72,9 +76,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         'App\Services\Goals\LifeEventAllocationService',
         'App\Services\Savings\ISATracker',
         'App\Services\Savings\SavingsActionDefinitionService',
-        'App\Services\AI\AdvicePromptBuilder',
-        'App\Services\AI\DuplicateAcknowledgement',
-        'App\Services\UserProfile\ProfileCompletenessChecker',
         'App\Models\Goal',
         // Additional pre-existing consumers not listed in plan — added to allowlist at PR 1 discovery.
         // These are read-only or infrastructure usages; migrated in later PRs.

@@ -22,7 +22,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
@@ -32,6 +31,7 @@ use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -753,7 +753,7 @@ PROMPT;
 
             // Savings
             if ($include('savings_account')) {
-                $savings = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $savings = app(SavingsStore::class)->forUser($user);
                 if ($savings->isNotEmpty()) {
                     // S0.10 — account_name and institution are user-controlled free text.
                     $items = $savings->map(fn ($a) => '[ID:'.$a->id

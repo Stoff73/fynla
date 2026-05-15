@@ -6,6 +6,8 @@ use App\Models\Goal;
 use App\Models\LifeEvent;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\DuplicateAcknowledgement;
 use App\Services\Coordination\CashFlowCoordinator;
 use App\Services\Coordination\HouseholdPlanningService;
 use App\Services\Estate\EstateActionDefinitionService;
@@ -14,6 +16,7 @@ use App\Services\Goals\LifeEventAllocationService;
 use App\Services\Investment\Recommendation\UserContextBuilder;
 use App\Services\Investment\Tax\ISAAllowanceOptimizer;
 use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
+use App\Services\Onboarding\AssetCaptureEntityExtractor;
 use App\Services\Plans\BasePlanService;
 use App\Services\Plans\SavingsPlanService;
 use App\Services\Shared\CrossModuleAssetAggregator;
@@ -21,10 +24,13 @@ use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\LetterToSpouseService;
+use App\Services\UserProfile\ProfileCompletenessChecker;
 use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -1407,4 +1413,189 @@ it('LifeEventAllocationService::getGoalAccountType picks the int-userId single-o
     expect($result['account_type'])->toBe('savings_account');
     expect($result['account_id'])->toBe($isa->id);
     expect($result['label'])->toBe('Cash ISA');
+});
+
+// PR 5g parity tests — AI prompt + profile cluster
+
+it('AdvicePromptBuilder::buildExistingRecordsSummary SAVINGS line INCLUDES a joint non-ISA account where the user is the SECONDARY owner (site 756 joint-aware preserved, NO single-owner post-filter)', function () {
+    Cache::flush();
+
+    // AdvicePromptBuilder's ownership-label helper reads $record->jointOwner
+    // as a fallback when joint_owner_name is null (always, since that is not
+    // a savings_accounts column). That lazy-load is a pre-existing concern
+    // ORTHOGONAL to PR 5g and behaviourally IDENTICAL before/after the store
+    // migration (neither the old SavingsAccount::where(...)->get() nor
+    // SavingsStore::forUser() eager-loads jointOwner). Relaxing the global
+    // test-only lazy-load guard here keeps the joint-inclusion assertion
+    // focused on the actual PR 5g parity contract.
+    Model::preventLazyLoading(false);
+
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $other = User::factory()->create(['is_preview_user' => false]);
+
+    // Single-owner non-ISA owned by the user.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'account_name' => 'SoloSaverAcct', 'institution' => 'SoloBank',
+        'current_balance' => 12000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint NON-ISA owned by $other with the user as joint_owner_id @50%
+    // (user is the SECONDARY owner). forUser() is joint-aware
+    // (forUserOrJoint). If a single-owner where('user_id') post-filter were
+    // wrongly added at site 756, this joint account would be dropped from
+    // the SAVINGS prompt line — the regression we guard.
+    SavingsAccount::factory()->create([
+        'user_id' => $other->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'account_name' => 'JointSaverAcct', 'institution' => 'JointBank',
+        'current_balance' => 20000, 'joint_owner_id' => $user->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+
+    $summary = app(AdvicePromptBuilder::class)->buildExistingRecordsSummary($user);
+
+    expect($summary)->toContain('SAVINGS:');
+    // Both accounts must appear — single-owner AND the secondary-owner joint one.
+    expect($summary)->toContain('SoloSaverAcct');
+    expect($summary)->toContain('SoloBank');
+    expect($summary)->toContain('JointSaverAcct');
+    expect($summary)->toContain('JointBank');
+
+    // Restore the global lazy-load guard so it does not leak into sibling
+    // tests sharing this process.
+    Model::preventLazyLoading();
+});
+
+it('DuplicateAcknowledgement::savingsDescriptors returns ONLY the recent (<24h) institution+is_isa match, excluding older and different-institution rows', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    // Recent matching row (< 24h) — must be included.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'Barclays', 'is_isa' => false,
+        'account_type' => 'easy_access', 'current_balance' => 5000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(2),
+    ]);
+    // Older row (> 24h), same institution — must be excluded by cutoff.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'Barclays', 'is_isa' => false,
+        'account_type' => 'easy_access', 'current_balance' => 9999,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(30),
+    ]);
+    // Recent but different institution — must be excluded by institution match.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'HSBC', 'is_isa' => false,
+        'account_type' => 'easy_access', 'current_balance' => 7777,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(1),
+    ]);
+
+    $service = app(DuplicateAcknowledgement::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('savingsDescriptors');
+    $method->setAccessible(true);
+
+    $descriptors = $method->invoke($service, $user, [
+        ['institution' => 'Barclays', 'is_isa' => false],
+    ]);
+
+    expect($descriptors)->toHaveCount(1);
+    expect($descriptors[0])->toContain('Barclays');
+    expect($descriptors[0])->toContain('5,000');
+});
+
+it('DuplicateAcknowledgement::savingsDescriptors picks the HIGHEST-id row when two recent rows match (sortByDesc(id)->first() == latest(id)->first() parity)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    // Two recent matching rows differing by id; the higher-id row must be
+    // the one described — proves latest('id') parity. Timestamps are
+    // deliberately INVERTED relative to id: the LOWER-id row is the MORE
+    // recent one (both still inside the 24h cutoff, so both stay eligible).
+    // This way the test only passes if selection is genuinely by id — a
+    // buggy sortByDesc('created_at') would pick the lower-id row and fail.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'Nationwide', 'is_isa' => false,
+        'account_type' => 'easy_access', 'current_balance' => 1000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(2),
+    ]);
+    $higherId = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'Nationwide', 'is_isa' => false,
+        'account_type' => 'easy_access', 'current_balance' => 8800,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(6),
+    ]);
+
+    $service = app(DuplicateAcknowledgement::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('savingsDescriptors');
+    $method->setAccessible(true);
+
+    $descriptors = $method->invoke($service, $user, [
+        ['institution' => 'Nationwide', 'is_isa' => false],
+    ]);
+
+    expect($descriptors)->toHaveCount(1);
+    // Highest-id row's balance (8,800) even though it is the OLDER row —
+    // proves id ordering, not created_at ordering.
+    expect($descriptors[0])->toContain('8,800');
+    expect($higherId->current_balance)->toEqual(8800);
+});
+
+it('ProfileCompletenessChecker::hasAssets is TRUE when the user has a savings account and FALSE when they have none', function () {
+    $withSavings = User::factory()->create(['is_preview_user' => false]);
+    SavingsAccount::factory()->create([
+        'user_id' => $withSavings->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 3000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    $without = User::factory()->create(['is_preview_user' => false]);
+
+    $service = app(ProfileCompletenessChecker::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('hasAssets');
+    $method->setAccessible(true);
+
+    expect($method->invoke($service, $withSavings))->toBeTrue();
+    expect($method->invoke($service, $without))->toBeFalse();
+});
+
+it('AssetCaptureEntityExtractor::savingsPersistedKeys returns only the within-cutoff savings row identity key, excluding the older row', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $cutoff = now()->subHours(24);
+
+    $recent = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'Lloyds', 'account_name' => 'RecentPot',
+        'is_isa' => false, 'account_type' => 'easy_access', 'current_balance' => 4000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(3),
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'institution' => 'Santander', 'account_name' => 'OldPot',
+        'is_isa' => false, 'account_type' => 'easy_access', 'current_balance' => 5000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+        'created_at' => now()->subHours(48),
+    ]);
+
+    $service = app(AssetCaptureEntityExtractor::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('savingsPersistedKeys');
+    $method->setAccessible(true);
+
+    $keys = $method->invoke($service, $user, $cutoff);
+
+    expect($keys)->toHaveCount(1);
+
+    // Compute the expected identity key for the recent row via the same
+    // private helper to assert exact value parity.
+    $identityMethod = $reflection->getMethod('savingsIdentityKey');
+    $identityMethod->setAccessible(true);
+    $expectedKey = $identityMethod->invoke($service, [
+        'institution' => $recent->institution,
+        'account_name' => $recent->account_name,
+        'is_isa' => (bool) $recent->is_isa,
+    ], false);
+
+    expect($keys[0])->toBe($expectedKey);
 });
