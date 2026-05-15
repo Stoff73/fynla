@@ -19,6 +19,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
 
@@ -393,9 +394,10 @@ class HouseholdPlanningService
             ->get();
         $propertyValue = $properties->sum(fn ($p) => $this->calculateUserShare($p, $userId));
 
-        // Savings accounts
-        $savings = SavingsAccount::forUserOrJoint($userId)
-            ->get();
+        // Savings accounts — JOINT-AWARE: forUser() is 1:1 with the prior
+        // forUserOrJoint(); calculateUserShare downstream handles the split,
+        // so NO single-owner where('user_id') post-filter here (PR 5f).
+        $savings = app(SavingsStore::class)->forUser($user);
         $savingsValue = $savings->sum(fn ($s) => $this->calculateUserShare($s, $userId));
 
         // Investment accounts
@@ -565,7 +567,8 @@ class HouseholdPlanningService
      */
     private function calculateISAUsage(User $user): float
     {
-        $savingsISA = SavingsAccount::where('user_id', $user->id)
+        $savingsISA = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', true)
             ->sum('isa_subscription_amount');
 

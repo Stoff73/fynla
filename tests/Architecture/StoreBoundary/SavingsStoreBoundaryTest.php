@@ -39,8 +39,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 5 removes: read consumers (all listed in plan §"Modified files")
         'App\Agents\SavingsAgent',
         'App\Agents\InvestmentAgent',
-        'App\Services\Coordination\HouseholdPlanningService',
-        'App\Services\Coordination\CashFlowCoordinator',
         // PR 5d removed: Tax strategies cluster (JointSavingsStrategy,
         // AssetShiftingBundleStrategy, PensionAACarryForwardStrategy,
         // IsaTopUpStrategy, TaxOptimisationService, TaxStrategyMath,
@@ -48,9 +46,32 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 5e removed: Investment ISA consumers cluster
         // (ISAAllowanceOptimizer, TaxOptimizationAnalyzer,
         // UserContextBuilder) — now read via SavingsStore.
+        // PR 5f removed: CashFlowCoordinator — fully migrated, no residual
+        // SavingsAccount reference (import dropped).
+        //
+        // Residual reference — STAYS. The store boundary bans savings
+        // *queries/mutations* outside SavingsStore; the arch static analysis
+        // can only see statically-resolvable SavingsAccount::where(...) calls.
+        // Both files below had ALL their statically-visible query sites
+        // migrated in PR 5f but retain a SavingsAccount reference that cannot
+        // be removed without an out-of-scope refactor:
+        //  - HouseholdPlanningService retains a dynamically-dispatched cross-model
+        //    query in calculateJointAssetsPassingToSurvivor: it iterates an
+        //    $assetTypes list (incl. SavingsAccount::class) and calls
+        //    $modelClass::where(...)->get(). This IS a savings query, but via static
+        //    dispatch the arch check cannot see it. Extracting that polymorphic
+        //    joint-asset sweep into a store-aware helper is out of scope for PR 5f;
+        //    HPS stays allowlisted until a dedicated follow-up PR. Its two direct
+        //    SavingsAccount::where query sites (gatherAssetsForUser, calculateISAUsage)
+        //    ARE migrated in PR 5f.
+        //  - LifeEventAllocationService retains the ?SavingsAccount return
+        //    type on findCashAccountModel (plus the instanceof check at the
+        //    determineISAAllocation result builder) — genuine non-query
+        //    references; all of its query sites are migrated in PR 5f.
+        'App\Services\Coordination\HouseholdPlanningService',
+        'App\Services\Goals\LifeEventAllocationService',
         'App\Services\Savings\ISATracker',
         'App\Services\Savings\SavingsActionDefinitionService',
-        'App\Services\Goals\LifeEventAllocationService',
         'App\Services\AI\AdvicePromptBuilder',
         'App\Services\AI\DuplicateAcknowledgement',
         'App\Services\UserProfile\ProfileCompletenessChecker',
