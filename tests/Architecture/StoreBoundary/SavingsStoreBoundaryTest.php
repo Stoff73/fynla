@@ -39,8 +39,6 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 5 removes: read consumers (all listed in plan §"Modified files")
         'App\Agents\SavingsAgent',
         'App\Agents\InvestmentAgent',
-        'App\Services\Coordination\HouseholdPlanningService',
-        'App\Services\Coordination\CashFlowCoordinator',
         // PR 5d removed: Tax strategies cluster (JointSavingsStrategy,
         // AssetShiftingBundleStrategy, PensionAACarryForwardStrategy,
         // IsaTopUpStrategy, TaxOptimisationService, TaxStrategyMath,
@@ -48,9 +46,27 @@ arch('SavingsAccount mutations only happen inside SavingsStore (plus transition 
         // PR 5e removed: Investment ISA consumers cluster
         // (ISAAllowanceOptimizer, TaxOptimizationAnalyzer,
         // UserContextBuilder) — now read via SavingsStore.
+        // PR 5f removed: CashFlowCoordinator — fully migrated, no residual
+        // SavingsAccount reference (import dropped).
+        //
+        // Residual non-query reference — STAYS (follows the DocumentProcessor
+        // "SavingsAccount::class mapper key" precedent above): the store
+        // boundary bans savings *queries/mutations* outside SavingsStore, not
+        // structural class-name references. Both files below had ALL their
+        // query sites migrated in PR 5f but retain a non-query SavingsAccount
+        // reference that cannot be removed without out-of-scope refactor:
+        //  - HouseholdPlanningService retains SavingsAccount::class in the
+        //    polymorphic $assetTypes array (a generic multi-model joint-asset
+        //    sweep — NOT a savings query); its two query sites
+        //    (gatherAssetsForUser, calculateISAUsage) are migrated in PR 5f.
+        //  - LifeEventAllocationService retains the ?SavingsAccount return
+        //    type on findCashAccountModel (plus the instanceof check at the
+        //    determineISAAllocation result builder); all of its query sites
+        //    are migrated in PR 5f.
+        'App\Services\Coordination\HouseholdPlanningService',
+        'App\Services\Goals\LifeEventAllocationService',
         'App\Services\Savings\ISATracker',
         'App\Services\Savings\SavingsActionDefinitionService',
-        'App\Services\Goals\LifeEventAllocationService',
         'App\Services\AI\AdvicePromptBuilder',
         'App\Services\AI\DuplicateAcknowledgement',
         'App\Services\UserProfile\ProfileCompletenessChecker',

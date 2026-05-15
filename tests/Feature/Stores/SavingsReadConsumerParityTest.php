@@ -3,10 +3,14 @@
 declare(strict_types=1);
 
 use App\Models\Goal;
+use App\Models\LifeEvent;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Coordination\CashFlowCoordinator;
+use App\Services\Coordination\HouseholdPlanningService;
 use App\Services\Estate\EstateActionDefinitionService;
 use App\Services\Estate\EstateAssetAggregatorService;
+use App\Services\Goals\LifeEventAllocationService;
 use App\Services\Investment\Recommendation\UserContextBuilder;
 use App\Services\Investment\Tax\ISAAllowanceOptimizer;
 use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
@@ -1177,4 +1181,214 @@ it('UserContextBuilder::buildSpouseContext spouse cash-ISA single-owner read ide
 
     expect($postRefactor)->toBe($preRefactor);
     expect($postRefactor)->toBe(7000.0);
+});
+
+// PR 5f parity tests — Coordination + Goals cluster
+
+it('HouseholdPlanningService::gatherAssetsForUser savings value INCLUDES the user share of a joint non-ISA account (site 397 joint-aware preserved, NO single-owner post-filter)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+
+    // Single-owner non-ISA owned by the user — full value counts.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 30000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint NON-ISA owned by SPOUSE with the user as joint_owner_id @50%.
+    // forUser() is joint-aware (forUserOrJoint) and calculateUserShare gives
+    // the user the complementary (100-50)=50% share. If a single-owner
+    // where('user_id') post-filter were wrongly added at site 397, this
+    // joint account would be excluded entirely (the regression we guard).
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 20000, 'joint_owner_id' => $user->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+
+    $service = app(HouseholdPlanningService::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('gatherAssetsForUser');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($service, $user);
+
+    // 30000 (single-owner, 100%) + 20000 * 50% (joint share) = 40000.
+    expect($result['breakdown']['savings'])->toBe(40000.0);
+});
+
+it('HouseholdPlanningService::calculateISAUsage single-owner ISA subscription sum identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_amount' => 6000, 'current_balance' => 6000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_amount' => 2500, 'current_balance' => 2500,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Non-ISA — must be excluded by the is_isa filter.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'isa_subscription_amount' => 99999, 'current_balance' => 1000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $service = app(HouseholdPlanningService::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('calculateISAUsage');
+    $method->setAccessible(true);
+
+    expect($method->invoke($service, $user))->toBe(8500.0);
+});
+
+it('CashFlowCoordinator::calculateCommittedContributions monthly-equivalent of regular savings contributions identical after store migration', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 5000, 'regular_contribution_amount' => 300,
+        'contribution_frequency' => 'monthly',
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 5000, 'regular_contribution_amount' => 1200,
+        'contribution_frequency' => 'annually',
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Null contribution — excluded by whereNotNull.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 5000, 'regular_contribution_amount' => null,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $service = app(CashFlowCoordinator::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('calculateCommittedContributions');
+    $method->setAccessible(true);
+
+    // 300 (monthly) + 1200/12 (annual → 100/mo) = 400.0
+    expect($method->invoke($service, $user->id))->toBe(400.0);
+});
+
+it('CashFlowCoordinator::calculateCommittedContributions non-existent userId returns 0.0 (collect() empty-equivalent)', function () {
+    $service = app(CashFlowCoordinator::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('calculateCommittedContributions');
+    $method->setAccessible(true);
+
+    expect($method->invoke($service, 999999))->toBe(0.0);
+});
+
+it('LifeEventAllocationService::buildExpenseFundFrom draws from cash accounts LARGEST-BALANCE-FIRST (sortByDesc allocation order parity, sites 205/258)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+
+    // Insert in deliberately NON-sorted order (mid, large, small). The
+    // allocation MUST draw largest-first: 9000 fully, then 5000 partially.
+    $mid = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 5000, 'account_name' => 'MidAccount',
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    $large = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 9000, 'account_name' => 'LargeAccount',
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    $small = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 1000, 'account_name' => 'SmallAccount',
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    // Expense event for £12,000 — needs LargeAccount (9000) fully + 3000 from MidAccount.
+    $event = LifeEvent::factory()->create([
+        'user_id' => $user->id, 'impact_type' => 'expense', 'amount' => 12000,
+        'ownership_type' => 'individual', 'joint_owner_id' => null, 'ownership_percentage' => 100,
+    ]);
+
+    $service = app(LifeEventAllocationService::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('buildExpenseFundFrom');
+    $method->setAccessible(true);
+
+    $rows = $method->invoke($service, $event, $user);
+    $cashRows = array_values(array_filter($rows, fn ($r) => $r['step'] === 'cash' && $r['account_type'] === 'savings_account'));
+
+    // Largest first: LargeAccount fully drawn, then MidAccount partial. SmallAccount never reached.
+    expect($cashRows)->toHaveCount(2);
+    expect($cashRows[0]['account_id'])->toBe($large->id);
+    expect($cashRows[0]['amount'])->toBe(9000.0);
+    expect($cashRows[1]['account_id'])->toBe($mid->id);
+    expect($cashRows[1]['amount'])->toBe(3000.0);
+    expect(collect($cashRows)->pluck('account_id'))->not->toContain($small->id);
+});
+
+it('LifeEventAllocationService::findCashAccountModel returns emergency-fund account first, else largest non-ISA, else null (null-coalesce + sortByDesc parity)', function () {
+    $service = app(LifeEventAllocationService::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('findCashAccountModel');
+    $method->setAccessible(true);
+
+    // Case 1: emergency-fund account wins even though a larger non-ISA exists.
+    $userA = User::factory()->create(['is_preview_user' => false]);
+    $emergency = SavingsAccount::factory()->create([
+        'user_id' => $userA->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'is_emergency_fund' => true, 'current_balance' => 3000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $userA->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'is_emergency_fund' => false, 'current_balance' => 50000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    expect($method->invoke($service, $userA->id)->id)->toBe($emergency->id);
+
+    // Case 2: no emergency-fund account → largest non-ISA (sortByDesc fallback).
+    $userB = User::factory()->create(['is_preview_user' => false]);
+    SavingsAccount::factory()->create([
+        'user_id' => $userB->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'is_emergency_fund' => false, 'current_balance' => 4000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    $biggest = SavingsAccount::factory()->create([
+        'user_id' => $userB->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'is_emergency_fund' => false, 'current_balance' => 18000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    expect($method->invoke($service, $userB->id)->id)->toBe($biggest->id);
+
+    // Case 3: non-existent userId → null (User::find null guard).
+    expect($method->invoke($service, 999999))->toBeNull();
+});
+
+it('LifeEventAllocationService::getGoalAccountType picks the int-userId single-owner cash ISA (site 677)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $goal = Goal::factory()->create([
+        'user_id' => $user->id,
+        'goal_type' => 'emergency_fund',
+        'assigned_module' => 'savings',
+    ]);
+
+    $isa = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'current_balance' => 8000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $service = app(LifeEventAllocationService::class);
+    $reflection = new ReflectionClass($service);
+    $method = $reflection->getMethod('getGoalAccountType');
+    $method->setAccessible(true);
+
+    $result = $method->invoke($service, $goal, $user->id);
+
+    expect($result['account_type'])->toBe('savings_account');
+    expect($result['account_id'])->toBe($isa->id);
+    expect($result['label'])->toBe('Cash ISA');
 });

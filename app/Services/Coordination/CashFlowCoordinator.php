@@ -9,10 +9,10 @@ use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
-use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Plans\DisposableIncomeAccessor;
+use App\Services\Stores\SavingsStore;
 use App\Traits\ResolvesExpenditure;
 
 /**
@@ -237,11 +237,15 @@ class CashFlowCoordinator
         $total += $this->sumMonthlyPremiums(DisabilityPolicy::class, $userId);
         $total += $this->sumMonthlyPremiums(SicknessIllnessPolicy::class, $userId);
 
-        // Regular savings contributions (monthly equivalent)
-        $savingsAccounts = SavingsAccount::where('user_id', $userId)
-            ->whereNotNull('regular_contribution_amount')
-            ->where('regular_contribution_amount', '>', 0)
-            ->get();
+        // Regular savings contributions (monthly equivalent) — single-owner.
+        // collect() reproduces the empty-Builder result for a missing user (PR 5f).
+        $user = User::find($userId);
+        $savingsAccounts = $user
+            ? app(SavingsStore::class)->forUser($user)
+                ->where('user_id', $userId)
+                ->whereNotNull('regular_contribution_amount')
+                ->where('regular_contribution_amount', '>', 0)
+            : collect();
 
         foreach ($savingsAccounts as $account) {
             $total += $this->toMonthly(
