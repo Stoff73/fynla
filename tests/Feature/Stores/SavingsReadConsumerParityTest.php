@@ -1185,9 +1185,10 @@ it('UserContextBuilder::buildSpouseContext spouse cash-ISA single-owner read ide
 
 // PR 5f parity tests — Coordination + Goals cluster
 
-it('HouseholdPlanningService::gatherAssetsForUser savings value INCLUDES the user share of a joint non-ISA account (site 397 joint-aware preserved, NO single-owner post-filter)', function () {
+it('HouseholdPlanningService::gatherAssetsForUser savings value INCLUDES the user share of joint non-ISA accounts as BOTH primary and secondary owner (site 397 joint-aware preserved, NO single-owner post-filter)', function () {
     $user = User::factory()->create(['is_preview_user' => false]);
     $spouse = User::factory()->create(['is_preview_user' => false]);
+    $other = User::factory()->create(['is_preview_user' => false]);
 
     // Single-owner non-ISA owned by the user — full value counts.
     SavingsAccount::factory()->create([
@@ -1195,14 +1196,26 @@ it('HouseholdPlanningService::gatherAssetsForUser savings value INCLUDES the use
         'current_balance' => 30000, 'joint_owner_id' => null,
         'ownership_type' => 'individual', 'ownership_percentage' => 100,
     ]);
-    // Joint NON-ISA owned by SPOUSE with the user as joint_owner_id @50%.
-    // forUser() is joint-aware (forUserOrJoint) and calculateUserShare gives
-    // the user the complementary (100-50)=50% share. If a single-owner
-    // where('user_id') post-filter were wrongly added at site 397, this
-    // joint account would be excluded entirely (the regression we guard).
+    // Joint NON-ISA owned by SPOUSE with the user as joint_owner_id @50%
+    // (user is the SECONDARY owner). forUser() is joint-aware
+    // (forUserOrJoint) and calculateUserShare gives the user the
+    // complementary (100-50)=50% share. If a single-owner where('user_id')
+    // post-filter were wrongly added at site 397, this joint account would
+    // be excluded entirely (the regression we guard).
     SavingsAccount::factory()->create([
         'user_id' => $spouse->id, 'account_type' => 'easy_access', 'is_isa' => false,
         'current_balance' => 20000, 'joint_owner_id' => $user->id,
+        'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+    // Joint NON-ISA owned by the USER with $other as joint_owner_id @50%
+    // (user is the PRIMARY owner). calculateUserShare gives the primary
+    // owner their ownership_percentage (50%). forUserOrJoint already
+    // includes user-as-primary rows, so a single-owner post-filter would
+    // NOT drop this one — but seeding it proves the primary-owner joint
+    // share is also preserved with no narrowing of the joint sweep.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'current_balance' => 16000, 'joint_owner_id' => $other->id,
         'ownership_type' => 'joint', 'ownership_percentage' => 50,
     ]);
 
@@ -1213,8 +1226,11 @@ it('HouseholdPlanningService::gatherAssetsForUser savings value INCLUDES the use
 
     $result = $method->invoke($service, $user);
 
-    // 30000 (single-owner, 100%) + 20000 * 50% (joint share) = 40000.
-    expect($result['breakdown']['savings'])->toBe(40000.0);
+    // 30000 (single-owner, 100%)
+    //  + 20000 * 50% = 10000 (joint, user is SECONDARY owner → 100-50%)
+    //  + 16000 * 50% =  8000 (joint, user is PRIMARY owner → ownership_pct)
+    //  = 48000
+    expect($result['breakdown']['savings'])->toBe(48000.0);
 });
 
 it('HouseholdPlanningService::calculateISAUsage single-owner ISA subscription sum identical after store migration', function () {
