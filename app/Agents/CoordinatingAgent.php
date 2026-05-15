@@ -1464,7 +1464,7 @@ class CoordinatingAgent extends BaseAgent
 
         switch ($entityType) {
             case 'savings_account':
-                $items = SavingsAccount::forUserOrJoint($userId)->get();
+                $items = app(SavingsStore::class)->forUser($user);
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_balance;

@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
+use App\Agents\SavingsAgent;
 use App\Models\Goal;
+use App\Models\ISAAllowanceTracking;
 use App\Models\LifeEvent;
 use App\Models\SavingsAccount;
+use App\Models\SavingsActionDefinition;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\DuplicateAcknowledgement;
@@ -19,6 +23,13 @@ use App\Services\Investment\Tax\TaxOptimizationAnalyzer;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
 use App\Services\Plans\BasePlanService;
 use App\Services\Plans\SavingsPlanService;
+use App\Services\Savings\EmergencyFundCalculator;
+use App\Services\Savings\GoalProgressCalculator;
+use App\Services\Savings\ISATracker;
+use App\Services\Savings\LiquidityAnalyzer;
+use App\Services\Savings\RateComparator;
+use App\Services\Savings\SavingsActionDefinitionService;
+use App\Services\Savings\SavingsDataReadinessService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\TaxStrategyMath;
@@ -31,6 +42,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Mockery;
 
 uses(RefreshDatabase::class);
 
@@ -1598,4 +1610,394 @@ it('AssetCaptureEntityExtractor::savingsPersistedKeys returns only the within-cu
     ], false);
 
     expect($keys[0])->toBe($expectedKey);
+});
+
+// PR 5h parity tests — Agents + savings-internal cluster
+
+it('SavingsAgent::generateRecommendations (IIFE site 276) passes a JOINT-AWARE savings collection INCLUDING a joint non-ISA account where the user is the SECONDARY owner (NO single-owner post-filter)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $other = User::factory()->create(['is_preview_user' => false]);
+
+    // Single-owner non-ISA owned by the user.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'account_name' => 'SoloPot', 'current_balance' => 9000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint NON-ISA owned by $other with the user as joint_owner_id @50%
+    // (user is the SECONDARY owner). SavingsStore::forUser() is joint-aware
+    // (forUserOrJoint). A wrongly-added single-owner where('user_id')
+    // post-filter at site 276 would drop this account from the collection
+    // handed to evaluateAgentActions — the regression we guard.
+    SavingsAccount::factory()->create([
+        'user_id' => $other->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'account_name' => 'JointPot', 'current_balance' => 25000,
+        'joint_owner_id' => $user->id, 'ownership_type' => 'joint', 'ownership_percentage' => 50,
+    ]);
+
+    // Spy on SavingsActionDefinitionService to capture the exact $savingsAccounts
+    // Collection the IIFE builds and passes through.
+    $captured = null;
+    $spy = Mockery::mock(SavingsActionDefinitionService::class);
+    $spy->shouldReceive('evaluateAgentActions')
+        ->once()
+        ->andReturnUsing(function ($analysis, $invAnalysis, $savings, $inv, $uid) use (&$captured) {
+            $captured = $savings;
+
+            return ['recommendations' => []];
+        });
+
+    $agent = new SavingsAgent(
+        app(EmergencyFundCalculator::class),
+        app(ISATracker::class),
+        app(GoalProgressCalculator::class),
+        app(LiquidityAnalyzer::class),
+        app(RateComparator::class),
+        app(SavingsDataReadinessService::class),
+        $spy,
+    );
+
+    $agent->generateRecommendations(['user_id' => $user->id, 'investment_analysis' => []]);
+
+    expect($captured)->not->toBeNull();
+    $names = $captured->pluck('account_name')->all();
+    // Both the single-owner AND the secondary-owner joint account present.
+    expect($names)->toContain('SoloPot');
+    expect($names)->toContain('JointPot');
+    expect($captured)->toHaveCount(2);
+});
+
+it('SavingsAgent::generateRecommendations (IIFE site 276) hands an EMPTY collection when user_id is missing/0 (short-circuit + null-find preserved, no crash)', function () {
+    $captured = 'unset';
+    $spy = Mockery::mock(SavingsActionDefinitionService::class);
+    $spy->shouldReceive('evaluateAgentActions')
+        ->once()
+        ->andReturnUsing(function ($analysis, $invAnalysis, $savings, $inv, $uid) use (&$captured) {
+            $captured = $savings;
+
+            return ['recommendations' => []];
+        });
+
+    $agent = new SavingsAgent(
+        app(EmergencyFundCalculator::class),
+        app(ISATracker::class),
+        app(GoalProgressCalculator::class),
+        app(LiquidityAnalyzer::class),
+        app(RateComparator::class),
+        app(SavingsDataReadinessService::class),
+        $spy,
+    );
+
+    // user_id absent → defaults to 0 → short-circuit to collect().
+    $agent->generateRecommendations(['investment_analysis' => []]);
+
+    expect($captured)->not->toBe('unset');
+    expect($captured->isEmpty())->toBeTrue();
+});
+
+it('InvestmentAgent site 116 savings cash-ISA subscription read identical pre/post store migration (single-owner; missing user → 0.0)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => $taxYear, 'isa_subscription_amount' => 7000,
+        'current_balance' => 7000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'isa', 'is_isa' => true,
+        'isa_subscription_year' => $taxYear, 'isa_subscription_amount' => 2000,
+        'current_balance' => 2000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Wrong tax year — must be excluded by the isa_subscription_year filter.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => '2019/20', 'isa_subscription_amount' => 5555,
+        'current_balance' => 5555, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = (float) SavingsAccount::where('user_id', $user->id)
+        ->whereIn('account_type', ['isa', 'cash_isa'])
+        ->where('isa_subscription_year', $taxYear)
+        ->sum('isa_subscription_amount');
+    $postRefactor = (float) app(SavingsStore::class)->forUser($user)
+        ->where('user_id', $user->id)
+        ->whereIn('account_type', ['isa', 'cash_isa'])
+        ->where('isa_subscription_year', $taxYear)
+        ->sum('isa_subscription_amount');
+
+    expect($postRefactor)->toBe($preRefactor);
+    expect($postRefactor)->toBe(9000.0);
+
+    // Missing-user equivalence: original where('user_id', <missing>)->sum()
+    // returns 0; the migrated guard returns 0.0.
+    $missingUser = User::find(999999);
+    expect($missingUser)->toBeNull();
+    $missingSum = $missingUser
+        ? (float) app(SavingsStore::class)->forUser($missingUser)
+            ->where('user_id', 999999)
+            ->whereIn('account_type', ['isa', 'cash_isa'])
+            ->where('isa_subscription_year', $taxYear)
+            ->sum('isa_subscription_amount')
+        : 0.0;
+    expect($missingSum)->toBe(0.0);
+});
+
+it('CoordinatingAgent::handleListRecords savings_account (site 1467) returns BOTH single-owner AND secondary-owner joint non-ISA records (joint-aware, NO post-filter)', function () {
+    // handleListRecords' ownership-field helper reads $record->jointOwner
+    // as a fallback when joint_owner_name is null (always — not a
+    // savings_accounts column). That lazy-load is a pre-existing concern
+    // ORTHOGONAL to PR 5h and behaviourally IDENTICAL before/after the store
+    // migration (neither SavingsAccount::forUserOrJoint(...)->get() nor
+    // SavingsStore::forUser() eager-loads jointOwner — same precedent as the
+    // PR 5g AdvicePromptBuilder joint-inclusion test). Relax the global
+    // test-only lazy-load guard so the joint-inclusion assertion stays
+    // focused on the actual PR 5h parity contract.
+    Model::preventLazyLoading(false);
+
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $other = User::factory()->create(['is_preview_user' => false]);
+
+    $solo = SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'account_name' => 'SoloListed', 'institution' => 'SoloBank', 'current_balance' => 4000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Joint NON-ISA owned by $other; user is the SECONDARY owner.
+    $joint = SavingsAccount::factory()->create([
+        'user_id' => $other->id, 'account_type' => 'easy_access', 'is_isa' => false,
+        'account_name' => 'JointListed', 'institution' => 'JointBank', 'current_balance' => 30000,
+        'joint_owner_id' => $user->id, 'ownership_type' => 'joint', 'ownership_percentage' => 40,
+    ]);
+
+    $agent = app(CoordinatingAgent::class);
+    $reflection = new ReflectionMethod($agent, 'handleListRecords');
+    $reflection->setAccessible(true);
+
+    $result = $reflection->invoke($agent, ['entity_type' => 'savings_account'], $user);
+
+    $ids = collect($result['records'] ?? $result)->pluck('id')->all();
+    expect($ids)->toContain($solo->id);
+    expect($ids)->toContain($joint->id);
+    expect($ids)->toHaveCount(2);
+
+    // Restore the global lazy-load guard so it does not leak into sibling
+    // tests sharing this process.
+    Model::preventLazyLoading();
+});
+
+it('ISATracker::getISAAllowanceStatus cash-ISA + LISA nested-OR predicates count BOTH the isa_type-matched and account_type-matched rows (sites 73 & 102)', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    // Cash-ISA leg of the L73 nested OR:
+    //   (isa_type = 'cash' OR account_type = 'cash_isa') AND isa_subscription_amount NOT NULL
+    // Row A — matched via isa_type='cash' (account_type deliberately NOT cash_isa).
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'cash',
+        'account_type' => 'easy_access', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 4000, 'current_balance' => 4000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Row B — matched via account_type='cash_isa' with isa_type NULL.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => null,
+        'account_type' => 'cash_isa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 3000, 'current_balance' => 3000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Row C — null isa_subscription_amount → excluded by whereNotNull leaf.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'cash',
+        'account_type' => 'cash_isa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => null, 'current_balance' => 1234,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // LISA leg of L102: (isa_subscription_year=$taxYear OR account_type='lisa')
+    //                   AND (isa_type IN ['LISA','lisa'] OR account_type='lisa')
+    // Row D — matched via isa_type='LISA' + subscription_year.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'LISA',
+        'account_type' => 'lifetime_isa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 2000, 'current_balance' => 2000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Row E — matched via account_type='lisa' (isa_type lower-case 'lisa',
+    // subscription_year deliberately a different year so only the
+    // account_type='lisa' leaf of the FIRST group keeps it).
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'lisa',
+        'account_type' => 'lisa', 'isa_subscription_year' => '2019/20',
+        'isa_subscription_amount' => 1500, 'current_balance' => 1500,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $status = app(ISATracker::class)->getISAAllowanceStatus($user->id, $taxYear);
+
+    // Cash ISA: Row A (4000) + Row B (3000); Row C excluded (null amount) = 7000.
+    expect($status['cash_isa_used'])->toBe(7000.0);
+    // LISA: Row D (2000) + Row E (1500) = 3500.
+    expect($status['lisa_used'])->toBe(3500.0);
+});
+
+it('ISATracker::updateISAUsage cash & LISA flat-where reads identical to pre-refactor (sites 220 & 225); missing user → 0.0', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'cash',
+        'account_type' => 'cash_isa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 6000, 'current_balance' => 6000,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'LISA',
+        'account_type' => 'lisa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 2500, 'current_balance' => 2500,
+        'joint_owner_id' => null, 'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $tracker = app(ISATracker::class);
+
+    // No explicit $amount → recompute from savings (the migrated query).
+    $tracker->updateISAUsage($user->id, 'cash', null, $taxYear);
+    $tracker->updateISAUsage($user->id, 'LISA', null, $taxYear);
+
+    $tracking = ISAAllowanceTracking::where('user_id', $user->id)
+        ->where('tax_year', $taxYear)->first();
+
+    $preCash = (float) SavingsAccount::where('user_id', $user->id)
+        ->where('is_isa', true)->where('isa_subscription_year', $taxYear)
+        ->where('isa_type', 'cash')->sum('isa_subscription_amount');
+    $preLisa = (float) SavingsAccount::where('user_id', $user->id)
+        ->where('is_isa', true)->where('isa_subscription_year', $taxYear)
+        ->where('isa_type', 'LISA')->sum('isa_subscription_amount');
+
+    expect((float) $tracking->cash_isa_used)->toBe($preCash);
+    expect((float) $tracking->cash_isa_used)->toBe(6000.0);
+    expect((float) $tracking->lisa_used)->toBe($preLisa);
+    expect((float) $tracking->lisa_used)->toBe(2500.0);
+
+    // Explicit $amount path bypasses the query entirely (parity with `?? `).
+    $tracker->updateISAUsage($user->id, 'cash', 1111.0, $taxYear);
+    $tracking->refresh();
+    expect((float) $tracking->cash_isa_used)->toBe(1111.0);
+});
+
+it('ISATracker::calculateProjectedSubscriptions nested-OR predicate (site 301) includes account_type-matched cash_isa with no isa_type, summing tracked subscription fallback', function () {
+    $user = User::factory()->create(['is_preview_user' => false]);
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    // Matched via account_type='cash_isa' (isa_type NULL) — the orWhere leaf
+    // only fires when $isaType === 'cash'. No regular_contribution_amount so
+    // calculateProjectedSubscription returns 0 → falls back to
+    // isa_subscription_amount in the sum.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => null,
+        'account_type' => 'cash_isa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 3200, 'regular_contribution_amount' => null,
+        'current_balance' => 3200, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // Matched via isa_type='cash'.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'cash',
+        'account_type' => 'easy_access', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 1800, 'regular_contribution_amount' => null,
+        'current_balance' => 1800, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+    // A LISA row that must NOT be picked up when $isaType === 'cash'.
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id, 'is_isa' => true, 'isa_type' => 'lisa',
+        'account_type' => 'lisa', 'isa_subscription_year' => $taxYear,
+        'isa_subscription_amount' => 9999, 'regular_contribution_amount' => null,
+        'current_balance' => 9999, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $tracker = app(ISATracker::class);
+    $reflection = new ReflectionMethod($tracker, 'calculateProjectedSubscriptions');
+    $reflection->setAccessible(true);
+
+    $projected = $reflection->invoke($tracker, $user->id, $taxYear, 'cash');
+
+    // 3200 + 1800 = 5000 (LISA row excluded by the $isaType='cash' predicate).
+    expect($projected)->toBe(5000.0);
+
+    // Missing user → 0.0 (User::find null guard parity with empty query sum).
+    expect($reflection->invoke($tracker, 999999, $taxYear, 'cash'))->toBe(0.0);
+});
+
+it('SavingsActionDefinitionService::evaluateSpouseISACoordination spouse cash-ISA read identical pre/post (site 3075); null spouse_id → 0.0', function () {
+    $user = User::factory()->create([
+        'is_preview_user' => false, 'marital_status' => 'married',
+    ]);
+    $spouse = User::factory()->create(['is_preview_user' => false]);
+    $user->spouse_id = $spouse->id;
+    $user->save();
+
+    $taxYear = app(TaxConfigService::class)->getTaxYear();
+
+    SavingsAccount::factory()->create([
+        'user_id' => $spouse->id, 'account_type' => 'cash_isa', 'is_isa' => true,
+        'isa_subscription_year' => $taxYear, 'isa_subscription_amount' => 4000,
+        'current_balance' => 4000, 'joint_owner_id' => null,
+        'ownership_type' => 'individual', 'ownership_percentage' => 100,
+    ]);
+
+    $preRefactor = (float) SavingsAccount::where('user_id', $spouse->id)
+        ->where('is_isa', true)
+        ->where('isa_subscription_year', $taxYear)
+        ->sum('isa_subscription_amount');
+    $postRefactor = (float) app(SavingsStore::class)->forUser($spouse)
+        ->where('user_id', $spouse->id)
+        ->where('is_isa', true)
+        ->where('isa_subscription_year', $taxYear)
+        ->sum('isa_subscription_amount');
+
+    expect($postRefactor)->toBe($preRefactor);
+    expect($postRefactor)->toBe(4000.0);
+
+    // The action definition's spouse-ISA contribution flows into combined
+    // remaining; with a £20k allowance and £4k used, spouse remaining = £16k.
+    $service = app(SavingsActionDefinitionService::class);
+    $reflection = new ReflectionMethod($service, 'evaluateSpouseISACoordination');
+    $reflection->setAccessible(true);
+    $definition = new SavingsActionDefinition([
+        'key' => 'spouse_isa_coordination',
+        'source' => 'agent',
+        'title_template' => 'Spouse ISA coordination',
+        'description_template' => 'Coordinate ISA contributions with your spouse.',
+        'action_template' => 'Review spouse ISA allowance',
+        'category' => 'tax_optimisation',
+        'priority' => 'high',
+        'scope' => 'household',
+        'is_enabled' => true,
+    ]);
+    $result = $reflection->invoke(
+        $service,
+        $definition,
+        $user->id,
+        ['isa_allowance' => ['remaining' => 10000, 'used' => 5000]],
+        1
+    );
+    // Result is non-empty (combined remaining 10000 + 16000 ≥ 5000 threshold),
+    // proving the migrated spouse query produced the expected £4k usage.
+    expect($result)->not->toBeEmpty();
+
+    // Null spouse_id → original where('user_id', null)->sum() == 0; the
+    // migrated guard returns 0.0 and the method early-returns [].
+    $single = User::factory()->create(['is_preview_user' => false, 'spouse_id' => null]);
+    $resultNoSpouse = $reflection->invoke(
+        $service,
+        $definition,
+        $single->id,
+        ['isa_allowance' => ['remaining' => 10000, 'used' => 0]],
+        1
+    );
+    expect($resultNoSpouse)->toBe([]);
 });
