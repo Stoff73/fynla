@@ -75,7 +75,7 @@
 
 # PR 1 — `tier_configurations` store + seeder + admin-write + Pest boundary
 
-**Branch:** `feature/csj/sp2-pr1-tier-config-store` off `freemium`. Risk: very low (pure addition, no consumers wired).
+**Branch:** `feature/csj/sp2-pr1-tier-config-store` off `sp2Freemium`. Risk: very low (pure addition, no consumers wired).
 
 ### Task 1.1: Create the `tier_configurations` migration
 
@@ -775,7 +775,7 @@ git commit -m "feat(tier): tier_configurations Pest boundary stub
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 git push -u origin feature/csj/sp2-pr1-tier-config-store
-gh pr create --base freemium --title "SP2 PR1: tier_configurations store + seeder + boundary" --body "$(cat <<'EOF'
+gh pr create --base sp2Freemium --title "SP2 PR1: tier_configurations store + seeder + boundary" --body "$(cat <<'EOF'
 SP2 PR 1 of 9. Pure addition — no consumers wired.
 
 - tier_configurations table (one row/tier)
@@ -795,7 +795,7 @@ EOF
 
 # PR 2 — `users.tier` + `TierResolver` + grandfather backfill
 
-**Branch:** `feature/csj/sp2-pr2-tier-resolver` off `freemium` (after PR 1 merges). Risk: low (additive + non-narrowing backfill).
+**Branch:** `feature/csj/sp2-pr2-tier-resolver` off `sp2Freemium` (after PR 1 merges). Risk: low (additive + non-narrowing backfill).
 
 ### Task 2.1: `users.tier` column + non-narrowing backfill migration
 
@@ -998,7 +998,7 @@ git commit -m "feat(tier): TierResolver — grandfather legacy paid, no mechanic
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 git push -u origin feature/csj/sp2-pr2-tier-resolver
-gh pr create --base freemium --title "SP2 PR2: users.tier + TierResolver + grandfather" --body "SP2 PR 2 of 9. Additive + non-narrowing. No gate behaviour change yet (PermissiveTierGate still bound). Spec §5.2.
+gh pr create --base sp2Freemium --title "SP2 PR2: users.tier + TierResolver + grandfather" --body "SP2 PR 2 of 9. Additive + non-narrowing. No gate behaviour change yet (PermissiveTierGate still bound). Spec §5.2.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 ```
@@ -1007,7 +1007,7 @@ gh pr create --base freemium --title "SP2 PR2: users.tier + TierResolver + grand
 
 # PR 3 — `DbTierGate` replaces `PermissiveTierGate`; delete `StaticTierGate`
 
-**Branch:** `feature/csj/sp2-pr3-dbtiergate` off `freemium` (after PR 2). Risk: medium — caps go live; grandfather test mandatory.
+**Branch:** `feature/csj/sp2-pr3-dbtiergate` off `sp2Freemium` (after PR 2). Risk: medium — caps go live; grandfather test mandatory.
 
 ### Task 3.1: `DbTierGate`
 
@@ -1167,7 +1167,7 @@ never touched.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 git push -u origin feature/csj/sp2-pr3-dbtiergate
-gh pr create --base freemium --title "SP2 PR3: DbTierGate (caps live + grandfather)" --body "SP2 PR 3 of 9. Caps go live. Grandfather test mandatory and present. StaticTierGate deleted. Spec §4.4, §8.
+gh pr create --base sp2Freemium --title "SP2 PR3: DbTierGate (caps live + grandfather)" --body "SP2 PR 3 of 9. Caps go live. Grandfather test mandatory and present. StaticTierGate deleted. Spec §4.4, §8.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 ```
@@ -1178,7 +1178,7 @@ gh pr create --base freemium --title "SP2 PR3: DbTierGate (caps live + grandfath
 
 # PR 4 — Admin tier-config screen + propagation
 
-**Branch:** `feature/csj/sp2-pr4-admin-screen` off `freemium` (after PR 3). Risk: medium — broad read surface.
+**Branch:** `feature/csj/sp2-pr4-admin-screen` off `sp2Freemium` (after PR 3). Risk: medium — broad read surface.
 
 ### Task 4.1: Admin write controller + request + resource
 
@@ -1494,7 +1494,7 @@ git commit -m "feat(tier): propagate store → PricingPage + invoices + CheckSub
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 git push -u origin feature/csj/sp2-pr4-admin-screen
-gh pr create --base freemium --title "SP2 PR4: admin screen + propagation" --body "SP2 PR 4 of 9. One screen drives PricingPage + invoices + access gating. Browser-tested on csjones. Spec §15.
+gh pr create --base sp2Freemium --title "SP2 PR4: admin screen + propagation" --body "SP2 PR 4 of 9. One screen drives PricingPage + invoices + access gating. Browser-tested on csjones. Spec §15.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 ```
@@ -1503,7 +1503,7 @@ gh pr create --base freemium --title "SP2 PR4: admin screen + propagation" --bod
 
 # PR 5 — Revolut plan-variation sync + price-lock
 
-**Branch:** `feature/csj/sp2-pr5-revolut-sync` off `freemium` (after PR 4). Risk: medium — billing-adjacent; sandbox-tested on csjones first. **A9/§16.2: the per-cohort legacy→new conversion tier decision must be settled with CSJ before this PR ships.**
+**Branch:** `feature/csj/sp2-pr5-revolut-sync` off `sp2Freemium` (after PR 4). Risk: medium — billing-adjacent; sandbox-tested on csjones first. **A9/§16.2: the per-cohort legacy→new conversion tier decision must be settled with CSJ before this PR ships.**
 
 ### Task 5.1: `RevolutTierVariationSync` + price-lock
 
@@ -1560,7 +1560,7 @@ it('does NOT change the price an existing subscriber is billed (price-lock)', fu
 
 # PR 6 — Fyn weekly soft-degrade + daily backstop
 
-**Branch:** `feature/csj/sp2-pr6-fyn-metering` off `freemium` (after PR 5). Risk: medium — Fyn behaviour change; parity-tested.
+**Branch:** `feature/csj/sp2-pr6-fyn-metering` off `sp2Freemium` (after PR 5). Risk: medium — Fyn behaviour change; parity-tested.
 
 ### Task 6.1: Weekly budget + soft-degrade in `HasAiGuardrails`
 
@@ -1685,7 +1685,7 @@ git commit -m "feat(tier): Fyn weekly soft-degrade + daily abuse backstop from t
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 git push -u origin feature/csj/sp2-pr6-fyn-metering
-gh pr create --base freemium --title "SP2 PR6: Fyn weekly soft-degrade" --body "SP2 PR 6 of 9. Weekly budget soft-degrades (cheaper model + plain-text notice, chat never walls); daily cap demoted to abuse backstop. Spec §9. Legacy DAILY_TOKEN_LIMITS removed in PR 9.
+gh pr create --base sp2Freemium --title "SP2 PR6: Fyn weekly soft-degrade" --body "SP2 PR 6 of 9. Weekly budget soft-degrades (cheaper model + plain-text notice, chat never walls); daily cap demoted to abuse backstop. Spec §9. Legacy DAILY_TOKEN_LIMITS removed in PR 9.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 ```
@@ -1696,7 +1696,7 @@ gh pr create --base freemium --title "SP2 PR6: Fyn weekly soft-degrade" --body "
 
 # PR 7 — Generic teaser-gate + Estate consumer
 
-**Branch:** `feature/csj/sp2-pr7-teaser-gate` off `freemium` (after PR 6). Risk: medium — Estate access change.
+**Branch:** `feature/csj/sp2-pr7-teaser-gate` off `sp2Freemium` (after PR 6). Risk: medium — Estate access change.
 
 ### Task 7.1: Locate the Estate module entry points
 
@@ -1823,7 +1823,7 @@ Expected: PASS. Loop until green.
 
 # PR 8 — Doc allowance + storage quota + currency/snapshot/open-API flags
 
-**Branch:** `feature/csj/sp2-pr8-sp1-flags` off `freemium` (after PR 7). Risk: low–medium — mostly store reads wired to existing SP1 consumers.
+**Branch:** `feature/csj/sp2-pr8-sp1-flags` off `sp2Freemium` (after PR 7). Risk: low–medium — mostly store reads wired to existing SP1 consumers.
 
 ### Task 8.1: Wire the four SP1-deferred numbers to the store
 
@@ -1883,7 +1883,7 @@ Expected: PASS. Loop until green.
 
 # PR 9 — Lock-down: enable Pest arch test (hard) + remove legacy hardcoded caps
 
-**Branch:** `feature/csj/sp2-pr9-lockdown` off `freemium` (after PR 8). Risk: low — by now everything reads the store.
+**Branch:** `feature/csj/sp2-pr9-lockdown` off `sp2Freemium` (after PR 8). Risk: low — by now everything reads the store.
 
 ### Task 9.1: Remove the legacy hardcoded AI cap array
 
@@ -1931,7 +1931,7 @@ absent; DbTierGate bound. Spec §17.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 git push -u origin feature/csj/sp2-pr9-lockdown
-gh pr create --base freemium --title "SP2 PR9: lock-down + boundary hard" --body "SP2 PR 9 of 9 — final. Legacy hardcoded caps removed; Pest tier boundary HARD; full suite green. Spec §17, §18.2. SP2 complete on dev → PR #317 (parked) can now be reconsidered.
+gh pr create --base sp2Freemium --title "SP2 PR9: lock-down + boundary hard" --body "SP2 PR 9 of 9 — final. Legacy hardcoded caps removed; Pest tier boundary HARD; full suite green. Spec §17, §18.2. SP2 complete on dev → PR #317 (parked) can now be reconsidered.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 ```
