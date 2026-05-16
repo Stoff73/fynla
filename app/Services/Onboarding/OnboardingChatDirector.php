@@ -13,6 +13,8 @@ use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\Fyn\FynPromptMode;
+use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\ValueObjects\CaptureContext;
@@ -1724,8 +1726,11 @@ PROMPT;
         // Swap the coordinating agent's system prompt for this turn only.
         // We do this by calling chat() with a short-lived prompt override —
         // see CoordinatingAgent::chatWithPromptOverride() below.
-        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation);
+        [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
 
         try {
             $generator = $this->coordinatingAgent->chatWithPromptOverride(
@@ -1848,6 +1853,10 @@ PROMPT;
             ];
 
             return;
+        }
+
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -2121,6 +2130,22 @@ PROMPT;
                 'status' => 'complete',
             ];
         }
+    }
+
+    /**
+     * Unified mode: the system prompt is the static FynSystemPrompt and the
+     * onboarding focus is carried separately so HasAiChat can build the
+     * capture-turn context. Legacy mode: the verbatim asset-capture prompt.
+     *
+     * @return array{0:string,1:?string} [systemPrompt, onboardingFocusOrNull]
+     */
+    private function resolveUnifiedRestrictedPrompt(User $user, string $selection, ?AiConversation $conversation = null): array
+    {
+        if (FynPromptMode::isUnified()) {
+            return [FynSystemPrompt::text(), $selection];
+        }
+
+        return [$this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation), null];
     }
 
     /**
