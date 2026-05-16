@@ -135,6 +135,8 @@ arch('services are organized by module')
         // Sub-project 1 Stores: IngestSource is a string-backed enum, TierGate is an interface
         'App\Services\Stores\IngestSource',
         'App\Services\Stores\TierGate',
+        // fynPromptRework: ContextBucket is a pure enum (4 cases), not a class
+        'App\Services\AI\Fyn\ContextBucket',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()
