@@ -45,6 +45,20 @@ class SavingsStore
     }
 
     /**
+     * Joint-aware read with the `jointOwner` relation eager-loaded.
+     *
+     * For consumers that render the co-owner's name (e.g. the AI
+     * existing-records prompt) and must not trip
+     * Model::preventLazyLoading on staging — savings_accounts has no
+     * joint_owner_name column, so the co-owner can only resolve via the
+     * relation.
+     */
+    public function forUserWithJointOwner(User $user): Collection
+    {
+        return SavingsAccount::forUserOrJoint($user->id)->with('jointOwner')->get();
+    }
+
+    /**
      * Multi-user, joint-aware read. Returns every SavingsAccount where any
      * supplied user ID appears as primary owner or joint owner.
      * Used by household / multi-user contexts (e.g. RetirementIncomeService).

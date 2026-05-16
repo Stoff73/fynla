@@ -753,7 +753,7 @@ PROMPT;
 
             // Savings
             if ($include('savings_account')) {
-                $savings = app(SavingsStore::class)->forUser($user);
+                $savings = app(SavingsStore::class)->forUserWithJointOwner($user);
                 if ($savings->isNotEmpty()) {
                     // S0.10 — account_name and institution are user-controlled free text.
                     $items = $savings->map(fn ($a) => '[ID:'.$a->id
@@ -767,7 +767,7 @@ PROMPT;
 
             // Investments
             if ($include('investment_account')) {
-                $investments = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $investments = InvestmentAccount::with('jointOwner')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($investments->isNotEmpty()) {
                     // S0.10 — provider is user-controlled free text.
                     $items = $investments->map(fn ($a) => '[ID:'.$a->id
@@ -805,7 +805,7 @@ PROMPT;
 
             // Properties — show total value, user's share, mortgage, and ownership with co-owner name
             if ($include('property') || $include('mortgage')) {
-                $properties = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $properties = Property::with(['mortgages', 'jointOwner'])->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($properties->isNotEmpty()) {
                     $items = $properties->map(function ($p) use ($userId, $ownershipLabel) {
                         $totalValue = (float) $p->current_value;
