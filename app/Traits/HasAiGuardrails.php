@@ -117,6 +117,12 @@ trait HasAiGuardrails
      */
     protected function isWeeklyBudgetExceeded(User $user): bool
     {
+        // Preview personas are seeded demo users — never metered or
+        // soft-degraded, and carry no implicit tier-store dependency.
+        if ($user->is_preview_user) {
+            return false;
+        }
+
         $budget = $this->tierStore()->forTier($this->userTier($user))->fyn_weekly_token_budget;
 
         return $this->weeklyTokenUsage($user) >= $budget;
@@ -131,6 +137,12 @@ trait HasAiGuardrails
      */
     protected function isDailyBackstopExceeded(User $user): bool
     {
+        // Preview personas are seeded demo users — never metered or
+        // soft-degraded, and carry no implicit tier-store dependency.
+        if ($user->is_preview_user) {
+            return false;
+        }
+
         $backstop = $this->tierStore()->forTier($this->userTier($user))->fyn_daily_hard_backstop;
 
         return $this->getTodayTokenUsage($user) >= $backstop;

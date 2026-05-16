@@ -53,7 +53,27 @@ it('soft-degrades the model when the weekly budget is exceeded', function () use
     $h = $harness();
     $degraded = $h->model($u, 'complex');
     expect($h->weeklyExceeded($u))->toBeTrue()
-        ->and($degraded)->toBe($h->softDegradeModel());
+        ->and($degraded)->toBe($h->softDegradeModel())
+        ->and($degraded)->toBe('claude-haiku-4-5-20251001'); // literal anchor — catches a constant-value regression
+});
+
+it('never meters or soft-degrades preview personas, regardless of usage', function () use ($harness) {
+    config(['services.anthropic.chat_model' => null]); // let the trait choose
+    $u = User::factory()->create(['is_preview_user' => true, 'tier' => null]);
+    // Far exceeds any weekly budget and any daily backstop.
+    foreach (range(0, 6) as $d) {
+        AiDailyUsage::create(['user_id' => $u->id, 'usage_date' => now()->subDays($d)->toDateString(), 'tokens_used' => 500_000]);
+    }
+    $h = $harness();
+    // Both gates short-circuit on is_preview_user before any tier-store call,
+    // so the soft-degrade branch in getAiModel() is never reached for a
+    // preview persona — proven by weeklyExceeded() being false despite usage
+    // that would trip every real tier. (SOFT_DEGRADE_MODEL coincides with the
+    // normal Anthropic default model string, so asserting on the returned
+    // model name cannot distinguish the two paths — the gate booleans do.)
+    expect($h->weeklyExceeded($u))->toBeFalse()
+        ->and($h->dailyBackstopHit($u))->toBeFalse()
+        ->and($h->model($u, 'complex'))->toBe('claude-haiku-4-5-20251001');
 });
 
 it('the daily hard backstop only trips at the abuse ceiling, not the weekly number', function () use ($harness) {
