@@ -247,8 +247,7 @@ export default {
 
     // Feature the most-popular badge: second-from-top tier when present.
     featuredIndex() {
-      if (this.tiers.length === 0) return -1;
-      return Math.min(this.tiers.length - 2, this.tiers.length - 1);
+      return this.tiers.length >= 2 ? this.tiers.length - 2 : -1;
     },
   },
 

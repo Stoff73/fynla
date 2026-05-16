@@ -55,6 +55,15 @@
               />
               Active
             </label>
+            <label class="flex items-center gap-2 text-sm text-horizon-500">
+              <input
+                type="checkbox"
+                :checked="tierEdits[tier.tier].open_api_affordance"
+                @change="tierEdits[tier.tier].open_api_affordance = $event.target.checked"
+                class="rounded border-horizon-300 text-raspberry-500 focus:ring-violet-500"
+              />
+              Open API affordance
+            </label>
             <button
               @click="saveTier(tier.tier)"
               :disabled="saving[tier.tier]"
@@ -98,7 +107,7 @@
         </div>
 
         <!-- Limits row -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-xs font-medium text-neutral-500 mb-1">Document uploads</label>
             <input
@@ -114,6 +123,15 @@
               type="number"
               min="0"
               v-model.number="tierEdits[tier.tier].fyn_weekly_token_budget"
+              class="w-full px-3 py-2 border border-horizon-300 rounded-button text-sm text-horizon-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-500 mb-1">Fyn daily hard backstop (tokens)</label>
+            <input
+              type="number"
+              min="0"
+              v-model.number="tierEdits[tier.tier].fyn_daily_hard_backstop"
               class="w-full px-3 py-2 border border-horizon-300 rounded-button text-sm text-horizon-500 focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
             />
           </div>
@@ -212,10 +230,12 @@ export default {
             price_annual_pence: tier.price_annual_pence,
             document_upload_allowance: tier.document_upload_allowance,
             fyn_weekly_token_budget: tier.fyn_weekly_token_budget,
+            fyn_daily_hard_backstop: tier.fyn_daily_hard_backstop,
             snapshot_surfacing_window_days: tier.snapshot_surfacing_window_days,
             currency_display_mode: tier.currency_display_mode,
             capability_matrix: tier.capability_matrix ?? {},
             count_caps: tier.count_caps ?? {},
+            open_api_affordance: tier.open_api_affordance,
             is_active: tier.is_active,
           };
           this.capabilityJson[tier.tier] = JSON.stringify(tier.capability_matrix ?? {}, null, 2);

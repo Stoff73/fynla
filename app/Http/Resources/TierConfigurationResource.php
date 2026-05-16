@@ -20,6 +20,7 @@ class TierConfigurationResource extends JsonResource
             'document_upload_allowance' => $this->document_upload_allowance,
             'document_storage_gb' => $this->document_storage_gb,
             'fyn_weekly_token_budget' => $this->fyn_weekly_token_budget,
+            'fyn_daily_hard_backstop' => $this->fyn_daily_hard_backstop,
             'currency_display_mode' => $this->currency_display_mode,
             'snapshot_surfacing_window_days' => $this->snapshot_surfacing_window_days,
             'open_api_affordance' => $this->open_api_affordance,

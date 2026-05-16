@@ -115,13 +115,13 @@ import UserManagement from '../../components/Admin/UserManagement.vue';
 import DatabaseBackup from '../../components/Admin/DatabaseBackup.vue';
 import TaxSettings from '../../components/Admin/TaxSettings.vue';
 import AiSettings from '../../components/Admin/AiSettings.vue';
-const TierConfiguration = defineAsyncComponent(() => import('../../components/Admin/TierConfiguration.vue'));
 import { defineAsyncComponent } from 'vue';
 const DecisionMatrix = defineAsyncComponent(() => import('../../components/Admin/DecisionMatrix.vue'));
 const UserMetrics = defineAsyncComponent(() => import('../../components/Admin/metrics/UserMetrics.vue'));
 const AiAudit = defineAsyncComponent(() => import('../../components/Admin/AiAudit.vue'));
 const DiscountCodes = defineAsyncComponent(() => import('../../components/Admin/DiscountCodes.vue'));
 const EvalRecordings = defineAsyncComponent(() => import('../../components/Admin/EvalRecordings.vue'));
+const TierConfiguration = defineAsyncComponent(() => import('../../components/Admin/TierConfiguration.vue'));
 
 export default {
   name: 'AdminPanel',

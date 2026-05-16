@@ -19,9 +19,10 @@ it('a store price change shows on the public pricing endpoint', function () {
         ->assertJsonPath('data.2.price_monthly_pence', 1234);
 });
 
-it('CheckSubscription denies a free user a tier2-only capability route', function () {
-    // Pick a route guarded by a tier capability (estate full-module route,
-    // wired in PR 7). Until PR 7, assert the helper the middleware will use:
+it('capabilityFor returns teaser for the free tier on the estate key (CheckSubscription middleware wiring deferred to PR7)', function () {
+    // This asserts ONLY the store helper the middleware will call; the actual
+    // CheckSubscription route-level enforcement is deferred to PR7 (estate
+    // route added to CAPABILITY_ROUTE_MAP there). No middleware is exercised here.
     $free = User::factory()->create(['tier' => 'free']);
     expect(app(TierConfigurationStore::class)->capabilityFor(
         app(TierResolver::class)->resolve($free), 'estate'

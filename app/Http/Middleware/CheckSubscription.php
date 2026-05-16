@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
 use Closure;
@@ -121,7 +122,7 @@ class CheckSubscription
      *
      * Called by PR 7 once the estate entry is added to CAPABILITY_ROUTE_MAP.
      */
-    private function checkCapability(Request $request, mixed $user): ?Response
+    private function checkCapability(Request $request, User $user): ?Response
     {
         if (empty(self::CAPABILITY_ROUTE_MAP)) {
             return null;
