@@ -11,8 +11,11 @@ use App\Services\Payment\RevolutService;
 use App\Services\Payment\RevolutSubscriptionService;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\TierConfigurationStore;
+use App\Services\Stores\TierGate;
 use App\Services\Tiers\RevolutTierVariationSync;
+use App\Services\Tiers\TierResolver;
 use Database\Seeders\RolesPermissionsSeeder;
+use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -254,4 +257,145 @@ it('locks an existing tier subscriber to their original price across a store pri
 
     expect((int) $renewalAmount)->toBe($lockedAmount)
         ->and((int) $renewalAmount)->not->toBe($priceAtOrderTime + 1000);
+});
+
+// ── PR5 review CRITICAL: tier-key purchase must set canonical users.tier ───
+//
+// confirmPayment / WebhookController write users.plan (legacy billing-compat
+// column, §5.2). TierResolver/DbTierGate gate SOLELY off users.tier. If a
+// tier purchase only set users.plan and left users.tier null, the paying
+// customer would resolve to 'free' and be given Free caps — locked out of
+// what they bought. These tests prove both activation paths now set the
+// canonical users.tier, that a legacy purchase does NOT (grandfather logic
+// owns those), and that the resolved gate gives the paid (not Free) cap.
+
+it('sets canonical users.tier on a tier1 purchase via confirmPayment and resolves as tier1 (not Free)', function () {
+    $user = User::factory()->create(['revolut_customer_id' => 'cust_tiercol']);
+    $orderId = '22222222-2222-2222-2222-222222222222';
+    $priceAtOrderTime = app(TierConfigurationStore::class)->forTier('tier1')->price_monthly_pence;
+
+    $revolut = Mockery::mock(RevolutService::class);
+    $revolut->shouldReceive('createOrderWithCustomer')->once()->andReturn([
+        'id' => $orderId, 'token' => 'tok_tiercol', 'state' => 'pending',
+        'created_at' => now()->toIso8601String(),
+    ]);
+    $revolut->shouldReceive('getOrder')->with($orderId)->andReturn([
+        'id' => $orderId, 'state' => 'completed', 'capture_mode' => 'automatic',
+        'amount' => $priceAtOrderTime, 'currency' => 'GBP',
+    ]);
+    app()->instance(RevolutService::class, $revolut);
+
+    $this->actingAs($user)->postJson('/api/payment/create-order', [
+        'plan' => 'tier1', 'billing_cycle' => 'monthly',
+    ])->assertOk();
+
+    $this->actingAs($user)->postJson('/api/payment/confirm', [
+        'order_id' => $orderId,
+    ])->assertOk();
+
+    $fresh = $user->fresh();
+
+    // (a) BOTH columns written: plan (legacy billing-compat) AND tier (canonical).
+    expect($fresh->tier)->toBe('tier1')
+        ->and($fresh->plan)->toBe('tier1');
+
+    // (b) TierResolver resolves to the paid tier, NOT 'free'.
+    expect(app(TierResolver::class)->resolve($fresh))
+        ->toBe('tier1');
+
+    // (c) The resolved gate gives the tier1 cap (unlimited / null for
+    //     savings_account), NOT the Free cap of 3. This is the concrete
+    //     "paying customer is NOT gated as Free" proof.
+    $gate = app(TierGate::class);
+    $freeCap = app(TierConfigurationStore::class)->capFor('free', 'savings_account');
+    $tier1Cap = app(TierConfigurationStore::class)->capFor('tier1', 'savings_account');
+
+    expect($freeCap)->toBe(3)              // Free is capped at 3 (seeder)
+        ->and($tier1Cap)->toBeNull()       // tier1 is unlimited (seeder)
+        ->and($gate->hardLimit($fresh, 'savings_account'))->toBe($tier1Cap)
+        ->and($gate->hardLimit($fresh, 'savings_account'))->not->toBe($freeCap)
+        // Paying customer can create well beyond the Free cap of 3.
+        ->and($gate->canCreate($fresh, 'savings_account', 50))->toBeTrue();
+});
+
+it('sets canonical users.tier on a tier2 purchase via the Revolut webhook path', function () {
+    $user = User::factory()->create(['revolut_customer_id' => 'cust_webhook']);
+    $orderId = '33333333-3333-3333-3333-333333333333';
+    $priceAtOrderTime = app(TierConfigurationStore::class)->forTier('tier2')->price_monthly_pence;
+
+    // Step 1: real createOrder so a pending Payment + subscription exist.
+    $createMock = Mockery::mock(RevolutService::class);
+    $createMock->shouldReceive('createOrderWithCustomer')->once()->andReturn([
+        'id' => $orderId, 'token' => 'tok_webhook', 'state' => 'pending',
+        'created_at' => now()->toIso8601String(),
+    ]);
+    app()->instance(RevolutService::class, $createMock);
+
+    $this->actingAs($user)->postJson('/api/payment/create-order', [
+        'plan' => 'tier2', 'billing_cycle' => 'monthly',
+    ])->assertOk();
+
+    $payment = Payment::where('user_id', $user->id)->latest()->first();
+
+    // Step 2: drive the REAL webhook HTTP endpoint. Only the Revolut HTTP
+    // boundary (signature verify + getOrder) is mocked.
+    $webhookMock = Mockery::mock(RevolutService::class);
+    $webhookMock->shouldReceive('verifyWebhookSignature')->andReturn(true);
+    $webhookMock->shouldReceive('getOrder')->with($orderId)->andReturn([
+        'id' => $orderId, 'state' => 'completed', 'capture_mode' => 'automatic',
+        'amount' => $priceAtOrderTime, 'currency' => 'GBP',
+    ]);
+    app()->instance(RevolutService::class, $webhookMock);
+
+    $this->postJson('/api/webhooks/revolut', [
+        'event' => 'ORDER_COMPLETED',
+        'order_id' => $orderId,
+        'merchant_order_ext_ref' => "payment_{$payment->id}",
+    ], [
+        'Revolut-Signature' => 'v1=stub',
+        'Revolut-Request-Timestamp' => (string) (int) (microtime(true) * 1000),
+    ])->assertOk();
+
+    $fresh = $user->fresh();
+    expect($fresh->tier)->toBe('tier2')
+        ->and($fresh->plan)->toBe('tier2')
+        ->and(app(TierResolver::class)->resolve($fresh))->toBe('tier2');
+});
+
+it('does NOT set users.tier for a legacy (pro) purchase — grandfather logic owns those', function () {
+    $this->seed(SubscriptionPlanSeeder::class);
+
+    $user = User::factory()->create(['revolut_customer_id' => 'cust_legacy']);
+    $orderId = '44444444-4444-4444-4444-444444444444';
+
+    $revolut = Mockery::mock(RevolutService::class);
+    $revolut->shouldReceive('createOrderWithCustomer')->andReturn([
+        'id' => $orderId, 'token' => 'tok_legacy', 'state' => 'pending',
+        'created_at' => now()->toIso8601String(),
+    ]);
+    $revolut->shouldReceive('getOrder')->with($orderId)->andReturn([
+        'id' => $orderId, 'state' => 'completed', 'capture_mode' => 'automatic',
+        'amount' => 1999, 'currency' => 'GBP',
+    ]);
+    app()->instance(RevolutService::class, $revolut);
+
+    $this->actingAs($user)->postJson('/api/payment/create-order', [
+        'plan' => 'pro', 'billing_cycle' => 'monthly',
+    ])->assertOk();
+
+    $this->actingAs($user)->postJson('/api/payment/confirm', [
+        'order_id' => $orderId,
+    ])->assertOk();
+
+    $fresh = $user->fresh();
+
+    // Legacy slug written to plan; tier stays NULL (A9/§5.2 — grandfather
+    // logic via isGrandfatheredLegacyPaid owns legacy paid subscribers).
+    expect($fresh->plan)->toBe('pro')
+        ->and($fresh->tier)->toBeNull()
+        // Resolver still returns 'free' for gating arithmetic on a legacy
+        // user (unchanged behaviour), but isGrandfatheredLegacyPaid flags
+        // them so the gate never narrows their access.
+        ->and(app(TierResolver::class)->resolve($fresh))->toBe('free')
+        ->and(app(TierResolver::class)->isGrandfatheredLegacyPaid($fresh))->toBeTrue();
 });

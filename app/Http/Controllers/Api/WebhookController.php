@@ -153,11 +153,21 @@ class WebhookController extends Controller
                     'cancellation_reason' => null,
                 ]);
 
+                // `plan` is the legacy billing-compat column (§5.2). For a
+                // tier-key purchase ALSO set the canonical `tier` column —
+                // TierResolver/DbTierGate key off `tier`, so a paying
+                // customer must have it set or they resolve as Free.
+                // Legacy slugs (student/standard/family/pro) leave `tier`
+                // null: A9/§5.2 grandfather logic owns those.
                 $user = $payment->user;
-                $user->update([
+                $userUpdate = [
                     'plan' => $planSlug,
                     'trial_ends_at' => null,
-                ]);
+                ];
+                if (in_array($planSlug, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+                    $userUpdate['tier'] = $planSlug;
+                }
+                $user->update($userUpdate);
 
                 // Confirmation email is sent from confirmPayment() after invoice
                 // generation so the PDF can be attached. Not sent here because

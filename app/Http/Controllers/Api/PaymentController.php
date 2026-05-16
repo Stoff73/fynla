@@ -517,11 +517,21 @@ class PaymentController extends Controller
 
                 $subscription->update($subscriptionUpdate);
 
-                // Update User denormalised fields
-                $user->update([
+                // Update User denormalised fields.
+                // `plan` is the legacy billing-compat column (§5.2). For a
+                // tier-key purchase ALSO set the canonical `tier` column —
+                // TierResolver/DbTierGate key off `tier`, so a paying
+                // customer must have it set or they resolve as Free.
+                // Legacy slugs (student/standard/family/pro) leave `tier`
+                // null: A9/§5.2 grandfather logic owns those.
+                $userUpdate = [
                     'plan' => $planSlug,
                     'trial_ends_at' => null,
-                ]);
+                ];
+                if (in_array($planSlug, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+                    $userUpdate['tier'] = $planSlug;
+                }
+                $user->update($userUpdate);
 
                 return ['already_completed' => false, 'payment' => $payment, 'subscription' => $subscription];
             });
