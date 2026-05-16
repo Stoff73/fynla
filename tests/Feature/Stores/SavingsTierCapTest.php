@@ -19,9 +19,17 @@ uses(RefreshDatabase::class);
  * Store-side tier-cap integration.
  *
  * SCOPE: PR 3 (SP2) activates enforcement globally by binding DbTierGate.
- * These tests exercise the store enforcement point via the live global binding
- * and prove that a true free user is blocked at cap 3, while tier1+ users
- * and grandfathered legacy-paid subscribers are never blocked.
+ * These tests exercise the SavingsStore enforcement seam via the live global
+ * binding and cover:
+ *  - a true free user is blocked at cap 3 (4th create throws);
+ *  - the thrown TierLimitExceededException carries entity key / count / limit;
+ *  - the first three free-tier creates succeed;
+ *  - the global binding really is DbTierGate (caps live);
+ *  - a tier1 user is unlimited (cap not enforced).
+ *
+ * The grandfathered-legacy-paid bypass is NOT proven here — that invariant is
+ * a gate-level concern owned by tests/Unit/Services/Tiers/DbTierGateTest.php
+ * (plan §1058–1064). See that file for the §4.4 grandfather proof.
  *
  * StaticTierGate (SP1 interim stub) was deleted in PR 3 — these tests no
  * longer reference it.
