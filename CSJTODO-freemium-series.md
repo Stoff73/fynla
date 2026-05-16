@@ -13,7 +13,7 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☐ | ☐ | brainstorming |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☐ | spec written — awaiting CSJ review gate |
 | 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | not started |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
