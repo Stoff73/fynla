@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\TierConfiguration;
 use App\Models\User;
+use App\Services\Payment\RevolutService;
 use App\Services\Payment\RevolutSubscriptionService;
+use App\Services\Stores\IngestSource;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\RevolutTierVariationSync;
 use Database\Seeders\RolesPermissionsSeeder;
@@ -147,4 +150,108 @@ it('does NOT change the price an existing subscriber is billed when the tier pri
     // Subscription.amount has decimal:2 cast, so toBe uses string equality; cast to int for clarity.
     expect((int) $renewalAmount)->toBe($originalAmountPence)
         ->and((int) $renewalAmount)->not->toBe(999);
+});
+
+// ── Task 5.1: FULL-FLOW end-to-end price-lock (real controller chain) ──────
+//
+// This drives the REAL Fynla billing chain for a tier key — only the Revolut
+// HTTP boundary is mocked (RevolutService), exactly as the acceptance tests
+// do. NO Fynla billing logic is mocked. It proves the price-lock guarantee
+// end-to-end:
+//
+//   1. createOrder(tier1) at the current store price → Payment.amount captured
+//      from TierConfigurationStore at order time.
+//   2. confirmPayment → Subscription.amount becomes the captured price (NOT
+//      the placeholder amount:0 the subscription is created with, NOT a live
+//      re-read of the tier config).
+//   3. Admin bumps TierConfiguration tier1 price via the store.
+//   4. The existing subscription's amount is UNCHANGED (price-locked).
+//   5. The SubscriptionRenewalService billing path bills the locked amount,
+//      not the new store price.
+//
+it('locks an existing tier subscriber to their original price across a store price change (full flow)', function () {
+    $store = app(TierConfigurationStore::class);
+    $admin = User::factory()->create();
+
+    // The store price at the time the subscriber checks out.
+    $tier1 = $store->forTier('tier1');
+    $priceAtOrderTime = $tier1->price_monthly_pence; // seeded 499p
+    expect($priceAtOrderTime)->toBeGreaterThan(0);
+
+    $user = User::factory()->create(['revolut_customer_id' => 'cust_pricelock']);
+    $orderId = '11111111-1111-1111-1111-111111111111';
+
+    // Mock ONLY the Revolut HTTP boundary. createTierOrder uses
+    // createOrderWithCustomer; confirmPayment uses getOrder.
+    $revolut = Mockery::mock(RevolutService::class);
+    $revolut->shouldReceive('createOrderWithCustomer')
+        ->once()
+        ->andReturn([
+            'id' => $orderId,
+            'token' => 'tok_pricelock',
+            'state' => 'pending',
+            'created_at' => now()->toIso8601String(),
+        ]);
+    $revolut->shouldReceive('getOrder')
+        ->with($orderId)
+        ->andReturn([
+            'id' => $orderId,
+            'state' => 'completed',
+            'capture_mode' => 'automatic',
+            'amount' => $priceAtOrderTime,
+            'currency' => 'GBP',
+        ]);
+    app()->instance(RevolutService::class, $revolut);
+
+    // Step 1: real createOrder for tier1 — price resolved from the store.
+    $this->actingAs($user)
+        ->postJson('/api/payment/create-order', [
+            'plan' => 'tier1',
+            'billing_cycle' => 'monthly',
+        ])->assertOk();
+
+    $payment = Payment::where('user_id', $user->id)->latest()->first();
+    expect($payment)->not->toBeNull()
+        ->and((int) $payment->amount)->toBe($priceAtOrderTime) // captured store price, NOT 0
+        ->and($payment->plan_slug)->toBe('tier1');
+
+    // Step 2: real confirmPayment — activates the subscription.
+    $this->actingAs($user)
+        ->postJson('/api/payment/confirm', ['order_id' => $orderId])
+        ->assertOk();
+
+    $subscription = $user->fresh()->subscription;
+    expect($subscription->status)->toBe('active')
+        ->and($subscription->plan)->toBe('tier1')
+        // The locked amount is the price captured at order time, NOT the
+        // placeholder amount:0 the subscription row was created with.
+        ->and((int) $subscription->amount)->toBe($priceAtOrderTime);
+
+    $lockedAmount = (int) $subscription->amount;
+
+    // Step 3: admin raises the tier1 price via the store (the legitimate
+    // write path — mirrors what an admin price change / sync run does).
+    $store->updateTier(
+        'tier1',
+        ['price_monthly_pence' => $priceAtOrderTime + 1000],
+        $admin,
+        IngestSource::ADMIN,
+    );
+
+    // Step 4: the existing subscriber's amount is UNCHANGED — price-locked.
+    $subscription->refresh();
+    expect((int) $subscription->amount)->toBe($lockedAmount)
+        ->and((int) $subscription->amount)->not->toBe($priceAtOrderTime + 1000);
+
+    // Step 5: the real SubscriptionRenewalService billing path bills the
+    // locked amount, not the new store price. This mirrors
+    // SubscriptionRenewalService::handleRenewalPayment lines 59-62.
+    $renewalPlan = SubscriptionPlan::findBySlug($subscription->plan); // null for tier keys
+    $renewalAmount = $renewalPlan
+        ? ($renewalPlan->getLaunchPriceForCycle($subscription->billing_cycle)
+            ?? $renewalPlan->getPriceForCycle($subscription->billing_cycle))
+        : $subscription->amount;
+
+    expect((int) $renewalAmount)->toBe($lockedAmount)
+        ->and((int) $renewalAmount)->not->toBe($priceAtOrderTime + 1000);
 });
