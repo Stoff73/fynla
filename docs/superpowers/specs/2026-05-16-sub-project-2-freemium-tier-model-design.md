@@ -152,24 +152,21 @@ The weekly Fyn budget produces graceful degradation (cheaper model, terser promp
 | Tier 2 | `tier2` | Full product. Estate module, decumulation, exotic investments, display-currency, Open-API affordance. |
 | Tier 3 | `tier3` | Top. Everything Tier 2 has plus the widest doc/storage/Fyn/snapshot allowances. |
 
-The whiteboard had **four columns only** (Free | T1 | T2 | T3). The legacy `family` plan is **merged** into Tier 2 (it has no distinct column on the canonical matrix).
+The whiteboard had **four columns only** (Free | T1 | T2 | T3). These four tiers are a **new product model** — they are **not** a relabel of, and do **not** map by equivalence to, the legacy sub-plans (`student / standard / family / pro`). Each new tier has its own exposures, surfaces, caps, and price, defined **solely** by the capability matrix (§7) + the `tier_configurations` admin store (§6). The legacy plans' value ladder carries no meaning in the new model.
 
-### 5.2 Legacy plan → tier reconciliation
+### 5.2 Legacy plans are NOT mapped — existing subscribers are grandfathered
 
-`users.plan` is currently `enum('free','student','standard','family','pro')` (default `free`), plus the runtime states `trial` and `preview`. SP2 adds `users.tier` and a reconciliation map:
+`users.plan` is currently `enum('free','student','standard','family','pro')` (default `free`), plus the runtime states `trial` and `preview`. SP2 adds `users.tier` as the new authoritative gating column. **There is no mechanical plan→tier equivalence map** (CSJ 2026-05-16: the freemium tiers are new with different exposures/surfaces; the old sub-tiers do not correspond to them).
 
-| Legacy plan / state | Resolved tier | Notes |
-|---------------------|---------------|-------|
-| `free` | `free` | Direct. |
-| `student` | `tier1` | Entry paid → Tier 1. *(Assumption — confirm at review.)* |
-| `standard` | `tier2` | Full product → Tier 2. *(Assumption — confirm at review.)* |
-| `family` | `tier2` | Merged into Tier 2 per whiteboard. |
-| `pro` | `tier3` | Top → Tier 3. *(Assumption — confirm at review.)* |
-| `trial` | tier of the plan being trialled | 7-day trial of any tier resolves to that tier for its duration, then falls back to `free` on expiry unless converted. |
-| `preview` | `free` for gating, but `PreviewWriteInterceptor` still governs writes | Preview personas are gating-equivalent to `free`; SP1 §8.4 isolation unchanged. |
-| admin / impersonation | resolves to the impersonated user's tier; admin's own account is unbounded by an `is_admin` bypass in `DbTierGate` | Admin tooling is on the SP1 allowlist. |
+| Legacy plan / state | New-model treatment |
+|---------------------|---------------------|
+| `free` (no subscription) | `users.tier = free` directly — the only clean correspondence (no paid value to preserve). |
+| Any paid legacy plan (`student / standard / family / pro`) | **Grandfathered.** The subscriber keeps their current access surface **and** current price (principle 4.4) until their next renewal. Their `users.tier` is set so gating never *narrows* their existing access on migration. At renewal/conversion they move into the new tier model; **which new tier each legacy cohort lands in is a per-cohort CSJ decision (§22 A9), not a mechanical map.** |
+| `trial` | Trial of a *new tier* resolves to that tier for its 7-day duration, then falls back to `free` on expiry unless converted. (Trials of legacy plans expire normally and the account follows the grandfather rule above.) |
+| `preview` | `free`-equivalent for gating; `PreviewWriteInterceptor` still governs writes (SP1 §8.4 unchanged). |
+| admin / impersonation | Resolves to the impersonated user's tier; admin's own account is unbounded by an `is_admin` bypass in `DbTierGate` (SP1 allowlist). |
 
-`users.tier` is the authoritative gating column going forward. `users.plan` is retained read-only for Revolut/billing compatibility during the transition and is not branched on by new code.
+`users.tier` is authoritative going forward. `users.plan` is retained read-only for Revolut/billing compatibility during the grandfather window and is not branched on by new code. New signups only ever see the four new tiers.
 
 ### 5.3 Tier resolution
 
@@ -243,9 +240,11 @@ Transcribed verbatim from CSJ's whiteboard photo, 2026-05-16. Columns: **Free | 
 | Expenditure | ✓ | ✓ | ✓ | ✓ |
 | Benefits (child) | ✓ *(assume ✓)* | ✓ | ✓ | ✓ |
 | Fyn agent (weekly token budget) | 100K | 250K | 500K | 1M |
-| Family module | ✓ *(assume ✓)* | ✓ | ✓ | ✓ |
+| Family module | ✓ | ✓ | ✓ | ✓ |
 
 Access verbs in `capability_matrix` JSON: `full` (✓), `none` (✗), `limited` (count-capped — caps in `count_caps`), `teaser` (teaser-gate, §10). "+ Open API" / "+ API" sets `open_api_affordance = true` for that tier (§14). "unlimited" = `count_caps[entity] = null`.
+
+**Firm rule — household/spouse linking is never tier-gated (CSJ 2026-05-16).** Every tier, **including Free**, can enter family members and link a spouse and the spouse's accounts whenever the user has a spouse. The Family module is `✓` at all tiers (no longer an assumption). Spouse/joint-owned records use Fynla's single-record joint-ownership pattern (CLAUDE.md Rule #7); a joint record counts **once** against the owning user's entity count cap (it is not double-counted against the spouse), so household linking does not silently consume a Free user's cap twice.
 
 ---
 
@@ -442,7 +441,7 @@ Changing one value in the admin screen must demonstrably change: the public `Pri
 | PR | Title pattern | What it does | Risk |
 |----|---------------|--------------|------|
 | 1 | `feat(tier): tier_configurations store + seeder + admin-write + Pest boundary` | New table, store (SP1 §12 pattern), seeder loads the §7 matrix, architecture test. No consumers wired. | Very low — pure addition. |
-| 2 | `feat(tier): users.tier column + TierResolver + plan→tier reconciliation` | Add `users.tier`, backfill from `plan` via §5.2 map, `TierResolver`. Old `plan` retained read-only. | Low — additive + backfill. |
+| 2 | `feat(tier): users.tier column + TierResolver + grandfather backfill` | Add `users.tier`; `free`/preview → `free`; **paid legacy subscribers grandfathered** — `users.tier` set so gating never narrows their current access, `users.plan` + price retained until renewal (§5.2, no mechanical map); `TierResolver`. | Low — additive + non-narrowing backfill. |
 | 3 | `feat(tier): DbTierGate replaces PermissiveTierGate; delete StaticTierGate` | Bind `DbTierGate`; grandfathering logic; `TierLimitExceededException` enriched. SP1 stores already call the seam. | Medium — caps go live; grandfather test mandatory. |
 | 4 | `feat(tier): admin tier-config screen + propagation` | Admin tab; PricingPage + invoices + CheckSubscription read the store live. | Medium — broad read surface. |
 | 5 | `feat(tier): Revolut plan-variation sync + price-lock` | Sync job; `revolut_plan_variation_id` write-back; existing-sub price-lock. | Medium — billing-adjacent; sandbox-tested on csjones first. |
@@ -455,7 +454,7 @@ Each PR ships to `dev`, deploys to csjones, gets browser-tested, then the period
 
 ### 16.2 Grandfathering on migration
 
-PR 3's backfill never deletes or hides rows. The plan→tier map (§5.2) may resolve some users to a tier whose caps they already exceed (e.g. a legacy `free` power-user). They are grandfathered: existing rows untouched, only new over-cap creates blocked. Existing subscribers keep their current price until renewal (PR 5 price-lock).
+There is **no mechanical plan→tier map** (§5.2). PR 2's backfill never deletes, hides, or downgrades rows or access. A legacy `free` power-user whose existing row count exceeds a new Free cap is grandfathered — existing rows untouched, only new over-cap creates blocked. A legacy *paid* subscriber keeps their current access surface **and** price until renewal; their `users.tier` is set so gating never narrows what they already have. The new tier each legacy paid cohort is offered at renewal/conversion is a per-cohort CSJ decision (§22 A9), settled before PR 5 (price-lock / Revolut sync) ships.
 
 ---
 
@@ -505,7 +504,7 @@ Each PR ships to dev, deploys to csjones, and is **browser-tested via Playwright
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Plan→tier backfill mis-maps a paying subscriber to a worse tier | Medium | High | Price-lock until renewal + grandfather rows; backfill reversible; per-plan map confirmed at review gate (§22). |
+| A grandfathered paid subscriber's access or price narrows on migration | Medium | High | No mechanical plan→tier map; `users.tier` set non-narrowing; access + price held until renewal (§5.2, §16.2); conversion tier is a per-cohort CSJ decision before PR 5; backfill reversible. |
 | Caps go live and an existing power-user loses access | Low | High | Principle 4.4 — grandfather: existing rows never blocked, only new over-cap creates; explicit test in PR 3. |
 | Revolut sync drifts from the store | Medium | High | Store is source of truth; sync writes `revolut_plan_variation_id` back; sandbox-tested on csjones (REVOLUT_SANDBOX=true) before main. |
 | Fyn soft-degrade feels like a downgrade users didn't expect | Medium | Medium | Plain-text in-chat notice + upgrade CTA; chat never walls; auto-reverses weekly; copy reviewed with CSJ. |
@@ -538,14 +537,14 @@ These are **not blockers**. Proceed with the stated default; CSJ corrects at the
 | A2 | Tier1 — Chattels / possessions | ✓ (available) | Glare-obscured `?`. |
 | A3 | Tier1 — Documents storage | none (✗) | Glare-obscured `–?`. |
 | A4 | Free — Benefits (child) | ✓ (available) | Glare-obscured `?`. |
-| A5 | Free — Family module | ✓ (available) | Glare-obscured `?`. |
+| A5 | Free — Family module | **RESOLVED 2026-05-16: ✓ at all tiers (firm, no longer an assumption).** Household/spouse linking is never tier-gated — see §7 firm rule. | CSJ confirmed; closed. |
 | A6 | Document upload allowance base + ladder | LIMITED=3, then +1/+2/+3 → 3/4/5/6 | Whiteboard gave the ladder shape, not the base number. |
 | A7 | Per-tier storage GB | Tier2 = 5 GB, Tier3 = 20 GB; Free/Tier1 = none | Whiteboard said "up to X GB" / "X GB+" — numbers not given. |
-| A8 | Per-tier monthly/annual £ price | Carry legacy launch prices as the tier seed: tier1≈student (499/399p), tier2≈standard/family (1499/1099p), tier3≈pro (2999/1999p) | Legacy plan prices exist; tier price points not yet set by CSJ. |
-| A9 | Legacy plan→tier map | student→tier1, standard→tier2, family→tier2, pro→tier3 | §5.2 — needs CSJ confirmation it matches intended value ladder. |
-| A10 | Fyn daily hard backstop value | Set generously above weekly-paced usage (proposed: 2× the legacy daily figure for the mapped tier) | Backstop is abuse-only; exact number not specified by CSJ. |
+| A8 | Per-tier monthly/annual £ price | **No legacy-price seed.** The four tiers are a new product with new prices that **only CSJ sets**, entered in the `tier_configurations` admin store. Seeder ships placeholder prices (e.g. tier1 £4.99/mo, tier2 £14.99/mo, tier3 £29.99/mo) purely so the screen renders; these are not proposals and carry no relation to legacy plan prices. | CSJ 2026-05-16: freemium tiers are new with different exposures/surfaces; legacy prices do not transfer. CSJ to set real prices. |
+| A9 | Conversion tier for grandfathered legacy paid subscribers | **No mechanical plan→tier map** (CSJ 2026-05-16). Existing paid subscribers are grandfathered on current access + price until renewal (§5.2, §16.2). Which new tier each legacy paid cohort is offered/placed into at renewal/conversion is a **per-cohort CSJ decision**, made before PR 5 (the price-lock/Revolut PR) ships. Default until then: grandfather only — no automatic placement. | §5.2 — legacy sub-tiers do not correspond to the new tiers; CSJ decides conversion per cohort. |
+| A10 | Fyn daily hard backstop value | Per tier, set generously above normal weekly-paced usage so it only trips on runaway/scripted abuse; exact value CSJ-set in `tier_configurations`. | Backstop is abuse-only; no legacy figure to anchor to (no plan mapping). |
 
-All A-items live in `tier_configurations` so post-confirmation tuning needs no code change.
+A5 and A9 reflect CSJ corrections on 2026-05-16. All open A-items live in `tier_configurations` so post-confirmation tuning needs no code change.
 
 ---
 
@@ -553,7 +552,9 @@ All A-items live in `tier_configurations` so post-confirmation tuning needs no c
 
 10-section design approved by CSJ 2026-05-16 ("looks good"). Architecture = Approach A (dedicated admin-editable `tier_configurations` reference-data store + `DbTierGate` replacing `PermissiveTierGate`), matching SP1 §12. Rejected and not to be re-litigated: `SubscriptionPlan.features` JSON as matrix home; hardcoded config; à-la-carte add-on billing; building Open Banking in SP2; keeping 4 paid plans.
 
-The flagged assumptions in §22 are surfaced for confirmation at the written-spec review gate. On approval, the next step is `superpowers:writing-plans` to produce the SP2 implementation plan at `docs/superpowers/plans/2026-05-16-sub-project-2-freemium-tier-model-plan.md`. Subsequent sub-projects (SP3 mobile shell, SP4 campaign engine, SP5 track onboarding, SP6 gamification) each get their own brainstorm → spec → plan cycle per `CSJTODO-freemium-series.md`.
+**CSJ review-gate corrections applied 2026-05-16:** the four freemium tiers are a **new product model** with their own exposures/surfaces/prices — they are **not** a relabel of, and carry **no mechanical map to**, the legacy sub-plans (corrects former A8/A9). Existing paid subscribers are grandfathered (access + price) until renewal; conversion tier is a per-cohort CSJ decision (§5.2, §16.2, §22 A9). Household/spouse linking is never tier-gated — the Family module is `✓` at every tier including Free (closes A5, §7 firm rule).
+
+The remaining flagged assumptions in §22 (A1–A4, A6, A7, A10) are surfaced for confirmation at the written-spec review gate. On approval, the next step is `superpowers:writing-plans` to produce the SP2 implementation plan at `docs/superpowers/plans/2026-05-16-sub-project-2-freemium-tier-model-plan.md`. Subsequent sub-projects (SP3 mobile shell, SP4 campaign engine, SP5 track onboarding, SP6 gamification) each get their own brainstorm → spec → plan cycle per `CSJTODO-freemium-series.md`.
 
 ---
 
