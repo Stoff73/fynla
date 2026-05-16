@@ -13,7 +13,7 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION: PR1–4 of 9 done** (merged to `sp2Freemium`, two-stage reviewed, browser-tested). **PR5–9 BLOCKED** on §22 A9 (per-cohort legacy→new-tier conversion) + PaymentController/CheckoutPage tier-key acceptance (legacy-slug-locked, surfaced by PR4 §5.2 fix). CSJ decision required before PR5. |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION: PR1–4 of 9 done** (merged to `sp2Freemium`, two-stage reviewed, browser-tested). §22 A9 RESOLVED (all legacy cohorts → Free; no existing payers). **PR5–9 pending** — PR5 must fold in PaymentController/CheckoutPage tier-key acceptance (legacy-slug-locked, surfaced by PR4 §5.2 fix). Awaiting CSJ go-ahead to continue PR5. |
 | 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | brainstorming (next) |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
@@ -138,9 +138,16 @@ explore context → clarify open decisions → propose approaches → present de
   → DB → audit → /api/pricing-config → PricingPage £14.99→£17.99 verified).
   Full Pest + Architecture suites green; pint clean; Rule #16 trust-icons
   confirmed grandfathered (byte-identical pre-PR4).
-- 2026-05-16 SP2 PR5 GATE — TWO blockers before PR5 may start:
-  (1) §22 A9: per-cohort legacy→new-tier conversion (which new tier each of
-  student/standard/family/pro converts to at renewal) — CSJ decision.
+- 2026-05-16 §22 A9 RESOLVED (CSJ): **there are no existing payers** —
+  ALL legacy cohorts (student/standard/family/pro) convert to **Free**.
+  Uniform rule, no per-cohort divergence. Implications for PR5: the
+  "existing-subscriber price-lock" assertion is a vacuous safety net (no
+  active paid subs exist to lock); the defensive `TierResolver::
+  isGrandfatheredLegacyPaid` (PR2) stays unchanged (returns false for
+  everyone in practice — correct). PR5 still must push new tier prices to
+  Revolut variations and (Blocker 2) wire tier keys into the payment
+  backend. A9 gate CLEARED.
+- 2026-05-16 SP2 PR5 GATE — remaining blocker before PR5:
   (2) PaymentController (`createOrder`/`upgradeSubscription`/
   `validateDiscountCode`, ~lines 87/504/829) + `CheckoutPage.vue:359`
   hard-validate `in:student,standard,family,pro`; PR4's §5.2 fix made
