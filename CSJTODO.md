@@ -1,9 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 14 May 2026 — session 9 (PR #304 OPEN — REVIEW §4 High #32 forUserOrJoint scope migration; PR #303 still OPEN awaiting CSJ iOS verification)*
-*Previous session: 14 May 2026 — session 7 (PR #302 admin-merged — investment.js migrated; PR #303 OPEN awaiting iOS verification)*
+*Last updated: 16 May 2026 — session 2 clear (repo/PR cleanup; #303 + #326 merged, #325 closed superseded, branches pruned)*
+*Previous session: 14 May 2026 — session 9 (REVIEW §4 High #32 forUserOrJoint scope migration PR #304)*
 
 > **Note re sessions 5 + 8:** A parallel context (worktree `cranky-lewin-6bc99c`) is running a major system-overhaul brainstorming/planning track. It committed `handover-2026-05-14-session-5-clear.md` (design doc) and `handover-2026-05-14-session-8-clear.md` (sub-project 1 / pass 1 Savings canonical-store plan, 2,934 lines) directly to dev. That work is independent of the main dev-branch web/mobile taxConfig + REVIEW audit work. This handover is session 9 to avoid filename collision with the worktree's session 8.
+
+---
+
+## Session 2 (16 May 2026) — repo + PR-board cleanup (context-clear)
+
+**Branch:** `fix/advice-prompt-jointowner-lazyload` (PR #326 merged — disposable) · **Tree:** clean (only git-ignored `appMapping/techDebt.md` local register) · **PRs merged:** #303, #326 · **PRs closed:** #325 (superseded) · **Open PRs:** #317 (parked, release dev→main — gated on freemium SP2), #249 (parked, sidecar)
+
+### Done
+- [x] PR #303 (mobile taxConfig) admin-merged to `dev`; iOS-build retest logged in `appMapping/techDebt.md` (Medium) — blocks SP3 acceptance
+- [x] PR #326 (jointOwner advice-prompt lazy-load fix) — rebased off 14-commit-stale base onto `dev`, squashed handover/wip noise, opened + admin-merged
+- [x] PR #325 (temperature=0) CLOSED as superseded — `dev` already has it (`33e0151`) + `max_completion_tokens` upgrade (`ac6ae08`) the branch lacked; merging would have regressed
+- [x] Branch cleanup: local 50→6, remote 59→12, 9 stale worktrees removed; `cranky-lewin` verified safe + deleted
+- [x] Memory saved: `project_pr317_gated_on_freemium_refactor`
+
+### Outstanding / next session
+- [ ] Run `vault-sync` (deferred — context tripwire)
+- [ ] Optional `tech-debt-session` on #326 diff (3 files, low risk — deferred)
+- [ ] Begin **freemium refactor (sub-project 2)** — NO branch/plan yet; only `TierGate` hook exists. Entry: `superpowers:brainstorming` → `writing-plans`
+- [ ] PR #317 stays parked until SP2 lands on `dev`
 
 ---
 
