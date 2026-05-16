@@ -9,14 +9,17 @@ use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsStore;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Database\Eloquent\Collection;
 
 // Canonical store create()/update() now materialises ISA-allowance-used %
 // via TaxConfigService::getISAAllowances(). Seed the real tax configuration
 // (same pattern as SavingsReadConsumerParityTest) so the ISA derived-column
-// path has an active tax year.
+// path has an active tax year. TierConfigurationSeeder required by DbTierGate
+// (PR 3) which reads tier caps from the DB on every SavingsStore::create.
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 it('SavingsStore::create persists a SavingsAccount through the canonical write path', function () {

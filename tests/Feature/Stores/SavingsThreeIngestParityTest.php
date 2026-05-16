@@ -72,6 +72,7 @@ use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\SavingsStore;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -79,7 +80,9 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // The store's derived-column calculator reads the active ISA allowance
     // from TaxConfigService — seed it exactly as the sibling store tests do.
+    // TierConfigurationSeeder required by DbTierGate (PR 3).
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 /**
@@ -205,7 +208,10 @@ it('persists field-identical canonical rows for the same NON-ISA account via for
 });
 
 it('persists field-identical canonical rows for the same INDIVIDUAL CASH-ISA account via form, fyn and upload', function () {
-    $user = User::factory()->create(['is_preview_user' => false]);
+    // tier1 required: this test creates 4 savings accounts (3 cross-ingest parity
+    // rows + 1 isa_subscription_amount vocabulary-asymmetry fixture). A free user
+    // is capped at 3 by DbTierGate (PR 3); tier1 is unlimited.
+    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
     $normaliser = new SavingsAccountNormaliser;
     $store = app(SavingsStore::class);
 

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsStore;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 
 // Sub-Project 1, Pass 1 — PR 8.
 //
@@ -24,6 +25,7 @@ use Database\Seeders\TaxConfigurationSeeder;
 // config('audit.in_tests') gate so the audit path actually fires.
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
     config(['audit.in_tests' => true]);
 });
 
