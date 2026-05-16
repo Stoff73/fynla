@@ -13,7 +13,7 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE (9-PR plan, self-reviewed). Execution deferred per campaign (all SP specs+plans first) |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION: PR1–4 of 9 done** (merged to `sp2Freemium`, two-stage reviewed, browser-tested). **PR5–9 BLOCKED** on §22 A9 (per-cohort legacy→new-tier conversion) + PaymentController/CheckoutPage tier-key acceptance (legacy-slug-locked, surfaced by PR4 §5.2 fix). CSJ decision required before PR5. |
 | 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | brainstorming (next) |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
@@ -125,3 +125,28 @@ explore context → clarify open decisions → propose approaches → present de
   tier incl. Free can enter family + link spouse accounts when the user has
   a spouse; Family module = ✓ all tiers (closes assumption A5). Spec §5.1,
   §5.2, §7 firm rule, §16.2, §20, §22, §23 amended; committed.
+- 2026-05-16 SP2 EXECUTION (CSJ instruction "start building the SP2 plan",
+  scope = PR1–4 then stop for A9): PR1–4 implemented via
+  subagent-driven-development (fresh implementer per PR + two-stage
+  spec→quality review loop), each merged to `sp2Freemium` (PRs #327–#330,
+  all MERGED). Branch model retargeted freemium→`sp2Freemium` per CSJ.
+  PR1 tier_configurations store/seeder/boundary; PR2 users.tier+TierResolver
+  (grandfather corrected to legacy-plan AND subscription-row); PR3 DbTierGate
+  bound, StaticTierGate deleted, SP1 Savings regression green (fixtures
+  fixed, gate never weakened); PR4 admin tier-config tab + PricingConfig
+  endpoint + propagation, browser-tested locally (admin price edit → store
+  → DB → audit → /api/pricing-config → PricingPage £14.99→£17.99 verified).
+  Full Pest + Architecture suites green; pint clean; Rule #16 trust-icons
+  confirmed grandfathered (byte-identical pre-PR4).
+- 2026-05-16 SP2 PR5 GATE — TWO blockers before PR5 may start:
+  (1) §22 A9: per-cohort legacy→new-tier conversion (which new tier each of
+  student/standard/family/pro converts to at renewal) — CSJ decision.
+  (2) PaymentController (`createOrder`/`upgradeSubscription`/
+  `validateDiscountCode`, ~lines 87/504/829) + `CheckoutPage.vue:359`
+  hard-validate `in:student,standard,family,pro`; PR4's §5.2 fix made
+  PricingPage emit tier keys, so the paid-tier CTA 422s until PR5 wires
+  tier keys into the payment backend. Honestly deferred (not silently
+  reverted). PR5 scope must absorb this. Minor follow-ups recorded in the
+  session handover (PR2 plan-doc fixture stale snippet; csjones deploy-stage
+  browser tests for PR3/4/6/7/8 deferred to SP2 deploy; PermissiveTierGate
+  dead class + duplicate binding test → PR9 sweep).
