@@ -28,7 +28,7 @@ One **static, byte-identical, fully-cached system prompt** (identity, scope, res
 | D2 | Context selection | **Lean selector**, ~4 buckets, reusing the existing `QueryClassifier` as the signal source (remap its 12 outputs; do not rebuild classification). |
 | D3 | Static-ness | **Fully static system prompt, zero interpolation.** First name + tax year move into the dynamic user turn. |
 | D4 | Authoring | **Restructure, preserve wording.** Deduplicate/reorganise the existing proven text; do not reword compliance/security rules. |
-| D5 | Recovery | **Feature flag** `FYN_PROMPT_ARCH=legacy|unified` (default `legacy`). Old builders stay in-tree behind the flag; deleted only after `unified` proves green. Git tag `fyn-two-prompt-pre-unify` at cutover commit. |
+| D5 | Recovery | **Feature flag** `FYN_PROMPT_ARCH` = `legacy` or `unified` (default `legacy`). Old builders stay in-tree behind the flag; deleted only after `unified` proves green. Git tag `fyn-two-prompt-pre-unify` at cutover commit. |
 | D6 | Canonical contract | **Rewrite** `00-canonical.md` to reflect the unified prompt (§9 below is the new contract text). |
 
 ## 4. Architecture
