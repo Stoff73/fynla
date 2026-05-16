@@ -39,7 +39,15 @@ class TierResolver
         if ($user->is_preview_user) {
             return false;
         }
+        if (! in_array($user->plan ?? '', self::LEGACY_PAID_PLANS, true)) {
+            return false;
+        }
 
-        return in_array($user->plan ?? '', self::LEGACY_PAID_PLANS, true);
+        $subscription = $user->relationLoaded('subscription')
+            ? $user->subscription
+            : $user->subscription()->first();
+
+        return $subscription !== null
+            && in_array($subscription->plan ?? '', self::LEGACY_PAID_PLANS, true);
     }
 }

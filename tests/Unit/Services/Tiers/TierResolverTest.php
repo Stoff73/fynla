@@ -28,11 +28,21 @@ it('grandfathers a paid legacy subscriber with null tier to free-gating-but-neve
     // but isGrandfathered() flags them so DbTierGate never blocks an
     // existing-row create (PR 3 consumes this).
     $u = User::factory()->create(['plan' => 'pro', 'tier' => null]);
-    expect($this->resolver->resolve($u))->toBe('free')
-        ->and($this->resolver->isGrandfatheredLegacyPaid($u))->toBeTrue();
+    $u->subscription()->create(['plan' => 'pro', 'status' => 'active', 'amount' => 0]);
+    expect($this->resolver->resolve($u->fresh()))->toBe('free')
+        ->and($this->resolver->isGrandfatheredLegacyPaid($u->fresh()))->toBeTrue();
 });
 
 it('does not flag a free user as grandfathered', function () {
     $u = User::factory()->create(['plan' => 'free', 'tier' => null]);
+    expect($this->resolver->isGrandfatheredLegacyPaid($u))->toBeFalse();
+});
+
+it('does not grandfather a stale legacy plan slug without a subscription record', function () {
+    // The exact bug being fixed: users.plan is NOT reset when a paid
+    // subscription lapses/cancels, so a stale 'pro' slug with no live
+    // subscription row must NOT be grandfathered forever (spec §4.4/§5.2
+    // protect *current* paying subscribers, not stale artefacts).
+    $u = User::factory()->create(['plan' => 'pro', 'tier' => null]);
     expect($this->resolver->isGrandfatheredLegacyPaid($u))->toBeFalse();
 });
