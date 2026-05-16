@@ -154,6 +154,14 @@ trait HasAiChat
         // Model selection
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
         $model = $this->getAiModel($user, $complexity);
+
+        // Soft-degrade notice (PR 6 — Rule #16: plain text only, no icon/emoji/glyph).
+        // Prepend to the system prompt so the AI knows to keep responses shorter and
+        // to relay the notice. Chat is NEVER hard-walled by the weekly budget.
+        if ($this->isWeeklyBudgetExceeded($user)) {
+            $systemPrompt = 'Fyn is running in a lighter mode this week — upgrade for full responses.'
+                ."\n\n".$systemPrompt;
+        }
         $maxTokens = $this->getAiMaxTokens($user);
         $isXai = $this->getAiProvider() === 'xai';
         $toolDefinitions = $isXai
