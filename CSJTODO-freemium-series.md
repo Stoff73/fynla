@@ -13,8 +13,8 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☐ | spec APPROVED (review gate passed; defaults accepted) — writing plan |
-| 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | not started |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE (9-PR plan, self-reviewed). Execution deferred per campaign (all SP specs+plans first) |
+| 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | brainstorming (next) |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
 | 6 | Gamification (campaign progress + unlocks) | ☐ | ☐ | not started |
