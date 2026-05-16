@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateTierConfigurationRequest;
 use App\Http\Resources\TierConfigurationResource;
-use App\Models\TierConfiguration;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Http\JsonResponse;
@@ -18,9 +17,9 @@ class TierConfigurationController extends Controller
 
     public function index(): JsonResponse
     {
-        $tiers = TierConfiguration::orderByRaw("FIELD(tier,'free','tier1','tier2','tier3')")->get();
-
-        return response()->json(['data' => TierConfigurationResource::collection($tiers)]);
+        return response()->json([
+            'data' => TierConfigurationResource::collection($this->store->allOrdered()),
+        ]);
     }
 
     public function update(UpdateTierConfigurationRequest $request, string $tier): JsonResponse
