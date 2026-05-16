@@ -7,9 +7,11 @@ use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 describe('Savings Integration Tests', function () {
