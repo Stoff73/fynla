@@ -13,8 +13,8 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☐ | ☐ | brainstorming |
-| 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | not started |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE (9-PR plan, self-reviewed). Execution deferred per campaign (all SP specs+plans first) |
+| 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | brainstorming (next) |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
 | 6 | Gamification (campaign progress + unlocks) | ☐ | ☐ | not started |
@@ -113,3 +113,15 @@ explore context → clarify open decisions → propose approaches → present de
     truth**. PricingPage + invoices read it live; a sync job pushes Revolut
     plan variations and updates stored revolut_plan_variation_id. Existing
     subscribers' price locked until their renewal.
+- 2026-05-16 SP2 spec-review-gate correction (CSJ): the four freemium tiers
+  are a **NEW product model** — NOT a relabel of legacy sub-plans
+  (student/standard/family/pro), and there is **NO mechanical plan→tier
+  map**. New tiers have their own exposures/surfaces/prices. Existing paid
+  subscribers grandfathered (access + price) until renewal; conversion tier
+  is a per-cohort CSJ decision (settled before the price-lock/Revolut PR).
+  Prices are new, CSJ-set in the admin store, no legacy-price seed. Corrects
+  former spec assumptions A8 (legacy-price seed) + A9 (plan→tier map) —
+  both rewritten. **Household/spouse linking is never tier-gated:** every
+  tier incl. Free can enter family + link spouse accounts when the user has
+  a spouse; Family module = ✓ all tiers (closes assumption A5). Spec §5.1,
+  §5.2, §7 firm rule, §16.2, §20, §22, §23 amended; committed.
