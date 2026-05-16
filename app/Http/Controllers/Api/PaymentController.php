@@ -21,6 +21,7 @@ use App\Services\Payment\InvoiceService;
 use App\Services\Payment\ReferralService;
 use App\Services\Payment\RevolutService;
 use App\Services\Payment\RevolutSubscriptionService;
+use App\Services\Stores\TierConfigurationStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,12 @@ class PaymentController extends Controller
 
     private const PLAN_ORDER = ['student', 'standard', 'family', 'pro'];
 
+    /** Tier keys accepted by this controller (SP2). */
+    private const TIER_KEYS = ['free', 'tier1', 'tier2', 'tier3'];
+
+    /** Combined set for validation rules. */
+    private const VALID_PLAN_SLUGS = ['student', 'standard', 'family', 'pro', 'free', 'tier1', 'tier2', 'tier3'];
+
     public function __construct(
         private readonly RevolutService $revolutService,
         private readonly RevolutSubscriptionService $subscriptionService,
@@ -43,7 +50,8 @@ class PaymentController extends Controller
         private readonly InvoiceService $invoiceService,
         private readonly AccountDeletionService $deletionService,
         private readonly ReferralService $referralService,
-        private readonly AwinTrackingService $awinTracking
+        private readonly AwinTrackingService $awinTracking,
+        private readonly TierConfigurationStore $tierStore,
     ) {}
 
     /**
@@ -84,12 +92,42 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,family,pro',
+            'plan' => 'required|string|in:student,standard,family,pro,free,tier1,tier2,tier3',
             'billing_cycle' => 'required|string|in:monthly,yearly',
             'discount_code' => 'nullable|string|max:50',
         ]);
 
-        $plan = SubscriptionPlan::findBySlug($request->input('plan'));
+        $planSlugInput = $request->input('plan');
+        $billingCycle = $request->input('billing_cycle');
+
+        // ── Tier-key path (SP2) ─────────────────────────────────────────
+        if (in_array($planSlugInput, self::TIER_KEYS, true)) {
+            if ($planSlugInput === 'free') {
+                // Free tier: no Revolut order, no charge — short-circuit cleanly.
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The Free tier has no payment. No order created.',
+                ], 422);
+            }
+
+            // Paid tier: resolve price from the store.
+            try {
+                $tierConfig = $this->tierStore->forTier($planSlugInput);
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'Tier configuration not found'], 404);
+            }
+
+            $amount = $billingCycle === 'monthly'
+                ? $tierConfig->price_monthly_pence
+                : $tierConfig->price_annual_pence;
+            $description = "{$tierConfig->display_name} — ".ucfirst($billingCycle);
+
+            // Delegate to the tier checkout flow (bypasses SubscriptionPlan-based logic below)
+            return $this->createTierOrder($request, $user, $planSlugInput, $billingCycle, $amount, $description, $tierConfig->display_name);
+        }
+        // ────────────────────────────────────────────────────────────────
+
+        $plan = SubscriptionPlan::findBySlug($planSlugInput);
         if (! $plan) {
             return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
         }
@@ -263,6 +301,111 @@ class PaymentController extends Controller
             return $this->errorResponse($e, 'Creating payment order');
         }
     }
+
+    // ── Tier checkout helper (SP2) ─────────────────────────────────────
+
+    /**
+     * Create a Revolut order for a paid tier (tier1/tier2/tier3).
+     *
+     * Mirrors the legacy createOrder flow but sources price from
+     * TierConfigurationStore rather than SubscriptionPlan. Discount codes
+     * are not supported for tier orders in this phase (no discount codes
+     * exist yet for tier keys; the frontend does not pass them).
+     *
+     * Price-lock: the amount stored on the Payment record is the source of
+     * truth for what the subscriber was charged. Renewal via webhook will
+     * read Subscription.amount (set by confirmPayment from Payment.amount).
+     */
+    private function createTierOrder(
+        Request $request,
+        User $user,
+        string $tierKey,
+        string $billingCycle,
+        int $amount,
+        string $description,
+        string $displayName,
+    ): JsonResponse {
+        try {
+            // Ensure subscription record exists
+            $subscription = $user->subscription ?? $user->subscription()->create([
+                'plan' => $tierKey,
+                'billing_cycle' => $billingCycle,
+                'status' => 'trialing',
+                'amount' => 0,
+                'current_period_start' => now(),
+                'current_period_end' => now(),
+            ]);
+
+            // Ensure Revolut customer exists
+            if (! $user->revolut_customer_id) {
+                $this->subscriptionService->createCustomer($user);
+                $user->refresh();
+            }
+
+            $baseUrl = config('services.revolut.sandbox')
+                ? 'https://fynla.org'
+                : config('app.url');
+            $redirectUrl = $baseUrl.'/checkout?plan='.$tierKey
+                .'&cycle='.$billingCycle.'&status=complete';
+
+            $revolutOrder = $this->revolutService->createOrderWithCustomer(
+                $amount,
+                'GBP',
+                $description,
+                $redirectUrl,
+                $user->revolut_customer_id,
+                null,
+                $user->email,
+                true
+            );
+
+            Payment::where('user_id', $user->id)
+                ->where('plan_slug', $tierKey)
+                ->where('billing_cycle', $billingCycle)
+                ->where('status', 'pending')
+                ->delete();
+
+            $payment = Payment::create([
+                'subscription_id' => $subscription->id,
+                'user_id' => $user->id,
+                'revolut_order_id' => $revolutOrder['id'],
+                'amount' => $amount,
+                'currency' => 'GBP',
+                'status' => 'pending',
+                'description' => $description,
+                'plan_slug' => $tierKey,
+                'billing_cycle' => $billingCycle,
+                'discount_code_id' => null,
+                'discount_amount' => 0,
+            ]);
+
+            if (config('awin.enabled') && ! $user->is_admin) {
+                $payment->forceFill([
+                    'awin_order_ref' => $this->awinTracking->orderRefFor($payment),
+                    'awin_cks' => $request->cookie('awc') ?: null,
+                    'awin_customer_acquisition' => $this->awinTracking->isCustomerAcquisition($user, $payment->id)
+                        ? 'new'
+                        : 'existing',
+                ])->save();
+            }
+
+            Log::info('Revolut tier order created', [
+                'user_id' => $user->id,
+                'tier' => $tierKey,
+                'amount' => $amount,
+                'revolut_order_id' => $revolutOrder['id'],
+            ]);
+
+            return response()->json([
+                'token' => $revolutOrder['token'],
+                'order_id' => $revolutOrder['id'],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Creating tier payment order');
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────
 
     /**
      * Confirm a completed payment and activate the subscription.
@@ -501,7 +644,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,family,pro',
+            'plan' => 'required|string|in:student,standard,family,pro,free,tier1,tier2,tier3',
         ]);
 
         $subscription = $user->subscription;
@@ -513,25 +656,66 @@ class PaymentController extends Controller
         $currentPlanSlug = $subscription->plan;
         $newPlanSlug = $request->input('plan');
 
-        $currentIndex = array_search($currentPlanSlug, self::PLAN_ORDER);
-        $newIndex = array_search($newPlanSlug, self::PLAN_ORDER);
+        // For tier-key upgrades: use the TIER_KEYS order for comparison;
+        // for legacy slugs: use the legacy PLAN_ORDER.
+        $tierOrder = self::TIER_KEYS; // ['free','tier1','tier2','tier3']
+        $isNewTierKey = in_array($newPlanSlug, self::TIER_KEYS, true);
+        $isCurrentTierKey = in_array($currentPlanSlug, self::TIER_KEYS, true);
 
-        if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
-            return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
-        }
-
-        $currentPlan = SubscriptionPlan::findBySlug($currentPlanSlug);
-        $newPlan = SubscriptionPlan::findBySlug($newPlanSlug);
-
-        if (! $currentPlan || ! $newPlan) {
-            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+        if ($isNewTierKey || $isCurrentTierKey) {
+            // Both must be tier keys for a valid tier-to-tier upgrade comparison.
+            $currentIndex = array_search($currentPlanSlug, $tierOrder);
+            $newIndex = array_search($newPlanSlug, $tierOrder);
+            if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
+                return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
+            }
+        } else {
+            $currentIndex = array_search($currentPlanSlug, self::PLAN_ORDER);
+            $newIndex = array_search($newPlanSlug, self::PLAN_ORDER);
+            if ($currentIndex === false || $newIndex === false || $newIndex <= $currentIndex) {
+                return response()->json(['success' => false, 'message' => 'You can only upgrade to a higher-tier plan'], 422);
+            }
         }
 
         $billingCycle = $subscription->billing_cycle;
 
-        // Get effective prices (launch price if available)
-        $currentPrice = $currentPlan->getLaunchPriceForCycle($billingCycle) ?? $currentPlan->getPriceForCycle($billingCycle);
-        $newPrice = $newPlan->getLaunchPriceForCycle($billingCycle) ?? $newPlan->getPriceForCycle($billingCycle);
+        // Resolve prices — tier keys read from TierConfigurationStore; legacy slugs from SubscriptionPlan.
+        if ($isCurrentTierKey) {
+            try {
+                $currentTierConfig = $this->tierStore->forTier($currentPlanSlug);
+                $currentPrice = $billingCycle === 'monthly'
+                    ? $currentTierConfig->price_monthly_pence
+                    : $currentTierConfig->price_annual_pence;
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'Current tier configuration not found'], 404);
+            }
+        } else {
+            $currentPlan = SubscriptionPlan::findBySlug($currentPlanSlug);
+            if (! $currentPlan) {
+                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+            }
+            $currentPrice = $currentPlan->getLaunchPriceForCycle($billingCycle) ?? $currentPlan->getPriceForCycle($billingCycle);
+        }
+
+        if ($isNewTierKey) {
+            if ($newPlanSlug === 'free') {
+                return response()->json(['success' => false, 'message' => 'Cannot upgrade to Free tier via payment'], 422);
+            }
+            try {
+                $newTierConfig = $this->tierStore->forTier($newPlanSlug);
+                $newPrice = $billingCycle === 'monthly'
+                    ? $newTierConfig->price_monthly_pence
+                    : $newTierConfig->price_annual_pence;
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'New tier configuration not found'], 404);
+            }
+        } else {
+            $newPlan = SubscriptionPlan::findBySlug($newPlanSlug);
+            if (! $newPlan) {
+                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+            }
+            $newPrice = $newPlan->getLaunchPriceForCycle($billingCycle) ?? $newPlan->getPriceForCycle($billingCycle);
+        }
         $priceDiff = $newPrice - $currentPrice;
 
         if ($billingCycle === 'yearly') {
@@ -826,17 +1010,29 @@ class PaymentController extends Controller
 
         $request->validate([
             'code' => 'required|string|max:50',
-            'plan' => 'required|string|in:student,standard,family,pro',
+            'plan' => 'required|string|in:student,standard,family,pro,free,tier1,tier2,tier3',
             'billing_cycle' => 'required|string|in:monthly,yearly',
         ]);
 
-        $plan = SubscriptionPlan::findBySlug($request->input('plan'));
-        if (! $plan) {
-            return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
-        }
-
+        $planSlugInput = $request->input('plan');
         $billingCycle = $request->input('billing_cycle');
-        $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
+
+        if (in_array($planSlugInput, self::TIER_KEYS, true)) {
+            try {
+                $tierConfig = $this->tierStore->forTier($planSlugInput);
+                $amount = $billingCycle === 'monthly'
+                    ? $tierConfig->price_monthly_pence
+                    : $tierConfig->price_annual_pence;
+            } catch (\Throwable) {
+                return response()->json(['success' => false, 'message' => 'Tier configuration not found'], 404);
+            }
+        } else {
+            $plan = SubscriptionPlan::findBySlug($planSlugInput);
+            if (! $plan) {
+                return response()->json(['success' => false, 'message' => 'Plan not found'], 404);
+            }
+            $amount = $plan->getLaunchPriceForCycle($billingCycle) ?? $plan->getPriceForCycle($billingCycle);
+        }
 
         $result = $this->discountCodeService->validate(
             $request->input('code'),
