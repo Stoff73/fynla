@@ -56,7 +56,11 @@ class TrialService
             'status' => 'expired',
             'data_retention_starts_at' => $now,
         ]);
-        User::whereIn('id', $userIds)->update(['plan' => 'free']);
+        // Reset the legacy billing-compat column AND the canonical gating
+        // column. tier => null means "resolve via TierResolver" → 'free'
+        // (§5.2 / nullable-default semantics); a tier subscriber whose
+        // trial expired must lose tier access, not keep it forever.
+        User::whereIn('id', $userIds)->update(['plan' => 'free', 'tier' => null]);
 
         return $expired->count();
     }
@@ -155,7 +159,12 @@ class TrialService
             'status' => 'expired',
             'data_retention_starts_at' => $now,
         ]);
-        User::whereIn('id', $userIds)->update(['plan' => 'free']);
+        // Reset legacy billing-compat column AND canonical gating column.
+        // The cancelled subscriber retained access until current_period_end
+        // (cancelSubscription deliberately does NOT touch the user); now
+        // that the period has passed, tier access is revoked. tier => null
+        // → TierResolver resolves to 'free' (§5.2).
+        User::whereIn('id', $userIds)->update(['plan' => 'free', 'tier' => null]);
 
         return $expired->count();
     }
