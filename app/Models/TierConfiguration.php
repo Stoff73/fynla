@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class TierConfiguration extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'tier', 'display_name',
         'price_monthly_pence', 'price_annual_pence', 'revolut_plan_variation_id',

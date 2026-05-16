@@ -28,7 +28,13 @@ class TierConfigurationStore
             ->firstOrFail();
     }
 
-    /** Count cap for an entity at a tier. null = unlimited / not count-gated. */
+    /**
+     * Count cap for an entity at a tier. null = unlimited / not count-gated.
+     *
+     * Intentionally conflates "key absent (entity not count-gated)" and
+     * "key present but null (explicitly unlimited)" — both return null by
+     * design, since callers treat either as "no cap to enforce".
+     */
     public function capFor(string $tier, string $entityKey): ?int
     {
         $caps = $this->forTier($tier)->count_caps ?? [];
@@ -67,7 +73,7 @@ class TierConfigurationStore
             'open_api_affordance', 'is_active',
         ]));
 
-        return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($tier, $allowed, $actor) {
+        return AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($tier, $allowed, $actor, $source) {
             $row = TierConfiguration::where('tier', $tier)->firstOrFail();
             $before = $row->only(array_keys($allowed));
             $row->fill(array_merge($allowed, ['updated_by' => $actor->id]))->save();
@@ -80,7 +86,7 @@ class TierConfigurationStore
                 'model_id' => $row->id,
                 'old_values' => $before,
                 'new_values' => $row->only(array_keys($allowed)),
-                'metadata' => ['ingest_source' => 'admin'],
+                'metadata' => ['ingest_source' => $source->value],
             ]);
 
             unset($this->cache[$tier]);
