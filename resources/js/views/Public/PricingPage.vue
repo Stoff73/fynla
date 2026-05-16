@@ -466,10 +466,23 @@ export default {
   methods: {
     async fetchPlans() {
       try {
-        const response = await api.get('/payment/plans');
-        const plansList = response.data.plans || [];
+        // Primary source: live tier store (PR 4). Falls back gracefully if unavailable.
+        const response = await api.get('/pricing-config');
+        const tiersList = response.data.data || [];
+        // Map tiers in order (free, tier1, tier2, tier3) to the four plan card slugs
+        const tierToSlug = ['student', 'standard', 'family', 'pro'];
         const map = {};
-        plansList.forEach(p => { map[p.slug] = p; });
+        tiersList.forEach((tier, index) => {
+          const slug = tierToSlug[index];
+          if (!slug) return;
+          map[slug] = {
+            monthly_price: tier.price_monthly_pence,
+            yearly_price: tier.price_annual_pence,
+            launch_monthly_price: tier.price_monthly_pence,
+            launch_yearly_price: tier.price_annual_pence,
+            display_name: tier.display_name,
+          };
+        });
         this.plans = map;
       } catch {
         // Prices will show fallback
