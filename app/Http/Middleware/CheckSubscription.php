@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +37,22 @@ class CheckSubscription
         'api/settings/',
     ];
 
+    /**
+     * Route-prefix → capability-key mapping for tier-gated module routes.
+     * PR 7 adds estate entries here. Until then this map is empty and the
+     * capability check below is a no-op.
+     *
+     * Shape: [ 'api/estate/' => 'estate', ... ]
+     */
+    private const CAPABILITY_ROUTE_MAP = [
+        // PR 7: 'api/estate/' => 'estate',
+    ];
+
+    public function __construct(
+        private readonly TierConfigurationStore $tierStore,
+        private readonly TierResolver $tierResolver,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         // Feature flag: when payments are disabled, let everyone through
@@ -62,6 +81,16 @@ class CheckSubscription
             return $next($request);
         }
 
+        // Tier capability check — consults the store for routes in CAPABILITY_ROUTE_MAP.
+        // 'none' = denied regardless of subscription status.
+        // 'teaser' / 'limited' / 'full' = allow through (gating is handled at the
+        // feature level; CheckSubscription only enforces hard 'none' denials here).
+        // PR 7 populates CAPABILITY_ROUTE_MAP with estate entries.
+        $capabilityDenial = $this->checkCapability($request, $user);
+        if ($capabilityDenial !== null) {
+            return $capabilityDenial;
+        }
+
         // User has active subscription or is trialing — allow through
         if ($user->hasActivePlan() || $user->onTrial()) {
             return $next($request);
@@ -84,6 +113,42 @@ class CheckSubscription
             'error' => 'subscription_required',
             'message' => 'Your trial has expired. Please subscribe to continue.',
         ], 403);
+    }
+
+    /**
+     * Resolve capability for a tier-mapped route. Returns a 403 response when
+     * the user's tier has 'none' capability for the requested module, or null
+     * when the route is not in CAPABILITY_ROUTE_MAP or access is allowed.
+     *
+     * Called by PR 7 once the estate entry is added to CAPABILITY_ROUTE_MAP.
+     */
+    private function checkCapability(Request $request, User $user): ?Response
+    {
+        if (empty(self::CAPABILITY_ROUTE_MAP)) {
+            return null;
+        }
+
+        $path = $request->path();
+
+        foreach (self::CAPABILITY_ROUTE_MAP as $routePrefix => $entityKey) {
+            if (! str_starts_with($path, $routePrefix)) {
+                continue;
+            }
+
+            $tier = $this->tierResolver->resolve($user);
+            $capability = $this->tierStore->capabilityFor($tier, $entityKey);
+
+            if ($capability === 'none') {
+                return response()->json([
+                    'error' => 'capability_denied',
+                    'message' => 'Your plan does not include access to this module.',
+                ], 403);
+            }
+
+            return null;
+        }
+
+        return null;
     }
 
     private function isExcludedPath(Request $request): bool

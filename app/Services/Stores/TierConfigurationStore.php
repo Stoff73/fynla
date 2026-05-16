@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Stores\Exceptions\TierConfigValidationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class TierConfigurationStore
@@ -40,6 +41,33 @@ class TierConfigurationStore
         $caps = $this->forTier($tier)->count_caps ?? [];
 
         return $caps[$entityKey] ?? null;
+    }
+
+    /**
+     * All active tier configurations ordered free → tier1 → tier2 → tier3.
+     * Read-only consumer entry point so HTTP controllers never touch the
+     * TierConfiguration model directly (SP1 §12 single-source-of-truth moat).
+     *
+     * @return Collection<int, TierConfiguration>
+     */
+    public function allActiveOrdered(): Collection
+    {
+        return TierConfiguration::where('is_active', true)
+            ->orderByRaw("FIELD(tier,'free','tier1','tier2','tier3')")
+            ->get();
+    }
+
+    /**
+     * Every tier configuration (active and inactive) ordered free → tier1 →
+     * tier2 → tier3. Admin-screen read entry point so the admin controller
+     * never touches the TierConfiguration model directly (SP1 §12 moat).
+     *
+     * @return Collection<int, TierConfiguration>
+     */
+    public function allOrdered(): Collection
+    {
+        return TierConfiguration::orderByRaw("FIELD(tier,'free','tier1','tier2','tier3')")
+            ->get();
     }
 
     /** Capability verb (full|none|limited|teaser) for an entity at a tier. */

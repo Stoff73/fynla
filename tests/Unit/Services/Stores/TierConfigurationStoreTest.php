@@ -61,3 +61,21 @@ it('rejects a non-admin/seeder ingest source', function () {
     expect(fn () => $this->store->updateTier('free', ['price_monthly_pence' => 1], $admin, IngestSource::FORM))
         ->toThrow(TierConfigValidationException::class);
 });
+
+it('allActiveOrdered returns only active tiers ordered free → tier1 → tier2 → tier3', function () {
+    TierConfiguration::where('tier', 'tier2')->update(['is_active' => false]);
+
+    $tiers = $this->store->allActiveOrdered();
+
+    expect($tiers->pluck('tier')->all())->toBe(['free', 'tier1', 'tier3'])
+        ->and($tiers->every(fn ($t) => $t->is_active))->toBeTrue();
+});
+
+it('allOrdered returns every tier (active and inactive) in canonical order', function () {
+    TierConfiguration::where('tier', 'tier2')->update(['is_active' => false]);
+
+    $tiers = $this->store->allOrdered();
+
+    expect($tiers->pluck('tier')->all())->toBe(['free', 'tier1', 'tier2', 'tier3'])
+        ->and($tiers->firstWhere('tier', 'tier2')->is_active)->toBeFalse();
+});
