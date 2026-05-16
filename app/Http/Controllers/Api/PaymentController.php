@@ -40,7 +40,7 @@ class PaymentController extends Controller
     /** Tier keys accepted by this controller (SP2). */
     private const TIER_KEYS = ['free', 'tier1', 'tier2', 'tier3'];
 
-    /** Combined set for validation rules. */
+    /** Combined accepted set for the `plan` validation rule (legacy slugs + tier keys). */
     private const VALID_PLAN_SLUGS = ['student', 'standard', 'family', 'pro', 'free', 'tier1', 'tier2', 'tier3'];
 
     public function __construct(
@@ -92,7 +92,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,family,pro,free,tier1,tier2,tier3',
+            'plan' => 'required|string|in:'.implode(',', self::VALID_PLAN_SLUGS),
             'billing_cycle' => 'required|string|in:monthly,yearly',
             'discount_code' => 'nullable|string|max:50',
         ]);
@@ -377,6 +377,12 @@ class PaymentController extends Controller
                 'billing_cycle' => $billingCycle,
                 'discount_code_id' => null,
                 'discount_amount' => 0,
+                'revolut_payment_data' => [
+                    'order_id' => $revolutOrder['id'],
+                    'token' => $revolutOrder['token'],
+                    'state' => $revolutOrder['state'],
+                    'created_at' => $revolutOrder['created_at'] ?? now()->toIso8601String(),
+                ],
             ]);
 
             if (config('awin.enabled') && ! $user->is_admin) {
@@ -528,7 +534,7 @@ class PaymentController extends Controller
                     'plan' => $planSlug,
                     'trial_ends_at' => null,
                 ];
-                if (in_array($planSlug, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+                if (in_array($planSlug, self::TIER_KEYS, true)) {
                     $userUpdate['tier'] = $planSlug;
                 }
                 $user->update($userUpdate);
@@ -654,7 +660,7 @@ class PaymentController extends Controller
         }
 
         $request->validate([
-            'plan' => 'required|string|in:student,standard,family,pro,free,tier1,tier2,tier3',
+            'plan' => 'required|string|in:'.implode(',', self::VALID_PLAN_SLUGS),
         ]);
 
         $subscription = $user->subscription;
@@ -1020,7 +1026,7 @@ class PaymentController extends Controller
 
         $request->validate([
             'code' => 'required|string|max:50',
-            'plan' => 'required|string|in:student,standard,family,pro,free,tier1,tier2,tier3',
+            'plan' => 'required|string|in:'.implode(',', self::VALID_PLAN_SLUGS),
             'billing_cycle' => 'required|string|in:monthly,yearly',
         ]);
 

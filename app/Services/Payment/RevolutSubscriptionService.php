@@ -446,7 +446,9 @@ class RevolutSubscriptionService
      *
      * @param  string  $displayName  Human-readable tier name, e.g. "Tier 2"
      * @param  int  $monthlyPricePence  Monthly price in pence
-     * @return array{id: string} Array with at minimum 'id' key (variation id)
+     * @return array{id: string|null, plan_id: string} Variation id (null if
+     *                                                 Revolut returned no
+     *                                                 variation) + plan id
      */
     public function upsertTierPlan(string $displayName, int $monthlyPricePence): array
     {
@@ -483,11 +485,18 @@ class RevolutSubscriptionService
         $data = $response->json();
         $variationId = $data['variations'][0]['id'] ?? null;
 
-        Log::info('Revolut tier plan upserted', [
-            'display_name' => $displayName,
-            'plan_id' => $data['id'],
-            'variation_id' => $variationId,
-        ]);
+        if ($variationId === null) {
+            Log::warning('Revolut upsertTierPlan returned no variation id', [
+                'display_name' => $displayName,
+                'plan_id' => $data['id'],
+            ]);
+        } else {
+            Log::info('Revolut tier plan upserted', [
+                'display_name' => $displayName,
+                'plan_id' => $data['id'],
+                'variation_id' => $variationId,
+            ]);
+        }
 
         return ['id' => $variationId, 'plan_id' => $data['id']];
     }
