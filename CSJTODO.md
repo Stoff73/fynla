@@ -1,7 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
-*Previous session: 16 May 2026 — session 2 clear (repo/PR cleanup; #303 + #326 merged)*
+*Last updated: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
+*Previous session: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
+
+---
+
+## Session 2 (17 May 2026) — PR #332 code review + all findings fixed (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean, all pushed (`275d6ab`, `c4c1ddf`) · **PR #332:** OPEN, MERGEABLE, all review findings resolved · **Flag default:** `legacy` (unchanged)
+
+### Done
+- [x] `code-review:code-review` skill run on PR #332 — 5 parallel passes + confidence scoring; #1 (score 100) posted as formal review comment
+- [x] CSJ: "fix all issues" → `systematic-debugging`; Tier-A code fixes `275d6ab` (#1 closure thread + regression test, #3 Rule #3 dead-code, #6 finally, #8 docblock)
+- [x] Prompt-text trio fixed **side-by-side** legacy+unified `c4c1ddf` (#7 ISA contradiction, #5 DC/SIPP spelled out, #2 dangling existing_records → clarifying-question); snapshot regenerated
+- [x] #4 dropped per CSJ (flag switch working as designed; handoff archived); #9 non-issue (score 0)
+- [x] Verified: 870 passed/1 skipped under BOTH flags; Architecture 97; byte-stable snapshot green; resolution note posted to PR
+- [x] Handover session-2-clear written (repo + vault mirror)
+
+### Outstanding / next session
+- [ ] **CSJ: review/merge PR #332 → dev** (real feature code; flag-gated default `legacy`; all review findings now resolved). Do NOT self-approve.
+- [ ] **CRITICAL (overdue, deferred again by tripwire): vault-sync must run + carry rewritten `April/April24Updates/spec/00-canonical.md` to vault** — `/April/` gitignored; lost on next `/April/`-tree change. Top priority next EOD `/session-end`.
+- [ ] tech-debt-session on this session's diff (8 files) — deferred (tripwire); low risk
+- [ ] Flipping `FYN_PROMPT_ARCH=unified` = separate explicit CSJ decision (out of scope)
+- [ ] Next workstream candidate: freemium refactor SP2 (entry `superpowers:brainstorming`; worktree `tender-bassi-375ee8`/`freemium` clean, leave it)
 
 ---
 
