@@ -1,0 +1,528 @@
+{
+  "id": "young_family",
+  "life_stage": "mid_career",
+  "name": "Emily & James Carter",
+  "tagline": "Young family building their future",
+  "description": "A young married couple in their early 30s with two children, mortgage, and workplace pensions. Good earnings but gaps in protection coverage.",
+  "netWorthRange": "£80k - £120k",
+  "focus": "Protection gaps, emergency fund",
+
+  "user": {
+    "first_name": "James",
+    "last_name": "Carter",
+    "email": "james.carter@example.com",
+    "date_of_birth": "1990-05-15",
+    "age": 34,
+    "gender": "male",
+    "marital_status": "married",
+    "annual_income": 75000,
+    "employment_status": "employed",
+    "employer_name": "TechCorp Ltd",
+    "occupation": "Senior Software Developer",
+    "target_retirement_age": 65,
+    "target_retirement_income": 35000,
+    "monthly_expenditure": 4800,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "undergraduate",
+    "has_will": false,
+    "has_lasting_power_of_attorney": false,
+    "address": {
+      "line_1": "42 Oak Avenue",
+      "city": "Birmingham",
+      "postcode": "B15 2TT"
+    },
+    "domicile": {
+      "country_of_birth": "United Kingdom",
+      "domicile_status": "uk_domiciled"
+    }
+  },
+
+  "spouse": {
+    "first_name": "Emily",
+    "last_name": "Carter",
+    "date_of_birth": "1992-08-22",
+    "age": 32,
+    "gender": "female",
+    "annual_income": 48000,
+    "employment_status": "employed",
+    "employer_name": "MediaGroup PLC",
+    "occupation": "Marketing Manager",
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "undergraduate",
+    "target_retirement_age": 65,
+    "target_retirement_income": 30000
+  },
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "Oliver",
+      "last_name": "Carter",
+      "relationship": "child",
+      "date_of_birth": "2018-03-10",
+      "age": 6,
+      "is_dependent": true
+    },
+    {
+      "id": 2,
+      "first_name": "Sophie",
+      "last_name": "Carter",
+      "relationship": "child",
+      "date_of_birth": "2021-07-25",
+      "age": 3,
+      "is_dependent": true
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "Family Home",
+      "address": "42 Oak Avenue, Birmingham, B15 2TT",
+      "property_type": "main_residence",
+      "current_value": 320000,
+      "purchase_price": 285000,
+      "purchase_date": "2019-06-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "is_primary_residence": true,
+      "bedrooms": 3,
+      "estimated_rental_value": 0,
+      "council_tax_band": "D",
+      "monthly_council_tax": 185,
+      "monthly_gas": 95,
+      "monthly_electricity": 75,
+      "monthly_water": 40,
+      "monthly_building_insurance": 35,
+      "monthly_contents_insurance": 25,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 0
+    }
+  ],
+
+  "mortgages": [
+    {
+      "id": 1,
+      "property_id": 1,
+      "lender_name": "Nationwide",
+      "outstanding_balance": 245000,
+      "original_amount": 256500,
+      "mortgage_type": "repayment",
+      "interest_rate": 4.89,
+      "rate_type": "fixed",
+      "fixed_rate_end_date": "2026-06-30",
+      "monthly_payment": 1485,
+      "remaining_term_months": 276,
+      "mortgage_start_date": "2019-06-15",
+      "ownership_type": "joint",
+      "ownership_percentage": 50
+    }
+  ],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "James's Current Account",
+      "provider_name": "Lloyds Bank",
+      "account_type": "current_account",
+      "current_balance": 3250,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 0,
+      "notes": "Main salary account"
+    },
+    {
+      "id": 2,
+      "account_name": "Emily's Current Account",
+      "provider_name": "Nationwide",
+      "account_type": "current_account",
+      "current_balance": 2180,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "monthly_contribution": 0,
+      "notes": "Emily's salary account"
+    },
+    {
+      "id": 3,
+      "account_name": "Carter Savings Account",
+      "provider_name": "Marcus",
+      "account_type": "instant_access",
+      "current_balance": 8500,
+      "interest_rate": 4.55,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 200,
+      "notes": "Emergency fund and general savings"
+    },
+    {
+      "id": 4,
+      "account_name": "Oliver's Junior ISA",
+      "provider_name": "Vanguard",
+      "account_type": "junior_isa",
+      "current_balance": 2800,
+      "interest_rate": 0,
+      "is_isa": true,
+      "isa_subscription_current_year": 1200,
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "For Oliver's future education"
+    },
+    {
+      "id": 5,
+      "account_name": "Sophie's Junior ISA",
+      "provider_name": "Vanguard",
+      "account_type": "junior_isa",
+      "current_balance": 1400,
+      "interest_rate": 0,
+      "is_isa": true,
+      "isa_subscription_current_year": 1200,
+      "ownership_type": "individual",
+      "monthly_contribution": 100,
+      "notes": "For Sophie's future education"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "James's Stocks & Shares ISA",
+      "provider_name": "Vanguard",
+      "account_type": "isa",
+      "current_value": 15000,
+      "annual_contribution": 4800,
+      "monthly_contribution_amount": 400,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 4800,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0.15,
+      "advisor_fee_percent": 0,
+      "risk_profile": "balanced",
+      "risk_preference": "medium",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard LifeStrategy 80%",
+          "ticker": "VGLS80",
+          "isin": "GB00B4PQW151",
+          "asset_type": "fund",
+          "units": 59,
+          "initial_unit_cost": 235.00,
+          "current_unit_price": 255.00,
+          "current_value": 15045,
+          "allocation_percentage": 100,
+          "annual_fee": 0.22
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "TechCorp Pension Scheme",
+      "provider_name": "Scottish Widows",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 45000,
+      "employee_contribution_percent": 5,
+      "employer_contribution_percent": 5,
+      "employer_matching_limit": 10,
+      "annual_salary": 75000,
+      "retirement_age": 65,
+      "ownership_type": "individual",
+      "risk_preference": "medium",
+      "platform_fee_percent": 0.40,
+      "notes": "Employer matches contributions up to 10% of salary"
+    },
+    {
+      "id": 2,
+      "scheme_name": "MediaGroup Pension",
+      "provider_name": "Aviva",
+      "pension_type": "occupational",
+      "scheme_type": "workplace",
+      "current_fund_value": 22000,
+      "employee_contribution_percent": 4,
+      "employer_contribution_percent": 5,
+      "annual_salary": 48000,
+      "retirement_age": 65,
+      "ownership_type": "individual",
+      "risk_preference": "medium",
+      "platform_fee_percent": 0.45,
+      "owner": "spouse",
+      "notes": "Emily's workplace pension"
+    }
+  ],
+
+  "db_pensions": [],
+
+  "state_pension": {
+    "forecast_weekly_amount": 176.96,
+    "forecast_annual_amount": 9202,
+    "state_pension_age": 68,
+    "qualifying_years": 13,
+    "years_remaining": 33
+  },
+
+  "spouse_state_pension": {
+    "forecast_weekly_amount": 165.26,
+    "forecast_annual_amount": 8594,
+    "state_pension_age": 68,
+    "qualifying_years": 11,
+    "years_remaining": 35
+  },
+
+  "life_insurance_policies": [
+    {
+      "id": 1,
+      "policy_type": "level_term",
+      "provider_name": "Legal & General",
+      "sum_assured": 350000,
+      "premium_amount": 32,
+      "premium_frequency": "monthly",
+      "policy_start_date": "2019-07-01",
+      "policy_end_date": "2044-07-01",
+      "in_trust": false,
+      "joint_life": true,
+      "policy_reference": "LG-TERM-789456",
+      "notes": "Joint level term for mortgage protection",
+      "beneficiaries": "Emily Carter (spouse), Oliver Carter (child), Sophie Carter (child)"
+    }
+  ],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [
+    {
+      "id": 1,
+      "liability_type": "hire_purchase",
+      "liability_name": "Ford Focus Car Finance",
+      "current_balance": 12000,
+      "original_amount": 18000,
+      "interest_rate": 6.9,
+      "monthly_payment": 350,
+      "start_date": "2022-09-01",
+      "end_date": "2026-09-01",
+      "lender_name": "Ford Credit"
+    }
+  ],
+
+  "gifts": [],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [],
+
+  "expenditure": {
+    "total_monthly": 4800,
+    "categories": {
+      "food_groceries": 650,
+      "transport_fuel": 280,
+      "healthcare_medical": 60,
+      "insurance": 200,
+      "mobile_phones": 90,
+      "internet_tv": 65,
+      "subscriptions": 50,
+      "clothing_personal_care": 180,
+      "entertainment_dining": 280,
+      "holidays_travel": 250,
+      "pets": 0,
+      "childcare": 950,
+      "school_fees": 0,
+      "school_lunches": 70,
+      "school_extras": 100,
+      "university_fees": 0,
+      "children_activities": 180,
+      "gifts_charity": 120,
+      "regular_savings": 200,
+      "other_expenditure": 175
+    }
+  },
+
+  "key_concerns": [
+    "Do we have enough life insurance if something happens?",
+    "How much should we have in our emergency fund?",
+    "Are we saving enough for our children's education?",
+    "When can we afford to move to a bigger house?"
+  ],
+
+  "highlights": {
+    "protection_gaps": [
+      "No critical illness coverage - gap identified",
+      "No income protection - gap identified",
+      "Life insurance exists but adequacy score shows potential shortfall"
+    ],
+    "net_worth_range": "80k - 120k",
+    "primary_focus": "Protection gaps, emergency fund"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "medium",
+    "spouse_risk_level": "medium",
+    "notes": "Young couple with long investment horizon, balanced approach suitable for long-term growth"
+  },
+
+  "will": {
+    "has_will": false,
+    "spouse_primary_beneficiary": true,
+    "spouse_bequest_percentage": 100,
+    "executor_name": null,
+    "executor_notes": null,
+    "will_last_updated": null,
+    "bequests": [],
+    "spouse_will": {
+      "has_will": false
+    }
+  },
+
+  "goals": [
+    {
+      "goal_name": "Emergency Fund",
+      "goal_type": "emergency_fund",
+      "description": "Build 6 months of expenses as emergency buffer",
+      "target_amount": 25000,
+      "current_amount": 8500,
+      "target_date": "2026-12-31",
+      "start_date": "2024-06-01",
+      "assigned_module": "savings",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 400,
+      "contribution_streak": 8,
+      "longest_streak": 8,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Oliver's University Fund",
+      "goal_type": "education",
+      "description": "Save for Oliver's university education in 13 years",
+      "target_amount": 50000,
+      "current_amount": 5000,
+      "target_date": "2039-09-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "investment",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 200,
+      "contribution_streak": 12,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Sophia's University Fund",
+      "goal_type": "education",
+      "description": "Save for Sophia's university education in 15 years",
+      "target_amount": 50000,
+      "current_amount": 2800,
+      "target_date": "2041-09-01",
+      "start_date": "2024-01-01",
+      "assigned_module": "investment",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 150,
+      "contribution_streak": 10,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Family Holiday Fund",
+      "goal_type": "holiday",
+      "description": "Annual family holiday to Europe",
+      "target_amount": 4000,
+      "current_amount": 1200,
+      "target_date": "2026-07-01",
+      "start_date": "2025-09-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 300,
+      "contribution_streak": 4,
+      "longest_streak": 4,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    }
+  ],
+
+  "life_events": [
+    {
+      "event_name": "Move to Larger Home",
+      "event_type": "large_purchase",
+      "description": "Upgrade to a 4-bedroom house when children need more space. Will require larger deposit and stamp duty.",
+      "amount": 35000,
+      "impact_type": "expense",
+      "expected_date": "2029-06-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "James's Parents' Gift",
+      "event_type": "gift_received",
+      "description": "James's parents have mentioned helping with house deposit when they downsize",
+      "amount": 30000,
+      "impact_type": "income",
+      "expected_date": "2028-03-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Replace Family Car",
+      "event_type": "large_purchase",
+      "description": "Replace the Ford Focus with a larger family vehicle",
+      "amount": 18000,
+      "impact_type": "expense",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Oliver Starting School",
+      "event_type": "custom_expense",
+      "description": "One-off costs for school uniform, equipment and settling in expenses",
+      "amount": 800,
+      "impact_type": "expense",
+      "expected_date": "2026-09-01",
+      "certainty": "confirmed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Emily's Career Bonus",
+      "event_type": "bonus",
+      "description": "Expected bonus after completing professional qualification",
+      "amount": 5000,
+      "impact_type": "income",
+      "expected_date": "2026-12-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "individual",
+      "owner": "spouse"
+    }
+  ]
+}

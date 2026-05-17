@@ -24,6 +24,10 @@ use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\Fyn\FynContextAssembler;
+use App\Services\AI\Fyn\FynPromptMode;
+use App\Services\AI\Fyn\FynSystemPrompt;
+use App\Services\AI\Fyn\FynTurnContext;
 use App\Services\AI\KycGateChecker;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
@@ -77,6 +81,13 @@ trait HasAiChat
      * try/finally block in chatWithPromptOverride().
      */
     private ?string $systemPromptOverride = null;
+
+    private ?string $unifiedOnboardingFocus = null;
+
+    public function setUnifiedOnboardingFocus(?string $focus): void
+    {
+        $this->unifiedOnboardingFocus = $focus;
+    }
 
     /** @var list<string>|null */
     private ?array $allowedToolsOverride = null;
@@ -150,6 +161,17 @@ trait HasAiChat
         $systemPrompt = $this->systemPromptOverride
             ?? $this->buildSystemPrompt($user, $currentRoute, $classification, $kycResult, $conversation);
         $messageHistory = $this->buildMessageHistory($conversation);
+
+        if (FynPromptMode::isUnified()) {
+            $messageHistory = $this->injectUnifiedTurnContext(
+                $messageHistory,
+                $user,
+                $message,
+                $currentRoute,
+                $classification,
+                $conversation,
+            );
+        }
 
         // Model selection
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
@@ -791,6 +813,10 @@ trait HasAiChat
         ?array $kycResult = null,
         ?AiConversation $conversation = null,
     ): string {
+        if (FynPromptMode::isUnified()) {
+            return FynSystemPrompt::text();
+        }
+
         $builder = app(AdvicePromptBuilder::class);
 
         return $builder->build(
@@ -808,6 +834,51 @@ trait HasAiChat
             orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
             conversation: $conversation,
         );
+    }
+
+    /**
+     * Unified mode: replace the last user message's content with the
+     * FynContextAssembler block (context + the message itself). In-memory
+     * only — the persisted row keeps the raw message. The onboarding seam
+     * (Task 8) sets $this->unifiedOnboardingFocus before delegating; when
+     * it is null this is an advice turn.
+     */
+    private function injectUnifiedTurnContext(
+        array $messageHistory,
+        User $user,
+        string $message,
+        ?string $currentRoute,
+        ?array $classification,
+        AiConversation $conversation,
+    ): array {
+        $focus = $this->unifiedOnboardingFocus;
+        $ctx = FynTurnContext::make(
+            user: $user,
+            message: $message,
+            currentRoute: $currentRoute,
+            mode: $focus !== null ? 'onboarding' : 'advice',
+            onboardingFocus: $focus,
+            isPreview: (bool) $user->is_preview_user,
+            classification: $classification,
+            conversation: $conversation,
+        );
+
+        // Forward the same sized-analysis closure the legacy path supplies
+        // (see buildSystemPrompt above) so the POSITION bucket gets real
+        // financial context instead of the "unavailable" sentinel.
+        $block = app(FynContextAssembler::class)->build(
+            $ctx,
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+        );
+
+        for ($i = count($messageHistory) - 1; $i >= 0; $i--) {
+            if (($messageHistory[$i]['role'] ?? null) === 'user') {
+                $messageHistory[$i]['content'] = $block;
+                break;
+            }
+        }
+
+        return $messageHistory;
     }
 
     // ─── Message Persistence & History ────────────────────────────────
@@ -1082,6 +1153,7 @@ trait HasAiChat
     public function clearChatOverrides(): void
     {
         $this->systemPromptOverride = null;
+        $this->unifiedOnboardingFocus = null;
         $this->allowedToolsOverride = null;
         $this->skipUserMessagePersistence = false;
         $this->toolsListOverride = null;

@@ -1,0 +1,72 @@
+# .goal — Standing Autonomous Mission (owned by CSJ)
+
+Set 2026-05-15 by CSJ. This file is the persistent mission contract. Every
+session-start instance MUST read this after the handover and continue the
+mission WITHOUT asking CSJ for permission.
+
+## Mission
+
+1. **Deliver ALL open PRs.**
+   - #304 (coordinatingagent-foruserorjoint-scope) — admin-merge eligible. Deploy
+     to csjones first, smoke, then `gh pr merge --merge --admin`.
+   - #303 (mobile-taxconfig-migration) — GATED on CSJ iOS device verification.
+     Do the code review + csjones non-iOS smoke, then SURFACE that iOS sign-off
+     is the only remaining gate. Do NOT merge without iOS verification. Do not
+     block the rest of the mission on it.
+   - #249 ([PARKED] python sidecar) — DO NOT merge, DO NOT delete. Leave parked
+     (see memory reference_pr249_python_sidecar_parked.md).
+
+2. **Fully implement the Savings Canonical Store plan** at
+   `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings-plan.md`
+   (spec: `docs/superpowers/specs/2026-05-14-module-canonical-store-design.md`).
+   Both are tracked on `dev`. Sub-project 1 / pass 1. Remaining roadmap:
+   - PR 5d — Tax strategies cluster (7 files) — NEXT
+   - PR 5e — Investment ISA consumers (3 files)
+   - PR 5f — Coordination + Goals (3 files)
+   - PR 5g — AI prompt + profile (4 files)
+   - PR 5h — Agents + savings-internal (6 files)
+   - PR 6  — derived columns + snapshot table (plan §6, much bigger)
+   - PR 7  — tier-cap enforcement
+   - PR 8  — TBD (read plan)
+   Each sub-PR: implementer → reviewer → csjones smoke → admin-merge, per the
+   recipe in the plan and the 5c-1/5c-2 review learnings in the 15 May handover.
+
+3. **E2E test** every shipped change (Pest + browser/tinker smoke on csjones per
+   the deploy gate). Loop until GREEN per the plan (CLAUDE.md Rule #15).
+
+4. **dev → main release.** dev is 100+ commits ahead of main and carries an
+   UNPATCHED HIGH-severity data-leak fix (PR #313). Cut a `dev → main` release
+   PR at a sensible checkpoint (after #304 + a batch of 5x PRs land, or sooner
+   if production risk warrants). Pattern mirrors PR #280.
+
+## Autonomous context management (NON-NEGOTIABLE)
+
+When the context-watch tripwire fires (>160k / >180k / >195k tokens) OR context
+feels heavy mid-task:
+
+1. Invoke the `context-handover` skill. It commits a `wip: context-handover
+   snapshot`, writes a `-clear` handover into today's `<Month><Day>Updates/`
+   folder (repo + vault), and records the exact pick-up point INCLUDING this
+   mission and which PR/step is in flight.
+2. The harness clears context (`/clear`).
+3. `session-start` runs and auto-continues: it reads the handover, then reads
+   THIS `.goal`, and resumes the mission from the in-flight step.
+
+Do NOT stop to ask "should I continue?" — the answer is always yes until the
+mission's PR roadmap is fully delivered or CSJ explicitly redirects. Do NOT
+write reports/summaries mid-loop. Reports come AFTER green.
+
+## Working location
+
+Work in the main checkout `/Users/CSJ/Desktop/fynla` on feature branches off
+`dev` (memory feedback_never_switch_branches: sequential work in main dir, not
+self-worktrees). The plan/spec live on branch `claude/cranky-lewin-6bc99c`;
+they have been (or must be) landed onto dev via a docs PR so the contract is
+co-located with the work and survives every context clear.
+
+## Exit condition
+
+This mission is complete only when: all PR-roadmap items (5d→5h, 6, 7, 8) are
+merged to dev, #304 is merged, #303 is surfaced for iOS sign-off, and a
+dev → main release has shipped the security fix. Until then, every fresh
+instance keeps going.
