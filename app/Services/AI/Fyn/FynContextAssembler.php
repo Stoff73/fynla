@@ -16,6 +16,12 @@ use App\Services\TaxConfigService;
  * block prepended in-memory to the current user turn. Bucket membership
  * comes from FynContextSelector; block content reuses the existing
  * AdvicePromptBuilder public builders verbatim (no behavioural drift).
+ *
+ * The caller MUST forward the same $orchestrateAnalysis closure the legacy
+ * path passes (HasAiChat::buildSystemPrompt) so the POSITION bucket gets
+ * real financial context — passing null makes buildFinancialContext
+ * short-circuit to its "analysis service not provided" sentinel, which
+ * silently strips the user's financial position from every advice turn.
  */
 final class FynContextAssembler
 {
@@ -26,13 +32,13 @@ final class FynContextAssembler
         private readonly TaxConfigService $taxConfig,
     ) {}
 
-    public function build(FynTurnContext $ctx): string
+    public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
     {
         $buckets = $this->selector->buckets($ctx);
         $has = fn (ContextBucket $b): bool => in_array($b, $buckets, true);
 
         $firstName = $this->resolveFirstName($ctx->user);
-        $taxYear = $this->taxConfig->getTaxYear() ?? '2026/27';
+        $taxYear = $this->taxConfig->getTaxYear();
 
         $lines = [];
         $lines[] = '<context>';
@@ -53,7 +59,7 @@ final class FynContextAssembler
         }
 
         if ($has(ContextBucket::POSITION)) {
-            $fin = $this->advice->buildFinancialContext($ctx->user, null, $ctx->classification);
+            $fin = $this->advice->buildFinancialContext($ctx->user, $orchestrateAnalysis, $ctx->classification);
             $lines[] = "<financial_context>\n{$fin}\n</financial_context>";
             $rec = $this->advice->buildExistingRecordsSummary($ctx->user, $ctx->classification);
             $lines[] = "<existing_records>\n{$rec}\n</existing_records>";

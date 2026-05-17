@@ -863,7 +863,13 @@ trait HasAiChat
             conversation: $conversation,
         );
 
-        $block = app(FynContextAssembler::class)->build($ctx);
+        // Forward the same sized-analysis closure the legacy path supplies
+        // (see buildSystemPrompt above) so the POSITION bucket gets real
+        // financial context instead of the "unavailable" sentinel.
+        $block = app(FynContextAssembler::class)->build(
+            $ctx,
+            orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
+        );
 
         for ($i = count($messageHistory) - 1; $i >= 0; $i--) {
             if (($messageHistory[$i]['role'] ?? null) === 'user') {

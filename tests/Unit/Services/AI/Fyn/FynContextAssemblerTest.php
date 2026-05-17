@@ -51,6 +51,26 @@ it('emits POSITION + READINESS on a non-factual advice turn', function (): void 
         ->and($out)->toContain('<data_completeness>');
 });
 
+it('feeds the orchestrateAnalysis callable through to financial_context', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'Should I contribute more to my pension?',
+        currentRoute: '/net-worth/retirement', mode: 'advice', onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution'],
+    );
+
+    $out = app(FynContextAssembler::class)->build(
+        $ctx,
+        orchestrateAnalysis: fn (int $userId): array => ['module_analysis' => []],
+    );
+
+    // With a callable supplied, AdvicePromptBuilder must NOT short-circuit to
+    // the "analysis service not provided" sentinel (parity regression guard:
+    // unified must match the legacy path which always supplies the callable).
+    expect($out)->toContain('<financial_context>')
+        ->and($out)->not->toContain('analysis service not provided');
+});
+
 it('emits CAPTURE block and NOT position on an onboarding turn', function (): void {
     $ctx = FynTurnContext::make(
         user: $this->user, message: 'Halifax ISA £10k', currentRoute: null,

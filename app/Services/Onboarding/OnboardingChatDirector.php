@@ -28,7 +28,9 @@ use Illuminate\Support\Facades\Log;
  *
  * The director owns every turn except asset_capture. For asset_capture it
  * delegates to CoordinatingAgent::chat() with a restricted system prompt
- * (OnboardingPromptBuilder) and the focus-filtered create_* tool list.
+ * (OnboardingPromptBuilder under FYN_PROMPT_ARCH=legacy; FynSystemPrompt
+ * under =unified — see resolveUnifiedRestrictedPrompt) and the
+ * focus-filtered create_* tool list.
  *
  * Control flow:
  *
@@ -1853,10 +1855,14 @@ PROMPT;
             ];
 
             return;
-        }
-
-        if ($unifiedFocus !== null) {
-            $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+        } finally {
+            // Always clear the unified onboarding focus — including the
+            // \Throwable path above, which returns before this point. A
+            // leaked focus would make the next advice turn on this agent
+            // build an onboarding-mode FynTurnContext.
+            if ($unifiedFocus !== null) {
+                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+            }
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
