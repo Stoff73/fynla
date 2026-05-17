@@ -1,7 +1,27 @@
 # CSJTODO — Fynla
 
-*Last updated: 16 May 2026 — session 2 clear (repo/PR cleanup; #303 + #326 merged, #325 closed superseded, branches pruned)*
-*Previous session: 14 May 2026 — session 9 (REVIEW §4 High #32 forUserOrJoint scope migration PR #304)*
+*Last updated: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
+*Previous session: 16 May 2026 — session 2 clear (repo/PR cleanup; #303 + #326 merged)*
+
+---
+
+## Session 1 (17 May 2026) — Fyn prompt-rework plan COMPLETE (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean, all pushed · **PR opened:** #332 (`fynPromptRework` → `dev`, OPEN) · **Tag pushed:** `fyn-two-prompt-pre-unify` @ `bd42dce`
+
+### Done
+- [x] Task 9 Step 6 Journey (c) GREEN under `FYN_PROMPT_ARCH=unified` — uid 73: SavingsAccount 189 Halifax ISA £10k + 190 Nationwide saver £5k, both one turn, 5-word ack (DB-verified)
+- [x] Parity doc Step 6 filled (3 journeys GREEN); committed `451d1b8`
+- [x] Task 10: canonical contract rewritten on disk (design spec §9); prompt docs → `prompts/archive/`; new `prompts/fyn-system-prompt.md`; CLAUDE.md Fyn paragraph; tag — committed `6b46d71`
+- [x] Architecture suite 97/0; `finishing-a-development-branch` → PR #332
+
+### Outstanding / next session
+- [ ] **CSJ: review/merge PR #332 → dev** (real feature code; flag-gated default `legacy`, zero behaviour change until flipped). Do NOT self-approve.
+- [ ] **CRITICAL: vault-sync must carry rewritten `April/April24Updates/spec/00-canonical.md` to vault** — `/April/` gitignored, on-disk rewrite NOT in git, lost on next `/April/`-tree change if not synced. Top priority next EOD session-end.
+- [ ] Flipping `FYN_PROMPT_ARCH=unified` = separate explicit CSJ decision (out of scope of plan/PR)
+- [ ] Next workstream candidate: freemium refactor SP2 (entry `superpowers:brainstorming`)
+
+---
 
 > **Note re sessions 5 + 8:** A parallel context (worktree `cranky-lewin-6bc99c`) is running a major system-overhaul brainstorming/planning track. It committed `handover-2026-05-14-session-5-clear.md` (design doc) and `handover-2026-05-14-session-8-clear.md` (sub-project 1 / pass 1 Savings canonical-store plan, 2,934 lines) directly to dev. That work is independent of the main dev-branch web/mobile taxConfig + REVIEW audit work. This handover is session 9 to avoid filename collision with the worktree's session 8.
 
