@@ -30,9 +30,11 @@ use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use App\Services\Tiers\TeaserGate;
+use App\Services\Tiers\TierResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,6 +52,8 @@ class EstateController extends Controller
         private readonly CacheInvalidationService $cacheInvalidation,
         private readonly TeaserGate $teaserGate,
         private readonly EstateIhtExposureDetector $ihtExposureDetector,
+        private readonly TierConfigurationStore $tierStore,
+        private readonly TierResolver $tierResolver,
     ) {}
 
     /**
@@ -68,12 +72,20 @@ class EstateController extends Controller
         if (! $this->teaserGate->isFull($user, 'estate')) {
             $teaser = $this->ihtExposureDetector->detect($user);
 
+            // Fix #3: CTA label/target from TierConfigurationStore (plan §7.3 — not hardcoded).
+            $resolvedTier = $this->tierResolver->resolve($user);
+            $nextTier = $this->tierStore->nextTierAbove($resolvedTier);
+            $ctaLabel = $nextTier
+                ? "Upgrade to {$nextTier['display_name']} to unlock full Estate Planning"
+                : 'Upgrade to unlock full Estate Planning';
+            $ctaTarget = $nextTier['tier'] ?? 'tier2';
+
             return response()->json([
                 'mode' => 'teaser',
                 'teaser' => $teaser,
                 'cta' => [
-                    'label' => 'Upgrade to unlock full Estate Planning',
-                    'target_tier' => 'tier2',
+                    'label' => $ctaLabel,
+                    'target_tier' => $ctaTarget,
                 ],
             ]);
         }
@@ -169,6 +181,7 @@ class EstateController extends Controller
     public function getComprehensiveEstatePlan(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
 
         try {
             // Eager load relationships needed for IHT calculations
@@ -198,11 +211,23 @@ class EstateController extends Controller
     }
 
     /**
+     * Abort 403 if the user is not on a full-Estate tier.
+     * Single shared guard used by all full-engine sub-routes (spec §10.2).
+     */
+    private function requireFullEstate(User $user): void
+    {
+        if (! $this->teaserGate->isFull($user, 'estate')) {
+            abort(403, 'Full Estate Planning requires Tier 2 or above.');
+        }
+    }
+
+    /**
      * Get net worth analysis
      */
     public function getNetWorth(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
 
         try {
             $netWorth = $this->netWorthAnalyzer->generateSummary($user->id);
@@ -226,6 +251,7 @@ class EstateController extends Controller
     public function getCashFlow(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
         $taxYear = $request->query('taxYear', $this->taxConfig->getTaxYear());
 
         try {

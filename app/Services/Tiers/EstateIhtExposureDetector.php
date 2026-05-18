@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Tiers;
 
+use App\Constants\TaxDefaults;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\TaxConfigService;
@@ -17,9 +18,6 @@ use App\Services\TaxConfigService;
  */
 class EstateIhtExposureDetector
 {
-    /** UK Inheritance Tax rate above thresholds. */
-    private const IHT_RATE = 0.40;
-
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly NetWorthService $netWorthService,
@@ -34,16 +32,21 @@ class EstateIhtExposureDetector
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
 
-        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? 325000);
-        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
+        // Fix #1: IHT rate from TaxConfigService, fallback to TaxDefaults constant (Rule #3).
+        $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
+
+        // Fix #2: NRB/RNRB fallback to TaxDefaults constants, not raw literals (Rule #3).
+        $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
+        $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
         $threshold = $nrb + $rnrb;
 
         $netWorthData = $this->netWorthService->calculateNetWorth($user);
         $netWorth = (float) ($netWorthData['net_worth'] ?? 0.0);
 
-        $exposed = $netWorth > $nrb;
+        // Fix #5: exposure flag uses NRB+RNRB threshold (consistent with liability calc below).
+        $exposed = $netWorth > $threshold;
         $estimatedLiabilityGbp = $exposed
-            ? max(0.0, round(($netWorth - $threshold) * self::IHT_RATE, 2))
+            ? max(0.0, round(($netWorth - $threshold) * $ihtRate, 2))
             : 0.0;
 
         $headline = $this->buildHeadline($exposed, $netWorth, $threshold, $estimatedLiabilityGbp);

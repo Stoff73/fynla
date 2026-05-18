@@ -68,3 +68,39 @@ it('teaser response contains no score keys — currency and headline only (Rule 
         ->not->toHaveKey('score')
         ->not->toHaveKey('rating');
 });
+
+it('free user POSTing to calculate-iht is forbidden (full engine gated, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/calculate-iht', [])
+        ->assertForbidden();
+});
+
+it('tier1 user POSTing to calculate-iht is forbidden (full engine gated, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier1']));
+
+    $this->postJson('/api/estate/calculate-iht', [])
+        ->assertForbidden();
+});
+
+it('free user GETting estate/net-worth is forbidden (full engine gated, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->getJson('/api/estate/net-worth')
+        ->assertForbidden();
+});
+
+it('free user GETting estate/cash-flow is forbidden (full engine gated, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->getJson('/api/estate/cash-flow')
+        ->assertForbidden();
+});
+
+it('tier2 user can POST to calculate-iht (full module access)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier2']));
+
+    // Just verify the gate allows through (may return calculation result or validation error, not 403)
+    $response = $this->postJson('/api/estate/calculate-iht', []);
+    expect($response->status())->not->toBe(403);
+});

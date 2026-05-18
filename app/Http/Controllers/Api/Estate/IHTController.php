@@ -40,6 +40,11 @@ class IHTController extends Controller
     {
         $user = $request->user();
 
+        // Full-only sub-route: spec §10.2 / SP2 PR7.
+        if (! $this->teaserGate->isFull($user, 'estate')) {
+            abort(403, 'Full Estate Planning requires Tier 2 or above.');
+        }
+
         try {
             // Determine user scenario
             $hasLinkedSpouse = $user->spouse_id !== null;
