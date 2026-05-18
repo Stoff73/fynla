@@ -82,6 +82,15 @@ trait HasAiChat
      */
     private ?string $systemPromptOverride = null;
 
+    /**
+     * Verbatim FynContextAssembler block captured for the current turn under
+     * the unified prompt architecture (the exact user-turn content sent to
+     * the provider). Persisted on the assistant ai_message for the admin
+     * AI-Audit forensic view. Null under legacy (system_prompt is already
+     * the complete prompt there) and reset per stream.
+     */
+    private ?string $assembledContext = null;
+
     private ?string $unifiedOnboardingFocus = null;
 
     public function setUnifiedOnboardingFocus(?string $focus): void
@@ -125,6 +134,10 @@ trait HasAiChat
         string $message,
         ?string $currentRoute = null
     ): \Generator {
+        // Reset per-stream forensic capture (mirrors $systemPromptOverride
+        // lifecycle). Set on the unified seam below; stays null under legacy.
+        $this->assembledContext = null;
+
         // Save user message (skipped when the caller has already persisted
         // the message itself — for example OnboardingChatDirector saves it
         // BEFORE delegating here, so the history reflects the user turn
@@ -229,6 +242,12 @@ trait HasAiChat
         $totalOutputTokens = 0;
         $totalCachedTokens = 0;
         $toolCallsSummary = [];
+        // Full, uncompressed tool round-trips for the admin AI-Audit view.
+        // tool_calls = what the model emitted; tool_results = what the tool
+        // produced (raw) AND the verbatim payload sent back to the model
+        // (post-compressToolResultForModel). No cap — admin-only forensic.
+        $fullToolCalls = [];
+        $fullToolResults = [];
         $messages = $messageHistory;
 
         // S0.11.2 — track the last tool dispatched + how many wrote so an
@@ -633,6 +652,13 @@ trait HasAiChat
                         'result_summary' => $this->summariseToolResult($toolResult),
                     ];
 
+                    $toolSeq = count($fullToolCalls);
+                    $fullToolCalls[] = [
+                        'sequence' => $toolSeq,
+                        'tool' => $functionName,
+                        'input' => $functionArgs,
+                    ];
+
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
 
                     // April30Updates F-3 — compress the tool result before
@@ -665,6 +691,13 @@ trait HasAiChat
                     }
 
                     $toolResultJson = json_encode($toolResultForModel);
+
+                    $fullToolResults[] = [
+                        'sequence' => $toolSeq,
+                        'is_error' => $isToolError,
+                        'raw' => $toolResult,
+                        'sent_to_llm' => $toolResultJson,
+                    ];
 
                     if ($isXai) {
                         // OpenAI format: each tool result is a separate message
@@ -759,6 +792,9 @@ trait HasAiChat
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
             'system_prompt' => $systemPrompt,
+            'assembled_context' => $this->assembledContext,
+            'tool_calls' => $fullToolCalls ?: null,
+            'tool_results' => $fullToolResults ?: null,
         ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
 
         if ($this->personaOverride !== null) {
@@ -892,6 +928,10 @@ trait HasAiChat
             $ctx,
             orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
         );
+
+        // Capture the exact user-turn content sent to the provider this turn
+        // for the admin AI-Audit forensic view (admin-only, never user-exposed).
+        $this->assembledContext = $block;
 
         for ($i = count($messageHistory) - 1; $i >= 0; $i--) {
             if (($messageHistory[$i]['role'] ?? null) === 'user') {

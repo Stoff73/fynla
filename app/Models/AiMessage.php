@@ -18,6 +18,7 @@ class AiMessage extends Model
         'content',
         'persona',
         'system_prompt',
+        'assembled_context',
         'tool_calls',
         'tool_results',
         'input_tokens',
