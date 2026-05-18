@@ -78,15 +78,6 @@ trait HasAiGuardrails
         );
     }
 
-    private const DAILY_TOKEN_LIMITS = [
-        'preview' => 100_000,
-        'trial' => 1_000_000,
-        'student' => 300_000,
-        'standard' => 1_000_000,
-        'family' => 1_500_000,
-        'pro' => 2_000_000,
-    ];
-
     // ─── Tier-store helpers (PR 6) ────────────────────────────────────────
 
     private function tierStore(): TierConfigurationStore
@@ -131,9 +122,8 @@ trait HasAiGuardrails
     /**
      * True when today's token total meets or exceeds the tier's daily hard
      * backstop. This is an abuse ceiling only — normal weekly soft-degrade
-     * never blocks chat. The legacy daily-limit gate in hasTokenBudget() now
-     * delegates here so the backstop comes from the tier store rather than the
-     * hardcoded DAILY_TOKEN_LIMITS array (which stays until PR 9).
+     * never blocks chat. The daily limit is read exclusively from the tier
+     * store (fyn_daily_hard_backstop); no hardcoded constants remain (PR 9).
      */
     protected function isDailyBackstopExceeded(User $user): bool
     {
@@ -220,30 +210,31 @@ trait HasAiGuardrails
     /**
      * Check if the user has remaining token budget for today.
      *
-     * PR 6: delegates to isDailyBackstopExceeded() so the ceiling comes from
-     * the tier store rather than the legacy DAILY_TOKEN_LIMITS array.
-     * DAILY_TOKEN_LIMITS is retained until PR 9 when all callers are gone.
-     * Preview users fall through to the legacy path (no tier row for them).
+     * PR 9: fully store-driven. Preview users are never budget-limited
+     * (isDailyBackstopExceeded short-circuits on is_preview_user).
      */
     protected function hasTokenBudget(User $user): bool
     {
-        if ($user->is_preview_user) {
-            $limit = self::DAILY_TOKEN_LIMITS['preview'];
-
-            return $this->getTodayTokenUsage($user) < $limit;
-        }
-
         return ! $this->isDailyBackstopExceeded($user);
     }
 
     /**
      * Get token usage details including reset time.
      * Resets daily at midnight (00:00 UTC).
+     *
+     * PR 9: limit is read from the tier store (fyn_daily_hard_backstop).
+     * Preview personas are never metered; a sentinel limit of PHP_INT_MAX
+     * is returned so callers receive a well-formed shape without a tier-store
+     * lookup (preview users have no tier row).
      */
     public function getTokenUsageDetails(User $user): array
     {
-        $plan = $user->is_preview_user ? 'preview' : $this->getUserPlan($user);
-        $limit = self::DAILY_TOKEN_LIMITS[$plan] ?? self::DAILY_TOKEN_LIMITS['student'];
+        if ($user->is_preview_user) {
+            $limit = PHP_INT_MAX;
+        } else {
+            $limit = $this->tierStore()->forTier($this->userTier($user))->fyn_daily_hard_backstop;
+        }
+
         $used = $this->getTodayTokenUsage($user);
         $remaining = max(0, $limit - $used);
 
