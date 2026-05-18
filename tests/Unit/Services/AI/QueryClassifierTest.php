@@ -77,6 +77,44 @@ describe('QueryClassifier', function () {
             expect($result['primary'])->toBe(QuerySchemas::SAVINGS_EMERGENCY);
             expect($result['related'])->toContain(QuerySchemas::AFFORDABILITY);
         });
+
+        // "protected for my savings" is FSCS deposit protection, NOT life
+        // insurance. The bare "am i protected" pattern must not claim it.
+        it('classifies "am i protected for my savings" as savings_accounts (FSCS, not life cover)', function () {
+            $result = $this->classifier->classify('am i protected for my savings');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "are my savings safe" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('are my savings safe');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "is my money protected in the bank" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('is my money protected in the bank');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "is my cash deposit protected" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('is my cash deposit protected');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        // Regression: genuine life-cover questions must still be protection.
+        it('still classifies "am i protected?" (no savings object) as protection_cover', function () {
+            $result = $this->classifier->classify('am i protected?');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
+
+        it('still classifies "am i covered enough" as protection_cover', function () {
+            $result = $this->classifier->classify('am i covered enough');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
+
+        it('still classifies "do I have enough life cover for my family" as protection_cover', function () {
+            $result = $this->classifier->classify('do I have enough life cover for my family');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
     });
 
     describe('net worth classification', function () {
