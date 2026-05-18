@@ -20,6 +20,9 @@ class DbTierGate implements TierGate
         if ($user->is_admin) {
             return true; // SP1 §14.2 allowlist
         }
+        if ($user->is_preview_user) {
+            return true; // preview personas sit entirely outside the gate (Rule #2)
+        }
         if ($this->resolver->isGrandfatheredLegacyPaid($user)) {
             return true; // spec §4.4 — never narrow a grandfathered paid sub
         }
@@ -38,6 +41,10 @@ class DbTierGate implements TierGate
 
     public function hardLimit(User $user, string $entityKey): ?int
     {
+        if ($user->is_preview_user) {
+            return null; // preview personas are unlimited — never surface a cap (Rule #2)
+        }
+
         return $this->store->capFor($this->resolver->resolve($user), $entityKey);
     }
 }
