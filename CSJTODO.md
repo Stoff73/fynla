@@ -1,7 +1,30 @@
 # CSJTODO — Fynla
 
-*Last updated: 18 May 2026 — session 10 clear (AiAudit `982dc28` Rule #15 browser verification GREEN; no code changes)*
-*Previous session: 18 May 2026 — session 9 clear (AiAudit assembled-context + tool round-trips feature committed `982dc28`)*
+*Last updated: 18 May 2026 — session 12 clear (billing surface restored under unified `8bc5f6d`; PR #335 updated; tech-debt-session done)*
+*Previous session: 18 May 2026 — session 11 clear (Fyn-chat bug-fix loop; nav-router + FSCS classification)*
+
+---
+
+## Session 12 (18 May 2026) — Billing surface restored under unified (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean · **Commits:** `8bc5f6d` (billing fix), `acfe67d` (handover) · pushed · **PR:** [#335](https://github.com/Stoff73/fynla/pull/335) OPEN → `dev`, updated (CSJ to review/admin-merge to deploy)
+
+### Done
+- [x] Auto-resumed handover-11. Ran `tech-debt-session` on full PR #335 delta → `tech-debt-report.md`.
+- [x] CSJ decisions: W1 (PII/bloat) deferred (noted for future purge); W2 (billing) FIXED not deferred.
+- [x] Billing 3-layer fix (parity w/ legacy): FynContextAssembler classification-gated `<billing_guidance>` layer; QueryClassifier billing-beats-NAVIGATION; QuerySchemas bare `billing`/`subscription` (ISA-guarded). +10 Pest cases, 292 passed full AI/Fyn. Browser-verified GREEN under unified (`8bc5f6d`).
+- [x] Standing law written: memory `feedback_fyn_reaches_every_surface`.
+- [x] Committed + pushed; PR #335 updated for deploy.
+
+### Outstanding / next session (priority order)
+- [ ] **Move into tech debt** (CSJ's stated next). `tech-debt-report.md` priority items:
+  - [ ] **C1 (actionable): PR #335 ships a RED test** — `CassetteModelProvenanceTest.php` fails (11 cassettes stranded `xai/grok-4-1-fast-reasoning` vs config `grok-4.3`). Fix: `php artisan eval:record --providers=xai` + delete stale dir, commit onto PR #335. Confirm re-record vs delete-only with CSJ (changes fixtures).
+  - [ ] S2/S3/S4 cosmetic suggestions — low priority, CSJ's call.
+  - [ ] W1 DEFERRED — do NOT action (`project_ai_messages_forensic_columns_need_purge`).
+- [ ] **CSJ: review/admin-merge PR #335 → dev** (deploy path). Do NOT self-approve.
+- [ ] **vault-sync DEFERRED this session** (budget-over at session-end; context-handover skips it by design). Run vault-sync next session-end.
+- [ ] PR #317 (release dev→main) parked on freemium refactor (`project_pr317_gated_on_freemium_refactor`).
+- [ ] Carried doc backlog: KycGateChecker delta doc-fix; `fynlaFeatu*Modules` rename fate (not ours).
 
 ---
 
