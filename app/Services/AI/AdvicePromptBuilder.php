@@ -988,6 +988,16 @@ PROMPT;
         return $this->prerequisiteGate->buildCompletenessContext($user);
     }
 
+    /**
+     * FynContextAssembler passthrough — returns the full <data_completeness>
+     * block (prerequisite state wrapped in XML tags) so the assembler does
+     * not need to call the private buildDataCompletenessBlock() directly.
+     */
+    public function buildPrerequisiteStateContextWrapped(User $user): string
+    {
+        return $this->buildDataCompletenessBlock($this->buildPrerequisiteStateContext($user));
+    }
+
     private function buildDataCompletenessBlock(string $prerequisiteState): string
     {
         return <<<PROMPT
@@ -1160,6 +1170,16 @@ PROMPT;
     }
 
     // ─── Layer 10: Module Context ────────────────────────────────────
+
+    /**
+     * Null-safe passthrough used by FynContextAssembler.
+     * Normalises the ?string return of getModuleContext() to string so
+     * the assembler can interpolate without a null check at the call site.
+     */
+    public function moduleContextFor(?string $route): string
+    {
+        return (string) ($this->getModuleContext($route) ?? '');
+    }
 
     public function getModuleContext(?string $currentRoute): ?string
     {
