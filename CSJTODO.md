@@ -36,10 +36,10 @@
 - [x] Canonical-vs-implementation delta + `VAULT-SYNC-PENDING.md` flag written
 
 ### Outstanding / next session (priority order)
-- [ ] **#1 CRITICAL — run vault-sync** (carry the 3 files in `May/May18Updates/VAULT-SYNC-PENDING.md`: `00-canonical.md` [overdue ~6 sessions, `/April/` gitignored = data-loss risk], Fyn map, delta). Deferred again this session — context exhaustion (~215k)
-- [ ] **CSJ DECISION — Fyn delta #2:** under `unified`, KycGateChecker runs every turn but its prompt_text is discarded (gate re-derived via READINESS bucket). Pick (a) single gate source or (b) telemetry-only. See `fyn-canonical-vs-implementation-delta.md`
+- [x] **#1 CRITICAL — run vault-sync** — DONE 2026-05-18 session 6 (also verified the canonical-spec carry was already completed session 2; the data-loss risk is closed).
+- [x] ~~**CSJ DECISION — Fyn delta #2** (single gate source vs telemetry-only)~~ — **NOT A DECISION. STRUCK.** Misdiagnosis. Delta 2 was a parity *bug* (under `unified`, `FynContextAssembler` discarded `$kycResult`, dropping the legacy Layer-9 KYC `prompt_text`), not a redundant-compute design choice. **FIXED 2026-05-18** by threading `kycResult` into `FynContextAssembler` (the change shipped in PR #335). Authoritative verdict: `fyn-canonical-vs-implementation-delta.md` §Delta 2 — "parity restored. Closed in this session — no CSJ decision required." Do not resurface.
 - [ ] Doc-fix — amend `00-canonical.md` dispatch wording (3-part predicate, not pure `onboarding_completed`) during vault carry
-- [ ] Carried from session 1: legacy rollback sanity (`FYN_PROMPT_ARCH=legacy ./vendor/bin/pest --compact`), squash `9c19dcc`, new PR `fynPromptRework → dev`
+- [x] Carried from session 1: squash + new PR `fynPromptRework → dev` — DONE 2026-05-18 session 6 (PR #335). Legacy rollback sanity still open (tracked via memory `reference_legacy_refuses_advice_capture_journey`).
 - [ ] Decide fate of pre-existing `fynlaFeatuuresModules`→`fynlaFeaturesModules` working-tree changes (not from this session)
 
 ---
