@@ -8,6 +8,10 @@ use App\Services\Tiers\DbTierGate;
 /**
  * SP2 PR9 — Tier config boundary: mutation moat + hardcoded-literal ban (hard).
  *
+ * Enforces spec §17 (boundary enforcement): hard CI failure, no soft-warn ramp.
+ * tier_configurations is the single source of truth; nothing hardcodes a tier
+ * number/slug/budget/cap/quota outside the store + tiers namespace + seeder.
+ *
  * Three layers:
  *  1. Mutation boundary — TierConfiguration model is only mutated/read
  *     inside the canonical set (unchanged from PR2-8, now HARD).
@@ -44,7 +48,7 @@ $appDir = $projectRoot.'/app';
 /**
  * Count lines in $appDir PHP files that match $pattern, skipping allowed paths.
  */
-function countTierLiteralViolations2(string $appDir, string $pattern, array $lineExclusions = [], array $pathExclusions = []): int
+function countTierLiteralLeaks(string $appDir, string $pattern, array $lineExclusions = [], array $pathExclusions = []): int
 {
     if (! is_dir($appDir)) {
         return 0;
@@ -97,18 +101,18 @@ function countTierLiteralViolations2(string $appDir, string $pattern, array $lin
 
 // Paths where tier-slug literals are structurally necessary:
 // store (reads/writes tier rows), tiers namespace (resolvers, gates),
-// seeder (canonical values), and Stores subtree (SnapshotPolicies uses
-// tier slug as array key after reading from the store).
+// and Stores subtree (SnapshotPolicies uses tier slug as array key after
+// reading from the store). The scan walks app/ only — the seeder lives in
+// database/seeders/ and is structurally exempt by being outside the tree.
 $allowedPaths = [
     'Services/Stores/',       // entire Stores subtree (SnapshotPolicies, CurrencyDisplayService, etc.)
     'Services/Tiers/',        // resolvers, gates
-    'Seeders/TierConfigurationSeeder',
 ];
 
 it('DAILY_TOKEN_LIMITS constant does not exist anywhere in app/', function () use ($appDir) {
     // The canonical violation this PR removes. Assert the pattern cannot
     // re-appear in any PHP file under app/.
-    $violations = countTierLiteralViolations2(
+    $violations = countTierLiteralLeaks(
         $appDir,
         '/DAILY_TOKEN_LIMITS/',
         [],
@@ -123,7 +127,7 @@ it('no tier-keyed token-budget map literal appears in app/ outside the store/tie
     // slugs (preview/trial/student/standard/family/pro) or new tier slugs
     // (free/tier1/tier2/tier3) with large token-count integers.
     // Pattern: a quoted plan/tier key followed by => and a six-or-more-digit number.
-    $violations = countTierLiteralViolations2(
+    $violations = countTierLiteralLeaks(
         $appDir,
         "/['\"](?:preview|trial|student|standard|family|pro|free|tier1|tier2|tier3)['\"]\\s*=>\\s*[0-9_]{6,}/",
         [],
