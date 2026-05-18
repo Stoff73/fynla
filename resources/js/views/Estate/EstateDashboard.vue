@@ -5,7 +5,7 @@
       <div class="">
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
-        <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
       </div>
 
       <!-- Error State -->

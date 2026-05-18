@@ -78,14 +78,13 @@ class EstateController extends Controller
             $ctaLabel = $nextTier
                 ? "Upgrade to {$nextTier['display_name']} to unlock full Estate Planning"
                 : 'Upgrade to unlock full Estate Planning';
-            $ctaTarget = $nextTier['tier'] ?? 'tier2';
 
             return response()->json([
                 'mode' => 'teaser',
                 'teaser' => $teaser,
                 'cta' => [
                     'label' => $ctaLabel,
-                    'target_tier' => $ctaTarget,
+                    'target_tier' => $nextTier['tier'] ?? null,
                 ],
             ]);
         }
