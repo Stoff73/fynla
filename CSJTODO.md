@@ -1,7 +1,27 @@
 # CSJTODO — Fynla
 
-*Last updated: 18 May 2026 — session 6 (squashed fynPromptRework, opened PR #335 → dev; logged legacy-refusal finding)*
-*Previous session: 18 May 2026 — session 5 clear (tripled-ack RESOLVED + parity GREEN; both PR gates satisfied)*
+*Last updated: 18 May 2026 — session 10 clear (AiAudit `982dc28` Rule #15 browser verification GREEN; no code changes)*
+*Previous session: 18 May 2026 — session 9 clear (AiAudit assembled-context + tool round-trips feature committed `982dc28`)*
+
+---
+
+## Session 10 (18 May 2026) — AiAudit `982dc28` verification GREEN (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean · **No code changes** (verification only) · **PR:** [#335](https://github.com/Stoff73/fynla/pull/335) still OPEN → `dev`
+
+### Done
+- [x] Auto-resumed handover-9. Ran Rule #15 browser verification of `982dc28` (admin AiAudit assembled-context + full tool round-trips).
+- [x] **Criterion 1 GREEN** — "Show assembled context (unified)" renders real ~1700-token per-turn `<context>` (user_profile, known_facts, financial_context, existing_records, data_completeness, kyc_status). Not a hash.
+- [x] **Criterion 2 GREEN** — "Show full tool round-trips" renders verbatim Raw (5889 chars/3248px) vs Sent-to-LLM (2392 chars/848px); compression delta on-screen.
+- [x] Rule #15 loop: diagnosed John's expenditure-blank profile pre-refusing module analysis; fixed via Expenditure UI (legit test data).
+- [x] Reported 2 non-defect nuances to CSJ (fixed-height clamped panels = by-design pattern mirror; `<financial_context>` POSITION-bucket gating = working as designed).
+
+### Outstanding / next session (priority order)
+- [ ] **#1 CRITICAL — run vault-sync** (overdue 5+ sessions; deferred session 10 due to ~496k context exhaustion). Carry `May/May18Updates/VAULT-SYNC-PENDING.md` 3 files incl. `April/April24Updates/spec/00-canonical.md` (`/April/` gitignored = data-loss risk). Amend `00-canonical.md` dispatch wording during carry.
+- [ ] tech-debt-session on PR #335 diff (still not done).
+- [ ] **CSJ: review/admin-merge PR #335 → dev** when ready (do NOT self-approve).
+- [ ] Note: `john@example.com` now has £2,300/mo ExpenditureProfile (test data from session-10 Rule #15 loop) — harmless, restorable via db:seed.
+- [ ] Carried: KycGateChecker delta doc-fix; pre-existing `fynlaFeatu*Modules` rename fate; SEVERE pre-existing legacy emergency-rollback advice→capture refusal (logged, CSJ: proceed per contract).
 
 ---
 
