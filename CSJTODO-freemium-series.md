@@ -13,7 +13,7 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION: PR1–6 of 9 MERGED** to `sp2Freemium` (PRs #327–#331,#333; two-stage reviewed; PR4 browser-tested; PR5 took 4 fix rounds → full tier grant+revoke lifecycle on 7 paths; PR6 preview-exempt). §22 A9 RESOLVED (all legacy→Free; no existing payers). **PR7 = UNREVIEWED WIP** committed `cc254f0a` on `feature/csj/sp2-pr7-teaser-gate` (NOT verified/merged — next session resumes the two-stage review loop on it). **PR8–9 pending.** PR9 scope AUGMENTED: also close pre-existing SP2-caused suite regressions (tests missing `TierConfigurationSeeder` in beforeEach via SavingsStore→DbTierGate). `sp2Freemium`@`ae3ca9d8`. |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION COMPLETE — all 9 PRs MERGED to `sp2Freemium`** (PR1–6 prior; PR7 #334 MERGED, PR8 merged `c9e43295`, PR9 merged `696890ed` — this session 2026-05-18). Each PR two-stage reviewed (spec ✅ + code-quality ✅); PR7/PR8 live-Playwright verified; PR9 (lock-down) verified via hardened Architecture moat + full suite. Plus a session-start blocker fix: `DbTierGate`/`DocumentAllowanceGate` now exempt `is_preview_user` (preview personas sit entirely outside tiers/gates — `db:seed` was broken without it). §22 A9 RESOLVED (all legacy→Free; no existing payers). PR9 augmented scope DONE (7 SP2-regressed test files seeded `TierConfigurationSeeder`, zero assertions weakened; Group A/B `AI_*`/HMAC env-only failures documented, not code-changed). `sp2Freemium`@`696890ed`, pushed. NOT deployed (csjones/prod deferred). PR #317 (dev→main) still parked. |
 | 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | brainstorming (next) |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
@@ -177,3 +177,22 @@ explore context → clarify open decisions → propose approaches → present de
   two-stage review loop on it (do NOT trust/merge as-is), then PR8, PR9,
   then §18.2 acceptance + final handover. Vault absent on this machine →
   no vault mirror; this file + the handover are the resume channel.
+- 2026-05-18 SESSION-2 — **SP2 EXECUTION COMPLETE.** Session-start found
+  `db:seed` broken: SP2's `DbTierGate` had no `is_preview_user` exemption,
+  so preview personas hit Free entity caps. CSJ directed: preview sits
+  ENTIRELY outside tiers/subscriptions/gates. Fixed `DbTierGate` (canCreate
+  + hardLimit) — committed `37e84ca7` to `sp2Freemium` (CSJ-approved).
+  Then resumed campaign via subagent-driven-development: **PR7 #334 MERGED**
+  (spec-review found 8 issues + a live-Playwright-caught CTA-tier bug → all
+  fixed; merged), **PR8 merged `c9e43295`** (spec-review 5 issues incl. 1
+  HIGH storage-CTA-downgrade bug → fixed; Open-Banking affordance
+  Playwright-verified), **PR9 merged `696890ed`** (Tasks 9.1+9.2 +
+  PermissiveTierGate deleted + augmented regression sweep; Opus two-stage
+  review; Architecture moat HARD+green). Subagents: PR7/8 on `sonnet`,
+  PR9 on `opus` (CSJ switched mid-session). `sp2Freemium`@`696890ed`
+  pushed. GitHub PR records: #334 MERGED; PR8/PR9 merged-by-push but the
+  feature branches were pushed AFTER the local `--no-ff` merge so GitHub
+  could not create a PR record ("no commits between") — code is correctly
+  in `sp2Freemium`, only the PR# in the merge-commit messages (#335/#336)
+  is cosmetic/non-existent. NOT deployed. SP2 series row → EXECUTION
+  COMPLETE. Next: §18.2 final full-suite tally (running) + deploy decision.
