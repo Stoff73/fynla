@@ -15,6 +15,7 @@ use App\Http\Resources\Estate\AssetResource;
 use App\Http\Resources\Estate\GiftResource;
 use App\Http\Resources\Estate\LiabilityResource;
 use App\Http\Resources\Estate\TrustResource;
+use App\Http\Traits\GatesEstateAccess;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
@@ -41,6 +42,7 @@ use Illuminate\Http\Request;
 
 class EstateController extends Controller
 {
+    use GatesEstateAccess;
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -72,7 +74,7 @@ class EstateController extends Controller
         if (! $this->teaserGate->isFull($user, 'estate')) {
             $teaser = $this->ihtExposureDetector->detect($user);
 
-            // Fix #3: CTA label/target from TierConfigurationStore (plan §7.3 — not hardcoded).
+            // CTA label/target from TierConfigurationStore (plan §7.3 — not hardcoded).
             $resolvedTier = $this->tierResolver->resolve($user);
             $nextTier = $this->tierStore->nextTierAbove($resolvedTier);
             $ctaLabel = $nextTier
@@ -206,17 +208,6 @@ class EstateController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Comprehensive estate plan generation');
-        }
-    }
-
-    /**
-     * Abort 403 if the user is not on a full-Estate tier.
-     * Single shared guard used by all full-engine sub-routes (spec §10.2).
-     */
-    private function requireFullEstate(User $user): void
-    {
-        if (! $this->teaserGate->isFull($user, 'estate')) {
-            abort(403, 'Full Estate Planning requires Tier 2 or above.');
         }
     }
 

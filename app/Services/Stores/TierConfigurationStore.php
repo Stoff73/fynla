@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Stores\Exceptions\TierConfigValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -91,7 +92,7 @@ class TierConfigurationStore
                 $config = $this->forTier($candidate);
 
                 return ['tier' => $config->tier, 'display_name' => $config->display_name];
-            } catch (\Exception) {
+            } catch (ModelNotFoundException) {
                 continue;
             }
         }

@@ -32,10 +32,10 @@ class EstateIhtExposureDetector
     {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
 
-        // Fix #1: IHT rate from TaxConfigService, fallback to TaxDefaults constant (Rule #3).
+        // IHT rate from TaxConfigService, fallback to TaxDefaults constant (Rule #3).
         $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
 
-        // Fix #2: NRB/RNRB fallback to TaxDefaults constants, not raw literals (Rule #3).
+        // NRB/RNRB fallback to TaxDefaults constants, not raw literals (Rule #3).
         $nrb = (float) ($ihtConfig['nil_rate_band'] ?? TaxDefaults::NRB);
         $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
         $threshold = $nrb + $rnrb;
@@ -43,7 +43,7 @@ class EstateIhtExposureDetector
         $netWorthData = $this->netWorthService->calculateNetWorth($user);
         $netWorth = (float) ($netWorthData['net_worth'] ?? 0.0);
 
-        // Fix #5: exposure flag uses NRB+RNRB threshold (consistent with liability calc below).
+        // Exposure flag uses NRB+RNRB threshold (consistent with liability calc below).
         $exposed = $netWorth > $threshold;
         $estimatedLiabilityGbp = $exposed
             ? max(0.0, round(($netWorth - $threshold) * $ihtRate, 2))
@@ -69,7 +69,7 @@ class EstateIhtExposureDetector
         }
 
         if ($estimatedLiabilityGbp <= 0.0) {
-            return 'Your estate may be approaching the Inheritance Tax threshold — planning now can help protect your family.';
+            return 'Your estate exceeds the Inheritance Tax threshold — planning now can help protect your family.';
         }
 
         $formatted = '£'.number_format((int) $estimatedLiabilityGbp);

@@ -260,7 +260,9 @@ const actions = {
                 commit('setTeaserData', response.teaser || null);
                 commit('setTeaserCta', response.cta || null);
             } else {
-                // Full module — populate store as before
+                // Full module — clear any stale teaser state from a previous tier, then populate.
+                commit('setTeaserData', null);
+                commit('setTeaserCta', null);
                 commit('setAssets', response.data.assets || []);
                 commit('setInvestmentAccounts', response.data.investment_accounts || []);
                 commit('setLiabilities', response.data.liabilities || []);

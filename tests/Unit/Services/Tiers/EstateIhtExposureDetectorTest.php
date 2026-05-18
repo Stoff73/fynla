@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,4 +45,38 @@ it('returns no score — only currency and a plain string headline', function ()
 
     // Rule #13: no scores. Keys must be exactly these three — no 'score', no 'rating'
     expect(array_keys($result))->toEqual(['exposed', 'headline', 'estimated_liability_gbp']);
+});
+
+it('returns exposed=false when net worth equals exactly NRB+RNRB threshold', function () {
+    // Derive threshold from TaxConfigService the same way the detector does — stays correct
+    // if config changes.
+    $ihtConfig = app(TaxConfigService::class)->getInheritanceTax();
+    $threshold = (float) ($ihtConfig['nil_rate_band'] ?? 325000) + (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
+
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => $threshold, // exactly at boundary — predicate is >, not >=
+    ]);
+
+    $result = app(EstateIhtExposureDetector::class)->detect($user);
+
+    expect($result['exposed'])->toBeFalse()
+        ->and($result['estimated_liability_gbp'])->toEqual(0.0);
+});
+
+it('returns exposed=true when net worth is one pound above NRB+RNRB threshold', function () {
+    $ihtConfig = app(TaxConfigService::class)->getInheritanceTax();
+    $threshold = (float) ($ihtConfig['nil_rate_band'] ?? 325000) + (float) ($ihtConfig['residence_nil_rate_band'] ?? 175000);
+
+    $user = User::factory()->create();
+    SavingsAccount::factory()->create([
+        'user_id' => $user->id,
+        'current_balance' => $threshold + 1.0, // just above: £500,001 (or current threshold + 1)
+    ]);
+
+    $result = app(EstateIhtExposureDetector::class)->detect($user);
+
+    expect($result['exposed'])->toBeTrue()
+        ->and($result['estimated_liability_gbp'])->toBeGreaterThan(0.0);
 });

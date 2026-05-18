@@ -45,7 +45,7 @@
             v-if="teaserData.exposed && teaserData.estimated_liability_gbp > 0"
             class="text-sm text-horizon-500 mt-2"
           >
-            Estimated Inheritance Tax exposure: <span class="font-semibold">{{ formatEstimatedLiability(teaserData.estimated_liability_gbp) }}</span>
+            Estimated Inheritance Tax exposure: <span class="font-semibold">{{ formatCurrency(teaserData.estimated_liability_gbp) }}</span>
           </p>
         </div>
 
@@ -141,12 +141,6 @@ export default {
 
   methods: {
     ...mapActions('estate', ['fetchEstateData']),
-
-    // SP2 PR7: format the estimated IHT liability for the teaser panel.
-    // Uses currencyMixin (Rule #6 — never define local formatCurrency).
-    formatEstimatedLiability(value) {
-      return this.formatCurrency(value);
-    },
 
     async loadEstateData() {
       try {

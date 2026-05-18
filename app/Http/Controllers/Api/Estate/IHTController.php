@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Estate;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\GatesEstateAccess;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Will;
@@ -20,6 +21,7 @@ use Illuminate\Http\Request;
 
 class IHTController extends Controller
 {
+    use GatesEstateAccess;
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -41,9 +43,7 @@ class IHTController extends Controller
         $user = $request->user();
 
         // Full-only sub-route: spec §10.2 / SP2 PR7.
-        if (! $this->teaserGate->isFull($user, 'estate')) {
-            abort(403, 'Full Estate Planning requires Tier 2 or above.');
-        }
+        $this->requireFullEstate($user);
 
         try {
             // Determine user scenario
@@ -197,9 +197,7 @@ class IHTController extends Controller
         $user = $request->user();
 
         // Full-only sub-route: defence-in-depth server gate (spec §10.2 / SP2 PR7).
-        if (! $this->teaserGate->isFull($user, 'estate')) {
-            abort(403, 'Full Estate Planning requires Tier 2 or above.');
-        }
+        $this->requireFullEstate($user);
 
         $validated = $request->validate([
             'marital_status' => ['nullable', 'string', 'in:single,married,widowed,divorced'],
