@@ -108,3 +108,37 @@ it('sanitises the user message', function (): void {
     expect(app(FynContextAssembler::class)->build($ctx))
         ->not->toContain('<script>');
 });
+
+// Delta 2 parity guard: legacy AdvicePromptBuilder appends the KYC gate's
+// prompt_text as Layer 9 (AdvicePromptBuilder.php:195-198) unconditionally.
+// The unified assembler must emit the same layer so FYN_PROMPT_ARCH=unified
+// asks for missing data instead of advising, identically to legacy.
+it('emits the KYC gate prompt_text when the turn carries a kycResult', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'Should I contribute more to my pension?',
+        currentRoute: '/net-worth/retirement', mode: 'advice', onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution'],
+        conversation: null,
+        kycResult: [
+            'passed' => false,
+            'missing' => ['Date of birth'],
+            'prompt_text' => 'KYC-GATE-SENTINEL: ask the user for their date of birth before advising.',
+        ],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->toContain('KYC-GATE-SENTINEL: ask the user for their date of birth before advising.');
+});
+
+it('emits no KYC layer when the turn has no kycResult', function (): void {
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'Should I contribute more to my pension?',
+        currentRoute: '/net-worth/retirement', mode: 'advice', onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'retirement_contribution'],
+    );
+
+    expect(app(FynContextAssembler::class)->build($ctx))
+        ->not->toContain('KYC-GATE-SENTINEL');
+});

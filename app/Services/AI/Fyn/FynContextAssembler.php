@@ -69,6 +69,17 @@ final class FynContextAssembler
             $lines[] = $this->advice->buildPrerequisiteStateContextWrapped($ctx->user);
         }
 
+        // KYC gate result (parity with legacy AdvicePromptBuilder Layer 9,
+        // AdvicePromptBuilder.php:195-198). Emitted whenever the gate produced
+        // prompt_text — not gated by a bucket, exactly as the legacy builder
+        // appends it unconditionally — so the unified prompt asks for missing
+        // data instead of advising, identically to FYN_PROMPT_ARCH=legacy.
+        if ($ctx->kycResult !== null
+            && isset($ctx->kycResult['prompt_text'])
+            && $ctx->kycResult['prompt_text'] !== '') {
+            $lines[] = $ctx->kycResult['prompt_text'];
+        }
+
         if ($has(ContextBucket::CAPTURE)) {
             $focus = (string) $ctx->onboardingFocus;
             $lines[] = FynCaptureTurnInstructions::render(

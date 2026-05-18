@@ -2367,21 +2367,22 @@ PROMPT;
     ): \Generator {
         $allowedTools = $this->captureToolSet($context);
 
-        // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
-        // chat() turn that emitted delegate_to_capture already saved the
-        // user message. Re-saving from inside the inline-capture turn would
-        // produce a duplicate row in ai_messages.
-        $generator = $this->coordinatingAgent->chatWithPromptOverride(
-            user: $user,
-            conversation: $conversation,
-            message: $message,
-            currentRoute: $currentRoute,
-            systemPromptOverride: null,
-            allowedTools: $allowedTools,
-            persistUserMessage: false,
-            toolsListOverride: null,
-            personaOverride: 'data_capture',
-        );
+        // Unified prompt seam: handleInlineCapture IS an asset-capture turn
+        // (the advice-mode write handoff target — both the deterministic
+        // AdviceFyn route and the LLM delegate_to_capture path land here).
+        // HasAiChat::injectUnifiedTurnContext keys the CAPTURE bucket off the
+        // agent's unifiedOnboardingFocus; without it the turn is framed as
+        // advice, FynCaptureTurnInstructions is never injected, and the model
+        // falls back to the security refusal instead of calling create_*.
+        // Mirror handleAssetCaptureTurn: derive the focus from the
+        // CaptureContext and carry it for the duration of the turn (no-op
+        // under legacy — the property is only read on the unified path).
+        $unifiedFocus = FynPromptMode::isUnified()
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? null)
+            : null;
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
         $llmEmittedFills = [];
@@ -2389,28 +2390,53 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        foreach ($generator as $event) {
-            $type = $event['type'] ?? '';
+        try {
+            // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
+            // chat() turn that emitted delegate_to_capture already saved the
+            // user message. Re-saving from inside the inline-capture turn would
+            // produce a duplicate row in ai_messages.
+            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+                user: $user,
+                conversation: $conversation,
+                message: $message,
+                currentRoute: $currentRoute,
+                systemPromptOverride: null,
+                allowedTools: $allowedTools,
+                persistUserMessage: false,
+                toolsListOverride: null,
+                personaOverride: 'data_capture',
+            );
 
-            if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
-                continue;
+            foreach ($generator as $event) {
+                $type = $event['type'] ?? '';
+
+                if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
+                    continue;
+                }
+
+                if ($type === 'fill_form') {
+                    $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+                }
+
+                // Track every record persisted by a create_* / direct-write handler
+                // so the closing capture_complete event carries the full list.
+                if ($type === 'entity_created') {
+                    $recordsCreated[] = [
+                        'type' => (string) ($event['entity_type'] ?? ''),
+                        'id' => $event['entity_id'] ?? null,
+                        'name' => (string) ($event['name'] ?? ''),
+                    ];
+                }
+
+                yield $event;
             }
-
-            if ($type === 'fill_form') {
-                $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+        } finally {
+            // Always clear the carried focus — including the generator-throw
+            // path — so the next advice turn on this agent is not misframed
+            // as onboarding capture.
+            if ($unifiedFocus !== null) {
+                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
             }
-
-            // Track every record persisted by a create_* / direct-write handler
-            // so the closing capture_complete event carries the full list.
-            if ($type === 'entity_created') {
-                $recordsCreated[] = [
-                    'type' => (string) ($event['entity_type'] ?? ''),
-                    'id' => $event['entity_id'] ?? null,
-                    'name' => (string) ($event['name'] ?? ''),
-                ];
-            }
-
-            yield $event;
         }
 
         yield from $this->emitGapFillFromCaptureContext(

@@ -170,6 +170,7 @@ trait HasAiChat
                 $currentRoute,
                 $classification,
                 $conversation,
+                $kycResult,
             );
         }
 
@@ -643,6 +644,26 @@ trait HasAiChat
                     // entity_type, top-level metrics, error state, fingerprints)
                     // while trimming verbose nested payloads.
                     $toolResultForModel = $this->compressToolResultForModel($functionName, $toolResult);
+
+                    // May18 — unified tripled-ack fix (Fix A). In a
+                    // data_capture turn the HasAiChat loop re-invokes the
+                    // model with the create_/update_ tool_result still in
+                    // context; FynCaptureTurnInstructions (D4-verbatim, not
+                    // editable here) carries no "you are done" signal, so the
+                    // model re-narrates its preamble AND re-calls create on
+                    // every continuation until it happens to stop — the user
+                    // saw "Got it — recording that now." x3. Attach a terse
+                    // terminal directive to the result the model reads so it
+                    // confirms once and ends the turn. Multi-entity is safe:
+                    // all N creates fire as parallel tool_use blocks in the
+                    // model's first response, so the directive only forbids
+                    // RE-calling on the next continuation, never the initial
+                    // batch.
+                    $captureDirective = $this->captureTurnCompleteDirective($functionName, $toolResult);
+                    if ($captureDirective !== null) {
+                        $toolResultForModel['capture_turn_complete'] = $captureDirective;
+                    }
+
                     $toolResultJson = json_encode($toolResultForModel);
 
                     if ($isXai) {
@@ -850,6 +871,7 @@ trait HasAiChat
         ?string $currentRoute,
         ?array $classification,
         AiConversation $conversation,
+        ?array $kycResult = null,
     ): array {
         $focus = $this->unifiedOnboardingFocus;
         $ctx = FynTurnContext::make(
@@ -861,6 +883,7 @@ trait HasAiChat
             isPreview: (bool) $user->is_preview_user,
             classification: $classification,
             conversation: $conversation,
+            kycResult: $kycResult,
         );
 
         // Forward the same sized-analysis closure the legacy path supplies
@@ -993,6 +1016,61 @@ trait HasAiChat
 
         // General compression — recursively trim oversized nested data.
         return $this->trimForModel($result, depth: 0);
+    }
+
+    /**
+     * May18 — Fix A for the unified tripled capture-ack.
+     *
+     * Returns a terse terminal instruction to attach to a write tool_result
+     * during a data_capture turn, or null when the directive does not apply.
+     *
+     * Scope is deliberately narrow:
+     *  - Only data_capture turns (persona === 'data_capture'). Advice turns
+     *    are untouched; under FYN_PROMPT_ARCH=legacy the advice→capture
+     *    journey security-refuses before any write, so this is inert there.
+     *  - Only when a record write actually LANDED or was DEDUPED this turn
+     *    (created / updated / success+entity_id / duplicate warning). A
+     *    failed/validation result is left clean so the model can retry.
+     *
+     * The directive forbids only RE-invoking create_/update_ on the next
+     * loop continuation and caps the post-write narration at one sentence —
+     * it never blocks the model's initial parallel tool_use batch, so the
+     * multi-entity onboarding rule ("one tool_use per record in the first
+     * response") still works. It carries no glyphs/emoji (Rule #16) and does
+     * not alter the D4-verbatim FynCaptureTurnInstructions wording.
+     */
+    private function captureTurnCompleteDirective(string $toolName, array $result): ?string
+    {
+        if ($this->personaOverride !== 'data_capture') {
+            return null;
+        }
+
+        // A pure error/validation failure must stay retryable — the model's
+        // FIRST create_ call frequently returns a non-persisting result and
+        // only lands on a corrected retry. Never short-circuit that retry.
+        if (isset($result['error']) && $result['error'] === true) {
+            return null;
+        }
+
+        // Fire ONLY when a record write actually LANDED or was DEDUPED this
+        // turn. Keyed on the result shape, never on the tool NAME — a
+        // create_ call that did not persist must not be told "you are done".
+        $landed = (isset($result['created']) && $result['created'] === true)
+            || (isset($result['updated']) && $result['updated'] === true)
+            || (isset($result['success']) && $result['success'] === true && isset($result['entity_id']));
+
+        $deduped = isset($result['warning']) && $result['warning'] === true
+            && isset($result['existing_id']);
+
+        if (! $landed && ! $deduped) {
+            return null;
+        }
+
+        return 'CAPTURE_TURN_COMPLETE: this record is saved (or already '
+            .'existed and was skipped). Do not call any create_ or update_ '
+            .'tool again in this turn. Reply with at most one short '
+            .'confirmation sentence (15 words or fewer), then end your turn. '
+            .'Do not repeat any earlier acknowledgement.';
     }
 
     /**

@@ -43,6 +43,11 @@ function bindAdviceStreamWithPayload(array $payload): void
     app()->instance(QueryClassifier::class, $classifier);
 
     $agent = Mockery::mock(CoordinatingAgent::class);
+    // Flag-gated collaborator call under FYN_PROMPT_ARCH=unified (now the
+    // default): handleInlineCapture carries the onboarding focus for the
+    // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
+    // legacy — non-weakening (other expectations stay strict).
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function () use ($payload) {
             $stream = function () use ($payload) {
@@ -124,6 +129,11 @@ it('does NOT emit handoff_error when only reason is missing — recovers via Cap
     app()->instance(QueryClassifier::class, $classifier);
 
     $agent = Mockery::mock(CoordinatingAgent::class);
+    // Flag-gated collaborator call under FYN_PROMPT_ARCH=unified (now the
+    // default): handleInlineCapture carries the onboarding focus for the
+    // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
+    // legacy — non-weakening (other expectations stay strict).
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->andReturnUsing(function (...$args) {
             $persona = $args[8] ?? null;

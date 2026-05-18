@@ -45,6 +45,11 @@ it('strips onboarding_layout_change and quick_replies, passes fill_form and cont
     ]);
 
     $agent = Mockery::mock(CoordinatingAgent::class);
+    // Flag-gated collaborator call under FYN_PROMPT_ARCH=unified (now the
+    // default): handleInlineCapture carries the onboarding focus for the
+    // turn so the CAPTURE bucket is selected. Zero-call-satisfied under
+    // legacy — non-weakening (other expectations stay strict).
+    $agent->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
     $agent->shouldReceive('chatWithPromptOverride')
         ->once()
         ->andReturnUsing(function () {

@@ -2056,6 +2056,43 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('savings account');
         }
 
+        // May18 — the model frequently invents an out-of-enum account_type
+        // (most commonly the literal "savings_account" when the user just
+        // says "add a savings account" with no type). Hard-rejecting that
+        // made the FIRST create_savings_account call fail validation; the
+        // model only sometimes self-corrected on a retry, so the record was
+        // intermittently never created and the capture turn re-narrated.
+        // Coerce a recognised synonym / unknown value to a sensible default
+        // BEFORE validation so a plain "savings account" lands on the first
+        // call. easy_access is the correct default for an untyped savings
+        // account; cash_isa when the user flagged it as an ISA.
+        if (isset($input['account_type'])) {
+            $validTypes = [
+                'easy_access', 'notice', 'fixed', 'fixed_term',
+                'regular_saver', 'cash_isa', 'junior_isa',
+            ];
+            if (! in_array($input['account_type'], $validTypes, true)) {
+                $synonyms = [
+                    'savings_account' => 'easy_access',
+                    'savings' => 'easy_access',
+                    'instant_access' => 'easy_access',
+                    'instant access' => 'easy_access',
+                    'easy access' => 'easy_access',
+                    'current_account' => 'easy_access',
+                    'isa' => 'cash_isa',
+                    'cash isa' => 'cash_isa',
+                    'junior isa' => 'junior_isa',
+                    'fixed_rate' => 'fixed',
+                    'fixed rate' => 'fixed',
+                    'bond' => 'fixed',
+                    'notice_account' => 'notice',
+                ];
+                $key = strtolower((string) $input['account_type']);
+                $input['account_type'] = $synonyms[$key]
+                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'easy_access');
+            }
+        }
+
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',

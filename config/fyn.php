@@ -6,13 +6,13 @@ return [
     /*
      * Fyn prompt architecture.
      *
-     * 'legacy'  — the 12-layer AdvicePromptBuilder / 4-layer
-     *             OnboardingPromptBuilder (pre-2026-05-16).
      * 'unified' — single static FynSystemPrompt + dynamic
-     *             FynContextAssembler.
+     *             FynContextAssembler. This is THE Fyn prompt.
+     * 'legacy'  — the pre-2026-05-16 12-layer AdvicePromptBuilder /
+     *             4-layer OnboardingPromptBuilder, retained only as an
+     *             emergency rollback path (set FYN_PROMPT_ARCH=legacy).
      *
-     * Defaults to legacy until the unified path proves >= legacy on
-     * the Fyn eval suite. Fail-safe: any unrecognised value is legacy.
+     * Defaults to unified. Fail-safe: any unrecognised value is legacy.
      */
-    'prompt_architecture' => env('FYN_PROMPT_ARCH', 'legacy'),
+    'prompt_architecture' => env('FYN_PROMPT_ARCH', 'unified'),
 ];

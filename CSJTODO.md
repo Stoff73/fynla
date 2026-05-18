@@ -1,7 +1,47 @@
 # CSJTODO — Fynla
 
-*Last updated: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
-*Previous session: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
+*Last updated: 18 May 2026 — context-clear wrap, session 2 (Claude Code tooling + Fyn pipeline map; no app code)*
+*Previous session: 18 May 2026 — session 1 EOD (Fyn unified cutover verified green)*
+
+---
+
+## Session 2 (18 May 2026) — Claude Code tooling + Fyn pipeline map (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean re my work (pre-existing `fynlaFeatu*Modules` rename left untouched, not mine) · **Commits:** `0171d5f` (.claude hooks), `b4e976f` (Fyn docs) · pushed · **No app code touched**
+
+### Done
+- [x] PreToolUse Bash guard (`.claude/hooks/dangerous-command-guard.sh`) — blocks 4 NEVER-rule command classes; live-verified
+- [x] PostToolUse Pint auto-format hook (`.claude/hooks/pint-format.sh`) — live-verified
+- [x] context-watch.sh budget 200k→250k + `context-handover` skill desc synced (skill is in HOME, not repo)
+- [x] Fyn unified prompt/response pipeline mapped (file:line) → `May/May18Updates/fyn-prompt-and-response-process-map.md`
+- [x] Canonical-vs-implementation delta + `VAULT-SYNC-PENDING.md` flag written
+
+### Outstanding / next session (priority order)
+- [ ] **#1 CRITICAL — run vault-sync** (carry the 3 files in `May/May18Updates/VAULT-SYNC-PENDING.md`: `00-canonical.md` [overdue ~6 sessions, `/April/` gitignored = data-loss risk], Fyn map, delta). Deferred again this session — context exhaustion (~215k)
+- [ ] **CSJ DECISION — Fyn delta #2:** under `unified`, KycGateChecker runs every turn but its prompt_text is discarded (gate re-derived via READINESS bucket). Pick (a) single gate source or (b) telemetry-only. See `fyn-canonical-vs-implementation-delta.md`
+- [ ] Doc-fix — amend `00-canonical.md` dispatch wording (3-part predicate, not pure `onboarding_completed`) during vault carry
+- [ ] Carried from session 1: legacy rollback sanity (`FYN_PROMPT_ARCH=legacy ./vendor/bin/pest --compact`), squash `9c19dcc`, new PR `fynPromptRework → dev`
+- [ ] Decide fate of pre-existing `fynlaFeatuuresModules`→`fynlaFeaturesModules` working-tree changes (not from this session)
+
+---
+
+## Session 4 (17 May 2026) — unified cutover verification COMPLETE (end-of-day)
+
+**Branch:** `fynPromptRework` · **Tree:** clean, all pushed (`dfb74e7`) · **Code commit:** `9c19dcc` (session-3 WIP, needs squash) · **Flag default:** `unified` (cutover live + verified)
+
+### Done
+- [x] Journey (b) browser-GREEN under unified — SavingsAccount #260 (Barclays £3k) created via Fyn chat, no security-clause-6 refusal (DB-verified)
+- [x] Journey (a) browser-GREEN under unified — advice read-only, accurate/hedged/FCA signpost, zero writes
+- [x] Journey (c) GREEN (scoped) — fresh uid 110 Fyn onboarding bubble flow under unified, multi-fact one-turn capture DB-verified
+- [x] Targeted Fyn+Onboarding suite 179/1 + **full Pest suite 3771/25 exit 0 under NEW unified default**
+- [x] EOD handover written (repo + vault mirror) → `May/May18Updates/handover-2026-05-18-session-1.md`
+
+### Outstanding / next session (priority order)
+- [ ] **#1 CRITICAL — run vault-sync + carry `April/April24Updates/spec/00-canonical.md` to vault** (overdue 4 sessions; `/April/` gitignored = data-loss risk; deferred this EOD due to ~212k context exhaustion — could not safely run heavy skill)
+- [ ] **Legacy rollback sanity:** `FYN_PROMPT_ARCH=legacy ./vendor/bin/pest --compact` — fix strict-mock failures with sanctioned `->zeroOrMoreTimes()` idiom; loop per Rule #15
+- [ ] **Squash `9c19dcc` + open NEW PR `fynPromptRework → dev`** (PR #332 already merged pre-cutover state — do NOT reopen; no self-approve)
+- [ ] tech-debt-session on session-3's 5-file diff (deferred since session 2, low risk)
+- [ ] Flipping default was done & verified — cutover no longer "out of scope", it IS the prompt now
 
 ---
 
