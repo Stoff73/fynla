@@ -1,0 +1,94 @@
+/**
+ * Fynla public pages — shared interactive wiring
+ *
+ * Nav and footer are rendered by PHP includes — this file handles
+ * interactive behaviour only. Never injects structural HTML.
+ */
+(function () {
+  'use strict';
+
+  document.addEventListener('DOMContentLoaded', function () {
+    setActiveNavLink();
+    wireMobileMenu();
+    wireDesktopMenus();
+  });
+
+  /* ----------------------------------------------------------------
+     Active nav link
+     ---------------------------------------------------------------- */
+  function setActiveNavLink() {
+    var path = window.location.pathname;
+    document.querySelectorAll('[data-nav-link]').forEach(function (el) {
+      var link = el.getAttribute('data-nav-link');
+      if (link === path || (link !== '/' && path.startsWith(link))) {
+        el.classList.add('is-active');
+        el.setAttribute('aria-current', 'page');
+      }
+    });
+  }
+
+  /* ----------------------------------------------------------------
+     Mobile hamburger + accordion panels
+     ---------------------------------------------------------------- */
+  function wireMobileMenu() {
+    var btn  = document.getElementById('hamburger-btn');
+    var menu = document.getElementById('mobile-menu');
+    if (!btn || !menu) return;
+
+    btn.addEventListener('click', function () {
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      menu.hidden = expanded;
+    });
+
+    document.querySelectorAll('.mobile-accordion__trigger').forEach(function (trigger) {
+      trigger.addEventListener('click', function () {
+        var panelId  = trigger.getAttribute('aria-controls');
+        var panel    = document.getElementById(panelId);
+        var expanded = trigger.getAttribute('aria-expanded') === 'true';
+        var chevron  = trigger.querySelector('.mobile-accordion__chevron');
+        trigger.setAttribute('aria-expanded', String(!expanded));
+        panel.hidden = expanded;
+        if (chevron) chevron.style.transform = expanded ? '' : 'rotate(180deg)';
+      });
+    });
+  }
+
+  /* ----------------------------------------------------------------
+     Desktop mega menus (hover + keyboard)
+     ---------------------------------------------------------------- */
+  function wireDesktopMenus() {
+    document.querySelectorAll('[data-dropdown]').forEach(function (wrapper) {
+      var key     = wrapper.getAttribute('data-dropdown');
+      var trigger = wrapper.querySelector('[data-dropdown-trigger="' + key + '"]');
+      var panel   = wrapper.querySelector('.mega-menu');
+      if (!trigger || !panel) return;
+
+      var chevron = trigger.querySelector('.nav-link__chevron');
+
+      function open() {
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+      }
+      function close() {
+        panel.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.style.transform = '';
+      }
+
+      wrapper.addEventListener('mouseenter', open);
+      wrapper.addEventListener('mouseleave', close);
+
+      trigger.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panel.hidden ? open() : close(); }
+        if (e.key === 'Escape') close();
+      });
+
+      wrapper.addEventListener('focusout', function (e) {
+        if (!wrapper.contains(e.relatedTarget)) close();
+      });
+    });
+  }
+
+})();
