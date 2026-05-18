@@ -278,7 +278,7 @@
         featuredEl.setAttribute('aria-label', featured.title);
         if (featured.image_card) {
           featuredImg.src = featured.image_card;
-          featuredImg.alt = featured.title;
+          featuredImg.alt = ''; /* decorative: title already in adjacent h3 */
         }
         featuredTit.textContent = featured.title;
         featuredSum.textContent = featured.summary;
@@ -288,8 +288,8 @@
           return '<a href="/insights/' + a.slug + '" class="insights-support-card">' +
                  '<div class="insights-support-card__thumb">' +
                  (a.image_card
-                   ? '<img src="' + a.image_card + '" alt="' + a.title.replace(/"/g, '&quot;') + '" width="300" height="200" loading="lazy" />'
-                   : '') +
+                   ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" />'
+                   : '') + /* alt="" decorative: title in adjacent h4 */
                  '</div>' +
                  '<div class="insights-support-card__body">' +
                  '<h4 class="insights-support-card__title">' + a.title + '</h4>' +

@@ -24,6 +24,13 @@
   <link rel="alternate" hreflang="en-GB" href="https://fynla.org/" />
   <link rel="alternate" hreflang="x-default" href="https://fynla.org/" />
 
+  <!-- External stylesheets — async to avoid render-blocking.
+       Critical above-fold styles (tokens, reset, nav, hero) are inlined above. -->
+  <link rel="stylesheet" href="/pages/css/global.css?v=12" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="/pages/css/global.css?v=12" /></noscript>
+  <link rel="stylesheet" href="/pages/css/index.css?v=12" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="/pages/css/index.css?v=12" /></noscript>
+
   <!-- Preload LCP hero image -->
   <link rel="preload" as="image" href="/images/Website/Homepage-Header-Desktopv3.png" fetchpriority="high" />
 
@@ -152,6 +159,8 @@
     a     { color: inherit; text-decoration: none; }
     ul    { list-style: none; }
     button { cursor: pointer; font-family: inherit; }
+    /* Prevent flex/grid from overriding the browser's native hidden behaviour */
+    [hidden] { display: none !important; }
 
     /* ===================================================================
        SKIP NAV
@@ -280,38 +289,13 @@
     }
 
     /* ===================================================================
-       FOOTER — styles for partials/footer.php
-       =================================================================== */
-    .site-footer {
-      background: linear-gradient(to right, var(--horizon-600), var(--horizon-700));
-      padding-top: 10rem;
-    }
-    .site-footer__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem 3rem; }
-    .site-footer__grid  { display: grid; grid-template-columns: 1fr; gap: 2rem; }
-    .site-footer__logo  { height: 3.5rem; width: auto; margin-bottom: 1rem; margin-top: -0.75rem; }
-    .site-footer__tagline { font-size: 0.875rem; color: var(--white-70); line-height: 1.625; }
-    .site-footer__heading { font-size: 0.875rem; font-weight: 700; color: var(--white); margin-bottom: 1rem; }
-    .site-footer__list  { display: flex; flex-direction: column; gap: 0.5rem; }
-    .site-footer__link  { font-size: 0.875rem; color: var(--white-70); transition: color 0.15s ease; }
-    .site-footer__link:hover { color: var(--white); }
-    .site-footer__bottom {
-      border-top: 1px solid var(--white-20); margin-top: 2rem; padding-top: 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem;
-    }
-    .site-footer__copy        { font-size: 0.875rem; color: var(--white-70); }
-    .site-footer__social      { display: flex; align-items: center; gap: 1rem; }
-    .site-footer__social-link { color: var(--white-70); transition: color 0.15s ease; }
-    .site-footer__social-link:hover { color: var(--white); }
-
-    /* ===================================================================
        HERO MODULE  [id=hero]
        =================================================================== */
     .hero { background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500)); overflow-x: hidden; }
     .hero__inner { max-width: 80rem; margin: 0 auto; padding: 2.5rem 1rem 0; }
     .hero__heading {
       position: relative; z-index: 1;
-      font-size: clamp(2.25rem, 8vw, 5rem); line-height: 1.1;
+      font-size: clamp(2.25rem, 8vw, 6rem); line-height: 1;
       margin-bottom: 0.75rem; color: var(--white); font-weight: 900;
     }
     .hero__heading-accent { color: var(--raspberry-300); }
@@ -362,283 +346,26 @@
     .hero__caption-title  { font-size: 1.5rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.25rem; }
     .hero__caption-body   { font-size: 0.75rem; color: var(--neutral-500); line-height: 1.25; }
     .hero__caption-brain  { flex: 1; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; margin-top: 0.25rem; }
-    .hero__caption-brain img { width: auto; max-width: 100%; max-height: 100%; object-fit: contain; object-position: bottom; }
+    .hero__caption-brain img { width: auto; max-width: 100%; max-height: none; object-fit: contain; object-position: bottom; }
 
     /* ===================================================================
-       MEET FYN MODULE  [id=meet-fyn]
-       =================================================================== */
-    .meet-fyn { background: var(--light-pink-100); padding-top: 1.5rem; padding-bottom: 2rem; }
-    .meet-fyn__inner {
-      max-width: 80rem; margin: 0 auto; padding: 0 1rem;
-      display: flex; flex-direction: column; gap: 2.5rem;
-    }
-    .meet-fyn__content { flex: 1; }
-    .meet-fyn__mobile-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.25rem; }
-    .meet-fyn__mobile-char   { height: 7rem; width: auto; margin-bottom: -0.5rem; }
-    .meet-fyn__heading { font-size: clamp(3rem, 10vw, 6rem); font-weight: 700; color: var(--horizon-500); line-height: 1; margin-bottom: 0.25rem; }
-    .meet-fyn__subheading { font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 600; color: var(--neutral-500); margin-bottom: 0.5rem; }
-    .meet-fyn__body { font-size: 0.875rem; color: var(--neutral-500); max-width: 42rem; line-height: 1.625; margin-bottom: 1.25rem; }
-
-    .fyn-accordion { max-width: 42rem; margin-bottom: 1.25rem; }
-    .fyn-accordion__trigger {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-size: 0.875rem; font-weight: 600; color: var(--horizon-500);
-      background: none; border: none; padding: 0; transition: color 0.15s ease;
-    }
-    .fyn-accordion__trigger:hover { color: var(--raspberry-500); }
-    .fyn-accordion__chevron { transition: transform 0.2s ease; flex-shrink: 0; }
-    .fyn-accordion__panel {
-      margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;
-      overflow: hidden; max-height: 0; transition: max-height 0.3s ease;
-    }
-    .fyn-accordion__panel.is-open { max-height: 20rem; }
-    .fyn-accordion__item { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.875rem; color: var(--neutral-500); }
-    .fyn-accordion__check { color: var(--spring-500); flex-shrink: 0; margin-top: 0.125rem; }
-
-    .btn-fyn-start {
-      display: inline-block; padding: 0.75rem 3rem; font-size: 1.125rem; font-weight: 500;
-      color: var(--white); background: var(--light-blue-500);
-      border-radius: var(--radius-button); border: none;
-      transition: opacity 0.15s ease; white-space: nowrap;
-    }
-    .btn-fyn-start:hover { opacity: 0.9; }
-
-    .meet-fyn__character { display: none; align-items: center; justify-content: flex-end; flex-shrink: 0; }
-    .meet-fyn__character img { width: auto; height: 427px; margin-bottom: -3rem; }
-
-    /* ===================================================================
-       FEATURE GRID MODULE  [id=features]
-       =================================================================== */
-    .feature-grid { background: linear-gradient(to right, var(--horizon-600), var(--horizon-700)); padding: 2.5rem 0; }
-    .feature-grid__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
-    .feature-grid__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); text-align: center; margin-bottom: 1rem; color: var(--white); }
-    .feature-grid__intro { text-align: center; color: var(--white-70); font-size: 0.875rem; max-width: 42rem; margin: 0 auto 2.5rem; line-height: 1.625; }
-    .feature-grid__cards { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
-    .feature-card { background: var(--horizon-500); border-radius: var(--radius-card); padding: 1.5rem; transition: all 0.2s ease; }
-    .feature-card__icon-wrap {
-      width: 2.5rem; height: 2.5rem; border-radius: var(--radius-full);
-      display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;
-    }
-    .feature-card__icon-wrap--raspberry { background: var(--raspberry-500); }
-    .feature-card__icon-wrap--spring    { background: var(--spring-500); }
-    .feature-card__icon-wrap--violet    { background: var(--violet-500); }
-    .feature-card__icon-wrap--blue      { background: var(--light-blue-500); }
-    .feature-card__icon-wrap--savannah  { background: var(--savannah-500); }
-    .feature-card__icon-wrap--slate     { background: var(--horizon-400); }
-    .feature-card__icon  { color: var(--white); }
-    .feature-card__title { color: var(--white); margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600; }
-    .feature-card__body  { font-size: 0.875rem; color: var(--horizon-300); line-height: 1.625; margin-bottom: 1rem; }
-    .feature-card__tags  { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .feature-card__tag   { display: inline-flex; padding: 0.125rem 0.5rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 500; background: var(--white-10); color: var(--white-70); }
-    .feature-grid__footer { text-align: center; margin-top: 2.5rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-    .feature-grid__footer-link { color: var(--white); font-weight: 500; transition: color 0.15s ease; }
-    .feature-grid__footer-link:hover { color: var(--white-70); }
-    .feature-grid__footer-sep { color: var(--white-30); }
-
-    /* ===================================================================
-       DASHBOARD VIDEO MODULE  [id=dashboard]
-       =================================================================== */
-    .dashboard-preview { background: var(--eggshell-500); padding: 2.5rem 0; }
-    .dashboard-preview__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
-    .dashboard-preview__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); text-align: center; margin-bottom: 3rem; color: var(--horizon-500); }
-    .dashboard-preview__video-wrap {
-      position: relative; border-radius: var(--radius-2xl);
-      overflow: hidden; box-shadow: var(--shadow-lg); cursor: pointer;
-    }
-    .dashboard-preview__video { width: 100%; height: auto; display: block; }
-    .dashboard-preview__overlay {
-      position: absolute; inset: 0; background: var(--horizon-500-30);
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s ease;
-    }
-    .dashboard-preview__video-wrap:hover .dashboard-preview__overlay { background: var(--horizon-500-20); }
-    .dashboard-preview__play-btn {
-      width: 5rem; height: 5rem; border-radius: var(--radius-full);
-      background: var(--white-90); display: flex; align-items: center; justify-content: center;
-      box-shadow: var(--shadow-lg); transition: transform 0.15s ease;
-    }
-    .dashboard-preview__video-wrap:hover .dashboard-preview__play-btn { transform: scale(1.1); }
-    .dashboard-preview__play-icon { color: var(--raspberry-500); margin-left: 0.25rem; }
-
-    /* ===================================================================
-       REVIEW CAROUSEL MODULE  [id=reviews]
-       =================================================================== */
-    .review-carousel { background: var(--horizon-500); padding: 3rem 0; }
-    .review-carousel__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
-    .review-carousel__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700; color: var(--white); text-align: center; margin-bottom: 2rem; }
-    .review-carousel__track-wrapper { overflow: hidden; }
-    .review-carousel__track-desktop { display: none; transition: transform 0.5s ease-in-out; }
-    .review-carousel__page-desktop  { display: flex; gap: 1.25rem; min-width: 100%; }
-    .review-carousel__track-mobile  { display: flex; transition: transform 0.5s ease-in-out; }
-    .review-carousel__slide-mobile  { min-width: 100%; padding: 0 0.25rem; }
-    .review-card {
-      flex: 1; background: var(--white-8); border: 1px solid var(--white-12);
-      border-radius: var(--radius-2xl); padding: 1.5rem 1.25rem; display: flex; flex-direction: column;
-    }
-    .review-card__stars  { display: flex; gap: 0.125rem; margin-bottom: 0.75rem; }
-    .review-card__star   { color: var(--yellow-400); }
-    .review-card__text   { font-size: 0.875rem; color: var(--white-80); line-height: 1.625; flex: 1; margin-bottom: 0.75rem; }
-    .review-card__footer { border-top: 1px solid var(--white-10); padding-top: 0.75rem; }
-    .review-card__name   { font-size: 0.875rem; font-weight: 600; color: var(--white); }
-    .review-carousel__nav { display: flex; justify-content: center; align-items: center; gap: 1.25rem; margin-top: 1.75rem; }
-    .review-carousel__arrow {
-      width: 2.5rem; height: 2.5rem; border-radius: var(--radius-full);
-      border: 1px solid var(--white-25); background: var(--white-8); color: var(--white);
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s ease, border-color 0.15s ease;
-    }
-    .review-carousel__arrow:hover { background: var(--white-15); border-color: var(--white-40); }
-    .review-carousel__dots { display: flex; gap: 0.5rem; align-items: center; }
-    .review-carousel__dot  {
-      height: 0.625rem; border-radius: var(--radius-full);
-      background: var(--white-25); border: none; cursor: pointer;
-      transition: width 0.3s ease, background 0.3s ease; width: 0.625rem;
-    }
-    .review-carousel__dot.is-active { width: 1.75rem; background: var(--raspberry-500); }
-
-    /* ===================================================================
-       PERSONAL JOURNEY MODULE  [id=solutions]
-       =================================================================== */
-    .journey-stages { background: var(--eggshell-500); padding-top: 2.5rem; padding-bottom: 6rem; }
-    .journey-stages__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
-    .journey-stages__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); text-align: center; margin-bottom: 3rem; color: var(--horizon-500); }
-    .journey-stages__grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2.5rem; }
-    .stage-card {
-      background: linear-gradient(135deg, var(--horizon-600), var(--horizon-700));
-      border-radius: var(--radius-card); border: 1px solid var(--white-10);
-      box-shadow: var(--shadow-sm); padding: 1.25rem;
-      display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
-      text-decoration: none; transition: border-color 0.2s ease, transform 0.2s ease;
-    }
-    .stage-card:hover { border-color: var(--white-30); transform: translateY(-2px); }
-    .stage-card__title  { font-size: 1.5rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem; line-height: 1.25; }
-    .stage-card__accent { color: var(--raspberry-400); }
-    .stage-card__sub    { font-size: 0.75rem; color: var(--white-70); line-height: 1.35; }
-    .journey-stages__cta { text-align: center; }
-    .btn-demo {
-      display: inline-block; padding: 0.5rem 2rem;
-      background: var(--spring-500); color: var(--white);
-      border-radius: var(--radius-button); font-weight: 500; border: none;
-      transition: background 0.15s ease, box-shadow 0.15s ease; box-shadow: var(--shadow-sm);
-    }
-    .btn-demo:hover { background: var(--spring-600); box-shadow: var(--shadow-md); }
-
-    /* ===================================================================
-       LATEST INSIGHTS MODULE  [id=insights]
-       =================================================================== */
-    .latest-insights { background: var(--light-pink-100); padding-top: 3rem; padding-bottom: 7rem; }
-    .latest-insights__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
-    .latest-insights__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700; color: var(--horizon-500); text-align: center; margin-bottom: 1.5rem; letter-spacing: -0.02em; }
-
-    /* Dynamic layout */
-    .insights-dynamic  { display: grid; grid-template-columns: 1fr; gap: 1.25rem; max-width: 72rem; margin: 0 auto; }
-    .insights-featured {
-      position: relative; display: block; border-radius: var(--radius-3xl);
-      overflow: hidden; background: var(--horizon-500); min-height: 320px; text-decoration: none;
-    }
-    .insights-featured__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.7s ease, transform 0.7s ease; }
-    .insights-featured:hover .insights-featured__img { opacity: 0.9; transform: scale(1.05); }
-    .insights-featured__overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to top, var(--horizon-700-80), var(--horizon-500-30) 50%, transparent);
-    }
-    .insights-featured__body { position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem; height: 100%; min-height: 320px; }
-    .insights-featured__badge {
-      display: inline-block; font-size: 0.65rem; font-weight: 700;
-      padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);
-      text-transform: uppercase; letter-spacing: 0.05em;
-      background: var(--raspberry-500); color: var(--white);
-      margin-bottom: 0.75rem; align-self: flex-start;
-    }
-    .insights-featured__title {
-      font-size: clamp(1.25rem, 3vw, 1.875rem); font-weight: 700; color: var(--white);
-      margin-bottom: 0.75rem; line-height: 1.25; letter-spacing: -0.02em;
-      transition: color 0.15s ease;
-    }
-    .insights-featured:hover .insights-featured__title { color: var(--raspberry-300); }
-    .insights-featured__summary { font-size: 0.875rem; color: var(--white-80); line-height: 1.625; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-    .insights-supporting { display: grid; grid-template-rows: repeat(2, 1fr); gap: 1.25rem; }
-    .insights-support-card {
-      position: relative; display: flex; border-radius: var(--radius-3xl);
-      overflow: hidden; background: var(--white); min-height: 150px;
-      text-decoration: none; transition: box-shadow 0.2s ease;
-    }
-    .insights-support-card:hover { box-shadow: var(--shadow-lg); }
-    .insights-support-card__thumb { width: 40%; position: relative; overflow: hidden; background: var(--horizon-100); }
-    .insights-support-card__thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-    .insights-support-card:hover .insights-support-card__thumb img { transform: scale(1.1); }
-    .insights-support-card__body  { flex: 1; padding: 1rem; display: flex; align-items: center; }
-    .insights-support-card__title { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); line-height: 1.25; transition: color 0.15s ease; }
-    .insights-support-card:hover .insights-support-card__title { color: var(--raspberry-500); }
-
-    /* Static fallback */
-    .insights-static { display: grid; grid-template-columns: 1fr; gap: 1rem; max-width: 60rem; margin: 0 auto; }
-    .insight-static-card { display: flex; flex-direction: column; background: var(--white); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-sm); text-decoration: none; transition: box-shadow 0.2s ease, transform 0.2s ease; }
-    .insight-static-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
-    .insight-static-card__thumb { aspect-ratio: 16/9; overflow: hidden; background: var(--horizon-100); }
-    .insight-static-card__thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-    .insight-static-card:hover .insight-static-card__thumb img { transform: scale(1.05); }
-    .insight-static-card__body { padding: 0.875rem; flex: 1; display: flex; flex-direction: column; }
-    .insight-static-card__date  { font-size: 0.65rem; color: var(--neutral-400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-    .insight-static-card__title { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); line-height: 1.35; margin-bottom: 0.375rem; transition: color 0.15s ease; }
-    .insight-static-card:hover .insight-static-card__title { color: var(--raspberry-500); }
-    .insight-static-card__summary { font-size: 0.75rem; color: var(--neutral-500); line-height: 1.625; flex: 1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-
-    .insights-footer { text-align: center; margin-top: 1.5rem; }
-    .insights-footer__link { font-size: 0.875rem; font-weight: 600; color: var(--horizon-500); transition: color 0.15s ease; }
-    .insights-footer__link:hover { color: var(--raspberry-500); }
-
-    /* ===================================================================
-       STATS BAR MODULE  [id=stats]
-       =================================================================== */
-    .stats-bar { position: relative; z-index: 1; margin-top: -3.5rem; margin-bottom: -6rem; }
-    .stats-bar__inner { max-width: 56rem; margin: 0 auto; padding: 0 1rem; }
-    .stats-bar__card {
-      background: var(--white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-lg);
-      display: flex; flex-direction: row; align-items: flex-start;
-      justify-content: space-around; gap: 0.75rem; padding: 1.5rem 1rem;
-    }
-    .stats-bar__stat    { text-align: center; flex: 1; min-width: 0; }
-    .stats-bar__number  { font-size: clamp(1.5rem, 4vw, 2.25rem); font-weight: 700; color: var(--horizon-500); }
-    .stats-bar__label   { font-size: clamp(0.65rem, 1.5vw, 0.875rem); font-weight: 600; color: var(--neutral-500); margin-top: 0.25rem; line-height: 1.25; }
-    .stats-bar__divider { width: 1px; align-self: stretch; background: var(--light-gray); }
-
-    /* ===================================================================
-       RESPONSIVE
+       RESPONSIVE — hero and nav only (below-fold modules live in index.css)
        =================================================================== */
     @media (min-width: 640px) {
-      .hero__mobile-panels  { display: none; }
-      .journey-stages__grid { grid-template-columns: repeat(2, 1fr); }
-      .insights-static      { grid-template-columns: repeat(3, 1fr); }
-    }
-    @media (min-width: 768px) {
-      .feature-grid__cards                { grid-template-columns: repeat(2, 1fr); }
-      .review-carousel__track-desktop     { display: flex; }
-      .review-carousel__track-mobile      { display: none; }
+      .hero__mobile-panels { display: none; }
     }
     @media (min-width: 1024px) {
       .nav-desktop             { display: flex; }
       .nav-actions             { display: flex; }
       .nav-hamburger           { display: none; }
-      .meet-fyn__inner         { flex-direction: row; align-items: center; }
-      .meet-fyn__mobile-header { display: none; }
-      .meet-fyn__heading       { display: block; }
-      .meet-fyn__character     { display: flex; }
-      .feature-grid__cards     { grid-template-columns: repeat(3, 1fr); }
       .hero__mobile-panels     { display: none; }
       .hero__desktop-composite { display: block; }
-      .journey-stages__grid    { grid-template-columns: repeat(5, 1fr); }
-      .stage-card              { aspect-ratio: 1; }
-      .insights-dynamic        { grid-template-columns: 2fr 1fr; }
-      .insights-featured       { min-height: 420px; }
-      .insights-featured__body { min-height: 420px; padding: 2rem; }
-      .site-footer__grid       { grid-template-columns: 2fr repeat(5, 1fr); }
     }
     @media (min-width: 1280px) {
-      .hero__caption--left  { padding-top: 6rem; }
-      .hero__caption--right { padding-top: 6rem; }
+      .hero__caption--left   { padding-top: 6rem; }
+      .hero__caption--right  { padding-top: 6rem; }
       .hero__caption--center { top: 3.5rem; }
-      .hero__caption-title  { font-size: 1.5rem; }
+      .hero__caption-title   { font-size: 1.5rem; }
     }
   </style>
 </head>
@@ -934,7 +661,7 @@
         <div id="insights-static" class="insights-static">
           <a href="/insights/how-much-to-retire-uk" class="insight-static-card">
             <div class="insight-static-card__thumb">
-              <img src="/images/insights/how-much-to-retire-uk.jpg" alt="How Much Do I Need to Retire in the UK?" width="400" height="225" loading="lazy" />
+              <img src="/images/insights/how-much-to-retire-uk.jpg" alt="" width="400" height="225" loading="lazy" />
             </div>
             <div class="insight-static-card__body">
               <p class="insight-static-card__date">14 April 2026</p>
@@ -944,7 +671,7 @@
           </a>
           <a href="/insights/stocks-shares-isa-uk" class="insight-static-card">
             <div class="insight-static-card__thumb">
-              <img src="/images/insights/stocks-shares-isa.jpg" alt="What Is a Stocks and Shares ISA?" width="400" height="225" loading="lazy" />
+              <img src="/images/insights/stocks-shares-isa.jpg" alt="" width="400" height="225" loading="lazy" />
             </div>
             <div class="insight-static-card__body">
               <p class="insight-static-card__date">13 April 2026</p>
@@ -954,7 +681,7 @@
           </a>
           <a href="/insights/isa-guide-uk" class="insight-static-card">
             <div class="insight-static-card__thumb">
-              <img src="/images/insights/isa-guide-uk.jpg" alt="The Ultimate Guide to ISAs in the UK" width="400" height="225" loading="lazy" />
+              <img src="/images/insights/isa-guide-uk.jpg" alt="" width="400" height="225" loading="lazy" />
             </div>
             <div class="insight-static-card__body">
               <p class="insight-static-card__date">8 April 2026</p>
@@ -999,10 +726,10 @@
   <?php include __DIR__ . '/partials/footer.php'; ?>
 
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
-  <script src="/pages/js/site.js" defer></script>
+  <script src="/pages/js/site.js?v=12" defer></script>
 
-  <!-- Page-specific JS -->
-  <script defer>
+  <!-- Page-specific JS (inline: carousel data + video + accordion + scroll + insights fetch) -->
+  <script>
     'use strict';
 
     /* ----------------------------------------------------------------
@@ -1169,7 +896,7 @@
           var featuredSum = document.getElementById('insight-featured-summary');
           featuredEl.href = '/insights/' + featured.slug;
           featuredEl.setAttribute('aria-label', featured.title);
-          if (featured.image_card) { featuredImg.src = featured.image_card; featuredImg.alt = featured.title; }
+          if (featured.image_card) { featuredImg.src = featured.image_card; featuredImg.alt = ''; /* decorative: title in adjacent h3 */ }
           featuredTit.textContent = featured.title;
           featuredSum.textContent = featured.summary;
 
@@ -1177,7 +904,7 @@
           supEl.innerHTML = supporting.slice(0, 2).map(function (a) {
             return '<a href="/insights/' + a.slug + '" class="insights-support-card">' +
               '<div class="insights-support-card__thumb">' +
-              (a.image_card ? '<img src="' + a.image_card + '" alt="' + a.title.replace(/"/g, '&quot;') + '" width="300" height="200" loading="lazy" />' : '') +
+              (a.image_card ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" />' : '') + /* alt="" decorative: title in adjacent h4 */
               '</div><div class="insights-support-card__body"><h4 class="insights-support-card__title">' + a.title + '</h4></div></a>';
           }).join('');
 

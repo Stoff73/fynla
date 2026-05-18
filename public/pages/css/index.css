@@ -189,7 +189,8 @@
 .review-card__name   { font-size: 0.875rem; font-weight: 600; color: var(--white); }
 .review-carousel__nav { display: flex; justify-content: center; align-items: center; gap: 1.25rem; margin-top: 1.75rem; }
 .review-carousel__arrow {
-  width: 2.5rem; height: 2.5rem; border-radius: var(--radius-full);
+  /* 48×48px touch target meets WCAG 2.5.5 */
+  width: 3rem; height: 3rem; border-radius: var(--radius-full);
   border: 1px solid var(--white-25); background: var(--white-8); color: var(--white);
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -197,9 +198,13 @@
 .review-carousel__arrow:hover { background: var(--white-15); border-color: var(--white-40); }
 .review-carousel__dots { display: flex; gap: 0.5rem; align-items: center; }
 .review-carousel__dot  {
-  height: 0.625rem; border-radius: var(--radius-full);
+  /* Visual size: 0.625rem dot. Tap area expanded to ~48px via ::before pseudo-element */
+  position: relative; height: 0.625rem; border-radius: var(--radius-full);
   background: var(--white-25); border: none; cursor: pointer;
   transition: width 0.3s ease, background 0.3s ease; width: 0.625rem;
+}
+.review-carousel__dot::before {
+  content: ''; position: absolute; inset: -1.2rem;
 }
 .review-carousel__dot.is-active { width: 1.75rem; background: var(--raspberry-500); }
 
