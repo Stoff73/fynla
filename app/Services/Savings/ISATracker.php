@@ -7,6 +7,8 @@ namespace App\Services\Savings;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\ISAAllowanceTracking;
 use App\Models\SavingsAccount;
+use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -68,28 +70,28 @@ class ISATracker
             ]
         );
 
+        $isaUser = User::find($userId);
+
         // Calculate ISA usage from savings_accounts for current tax year
         // Match on isa_type='cash' OR account_type='cash_isa' (some accounts lack isa_type)
-        $cashIsaUsed = (float) SavingsAccount::where('user_id', $userId)
-            ->where('is_isa', true)
-            ->where('isa_subscription_year', $taxYear)
-            ->where(function ($q) {
-                $q->where('isa_type', 'cash')
-                    ->orWhere('account_type', 'cash_isa');
-            })
-            ->whereNotNull('isa_subscription_amount')
-            ->sum('isa_subscription_amount');
+        $cashIsaUsed = $isaUser
+            ? (float) app(SavingsStore::class)->forUser($isaUser)
+                ->where('user_id', $userId)
+                ->where('is_isa', true)
+                ->where('isa_subscription_year', $taxYear)
+                ->filter(fn ($a) => ($a->isa_type === 'cash' || $a->account_type === 'cash_isa') && $a->isa_subscription_amount !== null)
+                ->sum('isa_subscription_amount')
+            : 0.0;
 
         // If no explicit subscription tracked AND we're showing the live year,
         // estimate from regular monthly contributions. Skip for past/future years.
         if ($cashIsaUsed <= 0 && $isCalendarYear) {
-            $cashIsaAccounts = SavingsAccount::where('user_id', $userId)
-                ->where('is_isa', true)
-                ->where(function ($q) {
-                    $q->where('isa_type', 'cash')
-                        ->orWhere('account_type', 'cash_isa');
-                })
-                ->get();
+            $cashIsaAccounts = $isaUser
+                ? app(SavingsStore::class)->forUser($isaUser)
+                    ->where('user_id', $userId)
+                    ->where('is_isa', true)
+                    ->filter(fn ($a) => $a->isa_type === 'cash' || $a->account_type === 'cash_isa')
+                : collect();
 
             foreach ($cashIsaAccounts as $account) {
                 $projected = $this->calculateProjectedSubscription($account);
@@ -99,18 +101,14 @@ class ISATracker
             }
         }
 
-        $lisaUsed = (float) SavingsAccount::where('user_id', $userId)
-            ->where('is_isa', true)
-            ->where(function ($q) use ($taxYear) {
-                $q->where('isa_subscription_year', $taxYear)
-                    ->orWhere('account_type', 'lisa');
-            })
-            ->where(function ($q) {
-                $q->where('isa_type', 'LISA')
-                    ->orWhere('isa_type', 'lisa')
-                    ->orWhere('account_type', 'lisa');
-            })
-            ->sum('isa_subscription_amount');
+        $lisaUsed = $isaUser
+            ? (float) app(SavingsStore::class)->forUser($isaUser)
+                ->where('user_id', $userId)
+                ->where('is_isa', true)
+                ->filter(fn ($a) => ($a->isa_subscription_year === $taxYear || $a->account_type === 'lisa')
+                    && ($a->isa_type === 'LISA' || $a->isa_type === 'lisa' || $a->account_type === 'lisa'))
+                ->sum('isa_subscription_amount')
+            : 0.0;
 
         // Calculate stocks & shares ISA usage from investment_accounts (cross-module)
         // First try with explicit tax year match — always respects the requested year
@@ -211,22 +209,30 @@ class ISATracker
             ]
         );
 
+        $isaUser = User::find($userId);
+
         // Update the specific ISA type
         match ($isaType) {
             'stocks_shares' => $tracking->stocks_shares_isa_used = $amount ?? (float) InvestmentAccount::where('user_id', $userId)
                 ->where('account_type', 'isa')
                 ->where('tax_year', $taxYear)
                 ->sum('isa_subscription_current_year'),
-            'cash' => $tracking->cash_isa_used = $amount ?? (float) SavingsAccount::where('user_id', $userId)
-                ->where('is_isa', true)
-                ->where('isa_subscription_year', $taxYear)
-                ->where('isa_type', 'cash')
-                ->sum('isa_subscription_amount'),
-            'LISA' => $tracking->lisa_used = $amount ?? (float) SavingsAccount::where('user_id', $userId)
-                ->where('is_isa', true)
-                ->where('isa_subscription_year', $taxYear)
-                ->where('isa_type', 'LISA')
-                ->sum('isa_subscription_amount'),
+            'cash' => $tracking->cash_isa_used = $amount ?? ($isaUser
+                ? (float) app(SavingsStore::class)->forUser($isaUser)
+                    ->where('user_id', $userId)
+                    ->where('is_isa', true)
+                    ->where('isa_subscription_year', $taxYear)
+                    ->where('isa_type', 'cash')
+                    ->sum('isa_subscription_amount')
+                : 0.0),
+            'LISA' => $tracking->lisa_used = $amount ?? ($isaUser
+                ? (float) app(SavingsStore::class)->forUser($isaUser)
+                    ->where('user_id', $userId)
+                    ->where('is_isa', true)
+                    ->where('isa_subscription_year', $taxYear)
+                    ->where('isa_type', 'LISA')
+                    ->sum('isa_subscription_amount')
+                : 0.0),
             default => null,
         };
 
@@ -298,17 +304,15 @@ class ISATracker
      */
     private function calculateProjectedSubscriptions(int $userId, string $taxYear, string $isaType): float
     {
-        $accounts = SavingsAccount::where('user_id', $userId)
-            ->where('is_isa', true)
-            ->where(function ($q) use ($isaType) {
-                $q->where('isa_type', $isaType);
-                if ($isaType === 'cash') {
-                    $q->orWhere('account_type', 'cash_isa');
-                } elseif ($isaType === 'LISA' || $isaType === 'lisa') {
-                    $q->orWhere('account_type', 'lisa');
-                }
-            })
-            ->get();
+        $isaUser = User::find($userId);
+        $accounts = $isaUser
+            ? app(SavingsStore::class)->forUser($isaUser)
+                ->where('user_id', $userId)
+                ->where('is_isa', true)
+                ->filter(fn ($a) => $a->isa_type === $isaType
+                    || ($isaType === 'cash' && $a->account_type === 'cash_isa')
+                    || (($isaType === 'LISA' || $isaType === 'lisa') && $a->account_type === 'lisa'))
+            : collect();
 
         $total = 0.0;
         foreach ($accounts as $account) {

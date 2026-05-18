@@ -14,9 +14,22 @@ class StoreSavingsAccountRequest extends FormRequest
         return true;
     }
 
+    /**
+     * The savings_accounts.country column is NOT NULL DEFAULT 'United Kingdom'.
+     * Drop the key when it arrives null/empty so the DB default kicks in instead
+     * of an integrity-constraint 500. Same pattern as PR #269 (investment_accounts).
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
+            $this->offsetUnset('country');
+        }
+    }
+
     public function rules(): array
     {
         return [
+            'account_name' => 'nullable|string|max:255',
             'account_type' => 'nullable|string|max:255',
             'institution' => 'nullable|string|max:255',
             'account_number' => [

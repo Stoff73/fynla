@@ -84,6 +84,62 @@ describe('POST /api/investment/accounts', function () {
 
         $response->assertStatus(422);
     });
+
+    it('does not 500 when country arrives null in the payload', function () {
+        $data = [
+            'account_type' => 'gia',
+            'provider' => 'Vanguard',
+            'current_value' => 850000,
+            'country' => null,
+        ];
+
+        $response = $this->postJson('/api/investment/accounts', $data);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('investment_accounts', [
+            'user_id' => $this->user->id,
+            'provider' => 'Vanguard',
+            'country' => 'United Kingdom',
+        ]);
+    });
+
+    it('does not 500 when country arrives empty string in the payload', function () {
+        $data = [
+            'account_type' => 'gia',
+            'provider' => 'Vanguard',
+            'current_value' => 100,
+            'country' => '',
+        ];
+
+        $response = $this->postJson('/api/investment/accounts', $data);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('investment_accounts', [
+            'user_id' => $this->user->id,
+            'country' => 'United Kingdom',
+        ]);
+    });
+
+    it('preserves an explicitly-supplied country', function () {
+        $data = [
+            'account_type' => 'gia',
+            'provider' => 'Schwab',
+            'current_value' => 5000,
+            'country' => 'United States',
+        ];
+
+        $response = $this->postJson('/api/investment/accounts', $data);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('investment_accounts', [
+            'user_id' => $this->user->id,
+            'provider' => 'Schwab',
+            'country' => 'United States',
+        ]);
+    });
 });
 
 describe('PUT /api/investment/accounts/{id}', function () {
@@ -107,6 +163,35 @@ describe('PUT /api/investment/accounts/{id}', function () {
         $this->assertDatabaseHas('investment_accounts', [
             'id' => $account->id,
             'provider' => 'Updated Provider',
+        ]);
+    });
+
+    it('does not 500 when country arrives null on update — preserves existing value', function () {
+        // Pin account_type/ownership_type: the factory randomises both, and an
+        // isa + non-individual combo makes updateAccount correctly 422 (joint
+        // ISAs are illegal). This test only exercises the country-null path, so
+        // the fixture must be deterministic and not hostage to Faker RNG state.
+        $account = InvestmentAccount::factory()->create([
+            'user_id' => $this->user->id,
+            'account_type' => 'gia',
+            'ownership_type' => 'individual',
+            'country' => 'United Kingdom',
+            'provider' => 'Existing',
+            'current_value' => 1000,
+        ]);
+
+        $response = $this->putJson("/api/investment/accounts/{$account->id}", [
+            'provider' => 'Updated',
+            'current_value' => 2000,
+            'country' => null,
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('investment_accounts', [
+            'id' => $account->id,
+            'provider' => 'Updated',
+            'country' => 'United Kingdom',
         ]);
     });
 });

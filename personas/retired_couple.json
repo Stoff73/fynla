@@ -1,0 +1,778 @@
+{
+  "id": "retired_couple",
+  "life_stage": "retirement",
+  "name": "Patricia & Harold Bennett",
+  "tagline": "Retired couple with estate planning focus",
+  "description": "A retired couple in their early 70s in Tunbridge Wells. Both drawing Defined Benefit pensions from public sector careers (NHS and Civil Service). No debt, substantial savings, and active gifting to grandchildren. Key focus on Inheritance Tax planning.",
+  "netWorthRange": "£800k - £900k",
+  "focus": "Inheritance Tax planning, gifting strategy",
+
+  "user": {
+    "first_name": "Patricia",
+    "last_name": "Bennett",
+    "email": "patricia.bennett@example.com",
+    "date_of_birth": "1955-04-22",
+    "age": 70,
+    "gender": "female",
+    "marital_status": "married",
+    "annual_income": 0,
+    "employment_status": "retired",
+    "former_employer": "NHS",
+    "occupation": "Retired Nurse Manager",
+    "target_retirement_age": 60,
+    "target_retirement_income": 35000,
+    "monthly_expenditure": 2660,
+    "health_status": "yes",
+    "smoking_status": "never",
+    "education_level": "professional",
+    "has_will": true,
+    "has_lasting_power_of_attorney": true,
+    "address": {
+      "line_1": "The Willows, 15 Camden Road",
+      "city": "Tunbridge Wells",
+      "county": "Kent",
+      "postcode": "TN1 2QE"
+    },
+    "annual_charitable_donations": 1200.00,
+    "is_gift_aid": true,
+    "domicile": {
+      "country_of_birth": "South Africa",
+      "uk_arrival_date": "2005-06-01",
+      "years_uk_resident": 21,
+      "domicile_status": "uk_domiciled"
+    }
+  },
+
+  "spouse": {
+    "first_name": "Harold",
+    "last_name": "Bennett",
+    "date_of_birth": "1953-08-10",
+    "age": 72,
+    "gender": "male",
+    "annual_income": 0,
+    "employment_status": "retired",
+    "employer_name": "HMRC",
+    "former_employer": "HMRC",
+    "occupation": "Retired Civil Servant",
+    "health_status": "yes_previous",
+    "smoking_status": "quit_long_ago",
+    "education_level": "a_level",
+    "target_retirement_age": 65,
+    "target_retirement_income": 30000
+  },
+
+  "family_members": [
+    {
+      "id": 1,
+      "first_name": "Mark",
+      "last_name": "Bennett",
+      "relationship": "child",
+      "date_of_birth": "1980-03-15",
+      "age": 45,
+      "is_dependent": false,
+      "notes": "Son, married, lives in London with 2 children"
+    },
+    {
+      "id": 2,
+      "first_name": "Susan",
+      "last_name": "Clarke",
+      "relationship": "child",
+      "date_of_birth": "1983-07-22",
+      "age": 42,
+      "is_dependent": false,
+      "notes": "Daughter, married, lives in Brighton with 3 children"
+    },
+    {
+      "id": 3,
+      "first_name": "Emma",
+      "last_name": "Bennett",
+      "relationship": "other_dependent",
+      "date_of_birth": "2009-05-10",
+      "age": 16,
+      "is_dependent": false,
+      "notes": "Grandchild - Mark's daughter"
+    },
+    {
+      "id": 4,
+      "first_name": "Thomas",
+      "last_name": "Bennett",
+      "relationship": "other_dependent",
+      "date_of_birth": "2012-09-28",
+      "age": 13,
+      "is_dependent": false,
+      "notes": "Grandchild - Mark's son"
+    },
+    {
+      "id": 5,
+      "first_name": "Lucy",
+      "last_name": "Clarke",
+      "relationship": "other_dependent",
+      "date_of_birth": "2014-02-14",
+      "age": 11,
+      "is_dependent": false,
+      "notes": "Grandchild - Susan's daughter"
+    },
+    {
+      "id": 6,
+      "first_name": "Sophie",
+      "last_name": "Clarke",
+      "relationship": "other_dependent",
+      "date_of_birth": "2017-11-30",
+      "age": 8,
+      "is_dependent": false,
+      "notes": "Grandchild - Susan's daughter"
+    },
+    {
+      "id": 7,
+      "first_name": "William",
+      "last_name": "Clarke",
+      "relationship": "other_dependent",
+      "date_of_birth": "2020-06-18",
+      "age": 5,
+      "is_dependent": false,
+      "notes": "Grandchild - Susan's son"
+    }
+  ],
+
+  "properties": [
+    {
+      "id": 1,
+      "property_name": "The Willows",
+      "address": "15 Camden Road, Tunbridge Wells, Kent, TN1 2QE",
+      "property_type": "main_residence",
+      "current_value": 550000,
+      "purchase_price": 185000,
+      "purchase_date": "1995-06-01",
+      "ownership_type": "joint",
+      "ownership_percentage": 50,
+      "is_primary_residence": true,
+      "bedrooms": 4,
+      "estimated_rental_value": 0,
+      "council_tax_band": "F",
+      "monthly_council_tax": 265,
+      "monthly_gas": 85,
+      "monthly_electricity": 65,
+      "monthly_water": 40,
+      "monthly_building_insurance": 45,
+      "monthly_contents_insurance": 30,
+      "monthly_service_charge": 0,
+      "monthly_maintenance_reserve": 100,
+      "other_monthly_costs": 0,
+      "notes": "Mortgage paid off since 2010. Family home for 30 years."
+    }
+  ],
+
+  "mortgages": [],
+
+  "savings_accounts": [
+    {
+      "id": 1,
+      "account_name": "Bennett Current Account",
+      "provider_name": "Nationwide",
+      "account_type": "current_account",
+      "current_balance": 8500,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 0,
+      "notes": "Main household account for pension income and bills"
+    },
+    {
+      "id": 2,
+      "account_name": "Patricia's Cash ISA",
+      "provider_name": "Nationwide",
+      "account_type": "cash_isa",
+      "current_balance": 45000,
+      "interest_rate": 4.5,
+      "is_isa": true,
+      "isa_subscription_current_year": 8000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "monthly_contribution": 500,
+      "notes": "Patricia's tax-free savings"
+    },
+    {
+      "id": 3,
+      "account_name": "Harold's Cash ISA",
+      "provider_name": "NS&I",
+      "account_type": "cash_isa",
+      "current_balance": 42000,
+      "interest_rate": 4.0,
+      "is_isa": true,
+      "isa_subscription_current_year": 6000,
+      "access_type": "immediate",
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "monthly_contribution": 400,
+      "notes": "Harold's tax-free savings"
+    },
+    {
+      "id": 4,
+      "account_name": "Bennett Premium Bonds",
+      "provider_name": "NS&I",
+      "account_type": "premium_bonds",
+      "current_balance": 50000,
+      "interest_rate": 0,
+      "is_isa": false,
+      "access_type": "immediate",
+      "ownership_type": "joint",
+      "monthly_contribution": 0,
+      "notes": "Tax-free prize draws, maximum holding"
+    }
+  ],
+
+  "investment_accounts": [
+    {
+      "id": 1,
+      "account_name": "Patricia's Stocks & Shares ISA",
+      "provider_name": "AJ Bell",
+      "account_type": "isa",
+      "current_value": 65000,
+      "annual_contribution": 10000,
+      "monthly_contribution_amount": 833,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 10000,
+      "ownership_type": "individual",
+      "platform_fee_percent": 0.25,
+      "advisor_fee_percent": 0,
+      "risk_profile": "cautious",
+      "risk_preference": "lower_medium",
+      "holdings": [
+        {
+          "id": 1,
+          "holding_name": "Vanguard LifeStrategy 40",
+          "ticker": "VGLS40",
+          "isin": "GB00B3TYHH97",
+          "asset_type": "fund",
+          "units": 260,
+          "initial_unit_cost": 200.00,
+          "current_unit_price": 250.00,
+          "current_value": 65000,
+          "allocation_percentage": 100,
+          "annual_fee": 0.22
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "account_name": "Harold's Stocks & Shares ISA",
+      "provider_name": "Vanguard",
+      "account_type": "isa",
+      "current_value": 85000,
+      "annual_contribution": 12000,
+      "monthly_contribution_amount": 1000,
+      "contribution_frequency": "monthly",
+      "isa_subscription_current_year": 12000,
+      "ownership_type": "individual",
+      "owner": "spouse",
+      "platform_fee_percent": 0.15,
+      "advisor_fee_percent": 0,
+      "risk_profile": "cautious",
+      "risk_preference": "lower_medium",
+      "holdings": [
+        {
+          "id": 2,
+          "holding_name": "Vanguard LifeStrategy 40",
+          "ticker": "VGLS40",
+          "isin": "GB00B3TYHH97",
+          "asset_type": "fund",
+          "units": 200,
+          "initial_unit_cost": 180.00,
+          "current_unit_price": 250.00,
+          "current_value": 50000,
+          "allocation_percentage": 59,
+          "annual_fee": 0.22
+        },
+        {
+          "id": 3,
+          "holding_name": "Vanguard UK Equity Income",
+          "ticker": "VUKE",
+          "isin": "IE00B3X1LR22",
+          "asset_type": "fund",
+          "units": 1167,
+          "initial_unit_cost": 25.00,
+          "current_unit_price": 30.00,
+          "current_value": 35000,
+          "allocation_percentage": 41,
+          "annual_fee": 0.22
+        }
+      ]
+    }
+  ],
+
+  "dc_pensions": [],
+
+  "db_pensions": [
+    {
+      "id": 1,
+      "scheme_name": "NHS Pension Scheme",
+      "pension_type": "public_sector",
+      "accrued_annual_pension": 18500,
+      "normal_retirement_age": 60,
+      "inflation_protection": "cpi",
+      "lump_sum_entitlement": 0,
+      "spouse_benefit_percentage": 50,
+      "years_of_service": 30,
+      "already_in_payment": true,
+      "notes": "Patricia's NHS pension - retired at 60. 30 years service. 50% spouse benefit on death. Index-linked to CPI."
+    },
+    {
+      "id": 2,
+      "scheme_name": "Civil Service Pension",
+      "pension_type": "public_sector",
+      "accrued_annual_pension": 22000,
+      "normal_retirement_age": 65,
+      "inflation_protection": "cpi",
+      "lump_sum_entitlement": 0,
+      "spouse_benefit_percentage": 50,
+      "years_of_service": 35,
+      "already_in_payment": true,
+      "owner": "spouse",
+      "notes": "Harold's HMRC Civil Service pension - retired at 65. 35 years service. 50% spouse benefit on death. Index-linked to CPI."
+    }
+  ],
+
+  "state_pension": {
+    "forecast_weekly_amount": 221.20,
+    "forecast_annual_amount": 11500,
+    "state_pension_age": 66,
+    "already_receiving": true,
+    "notes": "Patricia receiving full new state pension"
+  },
+
+  "spouse_state_pension": {
+    "forecast_weekly_amount": 221.20,
+    "forecast_annual_amount": 11500,
+    "state_pension_age": 66,
+    "already_receiving": true,
+    "notes": "Harold receiving full new state pension"
+  },
+
+  "life_insurance_policies": [],
+
+  "critical_illness_policies": [],
+
+  "income_protection_policies": [],
+
+  "disability_policies": [],
+
+  "sickness_illness_policies": [],
+
+  "liabilities": [],
+
+  "gifts": [
+    {
+      "id": 1,
+      "gift_type": "pet",
+      "recipient_name": "Mark Bennett",
+      "recipient_relationship": "child",
+      "amount": 20000,
+      "gift_date": "2022-04-15",
+      "notes": "House deposit contribution for Mark",
+      "status": "within_7_years"
+    },
+    {
+      "id": 2,
+      "gift_type": "pet",
+      "recipient_name": "Susan Clarke",
+      "recipient_relationship": "child",
+      "amount": 20000,
+      "gift_date": "2021-06-20",
+      "notes": "House deposit contribution for Susan",
+      "status": "within_7_years"
+    },
+    {
+      "id": 3,
+      "gift_type": "annual_exemption",
+      "recipient_name": "Patricia to grandchildren",
+      "amount": 3000,
+      "gift_date": "2024-04-06",
+      "notes": "Patricia's annual exemption 2024/25 - to Emma, Thomas, Lucy Junior ISAs",
+      "status": "within_7_years"
+    },
+    {
+      "id": 4,
+      "gift_type": "annual_exemption",
+      "recipient_name": "Harold to grandchildren",
+      "amount": 3000,
+      "gift_date": "2024-04-06",
+      "notes": "Harold's annual exemption 2024/25 - to Sophie, William Junior ISAs",
+      "status": "within_7_years"
+    },
+    {
+      "id": 5,
+      "gift_type": "annual_exemption",
+      "recipient_name": "Patricia to grandchildren",
+      "amount": 3000,
+      "gift_date": "2025-04-06",
+      "notes": "Patricia's annual exemption 2025/26 - to Emma, Thomas, Lucy Junior ISAs",
+      "status": "within_7_years"
+    },
+    {
+      "id": 6,
+      "gift_type": "annual_exemption",
+      "recipient_name": "Harold to grandchildren",
+      "amount": 3000,
+      "gift_date": "2025-04-06",
+      "notes": "Harold's annual exemption 2025/26 - to Sophie, William Junior ISAs",
+      "status": "within_7_years"
+    }
+  ],
+
+  "trusts": [],
+
+  "business_interests": [],
+
+  "chattels": [
+    {
+      "id": 1,
+      "item_name": "Jewellery Collection",
+      "current_value": 8000,
+      "ownership_type": "individual",
+      "notes": "Patricia's jewellery including grandmother's pieces"
+    },
+    {
+      "id": 2,
+      "item_name": "Antique Furniture",
+      "current_value": 12000,
+      "ownership_type": "joint",
+      "notes": "Georgian sideboard and Victorian dining set"
+    }
+  ],
+
+  "expenditure": {
+    "total_monthly": 2660,
+    "categories": {
+      "housing": 280,
+      "utilities": 250,
+      "food_groceries": 450,
+      "transport_fuel": 200,
+      "insurance": 180,
+      "entertainment_dining": 300,
+      "holidays_travel": 400,
+      "gifts_charity": 350,
+      "healthcare_medical": 50,
+      "other_expenditure": 200
+    }
+  },
+
+  "iht_profile": {
+    "marital_status": "married",
+    "available_nrb": 325000,
+    "available_rnrb": 175000,
+    "notes": "On first death, assets transfer to spouse tax-free. On second death, both Nil Rate Bands and Residence Nil Rate Bands available (up to £1M threshold). Current combined estate ~£845k so Inheritance Tax exposure ~£138k on second death."
+  },
+
+  "key_concerns": [
+    "Will our pensions keep up with inflation?",
+    "How much Inheritance Tax will our children pay?",
+    "Should we be gifting more now while we can enjoy seeing them use it?",
+    "What happens if one of us needs care?",
+    "Are we protected if pension rules change under new government policies?",
+    "Should we consider equity release or is that a last resort?"
+  ],
+
+  "highlights": {
+    "estate_planning": {
+      "gross_estate_value": 845500,
+      "available_nrb": 650000,
+      "available_rnrb": 350000,
+      "current_iht_estimate": 138200,
+      "gifts_in_last_7_years": 40000
+    },
+    "net_worth_range": "800k - 900k",
+    "primary_focus": "Inheritance Tax planning, gifting strategy, care cost planning"
+  },
+
+  "risk_profile": {
+    "main_risk_level": "lower_medium",
+    "spouse_risk_level": "lower_medium",
+    "notes": "Retired couple focused on capital preservation and income generation. Cautious approach with DB pension income security."
+  },
+
+  "will": {
+    "has_will": true,
+    "spouse_primary_beneficiary": true,
+    "spouse_bequest_percentage": 100,
+    "executor_name": "Mark Bennett & Adams & Co Solicitors",
+    "executor_notes": "Mirror wills in place. On first death, everything to surviving spouse. On second death, estate split equally between Mark and Susan. Specific legacies to grandchildren for education.",
+    "will_last_updated": "2023-08-15",
+    "bequests": [
+      {
+        "beneficiary_name": "Mark Bennett",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 50,
+        "priority_order": 2,
+        "conditions": "On second death"
+      },
+      {
+        "beneficiary_name": "Susan Clarke",
+        "bequest_type": "percentage",
+        "percentage_of_estate": 50,
+        "priority_order": 2,
+        "conditions": "On second death"
+      },
+      {
+        "beneficiary_name": "Grandchildren Education Fund",
+        "bequest_type": "specific_amount",
+        "specific_amount": 25000,
+        "priority_order": 1,
+        "conditions": "To be divided equally between grandchildren for education costs when they reach 18"
+      }
+    ],
+    "spouse_will": {
+      "has_will": true,
+      "spouse_primary_beneficiary": true,
+      "spouse_bequest_percentage": 100,
+      "executor_name": "Mark Bennett & Adams & Co Solicitors",
+      "will_last_updated": "2023-08-15"
+    }
+  },
+
+  "goals": [
+    {
+      "goal_name": "Annual Gifting to Grandchildren",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Gifting Strategy",
+      "description": "Use both annual exemptions (£6,000 total) to gift to grandchildren Junior ISAs, reducing estate for Inheritance Tax",
+      "target_amount": 6000,
+      "current_amount": 3000,
+      "target_date": "2026-04-05",
+      "start_date": "2025-04-06",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 500,
+      "contribution_streak": 6,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Grandchildren Education Trust",
+      "goal_type": "education",
+      "description": "Build education fund across 5 grandchildren's Junior ISAs for university costs",
+      "target_amount": 75000,
+      "current_amount": 24000,
+      "target_date": "2035-09-01",
+      "start_date": "2020-01-01",
+      "assigned_module": "investment",
+      "priority": "medium",
+      "is_essential": false,
+      "monthly_contribution": 300,
+      "contribution_streak": 36,
+      "longest_streak": 48,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Care Fee Reserve",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Care Planning",
+      "description": "Maintain liquid savings to cover potential care costs without selling home. Target 3 years residential care at current rates.",
+      "target_amount": 180000,
+      "current_amount": 145500,
+      "target_date": "2030-12-31",
+      "start_date": "2020-01-01",
+      "assigned_module": "savings",
+      "priority": "critical",
+      "is_essential": true,
+      "monthly_contribution": 500,
+      "contribution_streak": 60,
+      "longest_streak": 60,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Inheritance Tax Reduction Target",
+      "goal_type": "custom",
+      "custom_goal_type_name": "Estate Planning",
+      "description": "Reduce estate below combined Nil Rate Band + Residence Nil Rate Band threshold (£1M) through strategic gifting over 7 years",
+      "target_amount": 100000,
+      "current_amount": 46000,
+      "target_date": "2032-04-05",
+      "start_date": "2021-04-06",
+      "assigned_module": "savings",
+      "priority": "high",
+      "is_essential": false,
+      "monthly_contribution": 0,
+      "contribution_streak": 0,
+      "longest_streak": 0,
+      "last_contribution_date": null,
+      "ownership_type": "joint"
+    },
+    {
+      "goal_name": "Annual Holiday Fund",
+      "goal_type": "holiday",
+      "description": "Annual family gathering holiday - cruise or European trip with children and grandchildren",
+      "target_amount": 8000,
+      "current_amount": 2500,
+      "target_date": "2026-08-01",
+      "start_date": "2025-09-01",
+      "assigned_module": "savings",
+      "priority": "low",
+      "is_essential": false,
+      "monthly_contribution": 600,
+      "contribution_streak": 4,
+      "longest_streak": 12,
+      "last_contribution_date": "2026-01-01",
+      "ownership_type": "joint"
+    }
+  ],
+
+  "letter_to_spouse": {
+    "immediate_actions": "1. Contact Mark immediately - he is co-executor with Adams & Co\n2. Contact Adams & Co Solicitors (01892 523 456)\n3. Access joint Nationwide account for immediate expenses\n4. Contact AJ Bell about investment accounts\n5. Notify NHS Pensions about my death (survivor pension applies)\n6. Keep my phone active for account verifications\n7. Register the death at Tunbridge Wells Register Office\n8. Obtain at least 10 death certificates",
+    "executor_name": "Mark Bennett & Adams & Co Solicitors",
+    "executor_contact": "Mark: 07700 900789 / Adams & Co: 01892 523 456 - Ask for David Adams",
+    "attorney_name": "Adams & Co Solicitors",
+    "attorney_contact": "01892 523 456 / estates@adamsco.co.uk - David Adams (senior partner)",
+    "financial_advisor_name": "Self-directed investments (no adviser)",
+    "financial_advisor_contact": "AJ Bell: 0345 123 4567 / Vanguard: 0800 587 0460 - Both online platforms",
+    "accountant_name": "N/A - Tax affairs straightforward",
+    "accountant_contact": "Adams & Co handle annual tax returns",
+    "immediate_funds_access": "Joint Accounts (Accessible Immediately):\n\n• Nationwide Joint Current - Approx £8,500\n• Premium Bonds - £50,000 (joint holding)\n\nMy individual accounts will be frozen until probate:\n• Nationwide Cash ISA - £45,000\n• AJ Bell S&S ISA - £65,000\n\nHarold has his own ISAs which remain accessible to him.",
+    "employer_hr_contact": "N/A - Retired since 2015",
+    "employer_benefits_info": "NHS Pension: Harold receives 50% survivor pension\nContact NHS Pensions: 0345 606 6166\nProvide member number (in pension file, filing cabinet)\n\nNo other employer benefits - fully retired.",
+    "password_manager_info": "Passwords in green notebook, kitchen drawer.\nLaptop password: On card in desk drawer.\nMark has copies of important passwords.\n\nOnline banking: Security device in drawer by phone.",
+    "estate_documents_location": "All original documents at Adams & Co Solicitors, Tunbridge Wells\n\nAt home (The Willows):\n- Will copy in filing cabinet, hallway\n- LPAs (Mark and Susan are attorneys)\n- House deeds (originals with solicitor)\n- Premium Bonds certificates\n- Pension statements\n\nNo safe deposit box - everything at home or with solicitor.",
+    "vehicles_info": "Nissan Qashqai (2020):\n- Registration: PB20 XYZ\n- Fully owned, no finance\n- Insured with Saga\n- Worth approximately £18,000\n- Harold can continue driving it\n\nHarold's car: Ford Focus (2019)\n- His name, fully owned",
+    "valuable_items_info": "Jewellery Collection (£8,000):\n- My engagement ring - to Susan\n- Grandmother's pearl necklace - to Emma (first granddaughter)\n- Charm bracelet - to Lucy\n- Other pieces - divided between Sophie and any future granddaughters\n- Listed in jewellery book, dressing table\n\nAntique Furniture (£12,000 joint):\n- Georgian sideboard in dining room (Harold's parents)\n- Victorian dining set\n- To stay in family home, children can discuss later",
+    "cryptocurrency_info": "N/A - No cryptocurrency holdings",
+    "recurring_bills_info": "The Willows:\n- Council Tax: £265/month - Joint Nationwide direct debit\n- Gas: £85/month - British Gas\n- Electric: £65/month - EDF\n- Water: £40/month - South East Water\n- Building Insurance: £45/month - Saga\n- Contents Insurance: £30/month - Saga\n- TV Licence: £13/month - free when both over 75!\n- Gardener: £100/month - Tom Green (local)\n\nSubscriptions: Telegraph, Netflix - Harold knows the details",
+    "funeral_preference": "cremation",
+    "funeral_service_details": "Cremation with service at St John's Church, Tunbridge Wells. Reception at home (The Willows) if weather permits, otherwise the church hall. Traditional Church of England service. Hymns: 'How Great Thou Art', 'Morning Has Broken'. Donations to NHS Charities Together (for my nursing colleagues).",
+    "obituary_wishes": "Mention my 30 years nursing career with the NHS, rising to Nurse Manager. Note Harold as my devoted husband of 50 years. Mention Mark and Susan, and our five wonderful grandchildren. Include my South African heritage and how we built our life together in England.",
+    "additional_wishes": "My dearest Harold,\n\nWe've had 50 wonderful years together. Please don't be alone - the children will look after you and the grandchildren need their Grandpa.\n\nTo Mark and Susan - look after your father. Make sure he eats properly and stays active. Don't let him become a hermit!\n\nTo our five grandchildren - Grandma loves you all so much. The money we've saved for your education is to help you follow your dreams. Work hard at school but remember to have fun too.\n\nHarold - maybe it's finally time for that garden room extension you've always talked about. You have my blessing!\n\nAll my love forever,\nPatricia xxx",
+    "additional_boxes": [
+      {
+        "title": "NHS Pension - Survivor Benefits",
+        "content": "Patricia's NHS Pension:\n- Current pension: £18,500/year\n- Harold receives 50% (£9,250/year) as survivor pension\n- Continues for Harold's lifetime\n- Index-linked to CPI\n\nContact NHS Pensions: 0345 606 6166\nMember number in pension file\n\nNo lump sum - pension already in payment"
+      },
+      {
+        "title": "Grandchildren's Junior ISAs",
+        "content": "Junior ISAs for each grandchild:\n- Emma Bennett (Mark's) - Nationwide\n- Thomas Bennett (Mark's) - Nationwide\n- Lucy Clarke (Susan's) - Nationwide\n- Sophie Clarke (Susan's) - Nationwide\n- William Clarke (Susan's) - Nationwide\n\nWe contribute £600 each per year (£1,200 between us).\nUsing both annual exemptions (£3,000 each).\n\nContinue gifting to reduce estate for IHT."
+      },
+      {
+        "title": "Inheritance Tax Planning Status",
+        "content": "Combined estate: ~£845,000\n\nAllowances on second death:\n- NRB: £650,000 (double)\n- RNRB: £350,000 (double - house to children)\n- Total: £1,000,000\n\nCurrently BELOW threshold - no IHT due!\n\nGifting history:\n- Mark: £20,000 (April 2022)\n- Susan: £20,000 (June 2021)\n- Grandchildren: £6,000/year ongoing\n\nAll gifts within 7 years recorded with Adams & Co."
+      },
+      {
+        "title": "Care Cost Planning",
+        "content": "Care Fee Reserve: ~£145,500 in savings\n\nTarget: 3 years residential care (£180k)\n\nLPA in place - Mark and Susan are attorneys for both of us.\n\nPreferred care homes (researched):\n- Bowes House, Tunbridge Wells\n- The Cedars, Southborough\n\nAvoid selling The Willows for care if possible.\nDeferred payment agreement available from council."
+      }
+    ],
+    "spouse_letter": {
+      "immediate_actions": "1. Contact Mark immediately - he is co-executor\n2. Contact Adams & Co Solicitors (01892 523 456)\n3. Access joint Nationwide account for immediate expenses\n4. Contact Vanguard about my S&S ISA\n5. Notify Civil Service Pensions about my death\n6. Register the death at Tunbridge Wells Register Office\n7. Obtain at least 10 death certificates",
+      "executor_name": "Mark Bennett & Adams & Co Solicitors",
+      "executor_contact": "Mark: 07700 900789 / Adams & Co: 01892 523 456",
+      "attorney_name": "Adams & Co Solicitors",
+      "attorney_contact": "01892 523 456 / estates@adamsco.co.uk",
+      "financial_advisor_name": "Self-directed investments (no adviser)",
+      "financial_advisor_contact": "Vanguard: 0800 587 0460",
+      "password_manager_info": "Passwords in blue notebook, study desk drawer.\nVanguard login details written inside.\nMark has copies.",
+      "employer_hr_contact": "N/A - Retired",
+      "employer_benefits_info": "Civil Service Pension: Patricia receives 50% survivor pension\nContact MyCSP: 0300 123 6666\nMember number in pension file",
+      "vehicles_info": "Ford Focus (2019):\n- Registration: HB19 ABC\n- Fully owned\n- Insured with Saga\n- Worth approximately £12,000",
+      "valuable_items_info": "Antique Furniture (£12,000 joint):\n- Georgian sideboard (from my parents) - to Mark\n- Victorian dining set - stays in house\n\nWatch Collection:\n- Omega Seamaster - to Thomas (grandson)\n- Rotary dress watch - to William (grandson)",
+      "funeral_preference": "cremation",
+      "funeral_service_details": "Cremation with service at St John's Church. Simple reception at home. Traditional hymns. Donations to British Heart Foundation (for the bypass that gave me 20 more years).",
+      "obituary_wishes": "Mention my 35 years in the Civil Service at HMRC, my dedication to public service, Patricia as my beloved wife, and our children and grandchildren.",
+      "additional_wishes": "My dearest Patricia,\n\nThank you for 50 years of love and partnership. You've been my rock.\n\nLook after yourself. The children will take care of you. Maybe move closer to Susan in Brighton - the grandchildren would love having you nearby.\n\nTo Mark and Susan - your mother devoted her life to caring for others. Now it's time to care for her.\n\nTo my grandchildren - Grandpa is so proud of all of you. Work hard, be kind, and look after each other.\n\nAll my love,\nHarold",
+      "additional_boxes": [
+        {
+          "title": "Civil Service Pension",
+          "content": "Harold's Civil Service Pension:\n- Current pension: £22,000/year\n- Patricia receives 50% (£11,000/year) as survivor pension\n- Continues for Patricia's lifetime\n- Index-linked to CPI\n\nContact MyCSP: 0300 123 6666\nNo lump sum - pension already in payment"
+        }
+      ]
+    }
+  },
+
+  "life_events": [
+    {
+      "event_name": "Harold's 70th Birthday Celebration",
+      "event_type": "large_purchase",
+      "description": "Family gathering and celebration for Harold's 70th birthday",
+      "amount": 5000,
+      "impact_type": "expense",
+      "expected_date": "2023-08-10",
+      "certainty": "confirmed",
+      "status": "completed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Golden Wedding Anniversary Trip",
+      "event_type": "large_purchase",
+      "description": "50th wedding anniversary cruise to the Mediterranean - a dream trip",
+      "amount": 12000,
+      "impact_type": "expense",
+      "expected_date": "2028-06-15",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Home Care Support",
+      "event_type": "medical_expense",
+      "description": "Anticipated need for part-time home care assistance as we age",
+      "amount": 20000,
+      "impact_type": "expense",
+      "expected_date": "2032-01-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Grandchildren Wedding Gifts",
+      "event_type": "gift_given",
+      "description": "Wedding gifts for grandchildren as they marry - £5,000 each for 4 grandchildren",
+      "amount": 20000,
+      "impact_type": "expense",
+      "expected_date": "2030-08-01",
+      "certainty": "possible",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Replace Car",
+      "event_type": "large_purchase",
+      "description": "Final car replacement - automatic, easy to access vehicle",
+      "amount": 22000,
+      "impact_type": "expense",
+      "expected_date": "2027-09-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Kitchen & Bathroom Refresh",
+      "event_type": "home_improvement",
+      "description": "Update kitchen and bathroom for accessibility and modern conveniences",
+      "amount": 25000,
+      "impact_type": "expense",
+      "expected_date": "2027-03-01",
+      "certainty": "likely",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    },
+    {
+      "event_name": "Annual Gift to Children",
+      "event_type": "gift_given",
+      "description": "Using annual exemption to gift to children and grandchildren each year",
+      "amount": 6000,
+      "impact_type": "expense",
+      "expected_date": "2026-12-01",
+      "certainty": "confirmed",
+      "show_in_projection": true,
+      "show_in_household_view": true,
+      "ownership_type": "joint"
+    }
+  ]
+}

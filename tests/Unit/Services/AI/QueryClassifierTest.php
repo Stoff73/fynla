@@ -79,10 +79,20 @@ describe('QueryClassifier', function () {
         });
     });
 
-    describe('general classification', function () {
-        it('classifies "What is my net worth?" as general', function () {
+    describe('net worth classification', function () {
+        it('classifies "What is my net worth?" as holistic_health so financial_context is included', function () {
             $result = $this->classifier->classify('What is my net worth?');
-            expect($result['primary'])->toBe(QuerySchemas::GENERAL);
+            expect($result['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
+        });
+
+        it('classifies "Show me my net worth" as holistic_health (not navigation)', function () {
+            $result = $this->classifier->classify('Show me my net worth');
+            expect($result['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
+        });
+
+        it('classifies "Combined wealth" as holistic_health', function () {
+            $result = $this->classifier->classify('Combined wealth');
+            expect($result['primary'])->toBe(QuerySchemas::HOLISTIC_HEALTH);
         });
     });
 

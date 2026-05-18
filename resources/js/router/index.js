@@ -99,6 +99,11 @@ const Settings = () => import('@/views/Settings.vue');
 const SecuritySettings = () => import('@/views/Settings/SecuritySettings.vue');
 const PrivacySettings = () => import('@/views/Settings/PrivacySettings.vue');
 const AssumptionsSettings = () => import('@/views/Settings/AssumptionsSettings.vue');
+const NotificationsSettings = () => import('@/views/Settings/NotificationSettings.vue');
+const PersonalSettings = () => import('@/views/Settings/PersonalSettings.vue');
+const HealthSettings = () => import('@/views/Settings/HealthSettings.vue');
+const FamilySettings = () => import('@/views/Settings/FamilySettings.vue');
+const SubscriptionSettingsPage = () => import('@/views/Settings/SubscriptionSettings.vue');
 const UserProfile = () => import('@/views/UserProfile.vue');
 const InvoiceView = () => import('@/views/InvoiceView.vue');
 const NetWorthDashboard = () => import('@/views/NetWorth/NetWorthDashboard.vue');
@@ -555,14 +560,71 @@ const routes = [
     },
   },
   {
-    // S0.5.u (BS-16): canonical billing entry point. SubscriptionManagement
-    // lives as a tab inside /profile; this route redirects so chat-emitted
-    // navigation events ('/settings/subscription' from the
-    // get_subscription_status tool result) land on the right tab.
+    path: '/settings/notifications',
+    name: 'NotificationsSettings',
+    component: NotificationsSettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Notifications', path: '/settings/notifications' },
+      ],
+    },
+  },
+  {
+    path: '/settings/personal',
+    name: 'PersonalSettings',
+    component: PersonalSettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Personal Info', path: '/settings/personal' },
+      ],
+    },
+  },
+  {
+    path: '/settings/health',
+    name: 'HealthSettings',
+    component: HealthSettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Health', path: '/settings/health' },
+      ],
+    },
+  },
+  {
+    path: '/settings/family',
+    name: 'FamilySettings',
+    component: FamilySettings,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Family', path: '/settings/family' },
+      ],
+    },
+  },
+  {
+    // S0.5.u (BS-16): canonical billing entry point. Chat-emitted navigation
+    // events from get_subscription_status tool result land here.
     path: '/settings/subscription',
     name: 'SubscriptionSettings',
-    redirect: () => ({ path: '/profile', query: { section: 'subscription' } }),
-    meta: { requiresAuth: true },
+    component: SubscriptionSettingsPage,
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Settings', path: '/settings' },
+        { label: 'Subscription', path: '/settings/subscription' },
+      ],
+    },
   },
   {
     path: '/valuable-info',
@@ -579,14 +641,17 @@ const routes = [
   {
     path: '/profile',
     name: 'UserProfile',
-    component: UserProfile,
-    meta: {
-      requiresAuth: true,
-      breadcrumb: [
-        { label: 'Home', path: '/dashboard' },
-        { label: 'Profile', path: '/profile' },
-      ],
+    redirect: (to) => {
+      const section = to.query.section;
+      const sectionMap = {
+        personal: '/settings/personal',
+        health: '/settings/health',
+        family: '/settings/family',
+        subscription: '/settings/subscription',
+      };
+      return { path: sectionMap[section] || '/settings/personal' };
     },
+    meta: { requiresAuth: true },
   },
   {
     path: '/invoice/:id',
@@ -1409,13 +1474,17 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = store.getters['auth/isAuthenticated'];
   const isAdmin = store.getters['auth/isAdmin'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
-  const isPreviewRoute = to.meta.previewMode || to.path.startsWith('/preview');
+  // Use to.matched.some() rather than to.meta — child routes do NOT inherit
+  // parent meta in Vue Router. /preview/net-worth has nested children that
+  // would otherwise miss the previewMode flag and be treated as auth routes.
+  // REVIEW.md §4 High #27.
+  const isPreviewRoute = to.matched.some(r => r.meta.previewMode) || to.path.startsWith('/preview');
 
   // Debug logging
   if (import.meta.env.DEV) {
     console.log('[Router Guard]', {
       to: to.path,
-      requiresAuth: to.meta.requiresAuth,
+      requiresAuth: to.matched.some(r => r.meta.requiresAuth),
       isAuthenticated,
       isPreviewMode,
       isPreviewRoute,
@@ -1475,11 +1544,15 @@ router.beforeEach(async (to, from, next) => {
     } else {
       next({ name: 'Login' });
     }
-  } else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
-    // Redirect to dashboard if already authenticated (but allow preview users to register)
+  } else if (to.matched.some(r => r.meta.requiresGuest) && isAuthenticated && !isPreviewMode) {
+    // Redirect to dashboard if already authenticated (but allow preview users to register).
+    // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
+    // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
-  } else if (to.meta.requiresAdmin && !isAdmin) {
-    // Redirect to dashboard if route requires admin access (preview mode cannot access admin)
+  } else if (to.matched.some(r => r.meta.requiresAdmin) && !isAdmin) {
+    // Redirect to dashboard if route requires admin access (preview mode cannot access admin).
+    // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
+    // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
   } else if (to.matched.some(r => r.meta.requiresAdvisor) && !store.getters['auth/isAdvisor']) {
     // Redirect to dashboard if route requires advisor access

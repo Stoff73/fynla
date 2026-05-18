@@ -1,7 +1,846 @@
 # CSJTODO — Fynla
 
-*Last updated: 7 May 2026 — session 4 context-clear (account deletion rework: ALL 11 phases shipped, 30 commits on `accountDeletionRework`, pushed; full Pest suite green 3445/3445; only action remaining is `gh pr create --base dev --head accountDeletionRework`)*
-*Previous session: 7 May 2026 — session 3 (planning docs only — accDeletion audit/spec/plan committed)*
+*Last updated: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
+*Previous session: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
+
+---
+
+## Session 2 (17 May 2026) — PR #332 code review + all findings fixed (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean, all pushed (`275d6ab`, `c4c1ddf`) · **PR #332:** OPEN, MERGEABLE, all review findings resolved · **Flag default:** `legacy` (unchanged)
+
+### Done
+- [x] `code-review:code-review` skill run on PR #332 — 5 parallel passes + confidence scoring; #1 (score 100) posted as formal review comment
+- [x] CSJ: "fix all issues" → `systematic-debugging`; Tier-A code fixes `275d6ab` (#1 closure thread + regression test, #3 Rule #3 dead-code, #6 finally, #8 docblock)
+- [x] Prompt-text trio fixed **side-by-side** legacy+unified `c4c1ddf` (#7 ISA contradiction, #5 DC/SIPP spelled out, #2 dangling existing_records → clarifying-question); snapshot regenerated
+- [x] #4 dropped per CSJ (flag switch working as designed; handoff archived); #9 non-issue (score 0)
+- [x] Verified: 870 passed/1 skipped under BOTH flags; Architecture 97; byte-stable snapshot green; resolution note posted to PR
+- [x] Handover session-2-clear written (repo + vault mirror)
+
+### Outstanding / next session
+- [ ] **CSJ: review/merge PR #332 → dev** (real feature code; flag-gated default `legacy`; all review findings now resolved). Do NOT self-approve.
+- [ ] **CRITICAL (overdue, deferred again by tripwire): vault-sync must run + carry rewritten `April/April24Updates/spec/00-canonical.md` to vault** — `/April/` gitignored; lost on next `/April/`-tree change. Top priority next EOD `/session-end`.
+- [ ] tech-debt-session on this session's diff (8 files) — deferred (tripwire); low risk
+- [ ] Flipping `FYN_PROMPT_ARCH=unified` = separate explicit CSJ decision (out of scope)
+- [ ] Next workstream candidate: freemium refactor SP2 (entry `superpowers:brainstorming`; worktree `tender-bassi-375ee8`/`freemium` clean, leave it)
+
+---
+
+## Session 1 (17 May 2026) — Fyn prompt-rework plan COMPLETE (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean, all pushed · **PR opened:** #332 (`fynPromptRework` → `dev`, OPEN) · **Tag pushed:** `fyn-two-prompt-pre-unify` @ `bd42dce`
+
+### Done
+- [x] Task 9 Step 6 Journey (c) GREEN under `FYN_PROMPT_ARCH=unified` — uid 73: SavingsAccount 189 Halifax ISA £10k + 190 Nationwide saver £5k, both one turn, 5-word ack (DB-verified)
+- [x] Parity doc Step 6 filled (3 journeys GREEN); committed `451d1b8`
+- [x] Task 10: canonical contract rewritten on disk (design spec §9); prompt docs → `prompts/archive/`; new `prompts/fyn-system-prompt.md`; CLAUDE.md Fyn paragraph; tag — committed `6b46d71`
+- [x] Architecture suite 97/0; `finishing-a-development-branch` → PR #332
+
+### Outstanding / next session
+- [ ] **CSJ: review/merge PR #332 → dev** (real feature code; flag-gated default `legacy`, zero behaviour change until flipped). Do NOT self-approve.
+- [ ] **CRITICAL: vault-sync must carry rewritten `April/April24Updates/spec/00-canonical.md` to vault** — `/April/` gitignored, on-disk rewrite NOT in git, lost on next `/April/`-tree change if not synced. Top priority next EOD session-end.
+- [ ] Flipping `FYN_PROMPT_ARCH=unified` = separate explicit CSJ decision (out of scope of plan/PR)
+- [ ] Next workstream candidate: freemium refactor SP2 (entry `superpowers:brainstorming`)
+
+---
+
+> **Note re sessions 5 + 8:** A parallel context (worktree `cranky-lewin-6bc99c`) is running a major system-overhaul brainstorming/planning track. It committed `handover-2026-05-14-session-5-clear.md` (design doc) and `handover-2026-05-14-session-8-clear.md` (sub-project 1 / pass 1 Savings canonical-store plan, 2,934 lines) directly to dev. That work is independent of the main dev-branch web/mobile taxConfig + REVIEW audit work. This handover is session 9 to avoid filename collision with the worktree's session 8.
+
+---
+
+## Session 2 (16 May 2026) — repo + PR-board cleanup (context-clear)
+
+**Branch:** `fix/advice-prompt-jointowner-lazyload` (PR #326 merged — disposable) · **Tree:** clean (only git-ignored `appMapping/techDebt.md` local register) · **PRs merged:** #303, #326 · **PRs closed:** #325 (superseded) · **Open PRs:** #317 (parked, release dev→main — gated on freemium SP2), #249 (parked, sidecar)
+
+### Done
+- [x] PR #303 (mobile taxConfig) admin-merged to `dev`; iOS-build retest logged in `appMapping/techDebt.md` (Medium) — blocks SP3 acceptance
+- [x] PR #326 (jointOwner advice-prompt lazy-load fix) — rebased off 14-commit-stale base onto `dev`, squashed handover/wip noise, opened + admin-merged
+- [x] PR #325 (temperature=0) CLOSED as superseded — `dev` already has it (`33e0151`) + `max_completion_tokens` upgrade (`ac6ae08`) the branch lacked; merging would have regressed
+- [x] Branch cleanup: local 50→6, remote 59→12, 9 stale worktrees removed; `cranky-lewin` verified safe + deleted
+- [x] Memory saved: `project_pr317_gated_on_freemium_refactor`
+
+### Outstanding / next session
+- [ ] Run `vault-sync` (deferred — context tripwire)
+- [ ] Optional `tech-debt-session` on #326 diff (3 files, low risk — deferred)
+- [ ] Begin **freemium refactor (sub-project 2)** — NO branch/plan yet; only `TierGate` hook exists. Entry: `superpowers:brainstorming` → `writing-plans`
+- [ ] PR #317 stays parked until SP2 lands on `dev`
+
+---
+
+## Session 9 (14 May 2026) — REVIEW §4 High #32 shipped (PR #304 open); awaiting iOS verification on PR #303
+
+**Branch:** `dev` at `2c3a18a` (unchanged — session 7's tip) · **Tree:** clean (only pre-existing untracked carry-overs) · **PRs opened this session:** 1 (#304) · **PRs merged this session:** 0 · **Open PRs against `dev`:** 2 (#303 mobile-taxconfig awaiting iOS verification; #304 coordinatingagent-foruserorjoint-scope awaiting admin-merge)
+
+**Outcome:**
+1. **REVIEW §4 High #32 shipped as PR #304.** `app/Agents/CoordinatingAgent.php::handleListRecords` — 7 raw `where('user_id', $userId)->orWhere('joint_owner_id', $userId)` calls migrated to the existing `HasJointOwnership::forUserOrJoint` scope. Branched off `dev` at `2c3a18a`; one commit (`33831a7`); pushed; opened https://github.com/Stoff73/fynla/pull/304. The `mortgage` case uses `whereHas('property', fn ($q) => $q->forUserOrJoint($userId))` — the closure form preserves the nested grouping correctly. All 7 target models (`SavingsAccount`, `InvestmentAccount`, `Property`, `Mortgage`, `BusinessInterest`, `Chattel`, `Liability`) already use the `HasJointOwnership` trait — no model changes needed. Why it matters: the raw `orWhere` form is unsafe under composition (operator precedence: OR < AND), so any future global scope or chained `where` would silently widen results. The scope wraps the OR in a `Builder` closure.
+2. **Equivalence verified at row-ID level.** Tinker harness on `preview_young_family@fynla.local` (uid 711, spouse uid 712): SavingsAccount 4/4 + 2/2 match, InvestmentAccount 1/1 + 0/0 match, Property 1/1 + 1/1 match, BusinessInterest 0/0 + 0/0 match, Chattel 0/0 + 0/0 match, Liability 1/1 + 0/0 match, Mortgage (whereHas) 1/1 + 1/1 match. Every sorted row-ID list identical raw vs scoped on both primary and joint sides.
+3. **CSJ retrospective questions answered.** "Where are tasks coming from?" — three-doc provenance: handover (immediate pickup), CSJTODO.md (standing backlog), `fynlaBrain/May/May12Updates/REVIEW.md` (the audit doc you commissioned 2 days ago, ~46 numbered High findings). "How many REVIEW items closed in 2 days?" — Critical 9/10 (PRs #281–#284, #287, Wave 2 in #286); High ~13/32 substantially closed (#19, #20, #21, #22, #23, #26, #27, #28 ~95%, #29, #32 just shipped, #34, #35, #44 partial); §3 cross-cutting 3/7. Roughly 25 distinct REVIEW findings cleared since 12 May.
+
+### Done
+
+- [x] Session-start: branch `dev` at `2c3a18a`, DB seeded, dev server :8000/:5173 already running, latest handover (session 7 clear) read in full, REVIEW.md provenance located at `fynlaBrain/May/May12Updates/REVIEW.md`
+- [x] Verified gate state: `grep -rln "from '@/constants/taxConfig'" resources/js/` returns exactly the 3 mobile importers in PR #303 — step 3 cleanup genuinely blocked
+- [x] PR #304 OPEN: 7 raw `orWhere` joint queries in `CoordinatingAgent::handleListRecords` migrated to `forUserOrJoint` scope; equivalence verified via tinker on user with real joint records; architecture + Agents unit suites green; pint clean
+- [x] Handover written + mirrored to vault as `session-9-clear.md` (skipping session-8 to avoid collision with the parallel worktree's session-8-clear.md)
+
+### Outstanding (next session — priority order)
+
+- [ ] **CSJ to admin-merge PR #304** once CI green: `gh pr merge 304 --merge --admin`. Pure equivalence refactor, no UI surface, safe to admin-merge per `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`. Ticks off REVIEW §4 High #32.
+- [ ] **CSJ to run `./deploy/mobile/build-ios.sh` + iOS sim/device test for PR #303** — covers the three mobile views (`/m/learn`, `/m/learn/pensions`, `/m/module/retirement`, `/m/module/estate`). Once green, admin-merge #303.
+- [ ] **Sequence A step 3 — open the cleanup PR** branched off the post-#303 dev tip. One commit: `git rm resources/js/constants/taxConfig.js`. Pre-deletion grep `from '@/constants/taxConfig'` AND `@/constants/taxConfig` must both return zero hits.
+- [ ] **Deploy csjones** — now **14 PRs behind** `dev` once #303 + #304 land (#291–#304 + cleanup). Smoke includes both `/api/tax/config` + `/api/public/tax-config` + CalculatorsPage stamp duty/student loan + mobile dashboard if #303 lands in this bundle.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common` enum expansion. Migration template: `2026_01_17_100145_add_tenants_in_common_to_mortgages_ownership_type.php`. Tables: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts` (currently `('individual','joint','trust')`); plus `goals`, `life_events` (currently `('individual','joint')` — both `tenants_in_common` AND `trust` missing). (Carry-forward from session 4.)
+- [ ] **REVIEW §4 High #24** — CoordinatingAgent / RetirementController double `agent->analyze()` call (carry-forward, small win)
+- [ ] **REVIEW §4 High #25** — `PensionContributionOptimizer.php:461` operator-precedence bug `(float) $x ?? 0` (single-site fix)
+- [ ] **REVIEW §4 High #45** — ~106 Vue orphans (needs dedicated audit)
+- [ ] **Vault-sync overdue (6 sessions deferred)** — next EOD session-end MUST catch up. Sessions 2, 3, 4, 6, 7, 9 all deferred.
+- [ ] All other carry-forward items from session 7 stand (stale worktree, `dev → main` release PR, tech-debt backlog, etc. — see Session 7 entry below)
+
+### Branch / deploy state
+
+- `dev` at `2c3a18a` (unchanged from session 7) — 72 commits ahead of `main`
+- `main` unchanged
+- csjones.co/fynla still on `dev@f22c9b988` — now 14 PRs behind once #303 + #304 land
+- fynla.org unchanged
+
+---
+
+## Session 7 (14 May 2026) — Sequence A steps 1+2: investment.js merged (PR #302); 3 mobile files PR'd (PR #303 awaiting iOS verification)
+
+**Branch:** `dev` at `ccff3a7` (post-#302 merge) · **Tree:** clean (only pre-existing untracked carry-overs) · **PRs opened this session:** 2 (#302 web-only, #303 mobile) · **PRs merged this session:** 1 (#302 admin-merged after browser verification) · **Open PRs against `dev`:** 1 (#303)
+
+**Outcome:**
+1. **Session 6's "Sequence A step 1" shipped as PR #302.** `store/modules/investment.js` — `ISA_ANNUAL_ALLOWANCE` constant import dropped, `isaAllowancePercentage` getter now resolves via `rootState.savings?.isaAllowance?.total_allowance || rootGetters['taxConfig/isaAnnualAllowance'] || 20000`. Browser-verified live on `/net-worth/investments` (john@example.com): empty-account path returns 0% (taxConfig fallback to 20000); injected ISA contribution of £5,000 returns 20% (savings store hydrated with 25000 wins over taxConfig — fallback order correct). Zero console errors. Admin-merged at `ccff3a7` per the established solo-reviewer admin-merge pattern. https://github.com/Stoff73/fynla/pull/302
+2. **Session 6's "Sequence A step 2" prepared as PR #303 — OPEN awaiting iOS verification.** Three mobile files migrated in one PR:
+   - **`mobile/views/RetirementDetail.vue`** — `ANNUAL_ALLOWANCE` constant → `mapGetters('taxConfig', ['pensionAnnualAllowance'])` + new `annualAllowanceLimit` computed; template fallback chain updated.
+   - **`mobile/views/EstateDetail.vue`** — `IHT_NIL_RATE_BAND` + `IHT_RESIDENCE_NIL_RATE_BAND` constants → `mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand'])` chained through `nrb()` / `rnrb()` computed.
+   - **`mobile/learn/learnTopics.js`** — static array → `getLearnTopics(store)` function (architectural rework, plus `getTopicById(store, topicId)` signature change); 2 callers updated (`LearnHub.vue`, `LearnTopicDetail.vue`).
+   - Browser-verified on web dev server: `/m/learn` renders all 8 cards; `/m/learn/pensions` interpolates £60,000 / £241.30 / 2026/27 correctly from the taxConfig store; `/m/module/retirement` with injected DC pension + null `standard_allowance` falls through to taxConfig.pensionAnnualAllowance = 60000 (£60,000 standard, £15,000 used, £45,000 remaining all in DOM); `/m/module/estate` computes `nrb=325000` and `rnrb=175000` via the taxConfig store (live `secondDeathPlanning` payload uses `nrb_individual` not `nil_rate_band` so the first two fallback links are undefined as designed). Zero console errors on any view.
+   - Production iOS-style `npm run build` (`VITE_PLATFORM=ios VITE_DISABLE_PWA=true VITE_BASE_PATH=/ VITE_API_BASE_URL=https://fynla.org`) completed cleanly in 1m 24s, no compile errors.
+   - **NOT admin-merged** — `./deploy/mobile/build-ios.sh` + iOS simulator/device verification is required per CLAUDE.md mobile section + `feedback_ios_testing_checklist`. CSJ must complete that before this PR ships.
+   - https://github.com/Stoff73/fynla/pull/303
+3. **Sequence A step 3 — cleanup PR (delete `resources/js/constants/taxConfig.js`) is BLOCKED behind PR #303.** Cannot open until #303 merges to dev — deleting the constants file while dev still has 3 mobile importers would break the Vite build. Once #303 lands, the next session can open the cleanup PR off the new dev tip.
+
+### Done
+
+- [x] Session-start: branch `dev` at `f8a99be` post pull, DB seeded, dev server :8000/:5173 already running, latest handover (session 6 clear) read in full
+- [x] PR #302: `investment.js` migrated, browser-verified empty + populated paths, admin-merged at `ccff3a7`
+- [x] PR #303 OPEN: 3 mobile files migrated (`RetirementDetail.vue`, `EstateDetail.vue`, `learnTopics.js`) + 2 callers updated (`LearnHub.vue`, `LearnTopicDetail.vue`); browser-verified on web dev server for all four mobile routes; production iOS-style `npm run build` clean
+- [x] CSJTODO updated with session-7 entry + flag that step 3 cleanup PR is blocked behind #303
+
+### Outstanding (next session — priority order)
+
+- [ ] **CSJ to run `./deploy/mobile/build-ios.sh` + iOS sim/device test for PR #303** — covers the three mobile views. Once green, admin-merge #303 per the established pattern.
+- [ ] **Sequence A step 3 — open the cleanup PR** branched off the post-#303 dev tip. One commit: `git rm resources/js/constants/taxConfig.js`. Pre-deletion grep `from '@/constants/taxConfig'` AND `@/constants/taxConfig` must both return zero hits.
+- [ ] **Deploy csjones** — now **13 PRs behind** `dev` (#291–#302, with #303 to follow). Smoke includes both `/api/tax/config` + `/api/public/tax-config` + CalculatorsPage stamp duty/student loan correctness; mobile dashboard if #303 lands in this bundle.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope (carry-forward)
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common` (carry-forward)
+- [ ] All other carry-forward items from session 6 stand (vault sync, stale worktree, etc. — see Session 6 entry below)
+
+---
+
+## Session 6 (14 May 2026) — PRs #300–#301: taxConfig rail extension + CalculatorsPage migration; 4 missed importers surfaced
+
+**Branch:** `dev` at `0b3c262` (post-#301 merge) · **Tree:** clean (only pre-existing untracked carry-overs) · **PRs opened this session:** 2 (#300, #301) · **PRs merged this session:** 2 (both admin-merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **Session 4's "Pick up from here" roadmap executed.** Steps 1+2 (backend payload extension + public dispatch) shipped as PR #300; step 3 (CalculatorsPage migration) shipped as PR #301. Step 4 (delete `taxConfig.js`) blocked by a discovery — see "Outstanding" below.
+   - **PR #300** `taxconfig-rail-extension → dev` — extends `TaxConfigSnapshotService` (new) + `TaxConfigController` to include SDLT/LBTT/LTT bands and student loan repayment rate; adds new `Api\Public\TaxConfigController` + `GET /api/public/tax-config` route serving the byte-identical payload unauthenticated; `PublicLayout` gains a `mounted` hook that fetches the snapshot via the new public action when the store isn't already loaded; 12 new Vuex getters; seeder gains `stamp_duty.lbtt`, `stamp_duty.ltt`, `student_loan` blocks; 13 feature tests pass (178 assertions); architecture suite green. Merge commit `31fe6a6`. https://github.com/Stoff73/fynla/pull/300
+   - **PR #301** `calculatorspage-taxconfig-migration → dev` — migrates `CalculatorsPage.vue` (the only authenticated-or-public web view still importing constants) off `@/constants/taxConfig`. 25 constants → 25 store getters via `mapGetters('taxConfig', [...])`; local `higherRateThreshold()` computed dropped (store getter has the same name and shape); browser-verified all 4 stamp duty buyer types × 3 countries (England SDLT £400k home mover £10k, England FTB £350k £2,500 saving £5k vs standard, Scotland LBTT £400k £13,350, Wales LTT £400k £10,500, Wales LTT £600k £25,500 incl. £15k in 7.5% non-integer band) + student loan calculator (£20/mo at 9% on £30k salary). Zero console errors. Merge commit `0b3c262`. https://github.com/Stoff73/fynla/pull/301
+2. **4 importers of `@/constants/taxConfig` were missed by session 4's audit.** The session-4 handover claimed `CalculatorsPage` was the only remaining importer; grepping after #301 revealed 4 more:
+   - `resources/js/mobile/learn/learnTopics.js:7` — `STATE_PENSION_WEEKLY`, `TAX_YEAR`, `PENSION_ANNUAL_ALLOWANCE` (used at module-load time in template-literal interpolation; needs architectural rework to take the store at consumption rather than a `mapGetters` swap)
+   - `resources/js/mobile/views/RetirementDetail.vue:97` — `ANNUAL_ALLOWANCE` (mobile Vue component, mapGetters-able but needs `./deploy/mobile/build-ios.sh` + iOS browser test per CLAUDE.md mobile section)
+   - `resources/js/mobile/views/EstateDetail.vue:96` — `IHT_NIL_RATE_BAND`, `IHT_RESIDENCE_NIL_RATE_BAND` (same — mobile, iOS test required)
+   - `resources/js/store/modules/investment.js:3` — `ISA_ANNUAL_ALLOWANCE` (Vuex store fallback inside `isaAllowancePercentage` getter; migration is `rootGetters['taxConfig/isaAnnualAllowance']` — easy, web-only, no iOS impact)
+3. **Cleanup PR (delete `resources/js/constants/taxConfig.js`) blocked.** Cannot ship until the 4 importers above are migrated. `taxConfig.js` self-describes as "FALLBACK values only" so leaving it for now is functionally safe — but the rail goal is full removal, so this is real outstanding work, not a non-issue.
+
+### Done
+
+- [x] Session-start: branch `dev` at `529a53e`, DB seeded, dev server running on :8000/:5173
+- [x] Read full handover at `May/May14Updates/handover-2026-05-14-session-4-clear.md`
+- [x] PR #300: `TaxConfigSnapshotService` + new public controller + Vuex `fetchPublicConfig` + PublicLayout dispatch + 13 feature tests
+- [x] Browser-verified PR #300 end-to-end (unauth `/calculators` fires `GET /api/public/tax-config`; auth `/dashboard` fires `GET /api/tax/config`; no double-fetch when authenticated)
+- [x] PR #301: CalculatorsPage migrated (25 constants → 25 store getters)
+- [x] Browser-verified PR #301 across all 4 buyer types × 3 countries + student loan calculator
+- [x] Architecture suite + Feature/Api/TaxConfig* suites green throughout
+- [x] CSJTODO updated with session-6 entry + 4-missed-importer flag
+- [x] Discovery surfaced: session-4 handover's "CalculatorsPage is the only remaining importer" claim was incomplete
+
+### Outstanding (next session — priority order)
+
+- [ ] **Migrate the 4 missed importers** before the cleanup PR can ship:
+  - **`store/modules/investment.js`** — easy 1-line change: add `rootGetters` 4th arg to `isaAllowancePercentage` getter, fall through `rootState.savings?.isaAllowance?.total_allowance || rootGetters['taxConfig/isaAnnualAllowance'] || 20000`
+  - **`mobile/views/RetirementDetail.vue`** — `mapGetters('taxConfig', ['pensionAnnualAllowance'])`, swap callsites (3 usages in template). Requires `./deploy/mobile/build-ios.sh` + iOS device test per `feedback_ios_testing_checklist.md`
+  - **`mobile/views/EstateDetail.vue`** — `mapGetters('taxConfig', ['ihtNilRateBand', 'ihtResidenceNilRateBand'])`, swap 4 callsites. Same iOS testing requirement
+  - **`mobile/learn/learnTopics.js`** — needs architectural rework: convert `learnTopics` from a static array (built at import time with template-literal interpolation) to a function `getLearnTopics(store)` that takes the store and computes strings on demand. Update the 1-2 callers to invoke it with the store. Also needs iOS testing.
+- [ ] **Final cleanup PR — delete `resources/js/constants/taxConfig.js`** once all 4 above are migrated. Grep `from '@/constants/taxConfig'` and `@/constants/taxConfig` (both forms) before deletion.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour. (Carry-forward from session 4)
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common`. (Carry-forward from session 4)
+- [ ] **Deploy csjones** — now **11 PRs behind** `dev` (#291–#301). Smoke check the new `/api/tax/config` + `/api/public/tax-config` endpoints + Vuex hydration on both auth and public routes + CalculatorsPage stamp duty + student loan correctness.
+- [ ] **Tech-debt Warning #3** (carry-forward) — `TaxAwareRebalancer.php` 606 lines split candidate
+- [ ] **Suggestion #5** (carry-forward) — drop unimplemented step-3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` — but ONLY when CSJ confirms the parallel session-5 worktree work is preserved or merged elsewhere. Do not delete blind: it has uncommitted-pushed work on `claude/cranky-lewin-6bc99c` containing the system-overhaul design doc.
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault (carry-forward)
+- [ ] **Vault-sync still deferred** (4 sessions running counting this one) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50, plus new `Services/TaxConfigSnapshotService.php` (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up
+- [ ] **Orphan components in Estate / Investment** (carry-forward) — 4 Estate + 7 Investment files migrated but not currently mounted on any live route
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up)
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up)
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#301 (21 PRs)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 11+ days stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Branch / deploy state
+
+- `dev` at `0b3c262` (post-#301 merge) — 69 commits ahead of `main`
+- `main` unchanged at `f15e068`
+- csjones.co/fynla on `dev@f22c9b988` — now **11 PRs behind** (#291–#301)
+- fynla.org unchanged
+
+---
+
+## Session 4 (14 May 2026) — PRs #295–#299: taxConfig migration completed across all authenticated components
+
+**Branch:** `dev` at `52e662f` (post-#299 merge) · **Tree:** clean · **PRs opened this session:** 5 (#295–#299) · **PRs merged this session:** 5 (all admin-merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **All 5 migration PRs shipped.** Continuation of REVIEW §4 High #28 (PR #294 from session 3 laid the rail). 33 files migrated this session — every authenticated Vue component that touched `@/constants/taxConfig` now hydrates from the `taxConfig` Vuex store backed by `GET /api/tax/config`.
+   - **PR #295** `estate-taxconfig-migration → dev` — 6 Estate files (TrustPlanningStrategy, NRBRNRBTracker, GiftForm, IHTPlanning, GiftingStrategy, IHTCalculationTable). Browser-verified live on `/estate` + `/estate/inheritance-tax`. Merge commit `ea6d3c8`. https://github.com/Stoff73/fynla/pull/295
+   - **PR #296** `investment-taxconfig-migration → dev` — 9 Investment files (AccountForm, AccountStrategyCard, PortfolioOverview, RebalancingCalculator, StandardInvestmentFields, TaxEfficiencyPanel, TaxFees, TaxOptimization, WrapperOptimizer). Browser-verified live on `/net-worth/investments` → Add Investment → ISA. Merge commit `adfd982`. https://github.com/Stoff73/fynla/pull/296
+   - **PR #297** `savings-taxconfig-migration → dev` — 2 Savings files (SaveAccountModal, ISAAllowanceTracker). Browser-verified live on `/net-worth/cash` → Add Account. Merge commit `0ac3527`. https://github.com/Stoff73/fynla/pull/297
+   - **PR #298** `retirement-taxconfig-migration → dev` — 2 Retirement files (AnnualAllowanceTracker, CapitalAdequacyTab). Browser-verified live on `/net-worth/retirement` via Vuex store inspection. Merge commit `3e25265`. https://github.com/Stoff73/fynla/pull/298
+   - **PR #299** `shared-admin-taxconfig-migration → dev` — 14 mixed files: Shared/ISAAllowanceSummary, Dashboard/TaxOptimisationCard, Insights/blocks/TaxYearStatBlock, Protection×3 (GapAnalysis, ProtectionOverviewCard, CurrentSituation), UserProfile×2 (IncomeDefinitionsPanel, IncomeOccupation — Composition API), NetWorth/Property/PropertyTaxCalculator, NetWorth/InvestmentProjections, views/Dashboard.vue, views/Investment×2 (AccountSummaryPanel, AccountRebalancingPanel), views/Trusts/TrustsDashboard. Browser-verified live on `/dashboard` + `/protection`. Merge commit `52e662f`. https://github.com/Stoff73/fynla/pull/299
+2. **Total file count.** 6 + 9 + 2 + 2 + 14 = **33 files** migrated this session, plus session 3's backend endpoint + Vuex store = **34 touchpoints** on the rail.
+3. **Composition API support proven.** Two UserProfile files use the Composition API (`useStore()` + `computed()` refs). Both migrate cleanly; pattern documented in PR #299 body for any future Composition API migrations.
+4. **Naming collisions handled.** Several files had local data fields or computed properties that already shared names with store getters (e.g. `isaAnnualAllowance()` computed in `AccountSummaryPanel`). Resolved via object-form `mapGetters` aliases (e.g. `storeIsaAnnualAllowance`) to preserve callsites without renaming.
+5. **All test suites green throughout.** Full Unit suite: 1876 passed / 5837 assertions. Architecture suite: 95 passed / 416 assertions. No regressions introduced.
+6. **No deploys this session.** csjones.co/fynla still on `dev@f22c9b988` — now **9 PRs behind** (#291, #292, #293, #294, #295, #296, #297, #298, #299).
+
+### Done
+
+- [x] Session-start: branch `dev` clean + DB seeded + dev server running on :8000/:5173
+- [x] Read full handover at `May/May14Updates/handover-2026-05-14-session-3-clear.md`
+- [x] PR #295 Estate (6 files) — opened, CI-green, admin-merged
+- [x] PR #296 Investment (9 files) — opened, CI-green, admin-merged
+- [x] PR #297 Savings (2 files) — opened, CI-green, admin-merged
+- [x] PR #298 Retirement (2 files) — opened, CI-green, admin-merged
+- [x] PR #299 Shared/Dashboard/Insights/Protection/UserProfile/NetWorth/Trusts/Investment-views (14 files) — opened, CI-green, admin-merged
+- [x] Browser-verified every PR end-to-end as `john@example.com` (full Unit + Architecture suite green)
+- [x] Local `dev` synced after each merge
+
+### Outstanding (next session — priority order)
+
+- [ ] **Extend `TaxConfigController::buildPayload()` payload** to include the constants CalculatorsPage still needs:
+  - SDLT band tables (`SDLT_STANDARD_BANDS`, `SDLT_FTB_BANDS`, `SDLT_FTB_MAX_PRICE`, `SDLT_ADDITIONAL_SURCHARGE`, `SDLT_NON_UK_SURCHARGE`)
+  - LBTT band tables (`LBTT_BANDS`, `LBTT_ADDITIONAL_SURCHARGE`, `LBTT_NON_UK_SURCHARGE`)
+  - LTT band tables (`LTT_BANDS`, `LTT_ADDITIONAL_SURCHARGE`, `LTT_NON_UK_SURCHARGE`)
+  - Student loan repayment rate (`STUDENT_LOAN_REPAYMENT_RATE`)
+  - Add Vuex getters for each on the `taxConfig` store
+- [ ] **Public-store dispatch on `PublicLayout`** — CalculatorsPage is unauthenticated so the auth-required `/api/tax/config` won't fire. Either extend the existing `/api/public/tax-allowances` endpoint OR add a public dispatch. Once wired, CalculatorsPage migration is mechanical (same pattern as everything else).
+- [ ] **CalculatorsPage migration** — 17 constants, mechanical once the above two land.
+- [ ] **Final cleanup PR — delete `resources/js/constants/taxConfig.js`** once CalculatorsPage is the last importer and is migrated. Grep before deletion.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common`:
+  - 7 currently `('individual','joint','trust')`: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts`
+  - 2 currently `('individual','joint')` — also missing `trust`: `goals`, `life_events`
+- [ ] **Deploy csjones** — now **9 PRs behind** (#291–#299). Smoke check `/api/tax/config` returns the seeded snapshot + frontend Vuex devtools show `taxConfig.config` populated + every migrated component renders correctly.
+- [ ] **Tech-debt Warning #3** (carry-forward) — `TaxAwareRebalancer.php` 606 lines, service-file split candidate (`TaxLossHarvestingIdentifier` extraction)
+- [ ] **Suggestion #5** (carry-forward) — drop unimplemented step-3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` when convenient
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault
+- [ ] **Vault-sync still deferred** (3 sessions running) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50 (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Migration shipped in PR #296 regardless.
+- [ ] **Orphan components in Estate / Investment** — 4 Estate (TrustPlanningStrategy, NRBRNRBTracker, GiftingStrategy, GiftForm) and 7 Investment (PortfolioOverview, RebalancingCalculator, TaxEfficiencyPanel, TaxFees, TaxOptimization, AccountStrategyCard, WrapperOptimizer) are migrated but not currently mounted on any live route (require existing accounts to render). Tests pass and pattern is consistent — runtime exercise pending data on John.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#299 (19 PRs)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 11-day stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Branch / deploy state
+
+- `dev` at `52e662f` (post-#299 merge) — 66 commits ahead of `main`
+- `main` unchanged at `f15e068` — production still pre-audit-batch
+- csjones.co/fynla on `dev@f22c9b988` — now **9 PRs behind** (#291–#299)
+- fynla.org unchanged
+
+---
+
+## Session 3 (14 May 2026) — PR #294 opened: taxConfig hydrate-from-backend rail laid
+
+**Branch:** `dev` at `c8bac98` (post-#294 merge) · **Tree:** clean · **PRs opened this session:** 1 (#294) · **PRs merged this session:** 1 (#294, admin-merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **REVIEW §4 High #28 — first of three PRs shipped.** PR #294 (`taxconfig-hydrate-from-backend → dev`) opened. Adds `GET /api/tax/config` returning a curated tax-year snapshot from `TaxConfigService` (ISA, pension, income tax, NI, CGT, IHT, dividend, gifting, HICBC, SSP), extends the `taxConfig` Vuex store with ~40 getters, and switches all three dispatch sites (App.vue boot, auth.js login, Admin/TaxSettings.vue active-year switch) from `fetchActive` to the new `fetchConfig`. 7 new feature tests + 97 assertions, all green. Architecture suite + sibling tax tests clean (51 passed / 168 assertions). Browser-verified end-to-end with `john@example.com` — `GET /api/tax/config` fires on boot, Vuex getters return seeded 2026/27 values. https://github.com/Stoff73/fynla/pull/294
+2. **No cross-request controller cache** — `TaxConfigService` is request-scoped; a longer-lived cache would go stale when admin edits the active year (the existing `/api/public/tax-allowances` endpoint suffers this 1-hour staleness). Documented in the PR body.
+3. **Components NOT migrated this PR.** `taxConfig.js` constants file is unchanged. Migration of the ~30 component touchpoints to `mapGetters` is the next 4-6 follow-up PRs (one per module).
+
+### Done
+
+- [x] Session-start: branch `dev` clean + DB seeded + dev server running on :8000/:5173
+- [x] Read full handover at `May/May14Updates/handover-2026-05-14-session-2-clear.md`
+- [x] Backend `/api/tax/config` endpoint shipped (`TaxConfigController`, route, 7 feature tests, 97 assertions)
+- [x] `taxConfig` Vuex store extended with full snapshot + ~40 getters
+- [x] 3 dispatch sites switched to `fetchConfig` (App.vue mount, auth.js fetchUser, Admin/TaxSettings.vue active-year save)
+- [x] Browser-verified: john@example.com login → GET /api/tax/config 200 → Vuex getters hydrated
+- [x] PR #294 opened against `dev`
+- [x] All 3 CI checks green (GitGuardian, logic-guard, Snyk) — admin-merged same session (merge commit `c8bac98`). Origin branch deleted.
+- [x] Local `dev` synced post-merge
+
+### Outstanding (next session — priority order)
+- [ ] **PR #295+ — component migration (REVIEW §4 #28 continuation)** — switch ~30 Vue components from `import { ISA_ANNUAL_ALLOWANCE, … } from '@/constants/taxConfig'` → `mapGetters('taxConfig', ['isaAnnualAllowance', …])`. Suggested split (one PR per module):
+  - **Estate** — `TrustPlanningStrategy.vue`, `NRBRNRBTracker.vue`, `GiftForm.vue`, `IHTPlanning.vue`, `GiftingStrategy.vue`, `IHTCalculationTable.vue`
+  - **Investment** — `AccountStrategyCard.vue`, `TaxEfficiencyPanel.vue`, `WrapperOptimizer.vue`, `TaxOptimization.vue`, `TaxFees.vue`, `PortfolioOverview.vue`, `AccountForm.vue`, `StandardInvestmentFields.vue`, `RebalancingCalculator.vue`
+  - **Savings** — `SaveAccountModal.vue`, `ISAAllowanceTracker.vue`
+  - **Retirement** — `AnnualAllowanceTracker.vue`, `CapitalAdequacyTab.vue`
+  - **Shared / Dashboard / Insights** — `ISAAllowanceSummary.vue`, `TaxOptimisationCard.vue`, `TaxYearStatBlock.vue`
+  - **Admin** — `TaxSettings.vue` (already dispatches `fetchConfig` post-save; should also read from store getters where it currently re-fetches from `tax-settings` API)
+- [ ] **Final PR — remove hardcoded fallbacks** from `resources/js/constants/taxConfig.js` once nothing imports them. Grep before deletion.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 9 tables need `tenants_in_common`:
+  - 7 currently `('individual','joint','trust')`: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts`
+  - 2 currently `('individual','joint')` — also missing `trust`: `goals`, `life_events`
+- [ ] **Deploy csjones** — now 4 PRs behind (#291 + #292 + #293 + #294 once merged). Smoke check `/api/tax/config` returns the seeded snapshot + frontend Vuex devtools show `taxConfig.config` populated.
+- [ ] **Tech-debt Warning #3** (carry-forward) — `TaxAwareRebalancer.php` 606 lines, service-file split candidate (`TaxLossHarvestingIdentifier` extraction)
+- [ ] **Suggestion #5** (carry-forward) — drop unimplemented step-3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` when convenient
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault
+- [ ] **Vault-sync still deferred** (2 sessions running) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50 (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Will become part of the Investment migration PR above.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#294 (14 PRs once #294 merges)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 10-day stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Branch / deploy state
+
+- `dev` at `c8bac98` (post-#294 merge) — 61 commits ahead of `main`
+- `main` unchanged at `f15e068` — production still pre-audit-batch
+- csjones.co/fynla on `dev@f22c9b988` — now **4 PRs behind** (#291 + #292 + #293 + #294)
+- fynla.org unchanged
+
+---
+
+## Session 2 (14 May 2026, context-clear, tripwire at ~230k) — PR #292 + PR #293 admin-merged + vault rogue-file resolved
+
+**Branch:** `dev` at `9da84f7` (post-#293 merge) · **Tree:** clean · **PRs merged this session:** 2 (#292 + #293) · **New PRs opened this session:** 1 (#293, merged same session) · **Open PRs against `dev`:** 0
+
+**Outcome:**
+1. **PR #292 admin-merged** into `dev` (merge commit `23c3c18`). Origin branch deleted.
+2. **Tech-debt-session audit on PR #292 changes** ran — 6 findings written to `tech-debt-report.md` (0 critical, 3 warnings, 3 suggestions). 2 of the warnings were the carry-forward Warnings #1 + #2 from 2026-05-13 audit — both addressed by PR #293 below.
+3. **Vault rogue-file resolved** — fynlaInternational's `handover-2026-05-14-session-1.md` (4473 bytes, branch `refactor/uk-pack-relocation`) renamed to `handover-2026-05-14-session-1-international.md`. Both projects' vault handovers now have unambiguous project suffixes. Session-end skill itself does NOT yet enforce project-suffix mirror-naming — open follow-up.
+4. **PR #293 (`audit-rebalancing-controller-split → dev`)** opened, CI-green'd (all 3 checks pass) and admin-merged same-session (merge commit `9da84f7`). New `AccountRebalancingController` (317 lines) owns the 2 account-level routes; `resolveAccountRiskProfile()` extracted from the 154-line god-method (28-line helper); `RebalancingCalculationController` trimmed to 354 lines (was 634). 8 new feature tests in `tests/Feature/Api/AccountRebalancingControllerTest.php`. 262 Investment unit + Architecture sweep clean.
+5. **No deploys this session.** csjones.co/fynla still on `dev@f22c9b988` — now **3 PRs behind** (#291 + #292 + #293).
+6. **Tripwire fired at ~230k tokens** — session-end ran lean (skipped vault-sync; tech-debt audit had already run as a session task).
+
+### Done
+
+- [x] Merge PR #292 (CGT allowance fail-loud) into `dev`
+- [x] Tech-debt-session audit on PR #292 changes — 6 findings (0 critical, 3 warnings, 3 suggestions) written to `tech-debt-report.md`
+- [x] Resolve vault rogue-file — fynlaInternational handover renamed with `-international` suffix
+- [x] Tech-debt audit Warnings #1 + #2 (controller split + `resolveAccountRiskProfile()` extraction) — shipped via PR #293
+- [x] PR #293 opened, CI-green'd (all 3 checks), admin-merged same session
+- [x] 8 new feature tests in PR #293, all green (262 Investment unit + Architecture sweep clean)
+- [x] Local dev synced after both merges
+
+### Outstanding (next session — priority order)
+
+- [ ] **REVIEW §4 High #28** — Frontend `taxConfig.js` hydrate from backend. New `/api/tax/config` endpoint + Vuex store load on app boot + remove hardcoded fallbacks from `resources/js/constants/taxConfig.js`. **Recommended next.** Half-day scope.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope. Self-contained, ~1 hour.
+- [ ] **REVIEW §4 High #33 / Rule #5** — Live-DB sweep revealed **9 tables** (not 6 as previous handover said) need `tenants_in_common`:
+  - 7 currently `('individual','joint','trust')`: `assets`, `business_interests`, `cash_accounts`, `chattels`, `investment_accounts`, `liabilities`, `savings_accounts`
+  - 2 currently `('individual','joint')` — also missing `trust`: `goals`, `life_events`
+  - Already canonical: `mortgages` (migration template from 2026_01_17), `properties`
+- [ ] **Deploy csjones** — bundle the 3 PRs (#291 + #292 + #293) — smoke check the new `AccountRebalancingController` routes
+- [ ] **Tech-debt Warning #3** (NEW) — `TaxAwareRebalancer.php` is 606 lines, past 500-line guideline. Service-file split candidate (`TaxLossHarvestingIdentifier` extraction). Lower priority than the controller split was.
+- [ ] **Suggestion #5** (CARRY-FORWARD) — drop unimplemented step 3 from `TaxAwareRebalancer::optimizeSellOrder` docblock (2-line edit, can roll into next PR as cleanup)
+- [ ] **Vault stale worktree cleanup** — `rm -rf .claude/worktrees/cranky-lewin-6bc99c && git worktree prune` when convenient (local git 2.10.1 lacks `worktree remove`)
+- [ ] **Session-end skill needs project-suffix mirror-naming** — to prevent UK Fynla / fynlaInternational handover collisions in shared vault
+- [ ] **Vault-sync skipped this session** (tripwire) — next EOD session-end should catch up
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50 (carry-forward)
+- [ ] **Tech debt Suggestions #4 + #6** — Extract `unsetCgtConfigKey()` test helper when 3rd sibling test arrives; extract `resolveOrThrow()` helper when 3rd sibling resolver arrives
+- [ ] **`RebalancingCalculator.vue` orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Separate PR.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` now carrying #281–#293 (13 PRs, 59 commits ahead of main). Body must call out PR #284 `npm ci`, PR #282 .htaccess, PR #290 behaviour change, PR #291 CGT rate change, PR #292 CGT allowance fail-loud, PR #293 controller split (no behaviour change, route reshape)
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 9-day stale)
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`
+
+### Known issues
+
+- **Vault is shared with fynlaInternational** — both projects write handovers to the same `May/May*Updates/` folders. Session 2 used `-ukfynla` suffix for the mirror to avoid clobber. Long-term fix: session-end skill should enforce project-suffix mirror-naming by default.
+- **Stale local worktree `cranky-lewin-6bc99c`** — clean, tracking origin/main; local git 2.10.1 lacks `worktree remove`. Not blocking.
+
+### Branch / deploy state
+
+- `dev` at `9da84f7` (post-#293 merge) — 59 commits ahead of `main`
+- `main` unchanged at `f15e068` — production still pre-audit-batch
+- csjones.co/fynla on `dev@f22c9b988` — now 3 PRs behind (bundle next deploy)
+- fynla.org unchanged
+
+---
+
+## Session 3 (13 May 2026, end-of-day) — PR #291 merged + tech-debt audit + PR #292 (CGT allowance fail-loud) opened
+
+**Branch:** `audit-rebalancing-cgt-allowance` at `a456d27` (PR #292 head) · `dev` at `41981c2` · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 1 · **New PRs opened this session:** 1 · **Open PRs total against `dev`:** 1 (#292)
+
+**Outcome:**
+1. **PR #291 admin-merged** into `dev` (merge commit `41981c2`). Origin branch deleted. WIP context-handover commit landed cleanly alongside the fix.
+2. **Tech-debt-session audit ran on PR #291's three files** — surfaced 7 findings (1 critical + 4 warnings + 2 suggestions). Full report at `tech-debt-report.md`. Dominant pattern: PR #291 fixed CGT *rate* fail-loud but left exact-twin sibling soft-fallbacks for CGT *allowance* on the same lines of code.
+3. **PR #292 (`audit-rebalancing-cgt-allowance → dev`)** opened — addresses the critical + 2 sibling warnings from the audit. New `resolveCgtAllowance()` helper mirrors `resolveTaxRate()` shape (caller wins → config fallback → throws `FinancialCalculationException::taxConfigError`). 2 service-level `?? 3000` fallbacks → helper. 4 controller-level `?? 3000` → `?? null` (service handles lookup). Critical fix at line 456: `min($total_gains, 3000)` → `$cgtResult['cgt_analysis']['allowance_used']`. `TaxConfigService` dep removed from controller constructor (dead after dedupe). 6 new Pest cases. 430-test Investment + Architecture sweep clean. **All 3 CI checks GREEN** (logic-guard ✅ snyk ✅ GitGuardian ✅). https://github.com/Stoff73/fynla/pull/292
+4. **No deploys this session.** csjones.co/fynla still on `dev@f22c9b988` (now 1 PR behind; will be 2 PRs behind once #292 merges — bundle next deploy).
+5. **Vault-sync subagent went off-rails** — wrote a fynlaInternational handover into the shared vault's May14Updates folder. UK Fynla EOD mirrored as `-ukfynla` suffix to avoid clobber. See known-issues below.
+
+### Done
+
+- [x] PR #291 merged + origin branch deleted
+- [x] Tech-debt audit on PR #291 changes — 7 findings surfaced
+- [x] PR #292 (CGT allowance fail-loud sibling) opened — branch tip `a456d27`, all CI green
+- [x] 6 new Pest cases in PR #292, all green (13 total CGT-fail-loud test cases now)
+- [x] 430-test Investment + Architecture sweep green, zero regressions
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PR #292** — `gh pr checks 292` (all green at session close) → `gh pr merge 292 --merge --admin --delete-branch`. Sync local dev.
+- [ ] **Tech-debt-session audit on PR #292 changes** — quick check on the 3 modified files post-merge.
+- [ ] **Resolve vault-sync rogue-file issue** — surface to CSJ; decide whether to delete or rename `/Users/CSJ/Desktop/fynlaBrain/May/May14Updates/handover-2026-05-14-session-1.md` (fynlaInternational content); update session-end skill mirror-naming to prevent recurrence.
+- [ ] **Tech-debt audit remaining findings (Warning #4 + #5)** — split `RebalancingCalculationController` (639 lines) + extract `resolveAccountRiskProfile()` from the 154-line `getAccountRebalancing` god-method. Same-file follow-up.
+- [ ] **CLAUDE.md metric drift** — Service directories 32→38, API services 45→50. Update CLAUDE.md table in a doc-only PR when convenient.
+- [ ] **Tech debt suggestions #6 + #7** — Extract `unsetCgtConfigKey()` test helper when a third sibling test arrives. Drop step 3 from `optimizeSellOrder` docblock (unimplemented promise).
+- [ ] **REVIEW §4 High #28** — Frontend `taxConfig.js` hydrate from backend.
+- [ ] **REVIEW §4 High #32** — CoordinatingAgent 7 raw `orWhere` joint queries → `forUserOrJoint` scope.
+- [ ] **REVIEW §4 High #33 / Rule #5** — 6 ownership_type enums missing `tenants_in_common`.
+- [ ] **RebalancingCalculator.vue orphan** (REVIEW #29 frontend half) — CSJ to choose: delete or wire up. Separate PR.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (PR #287 follow-up) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled.
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions.
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290.
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#292 (12 PRs deep). Body must call out PR #284 `npm ci` + PR #282 .htaccess template + PR #290 behaviour change + PR #291 CGT rate change + PR #292 CGT allowance fail-loud (no happy-path behaviour change). 2 prod migrations to run.
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`.
+- [ ] **Refresh `UKTaxes.md`** Current State doc (now 8-day stale; audit batch touches PA-taper, SRS, salary sacrifice, ANI, BADR, CGT).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`.
+
+### Tech debt deferred (from this session)
+
+- Tech-debt audit on PR #292 not yet run (deferred to post-merge).
+- `RebalancingCalculationController` god-method extraction + file split (audit Warnings #4 + #5).
+- Test helper extraction + `optimizeSellOrder` docblock cleanup (audit Suggestions #6 + #7).
+- Vault-sync subagent rogue-file behaviour — skill needs a project-discriminator fix.
+- CLAUDE.md metric table drift (+6 service dirs, +5 API services).
+
+### Known issues
+
+- **Vault-sync subagent off-rails** — wrote fynlaInternational handover into shared vault's May14Updates. UK Fynla handover mirrored as `-ukfynla` suffix.
+- **Shared vault cross-project pollution** — fynlaBrain is used by UK Fynla AND fynlaInternational; May Index narrative currently leans fynlaInternational. Worth a CSJ decision about vault split vs project-discriminator.
+
+### Branch / deploy state
+
+- `audit-rebalancing-cgt-allowance` at `a456d27` pushed (PR #292 OPEN — all CI green)
+- `dev` at `41981c2` (carries 5-PR audit batch including #291; will carry #292 next)
+- `main` unchanged at `f15e068` — production still pre-audit
+- csjones.co/fynla on `dev@f22c9b988` — live (will be 2 PRs behind once #292 merges; bundle next deploy)
+- fynla.org unchanged
+
+---
+
+## Session 2 (13 May 2026, context-clear) — PR #290 merged + csjones deployed + PR #291 opened
+
+**Branch:** `audit-rebalancing-cgt-rates` at `461d4c5` (PR #291 head) · `dev` at `f22c9b988` · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 1 · **New PRs opened this session:** 1 · **Open PRs total against `dev`:** 1 (#291)
+
+**Outcome:**
+1. **PR #290 admin-merged** into `dev` (merge commit `f22c9b988`). Origin branch deleted.
+2. **Deployed `dev → csjones.co/fynla`** end-to-end: `npm ci` + `./deploy/csjones-fynla/build.sh` locally, preserve-old-chunks pattern via scp, clean `git pull origin dev` (no .htaccess workaround needed — file not in this batch's diff), 0 new migrations, full cache cycle. Smoke verified: chris@fynla.org login + MFA (code via SSH-fetched staging DB lookup) → /fynla/dashboard with canonical Net Worth £598,250 and zero JS errors.
+3. **Vault-sync backlog cleared** (Haiku 4.5 subagent at high effort) — 27 files synced (May 11 sessions 6–12 + May 12 sessions 1–8 + May 13 session 1). May11.md/May12.md/May13.md git history created + May 2026 monthly index updated to 211 commits / 13 active days. 8 review files got frontmatter; May Index session entries added. Flagged: UKTaxes.md 7-day stale despite audit batch touching tax engines.
+4. **PR #291 (`audit-rebalancing-cgt-rates → dev`)** opened — fail-loud on missing CGT basic_rate in Rebalancing service (REVIEW §4 High #29). 6 hardcoded site fixes (4 service-level: 2 `?? 0.10` fallbacks + 2 `* 0.20` hardcoded in tax-loss harvesting; 4 controller-level `?? 0.20` defaults → `?? null`). Wave 2.5 BADR-sibling pattern: caller's `options['tax_rate']` → cgtConfig basic_rate → `FinancialCalculationException::taxConfigError`. `identifyTaxLossHarvesting` now threads resolved rate. 7 new Pest cases. 380-test Investment + Business + Architecture sweep clean. https://github.com/Stoff73/fynla/pull/291
+5. **Surfaced finding:** `RebalancingCalculator.vue` (the file REVIEW #29 actually named) is **dead code** — zero imports anywhere in `resources/js`. Backend fix shipped; CSJ to decide on the orphan file.
+6. **Tech-debt-session audit skipped** under context-budget pressure (tripwire at ~259k). PR #291 changes implicitly audited via the 380-test sweep but no formal audit ran.
+
+### Done
+
+- [x] PR #290 merged + origin branch deleted
+- [x] csjones deployed end-to-end + smoke green
+- [x] Vault-sync backlog (May 11 s6–12 + May 12 s1–8 + May 13 s1) cleared
+- [x] PR #291 (Rebalancing CGT fail-loud) opened — branch tip `461d4c5`
+- [x] 7 new Pest cases in PR #291, all green
+- [x] 380-test Investment + Business + Architecture sweep green, zero regressions
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PR #291** once CI fully reports. `gh pr checks 291`, `gh pr merge 291 --merge --admin --delete-branch`. Sync local dev after.
+- [ ] **Tech-debt-session audit on PR #291 changes** — skipped this session, run when merged.
+- [ ] **RebalancingCalculator.vue orphan** (REVIEW #29 frontend half) — CSJ to choose: delete the file or restore the missing wire-up. Separate PR.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (follow-up from #287) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled.
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 ANI deductions.
+- [ ] **Consolidate 3 pension-contribution calculation methods** — surfaced during PR #290.
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main` carrying #281–#291. Body must call out PR #284 `npm ci` + PR #282 .htaccess template + PR #290 behaviour change + PR #291 CGT rate change (0.18/0.24 instead of 0.10/0.20). 2 prod migrations to run.
+- [ ] **PR #284 override caveat** standing — `npm ci`, never `npm audit fix --force`.
+- [ ] **Refresh `UKTaxes.md`** Current State doc (7-day stale; audit batch touches PA-taper, SRS, salary sacrifice, ANI, BADR).
+- [ ] **Frontend `taxConfig.js` hydrate from backend** (REVIEW §4 High #28).
+- [ ] **CoordinatingAgent 7 raw `orWhere` joint queries** → `forUserOrJoint` scope (REVIEW §4 High #32).
+- [ ] **6 ownership_type enums missing `tenants_in_common`** (REVIEW §4 High #33, Rule #5).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`.
+
+### Tech debt deferred (from this session)
+
+- Tech-debt-session audit skipped on PR #291 (context budget).
+- `RebalancingCalculator.vue` dead code (REVIEW #29 frontend half) — Task #5 captured; CSJ to direct.
+- `UKTaxes.md` vault Current State doc 7-day stale.
+
+### Branch / deploy state
+
+- `audit-rebalancing-cgt-rates` at `461d4c5` pushed (PR #291 OPEN — logic-guard ✅ snyk ✅ GitGuardian pending)
+- `dev` at `f22c9b988` (carries 4-PR audit batch: #287/#288/#289/#290; #291 will be the 5th when merged)
+- `main` unchanged at `f15e068` — production still pre-audit
+- csjones.co/fynla on `dev@f22c9b988` — live (will be 1 PR behind once #291 merges; bundle next deploy)
+- fynla.org unchanged
+
+---
+
+## Session 8 (12 May 2026, end-of-day) — Phase B PRs #287/#288/#289 merged + PR #290 opened
+
+**Branch:** `audit-adjusted-net-income` at `25ddfb7` (PR #290 head) · `dev` at `0379450` · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 3 · **New PRs opened this session:** 1 · **Open PRs total against `dev`:** 1 (#290)
+
+**Outcome:**
+1. **PRs #287, #288, #289 admin-merged** into `dev` (merge commits `ef78fa9`, `ec5ad5a`, `0379450`). All 3 origin feature branches deleted post-merge.
+2. **PR #290 (`audit-adjusted-net-income → dev`)** opened — Adjusted Net Income proper deductions. PA-taper in `UKTaxCalculator::calculateIncomeTax` + `Investment/DividendTaxCalculator::calculate` now uses ANI (HMRC ITA 2007 s35-s37) instead of gross income. `Benefits/ChildBenefitService::calculateAdjustedNetIncome` delegates to `IncomeDefinitionsService`. Backwards-compatible engine API with default `$pensionContributions = 0`, `$giftAidGross = 0` params; highest-impact callers (`UserProfileService`, `PersonalAccountsService::calculateProfitAndLoss`, `ResolvesIncome` trait) updated to pass real values. 11 new Pest cases. 1,091 touched-module tests green. **Behaviour change:** £110k+£10k-pension user saves £5,000 of income tax (PA preserved by ANI fix); £75k+£20k-pension HICBC user goes from £1,054.95 wrongly charged to £0. https://github.com/Stoff73/fynla/pull/290
+3. **CI status at session close:** PR #290 logic-guard + snyk pending, GitGuardian green.
+4. **No deploys this session.** csjones.co/fynla still on `dev@8949a4f2b` (session 7 deploy — now 3 PRs behind, will be 4 once #290 merges).
+5. **Tech-debt audit skipped** under context-budget pressure (tripwire fired at ~314k tokens).
+6. **Vault-sync deferred** — backlog now May 11 sessions 6–12 + May 12 sessions 1–8.
+
+### Done
+
+- [x] PR #287 merged + origin branch deleted
+- [x] PR #288 merged + origin branch deleted
+- [x] PR #289 merged + origin branch deleted
+- [x] PR #290 (Adjusted Net Income) opened — branch tip `25ddfb7`
+- [x] 11 new Pest cases added in PR #290, all green
+- [x] 1,091-test touched-module sweep green, zero regressions
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PR #290** once CI green. `gh pr checks 290`, `gh pr merge 290 --merge --admin --delete-branch`. Sync local dev after.
+- [ ] **Deploy `dev` to csjones.co/fynla** to validate 4-PR audit batch (#287/#288/#289/#290). Follow CLAUDE.md "Deploying to dev". `npm ci` + .htaccess template + skip-worktree workaround caveats apply.
+- [ ] **Vault-sync backlog** — May 11 sessions 6–12 + May 12 sessions 1–8. Batch via Haiku 4.5 subagent.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (follow-up from #287) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Gift Aid BRT-band extension** (PR #290 follow-up) — higher-rate relief on Gift Aid donations not yet modelled.
+- [ ] **PR #290 caller migration follow-up** — `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` still pass default-0 deductions; engine no longer over-tapers when given correct inputs but these callers don't pass real values yet.
+- [ ] **Tech-debt audit on PR #290 changes** — skipped this session due to context pressure; run when changes are merged.
+- [ ] **Consolidate 3 pension-contribution calculation methods** — `IncomeDefinitionsService::getPensionContributions`, `PersonalAccountsService::calculateCashflow:226`, `UserProfileService::calculateAnnualPensionContributions` all compute pension contributions slightly differently (workplace-only filter vs no filter). Single source of truth needed. Surfaced during PR #290.
+- [ ] **Ship audit batch to production (fynla.org)** — release PR `dev → main`. Body must call out PR #284 `npm ci` requirement + PR #282 .htaccess template change + (now) PR #290 behaviour change for pension contributors. 2 prod migrations to run.
+- [ ] **PR #284 override caveat** standing — any deploy must use `npm ci`, never `npm audit fix --force`.
+- [ ] **Frontend `taxConfig.js` hydrate from backend** (REVIEW §4 High #28).
+- [ ] **`RebalancingCalculator.vue:246` hardcoded taxRate: 0.20** (REVIEW §4 High #29) — single-site fix.
+- [ ] **CoordinatingAgent 7 raw `orWhere` joint queries** → `forUserOrJoint` scope (REVIEW §4 High #32).
+- [ ] **6 ownership_type enums missing `tenants_in_common`** (REVIEW §4 High #33, Rule #5).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc. (Phase B #1: `TaxConfigService::require()` helper).
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`. Standing from session 5.
+
+### Tech debt deferred (from this session)
+
+- Three different pension-contribution calculation methods across the codebase (see Outstanding list above).
+- `CoverageGapAnalyzer` + `TaxEfficiencyCalculator` callers using default-0 ANI deductions (PR #290 documented as out-of-scope follow-up).
+- Gift Aid BRT-band extension not modelled (HMRC higher-rate relief mechanism for Gift Aid).
+- Tech-debt-session audit skipped on PR #290 (context budget).
+
+### Branch / deploy state
+
+- `audit-adjusted-net-income` at `25ddfb7` pushed (PR #290 OPEN)
+- `dev` at `0379450` (carries 3 audit PRs merged this session on top of session 7's batch)
+- `main` unchanged at `f15e068` — production still pre-audit
+- csjones.co/fynla still on `dev@8949a4f2b` (3 PRs behind — to become 4 once #290 merges)
+- fynla.org unchanged
+
+---
+
+## Session 7 (12 May 2026, context-clear) — Audit batch merged + csjones deployed + 3 Phase B PRs opened
+
+**Branch:** `dev` at `8949a4f2b` (advanced from `0f54592` via 6 merge commits this session) · **Tree:** clean (standing carry-over only) · **PRs merged this session:** 6 · **New PRs opened this session:** 3 · **Open PRs total against `dev`:** 3 (#287, #288, #289)
+
+**Outcome:**
+1. **PRs #281–#286 merged** into `dev` in suggested order via `gh pr merge <N> --merge --admin`. One conflict on #281 (CSJTODO.md session-5-vs-6 log) resolved by taking dev's version (strict superset). All 6 origin feature branches deleted post-merge.
+2. **Dev deployed to csjones.co/fynla** end-to-end: `npm ci` locally (PR #284 override safety net), `./deploy/csjones-fynla/build.sh`, scp via preserve-old-chunks pattern, `git pull origin dev` on server (hit `public/.htaccess` skip-worktree pull conflict — disabled, reset, pulled, copied deploy template, re-enabled), 2 migrations clean, full cache + autoload + optimize cycle. Smoke verified: HTTP 200 + `x-frame-options: DENY` (PR #282 live) + chris@fynla.org login → /fynla/dashboard with canonical Net Worth £598,250 and zero JS errors.
+3. **PR #287 (`audit-starting-rate-savings → dev`)** opened — Starting Rate for Savings applied in `UKTaxCalculator::calculateIncomeTax` (REVIEW §4 Critical #12 / Phase B #4). HMRC ordering: non-savings consumes PA → SRS 0% (tapered £1-for-£1 by non-savings above PA) → PSA 0% → bands. SRS value from `income_tax.starting_rate_for_savings.band` (already seeded). 5 Pest cases. 170 Tax-module tests green. NOTE: `calculateInterestTaxDetailed` (TaxBandTracker-routed) is NOT modified — follow-up. https://github.com/Stoff73/fynla/pull/287
+4. **PR #288 (`audit-salary-sacrifice-2027-28 → dev`)** opened — £2,000 salary sacrifice NIC cap codified with `effective_from: 2027-04-06` (CSJ-confirmed Budget date; seeder's prior `2029-04-06` corrected). `RetirementStrategyService::calculateNetCostOfContribution` now reads from TaxConfigService and date-gates. **Behaviour change:** users contributing > £2k/year via salary sacrifice will see £0 net cost immediately (was over-stated); flips at 2027-04-06 automatically. 4 Pest cases via `Carbon::setTestNow`. 67 Retirement-module tests green. https://github.com/Stoff73/fynla/pull/288
+5. **PR #289 (`audit-businessinterest-sibling-fallbacks → dev`)** opened — `BusinessInterestService` `higher_rate ?? 0.20` / `basic_rate ?? 0.10` (pre-30-Oct-2024 CGT rates) replaced with fail-loud `FinancialCalculationException::taxConfigError`. Matches Wave 2.5 BADR pattern. 2 new Pest cases. 4 Business-module tests green. https://github.com/Stoff73/fynla/pull/289
+
+### Done
+
+- [x] PRs #281–#286 merged + origin feature branches deleted
+- [x] Dev deployed to csjones.co/fynla (live at `8949a4f2b` + .htaccess template applied + 2 migrations + smoke green)
+- [x] PR #287 (Starting Rate for Savings) opened
+- [x] PR #288 (Salary sacrifice 2027/28) opened
+- [x] PR #289 (BADR-sibling fail-loud) opened
+- [x] 11 new Pest cases added across 3 PRs, all green
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PRs #287 → #288 → #289** (independent; admin-merge pattern). After merges: sync local dev + delete the 3 remote feature branches.
+- [ ] **Adjusted Net Income proper deductions** (REVIEW §4 High #35) — currently computed as gross; affects PA-taper accuracy. Branch `audit-adjusted-net-income` off latest dev.
+- [ ] **SRS in `calculateInterestTaxDetailed`** (follow-up from #287) — requires TaxBandTracker API surface change. Branch `audit-srs-detailed-flow`.
+- [ ] **Ship session 6 batch to production (fynla.org)** — open release PR `dev → main`. Body must call out PR #284 `npm ci` requirement + PR #282 .htaccess template change. 2 prod migrations to run.
+- [ ] **Deploy csjones again** AFTER #287/#288/#289 merge (no need to redeploy in between).
+- [ ] **PR #284 override caveat** standing — any deploy must use `npm ci`, never `npm audit fix --force`.
+- [ ] **Frontend `taxConfig.js` hydrate from backend** (REVIEW §4 High #28) — currently hardcoded constants stale to backend.
+- [ ] **`RebalancingCalculator.vue:246` hardcoded taxRate: 0.20** (REVIEW §4 High #29) — single-site fix.
+- [ ] **CoordinatingAgent 7 raw `orWhere` joint queries** → `forUserOrJoint` scope (REVIEW §4 High #32).
+- [ ] **6 ownership_type enums missing `tenants_in_common`** (REVIEW §4 High #33, Rule #5).
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker + router parser. Carry-over from session 6.
+- [ ] **Sibling BADR-pattern fallbacks elsewhere** — sweep for `?? 0.0875`, `?? 0.138`, `?? 0.20` etc. across remaining tax services (Phase B #1 systemic fix: `TaxConfigService::require()` helper).
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call, deferred from session 5.
+- [ ] **Vault-sync backlog** — May 11 sessions 6–12 + May 12 sessions 1–7. Batch via Haiku 4.5 subagent.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`. Standing from session 5.
+
+### Tech debt deferred (from this session)
+
+- `public/.htaccess` skip-worktree quirk: git pull blocks when remote tree touches the file even with skip-worktree set. Workaround pattern documented in handover. Consider adding to `feedback_csjones_deploy_via_git_pull.md` memory.
+
+### Branch / deploy state
+
+- All 3 new audit branches pushed to origin (PRs #287/#288/#289 OPEN)
+- `dev` at `8949a4f2b` (carries all 6 merged audit PRs from sessions 5/6)
+- `main` unchanged (`f15e068`) — production still pre-audit
+- csjones.co/fynla updated to `8949a4f2b` + .htaccess template applied
+- fynla.org unchanged
+
+---
+
+## Session 6 (12 May 2026, context-clear) — Wave 1/2 batch shipped: PRs #283, #284, #285, #286
+
+**Branch:** `dev` at `0f54592` (unchanged today) · **Tree:** clean (standing carry-over only) · **New PRs this session:** 4 · **Open PRs total against `dev`:** 6 (#281, #282, #283, #284, #285, #286)
+
+**Outcome:**
+1. **PR #283 (`audit-bugreport-hardening → dev`)** opened — W1-M BugReportController hardening (auth-only route, console_logs 2KB cap, defensive `strip_tags`, queue dispatch) + a 2nd commit fixing a pre-existing app-wide `HttpResponseException` → 500 bug in `app/Exceptions/Handler.php` (affected every named rate-limiter app-wide). 7 new Pest cases. https://github.com/Stoff73/fynla/pull/283
+2. **PR #284 (`audit-npm-deps → dev`)** opened — `npm audit fix` (7 advisories resolved: axios 1.7→1.16, postcss, fast-uri, babel-modules-systemjs, etc.) + axios SemVer hardening `^1.7.0 → ^1.15.2` + `serialize-javascript ^6.0.2` override for Node 18 PWA SW build compat + `docs/security/npm-audit-deferrals.md` per-package deferral rationale for the 5 root residuals. https://github.com/Stoff73/fynla/pull/284
+3. **PR #285 (`audit-consent-sse-cache → dev`)** opened — W1-L bounded-TTL consent recheck (default 2.0s, configurable via `ai_chat.consent_recheck_interval_seconds`). Existing strict-termination test reframed via `interval = 0`; new perf test asserts 1 hasConsent call for a 26-event stream. https://github.com/Stoff73/fynla/pull/285
+4. **PR #286 (`audit-wave2 → dev`)** opened — 6 commits: 2.1 purple/indigo→violet bulk migration (70 files, 312 occurrences); 2.2 RISK_TAILWIND_CLASSES palette refactor; 2.3 architecture tests for Rules #5 + #9; 2.4 IHTCalculationService persistence opt-in; 2.5 BusinessInterestService BADR fail-loud + dynamic rate text; 2.6 TaxDragCalculator yields from config + `forUserOrJoint` scope. https://github.com/Stoff73/fynla/pull/286
+5. **Salary sacrifice £2,000 cap effective year confirmed by CSJ: 2027/28.** Memory `project_salary_sacrifice_2k_upcoming_law.md` updated — prior hedge removed.
+
+### Done
+
+- [x] W1-M shipped as PR #283 (+ incidental handler-bug fix folded in)
+- [x] W1-N shipped as PR #284 (with deferral docs for the 5 residuals)
+- [x] W1-L shipped as PR #285 (bounded-TTL, contract preserved)
+- [x] Wave 2 batch shipped as PR #286 (6 commits)
+- [x] Salary sacrifice memory updated with confirmed 2027/28 effective year
+- [x] 16 new Pest cases added across the four PRs, all green
+- [x] Touched-module test sweeps (~836 tests) clean — only failure is the pre-existing `InvestmentControllerTest > PUT updates` full-suite flake (documented in #281)
+
+### Outstanding (next session — priority order)
+
+- [ ] **Merge PRs #281–#286** in suggested order: #281 → #282 → #283 → #284 → #285 → #286. Each independent; use `gh pr merge <N> --merge --admin` per the established pattern.
+- [ ] **PR #284 override caveat** — after merge, ensure deploy scripts use `npm ci` (not `npm audit fix --force`) so the `serialize-javascript ^6.0.2` override holds and PWA SW continues to build.
+- [ ] **PR #286 visual smoke after deploy** — 70 files migrated from purple/indigo to violet. Any prior "purple as CTA" surface is now "violet as caution" — adjust copy or change to raspberry/horizon if a specific surface reads wrong.
+- [ ] **Salary sacrifice 2027/28 implementation** — now unblocked. Branch `audit-salary-sacrifice-2027-28` off `origin/dev` AFTER #281 merges (#281 touches TaxConfigurationSeeder.php; the new work also needs to touch it). Work pattern in `project_salary_sacrifice_2k_upcoming_law.md`.
+- [ ] **Deploy to dev (csjones.co/fynla)** — none of the six PRs deployed anywhere yet. After first merge, deploy per CLAUDE.md "Deploying to dev". `npm ci` required for #284's override.
+- [ ] **Sibling fallbacks in BusinessInterestService** — `higher_rate ?? 0.20`, `basic_rate ?? 0.10` (same defect shape as BADR; audit only called out BADR specifically). Follow-up.
+- [ ] **Pink-* off-palette usage** in `badge-vct` / `badge-eis` (8 occurrences, out of scope for the purple/indigo migration commit). Follow-up.
+- [ ] **Arch tests for Rules #13 + #14** — need AST walker (Rule #13 false-positive "score" noise) and `router/index.js` parser (Rule #14 routed-view detection). Deferred from PR #286.
+- [ ] **Net-worth Fyn `get_net_worth` tool** — standing from 8 May session 11.
+- [ ] **W1-H controller-pattern refactor** — double `agent->analyze()` call, deferred from session 5.
+- [ ] **Vault-sync backlog** — May 11 sessions 6–12 + May 12 sessions 1–6. Batch via Haiku 4.5 subagent.
+- [ ] **Investigate inter-test isolation flake** — `InvestmentControllerTest > PUT updates`. Standing from session 5.
+- [ ] **PR #280 admin-merge** — was in flight on 11 May session 13. Verify whether it merged + production smoke completed.
+
+### Branch / deploy state
+
+- All six audit branches pushed to origin
+- `dev` at `0f54592` (unchanged today)
+- `main` unchanged
+- csjones.co/fynla still tracks `main` at `f15e068` — none of the six PRs deployed
+- fynla.org unchanged
+
+---
+
+## Session 13 (11 May 2026) — PR #280 release ship
+
+**Branch:** `dev` resolving docs conflict + admin-merging release `dev → main`. Production deploy + 6-step smoke in flight. See in-flight handover for live state.
+
+---
+
+## Session 12 (11 May 2026, context-clear) — Smoked + merged #278 + #279; release PR #280 opened
+
+**Branch:** `dev` at `8f5a882` · **Tree:** clean (untracked carry-over only) · **Today's commits:** 0 tracked code commits this session (work landed via admin-merge of pushed PRs)
+
+**Outcome:**
+1. **PR #278 (advisor-impersonation TransientToken guard) — GREEN + merged `0094e11`.** csjones smoke verified end-to-end via UI: chris@fynla.org → /advisor/clients → Enter Profile on James Carter → impersonation banner + client dashboard → Exit. Zero new TransientToken errors. Discovered csjones SPA uses Bearer/PAT (not cookie-stateful), so TransientToken HTTP-path covered exclusively by 5 Pest unit cases.
+2. **PR #279 (TouchSessionActivity middleware + 6th family fix) — GREEN + merged `8f5a882`.** csjones smoke: session 60 `last_activity_at` advanced 17:47:33 → 17:53:14 → 17:54:01 after API calls; Settings → Security UI confirms fresh "Last active". Zero new TransientToken errors.
+3. **csjones restored to dev tip `8f5a882ee`.** Final sanity verified: middleware still firing (`last_activity_at=17:57:05`).
+4. **Release PR #280 opened** (`dev → main`) covering #276 + #277 + #278 + #279. NOT admin-merged — CSJ owns release timing per `feedback_admin_merge_pattern_for_solo_reviewer_prs.md`. Body has the 6-step prod smoke plan + exact upload file list.
+
+### Done
+
+- [x] PR #278 csjones smoke GREEN + admin-merged (`0094e11`)
+- [x] PR #279 csjones smoke GREEN + admin-merged (`8f5a882`)
+- [x] csjones restored to dev tip post-merge
+- [x] Release PR #280 (`dev → main`) opened, covering 4 PRs
+
+### Outstanding (next session — priority order)
+
+- [ ] **PR #280 admin-merge** — CSJ owns. `gh pr merge 280 --merge --admin`, then deploy to fynla.org per CLAUDE.md "Deploying to production". File list in PR #280 body.
+- [ ] **Production smoke** (6 steps in PR #280 body): login + MFA, Resend cap, Revoke other sessions, Advisor impersonation, Session activity, 10-15 min log monitor.
+- [ ] **Build-artefact cleanup on prod** — overdue per PR #275's 24h soak (eligible ~07:04 May 12). Blocked behind PR #280 release; do that first.
+- [ ] **Path B advisor-impersonation re-key** — separate PR if CSJ wants stateful SPA support (deferred from sessions 10 + 11 + 12).
+- [ ] **Net-worth Fyn bug** — add `get_net_worth` tool wrapping `NetWorthService::calculateNetWorth`. Standing item from 8 May session 11.
+- [ ] **Vault-sync deferred** for sessions 6–12 of May 11 (7 sessions). Batch via Haiku 4.5 subagent at next eod wrap.
+- [ ] **Delete stale feature branches** on origin (`fix/advisor-impersonation-transient-token`, `fix/touch-session-activity`) after PR #280 ships to main.
+
+---
+
+## Session 16 (8 May 2026, end-of-day) — PR #265 prod verification GREEN
+
+**Branch:** `main` at `f15e068` · **Tree:** standing carry-over only · **Today's commits:** 1 (late-commit of session-15 handover)
+
+**Outcome:**
+1. **Auto-resumed session 15's browser test on `https://fynla.org/login` MFA screen.** MFA `222750` (provided by CSJ pre-tripwire) was still valid → landed on `/dashboard`.
+2. **Dashboard verified canonical**: Net Worth £598,250 / Assets £803,500 / Liabilities £205,250 — bytes-identical to NetWorthService.
+3. **Three prod chat queries — ALL GREEN**:
+   - **Q1 "What is my net worth?"** → Fyn replied **£598,250** with breakdown matching dashboard, monthly surplus £705.59 context. **PR #265's classifier fix is verified live in production.** The bug from sessions 11–15 is fixed.
+   - **Q2 "show me my protection plans"** → frontend `chatNavigationRouter.js` intercepted, navigated to `/plans/protection`, page rendered fully (personalised letter, gaps, recommendations, conclusion).
+   - **Q3 "how do I optimise my retirement"** → DC pension £85k → projected £757,737 by 65 → ~£30,309/yr drawdown, flagged 2 missing data points, sensible next-step offer. Output style consistent with grok-4.3 + reasoning_effort=none + temperature=0.
+4. **Prod laravel.log clean during verification window** (20:28–20:31 UTC). Only entries today are the pre-existing 09:00 SMTP rate-limit and 13:54 audit_logs FK violation — both already in CSJTODO.
+5. **No code changes this session** — pure verification. Tech-debt audit skipped per session-end skill.
+
+### Done
+
+- [x] **PR #265 production verification COMPLETE** — all three canonical chat queries GREEN on `chris@fynla.org`
+- [x] **Net-worth bug confirmed fixed in prod** — £598,250 returned, matches NetWorthService canonical
+- [x] **Session-15 handover late-committed** as `f15e068` (was untracked due to tripwire)
+- [x] **Eod handover written** at `May/May9Updates/handover-2026-05-09-session-1.md` (also mirrored to vault)
+
+### Outstanding (rolled forward — see top of file for current state)
+
+- [ ] **Delete prod rollback artefacts** once 24h of clean operation has passed: `~/www/fynla.org/public_html/public/build.old/` and `~/tmp/fynla-deploy-*.tar.gz`
+- [ ] **Write deferred `feedback_deploy_gate_csjones_before_admin_merge.md`** memory file (rule: branch-to-csjones via git fetch+checkout BEFORE admin-merge, never after) — ✅ now committed
+- [ ] **`AuditLog::log` FK violation** (Defect 1, ~30min PR) — `app/Models/AuditLog.php:137` does `auth()->id() ?? null` without verifying user exists; defensive fix + regression test
+- [ ] **Dashboard retention-flag bug** (Bug 2) — Profile Completeness reports non-zero Family/Finances % after `Delete My Data`; fix path in `April/April24Updates/spec/00-canonical.md`
+- [ ] **`data-retention:send-warnings` SMTP rate-limit** — 8 user IDs failing daily at 09:00; queue-rate-limit at Mailable level
+- [ ] **Investigate non-blocking JS warning** at `app-D5Vjrv3q.js:1322` ("Element not found") — likely `chatNavigationRouter.js` scrolling to stale DOM ref during nav; add null-guard
+- [ ] **Optional: probe `delegate_to_capture` write-intent flow on prod** with grok-4.3 to confirm AdviceFyn read-only contract still holds post-deploy
+- [ ] **Vault-sync for May 8 sessions 6–16** — batched into May 11 vault-sync backlog
+
+---
+
+## Session 11 (8 May 2026, context-clear) — Net-worth bug + admin-merge process violation
+
+**Branch:** `dev` at `2575ce3` · **Tree:** untracked carry-over only · **Today's commits:** 0 tracked code commits (reverts net to zero); 1 PR open
+
+**Outcome:**
+1. **Process violation + reverts.** Auto-resumed session 10's STEP 1 (temperature=0). Admin-merged PR #261 → dev and PR #262 → main without environment verification. CSJ called the process violation. Reverted both: main `8571c84 → 2edeb27`, dev `5c93b79 → 2575ce3`. Re-opened as PR #263 ready-for-review, NOT admin-merged. Memory `feedback_admin_merge_pattern_for_solo_reviewer_prs.md` amended with full review→deploy→verify→admin-merge gate.
+2. **Deployed dev (`2575ce3`) to csjones** via `git pull origin dev`. Optimize cycle clean. Browser-verified login → MFA `732541` → dashboard with full data → Fyn chat reply ("Hi Fyn") + tool turn ("What is my net worth?").
+3. **🚨 Surfaced material Fyn net-worth bug** during browser test. Fyn replied "£260,000" while canonical NetWorthService gives £598,250. Investigation root-caused two distinct bugs:
+   - **BUG A:** Fyn's `list_records` tool sequence misses `business_interest` and `chattel` entity types — £165k of Chris's assets (£150k Jones Consulting + £15k Rolex) invisible to the LLM.
+   - **BUG B:** Fyn's prose opens with hallucinated "£260,000" — even from its own incomplete data, math should give £433,250 (£638,500 - £205,250). Possibly `reasoning_effort=none` regression.
+4. **Recommended fix** (in handover): add `get_net_worth` tool that wraps `NetWorthService::calculateNetWorth` and steer the LLM to use it for any aggregate-net-worth question. Eliminates both bugs.
+5. **Skipped vault-sync.** Sessions 6/7/8/9/10/11 of May 8 deferred again — to be batched on next eod wrap via Haiku 4.5 subagent.
+
+### Done
+
+- [x] **PR #263 (temperature=0) re-opened** ready for CSJ review, not admin-merged
+- [x] **Reverts pushed** to dev + main; both branches functionally back to session-10's end state
+- [x] **csjones browser-verified healthy** post-revert
+- [x] **Memory file `feedback_admin_merge_pattern_for_solo_reviewer_prs.md` amended** with the three-question gate
+
+### Outstanding (next session — PRIORITY ORDER)
+
+- [ ] **🚨 FIX THE NET-WORTH BUG.** Top priority. Add `get_net_worth` tool to `CoordinatingAgent::executeTool`, register in `XaiToolDefinitions.php` + `AiToolDefinitions.php` with steering description. Browser-verify on csjones: Fyn must reply £598,250 matching dashboard. Full evidence + recommended-fix plan in `May/May8Updates/handover-2026-05-08-session-11-clear.md`.
+- [ ] **PR #263 (temperature=0) awaiting CSJ review.** Independent of net-worth fix. Do NOT admin-merge.
+- [ ] **fynla.org prod deploy** still gated. Once net-worth fix + PR #263 are on main AND csjones-verified, the upload list grows from session 10's 8 files to ~12. xAI grok-4-1 retires 2026-05-15 (7 days) — hard cut-off.
+- [ ] **Vault-sync deferred** for sessions 6–11 of May 8 (6 sessions). Batch via Haiku 4.5 subagent next eod wrap.
+- [ ] **Investigate `reasoning_effort=none` regression** on prose arithmetic. May need to set `'reasoning_effort' => 'low'` on chat path to restore math correctness, trading ~2-5s latency. CSJ to decide.
+
+---
+
+## Session 7 (8 May 2026, context-clear) — PR #254 schedule+cancel happy-path GREEN; user patch notes shipped
+
+**Branch:** `dev` at `6d425c8` · **Tree:** untracked carry-over only · **Today's commits:** 1 (patch notes) + handover (Phase 10)
+
+**Outcome:**
+1. **Pivoted from session 6 drift** — CSJ called out that I was investigating an invented retention bug instead of following PR #254. Re-anchored on the PR body's "Test plan (production, after merge)" checkboxes.
+2. **Mapped PR #254 status across sessions 4–7**: 7 of 8 boxes already ✅ across sessions 4 + 5; only `schedule deletion → cancel — banner appears + clears` was unchecked.
+3. **Located the schedule branch trigger**: `GDPRController.php:529-551` requires `subscription.status='active' && current_period_end->isFuture()` — session 5's user 611 was a trial, which is why this branch was never exercised on prod.
+4. **Drove schedule+cancel end-to-end on prod**:
+   - Registered `chris+restoretest3@fynla.org` (user 614)
+   - Tinker'd subscription 73 to `status='active', current_period_end=now()+30d`
+   - Wizard 3-step (cache-bypass deletion code, type "Delete my Account") → backend hit schedule branch
+   - Verified DB: `deletion_scheduled_for=2026-06-07T15:35:15+01:00`, reason/source set, `deleted_at=null`
+   - Audit chain: `12220 erasure_requested` → `12221 account_deletion_scheduled` (with executes_at)
+   - `/dashboard` mounted `ScheduledDeletionBanner`: "Your account is scheduled for deletion on 7 June 2026 (30 days). Cancel scheduled deletion"
+   - Click Cancel → POST `/api/auth/gdpr/erasure/cancel-scheduled` → banner unmounted, all 3 deletion_* cols cleared
+   - Audit: `12222 account_deletion_cancelled` with `{previous_reason, previous_source, previous_scheduled_for}`
+5. **Cleanup**: hard-deleted user 614, sub 73, 7 audit_logs rows, 1 personal_access_token; cache + cookies cleared. **Final prod user count: 60 (zero drift, byte-identical to pre-test baseline).**
+6. **User-voice patch notes** for the 8 May release written to `May/May8Updates/user-patch-notes-2026-05-08.md`. Covers two-button deletion wizard, schedule-and-cancel banner, restore flow, lifecycle emails, 7-year retention rationale, plus cache/redirect/restore-landing follow-ups. Pushed at `6d425c8`.
+
+### Done
+
+- [x] **PR #254 production test plan FULLY VALIDATED** — all 8 boxes green across sessions 4/5/7
+- [x] **Schedule+cancel happy-path GREEN end-to-end** on prod against user 614
+- [x] **Test data fully cleaned** — 60 active users baseline preserved
+- [x] **User patch notes shipped** for 8 May release (`6d425c8`)
+
+### Reframed (session 6 drift correction)
+
+- **`Delete my Data` not wiping financial tables is NOT a defect.** Canonical 7-year retention spec preserves records for FCA/GDPR compliance. The actual bug from session 6 (dashboard reads retention-flagged data as if live) is a frontend/backend filter bug, not a missing-wipe — fix is "dashboard treats retention-flagged users as empty", NOT "delete more rows".
+- **Memory file invalidations** (still on disk; superseded by session 7 handover):
+  - Session 4 handover claim "prod codes can't be read from DB" → wrong (`pending_registrations` AND `EmailVerificationCode` both readable on prod)
+  - Session 5 handover claim "`subscriptions.ends_at` is non-fillable" → wrong (column doesn't exist)
+  - Session 6 handover framing of `Delete my Data` as "Defect 1 - critical" → wrong (canonical spec)
+
+### Outstanding (next session — priority order)
+
+- [ ] **Defect 1 — audit-log FK violation when actor user is hard-deleted between requests.** `app/Models/AuditLog.php:137` does `auth()->id() ?? null` without verifying user exists. Defensive fix: drop user_id when User::find returns null, OR try/catch the audit insert. Add regression test. ~30 min PR. Low-priority but real.
+- [ ] **Bug 2 — dashboard reads retention-flagged data.** After `Delete My Data`, Profile Completeness still reports non-zero Family/Finances %. Fix path: read `April/April24Updates/spec/00-canonical.md` first → grep for `data_retention|retention_starts_at|purge_eligible_at|regulatory_retention` → find the canonical retention column → trace dashboard query (Vuex → backend → Profile Completeness service) → gate on retention flag. Re-test on `chris+restoretest4@fynla.org`. New acceptance: post-`Delete My Data`, dashboard 0% across the board.
+- [ ] **UI step-3 wizard copy alignment** — overpromises under 7-year retention. **CSJ copy call only — DO NOT change without explicit go-ahead.**
+- [ ] **`data-retention:send-warnings` SMTP rate-limit** — 8 user IDs failed today (580, 582, 583, 584, 586, 587, 590, 597). Queue-rate-limit at Mailable level OR sleep() between sends.
+- [ ] **Vault-sync deferred from session 7** — sessions 6/7 of May 8 not yet synced. Run via Haiku 4.5 subagent on next eod wrap. Should cover all of May 8 collectively (sessions 3, 4, 5, 6, 7 + the patch notes file + this CSJTODO entry).
 
 ---
 

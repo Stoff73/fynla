@@ -6,8 +6,8 @@ namespace App\Services\UserProfile;
 
 use App\Models\LetterToSpouse;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use Carbon\Carbon;
 
 class LetterToSpouseService
@@ -92,9 +92,10 @@ class LetterToSpouseService
      */
     private function generateImmediateFundsInfo(User $user): ?string
     {
-        $savingsAccounts = SavingsAccount::where('user_id', $user->id)
-            ->where('ownership_type', 'joint')
-            ->get();
+        $savingsAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id)
+            ->where('ownership_type', 'joint');
 
         if ($savingsAccounts->isEmpty()) {
             return 'Note: Review which accounts are joint accounts that can be accessed immediately.';
@@ -116,7 +117,9 @@ class LetterToSpouseService
      */
     private function generateBankAccountsInfo(User $user): ?string
     {
-        $savingsAccounts = SavingsAccount::where('user_id', $user->id)->get();
+        $savingsAccounts = app(SavingsStore::class)
+            ->forUser($user)
+            ->where('user_id', $user->id);
 
         if ($savingsAccounts->isEmpty()) {
             return null;

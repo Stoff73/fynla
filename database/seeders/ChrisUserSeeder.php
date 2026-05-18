@@ -24,10 +24,11 @@ use App\Models\Property;
 use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\Role;
-use App\Models\SavingsAccount;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -191,9 +192,9 @@ class ChrisUserSeeder extends Seeder
         );
 
         // ── Savings: Cash ISA ─────────────────────────────────
-        SavingsAccount::updateOrCreate(
-            ['user_id' => $userId, 'institution' => 'Nationwide', 'account_type' => 'cash_isa'],
-            [
+        app(SavingsStore::class)->updateOrCreate(
+            match: ['institution' => 'Nationwide', 'account_type' => 'cash_isa'],
+            data: [
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100.00,
                 'current_balance' => 18500.00,
@@ -202,7 +203,9 @@ class ChrisUserSeeder extends Seeder
                 'is_isa' => true,
                 'isa_subscription_year' => '2025/26',
                 'country' => 'United Kingdom',
-            ]
+            ],
+            user: $chris,
+            source: IngestSource::SEEDER,
         );
 
         // ── DC Pension: Scottish Widows ───────────────────────

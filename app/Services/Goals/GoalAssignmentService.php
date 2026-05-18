@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Goals;
 
 use App\Models\Goal;
+use App\Services\Property\PropertyTaxService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 
@@ -18,7 +19,8 @@ class GoalAssignmentService
     private const INVESTMENT_MIN_AMOUNT = 5000;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyTaxService $propertyTax,
     ) {}
 
     /**
@@ -111,47 +113,22 @@ class GoalAssignmentService
     }
 
     /**
-     * Calculate Stamp Duty Land Tax.
+     * Calculate Stamp Duty Land Tax for a property-purchase goal.
+     *
+     * Delegates to PropertyTaxService::calculateSDLT — the canonical SDLT calculator.
+     * Prior local implementation had three bugs: singular/plural FTB key mismatch
+     * ('first_time_buyer' vs the seeder's 'first_time_buyers'), rates divided by 100
+     * when the seeder already stores them as decimals, and incorrect band semantics.
+     * All three are now resolved by routing through the canonical service.
+     *
+     * Goals default to 'main_residence' — additional-property goals would need a
+     * propertyType field on the goal model (out of scope for this fix).
      */
     private function calculateSDLT(float $propertyPrice, bool $isFirstTimeBuyer): float
     {
-        $sdltConfig = $this->taxConfig->getStampDuty();
-        $bands = $sdltConfig['residential']['standard'] ?? [];
+        $result = $this->propertyTax->calculateSDLT($propertyPrice, 'main_residence', $isFirstTimeBuyer);
 
-        // First-time buyer relief (up to £625,000)
-        if ($isFirstTimeBuyer && $propertyPrice <= 625000) {
-            $bands = $sdltConfig['residential']['first_time_buyer'] ?? $bands;
-        }
-
-        $stampDuty = 0;
-        $previousThreshold = 0;
-
-        foreach ($bands as $band) {
-            $threshold = $band['threshold'] ?? 0;
-            $rate = ($band['rate'] ?? 0) / 100;
-
-            if ($propertyPrice > $previousThreshold) {
-                $taxableAmount = min($propertyPrice, $threshold) - $previousThreshold;
-                if ($taxableAmount > 0) {
-                    $stampDuty += $taxableAmount * $rate;
-                }
-            }
-
-            $previousThreshold = $threshold;
-
-            if ($propertyPrice <= $threshold) {
-                break;
-            }
-        }
-
-        // Handle amounts above the last threshold
-        if ($propertyPrice > $previousThreshold && ! empty($bands)) {
-            $lastBand = end($bands);
-            $rate = ($lastBand['rate'] ?? 0) / 100;
-            $stampDuty += ($propertyPrice - $previousThreshold) * $rate;
-        }
-
-        return max(0, $stampDuty);
+        return max(0.0, (float) ($result['total_sdlt'] ?? 0));
     }
 
     /**

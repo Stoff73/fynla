@@ -19,9 +19,15 @@ use Illuminate\Support\Facades\Log;
  * EvalHttpDriver and EvalTraceCollector::persistForConversation for the
  * in-process cache hand-off.
  *
- * Every endpoint refuses outright in production. Belt-and-braces: the
- * routes themselves are wrapped in `if (! app()->environment('production'))`
- * in routes/api.php so they don't even register on prod.
+ * Fail-closed guard — endpoints serve ONLY when APP_ENV is explicitly one
+ * of local/testing/staging. Any other value (production, an unset APP_ENV,
+ * a typo, an unknown environment) refuses. Belt-and-braces: the routes
+ * themselves are wrapped in the same whitelist in routes/api.php so they
+ * don't even register outside the allowed envs.
+ *
+ * REVIEW.md §4 High #20 — previous guard checked `App::environment('production')`
+ * which failed open if APP_ENV was unset or misconfigured (any non-'production'
+ * value would serve tokens).
  */
 final class EvalAuthController extends Controller
 {
@@ -34,10 +40,16 @@ final class EvalAuthController extends Controller
         'student',
     ];
 
+    /**
+     * Environments where eval endpoints are permitted. Anything not in this
+     * list (including production, an unset APP_ENV, or a typo) refuses.
+     */
+    private const ALLOWED_ENVIRONMENTS = ['local', 'testing', 'staging'];
+
     public function login(Request $request, string $personaId): JsonResponse
     {
-        if (App::environment('production')) {
-            return response()->json(['error' => 'eval login disabled in production'], 403);
+        if (! App::environment(self::ALLOWED_ENVIRONMENTS)) {
+            return response()->json(['error' => 'eval login disabled in this environment'], 403);
         }
 
         if (! in_array($personaId, self::VALID_PERSONAS, true)) {
@@ -86,8 +98,8 @@ final class EvalAuthController extends Controller
 
     public function reset(Request $request, string $personaId): JsonResponse
     {
-        if (App::environment('production')) {
-            return response()->json(['error' => 'eval reset disabled in production'], 403);
+        if (! App::environment(self::ALLOWED_ENVIRONMENTS)) {
+            return response()->json(['error' => 'eval reset disabled in this environment'], 403);
         }
 
         if (! in_array($personaId, self::VALID_PERSONAS, true)) {

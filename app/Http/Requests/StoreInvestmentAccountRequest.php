@@ -25,6 +25,18 @@ class StoreInvestmentAccountRequest extends FormRequest
     }
 
     /**
+     * The investment_accounts.country column is NOT NULL DEFAULT 'United Kingdom'.
+     * Drop the key when it arrives null/empty so the DB default kicks in instead
+     * of a 23000 FK 500. Confirmed against prod laravel.log 2026-05-07 12:15.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('country') && in_array($this->input('country'), [null, ''], true)) {
+            $this->offsetUnset('country');
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array

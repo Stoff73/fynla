@@ -30,7 +30,7 @@
                   class="w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all cursor-pointer hover:opacity-80"
                   :class="
                     currentStep === index + 1
-                      ? 'bg-purple-600 border-purple-600 text-white'
+                      ? 'bg-violet-600 border-violet-600 text-white'
                       : (isEditMode || currentStep > index + 1)
                       ? 'bg-spring-600 border-spring-600 text-white'
                       : 'bg-white border-horizon-300 text-horizon-400'
@@ -40,7 +40,7 @@
                 >
                   {{ index + 1 }}
                 </div>
-                <span class="text-xs mt-1 text-center px-1" :class="currentStep === index + 1 ? 'text-purple-600 font-semibold' : 'text-neutral-500'">
+                <span class="text-xs mt-1 text-center px-1" :class="currentStep === index + 1 ? 'text-violet-600 font-semibold' : 'text-neutral-500'">
                   {{ step }}
                 </span>
                 <div
@@ -77,7 +77,7 @@
                   id="business_name"
                   v-model="form.business_name"
                   type="text"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Enter business name"
                 />
               </div>
@@ -87,7 +87,7 @@
                 <select
                   id="business_type"
                   v-model="form.business_type"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   <option value="">Select business type</option>
                   <option value="sole_trader">Sole Trader</option>
@@ -107,7 +107,7 @@
                     id="company_number"
                     v-model="form.company_number"
                     type="text"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="e.g., 12345678"
                   />
                   <p class="text-xs text-neutral-500 mt-1">Companies House registration number</p>
@@ -119,7 +119,7 @@
                     id="industry_sector"
                     v-model="form.industry_sector"
                     type="text"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="e.g., Technology, Retail, Construction"
                   />
                 </div>
@@ -130,7 +130,7 @@
                 <select
                   id="trading_status"
                   v-model="form.trading_status"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   <option value="trading">Trading</option>
                   <option value="dormant">Dormant</option>
@@ -144,7 +144,7 @@
                   id="description"
                   v-model="form.description"
                   rows="3"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Brief description of your business activities"
                 ></textarea>
               </div>
@@ -198,7 +198,7 @@
 
               <!-- Joint Ownership Details -->
               <div v-if="form.ownership_type === 'joint'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
-                <p class="text-sm text-purple-800 font-medium">Joint Ownership Details</p>
+                <p class="text-sm text-violet-800 font-medium">Joint Ownership Details</p>
 
                 <div>
                   <label for="ownership_percentage" class="block text-sm font-medium text-horizon-500 mb-1">
@@ -210,16 +210,16 @@
                     type="number"
                     min="1"
                     max="99"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
 
                 <!-- Ownership Split Display -->
-                <div class="bg-white p-3 rounded border border-purple-300">
+                <div class="bg-white p-3 rounded border border-violet-300">
                   <div class="flex justify-between items-center">
                     <div>
                       <p class="text-sm font-medium text-horizon-500">Your Share</p>
-                      <p class="text-2xl font-bold text-purple-600">{{ form.ownership_percentage || 0 }}%</p>
+                      <p class="text-2xl font-bold text-violet-600">{{ form.ownership_percentage || 0 }}%</p>
                     </div>
                     <div class="text-horizon-400">
                       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +228,7 @@
                     </div>
                     <div class="text-right">
                       <p class="text-sm font-medium text-horizon-500">Joint Owner's Share</p>
-                      <p class="text-2xl font-bold text-purple-600">{{ 100 - (form.ownership_percentage || 0) }}%</p>
+                      <p class="text-2xl font-bold text-violet-600">{{ 100 - (form.ownership_percentage || 0) }}%</p>
                     </div>
                   </div>
                 </div>
@@ -241,7 +241,7 @@
                     id="joint_owner_selection"
                     v-model="jointOwnerSelection"
                     @change="handleJointOwnerSelection"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   >
                     <option value="">Select joint owner</option>
                     <option v-if="spouse" :value="'linked_' + spouse.id">{{ spouse.name }} (Spouse - Linked Account)</option>
@@ -264,7 +264,7 @@
                     type="number"
                     step="any"
                     min="0"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="Enter estimated value"
                   />
                   <p class="text-xs text-neutral-500 mt-1">
@@ -278,7 +278,7 @@
                     id="valuation_date"
                     v-model="form.valuation_date"
                     type="date"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
               </div>
@@ -288,7 +288,7 @@
                 <select
                   id="valuation_method"
                   v-model="form.valuation_method"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   <option value="">Select method</option>
                   <option value="self_assessed">Self Assessed</option>
@@ -322,7 +322,7 @@
                     type="number"
                     step="any"
                     min="0"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="Annual turnover"
                   />
                 </div>
@@ -334,7 +334,7 @@
                     v-model.number="form.annual_profit"
                     type="number"
                     step="any"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="Net profit (can be negative)"
                   />
                 </div>
@@ -350,7 +350,7 @@
                     type="number"
                     step="any"
                     min="0"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="Dividends you receive"
                   />
                   <p class="text-xs text-neutral-500 mt-1">Only applicable for Limited Companies</p>
@@ -363,7 +363,7 @@
                     v-model.number="form.employee_count"
                     type="number"
                     min="0"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="Including yourself"
                   />
                 </div>
@@ -380,7 +380,7 @@
                   <input
                     type="checkbox"
                     v-model="form.vat_registered"
-                    class="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 border-horizon-300 rounded"
+                    class="mr-3 h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
                   />
                   <span class="text-sm font-medium text-horizon-500">VAT Registered</span>
                 </label>
@@ -391,7 +391,7 @@
                     id="vat_number"
                     v-model="form.vat_number"
                     type="text"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="GB 123 4567 89"
                   />
                 </div>
@@ -414,7 +414,7 @@
                     id="utr_number"
                     v-model="form.utr_number"
                     type="text"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="10 digit UTR"
                   />
                 </div>
@@ -425,7 +425,7 @@
                     id="tax_year_end"
                     v-model="form.tax_year_end"
                     type="date"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                   <p class="text-xs text-neutral-500 mt-1">Company's accounting reference date</p>
                 </div>
@@ -437,7 +437,7 @@
                   id="paye_reference"
                   v-model="form.paye_reference"
                   type="text"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="123/A12345"
                 />
               </div>
@@ -448,7 +448,7 @@
               <h4 class="text-lg font-semibold text-horizon-500 mb-4">Exit Planning</h4>
 
               <div class="p-4 bg-savannah-100 rounded-md">
-                <p class="text-sm text-purple-800">
+                <p class="text-sm text-violet-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                   </svg>
@@ -465,7 +465,7 @@
                     id="acquisition_date"
                     v-model="form.acquisition_date"
                     type="date"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                   <p class="text-xs text-neutral-500 mt-1">Important for 2-year BADR eligibility</p>
                 </div>
@@ -480,7 +480,7 @@
                     type="number"
                     step="any"
                     min="0"
-                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                     placeholder="Initial investment amount"
                   />
                   <p class="text-xs text-neutral-500 mt-1">Used to calculate capital gain on sale</p>
@@ -518,7 +518,7 @@
                   id="notes"
                   v-model="form.notes"
                   rows="3"
-                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Any additional notes about exit planning, succession, etc."
                 ></textarea>
               </div>
@@ -549,7 +549,7 @@
                 v-if="currentStep < totalSteps && !isEditMode"
                 type="button"
                 @click="nextStep"
-                class="px-4 py-2 bg-purple-600 text-white rounded-button hover:bg-purple-700 transition-colors"
+                class="px-4 py-2 bg-violet-600 text-white rounded-button hover:bg-violet-700 transition-colors"
               >
                 Next
               </button>

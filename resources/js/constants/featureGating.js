@@ -16,6 +16,9 @@ export const FEATURE_TIER_MAP = {
     '/net-worth/business': 'standard',
     '/planning/what-if': 'standard',
 
+    // Family+
+    '/settings/family': 'family',
+
     // Pro
     '/estate': 'pro',
     '/estate/will-builder': 'pro',

@@ -7,6 +7,7 @@ use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -108,6 +109,63 @@ describe('Savings API', function () {
             expect($account->is_isa)->toBeTrue();
             expect($account->isa_type)->toBe('cash');
         });
+
+        it('does not 500 when country arrives null in the payload', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Test Bank',
+                'current_balance' => 10000,
+                'country' => null,
+            ];
+
+            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+        });
+
+        it('does not 500 when country arrives empty string in the payload', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Test Bank',
+                'current_balance' => 100,
+                'country' => '',
+            ];
+
+            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+        });
+
+        it('preserves an explicitly-supplied country on create', function () {
+            $user = User::factory()->create();
+            $data = [
+                'account_type' => 'easy_access',
+                'institution' => 'Bank of Ireland',
+                'current_balance' => 5000,
+                'country' => 'Ireland',
+            ];
+
+            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+
+            $response->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'country' => 'Ireland',
+            ]);
+        });
     });
 
     describe('PUT /api/savings/accounts/{id}', function () {
@@ -138,6 +196,26 @@ describe('Savings API', function () {
             ]);
 
             $response->assertNotFound();
+        });
+
+        it('does not 500 when country arrives null on update — preserves existing value', function () {
+            $user = User::factory()->create();
+            $account = SavingsAccount::factory()->create([
+                'user_id' => $user->id,
+                'country' => 'United Kingdom',
+            ]);
+
+            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+                'current_balance' => 22000,
+                'country' => null,
+            ]);
+
+            $response->assertOk();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'id' => $account->id,
+                'country' => 'United Kingdom',
+            ]);
         });
     });
 
@@ -201,6 +279,55 @@ describe('Savings API', function () {
                         'goals',
                     ],
                 ]);
+        });
+    });
+
+    describe('SavingsStore integration via HTTP', function () {
+        it('HTTP POST /api/savings/accounts persists via SavingsStore with IngestSource::FORM', function () {
+            $user = User::factory()->create(['is_preview_user' => false]);
+            Sanctum::actingAs($user);
+
+            $response = $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Halifax Easy Saver',
+                'account_type' => 'easy_access',
+                'institution' => 'Halifax',
+                'current_balance' => 12000,
+                'interest_rate' => 4.2,
+                'is_isa' => false,
+            ]);
+
+            $response->assertCreated();
+            $this->assertDatabaseHas('savings_accounts', [
+                'user_id' => $user->id,
+                'account_name' => 'Halifax Easy Saver',
+                'ownership_type' => 'individual',
+                'country' => 'United Kingdom',
+            ]);
+            $account = SavingsAccount::where('user_id', $user->id)->where('account_name', 'Halifax Easy Saver')->firstOrFail();
+            expect((float) $account->ownership_percentage)->toBe(100.0);
+            expect((float) $account->current_balance)->toBe(12000.0);
+        });
+
+        it('HTTP POST infers UK country and 50/50 split for joint ISA', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Joint Cash ISA',
+                'account_type' => 'cash_isa',
+                'current_balance' => 8000,
+                'is_isa' => true,
+                'ownership_type' => 'joint',
+                'joint_owner_id' => $spouse->id,
+            ])->assertCreated();
+
+            $this->assertDatabaseHas('savings_accounts', [
+                'account_name' => 'Joint Cash ISA',
+                'country' => 'United Kingdom',
+            ]);
+            $account = SavingsAccount::where('account_name', 'Joint Cash ISA')->firstOrFail();
+            expect((float) $account->ownership_percentage)->toBe(50.0);
         });
     });
 

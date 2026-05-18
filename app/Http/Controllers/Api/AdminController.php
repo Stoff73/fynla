@@ -670,7 +670,7 @@ class AdminController extends Controller
                     [
                         'id' => 'xai',
                         'name' => 'xAI Grok',
-                        'model' => config('services.xai.chat_model', 'grok-4-1-fast-reasoning'),
+                        'model' => config('services.xai.chat_model', 'grok-4.3'),
                         'configured' => ! empty(config('services.xai.api_key')),
                     ],
                 ],

@@ -1772,7 +1772,7 @@ export default {
 }
 
 .asset-card.investment {
-  @apply border-l-4 border-l-indigo-500;
+  @apply border-l-4 border-l-violet-500;
 }
 
 .asset-card.cash {

@@ -20,10 +20,16 @@ class DividendTaxCalculator
      *
      * @param  float  $dividendIncome  Total dividend income for the year
      * @param  float  $nonDividendIncome  All other income (employment, rental, etc.)
+     * @param  float  $pensionContributions  Gross employee pension contributions — deducted from ANI for PA taper
+     * @param  float  $giftAidGross  Grossed-up Gift Aid donations — deducted from ANI for PA taper
      * @return float Tax due on dividends
      */
-    public function calculate(float $dividendIncome, float $nonDividendIncome): float
-    {
+    public function calculate(
+        float $dividendIncome,
+        float $nonDividendIncome,
+        float $pensionContributions = 0,
+        float $giftAidGross = 0
+    ): float {
         if ($dividendIncome <= 0) {
             return 0.0;
         }
@@ -40,11 +46,15 @@ class DividendTaxCalculator
         $higherRate = (float) ($dividendConfig['higher_rate'] ?? 0.3375);
         $additionalRate = (float) ($dividendConfig['additional_rate'] ?? 0.3935);
 
-        // Personal allowance taper: reduce by £1 per £2 over taper threshold
+        // Personal allowance taper applies to Adjusted Net Income, NOT gross income.
+        // ANI = total income − pension contributions − grossed-up Gift Aid (HMRC ITA
+        // 2007 s35-s37). Defaults preserve legacy gross-income behaviour for callers
+        // that have not yet been updated to pass deduction values.
         $totalIncome = $nonDividendIncome + $dividendIncome;
+        $adjustedNetIncome = max(0.0, $totalIncome - $pensionContributions - $giftAidGross);
         $taperThreshold = (float) ($incomeTaxConfig['personal_allowance_taper_threshold'] ?? 100000);
-        if ($totalIncome > $taperThreshold) {
-            $reduction = ($totalIncome - $taperThreshold) / 2;
+        if ($adjustedNetIncome > $taperThreshold) {
+            $reduction = ($adjustedNetIncome - $taperThreshold) / 2;
             $personalAllowance = max(0, $personalAllowance - $reduction);
         }
 

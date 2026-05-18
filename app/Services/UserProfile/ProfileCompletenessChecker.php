@@ -12,8 +12,8 @@ use App\Models\Estate\Asset;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 
 class ProfileCompletenessChecker
 {
@@ -200,7 +200,7 @@ class ProfileCompletenessChecker
     {
         // Check various asset types
         $hasProperty = Property::where('user_id', $user->id)->exists();
-        $hasSavings = SavingsAccount::where('user_id', $user->id)->exists();
+        $hasSavings = app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->isNotEmpty();
         $hasInvestments = InvestmentAccount::where('user_id', $user->id)->exists();
         $hasPensions = DCPension::where('user_id', $user->id)->exists();
         $hasBusiness = BusinessInterest::where('user_id', $user->id)->exists();

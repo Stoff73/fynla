@@ -13,6 +13,8 @@ use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\Fyn\FynPromptMode;
+use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\ValueObjects\CaptureContext;
@@ -26,7 +28,9 @@ use Illuminate\Support\Facades\Log;
  *
  * The director owns every turn except asset_capture. For asset_capture it
  * delegates to CoordinatingAgent::chat() with a restricted system prompt
- * (OnboardingPromptBuilder) and the focus-filtered create_* tool list.
+ * (OnboardingPromptBuilder under FYN_PROMPT_ARCH=legacy; FynSystemPrompt
+ * under =unified — see resolveUnifiedRestrictedPrompt) and the
+ * focus-filtered create_* tool list.
  *
  * Control flow:
  *
@@ -1689,11 +1693,11 @@ PROMPT;
         // During multi-turn onboarding (especially the SaveTax 6-8 turn flow)
         // the user may re-mention records they already described in an earlier
         // turn ("the Aviva life cover I told you about"). The known_facts
-        // block reduces re-asking, but the LLM is not perfectly disciplined at
-        // 0.7 temperature and can still re-emit a create_* tool. The advice
-        // path is protected by RecordDuplicateChecker; until now the onboarding
-        // path was not. Mirror the same guard here so multi-turn capture cannot
-        // create duplicates. We map the focus to the entity_type the checker
+        // block reduces re-asking, but even at temperature 0 the LLM can
+        // still re-emit a create_* tool. The advice path is protected by
+        // RecordDuplicateChecker; until now the onboarding path was not.
+        // Mirror the same guard here so multi-turn capture cannot create
+        // duplicates. We map the focus to the entity_type the checker
         // recognises; estate / business / savetax fall through (no checker
         // mapping — handler-level dedup remains the floor for those).
         $entityType = match ($selection) {
@@ -1724,8 +1728,11 @@ PROMPT;
         // Swap the coordinating agent's system prompt for this turn only.
         // We do this by calling chat() with a short-lived prompt override —
         // see CoordinatingAgent::chatWithPromptOverride() below.
-        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation);
+        [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
 
         try {
             $generator = $this->coordinatingAgent->chatWithPromptOverride(
@@ -1848,6 +1855,14 @@ PROMPT;
             ];
 
             return;
+        } finally {
+            // Always clear the unified onboarding focus — including the
+            // \Throwable path above, which returns before this point. A
+            // leaked focus would make the next advice turn on this agent
+            // build an onboarding-mode FynTurnContext.
+            if ($unifiedFocus !== null) {
+                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+            }
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -2121,6 +2136,22 @@ PROMPT;
                 'status' => 'complete',
             ];
         }
+    }
+
+    /**
+     * Unified mode: the system prompt is the static FynSystemPrompt and the
+     * onboarding focus is carried separately so HasAiChat can build the
+     * capture-turn context. Legacy mode: the verbatim asset-capture prompt.
+     *
+     * @return array{0:string,1:?string} [systemPrompt, onboardingFocusOrNull]
+     */
+    private function resolveUnifiedRestrictedPrompt(User $user, string $selection, ?AiConversation $conversation = null): array
+    {
+        if (FynPromptMode::isUnified()) {
+            return [FynSystemPrompt::text(), $selection];
+        }
+
+        return [$this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation), null];
     }
 
     /**

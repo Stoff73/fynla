@@ -477,6 +477,7 @@ export default {
   computed: {
     ...mapGetters('auth', ['isAuthenticated']),
     ...mapGetters('preview', ['availablePersonas']),
+    ...mapGetters('taxConfig', { taxConfigLoaded: 'isLoaded' }),
     userName() {
       return this.$store.state.auth.user?.first_name || 'Account';
     },
@@ -533,6 +534,15 @@ export default {
   mounted() {
     document.addEventListener('click', this.handleClickOutside);
     this.checkDemoQuery();
+
+    // Hydrate the shared taxConfig store from the public endpoint so
+    // unauthenticated pages mounted under PublicLayout (CalculatorsPage etc.)
+    // get live UK rates instead of falling back to hardcoded constants.
+    // App.vue already dispatches the auth-gated fetchConfig for logged-in
+    // users — skip the public fetch when it has already populated the store.
+    if (!this.taxConfigLoaded) {
+      this.$store.dispatch('taxConfig/fetchPublicConfig').catch(() => {});
+    }
   },
 
   beforeUnmount() {

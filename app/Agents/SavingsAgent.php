@@ -8,7 +8,6 @@ use App\Events\Eval\EngineCalled;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
-use App\Models\SavingsAccount;
 use App\Models\SavingsGoal;
 use App\Models\User;
 use App\Services\Goals\GoalProgressService;
@@ -22,6 +21,7 @@ use App\Services\Savings\PSACalculator;
 use App\Services\Savings\RateComparator;
 use App\Services\Savings\SavingsActionDefinitionService;
 use App\Services\Savings\SavingsDataReadinessService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
 use Carbon\Carbon;
@@ -272,8 +272,8 @@ class SavingsAgent extends BaseAgent
             if ($this->actionDefinitionService) {
                 $userId = $analysisData['user_id'] ?? 0;
 
-                $savingsAccounts = $userId > 0
-                    ? SavingsAccount::forUserOrJoint($userId)->get()
+                $savingsAccounts = $userId > 0 && ($savingsUser = User::find($userId))
+                    ? app(SavingsStore::class)->forUser($savingsUser)
                     : collect();
                 $investmentAccounts = $userId > 0
                     ? InvestmentAccount::forUserOrJoint($userId)->get()

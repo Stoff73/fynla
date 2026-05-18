@@ -14,9 +14,9 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
+use App\Services\Stores\SavingsStore;
 
 /**
  * Builds a deterministic, factual acknowledgement when a user reasserts
@@ -217,13 +217,13 @@ final class DuplicateAcknowledgement
             $institution = (string) ($entity['institution'] ?? '');
             $isIsa = (bool) ($entity['is_isa'] ?? false);
 
-            $query = SavingsAccount::query()
+            $row = app(SavingsStore::class)->forUser($user)
                 ->where('user_id', $user->id)
                 ->where('institution', $institution)
                 ->where('is_isa', $isIsa)
-                ->where('created_at', '>', $cutoff);
-
-            $row = $query->latest('id')->first();
+                ->filter(fn ($a) => $a->created_at > $cutoff)
+                ->sortByDesc('id')
+                ->first();
             if ($row === null) {
                 continue;
             }

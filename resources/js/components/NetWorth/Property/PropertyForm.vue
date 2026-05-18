@@ -326,7 +326,7 @@
 
             <!-- Trust Details -->
             <div v-if="form.ownership_type === 'trust'" class="space-y-4 p-4 bg-savannah-100 rounded-md">
-              <p class="text-sm text-purple-800 font-medium">Trust Ownership Details</p>
+              <p class="text-sm text-violet-800 font-medium">Trust Ownership Details</p>
               <div class="p-3 bg-savannah-100 rounded-md">
                 <p class="text-sm text-violet-800">
                   <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
@@ -335,14 +335,14 @@
               </div>
               <div>
                 <label for="trust_selection" class="block text-sm font-medium text-horizon-500 mb-1">Trust</label>
-                <select id="trust_selection" v-model="trustSelection" @change="handleTrustSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <select id="trust_selection" v-model="trustSelection" @change="handleTrustSelection" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500">
                   <option value="">Select trust</option>
                   <option value="other">Other (Enter Trust Name)</option>
                 </select>
               </div>
               <div v-if="trustSelection === 'other'">
                 <label for="trust_name" class="block text-sm font-medium text-horizon-500 mb-1">Trust Name</label>
-                <input id="trust_name" v-model="form.trust_name" type="text" placeholder="Enter trust name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                <input id="trust_name" v-model="form.trust_name" type="text" placeholder="Enter trust name" class="w-full px-3 py-2 border border-horizon-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 <p class="text-xs text-neutral-500 mt-1">Note: This trust is not formally registered in the system. You can add full trust details in the Estate Planning module.</p>
               </div>
             </div>

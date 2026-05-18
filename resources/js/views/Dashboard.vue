@@ -717,7 +717,7 @@
                 <span class="text-sm font-bold text-horizon-500">{{ lisaAllowanceData ? 'ISA Allowance (excl. Lifetime ISA)' : 'ISA Allowance' }}</span>
                 <div>
                   <span class="text-sm font-bold text-spring-600">{{ formatCurrency(isaAllowanceData.totalUsed) }}</span>
-                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(isaAllowance?.total_allowance || ISA_ANNUAL_ALLOWANCE) }}</span>
+                  <span class="text-xs text-neutral-500 ml-1">of {{ formatCurrency(isaAllowance?.total_allowance || isaAnnualAllowance) }}</span>
                 </div>
               </div>
               <div class="w-full bg-light-blue-100 rounded-full h-12 overflow-hidden">
@@ -913,7 +913,6 @@ import { ASSET_COLORS, TEXT_COLORS, BORDER_COLORS, CHART_DEFAULTS } from '@/cons
 import storage from '@/utils/storage';
 import userProfileService from '@/services/userProfileService';
 import { getRelativeTime, getCurrentTaxYear } from '@/utils/dateFormatter';
-import { ANNUAL_ALLOWANCE, ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 // Life stage journey components
 import JourneyProgressHero from '@/components/Journey/JourneyProgressHero.vue';
@@ -966,7 +965,6 @@ export default {
       nwMouseX: 0,
       nwMouseY: 0,
       journeyBlurActive: false,
-      ISA_ANNUAL_ALLOWANCE,
     };
   },
 
@@ -978,6 +976,7 @@ export default {
       currentStage: 'currentStage',
       stageDashboardCards: 'dashboardCards',
     }),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance', 'pensionAnnualAllowance']),
 
     isStudentPersona() {
       return this.currentUser?.preview_persona_id === 'student'
@@ -1640,7 +1639,7 @@ export default {
     // Pension Annual Allowance computed
     pensionAllowanceData() {
       if (this.annualAllowance) {
-        const available = this.annualAllowance.available_allowance || ANNUAL_ALLOWANCE;
+        const available = this.annualAllowance.available_allowance || this.pensionAnnualAllowance;
         const contributions = this.annualAllowance.total_contributions || 0;
         const remaining = this.annualAllowance.remaining_allowance || (available - contributions);
         const percentUsed = available > 0 ? (contributions / available) * 100 : 0;
@@ -1668,7 +1667,7 @@ export default {
         }, 0);
 
         if (totalContributions > 0) {
-          const available = ANNUAL_ALLOWANCE;
+          const available = this.pensionAnnualAllowance;
           const remaining = available - totalContributions;
           const percentUsed = (totalContributions / available) * 100;
 

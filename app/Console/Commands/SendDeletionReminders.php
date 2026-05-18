@@ -10,12 +10,21 @@ use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Sleep;
 
 class SendDeletionReminders extends Command
 {
     protected $signature = 'accounts:send-deletion-reminders';
 
     protected $description = 'Send 7-day and 1-day reminders before scheduled account deletion.';
+
+    /**
+     * SiteGround SMTP relay caps at 10 messages/second. Pace at 5/s. Even
+     * though this cron runs at 00:20 (off-peak) and uses Mail::queue, the
+     * sync queue driver in production resolves to a synchronous send, so
+     * the same rate-limit applies.
+     */
+    private const SMTP_THROTTLE_MICROSECONDS = 200_000;
 
     public function handle(): int
     {
@@ -45,6 +54,8 @@ class SendDeletionReminders extends Command
                 'days_remaining' => $daysRemaining,
                 'sent_at' => now(),
             ]);
+
+            Sleep::usleep(self::SMTP_THROTTLE_MICROSECONDS);
         }
     }
 }

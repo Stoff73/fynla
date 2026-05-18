@@ -389,14 +389,21 @@ class UserProfileService
             $section24Credit
         );
 
-        // Get simple calculation for backwards compatibility
+        // Get simple calculation for backwards compatibility. Pension contributions
+        // reduce taxable earned income and ANI for PA taper; grossed-up Gift Aid
+        // reduces ANI only.
+        $giftAidGross = $user->is_gift_aid
+            ? (float) ($user->annual_charitable_donations ?? 0) * 1.25
+            : 0.0;
         $simpleTax = $this->taxCalculator->calculateNetIncome(
             $employmentIncome,
             $selfEmploymentIncome,
             $rentalIncome,
             $dividendIncome,
             $interestIncome,
-            $trustIncome + $pensionIncome + $otherIncome
+            $trustIncome + $pensionIncome + $otherIncome,
+            $pensionContributions,
+            $giftAidGross
         );
 
         // Calculate expenditure once (includes financial commitments to match Expenditure tab)
@@ -581,9 +588,13 @@ class UserProfileService
     }
 
     /**
-     * Get family members including shared members from linked spouse
+     * Get family members including shared members from linked spouse.
+     *
+     * Falls back to a virtual spouse record constructed from the User model when
+     * `users.spouse_id` is set but no `family_members` row with `relationship='spouse'`
+     * exists — keeps `/api/user/profile` and `/api/user/family-members` in sync.
      */
-    private function getFamilyMembersWithSharing(User $user): array
+    public function getFamilyMembersWithSharing(User $user): array
     {
         // Get user's own family members
         $familyMembers = $user->familyMembers->map(function ($member) use ($user) {

@@ -249,8 +249,8 @@ export default {
 }
 
 .summary-card.purple {
-  @apply bg-gradient-to-br from-purple-50 to-purple-100;
-  @apply border-purple-300;
+  @apply bg-gradient-to-br from-violet-50 to-violet-100;
+  @apply border-violet-300;
 }
 
 .summary-card.clickable {

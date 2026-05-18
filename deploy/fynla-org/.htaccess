@@ -61,15 +61,16 @@
 # =============================================================================
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header unset X-Powered-By
-    # HSTS, Content-Security-Policy, and Permissions-Policy are set by
-    # app/Http/Middleware/SecurityHeaders.php (richer, app-aware allowlist
-    # for Revolut, Google Fonts, analytics, Meta Pixel, etc.). Do NOT add
-    # them here — Apache's Header set runs after PHP and would overwrite
-    # the middleware's values, blocking the Revolut widget on /checkout.
+    # X-Frame-Options, HSTS, Content-Security-Policy, and Permissions-Policy
+    # are set by app/Http/Middleware/SecurityHeaders.php (richer, app-aware
+    # allowlist for Revolut, Google Fonts, analytics, Meta Pixel, etc.).
+    # Do NOT add them here — Apache's Header set runs after PHP and would
+    # overwrite the middleware's values (e.g. middleware sets X-Frame-Options
+    # to DENY; SAMEORIGIN here would silently override).
+    # X-XSS-Protection is deprecated and can introduce its own XSS issues
+    # (Chrome's auditor that consumed it was removed in 2018). Do NOT re-add.
     # This matches the state the live fynla.org .htaccess has been in since
     # the original production edit (discovered session 65, 23 Apr 2026).
 </IfModule>

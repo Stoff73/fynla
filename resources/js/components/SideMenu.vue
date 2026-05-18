@@ -108,10 +108,9 @@
         </SideMenuSection>
       </div>
 
-      <!-- Upgrade / Sign Up link -->
-      <div v-if="showUpgradeLink" class="border-t border-light-gray p-2 flex-shrink-0">
+      <!-- Sign Up link (preview personas only — converts to registration) -->
+      <div v-if="isPreviewMode" class="border-t border-light-gray p-2 flex-shrink-0">
         <router-link
-          v-if="isPreviewMode"
           to="/register"
           class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
           :class="effectiveCollapsed ? 'justify-center' : ''"
@@ -123,18 +122,6 @@
           </svg>
           <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">Sign Up Now</span>
         </router-link>
-        <button
-          v-else
-          class="flex items-center w-full rounded-md px-3 py-2.5 text-raspberry-500 hover:text-raspberry-600 hover:bg-savannah-100 transition-colors"
-          :class="effectiveCollapsed ? 'justify-center' : ''"
-          :title="effectiveCollapsed ? (subscriptionData && subscriptionData.status === 'trialing' ? 'Choose a Plan' : 'Upgrade Now') : ''"
-          @click="$emit('open-plan-modal'); closeMobile()"
-        >
-          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-          <span v-if="!effectiveCollapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ subscriptionData && subscriptionData.status === 'trialing' ? 'Choose a Plan' : 'Upgrade Now' }}</span>
-        </button>
       </div>
 
       <!-- Account + Logout -->
@@ -207,7 +194,7 @@ export default {
     },
   },
 
-  emits: ['toggle', 'update:mobileOpen', 'open-plan-modal'],
+  emits: ['toggle', 'update:mobileOpen'],
 
   setup(props, { emit }) {
     const store = useStore();
@@ -491,13 +478,6 @@ export default {
       if (!props.subscriptionData || props.subscriptionData.status !== 'active') return null;
       return props.subscriptionData.plan;
     });
-    const showUpgradeLink = computed(() => {
-      if (isPreviewMode.value) return true; // Shows "Sign Up Now"
-      if (!props.subscriptionData) return false;
-      if (props.subscriptionData.plan === 'pro') return false;
-      return true;
-    });
-
     // Feature gating: determine effective plan for sidebar gating
     const userPlan = computed(() => {
       if (isPreviewMode.value) return 'pro';
@@ -573,7 +553,6 @@ export default {
       openBugReport,
       handleLogout,
       isPreviewMode,
-      showUpgradeLink,
       currentPlanSlug,
       userPlan,
       isLocked,

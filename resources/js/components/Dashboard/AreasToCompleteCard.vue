@@ -111,8 +111,8 @@ export default {
           description: 'Spouse, dependants, and family members',
           route: '/valuable-info?section=family',
           icon: 'users',
-          iconBgClass: 'bg-purple-100',
-          iconClass: 'text-purple-600',
+          iconBgClass: 'bg-violet-100',
+          iconClass: 'text-violet-600',
         },
         income: {
           title: 'Income Details',
@@ -135,8 +135,8 @@ export default {
           description: 'Tax residency and domicile status',
           route: '/valuable-info?section=domicile',
           icon: 'globe',
-          iconBgClass: 'bg-indigo-100',
-          iconClass: 'text-indigo-600',
+          iconBgClass: 'bg-violet-100',
+          iconClass: 'text-violet-600',
         },
         protection_policies: {
           title: 'Protection Policies',

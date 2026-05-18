@@ -16,9 +16,11 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -477,9 +479,13 @@ class PreviewController extends Controller
     private function seedSavingsAccounts(User $user, array $accounts): void
     {
         foreach ($accounts as $account) {
-            SavingsAccount::create(array_merge($account, [
-                'user_id' => $user->id,
-            ]));
+            app(SavingsStore::class)->create(
+                app(SavingsAccountNormaliser::class)->fromForm(array_merge($account, [
+                    'user_id' => $user->id,
+                ])),
+                $user,
+                IngestSource::SEEDER
+            );
         }
     }
 

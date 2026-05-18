@@ -188,7 +188,7 @@ export default {
         Protection: 'bg-raspberry-100 text-raspberry-700',
         Savings: 'bg-violet-100 text-violet-700',
         Investment: 'bg-spring-100 text-spring-700',
-        Retirement: 'bg-purple-100 text-purple-700',
+        Retirement: 'bg-violet-100 text-violet-700',
         Estate: 'bg-violet-100 text-violet-700',
       };
       return classes[module] || 'bg-savannah-100 text-neutral-500';

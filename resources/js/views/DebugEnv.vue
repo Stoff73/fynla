@@ -1,34 +1,39 @@
 <template>
-  <div class="p-8">
-    <h1 class="text-2xl font-bold mb-4">Environment Debug Info</h1>
+  <AppLayout>
+    <div class="p-8">
+      <h1 class="text-2xl font-bold mb-4">Environment Debug Info</h1>
 
-    <div class="bg-savannah-100 p-4 rounded mb-4">
-      <h2 class="font-bold mb-2">Vite Environment Variables:</h2>
-      <pre class="text-sm">{{ envInfo }}</pre>
-    </div>
+      <div class="bg-savannah-100 p-4 rounded mb-4">
+        <h2 class="font-bold mb-2">Vite Environment Variables:</h2>
+        <pre class="text-sm">{{ envInfo }}</pre>
+      </div>
 
-    <div class="bg-savannah-100 p-4 rounded mb-4">
-      <h2 class="font-bold mb-2">Axios Config (bootstrap.js):</h2>
-      <pre class="text-sm">{{ axiosConfig }}</pre>
-    </div>
+      <div class="bg-savannah-100 p-4 rounded mb-4">
+        <h2 class="font-bold mb-2">Axios Config (bootstrap.js):</h2>
+        <pre class="text-sm">{{ axiosConfig }}</pre>
+      </div>
 
-    <div class="bg-savannah-100 p-4 rounded mb-4">
-      <h2 class="font-bold mb-2">API Instance Config (api.js):</h2>
-      <pre class="text-sm">{{ apiConfig }}</pre>
-    </div>
+      <div class="bg-savannah-100 p-4 rounded mb-4">
+        <h2 class="font-bold mb-2">API Instance Config (api.js):</h2>
+        <pre class="text-sm">{{ apiConfig }}</pre>
+      </div>
 
-    <div class="bg-savannah-100 p-4 rounded mb-4">
-      <h2 class="font-bold mb-2">Window Location:</h2>
-      <pre class="text-sm">{{ locationInfo }}</pre>
+      <div class="bg-savannah-100 p-4 rounded mb-4">
+        <h2 class="font-bold mb-2">Window Location:</h2>
+        <pre class="text-sm">{{ locationInfo }}</pre>
+      </div>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script>
 import api from '@/services/api';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 export default {
   name: 'DebugEnv',
+
+  components: { AppLayout },
 
   computed: {
     envInfo() {

@@ -218,7 +218,7 @@
                     @input="parseInputValue($event, mortgage, 'propertyValue')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="300,000"
                   />
                 </div>
@@ -233,7 +233,7 @@
                     @input="parseInputValue($event, mortgage, 'deposit')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="30,000"
                   />
                 </div>
@@ -253,7 +253,7 @@
                   min="5"
                   max="40"
                   step="1"
-                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-violet-500"
                 />
                 <div class="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>5 yrs</span>
@@ -267,7 +267,7 @@
                   v-model.number="mortgage.interestRate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="4.5"
                 />
               </div>
@@ -279,7 +279,7 @@
                     type="button"
                     @click="mortgage.repaymentType = 'repayment'"
                     class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
-                    :class="mortgage.repaymentType === 'repayment' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
+                    :class="mortgage.repaymentType === 'repayment' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
                   >
                     Repayment
                   </button>
@@ -287,7 +287,7 @@
                     type="button"
                     @click="mortgage.repaymentType = 'interest_only'"
                     class="py-2.5 px-4 text-sm font-medium rounded-xl border transition-colors"
-                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
+                    :class="mortgage.repaymentType === 'interest_only' ? 'bg-violet-600 text-white border-violet-600' : 'bg-white text-horizon-500 border-light-gray hover:bg-eggshell-500'"
                   >
                     Interest Only
                   </button>
@@ -642,7 +642,7 @@
                     @input="parseInputValue($event, pension, 'currentValue')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="50,000"
                   />
                 </div>
@@ -657,7 +657,7 @@
                     @input="parseInputValue($event, pension, 'monthlyContribution')"
                     type="text"
                     inputmode="numeric"
-                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="500"
                   />
                 </div>
@@ -670,7 +670,7 @@
                   <input
                     v-model.number="pension.currentAge"
                     type="number"
-                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="35"
                   />
                 </div>
@@ -680,7 +680,7 @@
                   <input
                     v-model.number="pension.retirementAge"
                     type="number"
-                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                    class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                     placeholder="65"
                   />
                 </div>
@@ -692,7 +692,7 @@
                   v-model.number="pension.growthRate"
                   type="number"
                   step="0.1"
-                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+                  class="w-full px-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all"
                   placeholder="5.0"
                 />
                 <p class="text-xs text-neutral-500 mt-1">Typical range: 4-7% for balanced portfolios</p>
@@ -708,7 +708,7 @@
 
             <div v-if="pension.result" class="bg-eggshell-500 rounded-xl p-6 border border-light-gray">
               <h3 class="text-lg font-bold text-horizon-500 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 mr-2 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
                 Projection
@@ -729,7 +729,7 @@
                 <div class="border-t border-light-gray my-2"></div>
                 <div class="flex justify-between items-center py-3 bg-light-pink-100 -mx-6 px-6 rounded-lg">
                   <span class="font-bold text-horizon-500">Projected Pot at {{ pension.retirementAge }}</span>
-                  <span class="font-bold text-2xl text-purple-600">{{ formatCurrency(pension.result.projectedValue) }}</span>
+                  <span class="font-bold text-2xl text-violet-600">{{ formatCurrency(pension.result.projectedValue) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
                   <span class="text-neutral-500">Investment Growth</span>
@@ -1082,21 +1082,21 @@
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Salary (Applicant 1)</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="45,000" />
+                  <input :value="formatInputDisplay(mortgageAfford.salary1)" @input="parseInputValue($event, mortgageAfford, 'salary1')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="45,000" />
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Annual Salary (Applicant 2, optional)</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="0" />
+                  <input :value="formatInputDisplay(mortgageAfford.salary2)" @input="parseInputValue($event, mortgageAfford, 'salary2')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="0" />
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Other Monthly Debt Commitments</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="200" />
+                  <input :value="formatInputDisplay(mortgageAfford.monthlyDebts)" @input="parseInputValue($event, mortgageAfford, 'monthlyDebts')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="200" />
                 </div>
                 <p class="text-xs text-neutral-500 mt-1">Loans, car finance, credit card minimums, etc.</p>
               </div>
@@ -1104,7 +1104,7 @@
                 <label class="block text-sm font-semibold text-horizon-500 mb-2">Deposit Available</label>
                 <div class="relative">
                   <span class="absolute left-4 top-3 text-neutral-500 font-medium">&pound;</span>
-                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="25,000" />
+                  <input :value="formatInputDisplay(mortgageAfford.deposit)" @input="parseInputValue($event, mortgageAfford, 'deposit')" type="text" inputmode="numeric" class="w-full pl-10 pr-4 py-3 border border-light-gray rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all" placeholder="25,000" />
                 </div>
               </div>
               <button @click="calculateMortgageAfford" class="w-full py-3 bg-raspberry-500 text-white font-semibold rounded-xl hover:bg-raspberry-600 transition-colors">Calculate Affordability</button>
@@ -1114,12 +1114,12 @@
                 <p class="text-xs text-raspberry-500 font-semibold uppercase tracking-wider mb-1">Estimated Maximum Borrowing</p>
                 <div class="flex items-baseline gap-4">
                   <div>
-                    <p class="text-3xl font-bold text-indigo-700">{{ formatCurrency(mortgageAfford.result.max4x) }}</p>
-                    <p class="text-xs text-indigo-500">at 4x income</p>
+                    <p class="text-3xl font-bold text-violet-700">{{ formatCurrency(mortgageAfford.result.max4x) }}</p>
+                    <p class="text-xs text-violet-500">at 4x income</p>
                   </div>
                   <div>
-                    <p class="text-3xl font-bold text-indigo-500">{{ formatCurrency(mortgageAfford.result.max45x) }}</p>
-                    <p class="text-xs text-indigo-500">at 4.5x income</p>
+                    <p class="text-3xl font-bold text-violet-500">{{ formatCurrency(mortgageAfford.result.max45x) }}</p>
+                    <p class="text-xs text-violet-500">at 4.5x income</p>
                   </div>
                 </div>
               </div>
@@ -1611,19 +1611,14 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import PublicLayout from '@/layouts/PublicLayout.vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 import { getCurrentTaxYear } from '@/utils/dateFormatter';
-import {
-  PERSONAL_ALLOWANCE, PERSONAL_ALLOWANCE_TAPER_THRESHOLD, HIGHER_RATE_THRESHOLD, ADDITIONAL_RATE_THRESHOLD,
-  BASIC_RATE, HIGHER_RATE, ADDITIONAL_RATE,
-  NI_PRIMARY_THRESHOLD, NI_UPPER_EARNINGS_LIMIT, NI_BASIC_RATE, NI_ADDITIONAL_RATE,
-  SDLT_STANDARD_BANDS, SDLT_FTB_BANDS, SDLT_FTB_MAX_PRICE, SDLT_ADDITIONAL_SURCHARGE, SDLT_NON_UK_SURCHARGE,
-  LBTT_BANDS, LBTT_ADDITIONAL_SURCHARGE, LBTT_NON_UK_SURCHARGE,
-  LTT_BANDS, LTT_ADDITIONAL_SURCHARGE, LTT_NON_UK_SURCHARGE,
-  PENSION_TAX_FREE_RATE, PENSION_TAX_FREE_LUMP_SUM_LIMIT,
-  STUDENT_LOAN_REPAYMENT_RATE,
-} from '@/constants/taxConfig';
+
+// Tax-year values come from the `taxConfig` Vuex store, hydrated by
+// PublicLayout from `/api/public/tax-config` on mount. Same getters the
+// authenticated app uses — see `resources/js/store/modules/taxConfig.js`.
 
 export default {
   name: 'CalculatorsPage',
@@ -1795,9 +1790,33 @@ export default {
   },
 
   computed: {
-    higherRateThreshold() {
-      return HIGHER_RATE_THRESHOLD;
-    },
+    ...mapGetters('taxConfig', [
+      'personalAllowance',
+      'personalAllowanceTaperThreshold',
+      'higherRateThreshold',
+      'additionalRateThreshold',
+      'incomeTaxBasicRate',
+      'incomeTaxHigherRate',
+      'incomeTaxAdditionalRate',
+      'niPrimaryThreshold',
+      'niUpperEarningsLimit',
+      'niBasicRate',
+      'niAdditionalRate',
+      'sdltStandardBands',
+      'sdltFtbBands',
+      'sdltFtbMaxPrice',
+      'sdltAdditionalSurcharge',
+      'sdltNonUkSurcharge',
+      'lbttBands',
+      'lbttAdditionalSurcharge',
+      'lbttNonUkSurcharge',
+      'lttBands',
+      'lttAdditionalSurcharge',
+      'lttNonUkSurcharge',
+      'pensionTaxFreeCashRate',
+      'pensionTaxFreeLumpSumLimit',
+      'studentLoanRepaymentRate',
+    ]),
     currentTaxYear() {
       return getCurrentTaxYear();
     },
@@ -1912,9 +1931,9 @@ export default {
       const taxable = income - pension;
 
       // Personal Allowance with taper above £100k (reduces £1 per £2 over threshold)
-      let personalAllowance = PERSONAL_ALLOWANCE;
-      if (taxable > PERSONAL_ALLOWANCE_TAPER_THRESHOLD) {
-        personalAllowance = Math.max(0, PERSONAL_ALLOWANCE - Math.floor((taxable - PERSONAL_ALLOWANCE_TAPER_THRESHOLD) / 2));
+      let personalAllowance = this.personalAllowance;
+      if (taxable > this.personalAllowanceTaperThreshold) {
+        personalAllowance = Math.max(0, this.personalAllowance - Math.floor((taxable - this.personalAllowanceTaperThreshold) / 2));
       }
 
       let tax = 0;
@@ -1929,30 +1948,30 @@ export default {
 
       // Basic rate
       if (remaining > 0) {
-        const basicRateBand = Math.min(remaining, HIGHER_RATE_THRESHOLD - personalAllowance);
-        tax += basicRateBand * BASIC_RATE;
+        const basicRateBand = Math.min(remaining, this.higherRateThreshold - personalAllowance);
+        tax += basicRateBand * this.incomeTaxBasicRate;
         remaining -= basicRateBand;
       }
 
       // Higher rate
       if (remaining > 0) {
-        const higherRateBand = Math.min(remaining, ADDITIONAL_RATE_THRESHOLD - HIGHER_RATE_THRESHOLD);
-        tax += higherRateBand * HIGHER_RATE;
+        const higherRateBand = Math.min(remaining, this.additionalRateThreshold - this.higherRateThreshold);
+        tax += higherRateBand * this.incomeTaxHigherRate;
         remaining -= higherRateBand;
       }
 
       // Additional rate
       if (remaining > 0) {
-        tax += remaining * ADDITIONAL_RATE;
+        tax += remaining * this.incomeTaxAdditionalRate;
       }
 
       // National Insurance
       let ni = 0;
-      if (income > NI_PRIMARY_THRESHOLD) {
-        const niableIncome = Math.min(income - NI_PRIMARY_THRESHOLD, NI_UPPER_EARNINGS_LIMIT - NI_PRIMARY_THRESHOLD);
-        ni = niableIncome * NI_BASIC_RATE;
-        if (income > NI_UPPER_EARNINGS_LIMIT) {
-          ni += (income - NI_UPPER_EARNINGS_LIMIT) * NI_ADDITIONAL_RATE;
+      if (income > this.niPrimaryThreshold) {
+        const niableIncome = Math.min(income - this.niPrimaryThreshold, this.niUpperEarningsLimit - this.niPrimaryThreshold);
+        ni = niableIncome * this.niBasicRate;
+        if (income > this.niUpperEarningsLimit) {
+          ni += (income - this.niUpperEarningsLimit) * this.niAdditionalRate;
         }
       }
 
@@ -2180,7 +2199,7 @@ export default {
       let repaid = false;
 
       // Current monthly repayment at starting salary
-      const initialAnnualRepayment = salary > threshold ? (salary - threshold) * STUDENT_LOAN_REPAYMENT_RATE : 0;
+      const initialAnnualRepayment = salary > threshold ? (salary - threshold) * this.studentLoanRepaymentRate : 0;
       const monthlyRepayment = Math.round(initialAnnualRepayment / 12);
 
       // Simulate year by year
@@ -2193,7 +2212,7 @@ export default {
         runningBalance += interest;
 
         // Annual repayment based on current salary
-        const annualRepayment = currentSalary > threshold ? (currentSalary - threshold) * STUDENT_LOAN_REPAYMENT_RATE : 0;
+        const annualRepayment = currentSalary > threshold ? (currentSalary - threshold) * this.studentLoanRepaymentRate : 0;
 
         if (annualRepayment >= runningBalance) {
           totalRepaid += runningBalance;
@@ -2255,23 +2274,23 @@ export default {
 
       if (country === 'scotland') {
         taxName = 'Land and Buildings Transaction Tax';
-        bands = LBTT_BANDS;
-        if (buyerType === 'additional') surcharge = LBTT_ADDITIONAL_SURCHARGE;
-        if (buyerType === 'non-uk') surcharge = LBTT_NON_UK_SURCHARGE;
+        bands = this.lbttBands;
+        if (buyerType === 'additional') surcharge = this.lbttAdditionalSurcharge;
+        if (buyerType === 'non-uk') surcharge = this.lbttNonUkSurcharge;
       } else if (country === 'wales') {
         taxName = 'Land Transaction Tax';
-        bands = LTT_BANDS;
-        if (buyerType === 'additional') surcharge = LTT_ADDITIONAL_SURCHARGE;
-        if (buyerType === 'non-uk') surcharge = LTT_NON_UK_SURCHARGE;
+        bands = this.lttBands;
+        if (buyerType === 'additional') surcharge = this.lttAdditionalSurcharge;
+        if (buyerType === 'non-uk') surcharge = this.lttNonUkSurcharge;
       } else {
         taxName = 'Stamp Duty Land Tax';
-        if (buyerType === 'first-time' && price <= SDLT_FTB_MAX_PRICE) {
-          bands = SDLT_FTB_BANDS;
+        if (buyerType === 'first-time' && price <= this.sdltFtbMaxPrice) {
+          bands = this.sdltFtbBands;
         } else {
-          bands = SDLT_STANDARD_BANDS;
+          bands = this.sdltStandardBands;
         }
-        if (buyerType === 'additional') surcharge = SDLT_ADDITIONAL_SURCHARGE;
-        if (buyerType === 'non-uk') surcharge = SDLT_NON_UK_SURCHARGE;
+        if (buyerType === 'additional') surcharge = this.sdltAdditionalSurcharge;
+        if (buyerType === 'non-uk') surcharge = this.sdltNonUkSurcharge;
       }
 
       let totalTax = 0;
@@ -2289,10 +2308,10 @@ export default {
       }
 
       let saving = 0;
-      if (buyerType === 'first-time' && country === 'england' && price <= SDLT_FTB_MAX_PRICE) {
+      if (buyerType === 'first-time' && country === 'england' && price <= this.sdltFtbMaxPrice) {
         let standardTax = 0;
         let sPrev = 0;
-        for (const b of SDLT_STANDARD_BANDS) {
+        for (const b of this.sdltStandardBands) {
           const t = Math.min(price, b.threshold) - sPrev;
           if (t > 0) standardTax += t * (b.rate / 100);
           sPrev = b.threshold;
@@ -2372,7 +2391,7 @@ export default {
       // Tax-free cash: 25% of pot, max lifetime limit
       let taxFree = 0;
       if (!taxFreeTaken) {
-        taxFree = Math.min(withdrawal * PENSION_TAX_FREE_RATE, pot * PENSION_TAX_FREE_RATE, PENSION_TAX_FREE_LUMP_SUM_LIMIT);
+        taxFree = Math.min(withdrawal * this.pensionTaxFreeCashRate, pot * this.pensionTaxFreeCashRate, this.pensionTaxFreeLumpSumLimit);
       }
       const taxable = withdrawal - taxFree;
 
@@ -2396,20 +2415,20 @@ export default {
 
     // Helper: calculate income tax on a given amount (uses centralised tax config)
     _calculateIncomeTax2526(income) {
-      const basicRateLimit = HIGHER_RATE_THRESHOLD - PERSONAL_ALLOWANCE;
+      const basicRateLimit = this.higherRateThreshold - this.personalAllowance;
       // Personal allowance taper above threshold
-      let adjustedPA = PERSONAL_ALLOWANCE;
-      if (income > PERSONAL_ALLOWANCE_TAPER_THRESHOLD) {
-        adjustedPA = Math.max(0, PERSONAL_ALLOWANCE - Math.floor((income - PERSONAL_ALLOWANCE_TAPER_THRESHOLD) / 2));
+      let adjustedPA = this.personalAllowance;
+      if (income > this.personalAllowanceTaperThreshold) {
+        adjustedPA = Math.max(0, this.personalAllowance - Math.floor((income - this.personalAllowanceTaperThreshold) / 2));
       }
       const taxableIncome = Math.max(0, income - adjustedPA);
       let tax = 0;
       const basicBand = Math.min(taxableIncome, basicRateLimit);
-      tax += basicBand * BASIC_RATE;
-      const higherBand = Math.min(Math.max(0, taxableIncome - basicRateLimit), ADDITIONAL_RATE_THRESHOLD - HIGHER_RATE_THRESHOLD);
-      tax += higherBand * HIGHER_RATE;
-      const additionalBand = Math.max(0, taxableIncome - (ADDITIONAL_RATE_THRESHOLD - PERSONAL_ALLOWANCE));
-      tax += additionalBand * ADDITIONAL_RATE;
+      tax += basicBand * this.incomeTaxBasicRate;
+      const higherBand = Math.min(Math.max(0, taxableIncome - basicRateLimit), this.additionalRateThreshold - this.higherRateThreshold);
+      tax += higherBand * this.incomeTaxHigherRate;
+      const additionalBand = Math.max(0, taxableIncome - (this.additionalRateThreshold - this.personalAllowance));
+      tax += additionalBand * this.incomeTaxAdditionalRate;
       return tax;
     },
 
@@ -2422,24 +2441,24 @@ export default {
       // For relief at source: you pay net (after 20% relief), provider claims 20%
       // For net pay: contribution comes from gross salary, full relief automatic
       const gross = contribution;
-      const basicRelief = Math.round(gross * BASIC_RATE);
+      const basicRelief = Math.round(gross * this.incomeTaxBasicRate);
       let additionalRelief = 0;
       let effectiveCost = gross;
 
       if (band === 'higher') {
-        additionalRelief = Math.round(gross * (HIGHER_RATE - BASIC_RATE));
-        effectiveCost = Math.round(gross * (1 - HIGHER_RATE));
+        additionalRelief = Math.round(gross * (this.incomeTaxHigherRate - this.incomeTaxBasicRate));
+        effectiveCost = Math.round(gross * (1 - this.incomeTaxHigherRate));
       } else if (band === 'additional') {
-        additionalRelief = Math.round(gross * (ADDITIONAL_RATE - BASIC_RATE));
-        effectiveCost = Math.round(gross * (1 - ADDITIONAL_RATE));
+        additionalRelief = Math.round(gross * (this.incomeTaxAdditionalRate - this.incomeTaxBasicRate));
+        effectiveCost = Math.round(gross * (1 - this.incomeTaxAdditionalRate));
       } else {
-        effectiveCost = Math.round(gross * (1 - BASIC_RATE));
+        effectiveCost = Math.round(gross * (1 - this.incomeTaxBasicRate));
       }
 
       const totalRelief = basicRelief + additionalRelief;
 
       // For relief at source, net contribution is what you actually pay out of pocket
-      const netContribution = isNetPay ? gross : Math.round(gross * (1 - BASIC_RATE));
+      const netContribution = isNetPay ? gross : Math.round(gross * (1 - this.incomeTaxBasicRate));
 
       this.pensionRelief.result = {
         gross,

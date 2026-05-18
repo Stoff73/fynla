@@ -14,6 +14,7 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
 use App\Services\Mobile\MobileDashboardAggregator;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
@@ -24,6 +25,7 @@ beforeEach(function () {
     $this->estateAgent = Mockery::mock(EstateAgent::class);
     $this->goalsAgent = Mockery::mock(GoalsAgent::class);
     $this->dashboardAggregator = Mockery::mock(DashboardAggregator::class);
+    $this->savingsStore = app(SavingsStore::class);
 
     $this->service = new MobileDashboardAggregator(
         $this->protectionAgent,
@@ -32,7 +34,8 @@ beforeEach(function () {
         $this->retirementAgent,
         $this->estateAgent,
         $this->goalsAgent,
-        $this->dashboardAggregator
+        $this->dashboardAggregator,
+        $this->savingsStore,
     );
 
     // Clear cache before each test

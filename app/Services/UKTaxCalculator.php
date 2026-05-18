@@ -564,6 +564,11 @@ class UKTaxCalculator
      * @param  float  $dividendIncome  Dividend income
      * @param  float  $interestIncome  Interest income (savings)
      * @param  float  $otherIncome  Other taxable income
+     * @param  float  $pensionContributions  Gross employee pension contributions (relief-at-source).
+     *                                       Deducted from taxable earned income AND from ANI for PA taper.
+     * @param  float  $giftAidGross  Grossed-up Gift Aid donations.
+     *                               Deducted from ANI for PA taper only — taxable income is not
+     *                               reduced (basic-rate relief is given to the charity at source).
      * @return array Net income breakdown with tax and NI details
      */
     public function calculateNetIncome(
@@ -572,13 +577,23 @@ class UKTaxCalculator
         float $rentalIncome = 0,
         float $dividendIncome = 0,
         float $interestIncome = 0,
-        float $otherIncome = 0
+        float $otherIncome = 0,
+        float $pensionContributions = 0,
+        float $giftAidGross = 0
     ): array {
         $grossIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $dividendIncome + $interestIncome + $otherIncome;
 
-        // Calculate Income Tax (including interest and dividend income)
+        // Calculate Income Tax — pension is deducted from earned income before band
+        // allocation (net-pay model), and both pension + Gift Aid reduce ANI for the
+        // PA taper. See calculateIncomeTax for the ANI-aware taper logic.
         $nonDividendNonInterestIncome = $employmentIncome + $selfEmploymentIncome + $rentalIncome + $otherIncome;
-        $incomeTax = $this->calculateIncomeTax($nonDividendNonInterestIncome, $interestIncome, $dividendIncome);
+        $incomeTax = $this->calculateIncomeTax(
+            $nonDividendNonInterestIncome,
+            $interestIncome,
+            $dividendIncome,
+            $pensionContributions,
+            $giftAidGross
+        );
 
         // Calculate National Insurance
         $class1NI = $this->calculateClass1NI($employmentIncome); // Employees
@@ -612,12 +627,17 @@ class UKTaxCalculator
      * Calculate UK Income Tax using active tax year rates from TaxConfigService.
      * Supports:
      * - Income tax bands (basic, higher, additional)
-     * - Personal allowance
+     * - Personal allowance with Adjusted-Net-Income taper (HMRC ITA 2007 s35-s37)
      * - Personal Savings Allowance (£1,000 basic rate, £500 higher rate, £0 additional rate)
      * - Dividend allowance and dividend-specific rates
      */
-    private function calculateIncomeTax(float $nonDividendNonInterestIncome, float $interestIncome, float $dividendIncome): float
-    {
+    private function calculateIncomeTax(
+        float $nonDividendNonInterestIncome,
+        float $interestIncome,
+        float $dividendIncome,
+        float $pensionContributions = 0,
+        float $giftAidGross = 0
+    ): float {
         // Get tax configuration from service
         $incomeTax = $this->taxConfig->getIncomeTax();
         $dividendTax = $this->taxConfig->getDividendTax();
@@ -625,11 +645,18 @@ class UKTaxCalculator
         $personalAllowance = $incomeTax['personal_allowance'];
         $dividendAllowance = $dividendTax['allowance'];
 
-        // Apply Personal Allowance taper for incomes above £100,000
+        // Deduct pension contributions from taxable earned income (net-pay model — caller
+        // is expected to pass gross earned income; pension is excluded from the tax base).
+        $nonDividendNonInterestIncome = max(0.0, $nonDividendNonInterestIncome - $pensionContributions);
+
+        // Apply Personal Allowance taper using Adjusted Net Income (NOT gross). ANI =
+        // (gross total income) − pension − Gift Aid. Since pension has already been
+        // subtracted from $nonDividendNonInterestIncome above, only Gift Aid remains.
         $totalIncomePre = $nonDividendNonInterestIncome + $interestIncome + $dividendIncome;
+        $adjustedNetIncome = max(0.0, $totalIncomePre - $giftAidGross);
         $taperThreshold = $incomeTax['personal_allowance_taper_threshold'] ?? 100000;
-        if ($totalIncomePre > $taperThreshold) {
-            $excess = $totalIncomePre - $taperThreshold;
+        if ($adjustedNetIncome > $taperThreshold) {
+            $excess = $adjustedNetIncome - $taperThreshold;
             $reduction = floor($excess / 2);
             $personalAllowance = max(0, $personalAllowance - $reduction);
         }
@@ -637,11 +664,13 @@ class UKTaxCalculator
         // Get income tax bands (stored as array in seeder)
         $bands = $incomeTax['bands'];
 
-        // Calculate absolute thresholds
-        // Basic rate band ends at personal_allowance + band max
-        $basicRateLimit = $personalAllowance + $bands[0]['max']; // £12,570 + £37,700 = £50,270
-        // Higher rate band ends at personal_allowance + band max
-        $higherRateLimit = $personalAllowance + $bands[1]['max']; // £12,570 + £150,000 = £162,570 (for historical)
+        // Absolute thresholds — prefer top-level aliases (derived from bands[i].upper_limit).
+        // The legacy `PA + bands[1].max` was wrong because bands[1].max is the absolute
+        // £125,140 ATR rather than a band width. Audit finding #5.
+        $basicRateLimit = (float) ($incomeTax['higher_rate_threshold']
+            ?? ($personalAllowance + $bands[0]['max']));
+        $higherRateLimit = (float) ($incomeTax['additional_rate_threshold']
+            ?? ($bands[1]['upper_limit'] ?? ($personalAllowance + $bands[1]['max'])));
 
         // Tax rates are stored as decimals (0.20 for 20%)
         $basicRate = $bands[0]['rate'];
@@ -684,10 +713,14 @@ class UKTaxCalculator
             }
         }
 
-        // Step 2: Calculate tax on interest income with Personal Savings Allowance
-        // PSA rates sourced from TaxConfigService (basic: £1,000, higher: £500, additional: £0)
+        // Step 2: Calculate tax on interest income with Starting Rate for Savings + PSA
+        // Order (HMRC ITA 2007 s12): non-savings consumes PA → SRS 0% band → PSA 0% band → standard bands.
+        // SRS is £5,000 reduced £1-for-£1 by non-savings income above the PA.
         if ($interestIncome > 0) {
-            // Determine PSA based on total income band
+            $srsBand = (float) ($incomeTax['starting_rate_for_savings']['band'] ?? 5000);
+            $nonSavingsAbovePA = max(0.0, $nonDividendNonInterestIncome - $personalAllowance);
+            $srsAvailable = max(0.0, $srsBand - $nonSavingsAbovePA);
+
             $psaBand = match (true) {
                 $totalIncome <= $basicRateLimit => 'basic',
                 $totalIncome <= $higherRateLimit => 'higher',
@@ -695,11 +728,15 @@ class UKTaxCalculator
             };
             $personalSavingsAllowance = $this->taxConfig->getPersonalSavingsAllowance($psaBand);
 
-            $taxableInterest = max(0, $interestIncome - $personalSavingsAllowance);
+            $srsUsed = min($interestIncome, $srsAvailable);
+            $interestAfterSrs = $interestIncome - $srsUsed;
+            $psaUsed = min($interestAfterSrs, (float) $personalSavingsAllowance);
+            $taxableInterest = max(0.0, $interestAfterSrs - $psaUsed);
 
             if ($taxableInterest > 0) {
-                // Interest is taxed at standard income tax rates based on total income
-                $incomeBeforeInterest = $nonDividendNonInterestIncome;
+                // The 0%-rated portions (SRS + PSA) still occupy band space, so the taxable
+                // remainder sits above non-savings + SRS used + PSA used.
+                $incomeBeforeInterest = $nonDividendNonInterestIncome + $srsUsed + $psaUsed;
 
                 // Tax interest at appropriate rate(s)
                 if ($incomeBeforeInterest + $taxableInterest <= $basicRateLimit) {

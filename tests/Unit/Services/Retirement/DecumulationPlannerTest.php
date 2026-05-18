@@ -26,6 +26,14 @@ beforeEach(function () {
             'additional_rate_threshold' => 125140,
         ]);
 
+    // PCLS calculator — capped at LSA (£268,275). Mirrors TaxConfigService::calculatePCLS.
+    $this->mockTaxConfig->shouldReceive('calculatePCLS')
+        ->andReturnUsing(function (float $crystallised, float $lsaUsed = 0.0): float {
+            $lsaRemaining = max(0.0, 268275.0 - max(0.0, $lsaUsed));
+
+            return min(max(0.0, $crystallised) * 0.25, $lsaRemaining);
+        });
+
     $this->planner = new DecumulationPlanner($this->mockTaxConfig);
 });
 

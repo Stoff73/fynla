@@ -17,7 +17,7 @@ trait HasAiGuardrails
 {
     private const DEFAULT_MODEL_ANTHROPIC = 'claude-haiku-4-5-20251001';
 
-    private const DEFAULT_MODEL_XAI = 'grok-4-1-fast-reasoning';
+    private const DEFAULT_MODEL_XAI = 'grok-4.3';
 
     /**
      * Get the active AI provider, checking admin toggle (cache) first, then .env.
@@ -260,7 +260,7 @@ trait HasAiGuardrails
             return 'Configuration issue — please contact support.';
         }
 
-        if (str_contains($errorLower, 'context_length') || str_contains($errorLower, 'token') || str_contains($errorLower, 'too many tokens') || str_contains($errorLower, 'max_tokens')) {
+        if (str_contains($errorLower, 'context_length') || str_contains($errorLower, 'token') || str_contains($errorLower, 'too many tokens') || str_contains($errorLower, 'max_tokens') || str_contains($errorLower, 'max_completion_tokens')) {
             return 'This conversation has become quite long. Starting a new conversation may help.';
         }
 

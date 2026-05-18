@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Savings\EmergencyFundCalculator;
 use App\Services\Savings\ISATracker;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
 use App\Traits\StructuredLogging;
@@ -201,12 +202,15 @@ class LifeEventAllocationService
             return $rows;
         }
 
-        // 1. Cash savings first
-        $cashAccounts = SavingsAccount::where('user_id', $user->id)
+        // 1. Cash savings first — allocation order is load-bearing
+        // (largest balance first); sortByDesc()->values() is the exact
+        // Collection equivalent of orderByDesc()->get() (PR 5f).
+        $cashAccounts = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->where('current_balance', '>', 0)
-            ->orderByDesc('current_balance')
-            ->get();
+            ->sortByDesc('current_balance')
+            ->values();
 
         foreach ($cashAccounts as $account) {
             if ($remaining <= 0) {
@@ -255,11 +259,12 @@ class LifeEventAllocationService
 
         // 3. ISA (tax-free withdrawal)
         if ($remaining > 0) {
-            $isaAccounts = SavingsAccount::where('user_id', $user->id)
+            $isaAccounts = app(SavingsStore::class)->forUser($user)
+                ->where('user_id', $user->id)
                 ->where('is_isa', true)
                 ->where('current_balance', '>', 0)
-                ->orderByDesc('current_balance')
-                ->get();
+                ->sortByDesc('current_balance')
+                ->values();
 
             foreach ($isaAccounts as $account) {
                 if ($remaining <= 0) {
@@ -436,10 +441,15 @@ class LifeEventAllocationService
         $allocateAmount = min($isaRemaining, $remaining);
         $remaining -= $allocateAmount;
 
-        // Find user's ISA account
-        $isaAccount = SavingsAccount::where('user_id', $userId)
-            ->where('is_isa', true)
-            ->first();
+        // Find user's ISA account — null user → null (parity with the prior
+        // where('user_id', null)->first()) (PR 5f).
+        $isaUser = User::find($userId);
+        $isaAccount = $isaUser
+            ? app(SavingsStore::class)->forUser($isaUser)
+                ->where('user_id', $userId)
+                ->where('is_isa', true)
+                ->first()
+            : null;
 
         if (! $isaAccount) {
             $isaAccount = InvestmentAccount::where('user_id', $userId)
@@ -554,7 +564,8 @@ class LifeEventAllocationService
     private function determineCashAllocation(User $user, float &$remaining): ?array
     {
         try {
-            $totalSavings = (float) SavingsAccount::where('user_id', $user->id)
+            $totalSavings = (float) app(SavingsStore::class)->forUser($user)
+                ->where('user_id', $user->id)
                 ->sum('current_balance');
 
             $monthlyExpenditure = $this->resolveMonthlyExpenditure($user)['amount'];
@@ -673,10 +684,15 @@ class LifeEventAllocationService
             ];
         }
 
-        // Default: savings ISA or regular savings
-        $isaAccount = SavingsAccount::where('user_id', $userId)
-            ->where('is_isa', true)
-            ->first();
+        // Default: savings ISA or regular savings — null user → null
+        // (parity with the prior where('user_id', null)->first()) (PR 5f).
+        $goalIsaUser = User::find($userId);
+        $isaAccount = $goalIsaUser
+            ? app(SavingsStore::class)->forUser($goalIsaUser)
+                ->where('user_id', $userId)
+                ->where('is_isa', true)
+                ->first()
+            : null;
 
         if ($isaAccount) {
             return [
@@ -706,12 +722,21 @@ class LifeEventAllocationService
      */
     private function findCashAccountModel(int $userId): ?SavingsAccount
     {
-        return SavingsAccount::where('user_id', $userId)
-            ->where('is_emergency_fund', true)
-            ->first()
-            ?? SavingsAccount::where('user_id', $userId)
-                ->where('is_isa', false)
-                ->orderByDesc('current_balance')
+        // Null-coalesce chain preserved: emergency-fund first, else the
+        // largest non-ISA. sortByDesc()->values() is the exact Collection
+        // equivalent of orderByDesc()->first() (PR 5f).
+        $user = User::find($userId);
+        if (! $user) {
+            return null;
+        }
+
+        $accounts = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $userId);
+
+        return $accounts->where('is_emergency_fund', true)->first()
+            ?? $accounts->where('is_isa', false)
+                ->sortByDesc('current_balance')
+                ->values()
                 ->first();
     }
 }

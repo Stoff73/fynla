@@ -179,7 +179,7 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 import PrivateInvestmentFields from './PrivateInvestmentFields.vue';
 import EmployeeShareSchemeFields from './EmployeeShareSchemeFields.vue';
 import StandardInvestmentFields from './StandardInvestmentFields.vue';
@@ -187,7 +187,6 @@ import InlineHoldingsEditor from './InlineHoldingsEditor.vue';
 import HoldingForm from './HoldingForm.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 import logger from '@/utils/logger';
 
 const HOLDABLE_ACCOUNT_TYPES = ['isa', 'gia', 'onshore_bond', 'offshore_bond', 'vct', 'eis'];
@@ -384,7 +383,6 @@ export default {
       feePercentageWarning: false,
       showHoldingDetailModal: false,
       editingHoldingDetail: null,
-      ISA_ALLOWANCE: ISA_ANNUAL_ALLOWANCE,
       // Risk profile state
       mainRiskLevel: null,
       allowedRiskLevels: ['low', 'lower_medium', 'medium', 'upper_medium', 'high'],
@@ -397,6 +395,7 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
 
     isEditMode() {
       return !!this.account;
@@ -615,17 +614,17 @@ export default {
 
     // Remaining allowance after all usage
     totalRemainingAllowance() {
-      return Math.max(0, this.ISA_ALLOWANCE - this.totalWithPlanned);
+      return Math.max(0, this.isaAnnualAllowance - this.totalWithPlanned);
     },
 
     // Percentage used (capped at 100)
     totalUsedPercent() {
-      return Math.min(100, (this.totalISAUsed / this.ISA_ALLOWANCE) * 100);
+      return Math.min(100, (this.totalISAUsed / this.isaAnnualAllowance) * 100);
     },
 
     // Class for remaining allowance display
     totalRemainingAllowanceClass() {
-      if (this.totalWithPlanned > this.ISA_ALLOWANCE) return 'text-raspberry-600';
+      if (this.totalWithPlanned > this.isaAnnualAllowance) return 'text-raspberry-600';
       if (this.totalRemainingAllowance < 2000) return 'text-violet-600';
       return 'text-spring-600';
     },
@@ -633,12 +632,12 @@ export default {
     // Legacy computed for backward compatibility
     remainingAllowance() {
       const subscription = this.formData.isa_subscription_current_year || 0;
-      return Math.max(0, this.ISA_ALLOWANCE - subscription);
+      return Math.max(0, this.isaAnnualAllowance - subscription);
     },
 
     allowanceUsedPercent() {
       const subscription = this.formData.isa_subscription_current_year || 0;
-      return Math.min(100, (subscription / this.ISA_ALLOWANCE) * 100);
+      return Math.min(100, (subscription / this.isaAnnualAllowance) * 100);
     },
 
     remainingAllowanceClass() {
@@ -1114,8 +1113,8 @@ export default {
         }
 
         // Check if total ISA usage exceeds allowance
-        if (this.totalWithPlanned > this.ISA_ALLOWANCE) {
-          const excess = this.totalWithPlanned - this.ISA_ALLOWANCE;
+        if (this.totalWithPlanned > this.isaAnnualAllowance) {
+          const excess = this.totalWithPlanned - this.isaAnnualAllowance;
           this.errors.isa_contribution_exceeds = `Your planned ISA contributions would exceed the £20,000 allowance by ${this.formatCurrency(excess)}. Consider reducing your regular contributions or lump sum.`;
           isValid = false;
         }

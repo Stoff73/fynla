@@ -159,11 +159,34 @@ class TaxConfigService
     /**
      * Get Pension allowances configuration
      *
-     * @return array Contains annual_allowance, MPAA, tapered_allowance, state_pension
+     * @return array Contains annual_allowance, MPAA, tapered_allowance, state_pension,
+     *               lump_sum_allowance (LSA), lump_sum_and_death_benefit_allowance (LSDBA),
+     *               pcls_rate
      */
     public function getPensionAllowances(): array
     {
         return $this->get('pension', []);
+    }
+
+    /**
+     * Calculate the tax-free Pension Commencement Lump Sum (PCLS) for a crystallisation.
+     *
+     * Caps at the Lump Sum Allowance (LSA, £268,275 since LTA abolition April 2024).
+     *
+     * @param  float  $crystallisedAmount  Total crystallised pension value
+     * @param  float  $lsaUsed             LSA already consumed by prior crystallisations.
+     *                                     Defaults to 0; pass actual tracked value when
+     *                                     per-user lsa_used tracking is implemented.
+     * @return float Tax-free PCLS amount (≤ LSA remaining)
+     */
+    public function calculatePCLS(float $crystallisedAmount, float $lsaUsed = 0.0): float
+    {
+        $pension = $this->getPensionAllowances();
+        $pclsRate = (float) ($pension['pcls_rate'] ?? 0.25);
+        $lsa = (float) ($pension['lump_sum_allowance'] ?? 268275);
+        $lsaRemaining = max(0.0, $lsa - max(0.0, $lsaUsed));
+
+        return min(max(0.0, $crystallisedAmount) * $pclsRate, $lsaRemaining);
     }
 
     /**

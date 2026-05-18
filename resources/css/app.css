@@ -312,10 +312,10 @@
 
   /* Account Type Badges */
   .badge-isa { @apply bg-spring-100 text-spring-800 font-medium; }
-  .badge-sipp { @apply bg-purple-100 text-purple-800 font-medium; }
+  .badge-sipp { @apply bg-violet-100 text-violet-800 font-medium; }
   .badge-gia { @apply bg-violet-100 text-violet-800 font-medium; }
   .badge-pension,
-  .badge-workplace-pension { @apply bg-indigo-100 text-indigo-800 font-medium; }
+  .badge-workplace-pension { @apply bg-violet-100 text-violet-800 font-medium; }
   .badge-nsi,
   .badge-premium-bonds,
   .badge-bond { @apply bg-violet-100 text-violet-800 font-medium; }
@@ -324,7 +324,7 @@
 
   /* Ownership Type Badges */
   .badge-individual { @apply bg-savannah-100 text-neutral-500; }
-  .badge-joint { @apply bg-purple-100 text-purple-500; }
+  .badge-joint { @apply bg-violet-100 text-violet-500; }
   .badge-trust { @apply bg-violet-100 text-violet-800; }
 
   /* Status Badges */
@@ -543,8 +543,7 @@ input[type="range"]::-moz-range-thumb { @apply w-5 h-5 bg-raspberry-500 rounded-
   .bg-blue-50,
   .bg-green-50,
   .bg-red-50,
-  .bg-purple-50,
-  .bg-indigo-50,
+  .bg-violet-50,
   .bg-emerald-50 {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;

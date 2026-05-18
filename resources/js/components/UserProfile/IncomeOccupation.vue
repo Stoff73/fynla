@@ -163,7 +163,7 @@
                     <div class="ml-2">
                       <p class="text-body-sm font-medium text-horizon-600">High Income Child Benefit Charge</p>
                       <p class="text-body-xs text-horizon-500 mt-1">
-                        Your income exceeds {{ formatCurrency(HICBC_THRESHOLD) }}. You may need to pay back
+                        Your income exceeds {{ formatCurrency(hicbcThreshold) }}. You may need to pay back
                         <strong>{{ hicbcClawbackPercentage }}%</strong> of your Child Benefit ({{ formatCurrency(hicbcCharge) }}/year) through Self Assessment.
                       </p>
                       <p class="text-body-xs text-horizon-500 mt-1">
@@ -422,7 +422,6 @@ import TaxIncomeCard from './TaxIncomeCard.vue';
 import IncomeDefinitionsPanel from './IncomeDefinitionsPanel.vue';
 import { formatCurrency } from '@/utils/currency';
 import { CHART_COLORS } from '@/constants/designSystem';
-import { HICBC_THRESHOLD } from '@/constants/taxConfig';
 import api from '@/services/api';
 
 import logger from '@/utils/logger';
@@ -722,7 +721,7 @@ export default {
       handleSubmit,
       handleCancel,
       formatCurrency,
-      HICBC_THRESHOLD,
+      hicbcThreshold: computed(() => store.getters['taxConfig/hicbcThreshold']),
     };
   },
 };

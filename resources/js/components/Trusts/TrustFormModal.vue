@@ -224,7 +224,7 @@
                 v-model="formData.is_active"
                 type="checkbox"
                 id="is_active"
-                class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-horizon-300 rounded"
+                class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-horizon-300 rounded"
               />
               <label for="is_active" class="ml-2 block text-sm text-neutral-500">
                 Trust is currently active

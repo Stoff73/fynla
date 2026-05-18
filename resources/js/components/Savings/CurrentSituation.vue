@@ -275,8 +275,8 @@ export default {
     getOwnershipBadgeClass(type) {
       const classes = {
         individual: 'bg-eggshell-5000 text-white',
-        joint: 'bg-purple-500 text-white',
-        trust: 'bg-indigo-500 text-white',
+        joint: 'bg-violet-500 text-white',
+        trust: 'bg-violet-500 text-white',
       };
       return classes[type] || 'bg-eggshell-5000 text-white';
     },

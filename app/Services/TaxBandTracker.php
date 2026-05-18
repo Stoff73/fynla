@@ -33,9 +33,15 @@ class TaxBandTracker
         $this->personalAllowance = $taxConfig['personal_allowance'];
         $bands = $taxConfig['bands'];
 
-        // Calculate absolute thresholds
-        $this->basicRateLimit = $this->personalAllowance + $bands[0]['max'];
-        $this->higherRateLimit = $this->personalAllowance + $bands[1]['max'];
+        // Absolute thresholds — prefer the top-level aliases, which are derived
+        // from bands[i].upper_limit. The legacy `PA + bands[i].max` formula was
+        // latently wrong for band[1] because bands[1].max is the absolute
+        // additional-rate threshold (£125,140) rather than a band width — fine
+        // when PA is fully tapered, broken otherwise. See audit finding #5.
+        $this->basicRateLimit = (float) ($taxConfig['higher_rate_threshold']
+            ?? ($this->personalAllowance + $bands[0]['max']));
+        $this->higherRateLimit = (float) ($taxConfig['additional_rate_threshold']
+            ?? ($bands[1]['upper_limit'] ?? ($this->personalAllowance + $bands[1]['max'])));
 
         $this->basicRate = $bands[0]['rate'];
         $this->higherRate = $bands[1]['rate'];

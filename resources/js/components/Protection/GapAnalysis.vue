@@ -410,7 +410,6 @@
 import { mapState, mapGetters } from 'vuex';
 import userProfileService from '@/services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { SSP_WEEKLY_RATE } from '@/constants/taxConfig';
 
 export default {
   name: 'GapAnalysis',
@@ -438,6 +437,7 @@ export default {
   computed: {
     ...mapState('protection', ['profile', 'analysis', 'policies']),
     ...mapGetters('protection', ['coverageGaps', 'totalPremium']),
+    ...mapGetters('taxConfig', ['sspWeeklyRate']),
 
     hasNoPolicies() {
       if (!this.policies) return true;
@@ -578,10 +578,6 @@ export default {
     isEmployee() {
       // User is an employee if they have employment income
       return this.fetchedEmploymentIncome > 0;
-    },
-
-    sspWeeklyRate() {
-      return SSP_WEEKLY_RATE;
     },
 
     sspAnnualEquivalent() {

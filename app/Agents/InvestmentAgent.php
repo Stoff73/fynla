@@ -9,7 +9,6 @@ use App\Events\Eval\EngineCalled;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\InvestmentGoal;
 use App\Models\Investment\RiskProfile;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\FeeAnalyzer;
@@ -20,6 +19,7 @@ use App\Services\Investment\PortfolioAnalyzer;
 use App\Services\Investment\Recommendation\DataReadinessService;
 use App\Services\Investment\SimpleAssetAllocationOptimizer;
 use App\Services\Investment\TaxEfficiencyCalculator;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 
@@ -113,10 +113,14 @@ class InvestmentAgent extends BaseAgent
 
                 // Include savings ISA subscriptions for accurate allowance remaining
                 $taxYear = $this->taxConfig->getTaxYear();
-                $savingsIsaUsed = SavingsAccount::where('user_id', $userId)
-                    ->whereIn('account_type', ['isa', 'cash_isa'])
-                    ->where('isa_subscription_year', $taxYear)
-                    ->sum('isa_subscription_amount');
+                $savingsIsaUser = User::find($userId);
+                $savingsIsaUsed = $savingsIsaUser
+                    ? app(SavingsStore::class)->forUser($savingsIsaUser)
+                        ->where('user_id', $userId)
+                        ->whereIn('account_type', ['isa', 'cash_isa'])
+                        ->where('isa_subscription_year', $taxYear)
+                        ->sum('isa_subscription_amount')
+                    : 0.0;
 
                 $isaUsedThisYear = $investmentIsaUsed + $savingsIsaUsed;
                 $isaRemaining = max(0, $isaAllowance - $isaUsedThisYear);

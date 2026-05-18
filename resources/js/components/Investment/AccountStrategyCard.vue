@@ -27,8 +27,8 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ISA_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'AccountStrategyCard',
@@ -49,6 +49,8 @@ export default {
   emits: ['change-tab', 'add-holding'],
 
   computed: {
+    ...mapGetters('taxConfig', ['isaAnnualAllowance']),
+
     holdings() {
       return this.account.holdings || [];
     },
@@ -179,7 +181,7 @@ export default {
 
       // 7. ISA allowance available
       if (this.account.account_type === 'isa') {
-        const remaining = ISA_ANNUAL_ALLOWANCE - (parseFloat(this.account.isa_subscription_current_year) || 0);
+        const remaining = this.isaAnnualAllowance - (parseFloat(this.account.isa_subscription_current_year) || 0);
         if (remaining > 5000) {
           recs.push({
             priority: 3,

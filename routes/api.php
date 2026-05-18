@@ -42,6 +42,7 @@ use App\Http\Controllers\Api\Investment\FeeImpactController;
 use App\Http\Controllers\Api\Investment\GoalProgressController;
 use App\Http\Controllers\Api\Investment\InvestmentScenarioController;
 use App\Http\Controllers\Api\Investment\ModelPortfolioController;
+use App\Http\Controllers\Api\Investment\AccountRebalancingController;
 use App\Http\Controllers\Api\Investment\PerformanceAttributionController;
 use App\Http\Controllers\Api\Investment\PortfolioStrategyController;
 use App\Http\Controllers\Api\Investment\RebalancingActionsController;
@@ -77,6 +78,7 @@ use App\Http\Controllers\Api\Public\InsightController;
 use App\Http\Controllers\Api\Public\NewsController;
 use App\Http\Controllers\Api\Public\NewsSubscriberController;
 use App\Http\Controllers\Api\Public\TaxAllowancesController;
+use App\Http\Controllers\Api\Public\TaxConfigController as PublicTaxConfigController;
 use App\Http\Controllers\Api\RecommendationsController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\Retirement\DCPensionHoldingsController;
@@ -89,6 +91,7 @@ use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\Settings\AssumptionsController;
 use App\Http\Controllers\Api\SpousePermissionController;
 use App\Http\Controllers\Api\Tax\TaxOptimisationController;
+use App\Http\Controllers\Api\TaxConfigController;
 use App\Http\Controllers\Api\TaxProductInfoController;
 use App\Http\Controllers\Api\TaxSettingsController;
 use App\Http\Controllers\Api\TaxStrategyController;
@@ -201,6 +204,13 @@ Route::prefix('insights')->group(function () {
 // Used by marketing campaign pages (e.g. /savetax) to keep headline
 // figures in sync with the seeded tax-year configuration.
 Route::get('public/tax-allowances', [TaxAllowancesController::class, 'show'])
+    ->middleware('throttle:60,1');
+
+// Public tax-year snapshot — same shape as the authenticated /api/tax/config
+// endpoint, served unauthenticated so PublicLayout can hydrate the shared
+// taxConfig Vuex store before pages like CalculatorsPage render.
+// UK rates/thresholds are public-by-nature; rate-limit defends scraping.
+Route::get('public/tax-config', [PublicTaxConfigController::class, 'show'])
     ->middleware('throttle:60,1');
 
 // Public News API (no auth required)
@@ -561,8 +571,8 @@ Route::middleware('auth:sanctum')->prefix('investment')->group(function () {
         Route::put('/{id}', [InvestmentController::class, 'updateAccount']);
         Route::delete('/{id}', [InvestmentController::class, 'destroyAccount']);
         Route::get('/{id}/projections', [InvestmentController::class, 'getAccountProjections']);
-        Route::get('/{id}/rebalancing', [RebalancingCalculationController::class, 'getAccountRebalancing']);
-        Route::patch('/{id}/rebalancing-threshold', [RebalancingCalculationController::class, 'updateRebalancingThreshold']);
+        Route::get('/{id}/rebalancing', [AccountRebalancingController::class, 'getAccountRebalancing']);
+        Route::patch('/{id}/rebalancing-threshold', [AccountRebalancingController::class, 'updateRebalancingThreshold']);
         Route::get('/{id}/diversification', [InvestmentController::class, 'getAccountDiversification']);
         Route::patch('/{id}/toggle-retirement', [InvestmentController::class, 'toggleRetirementInclusion']);
     });
@@ -1255,6 +1265,12 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])
 // config is exposed here (that stays behind permission:admin.tax_config below).
 Route::middleware('auth:sanctum')->get('tax-year/current', [TaxYearController::class, 'current']);
 
+// Full tax-config snapshot — frontend hydrates the taxConfig Vuex store from
+// this so components no longer fall back to the hardcoded constants in
+// `resources/js/constants/taxConfig.js`. Same auth surface as `tax-year/current`
+// (UK tax values are public knowledge but we gate behind auth to avoid scrapers).
+Route::middleware('auth:sanctum')->get('tax/config', [TaxConfigController::class, 'show']);
+
 // Tax Settings routes (requires tax config permission)
 Route::middleware(['auth:sanctum', 'permission:admin.tax_config'])->prefix('tax-settings')->group(function () {
     Route::get('/current', [TaxSettingsController::class, 'getCurrent']);
@@ -1334,15 +1350,21 @@ Route::middleware(['auth:sanctum', 'advisor'])
         Route::get('reports', 'reports');
     });
 
-// Bug Report route (works for both authenticated and guest users)
+// Bug Report route — authenticated users only (REVIEW Top-10 #8 / W1-M).
+// Modal is only mounted in authenticated chrome (SideMenu, AppNavbar), so
+// requiring auth here removes the unauthenticated phishing-content surface
+// described in the audit without affecting any legitimate caller.
 Route::post('/bug-report', [BugReportController::class, 'store'])
-    ->middleware('throttle:bug-reports');
+    ->middleware(['auth:sanctum', 'throttle:bug-reports']);
 
 // ===========================
 // Eval-only routes (HTTP-driven eval flow — see April27Updates plan).
-// Refused in production both at the controller and at the route level.
+// Fail-closed: registered ONLY when APP_ENV is one of local/testing/staging.
+// Anything else (production, unset APP_ENV, typo) skips registration entirely.
+// REVIEW.md §4 High #20 — previous `! environment('production')` guard
+// failed open on unset/misconfigured APP_ENV.
 // ===========================
-if (! app()->environment('production')) {
+if (app()->environment(['local', 'testing', 'staging'])) {
     Route::middleware(['throttle:20,1'])->prefix('eval')->group(function () {
         Route::post('/login/{personaId}', [EvalAuthController::class, 'login']);
         Route::middleware('auth:sanctum')->group(function () {

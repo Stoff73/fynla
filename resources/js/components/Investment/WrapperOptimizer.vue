@@ -372,7 +372,7 @@
           <div>
             <div class="flex justify-between items-center mb-2">
               <h4 class="text-sm font-semibold text-neutral-500">Capital Gains Tax Allowance</h4>
-              <span class="text-sm font-semibold text-neutral-500">£{{ cgtAnnualAllowance.toLocaleString() }}</span>
+              <span class="text-sm font-semibold text-neutral-500">£{{ (cgtAnnualAllowance || 0).toLocaleString() }}</span>
             </div>
             <div class="w-full bg-savannah-200 rounded-full h-3 mb-2">
               <div class="h-3 bg-violet-600 rounded-full" style="width: 20%"></div>
@@ -441,9 +441,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { SUCCESS_COLORS, WARNING_COLORS, PRIMARY_COLORS, TEXT_COLORS, CHART_DEFAULTS, BORDER_COLORS } from '@/constants/designSystem';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { CGT_ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 export default {
   name: 'WrapperOptimiser',
@@ -452,7 +452,6 @@ export default {
 
   data() {
     return {
-      cgtAnnualAllowance: CGT_ANNUAL_ALLOWANCE,
       loading: false,
       error: null,
       calculator: {
@@ -466,6 +465,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['cgtAnnualAllowance']),
+
     comparisonChartOptions() {
       return {
         chart: {
@@ -541,7 +542,7 @@ export default {
       // GIA Calculation (with CGT)
       const giaGrossGrowth = investment * (Math.pow(1 + rate, years) - 1);
       const cgtRate = taxBand === 'basic' ? 0.10 : 0.20;
-      const cgtAllowance = CGT_ANNUAL_ALLOWANCE;
+      const cgtAllowance = this.cgtAnnualAllowance;
       const taxableGain = Math.max(0, giaGrossGrowth - cgtAllowance);
       const giaTax = taxableGain * cgtRate;
       const giaFinalValue = investment + giaGrossGrowth - giaTax;

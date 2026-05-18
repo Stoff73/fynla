@@ -366,4 +366,112 @@ class MortgageControllerTest extends TestCase
                 ],
             ]);
     }
+
+    public function test_does_not_500_when_country_arrives_null_on_create(): void
+    {
+        $mortgageData = [
+            'lender_name' => 'Default Bank',
+            'mortgage_type' => 'repayment',
+            'original_loan_amount' => 100000,
+            'outstanding_balance' => 100000,
+            'interest_rate' => 3.0,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 474,
+            'start_date' => now()->format('Y-m-d'),
+            'maturity_date' => now()->addYears(25)->format('Y-m-d'),
+            'country' => null,
+        ];
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/properties/{$this->property->id}/mortgages", $mortgageData);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('mortgages', [
+            'property_id' => $this->property->id,
+            'user_id' => $this->user->id,
+            'lender_name' => 'Default Bank',
+            'country' => 'United Kingdom',
+        ]);
+    }
+
+    public function test_does_not_500_when_country_arrives_empty_string_on_create(): void
+    {
+        $mortgageData = [
+            'lender_name' => 'Default Bank Two',
+            'mortgage_type' => 'repayment',
+            'original_loan_amount' => 100000,
+            'outstanding_balance' => 100000,
+            'interest_rate' => 3.0,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 474,
+            'start_date' => now()->format('Y-m-d'),
+            'maturity_date' => now()->addYears(25)->format('Y-m-d'),
+            'country' => '',
+        ];
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/properties/{$this->property->id}/mortgages", $mortgageData);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('mortgages', [
+            'property_id' => $this->property->id,
+            'user_id' => $this->user->id,
+            'lender_name' => 'Default Bank Two',
+            'country' => 'United Kingdom',
+        ]);
+    }
+
+    public function test_preserves_explicitly_supplied_country_on_create(): void
+    {
+        $mortgageData = [
+            'lender_name' => 'Banque de Test',
+            'mortgage_type' => 'repayment',
+            'original_loan_amount' => 200000,
+            'outstanding_balance' => 200000,
+            'interest_rate' => 2.5,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 897,
+            'start_date' => now()->format('Y-m-d'),
+            'maturity_date' => now()->addYears(20)->format('Y-m-d'),
+            'country' => 'France',
+        ];
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/properties/{$this->property->id}/mortgages", $mortgageData);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('mortgages', [
+            'property_id' => $this->property->id,
+            'user_id' => $this->user->id,
+            'lender_name' => 'Banque de Test',
+            'country' => 'France',
+        ]);
+    }
+
+    public function test_does_not_500_when_country_arrives_null_on_update(): void
+    {
+        $mortgage = Mortgage::factory()->create([
+            'property_id' => $this->property->id,
+            'user_id' => $this->user->id,
+            'country' => 'United Kingdom',
+            'outstanding_balance' => 150000,
+        ]);
+
+        $response = $this->withToken($this->token)
+            ->putJson("/api/mortgages/{$mortgage->id}", [
+                'outstanding_balance' => 145000,
+                'country' => null,
+            ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('mortgages', [
+            'id' => $mortgage->id,
+            'country' => 'United Kingdom',
+            'outstanding_balance' => 145000,
+        ]);
+    }
 }

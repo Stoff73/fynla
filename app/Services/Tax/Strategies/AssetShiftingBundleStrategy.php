@@ -7,7 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 use App\Services\TaxConfigService;
@@ -61,10 +61,11 @@ final class AssetShiftingBundleStrategy implements TaxStrategy
         }
 
         // 2. Savings → spouse: capacity = PA + Starting Rate + PSA basic
-        $userSavings = SavingsAccount::query()
+        // forUser() is joint-aware; the Collection-level where('user_id')
+        // post-filter preserves the original single-owner semantics.
+        $userSavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
-            ->where('is_isa', false)
-            ->get(['current_balance', 'interest_rate']);
+            ->where('is_isa', false);
         $userSavingsTotal = (float) $userSavings->sum('current_balance');
         // Normalise interest_rate (stored as either percent 4.0 or decimal 0.04)
         // before averaging so spouse-shift calculations stay realistic.
