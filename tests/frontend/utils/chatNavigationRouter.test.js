@@ -54,4 +54,26 @@ describe('chatNavigationRouter — matchNavigationIntent', () => {
       expect(matchNavigationIntent('you said my protection was fine, why?')).toBeNull();
     });
   });
+
+  describe('bare triggers must word-boundary match, not substring match', () => {
+    it('"give me an overview of my estate" → null ("view" inside "overview" is not a trigger)', () => {
+      expect(matchNavigationIntent('give me an overview of my estate')).toBeNull();
+    });
+
+    it('"i will review my protection later" → null ("view" inside "review" is not a trigger)', () => {
+      expect(matchNavigationIntent('i will review my protection later')).toBeNull();
+    });
+
+    it('"can you reopen my pensions screen" → null ("open" inside "reopen" is not a trigger)', () => {
+      expect(matchNavigationIntent('can you reopen my pensions screen')).toBeNull();
+    });
+
+    it('"show me an overview" still navigates (real "show me" trigger) → /dashboard', () => {
+      expect(matchNavigationIntent('show me an overview')).toMatchObject({ route: '/dashboard' });
+    });
+
+    it('"open settings" still navigates (real "open" trigger) → /settings', () => {
+      expect(matchNavigationIntent('open settings')).toMatchObject({ route: '/settings' });
+    });
+  });
 });

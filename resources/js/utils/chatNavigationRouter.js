@@ -102,8 +102,14 @@ export function matchNavigationIntent(message) {
   // send it to the LLM so it can answer with conversation context.
   if (META_CONVERSATIONAL.some(pattern => lower.includes(pattern))) return null;
 
-  // Must contain a navigation trigger phrase
-  const hasTrigger = NAV_TRIGGERS.some(trigger => lower.includes(trigger));
+  // Must contain a navigation trigger phrase, matched at word boundaries —
+  // a bare trigger like "view"/"show"/"open" must NOT match inside another
+  // word ("overview", "review", "shown", "reopen"). Triggers are plain
+  // [a-z ] strings; \b sits between an alphanumeric and a non-alphanumeric.
+  const hasTrigger = NAV_TRIGGERS.some((trigger) => {
+    const escaped = trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`).test(lower);
+  });
   if (!hasTrigger) return null;
 
   // Find the best matching route (longest keyword match wins)
