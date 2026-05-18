@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\Stores\Exceptions\TierConfigValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -68,6 +69,32 @@ class TierConfigurationStore
     {
         return TierConfiguration::orderByRaw("FIELD(tier,'free','tier1','tier2','tier3')")
             ->get();
+    }
+
+    /**
+     * Return the lowest active tier whose capability for $capabilityKey equals $verb,
+     * or null if no such tier exists. Tiers are evaluated in canonical ascending order
+     * (free → tier1 → tier2 → tier3). Used to derive accurate CTA targets from the
+     * store rather than hardcoding (SP2 PR7 plan §7.3).
+     *
+     * @return array{tier: string, display_name: string}|null
+     */
+    public function lowestTierWithCapability(string $capabilityKey, string $verb): ?array
+    {
+        foreach (self::TIERS as $candidate) {
+            try {
+                $config = $this->forTier($candidate);
+            } catch (ModelNotFoundException) {
+                continue;
+            }
+
+            $matrix = $config->capability_matrix ?? [];
+            if (($matrix[$capabilityKey] ?? null) === $verb) {
+                return ['tier' => $config->tier, 'display_name' => $config->display_name];
+            }
+        }
+
+        return null;
     }
 
     /** Capability verb (full|none|limited|teaser) for an entity at a tier. */

@@ -45,7 +45,11 @@ class CheckSubscription
      * Shape: [ 'api/estate/' => 'estate', ... ]
      */
     private const CAPABILITY_ROUTE_MAP = [
-        // PR 7: 'api/estate/' => 'estate',
+        // PR 7: 'teaser' capability means the GET index is allowed (controller
+        // returns the teaser payload); 'none' would hard-deny even teaser access.
+        // 'full' allows the complete module. The controller gates full-only
+        // sub-routes internally for defence-in-depth.
+        'api/estate' => 'estate',
     ];
 
     public function __construct(
