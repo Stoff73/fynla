@@ -7,10 +7,12 @@ use App\Events\Eval\EngineCalled;
 use App\Events\Eval\GateChecked;
 use App\Models\User;
 use App\Services\Eval\EvalTraceCollector;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
+    $this->seed(TierConfigurationSeeder::class);
     Artisan::call('db:seed', ['--class' => 'PreviewUserSeeder']);
 });
 

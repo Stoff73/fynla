@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
+    $this->seed(TierConfigurationSeeder::class);
     Artisan::call('db:seed', ['--class' => 'PreviewUserSeeder']);
 });
 
