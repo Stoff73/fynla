@@ -9,6 +9,7 @@ use App\Http\Requests\Documents\ConfirmExtractionRequest;
 use App\Http\Requests\Documents\UploadDocumentRequest;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Document;
+use App\Services\Documents\DocumentAllowanceGate;
 use App\Services\Documents\DocumentProcessor;
 use App\Services\Documents\ExcelParserService;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,8 @@ class DocumentController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private DocumentProcessor $processor
+        private DocumentProcessor $processor,
+        private readonly DocumentAllowanceGate $allowanceGate,
     ) {}
 
     /**
@@ -45,6 +47,15 @@ class DocumentController extends Controller
      */
     public function upload(UploadDocumentRequest $request): JsonResponse
     {
+        $blocked = $this->allowanceGate->check($request->user(), $request->file('document')?->getSize() ?? 0);
+        if ($blocked !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => $blocked['reason'],
+                'upgrade_cta' => $blocked,
+            ], 422);
+        }
+
         try {
             $file = $request->file('document');
             $mimeType = $file->getMimeType();
@@ -100,6 +111,15 @@ class DocumentController extends Controller
      */
     public function uploadOnly(UploadDocumentRequest $request): JsonResponse
     {
+        $blocked = $this->allowanceGate->check($request->user(), $request->file('document')?->getSize() ?? 0);
+        if ($blocked !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => $blocked['reason'],
+                'upgrade_cta' => $blocked,
+            ], 422);
+        }
+
         try {
             $document = $this->processor->uploadOnly(
                 $request->file('document'),
