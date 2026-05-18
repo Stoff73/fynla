@@ -79,3 +79,23 @@ it('allOrdered returns every tier (active and inactive) in canonical order', fun
     expect($tiers->pluck('tier')->all())->toBe(['free', 'tier1', 'tier2', 'tier3'])
         ->and($tiers->firstWhere('tier', 'tier2')->is_active)->toBeFalse();
 });
+
+it('lowestTierWithCapability returns the first tier whose estate capability is full', function () {
+    $result = $this->store->lowestTierWithCapability('estate', 'full');
+
+    expect($result)->toBeArray()
+        ->and($result['tier'])->toBe('tier2')
+        ->and($result)->toHaveKeys(['tier', 'display_name']);
+});
+
+it('lowestTierWithCapability returns null when no tier matches the requested verb', function () {
+    $result = $this->store->lowestTierWithCapability('estate', 'nonexistent_verb');
+
+    expect($result)->toBeNull();
+});
+
+it('lowestTierWithCapability returns null when no tier has the requested capability key', function () {
+    $result = $this->store->lowestTierWithCapability('unknown_capability_key', 'full');
+
+    expect($result)->toBeNull();
+});

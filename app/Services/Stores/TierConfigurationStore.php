@@ -72,28 +72,25 @@ class TierConfigurationStore
     }
 
     /**
-     * Return the next active paid tier above $tier, or null if already at the top.
-     * Used to derive CTA label/target from the store rather than hardcoding (SP2 PR7 plan §7.3).
+     * Return the lowest active tier whose capability for $capabilityKey equals $verb,
+     * or null if no such tier exists. Tiers are evaluated in canonical ascending order
+     * (free → tier1 → tier2 → tier3). Used to derive accurate CTA targets from the
+     * store rather than hardcoding (SP2 PR7 plan §7.3).
      *
      * @return array{tier: string, display_name: string}|null
      */
-    public function nextTierAbove(string $tier): ?array
+    public function lowestTierWithCapability(string $capabilityKey, string $verb): ?array
     {
-        $ordered = self::TIERS;
-        $idx = array_search($tier, $ordered, true);
-
-        if ($idx === false) {
-            return null;
-        }
-
-        $remaining = array_slice($ordered, $idx + 1);
-        foreach ($remaining as $candidate) {
+        foreach (self::TIERS as $candidate) {
             try {
                 $config = $this->forTier($candidate);
-
-                return ['tier' => $config->tier, 'display_name' => $config->display_name];
             } catch (ModelNotFoundException) {
                 continue;
+            }
+
+            $matrix = $config->capability_matrix ?? [];
+            if (($matrix[$capabilityKey] ?? null) === $verb) {
+                return ['tier' => $config->tier, 'display_name' => $config->display_name];
             }
         }
 

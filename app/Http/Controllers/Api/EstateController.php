@@ -35,7 +35,6 @@ use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
 use App\Services\Tiers\EstateIhtExposureDetector;
 use App\Services\Tiers\TeaserGate;
-use App\Services\Tiers\TierResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,7 +54,6 @@ class EstateController extends Controller
         private readonly TeaserGate $teaserGate,
         private readonly EstateIhtExposureDetector $ihtExposureDetector,
         private readonly TierConfigurationStore $tierStore,
-        private readonly TierResolver $tierResolver,
     ) {}
 
     /**
@@ -74,11 +72,10 @@ class EstateController extends Controller
         if (! $this->teaserGate->isFull($user, 'estate')) {
             $teaser = $this->ihtExposureDetector->detect($user);
 
-            // CTA label/target from TierConfigurationStore (plan §7.3 — not hardcoded).
-            $resolvedTier = $this->tierResolver->resolve($user);
-            $nextTier = $this->tierStore->nextTierAbove($resolvedTier);
-            $ctaLabel = $nextTier
-                ? "Upgrade to {$nextTier['display_name']} to unlock full Estate Planning"
+            // CTA label/target: cheapest tier that grants full Estate (plan §7.3 — not hardcoded).
+            $targetTier = $this->tierStore->lowestTierWithCapability('estate', 'full');
+            $ctaLabel = $targetTier
+                ? "Upgrade to {$targetTier['display_name']} to unlock full Estate Planning"
                 : 'Upgrade to unlock full Estate Planning';
 
             return response()->json([
@@ -86,7 +83,7 @@ class EstateController extends Controller
                 'teaser' => $teaser,
                 'cta' => [
                     'label' => $ctaLabel,
-                    'target_tier' => $nextTier['tier'] ?? null,
+                    'target_tier' => $targetTier['tier'] ?? null,
                 ],
             ]);
         }

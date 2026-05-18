@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +35,31 @@ it('tier1 user hitting the full Estate endpoint gets the teaser', function () {
     $this->getJson('/api/estate')
         ->assertOk()
         ->assertJsonPath('mode', 'teaser');
+});
+
+it('free user teaser CTA targets the lowest tier with full estate (tier2, not tier1)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    // Derive expected values from the store — test stays correct if seeder changes
+    $store = app(TierConfigurationStore::class);
+    $expected = $store->lowestTierWithCapability('estate', 'full');
+
+    $response = $this->getJson('/api/estate')->assertOk()->json();
+
+    expect($response['cta']['target_tier'])->toBe($expected['tier'])
+        ->and($response['cta']['label'])->toContain($expected['display_name']);
+});
+
+it('tier1 user teaser CTA also targets the lowest tier with full estate (tier2, not tier3)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier1']));
+
+    $store = app(TierConfigurationStore::class);
+    $expected = $store->lowestTierWithCapability('estate', 'full');
+
+    $response = $this->getJson('/api/estate')->assertOk()->json();
+
+    expect($response['cta']['target_tier'])->toBe($expected['tier'])
+        ->and($response['cta']['label'])->toContain($expected['display_name']);
 });
 
 it('tier2 user gets the full Estate module', function () {
