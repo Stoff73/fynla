@@ -31,6 +31,8 @@ use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\EstateIhtExposureDetector;
+use App\Services\Tiers\TeaserGate;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,15 +47,36 @@ class EstateController extends Controller
         private readonly ComprehensiveEstatePlanService $comprehensiveEstatePlan,
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly TeaserGate $teaserGate,
+        private readonly EstateIhtExposureDetector $ihtExposureDetector,
     ) {}
 
     /**
-     * Get all estate planning data for authenticated user
+     * Get all estate planning data for authenticated user.
+     *
+     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free and Tier1 users
+     * receive a cheap IHT-exposure signal rather than the full module.
+     * The Vue view branches on `mode` for defence-in-depth, but this
+     * response is authoritative.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        // Defence-in-depth: server is the authoritative gate (spec §10.2).
+        if (! $this->teaserGate->isFull($user, 'estate')) {
+            $teaser = $this->ihtExposureDetector->detect($user);
+
+            return response()->json([
+                'mode' => 'teaser',
+                'teaser' => $teaser,
+                'cta' => [
+                    'label' => 'Upgrade to unlock full Estate Planning',
+                    'target_tier' => 'tier2',
+                ],
+            ]);
+        }
 
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
         $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
@@ -116,6 +139,7 @@ class EstateController extends Controller
         });
 
         return response()->json([
+            'mode' => 'full',
             'success' => true,
             'data' => [
                 'assets' => AssetResource::collection($assets),

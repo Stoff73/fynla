@@ -5,7 +5,7 @@
       <div class="">
       <!-- Loading State -->
       <div v-if="initialLoading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600"></div>
+        <div class="w-10 h-10 border-4 border-horizon-200 border-t-raspberry-500 rounded-full animate-spin"></div>
       </div>
 
       <!-- Error State -->
@@ -13,28 +13,42 @@
         v-else-if="error"
         class="bg-raspberry-50 border border-raspberry-200 p-4 mb-6"
       >
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg
-              class="h-5 w-5 text-raspberry-400"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <p class="text-sm text-raspberry-700">{{ error }}</p>
-          </div>
+        <div class="ml-3">
+          <p class="text-sm text-raspberry-700">{{ error }}</p>
         </div>
       </div>
 
-      <!-- Main Content -->
+      <!-- Teaser Gate: Free / Tier 1 users (SP2 PR7) -->
+      <!-- Rule #16: detail views are a banned surface for icons/emoji. Plain text + design tokens only. -->
+      <div v-else-if="mode === 'teaser'" class="max-w-2xl mx-auto px-4 py-10">
+        <h2 class="text-xl font-bold text-horizon-500 mb-2">Estate Planning</h2>
+
+        <div v-if="teaserData" class="bg-white border border-horizon-200 rounded-lg p-6 mb-6">
+          <p class="text-horizon-500 text-base mb-1">{{ teaserData.headline }}</p>
+          <p
+            v-if="teaserData.exposed && teaserData.estimated_liability_gbp > 0"
+            class="text-sm text-horizon-500 mt-2"
+          >
+            Estimated Inheritance Tax exposure: <span class="font-semibold">{{ formatEstimatedLiability(teaserData.estimated_liability_gbp) }}</span>
+          </p>
+        </div>
+
+        <div class="bg-eggshell border border-horizon-200 rounded-lg p-6">
+          <p class="text-sm text-horizon-500 mb-4">
+            Upgrade to Tier 2 to unlock the full Estate Planning module, including personalised
+            Inheritance Tax planning, gifting strategies, will planning, trusts, and
+            Powers of Attorney.
+          </p>
+          <router-link
+            to="/pricing"
+            class="inline-block bg-raspberry-500 hover:bg-raspberry-600 text-white font-semibold text-sm px-6 py-2 rounded transition-colors"
+          >
+            {{ teaserCta ? teaserCta.label : 'Upgrade to unlock full Estate Planning' }}
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Full Module: Tier 2 / Tier 3 users -->
       <div v-else>
         <!-- Will Builder Banner (only show when no will exists) -->
         <div v-if="!hasWillDocument" class="mb-6">
@@ -70,15 +84,18 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import estateService from '@/services/estateService';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'EstateDashboard',
+
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -95,6 +112,7 @@ export default {
 
   computed: {
     ...mapState('estate', ['error', 'willInfo']),
+    ...mapGetters('estate', ['mode', 'teaserData', 'teaserCta']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
@@ -107,6 +125,12 @@ export default {
 
   methods: {
     ...mapActions('estate', ['fetchEstateData']),
+
+    // SP2 PR7: format the estimated IHT liability for the teaser panel.
+    // Uses currencyMixin (Rule #6 — never define local formatCurrency).
+    formatEstimatedLiability(value) {
+      return this.formatCurrency(value);
+    },
 
     async loadEstateData() {
       try {
