@@ -80,6 +80,20 @@ final class FynContextAssembler
             $lines[] = $ctx->kycResult['prompt_text'];
         }
 
+        // Billing guidance (parity with legacy AdvicePromptBuilder Layer 3c,
+        // AdvicePromptBuilder.php:123-125). Classification-gated on BILLING
+        // and suppressed in preview, exactly as the legacy builder injects
+        // it — NOT a ContextBucket, same as the KYC layer above. Reuses the
+        // legacy builder verbatim (zero drift, per this class's contract).
+        // Restores the subscription/invoice journey under unified: PR #335
+        // deleted <billing_guidance> from the static FynSystemPrompt without
+        // a per-turn replacement, silently removing Fyn's billing surface
+        // when unified became the default. See memory
+        // feedback_fyn_reaches_every_surface + reference_unified_prompt_has_no_billing_layer.
+        if (! $ctx->isPreview && $this->advice->isBillingQuery($ctx->classification)) {
+            $lines[] = $this->advice->getBillingGuidance();
+        }
+
         if ($has(ContextBucket::CAPTURE)) {
             $focus = (string) $ctx->onboardingFocus;
             $lines[] = FynCaptureTurnInstructions::render(

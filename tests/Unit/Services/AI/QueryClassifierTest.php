@@ -41,6 +41,50 @@ describe('QueryClassifier', function () {
         });
     });
 
+    describe('billing classification (precedence over navigation)', function () {
+        // Regression: billing is answered in-chat via get_subscription_status
+        // + list_invoices; <billing_guidance> forbids navigating the user to a
+        // settings page. A billing entity in the message must beat the
+        // NAVIGATION step so the unified assembler injects <billing_guidance>.
+        it('classifies "show me my invoice" as billing, not navigation', function () {
+            expect($this->classifier->classify('show me my invoice')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "show my subscription" as billing', function () {
+            expect($this->classifier->classify('show my subscription')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "where is my invoice" as billing', function () {
+            expect($this->classifier->classify('where is my invoice')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "show me my billing" as billing', function () {
+            expect($this->classifier->classify('show me my billing')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "what is my subscription status and where are my invoices" as billing', function () {
+            expect($this->classifier->classify('what is my subscription status and where are my invoices')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        // ISA-subscription is a savings concept, NOT Fynla billing — the
+        // fixed-width negative lookbehind must keep it out of BILLING.
+        it('does NOT classify "what is my ISA subscription limit" as billing', function () {
+            expect($this->classifier->classify('what is my ISA subscription limit')['primary'])
+                ->not->toBe(QuerySchemas::BILLING);
+        });
+
+        // Genuine navigation with no billing entity must still be navigation.
+        it('keeps "take me to my goals page" as navigation', function () {
+            expect($this->classifier->classify('take me to my goals page')['primary'])
+                ->toBe(QuerySchemas::NAVIGATION);
+        });
+    });
+
     describe('advice classification', function () {
         it('classifies "How do I maximise my pension?" as retirement_contribution with related types', function () {
             $result = $this->classifier->classify('How do I maximise my pension?');

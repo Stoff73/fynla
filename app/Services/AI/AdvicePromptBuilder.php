@@ -280,8 +280,11 @@ PROMPT;
      * when the query's primary classification is BILLING. Centralised here
      * (rather than inline in build()) so the guard can be unit-tested
      * directly and reused by future per-classification layers.
+     *
+     * Public so the unified FynContextAssembler reuses the identical gate
+     * verbatim (parity with legacy Layer 3c — no behavioural drift).
      */
-    private function isBillingQuery(?array $classification): bool
+    public function isBillingQuery(?array $classification): bool
     {
         return ($classification['primary'] ?? null) === QuerySchemas::BILLING;
     }
@@ -294,8 +297,11 @@ PROMPT;
      * `get_subscription_status` tool result (HasAiChat consumes the
      * `action: navigate` field) — the assistant must NOT add a manual
      * "click here" link or instruct the user to navigate.
+     *
+     * Public so the unified FynContextAssembler emits the identical block
+     * verbatim (parity with legacy Layer 3c — no behavioural drift).
      */
-    private function getBillingGuidance(): string
+    public function getBillingGuidance(): string
     {
         return <<<'PROMPT'
 <billing_guidance>

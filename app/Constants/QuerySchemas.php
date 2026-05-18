@@ -221,7 +221,15 @@ final class QuerySchemas
             '/\binvoice(s)?\b/i',
             '/\breceipt(s)?\b/i',
             '/\b(billing|bill)\s+(history|cycle|date)\b/i',
+            // Bare "billing" is unambiguously the billing surface in Fynla
+            // ("show me my billing", "billing page"). The narrower
+            // history|cycle|date pattern above stays for related-type signal.
+            '/\bbilling\b/i',
             '/\bsubscription\s+(status|plan|active|cancelled|paused|trial|trialing|renew(al|s)?)\b/i',
+            // Bare "subscription" ("show my subscription", "my subscription")
+            // EXCEPT the ISA-subscription savings concept ("ISA subscription
+            // limit") — fixed-width negative lookbehind, case-insensitive.
+            '/\b(?<!isa\s)subscription\b/i',
             '/\bnext\s+(charge|payment|bill|invoice)\b/i',
             '/\bwhen\s+(am\s+i\s+)?charged\b/i',
             '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',
