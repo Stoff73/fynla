@@ -47,17 +47,14 @@ class DocumentAllowanceGate
         $tier = $this->resolver->resolve($user);
         $config = $this->store->forTier($tier);
 
-        // Count gate: count only non-deleted (active retained) documents
+        // Count gate: SoftDeletes global scope already excludes soft-deleted rows.
         $retainedCount = Document::where('user_id', $user->id)
-            ->whereNull('deleted_at')
             ->count();
 
         $allowance = $config->document_upload_allowance;
 
         if ($retainedCount >= $allowance) {
-            $targetTier = $this->store->lowestTierWithCapability('dashboard', 'full');
-
-            // Find the lowest tier with a higher allowance
+            // Find the lowest tier with a strictly higher allowance
             $upgrade = null;
             foreach (TierConfigurationStore::TIERS as $candidate) {
                 if ($this->store->forTier($candidate)->document_upload_allowance > $allowance) {
@@ -79,15 +76,16 @@ class DocumentAllowanceGate
         if ($config->document_storage_gb !== null) {
             $storageCeilingBytes = (float) $config->document_storage_gb * 1024 * 1024 * 1024;
 
+            // SoftDeletes global scope already excludes soft-deleted rows.
             $usedBytes = Document::where('user_id', $user->id)
-                ->whereNull('deleted_at')
                 ->sum('file_size');
 
             if (($usedBytes + $newFileSizeBytes) > $storageCeilingBytes) {
                 $upgrade = null;
                 foreach (TierConfigurationStore::TIERS as $candidate) {
                     $cand = $this->store->forTier($candidate);
-                    if ($cand->document_storage_gb === null || (float) $cand->document_storage_gb > (float) $config->document_storage_gb) {
+                    if ($cand->document_storage_gb !== null
+                        && (float) $cand->document_storage_gb > (float) $config->document_storage_gb) {
                         $upgrade = ['tier' => $candidate, 'display_name' => $cand->display_name];
                         break;
                     }

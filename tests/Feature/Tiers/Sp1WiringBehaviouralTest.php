@@ -81,7 +81,7 @@ describe('DocumentAllowanceGate (§11)', function () {
         expect($gate->check($user))->toBeNull();
     });
 
-    it('enforces storage ceiling for tier2 users', function () {
+    it('enforces storage ceiling for tier2 users and targets tier3 as upgrade', function () {
         $user = User::factory()->create(['tier' => 'tier2']); // 5 GB ceiling
 
         // Simulate docs near the storage ceiling (just under 5 GB)
@@ -89,13 +89,36 @@ describe('DocumentAllowanceGate (§11)', function () {
         Document::factory()->create(['user_id' => $user->id, 'file_size' => $fourGb]);
 
         $gate = app(DocumentAllowanceGate::class);
+        $store = app(TierConfigurationStore::class);
 
         // A 200 MB file would push over the 5 GB ceiling
         $twoHundredMb = 200 * 1024 * 1024;
         $result = $gate->check($user, $twoHundredMb);
 
         expect($result)->not->toBeNull()
-            ->and($result['entity_key'])->toBe('document_storage');
+            ->and($result['entity_key'])->toBe('document_storage')
+            ->and($result['target_tier'])->toBeArray()
+            ->and($result['target_tier']['tier'])->toBe('tier3')
+            ->and($result['target_tier']['display_name'])->toBe($store->forTier('tier3')->display_name);
+    });
+
+    it('count allowance block for tier2 user targets tier3 (next strictly-greater allowance)', function () {
+        $user = User::factory()->create(['tier' => 'tier2']); // allowance = 5
+
+        // 5 existing — at the limit
+        Document::factory(5)->create(['user_id' => $user->id]);
+
+        $gate = app(DocumentAllowanceGate::class);
+        $store = app(TierConfigurationStore::class);
+        $result = $gate->check($user);
+
+        expect($result)->not->toBeNull()
+            ->and($result['allowed'])->toBeFalse()
+            ->and($result['entity_key'])->toBe('document_upload')
+            ->and($result['limit'])->toBe(5)
+            ->and($result['target_tier'])->toBeArray()
+            ->and($result['target_tier']['tier'])->toBe('tier3')
+            ->and($result['target_tier']['display_name'])->toBe($store->forTier('tier3')->display_name);
     });
 
     it('tier2/3 storage ceiling null (tier1) means no storage check', function () {

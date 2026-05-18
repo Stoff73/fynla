@@ -402,12 +402,13 @@ class AuthController extends Controller
                 'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
             ];
         } catch (ModelNotFoundException) {
-            // Seeder not yet run — provide safe defaults so the frontend never breaks.
+            // Seeder not yet run — return nulls so the frontend degrades gracefully.
+            // open_api_affordance defaults false (capability-off, not a tier number).
             $tierFlags = [
                 'resolved_tier' => $resolvedTier,
                 'open_api_affordance' => false,
-                'currency_display_mode' => 'gbp_only',
-                'snapshot_surfacing_window_days' => 90,
+                'currency_display_mode' => null,
+                'snapshot_surfacing_window_days' => null,
             ];
         }
 
