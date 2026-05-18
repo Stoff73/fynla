@@ -260,7 +260,7 @@ final class AdviceFyn
         // policy / account / pension / etc." AND no matching record already
         // exists, route the turn through OnboardingChatDirector::handleInlineCapture
         // directly. This decouples the write path from LLM tool-call
-        // reliability — grok-4-1-fast occasionally emits delegate_to_capture
+        // reliability — grok-4.3 occasionally emits delegate_to_capture
         // as plain `<function_call>` text instead of using the structured
         // tool API, which made BS-11/14/17 flaky on the LLM-mediated path.
         // The classifier is conservative: ambiguous messages fall through
