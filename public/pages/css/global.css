@@ -1,0 +1,286 @@
+/**
+ * Fynla public pages — global stylesheet
+ *
+ * Included on every public PHP page via <link rel="stylesheet">.
+ * Contains: design tokens, reset, skip nav, nav partial, footer partial.
+ * Never put page-specific module styles here.
+ */
+
+/* ===================================================================
+   DESIGN TOKENS — all hex values defined here once; nowhere else
+   =================================================================== */
+:root {
+  /* Raspberry — CTAs, errors, highlights */
+  --raspberry-300: #F472B6;
+  --raspberry-400: #EC4899;
+  --raspberry-500: #E83E6D;
+  --raspberry-600: #DB2777;
+
+  /* Horizon — text, nav, headings */
+  --horizon-100: #F1F5F9;
+  --horizon-200: #E2E8F0;
+  --horizon-300: #CBD5E1;
+  --horizon-400: #94A3B8;
+  --horizon-500: #1F2A44;
+  --horizon-600: #0F172A;
+  --horizon-700: #020617;
+
+  /* Spring — success, positive CTAs */
+  --spring-400: #34D399;
+  --spring-500: #20B486;
+  --spring-600: #059669;
+  --spring-700: #047857;
+
+  /* Violet — warnings, focus */
+  --violet-500: #5854E6;
+
+  /* Savannah — hover, subtle backgrounds */
+  --savannah-100: #FDFAF7;
+  --savannah-200: #FAF5F0;
+  --savannah-300: #F5EDE5;
+  --savannah-400: #EFDCD1;
+  --savannah-500: #E6C9A8;
+
+  /* Eggshell — page background */
+  --eggshell-500: #F7F6F4;
+
+  /* Neutrals */
+  --neutral-400: #9CA3AF;
+  --neutral-500: #717171;
+  --neutral-600: #4B5563;
+
+  /* Light Blue */
+  --light-blue-100: #DDE2EF;
+  --light-blue-500: #6C83BC;
+
+  /* Light Pink */
+  --light-pink-50:  #FDF0F4;
+  --light-pink-100: #FAD6E0;
+  --light-pink-200: #F5B3C5;
+
+  /* Utility */
+  --light-gray: #EEEEEE;
+  --white:      #FFFFFF;
+
+  /* Alpha variants (rgba overlays — defined once here, used via var()) */
+  --white-80:       rgba(255, 255, 255, 0.80);
+  --white-70:       rgba(255, 255, 255, 0.70);
+  --white-40:       rgba(255, 255, 255, 0.40);
+  --white-30:       rgba(255, 255, 255, 0.30);
+  --white-25:       rgba(255, 255, 255, 0.25);
+  --white-20:       rgba(255, 255, 255, 0.20);
+  --white-15:       rgba(255, 255, 255, 0.15);
+  --white-10:       rgba(255, 255, 255, 0.10);
+  --white-8:        rgba(255, 255, 255, 0.08);
+  --white-12:       rgba(255, 255, 255, 0.12);
+  --white-90:       rgba(255, 255, 255, 0.90);
+  --horizon-500-30: rgba(31,  42,  68,  0.30);
+  --horizon-500-20: rgba(31,  42,  68,  0.20);
+  --horizon-700-60: rgba(2,   6,   23,  0.60);
+  --horizon-700-80: rgba(2,   6,   23,  0.80);
+  --black-05:       rgba(0,   0,   0,   0.05);
+  --black-10:       rgba(0,   0,   0,   0.10);
+
+  /* Yellow (star ratings) */
+  --yellow-400: #FBBF24;
+
+  /* Typography */
+  --font-primary: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Radius */
+  --radius-sm:     0.375rem;
+  --radius-md:     0.5rem;
+  --radius-lg:     0.75rem;
+  --radius-xl:     0.75rem;
+  --radius-2xl:    1rem;
+  --radius-3xl:    1.5rem;
+  --radius-button: 0.5rem;
+  --radius-card:   0.75rem;
+  --radius-full:   9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 var(--black-05);
+  --shadow-md: 0 4px 6px -1px var(--black-10), 0 2px 4px -2px var(--black-10);
+  --shadow-lg: 0 10px 15px -3px var(--black-10), 0 4px 6px -4px var(--black-10);
+}
+
+/* ===================================================================
+   RESET & BASE
+   =================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Ensure [hidden] always wins over author display:flex/grid rules */
+[hidden] { display: none !important; }
+html   { scroll-behavior: smooth; }
+body   { font-family: var(--font-primary); background: var(--eggshell-500); color: var(--horizon-500); line-height: 1.5; min-height: 100vh; }
+img    { display: block; max-width: 100%; }
+a      { color: inherit; text-decoration: none; }
+ul     { list-style: none; }
+button { cursor: pointer; font-family: inherit; }
+
+/* ===================================================================
+   SKIP NAV
+   =================================================================== */
+.skip-nav {
+  position: absolute; top: -100%; left: 1rem;
+  background: var(--raspberry-500); color: var(--white);
+  padding: 0.5rem 1rem; border-radius: var(--radius-md);
+  font-weight: 600; z-index: 9999; transition: top 0.2s;
+}
+.skip-nav:focus { top: 1rem; }
+
+/* ===================================================================
+   NAV — styles for partials/nav.php
+   =================================================================== */
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid var(--light-gray);
+}
+.nav-primary__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+  display: flex; align-items: center; justify-content: flex-start;
+  height: 4rem; position: relative;
+}
+.nav-logo__img { height: 3.5rem; width: auto; }
+.nav-desktop   { display: none; align-items: center; gap: 1.5rem; margin-left: 2rem; }
+.nav-link {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0.25rem; font-size: 0.875rem; font-weight: 500;
+  color: var(--neutral-500); background: none; border: none;
+  transition: color 0.15s ease;
+}
+.nav-link:hover, .nav-link.is-active { color: var(--raspberry-500); }
+.nav-link__chevron { transition: transform 0.2s ease; flex-shrink: 0; }
+/* nav-dropdown is position:static so the mega-menu positions relative
+   to nav-primary__inner (position:relative) — this centres the panel
+   over the full content width rather than the narrow trigger button */
+.nav-dropdown { position: static; }
+
+/* Mega menu */
+.mega-menu {
+  position: absolute; top: 100%;
+  left: 50%; transform: translateX(-50%);
+  width: min(60rem, calc(100vw - 2rem));
+  background: var(--white); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg); border: 1px solid var(--light-gray);
+  padding: 1.5rem; z-index: 50;
+}
+.mega-menu__inner  { display: flex; gap: 2rem; }
+.mega-menu__col--fixed { width: 16rem; flex-shrink: 0; }
+.mega-menu__col--grow  { flex: 1; }
+.mega-menu__divider    { width: 1px; background: var(--neutral-400); opacity: 0.3; }
+.mega-menu__label {
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--neutral-600); margin-bottom: 1rem;
+}
+.mega-menu__links { display: flex; flex-direction: column; gap: 0.5rem; }
+.mega-menu__grid  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.mega-menu__grid--full { grid-template-columns: repeat(3, 1fr); }
+.mega-menu__item {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.75rem; border-radius: var(--radius-lg);
+  background: var(--eggshell-500); transition: background 0.15s ease;
+}
+.mega-menu__item:hover { background: var(--light-pink-100); }
+.mega-menu__icon { color: var(--horizon-500); flex-shrink: 0; margin-top: 0.125rem; }
+.mega-menu__item-title {
+  display: block; font-size: 1rem; font-weight: 700; color: var(--horizon-500);
+  transition: color 0.15s ease;
+}
+.mega-menu__item:hover .mega-menu__item-title { color: var(--raspberry-500); }
+.mega-menu__item-sub {
+  display: block; font-size: 0.75rem; color: var(--neutral-500);
+  margin-top: 0.25rem; line-height: 1.4;
+}
+
+/* Sign in */
+.nav-actions { display: none; align-items: center; margin-left: auto; }
+.nav-signin-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.75rem; border-radius: var(--radius-md);
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--horizon-500); background: var(--light-pink-100);
+  transition: background 0.15s ease;
+}
+.nav-signin-btn:hover { background: var(--light-pink-200); }
+
+/* Hamburger */
+.nav-hamburger {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.5rem; border-radius: var(--radius-md);
+  background: none; border: none; color: var(--horizon-400);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-hamburger:hover { background: var(--savannah-100); color: var(--neutral-500); }
+.hamburger-icon--close { display: none; }
+.nav-hamburger[aria-expanded="true"] .hamburger-icon--open  { display: none; }
+.nav-hamburger[aria-expanded="true"] .hamburger-icon--close { display: block; }
+
+/* Mobile menu */
+.mobile-menu { border-top: 1px solid var(--light-gray); background: var(--white); }
+.mobile-menu__body { padding: 0.5rem 0 0.75rem; }
+.mobile-menu__link {
+  display: block; padding: 0.5rem 1rem 0.5rem 0.75rem;
+  font-size: 1rem; font-weight: 500; color: var(--horizon-500);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mobile-menu__link:hover { background: var(--savannah-100); color: var(--raspberry-500); }
+.mobile-accordion__trigger {
+  display: flex; width: 100%; align-items: center; justify-content: space-between;
+  padding: 0.5rem 1rem 0.5rem 0.75rem; font-size: 1rem; font-weight: 500;
+  color: var(--horizon-500); background: none; border: none; text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mobile-accordion__trigger:hover { background: var(--savannah-100); color: var(--raspberry-500); }
+.mobile-accordion__chevron { transition: transform 0.2s ease; flex-shrink: 0; }
+.mobile-accordion__panel  { padding-left: 1.5rem; padding-bottom: 0.25rem; }
+.mobile-menu__sublink {
+  display: block; padding: 0.375rem 0; font-size: 0.875rem;
+  color: var(--neutral-500); transition: color 0.15s ease;
+}
+.mobile-menu__sublink:hover { color: var(--raspberry-500); }
+.mobile-menu__sublabel {
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--neutral-400);
+  padding-top: 0.5rem; padding-bottom: 0.25rem;
+}
+
+/* ===================================================================
+   FOOTER — styles for partials/footer.php
+   =================================================================== */
+.site-footer {
+  background: linear-gradient(to right, var(--horizon-600), var(--horizon-700));
+  padding-top: 10rem;
+}
+.site-footer__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem 3rem; }
+.site-footer__grid  { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+.site-footer__logo  { height: 3.5rem; width: auto; margin-bottom: 1rem; margin-top: -0.75rem; }
+.site-footer__tagline { font-size: 0.875rem; color: var(--white-70); line-height: 1.625; }
+.site-footer__heading { font-size: 0.875rem; font-weight: 700; color: var(--white); margin-bottom: 1rem; }
+.site-footer__list  { display: flex; flex-direction: column; gap: 0.5rem; }
+.site-footer__link  { font-size: 0.875rem; color: var(--white-70); transition: color 0.15s ease; }
+.site-footer__link:hover { color: var(--white); }
+.site-footer__bottom {
+  border-top: 1px solid var(--white-20); margin-top: 2rem; padding-top: 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem;
+}
+.site-footer__copy        { font-size: 0.875rem; color: var(--white-70); }
+.site-footer__social      { display: flex; align-items: center; gap: 1rem; }
+.site-footer__social-link { color: var(--white-70); transition: color 0.15s ease; }
+.site-footer__social-link:hover { color: var(--white); }
+
+/* ===================================================================
+   RESPONSIVE — nav and footer breakpoints only
+   =================================================================== */
+@media (min-width: 1024px) {
+  .nav-desktop   { display: flex; }
+  .nav-actions   { display: flex; }
+  .nav-hamburger { display: none; }
+  .nav-primary__inner { padding-left: 2rem; padding-right: 2rem; }
+  .site-footer__grid  { grid-template-columns: 2fr repeat(5, 1fr); }
+  .site-footer__inner { padding-left: 2rem; padding-right: 2rem; }
+  /* Mega-menu item heights are equalised by JS (equalizeGridItems) on open,
+     so no grid-auto-rows hack is needed here */
+}
