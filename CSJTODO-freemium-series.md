@@ -13,7 +13,7 @@ SP1 pass-1 plan: `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings
 
 | SP | Title | Spec | Plan | State |
 |----|-------|------|------|-------|
-| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION: PR1–4 of 9 done** (merged to `sp2Freemium`, two-stage reviewed, browser-tested). §22 A9 RESOLVED (all legacy cohorts → Free; no existing payers). **PR5–9 pending** — PR5 must fold in PaymentController/CheckoutPage tier-key acceptance (legacy-slug-locked, surfaced by PR4 §5.2 fix). Awaiting CSJ go-ahead to continue PR5. |
+| 2 | Freemium tier model + count caps + Fyn metering | ☑ | ☑ | spec+plan COMPLETE. **EXECUTION: PR1–6 of 9 MERGED** to `sp2Freemium` (PRs #327–#331,#333; two-stage reviewed; PR4 browser-tested; PR5 took 4 fix rounds → full tier grant+revoke lifecycle on 7 paths; PR6 preview-exempt). §22 A9 RESOLVED (all legacy→Free; no existing payers). **PR7 = UNREVIEWED WIP** committed `cc254f0a` on `feature/csj/sp2-pr7-teaser-gate` (NOT verified/merged — next session resumes the two-stage review loop on it). **PR8–9 pending.** PR9 scope AUGMENTED: also close pre-existing SP2-caused suite regressions (tests missing `TierConfigurationSeeder` in beforeEach via SavingsStore→DbTierGate). `sp2Freemium`@`ae3ca9d8`. |
 | 3 | Mobile-first iframe-framed `/m/*` shell | ☐ | ☐ | brainstorming (next) |
 | 4 | Campaign engine (Save-Tax landing pages) | ☐ | ☐ | not started |
 | 5 | Track-lightweight onboarding | ☐ | ☐ | not started |
@@ -157,3 +157,23 @@ explore context → clarify open decisions → propose approaches → present de
   session handover (PR2 plan-doc fixture stale snippet; csjones deploy-stage
   browser tests for PR3/4/6/7/8 deferred to SP2 deploy; PermissiveTierGate
   dead class + duplicate binding test → PR9 sweep).
+- 2026-05-18 EXECUTION PROGRESS: PR5 MERGED (#331; 4 fix rounds — confirm-500
+  found via price-lock test, users.tier-not-set CRITICAL, expiry/cancel/purge
+  + SUBSCRIPTION_FINISHED revoke; full grant+revoke lifecycle on 7 paths;
+  Revolut sandbox run deferred to SP2 deploy, mocked in tests). PR6 MERGED
+  (#333; weekly soft-degrade + daily backstop from tier store, plain-text
+  notice Rule #16, preview personas exempt, DAILY_TOKEN_LIMITS retained for
+  PR9; 18 `--filter=Ai` failures confirmed pre-existing/env-dependent).
+  `sp2Freemium`@`ae3ca9d8`.
+- 2026-05-18 PR9 SCOPE AUGMENTED: PR9 must also add `TierConfigurationSeeder`
+  to the `beforeEach` of pre-existing-failing tests (≥ EvalAuthControllerTest,
+  DirectWriteObserverFireTest; sweep full suite) — SP2-caused via
+  SavingsStore→DbTierGate (PR3/4), missed by narrower regression filters.
+  Group A (AI_AUDIT_HMAC_KEY) + Group B (ANTHROPIC_API_KEY) failures are
+  local-env-only — document, do not code-change.
+- 2026-05-18 CONTEXT-CLEAR: handover at `May/May18Updates/handover-2026-05-18-session-1-clear.md`.
+  PR7 implementer output committed UNREVIEWED as `cc254f0a` on
+  `feature/csj/sp2-pr7-teaser-gate` (pushed) — next session resumes the
+  two-stage review loop on it (do NOT trust/merge as-is), then PR8, PR9,
+  then §18.2 acceptance + final handover. Vault absent on this machine →
+  no vault mirror; this file + the handover are the resume channel.
