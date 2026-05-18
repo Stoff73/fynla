@@ -89,6 +89,10 @@ Under `FYN_PROMPT_ARCH=legacy` the advice→capture write journey
   is live-grok behaviour driven by legacy prompt content
   (cf. memory `feedback_eval_must_drive_full_user_journey` — prompt parity
   ≠ flow parity).
+- **Formalised** (2026-05-18 session 6) as memory
+  `reference_legacy_refuses_advice_capture_journey.md` + a CSJTODO line.
+  CSJ decision: "log separately, proceed per contract" — PR #335
+  (`fynPromptRework → dev`) opened without this as a blocker.
 
 ## Fix options for the unified tripled-ack (CSJ decision — Rule #15 exit-b)
 

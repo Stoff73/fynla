@@ -1,7 +1,26 @@
 # CSJTODO — Fynla
 
-*Last updated: 18 May 2026 — context-clear wrap, session 2 (Claude Code tooling + Fyn pipeline map; no app code)*
-*Previous session: 18 May 2026 — session 1 EOD (Fyn unified cutover verified green)*
+*Last updated: 18 May 2026 — session 6 (squashed fynPromptRework, opened PR #335 → dev; logged legacy-refusal finding)*
+*Previous session: 18 May 2026 — session 5 clear (tripled-ack RESOLVED + parity GREEN; both PR gates satisfied)*
+
+---
+
+## Session 6 (18 May 2026) — PR #335 opened (fynPromptRework → dev); legacy-refusal logged
+
+**Branch:** `fynPromptRework` · **Tree:** clean · **Squashed:** `9c19dcc`..`db47635` (13 commits) → one feature commit `5337ab9`, force-pushed · **PR:** [#335](https://github.com/Stoff73/fynla/pull/335) OPEN → `dev` (NOT self-approved, NOT auto-merged)
+
+### Done
+- [x] Auto-resumed session-5-clear handover. Both gates GREEN (recorded; parity NOT re-run — code unchanged).
+- [x] Squashed post-#332 delta to one clean commit (`git reset --soft origin/dev` + single commit, 30 files / 1945+ / 52−), force-pushed with lease.
+- [x] PR #335 opened `fynPromptRework → dev` with full body (unified prompt path + tripled-ack fix + verification + known-separate-item note).
+- [x] Legacy-refusal finding formalised: memory `reference_legacy_refuses_advice_capture_journey.md` + MEMORY.md pointer + cross-linked from `fyn-tripled-ack-classification.md`.
+
+### Outstanding / next session (priority order)
+- [ ] **CSJ: review PR #335 → dev.** Do NOT self-approve. Admin-merge only when CSJ says so (`feedback_admin_merge_pattern_for_solo_reviewer_prs`).
+- [ ] **SEVERE pre-existing (separate from PR #335) — legacy emergency-rollback broken for advice→capture:** under `FYN_PROMPT_ARCH=legacy` the advice→capture write journey security-refuses (0 rows). Pest-invisible (LLM mocked). If a unified incident forces rollback, advice→capture writes silently fail for all users. CSJ decided "log separately, proceed per contract". See memory `reference_legacy_refuses_advice_capture_journey.md`.
+- [ ] **#1 CRITICAL — run vault-sync** (still overdue; carry `May/May18Updates/VAULT-SYNC-PENDING.md` 3 files: `00-canonical.md` [`/April/` gitignored = data-loss risk], Fyn map, delta).
+- [ ] tech-debt-session on the PR #335 diff (in progress this session).
+- [ ] Carried: KycGateChecker delta decision (#2); `00-canonical.md` dispatch-wording doc-fix; pre-existing `fynlaFeatu*Modules` rename fate.
 
 ---
 
