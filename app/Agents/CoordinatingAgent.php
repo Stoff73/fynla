@@ -85,6 +85,18 @@ class CoordinatingAgent extends BaseAgent
     use HasAiChat;
     use HasAiGuardrails;
 
+    /**
+     * Canonical savings account_type whitelist. Single source of truth for
+     * both the create_savings_account coercion guard and its Rule::in
+     * validation in handleCreateSavingsAccount() — keep them from drifting.
+     *
+     * @var list<string>
+     */
+    private const SAVINGS_ACCOUNT_TYPES = [
+        'easy_access', 'notice', 'fixed', 'fixed_term',
+        'regular_saver', 'cash_isa', 'junior_isa',
+    ];
+
     public function __construct(
         private readonly ConflictResolver $conflictResolver,
         private readonly PriorityRanker $priorityRanker,
@@ -2067,11 +2079,7 @@ class CoordinatingAgent extends BaseAgent
         // call. easy_access is the correct default for an untyped savings
         // account; cash_isa when the user flagged it as an ISA.
         if (isset($input['account_type'])) {
-            $validTypes = [
-                'easy_access', 'notice', 'fixed', 'fixed_term',
-                'regular_saver', 'cash_isa', 'junior_isa',
-            ];
-            if (! in_array($input['account_type'], $validTypes, true)) {
+            if (! in_array($input['account_type'], self::SAVINGS_ACCOUNT_TYPES, true)) {
                 $synonyms = [
                     'savings_account' => 'easy_access',
                     'savings' => 'easy_access',
@@ -2096,10 +2104,7 @@ class CoordinatingAgent extends BaseAgent
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in([
-                'easy_access', 'notice', 'fixed', 'fixed_term', 'regular_saver',
-                'cash_isa', 'junior_isa',
-            ])],
+            'account_type' => ['nullable', Rule::in(self::SAVINGS_ACCOUNT_TYPES)],
             'institution' => 'nullable|string|max:255',
             'interest_rate' => 'nullable|numeric|min:0|max:20',
             'is_isa' => 'nullable|boolean',
