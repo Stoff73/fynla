@@ -20,7 +20,7 @@ class DocumentController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private DocumentProcessor $processor,
+        private readonly DocumentProcessor $processor,
         private readonly DocumentAllowanceGate $allowanceGate,
     ) {}
 

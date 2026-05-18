@@ -54,21 +54,14 @@ class DocumentAllowanceGate
         $allowance = $config->document_upload_allowance;
 
         if ($retainedCount >= $allowance) {
-            // Find the lowest tier with a strictly higher allowance
-            $upgrade = null;
-            foreach (TierConfigurationStore::TIERS as $candidate) {
-                if ($this->store->forTier($candidate)->document_upload_allowance > $allowance) {
-                    $upgrade = ['tier' => $candidate, 'display_name' => $this->store->forTier($candidate)->display_name];
-                    break;
-                }
-            }
-
             return [
                 'allowed' => false,
                 'reason' => "Document allowance reached ({$retainedCount}/{$allowance}). Upgrade to store more documents.",
                 'entity_key' => 'document_upload',
                 'limit' => $allowance,
-                'target_tier' => $upgrade,
+                'target_tier' => $this->findUpgradeTier(
+                    fn ($cand) => $cand->document_upload_allowance > $allowance
+                ),
             ];
         }
 
@@ -81,16 +74,6 @@ class DocumentAllowanceGate
                 ->sum('file_size');
 
             if (($usedBytes + $newFileSizeBytes) > $storageCeilingBytes) {
-                $upgrade = null;
-                foreach (TierConfigurationStore::TIERS as $candidate) {
-                    $cand = $this->store->forTier($candidate);
-                    if ($cand->document_storage_gb !== null
-                        && (float) $cand->document_storage_gb > (float) $config->document_storage_gb) {
-                        $upgrade = ['tier' => $candidate, 'display_name' => $cand->display_name];
-                        break;
-                    }
-                }
-
                 $gbUsed = number_format($usedBytes / (1024 * 1024 * 1024), 2);
                 $gbLimit = number_format((float) $config->document_storage_gb, 2);
 
@@ -99,8 +82,30 @@ class DocumentAllowanceGate
                     'reason' => "Document storage limit reached ({$gbUsed} GB / {$gbLimit} GB). Upgrade for more storage.",
                     'entity_key' => 'document_storage',
                     'limit' => null,
-                    'target_tier' => $upgrade,
+                    'target_tier' => $this->findUpgradeTier(
+                        fn ($cand) => $cand->document_storage_gb !== null
+                            && (float) $cand->document_storage_gb > (float) $config->document_storage_gb
+                    ),
                 ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the first tier in TIERS order whose config satisfies $isStrictlyBetter,
+     * or null when no such tier exists (caller is already on the terminal tier).
+     *
+     * @param  callable(object): bool  $isStrictlyBetter
+     * @return array{tier: string, display_name: string}|null
+     */
+    private function findUpgradeTier(callable $isStrictlyBetter): ?array
+    {
+        foreach (TierConfigurationStore::TIERS as $candidate) {
+            $cand = $this->store->forTier($candidate);
+            if ($isStrictlyBetter($cand)) {
+                return ['tier' => $candidate, 'display_name' => $cand->display_name];
             }
         }
 

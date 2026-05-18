@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 use App\Models\Document;
 use App\Models\User;
+use App\Services\Documents\DocumentAllowanceGate;
 use App\Services\Stores\CurrencyDisplayService;
 use App\Services\Stores\Snapshots\SnapshotPolicies;
 use App\Services\Stores\TierConfigurationStore;
-use App\Services\Tiers\TierResolver;
-use App\Services\Documents\DocumentAllowanceGate;
 use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -131,6 +130,49 @@ describe('DocumentAllowanceGate (§11)', function () {
 
         // Below allowance=4, no storage ceiling → allowed
         expect($gate->check($user, 1 * 1024 * 1024))->toBeNull();
+    });
+
+    // M4: tier3 is the terminal tier for count — target_tier must be null
+    it('tier3 user at document COUNT allowance is blocked with target_tier null (terminal tier)', function () {
+        $store = app(TierConfigurationStore::class);
+        $tier3Allowance = $store->forTier('tier3')->document_upload_allowance;
+
+        $user = User::factory()->create(['tier' => 'tier3']);
+
+        // Create exactly tier3's allowance of retained documents
+        Document::factory($tier3Allowance)->create(['user_id' => $user->id]);
+
+        $gate = app(DocumentAllowanceGate::class);
+        $result = $gate->check($user);
+
+        expect($result)->not->toBeNull()
+            ->and($result['allowed'])->toBeFalse()
+            ->and($result['entity_key'])->toBe('document_upload')
+            ->and($result['target_tier'])->toBeNull(); // no higher tier exists
+    });
+
+    // M5: tier3 is the terminal tier for storage — target_tier must be null
+    it('tier3 user over storage ceiling is blocked with target_tier null (terminal tier)', function () {
+        $store = app(TierConfigurationStore::class);
+        $tier3Config = $store->forTier('tier3');
+
+        // Convert the tier3 storage ceiling from GB to bytes (same math as the gate)
+        $ceilingBytes = (float) $tier3Config->document_storage_gb * 1024 * 1024 * 1024;
+
+        $user = User::factory()->create(['tier' => 'tier3']);
+
+        // Arrange: one doc that already fills the entire ceiling
+        Document::factory()->create(['user_id' => $user->id, 'file_size' => (int) $ceilingBytes]);
+
+        $gate = app(DocumentAllowanceGate::class);
+
+        // Any positive-size new file would push over the ceiling; use 1 byte
+        $result = $gate->check($user, 1);
+
+        expect($result)->not->toBeNull()
+            ->and($result['allowed'])->toBeFalse()
+            ->and($result['entity_key'])->toBe('document_storage')
+            ->and($result['target_tier'])->toBeNull(); // no higher tier exists
     });
 });
 
