@@ -740,26 +740,25 @@ trait HasAiChat
                 : 0;
         }
 
-        // April30Updates F-8 — persist a SHA-256 hash of the system prompt
-        // rather than the full text. The full prompt embeds user PII
-        // (income, family names, financial position) and is ~10KB per
-        // assistant message — duplicating it across every row of a long
-        // conversation creates needless DB bloat and a redundant copy
-        // of data already in the canonical user/records tables. The
-        // hash is enough to confirm whether the prompt structure changed
-        // between turns when debugging.
+        // Persist the verbatim effective system prompt that was sent to
+        // the provider this turn ($systemPrompt is the same value passed
+        // as the `system` message above, so it includes the static base
+        // plus any per-turn FynContextAssembler layers). This is the
+        // forensic source the admin AI-eval view renders behind the
+        // "View full system prompt" expandable link (EvalRecordingController
+        // ::systemPrompt + AiAuditController) — the whole prompt sent must
+        // be readable, exactly as it was for the grok-4.1 recordings.
         //
-        // The column is still named `system_prompt` (renaming requires a
-        // migration that's out of audit scope) — we just write a hash to
-        // it going forward instead of the full text. Legacy rows retain
-        // the full prompt and can be migrated separately. The hash is
-        // prefixed with `sha256:` so a future reader can tell hashes
-        // from legacy full-prompt rows at a glance.
+        // (April30Updates F-8 previously replaced this with a SHA-256
+        // hash for PII/bloat reasons; that silently broke the admin
+        // prompt view for every post-F-8 row. The forensic requirement —
+        // admin-only data, never user-exposed — overrides the bloat
+        // concern. Restored to verbatim.)
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
-            'system_prompt' => 'sha256:'.hash('sha256', $systemPrompt),
+            'system_prompt' => $systemPrompt,
         ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
 
         if ($this->personaOverride !== null) {

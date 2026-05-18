@@ -36,7 +36,7 @@ it('OnboardingPromptBuilder::buildAssetCapturePrompt injects <known_facts> with 
         'user_id' => $user->id,
         'title' => 'Test',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'fyn_onboarding'],
     ]);
 

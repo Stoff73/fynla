@@ -2777,7 +2777,7 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
-            // BS-17 in-turn idempotency: grok-4-1-fast occasionally emits
+            // BS-17 in-turn idempotency: grok-4.3 occasionally emits
             // create_protection_policy twice for the same entity inside one
             // multi-entity message. Without this guard the second tool call
             // creates a duplicate row before the LLM has a chance to see the
