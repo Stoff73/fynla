@@ -34,6 +34,17 @@ it('admin bypasses all caps', function () {
     expect($this->gate->canCreate($u, 'savings_account', 100))->toBeTrue();
 });
 
+it('preview personas sit entirely outside the gate (Rule #2 / canonical preview isolation)', function () {
+    // Preview personas use the same store pathways as real users but are
+    // flagged is_preview_user; they are outside auth, subscriptions, tiers
+    // and gates. resolve() returns 'free' for arithmetic, but the gate must
+    // never cap them — the PreviewUserSeeder seeds well past the free cap.
+    $u = User::factory()->create(['tier' => 'free', 'is_preview_user' => true]);
+    expect($this->gate->canCreate($u, 'savings_account', 100))->toBeTrue()
+        ->and($this->gate->hardLimit($u, 'savings_account'))->toBeNull()
+        ->and($this->gate->softLimit($u, 'savings_account'))->toBeNull();
+});
+
 it('GRANDFATHERS a legacy paid subscriber over the free cap (spec §4.4)', function () {
     // Legacy 'pro' sub, tier null — must NOT be blocked at 3 savings just
     // because resolve() returns 'free' for arithmetic.
