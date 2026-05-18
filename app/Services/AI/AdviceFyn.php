@@ -456,6 +456,22 @@ final class AdviceFyn
                     return;
                 }
 
+                // Tier-2 harvest feed. The deterministic classifier
+                // (writeIntentClassifier, :268) logs '[AdviceFyn]
+                // Deterministic write-intent routed' on Tier-1 hits (:325).
+                // Reaching here means the classifier returned null (a miss)
+                // and the LLM safety-net <handoff_guidance> caught the write
+                // intent instead. Log it symmetrically with the verbatim
+                // message so misses are reviewable and the classifier
+                // patterns can be widened iteratively.
+                Log::info('[AdviceFyn] LLM-fallback write-intent caught (classifier miss)', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'message' => $message,
+                    'entity_types' => $payload['entity_types'] ?? [],
+                    'reason' => $payload['reason'] ?? null,
+                ]);
+
                 yield from $this->onboardingChatDirector->handleInlineCapture(
                     $user,
                     $conversation,

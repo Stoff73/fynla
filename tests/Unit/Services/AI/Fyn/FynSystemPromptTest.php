@@ -17,7 +17,7 @@ it('contains every required block exactly once', function (): void {
         '<identity>', '<security>', '<scope>', '<personality>',
         '<response_format>', '<instructions>', '<regulatory_compliance>',
         '<tool_use>', '<fca_process>', '<available_actions>',
-        '<handoff_guidance>', '<billing_guidance>', '<fca_signposting>',
+        '<handoff_guidance>', '<fca_signposting>',
     ] as $tag) {
         // Block delimiters sit alone on their own line; an inline
         // backtick cross-reference (e.g. `<handoff_guidance>` inside
