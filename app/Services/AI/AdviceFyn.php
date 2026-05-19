@@ -260,7 +260,7 @@ final class AdviceFyn
         // policy / account / pension / etc." AND no matching record already
         // exists, route the turn through OnboardingChatDirector::handleInlineCapture
         // directly. This decouples the write path from LLM tool-call
-        // reliability — grok-4-1-fast occasionally emits delegate_to_capture
+        // reliability — grok-4.3 occasionally emits delegate_to_capture
         // as plain `<function_call>` text instead of using the structured
         // tool API, which made BS-11/14/17 flaky on the LLM-mediated path.
         // The classifier is conservative: ambiguous messages fall through
@@ -455,6 +455,22 @@ final class AdviceFyn
 
                     return;
                 }
+
+                // Tier-2 harvest feed. The deterministic classifier
+                // (writeIntentClassifier, :268) logs '[AdviceFyn]
+                // Deterministic write-intent routed' on Tier-1 hits (:325).
+                // Reaching here means the classifier returned null (a miss)
+                // and the LLM safety-net <handoff_guidance> caught the write
+                // intent instead. Log it symmetrically with the verbatim
+                // message so misses are reviewable and the classifier
+                // patterns can be widened iteratively.
+                Log::info('[AdviceFyn] LLM-fallback write-intent caught (classifier miss)', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'message' => $message,
+                    'entity_types' => $payload['entity_types'] ?? [],
+                    'reason' => $payload['reason'] ?? null,
+                ]);
 
                 yield from $this->onboardingChatDirector->handleInlineCapture(
                     $user,

@@ -85,6 +85,18 @@ class CoordinatingAgent extends BaseAgent
     use HasAiChat;
     use HasAiGuardrails;
 
+    /**
+     * Canonical savings account_type whitelist. Single source of truth for
+     * both the create_savings_account coercion guard and its Rule::in
+     * validation in handleCreateSavingsAccount() — keep them from drifting.
+     *
+     * @var list<string>
+     */
+    private const SAVINGS_ACCOUNT_TYPES = [
+        'easy_access', 'notice', 'fixed', 'fixed_term',
+        'regular_saver', 'cash_isa', 'junior_isa',
+    ];
+
     public function __construct(
         private readonly ConflictResolver $conflictResolver,
         private readonly PriorityRanker $priorityRanker,
@@ -2056,13 +2068,43 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('savings account');
         }
 
+        // May18 — the model frequently invents an out-of-enum account_type
+        // (most commonly the literal "savings_account" when the user just
+        // says "add a savings account" with no type). Hard-rejecting that
+        // made the FIRST create_savings_account call fail validation; the
+        // model only sometimes self-corrected on a retry, so the record was
+        // intermittently never created and the capture turn re-narrated.
+        // Coerce a recognised synonym / unknown value to a sensible default
+        // BEFORE validation so a plain "savings account" lands on the first
+        // call. easy_access is the correct default for an untyped savings
+        // account; cash_isa when the user flagged it as an ISA.
+        if (isset($input['account_type'])) {
+            if (! in_array($input['account_type'], self::SAVINGS_ACCOUNT_TYPES, true)) {
+                $synonyms = [
+                    'savings_account' => 'easy_access',
+                    'savings' => 'easy_access',
+                    'instant_access' => 'easy_access',
+                    'instant access' => 'easy_access',
+                    'easy access' => 'easy_access',
+                    'current_account' => 'easy_access',
+                    'isa' => 'cash_isa',
+                    'cash isa' => 'cash_isa',
+                    'junior isa' => 'junior_isa',
+                    'fixed_rate' => 'fixed',
+                    'fixed rate' => 'fixed',
+                    'bond' => 'fixed',
+                    'notice_account' => 'notice',
+                ];
+                $key = strtolower((string) $input['account_type']);
+                $input['account_type'] = $synonyms[$key]
+                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'easy_access');
+            }
+        }
+
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in([
-                'easy_access', 'notice', 'fixed', 'fixed_term', 'regular_saver',
-                'cash_isa', 'junior_isa',
-            ])],
+            'account_type' => ['nullable', Rule::in(self::SAVINGS_ACCOUNT_TYPES)],
             'institution' => 'nullable|string|max:255',
             'interest_rate' => 'nullable|numeric|min:0|max:20',
             'is_isa' => 'nullable|boolean',
@@ -2735,7 +2777,7 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
-            // BS-17 in-turn idempotency: grok-4-1-fast occasionally emits
+            // BS-17 in-turn idempotency: grok-4.3 occasionally emits
             // create_protection_policy twice for the same entity inside one
             // multi-entity message. Without this guard the second tool call
             // creates a duplicate row before the LLM has a chance to see the

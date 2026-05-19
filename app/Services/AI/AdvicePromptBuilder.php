@@ -280,8 +280,11 @@ PROMPT;
      * when the query's primary classification is BILLING. Centralised here
      * (rather than inline in build()) so the guard can be unit-tested
      * directly and reused by future per-classification layers.
+     *
+     * Public so the unified FynContextAssembler reuses the identical gate
+     * verbatim (parity with legacy Layer 3c — no behavioural drift).
      */
-    private function isBillingQuery(?array $classification): bool
+    public function isBillingQuery(?array $classification): bool
     {
         return ($classification['primary'] ?? null) === QuerySchemas::BILLING;
     }
@@ -294,8 +297,11 @@ PROMPT;
      * `get_subscription_status` tool result (HasAiChat consumes the
      * `action: navigate` field) — the assistant must NOT add a manual
      * "click here" link or instruct the user to navigate.
+     *
+     * Public so the unified FynContextAssembler emits the identical block
+     * verbatim (parity with legacy Layer 3c — no behavioural drift).
      */
-    private function getBillingGuidance(): string
+    public function getBillingGuidance(): string
     {
         return <<<'PROMPT'
 <billing_guidance>
@@ -996,6 +1002,31 @@ PROMPT;
     public function buildPrerequisiteStateContextWrapped(User $user): string
     {
         return $this->buildDataCompletenessBlock($this->buildPrerequisiteStateContext($user));
+    }
+
+    /**
+     * C1 (May/May19Updates/unified-fyn-audit-and-prompt-optimisation.md):
+     * lean <data_completeness> for the unified per-turn context — the
+     * per-user READY/BLOCKED matrix ONLY. The static NAVIGATION /
+     * BLOCKED-MODULE / MODULE-DEPENDENCY rules that
+     * buildDataCompletenessBlock() inlines (~595 tok) are, under
+     * FYN_PROMPT_ARCH=unified, hoisted into the cached FynSystemPrompt
+     * (<data_completeness_rules>) so they are paid once per cache window
+     * instead of on every advice turn. The legacy path
+     * (buildDataCompletenessBlock, used by build():174-175) is byte-identical
+     * and unaffected — parity with FYN_PROMPT_ARCH=legacy is preserved
+     * because the model still receives the same total instruction set.
+     */
+    public function buildPrerequisiteStateContextLean(User $user): string
+    {
+        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+
+        return <<<PROMPT
+        <data_completeness>
+        The following shows which modules have sufficient data for analysis:
+        {$prerequisiteState}
+        </data_completeness>
+        PROMPT;
     }
 
     private function buildDataCompletenessBlock(string $prerequisiteState): string
