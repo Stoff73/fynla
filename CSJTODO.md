@@ -1,7 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
-*Previous session: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
+*Last updated: 19 May 2026 — session 1 clear (SP3 mobile-iframe scaffold: spec+plan+Tasks 1–8+8b done; Task 9 pending)*
+*Previous session: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
+
+---
+
+## Session 1 (19 May 2026) — SP3 mobile-iframe scaffold: build-out (context-clear)
+
+**Branch:** `iFrames` (off `origin/dev`, pushed to `origin/iFrames`) · **Tree:** clean · **HEAD:** `5d293659` · **No PR yet**
+
+### Done
+- [x] SP3 ("Mobile-first iframe scaffold", overhaul item 3): brainstorming (visual companion) → spec → plan, all committed
+  - Spec `docs/superpowers/specs/2026-05-19-sub-project-3-mobile-iframe-scaffold-design.md` (CSJ-approved)
+  - Plan `docs/superpowers/plans/2026-05-19-sub-project-3-mobile-iframe-scaffold.md`
+- [x] Executed via subagent-driven-development (implement → spec-review → code-quality-review → fix loop)
+  - Task 1 isolated mobile Vite build · 2 `/m` host+`/m/app` Blades/routes · 3 scoped SAMEORIGIN frame headers · 4 phone-UA redirect mw · 5 Login/Verify/Dashboard scaffold (critical login-contract bug caught+fixed) · 6 Capacitor repoint · 7 two-env deploy wiring · 8 legacy `resources/js/mobile/` retirement (CSJ-approved scope expansion: OfflineBanner relocated, dead app.js/auth.js refs cleaned) · 8b residual `/m/*` nav cleanup
+  - Build green throughout; SP3's 9 `MobileScaffoldTest` pass; Task 8 15-failure baseline proven pre-existing via stash-compare
+
+### Outstanding / next session
+- [ ] **Re-run Task 8b reviews** (spec + code-quality) — interrupted by `/session-end`. Base `ac9d57f0` → head `5d293659`.
+- [ ] **Resolve Pest 60-vs-15 baseline question** — Task 8b run showed 60 failed vs documented ~15; argued pre-existing DB-ordering/contamination (8b only touched 2 frontend JS files never loaded by Pest). NOT independently re-verified — confirm via stash/isolation before Task 9.
+- [ ] **Task 9** (final SP3 task, tracker #14): Playwright E2E (desktop unchanged / phone→`/m` iframe / login→verify→dashboard real data / `?full=1`); `resources/mobile/README.md`; spec §5.3 cookie→Bearer fix; push; open PR `iFrames` → `dev`.
+- [ ] Non-blocking nits (in plan Task-8 note): unused `getItem` import `app.js`; stale Face-ID docblock `auth.js mobileLogout`.
+- [ ] **No vault on this machine** (`/Users/Chris/Desktop/fynlaBrain` absent) — vault-sync skipped; planning-with-files docs seeded as fallback. Carry to vault when on a machine that has it.
 
 ---
 
