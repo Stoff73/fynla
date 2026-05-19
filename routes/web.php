@@ -78,6 +78,16 @@ Route::get('/storage/{path}', function (string $path) {
         ->setPublic();
 })->where('path', '.*');
 
+// SP3 — mobile-first iframe scaffold. MUST be declared BEFORE the SPA catch-all
+// so phone visitors get the dedicated host + isolated mobile SPA instead of the
+// desktop Vue shell. /m = device-frame host; /m/app = the new isolated SPA.
+Route::get('/m', function () {
+    return view('mobile-host');
+});
+Route::get('/m/app/{any?}', function () {
+    return view('mobile-app');
+})->where('any', '.*');
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');
