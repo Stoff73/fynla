@@ -20,7 +20,10 @@ class SecurityHeaders
         $response = $next($request);
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'DENY');
+        // SP3: /m (host) and /m/app* (isolated mobile SPA) are intentionally
+        // same-origin framed (host embeds the app). Every other route stays DENY.
+        $isMobileFramed = $request->is('m') || $request->is('m/app') || $request->is('m/app/*');
+        $response->headers->set('X-Frame-Options', $isMobileFramed ? 'SAMEORIGIN' : 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
         // HSTS in production only
@@ -61,6 +64,14 @@ class SecurityHeaders
         }
 
         $response->headers->set('Content-Security-Policy', $csp);
+        // SP3: append frame-ancestors only for the mobile-framed routes so the
+        // host iframe is permitted while every other page remains unframeable.
+        if ($isMobileFramed) {
+            $response->headers->set(
+                'Content-Security-Policy',
+                $csp."; frame-ancestors 'self'"
+            );
+        }
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://sandbox-merchant.revolut.com" "https://merchant.revolut.com"), usb=(), bluetooth=()');
 
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
