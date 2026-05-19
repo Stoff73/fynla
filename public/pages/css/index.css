@@ -53,7 +53,7 @@
 }
 .hero__desktop-img  { width: 100%; height: auto; display: block; }
 .hero__caption      { position: absolute; padding: 0.75rem 1rem; }
-.hero__caption--left  { top: 62px; left: 4%; max-width: 28%; padding-top: 54px; }
+.hero__caption--left  { top: 62px; left: 4%; max-width: 28%; padding-top: 54px; overflow: hidden; }
 .hero__caption--center {
   top: 56px; bottom: 0; left: 50%; transform: translateX(-50%);
   max-width: 28%; text-align: center;
@@ -62,19 +62,21 @@
 /* Brain subtext: explicit <br> in markup handles the two-line split;
    no max-width constraint so neither line wraps within itself */
 .hero__caption--center .hero__caption-body { margin: 0 auto; }
-.hero__caption--right { top: 62px; right: 4%; max-width: 28%; padding-top: 54px; text-align: right; }
+/* overflow:hidden clips body text that would otherwise hang below the hero image */
+.hero__caption--right { top: 62px; right: 4%; max-width: 28%; padding-top: 54px; text-align: right; overflow: hidden; }
 .hero__caption-title  { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.25rem; }
 .hero__caption--center .hero__caption-title { font-size: 1.125rem; }
 .hero__caption-body   { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.25; }
 .hero__caption-brain  { flex: 1; display: flex; align-items: flex-end; justify-content: center; min-height: 0; margin-top: 0.25rem; }
-/* max-height: none lets the GIF render at its natural size inside the flex child;
-   max-width: 100% lets it use the full caption column width */
-.hero__caption-brain img { width: auto; max-width: 100%; max-height: none; object-fit: contain; object-position: bottom; }
+/* width/height 100% fill the flex container box; object-fit:contain renders
+   the GIF at its natural aspect ratio without distortion; object-position:bottom
+   anchors it to the card bottom. display:block removes inline baseline gap. */
+.hero__caption-brain img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; display: block; }
 
 /* ===================================================================
    MEET FYN MODULE  [id=meet-fyn]
    =================================================================== */
-.meet-fyn { background: var(--light-pink-100); padding-top: 1.5rem; padding-bottom: 2rem; }
+.meet-fyn { background: var(--light-pink-100); padding-top: 1.5rem; padding-bottom: 2rem; overflow: visible; }
 .meet-fyn__inner {
   max-width: 80rem; margin: 0 auto; padding: 0 1rem;
   display: flex; flex-direction: column; gap: 2.5rem;
@@ -110,8 +112,8 @@
 }
 .btn-fyn-start:hover { opacity: 0.9; }
 
-.meet-fyn__character { display: none; align-items: center; justify-content: flex-end; flex-shrink: 0; }
-.meet-fyn__character img { width: auto; height: 427px; margin-bottom: -3rem; }
+/* Hidden on mobile; desktop override below switches to positioned block */
+.meet-fyn__character { display: none; }
 
 /* ===================================================================
    FEATURE GRID MODULE  [id=features]
@@ -285,7 +287,8 @@
 .insights-support-card__thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
 .insights-support-card:hover .insights-support-card__thumb img { transform: scale(1.1); }
 .insights-support-card__body  { flex: 1; padding: 1rem; display: flex; align-items: center; }
-.insights-support-card__title { font-size: 0.875rem; font-weight: 700; color: var(--horizon-500); line-height: 1.25; transition: color 0.15s ease; }
+/* 1rem base (was 0.875rem — too small for the right-hand supporting cards) */
+.insights-support-card__title { font-size: 1rem; font-weight: 700; color: var(--horizon-500); line-height: 1.25; transition: color 0.15s ease; }
 .insights-support-card:hover .insights-support-card__title { color: var(--raspberry-500); }
 
 /* Static fallback */
@@ -344,19 +347,29 @@
   .latest-insights__inner,
   .stats-bar__inner          { padding-left: 2rem; padding-right: 2rem; }
 
-  .meet-fyn                { margin-top: -0.5rem; padding-top: 10px; padding-bottom: 0; }
-  /* Only add bottom clearance when the Fyn accordion is open — avoids extra
-     whitespace in the collapsed state */
-  .meet-fyn:has(.fyn-accordion__panel.is-open) { padding-bottom: 2.5rem; }
+  .meet-fyn                { margin-top: -0.5rem; padding-top: 10px; padding-bottom: 2rem; }
   .meet-fyn__heading       { margin-top: -24px; }
-  /* CSS Grid: content column takes remaining space (align-self: start = top-anchored),
-     character column is auto-width (align-self: end = bottom-anchored).
-     As the accordion opens and the grid row grows taller, Fyn tracks the bottom. */
+  /* CSS Grid: content column takes remaining space; character column is fixed-width.
+     align-items: start tops-aligns columns; Fyn uses align-self:end so it tracks
+     the content bottom — when the accordion opens the row grows and Fyn moves down
+     with the expansion, staying visually anchored to the bottom of the content. */
   .meet-fyn__inner         { display: grid; grid-template-columns: 1fr auto; align-items: start; padding-top: 2.5rem; }
   .meet-fyn__content       { align-self: start; }
   .meet-fyn__mobile-header { display: block; }  /* keep container visible so h2 heading shows */
   .meet-fyn__mobile-char   { display: none; }   /* hide only the small mobile character image */
-  .meet-fyn__character     { display: flex; align-items: flex-end; justify-content: flex-end; align-self: end; }
+  /* Character column: height:0 + overflow:visible removes the div from the row's
+     height calculation (row height = content column only, no phantom gap).
+     align-self:end places the 0-height div at the row bottom so it tracks the
+     content — as the accordion opens the div moves down and Fyn follows.
+     bottom:-4rem extends the img 4rem below the div bottom so the character
+     overlaps slightly into the dark section and its head sits a touch below
+     the section top edge when the accordion is closed.
+     width:324px prevents the auto column collapsing to 0px. */
+  .meet-fyn__character     { display: block; align-self: end; position: relative;
+                             height: 0; overflow: visible; z-index: 10;
+                             width: 324px; }
+  .meet-fyn__character img { position: absolute; bottom: -5rem; right: 0;
+                             height: 427px; width: auto; }
   .feature-grid__cards     { grid-template-columns: repeat(3, 1fr); }
   .hero__mobile-panels     { display: none; }
   .hero__desktop-composite { display: block; }
@@ -432,13 +445,21 @@
 .demo-modal__grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
 
 /* Groups */
-.demo-group { display: flex; flex-direction: column; gap: 0.5rem; }
-.demo-group__label {
+.demo-group { display: flex; flex-direction: column; gap: 0.625rem; }
+
+/* Coloured column header bar — replaces old plain text label */
+.demo-group__header {
   display: flex; align-items: center; gap: 0.375rem;
-  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.07em;
-  text-transform: uppercase; color: var(--neutral-500);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem; border-radius: var(--radius-md);
 }
-.demo-group__label svg { flex-shrink: 0; }
+.demo-group__header svg { flex-shrink: 0; }
+.demo-group__header--pink    { background: var(--light-pink-100); color: var(--raspberry-500); }
+.demo-group__header--horizon { background: var(--horizon-200);    color: var(--horizon-500); }
+.demo-group__header--spring  { background: #dcfce7;               color: var(--spring-600); }
+.demo-group__header--violet  { background: rgba(88,84,230,0.08);  color: var(--violet-500); }
+
 .demo-group__cards { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
 
 /* Persona cards */
@@ -447,7 +468,7 @@
   border: 1px solid var(--horizon-200); border-radius: var(--radius-lg);
   background: var(--eggshell-500); cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  display: flex; flex-direction: column; gap: 0.2rem;
+  display: flex; flex-direction: column; gap: 0.25rem;
 }
 .demo-persona-card:hover { border-color: var(--raspberry-300); box-shadow: var(--shadow-sm); }
 .demo-persona-card:disabled { opacity: 0.6; cursor: wait; }
@@ -458,28 +479,65 @@
 .demo-persona-card--pink   { background: var(--light-pink-50); border-color: var(--light-pink-100); }
 .demo-persona-card--pink:hover   { border-color: var(--raspberry-300); }
 
-.demo-persona-card__name   { font-size: 0.9375rem; font-weight: 700; color: var(--horizon-500); }
-.demo-persona-card__tag    {
+/* Top row: tag left, income badge right */
+.demo-persona-card__meta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin-bottom: 0.1rem;
+}
+.demo-persona-card__tag {
   display: inline-block; font-size: 0.6rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.05em;
   padding: 0.125rem 0.375rem; border-radius: var(--radius-sm);
   background: var(--light-pink-100); color: var(--raspberry-500);
-  margin-bottom: 0.1rem;
+  white-space: nowrap;
 }
 .demo-persona-card--green  .demo-persona-card__tag { background: #dcfce7; color: var(--spring-600); }
 .demo-persona-card--purple .demo-persona-card__tag { background: rgba(88,84,230,0.1); color: var(--violet-500); }
+.demo-persona-card__income {
+  font-size: 0.65rem; font-weight: 600; color: var(--neutral-400);
+  white-space: nowrap; flex-shrink: 0;
+}
+.demo-persona-card__name   { font-size: 0.9375rem; font-weight: 700; color: var(--horizon-500); }
 .demo-persona-card__detail { font-size: 0.8rem; color: var(--neutral-500); line-height: 1.4; }
-.demo-persona-card__cta    { font-size: 0.8rem; font-weight: 600; color: var(--horizon-500); margin-top: 0.375rem; transition: color 0.15s ease; }
+
+/* Focus area chips */
+.demo-persona-card__focus-tags {
+  display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.2rem;
+}
+.demo-persona-card__focus-tags span {
+  font-size: 0.65rem; font-weight: 500; color: var(--neutral-600);
+  background: var(--horizon-100); border-radius: var(--radius-sm);
+  padding: 0.15rem 0.4rem;
+}
+
+.demo-persona-card__cta { font-size: 0.8rem; font-weight: 600; color: var(--horizon-500); margin-top: 0.25rem; transition: color 0.15s ease; }
 .demo-persona-card:hover .demo-persona-card__cta { color: var(--raspberry-500); }
 
 @keyframes demo-fade-in  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes demo-slide-up { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: translateY(0); } }
 
-@media (min-width: 640px) {
-  .demo-group__cards { grid-template-columns: repeat(2, 1fr); }
+/* Mobile: compact layout anchored to bottom of screen to minimise scrolling */
+@media (max-width: 639px) {
+  .demo-modal               { padding: 0; align-items: flex-end; }
+  .demo-modal__panel        { max-height: 82vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  .demo-modal__header       { padding: 0.875rem 0.875rem 0.875rem 1.125rem; }
+  .demo-modal__title        { font-size: 1rem; margin-bottom: 0.1rem; }
+  .demo-modal__subtitle     { font-size: 0.75rem; }
+  .demo-modal__body         { padding: 0.75rem 0.875rem; }
+  .demo-modal__grid         { gap: 0.625rem; }
+  .demo-group               { gap: 0.375rem; }
+  .demo-group__header       { padding: 0.3rem 0.5rem; font-size: 0.65rem; }
+  .demo-persona-card        { padding: 0.5rem 0.625rem; gap: 0.15rem; }
+  /* Hide the detail sentence on mobile — name + income badge + focus tags sufficient */
+  .demo-persona-card__detail { display: none; }
+  .demo-persona-card__focus-tags { gap: 0.2rem; margin-top: 0.1rem; }
+  .demo-modal__note         { font-size: 0.75rem; margin-top: 0.5rem; }
 }
+
 @media (min-width: 900px) {
-  .demo-modal__grid { grid-template-columns: repeat(3, 1fr); }
-  .demo-group--span2 { grid-column: span 2; }
-  .demo-group--span2 .demo-group__cards { grid-template-columns: repeat(2, 1fr); }
+  /* Desktop: 3-column grid. PROTECTING AND GROWING spans cols 2+3 with its
+     2 cards side by side; all other groups occupy a single column. */
+  .demo-modal__grid           { grid-template-columns: repeat(3, 1fr); }
+  .demo-group--wide           { grid-column: span 2; }
+  .demo-group--wide .demo-group__cards { grid-template-columns: repeat(2, 1fr); }
 }

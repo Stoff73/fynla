@@ -30,14 +30,14 @@
                   <a href="/how-it-works" class="mega-menu__item" data-nav-link="/how-it-works">
                     <svg class="mega-menu__icon" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     <span>
-                      <strong class="mega-menu__item-title">Getting started</strong>
+                      <strong class="mega-menu__item-title">Getting<br />started</strong>
                       <span class="mega-menu__item-sub">See how Fynla works and what you can do.</span>
                     </span>
                   </a>
                   <a href="/features" class="mega-menu__item" data-nav-link="/features">
                     <svg class="mega-menu__icon" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                     <span>
-                      <strong class="mega-menu__item-title">Fynla Features</strong>
+                      <strong class="mega-menu__item-title">Fynla<br />Features</strong>
                       <span class="mega-menu__item-sub">Compare plans and see what's included.</span>
                     </span>
                   </a>
@@ -50,7 +50,7 @@
                   <a href="/stage/starting-out" class="mega-menu__item" data-nav-link="/stage/starting-out">
                     <svg class="mega-menu__icon" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     <span>
-                      <strong class="mega-menu__item-title">Starting Out</strong>
+                      <strong class="mega-menu__item-title">Starting<br />Out</strong>
                       <span class="mega-menu__item-sub">First job, first steps</span>
                     </span>
                   </a>

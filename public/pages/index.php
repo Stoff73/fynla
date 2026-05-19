@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Preload LCP hero image - must be as early as possible in <head> so
+       the browser discovers and fetches it before any blocking resources. -->
+  <link rel="preload" as="image" href="/images/Website/Homepage-Header-Desktopv3.png"
+        fetchpriority="high" media="(min-width: 1024px)" />
+
   <title>Fyn, your financial companion | Fynla</title>
   <meta name="description" content="Fynla is a UK personal finance platform that helps you plan savings, investments, pensions, retirement and estate. See your complete financial picture in one place." />
   <link rel="canonical" href="https://fynla.org/" />
@@ -24,15 +30,10 @@
   <link rel="alternate" hreflang="en-GB" href="https://fynla.org/" />
   <link rel="alternate" hreflang="x-default" href="https://fynla.org/" />
 
-  <!-- External stylesheets — async to avoid render-blocking.
-       Critical above-fold styles (tokens, reset, nav, hero) are inlined above. -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=12" media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="/pages/css/global.css?v=12" /></noscript>
-  <link rel="stylesheet" href="/pages/css/index.css?v=12" media="print" onload="this.media='all'" />
-  <noscript><link rel="stylesheet" href="/pages/css/index.css?v=12" /></noscript>
-
-  <!-- Preload LCP hero image -->
-  <link rel="preload" as="image" href="/images/Website/Homepage-Header-Desktopv3.png" fetchpriority="high" />
+  <!-- External stylesheets (synchronous - render-blocking is intentional;
+       all styles live in these files, no inline fallback needed) -->
+  <link rel="stylesheet" href="/pages/css/global.css?v=112" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=112" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -50,324 +51,9 @@
   }
   </script>
 
-  <style>
-    /* ===================================================================
-       DESIGN TOKENS — all hex values defined here once; nowhere else
-       =================================================================== */
-    :root {
-      /* Raspberry — CTAs, errors, highlights */
-      --raspberry-300: #F472B6;
-      --raspberry-400: #EC4899;
-      --raspberry-500: #E83E6D;
-      --raspberry-600: #DB2777;
+  <!-- All styles live in /pages/css/global.css and /pages/css/index.css.
+       No inline style block. -->
 
-      /* Horizon — text, nav, headings */
-      --horizon-100: #F1F5F9;
-      --horizon-200: #E2E8F0;
-      --horizon-300: #CBD5E1;
-      --horizon-400: #94A3B8;
-      --horizon-500: #1F2A44;
-      --horizon-600: #0F172A;
-      --horizon-700: #020617;
-
-      /* Spring — success, positive CTAs */
-      --spring-400: #34D399;
-      --spring-500: #20B486;
-      --spring-600: #059669;
-      --spring-700: #047857;
-
-      /* Violet — warnings, focus */
-      --violet-500: #5854E6;
-
-      /* Savannah — hover, subtle backgrounds */
-      --savannah-100: #FDFAF7;
-      --savannah-200: #FAF5F0;
-      --savannah-300: #F5EDE5;
-      --savannah-400: #EFDCD1;
-      --savannah-500: #E6C9A8;
-
-      /* Eggshell — page background */
-      --eggshell-500: #F7F6F4;
-
-      /* Neutrals */
-      --neutral-400: #9CA3AF;
-      --neutral-500: #717171;
-      --neutral-600: #4B5563;
-
-      /* Light Blue */
-      --light-blue-100: #DDE2EF;
-      --light-blue-500: #6C83BC;
-
-      /* Light Pink */
-      --light-pink-50:  #FDF0F4;
-      --light-pink-100: #FAD6E0;
-      --light-pink-200: #F5B3C5;
-
-      /* Utility */
-      --light-gray: #EEEEEE;
-      --white:      #FFFFFF;
-
-      /* Alpha variants (rgba overlays — defined once here, used via var()) */
-      --white-80:       rgba(255, 255, 255, 0.80);
-      --white-70:       rgba(255, 255, 255, 0.70);
-      --white-40:       rgba(255, 255, 255, 0.40);
-      --white-30:       rgba(255, 255, 255, 0.30);
-      --white-25:       rgba(255, 255, 255, 0.25);
-      --white-20:       rgba(255, 255, 255, 0.20);
-      --white-15:       rgba(255, 255, 255, 0.15);
-      --white-10:       rgba(255, 255, 255, 0.10);
-      --white-8:        rgba(255, 255, 255, 0.08);
-      --white-12:       rgba(255, 255, 255, 0.12);
-      --white-90:       rgba(255, 255, 255, 0.90);
-      --horizon-500-30: rgba(31,  42,  68,  0.30);
-      --horizon-500-20: rgba(31,  42,  68,  0.20);
-      --horizon-700-60: rgba(2,   6,   23,  0.60);
-      --horizon-700-80: rgba(2,   6,   23,  0.80);
-      --black-05:       rgba(0,   0,   0,   0.05);
-      --black-10:       rgba(0,   0,   0,   0.10);
-
-      /* Yellow (star ratings) */
-      --yellow-400: #FBBF24;
-
-      /* Typography */
-      --font-primary: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-      /* Radius */
-      --radius-sm:     0.375rem;
-      --radius-md:     0.5rem;
-      --radius-lg:     0.75rem;
-      --radius-xl:     0.75rem;
-      --radius-2xl:    1rem;
-      --radius-3xl:    1.5rem;
-      --radius-button: 0.5rem;
-      --radius-card:   0.75rem;
-      --radius-full:   9999px;
-
-      /* Shadows */
-      --shadow-sm: 0 1px 2px 0 var(--black-05);
-      --shadow-md: 0 4px 6px -1px var(--black-10), 0 2px 4px -2px var(--black-10);
-      --shadow-lg: 0 10px 15px -3px var(--black-10), 0 4px 6px -4px var(--black-10);
-    }
-
-    /* ===================================================================
-       RESET & BASE
-       =================================================================== */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html  { scroll-behavior: smooth; }
-    body  { font-family: var(--font-primary); background: var(--eggshell-500); color: var(--horizon-500); line-height: 1.5; min-height: 100vh; }
-    img   { display: block; max-width: 100%; }
-    a     { color: inherit; text-decoration: none; }
-    ul    { list-style: none; }
-    button { cursor: pointer; font-family: inherit; }
-    /* Prevent flex/grid from overriding the browser's native hidden behaviour */
-    [hidden] { display: none !important; }
-
-    /* ===================================================================
-       SKIP NAV
-       =================================================================== */
-    .skip-nav {
-      position: absolute; top: -100%; left: 1rem;
-      background: var(--raspberry-500); color: var(--white);
-      padding: 0.5rem 1rem; border-radius: var(--radius-md);
-      font-weight: 600; z-index: 9999; transition: top 0.2s;
-    }
-    .skip-nav:focus { top: 1rem; }
-
-    /* ===================================================================
-       NAV — styles for partials/nav.php
-       =================================================================== */
-    .site-header {
-      position: sticky; top: 0; z-index: 50;
-      background: var(--white);
-      box-shadow: var(--shadow-sm);
-      border-bottom: 1px solid var(--light-gray);
-    }
-    .nav-primary__inner {
-      max-width: 80rem; margin: 0 auto; padding: 0 1rem;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 4rem; position: relative;
-    }
-    .nav-logo__img { height: 3.5rem; width: auto; }
-    .nav-desktop   { display: none; align-items: center; gap: 1.5rem; margin-left: 2rem; }
-    .nav-link {
-      display: inline-flex; align-items: center; gap: 0.25rem;
-      padding: 0.25rem; font-size: 0.875rem; font-weight: 500;
-      color: var(--neutral-500); background: none; border: none;
-      transition: color 0.15s ease;
-    }
-    .nav-link:hover, .nav-link.is-active { color: var(--raspberry-500); }
-    .nav-link__chevron { transition: transform 0.2s ease; flex-shrink: 0; }
-    .nav-dropdown { position: relative; }
-
-    /* Mega menu */
-    .mega-menu {
-      position: absolute; top: calc(100% + 0.5rem);
-      left: 50%; transform: translateX(-50%);
-      width: min(60rem, calc(100vw - 2rem));
-      background: var(--white); border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-lg); border: 1px solid var(--light-gray);
-      padding: 1.5rem; z-index: 50;
-    }
-    .mega-menu__inner  { display: flex; gap: 2rem; }
-    .mega-menu__col--fixed { width: 16rem; flex-shrink: 0; }
-    .mega-menu__col--grow  { flex: 1; }
-    .mega-menu__divider    { width: 1px; background: var(--neutral-400); opacity: 0.3; }
-    .mega-menu__label {
-      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.05em; color: var(--neutral-600); margin-bottom: 1rem;
-    }
-    .mega-menu__links { display: flex; flex-direction: column; gap: 0.5rem; }
-    .mega-menu__grid  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
-    .mega-menu__grid--full { grid-template-columns: repeat(3, 1fr); }
-    .mega-menu__item {
-      display: flex; align-items: flex-start; gap: 0.75rem;
-      padding: 0.75rem; border-radius: var(--radius-lg);
-      background: var(--eggshell-500); transition: background 0.15s ease;
-    }
-    .mega-menu__item:hover { background: var(--light-pink-100); }
-    .mega-menu__icon { color: var(--horizon-500); flex-shrink: 0; margin-top: 0.125rem; }
-    .mega-menu__item-title {
-      display: block; font-size: 1rem; font-weight: 700; color: var(--horizon-500);
-      transition: color 0.15s ease;
-    }
-    .mega-menu__item:hover .mega-menu__item-title { color: var(--raspberry-500); }
-    .mega-menu__item-sub {
-      display: block; font-size: 0.75rem; color: var(--neutral-500);
-      margin-top: 0.25rem; line-height: 1.4;
-    }
-
-    /* Sign in */
-    .nav-actions { display: none; align-items: center; }
-    .nav-signin-btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.5rem 0.75rem; border-radius: var(--radius-md);
-      font-size: 0.875rem; font-weight: 500;
-      color: var(--horizon-500); background: var(--light-pink-100);
-      transition: background 0.15s ease;
-    }
-    .nav-signin-btn:hover { background: var(--light-pink-200); }
-
-    /* Hamburger */
-    .nav-hamburger {
-      display: flex; align-items: center; justify-content: center;
-      padding: 0.5rem; border-radius: var(--radius-md);
-      background: none; border: none; color: var(--horizon-400);
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .nav-hamburger:hover { background: var(--savannah-100); color: var(--neutral-500); }
-    .hamburger-icon--close { display: none; }
-    .nav-hamburger[aria-expanded="true"] .hamburger-icon--open  { display: none; }
-    .nav-hamburger[aria-expanded="true"] .hamburger-icon--close { display: block; }
-
-    /* Mobile menu */
-    .mobile-menu { border-top: 1px solid var(--light-gray); background: var(--white); }
-    .mobile-menu__body { padding: 0.5rem 0 0.75rem; }
-    .mobile-menu__link {
-      display: block; padding: 0.5rem 1rem 0.5rem 0.75rem;
-      font-size: 1rem; font-weight: 500; color: var(--horizon-500);
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .mobile-menu__link:hover { background: var(--savannah-100); color: var(--raspberry-500); }
-    .mobile-accordion__trigger {
-      display: flex; width: 100%; align-items: center; justify-content: space-between;
-      padding: 0.5rem 1rem 0.5rem 0.75rem; font-size: 1rem; font-weight: 500;
-      color: var(--horizon-500); background: none; border: none; text-align: left;
-      transition: background 0.15s ease, color 0.15s ease;
-    }
-    .mobile-accordion__trigger:hover { background: var(--savannah-100); color: var(--raspberry-500); }
-    .mobile-accordion__chevron { transition: transform 0.2s ease; flex-shrink: 0; }
-    .mobile-accordion__panel  { padding-left: 1.5rem; padding-bottom: 0.25rem; }
-    .mobile-menu__sublink {
-      display: block; padding: 0.375rem 0; font-size: 0.875rem;
-      color: var(--neutral-500); transition: color 0.15s ease;
-    }
-    .mobile-menu__sublink:hover { color: var(--raspberry-500); }
-    .mobile-menu__sublabel {
-      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.05em; color: var(--neutral-400);
-      padding-top: 0.5rem; padding-bottom: 0.25rem;
-    }
-
-    /* ===================================================================
-       HERO MODULE  [id=hero]
-       =================================================================== */
-    .hero { background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500)); overflow-x: hidden; }
-    .hero__inner { max-width: 80rem; margin: 0 auto; padding: 2.5rem 1rem 0; }
-    .hero__heading {
-      position: relative; z-index: 1;
-      font-size: clamp(2.25rem, 8vw, 6rem); line-height: 1;
-      margin-bottom: 0.75rem; color: var(--white); font-weight: 900;
-    }
-    .hero__heading-accent { color: var(--raspberry-300); }
-    .hero__body {
-      position: relative; z-index: 1;
-      color: var(--white-80); margin-bottom: 1rem;
-      max-width: 42rem; line-height: 1.625;
-    }
-    .hero__cta { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
-    .btn-cta-primary {
-      display: inline-block; padding: 0.625rem 4rem;
-      font-size: 1.125rem; font-weight: 500;
-      color: var(--white); background: var(--spring-500);
-      border-radius: var(--radius-button); border: none;
-      transition: background-color 0.15s ease; white-space: nowrap;
-    }
-    .btn-cta-primary:hover { background: var(--spring-600); }
-    .hero__sublinks {
-      font-size: 0.875rem; color: var(--white-70);
-      display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
-    }
-    .hero__sublink     { color: var(--white-90); transition: color 0.15s ease; }
-    .hero__sublink:hover { color: var(--spring-400); }
-    .hero__sublink-sep { color: var(--white-40); }
-
-    /* Mobile caption panels */
-    .hero__mobile-panels { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; padding-bottom: 1.5rem; }
-    .hero__panel         { background: var(--white); border-radius: var(--radius-md); padding: 1rem; box-shadow: var(--shadow-sm); }
-    .hero__panel-title   { font-size: 1.125rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.25rem; }
-    .hero__panel-body    { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.25; }
-    .hero__panel--brain  { display: flex; justify-content: center; }
-    .hero__panel--brain img { width: 7rem; border-radius: var(--radius-md); }
-
-    /* Desktop composite */
-    .hero__desktop-composite {
-      display: none; position: relative; overflow: hidden; margin: 0 auto;
-      width: 108%; margin-left: -4%; margin-top: -80px; margin-bottom: 8px;
-    }
-    .hero__desktop-img  { width: 100%; height: auto; display: block; }
-    .hero__caption      { position: absolute; padding: 0.75rem 1rem; }
-    .hero__caption--left  { top: 62px; left: 4%; max-width: 28%; padding-top: 54px; }
-    .hero__caption--center {
-      top: 56px; bottom: 0; left: 50%; transform: translateX(-50%);
-      max-width: 28%; text-align: center;
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-    .hero__caption--right { top: 62px; right: 4%; max-width: 28%; padding-top: 54px; text-align: right; }
-    .hero__caption-title  { font-size: 1.5rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.25rem; }
-    .hero__caption-body   { font-size: 0.75rem; color: var(--neutral-500); line-height: 1.25; }
-    .hero__caption-brain  { flex: 1; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; margin-top: 0.25rem; }
-    .hero__caption-brain img { width: auto; max-width: 100%; max-height: none; object-fit: contain; object-position: bottom; }
-
-    /* ===================================================================
-       RESPONSIVE — hero and nav only (below-fold modules live in index.css)
-       =================================================================== */
-    @media (min-width: 640px) {
-      .hero__mobile-panels { display: none; }
-    }
-    @media (min-width: 1024px) {
-      .nav-desktop             { display: flex; }
-      .nav-actions             { display: flex; }
-      .nav-hamburger           { display: none; }
-      .hero__mobile-panels     { display: none; }
-      .hero__desktop-composite { display: block; }
-    }
-    @media (min-width: 1280px) {
-      .hero__caption--left   { padding-top: 6rem; }
-      .hero__caption--right  { padding-top: 6rem; }
-      .hero__caption--center { top: 3.5rem; }
-      .hero__caption-title   { font-size: 1.5rem; }
-    }
-  </style>
 </head>
 <body>
 
@@ -397,14 +83,14 @@
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
             <a href="#dashboard" class="hero__sublink" id="scroll-dashboard">View the video</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
-            <a href="/register?from=demo" class="hero__sublink">See our demo</a>
+            <a href="#" class="hero__sublink open-demo-modal">See our demo</a>
           </p>
         </div>
 
         <!-- Mobile caption panels (hidden above 640px by CSS) -->
         <div class="hero__mobile-panels" aria-hidden="true">
           <div class="hero__panel hero__panel--brain">
-            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="112" height="112" loading="eager" />
+            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="112" height="112" loading="lazy" />
           </div>
           <div class="hero__panel">
             <p class="hero__panel-title">One financial view.</p>
@@ -412,7 +98,7 @@
           </div>
           <div class="hero__panel">
             <p class="hero__panel-title">One financial brain.</p>
-            <p class="hero__panel-body">Our proprietary brain does the calculations so you don't have to.</p>
+            <p class="hero__panel-body">Our proprietary brain does the calculations<br />so you don't have to.</p>
           </div>
           <div class="hero__panel">
             <p class="hero__panel-title">One financial voice.</p>
@@ -424,7 +110,7 @@
         <div class="hero__desktop-composite" aria-hidden="true">
           <img
             src="/images/Website/Homepage-Header-Desktopv3.png"
-            alt="Fynla Brain — your financial planning intelligence"
+            alt="Fynla Brain - your financial planning intelligence"
             class="hero__desktop-img"
             width="1315" height="489"
             loading="eager" fetchpriority="high"
@@ -436,10 +122,10 @@
           <div class="hero__caption hero__caption--center">
             <div>
               <p class="hero__caption-title">One financial brain.</p>
-              <p class="hero__caption-body">Our proprietary brain does the calculations so you don't have to.</p>
+              <p class="hero__caption-body">Our proprietary brain does the calculations<br />so you don't have to.</p>
             </div>
             <div class="hero__caption-brain">
-              <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="200" height="200" loading="eager" />
+              <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="200" height="200" loading="lazy" />
             </div>
           </div>
           <div class="hero__caption hero__caption--right">
@@ -459,7 +145,7 @@
           <!-- Mobile: heading + character side by side -->
           <div class="meet-fyn__mobile-header">
             <h2 id="meet-fyn-heading" class="meet-fyn__heading">Meet Fyn</h2>
-            <img src="/images/Fyn/Design Character 001a.webp" alt="Fyn — your AI financial companion" class="meet-fyn__mobile-char" width="324" height="427" loading="lazy" />
+            <img src="/images/Fyn/Design Character 001a.webp" alt="Fyn, your AI financial companion" class="meet-fyn__mobile-char" width="324" height="427" loading="lazy" />
           </div>
           <p class="meet-fyn__subheading">Your financial companion for life</p>
           <p class="meet-fyn__body">
@@ -556,7 +242,7 @@
         <div class="feature-grid__footer">
           <a href="/features" class="feature-grid__footer-link">View detailed list of features &rsaquo;</a>
           <span class="feature-grid__footer-sep" aria-hidden="true">|</span>
-          <a href="/register?from=demo" class="feature-grid__footer-link">View demos &rsaquo;</a>
+          <a href="#" class="feature-grid__footer-link open-demo-modal">View demos &rsaquo;</a>
         </div>
       </div>
     </section>
@@ -631,7 +317,7 @@
           </a>
         </div>
         <div class="journey-stages__cta">
-          <a href="/register?from=demo" class="btn-demo">View demo</a>
+          <a href="#" class="btn-demo open-demo-modal">View demo</a>
         </div>
       </div>
     </section>
@@ -646,7 +332,7 @@
         <!-- Dynamic: populated by JS fetch (hidden until API responds) -->
         <div id="insights-dynamic" class="insights-dynamic" hidden aria-live="polite">
           <a id="insight-featured" class="insights-featured" href="/insights" aria-label="Featured insight">
-            <img id="insight-featured-img" src="" alt="" class="insights-featured__img" width="800" height="420" loading="lazy" />
+            <img id="insight-featured-img" src="" alt="" class="insights-featured__img" width="800" height="420" loading="eager" />
             <div class="insights-featured__overlay" aria-hidden="true"></div>
             <div class="insights-featured__body">
               <span class="insights-featured__badge">Featured</span>
@@ -661,7 +347,7 @@
         <div id="insights-static" class="insights-static">
           <a href="/insights/how-much-to-retire-uk" class="insight-static-card">
             <div class="insight-static-card__thumb">
-              <img src="/images/insights/how-much-to-retire-uk.jpg" alt="" width="400" height="225" loading="lazy" />
+              <img src="/images/insights/pension-contribution-limits.jpg" alt="" width="400" height="225" loading="lazy" />
             </div>
             <div class="insight-static-card__body">
               <p class="insight-static-card__date">14 April 2026</p>
@@ -671,7 +357,7 @@
           </a>
           <a href="/insights/stocks-shares-isa-uk" class="insight-static-card">
             <div class="insight-static-card__thumb">
-              <img src="/images/insights/stocks-shares-isa.jpg" alt="" width="400" height="225" loading="lazy" />
+              <img src="/images/insights/isa-allowance.jpg" alt="" width="400" height="225" loading="lazy" />
             </div>
             <div class="insight-static-card__body">
               <p class="insight-static-card__date">13 April 2026</p>
@@ -681,12 +367,12 @@
           </a>
           <a href="/insights/isa-guide-uk" class="insight-static-card">
             <div class="insight-static-card__thumb">
-              <img src="/images/insights/isa-guide-uk.jpg" alt="" width="400" height="225" loading="lazy" />
+              <img src="/images/insights/pension-iht-changes.jpg" alt="" width="400" height="225" loading="lazy" />
             </div>
             <div class="insight-static-card__body">
               <p class="insight-static-card__date">8 April 2026</p>
               <h3 class="insight-static-card__title">The Ultimate Guide to ISAs in the UK</h3>
-              <p class="insight-static-card__summary">Everything you need to know about ISAs in 2026 — types, allowances, rules, and choosing the right one.</p>
+              <p class="insight-static-card__summary">Everything you need to know about ISAs in 2026 â€" types, allowances, rules, and choosing the right one.</p>
             </div>
           </a>
         </div>
@@ -710,12 +396,12 @@
           <div class="stats-bar__divider" aria-hidden="true"></div>
           <div class="stats-bar__stat">
             <div class="stats-bar__number">1000's</div>
-            <div class="stats-bar__label">of financial plans created for people like you</div>
+            <div class="stats-bar__label">of financial plans<br />created for people like you</div>
           </div>
           <div class="stats-bar__divider" aria-hidden="true"></div>
           <div class="stats-bar__stat">
             <div class="stats-bar__number">30+</div>
-            <div class="stats-bar__label">Fynla features for financial planning</div>
+            <div class="stats-bar__label">Fynla features for<br />financial planning</div>
           </div>
         </div>
       </div>
@@ -723,200 +409,176 @@
 
   </main>
 
+  <!-- ================================================================
+       DEMO LIGHTBOX MODAL
+       Hidden by default; opened by .open-demo-modal clicks.
+       JS in index.js POSTs to /api/preview/login/{personaId} and
+       redirects to /dashboard on success.
+       ================================================================ -->
+  <div id="demo-modal" class="demo-modal" role="dialog" aria-modal="true"
+       aria-labelledby="demo-modal-title" hidden>
+    <div id="demo-modal-backdrop" class="demo-modal__backdrop" aria-hidden="true"></div>
+    <div class="demo-modal__panel">
+      <div class="demo-modal__header">
+        <h2 id="demo-modal-title" class="demo-modal__title">Choose your demo</h2>
+        <p class="demo-modal__subtitle">Each demo is pre-loaded with realistic UK financial data - no sign-up needed.</p>
+        <button id="demo-modal-close" class="demo-modal__close" aria-label="Close demo chooser">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" width="18" height="18">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="demo-modal__body">
+        <!-- 5-group layout matching live site: Starting Out | Protecting and Growing (×2) | Building Foundations | Planning Your Future | Enjoying Your Wealth -->
+        <div class="demo-modal__grid">
+
+          <!-- STARTING OUT — col 1 at desktop -->
+          <div class="demo-group">
+            <div class="demo-group__header demo-group__header--pink">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              Starting out
+            </div>
+            <div class="demo-group__cards">
+              <button class="demo-persona-card demo-persona-card--pink" data-persona="student" type="button">
+                <div class="demo-persona-card__meta">
+                  <span class="demo-persona-card__tag">Student</span>
+                  <span class="demo-persona-card__income">~&pound;9k/yr</span>
+                </div>
+                <span class="demo-persona-card__name">Janice Taylor</span>
+                <span class="demo-persona-card__detail">21, Economics student saving for a first home with a Lifetime ISA.</span>
+                <div class="demo-persona-card__focus-tags">
+                  <span>Lifetime ISA</span><span>First Home</span><span>Student Loan</span>
+                </div>
+                <span class="demo-persona-card__cta">View demo &rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- PROTECTING AND GROWING — spans cols 2+3 at desktop, 2 cards side by side -->
+          <div class="demo-group demo-group--wide">
+            <div class="demo-group__header demo-group__header--horizon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              Protecting and growing
+            </div>
+            <div class="demo-group__cards">
+              <button class="demo-persona-card" data-persona="young_family" type="button">
+                <div class="demo-persona-card__meta">
+                  <span class="demo-persona-card__tag">Family</span>
+                  <span class="demo-persona-card__income">~&pound;85k household</span>
+                </div>
+                <span class="demo-persona-card__name">Emily &amp; James Carter</span>
+                <span class="demo-persona-card__detail">Young family in their 30s with a mortgage, workplace pensions, and two children.</span>
+                <div class="demo-persona-card__focus-tags">
+                  <span>Mortgage</span><span>Pensions</span><span>Protection</span>
+                </div>
+                <span class="demo-persona-card__cta">View demo &rarr;</span>
+              </button>
+              <button class="demo-persona-card demo-persona-card--purple" data-persona="entrepreneur" type="button">
+                <div class="demo-persona-card__meta">
+                  <span class="demo-persona-card__tag">Business owner</span>
+                  <span class="demo-persona-card__income">~&pound;120k variable</span>
+                </div>
+                <span class="demo-persona-card__name">Alex Chen</span>
+                <span class="demo-persona-card__detail">42, business owner with complex income streams and succession planning needs.</span>
+                <div class="demo-persona-card__focus-tags">
+                  <span>Business</span><span>SIPP</span><span>Succession</span>
+                </div>
+                <span class="demo-persona-card__cta">View demo &rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- BUILDING FOUNDATIONS — col 1 at desktop (row 2) -->
+          <div class="demo-group">
+            <div class="demo-group__header demo-group__header--spring">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+              </svg>
+              Building foundations
+            </div>
+            <div class="demo-group__cards">
+              <button class="demo-persona-card demo-persona-card--green" data-persona="young_saver" type="button">
+                <div class="demo-persona-card__meta">
+                  <span class="demo-persona-card__tag">First-time buyer</span>
+                  <span class="demo-persona-card__income">~&pound;38k/yr</span>
+                </div>
+                <span class="demo-persona-card__name">John Morgan</span>
+                <span class="demo-persona-card__detail">24, junior analyst renting and saving for a deposit with a Lifetime ISA.</span>
+                <div class="demo-persona-card__focus-tags">
+                  <span>Savings</span><span>Mortgage</span><span>Lifetime ISA</span>
+                </div>
+                <span class="demo-persona-card__cta">View demo &rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- PLANNING YOUR FUTURE — col 2 at desktop (row 2) -->
+          <div class="demo-group">
+            <div class="demo-group__header demo-group__header--violet">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Planning your future
+            </div>
+            <div class="demo-group__cards">
+              <button class="demo-persona-card demo-persona-card--green" data-persona="peak_earners" type="button">
+                <div class="demo-persona-card__meta">
+                  <span class="demo-persona-card__tag">Peak earners</span>
+                  <span class="demo-persona-card__income">~&pound;220k household</span>
+                </div>
+                <span class="demo-persona-card__name">David &amp; Sarah Mitchell</span>
+                <span class="demo-persona-card__detail">Late 40s, substantial assets, multiple properties, SIPP and NHS pension.</span>
+                <div class="demo-persona-card__focus-tags">
+                  <span>Properties</span><span>Pensions</span><span>Tax Planning</span>
+                </div>
+                <span class="demo-persona-card__cta">View demo &rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ENJOYING YOUR WEALTH — col 3 at desktop (row 2) -->
+          <div class="demo-group">
+            <div class="demo-group__header demo-group__header--spring">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m4.22 1.78l-.71.71M20 12h1M4 12H3m3.34-5.66l-.71-.71M15.54 8.46A5.99 5.99 0 0112 7a5.99 5.99 0 00-3.54 1.46M12 14a2 2 0 100-4 2 2 0 000 4zm0 0v7"/>
+              </svg>
+              Enjoying your wealth
+            </div>
+            <div class="demo-group__cards">
+              <button class="demo-persona-card demo-persona-card--pink" data-persona="retired_couple" type="button">
+                <div class="demo-persona-card__meta">
+                  <span class="demo-persona-card__tag">Retirement</span>
+                  <span class="demo-persona-card__income">~&pound;52k pensions</span>
+                </div>
+                <span class="demo-persona-card__name">Patricia &amp; Harold Bennett</span>
+                <span class="demo-persona-card__detail">Early 70s, drawing defined-benefit pensions, focused on estate planning and gifting.</span>
+                <div class="demo-persona-card__focus-tags">
+                  <span>Estate</span><span>Inheritance Tax</span><span>Gifting</span>
+                </div>
+                <span class="demo-persona-card__cta">View demo &rarr;</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <p id="demo-modal-status" class="demo-modal__note" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+
   <?php include __DIR__ . '/partials/footer.php'; ?>
 
   <!-- Shared interactive wiring (nav active state, menus, etc.) -->
-  <script src="/pages/js/site.js?v=12" defer></script>
-
-  <!-- Page-specific JS (inline: carousel data + video + accordion + scroll + insights fetch) -->
-  <script>
-    'use strict';
-
-    /* ----------------------------------------------------------------
-       REVIEW CAROUSEL
-       ---------------------------------------------------------------- */
-    (function () {
-      var reviews = [
-        { name: 'Stephen D.', text: '"I found the dashboard screens interesting, but the chat agent stole the show. Absolutely incredible. I spent an hour or so with it on Friday night and I left with the information I needed — very technical analysis of workplace pension options broken down in a very easy to understand way."' },
-        { name: 'Mia R.',     text: '"It was so easy to see all my finances in one place. I had all current and savings accounts in different locations and had no idea what to do with my money. Fyn was really helpful in getting my information into Fynla, and then I had clear next steps on what I needed to do with my money."' },
-        { name: 'Anne L.',    text: '"Fynla has been a useful way to get a clearer picture of my finances without it feeling overwhelming. It pulls everything into one place, making it much easier to see where things stand. The recommendations are sensible and practical, giving me clear next steps rather than trying to do everything at once."' },
-        { name: 'Neil S.',    text: '"Fynla alerted me that my fixed rate mortgage was expiring and that I could lock in a new rate up to six months before my term ended. I secured a competitive deal, and shortly after, interest rates jumped. I will save £1,400 a year!"' },
-        { name: 'Ron B.',     text: '"Finally, everything in one place. Our family’s assets, liabilities, insurance, and key financial information are all organised and easy to access. Fyn makes the whole experience feel effortless — intuitive, genuinely useful, and asks exactly the right questions. I can’t imagine going back to spreadsheets."' },
-        { name: 'Michael H.', text: '"I was sceptical about another finance app, but Fynla is different. It actually understands UK tax rules — ISA allowances, pension annual allowance, inheritance tax. Everything is calculated correctly."' },
-      ];
-
-      var PER_PAGE = 3, desktopPages = [], desktopPage = 0, mobilePage = 0, isMobile = false, autoTimer = null;
-      for (var i = 0; i < reviews.length; i += PER_PAGE) desktopPages.push(reviews.slice(i, i + PER_PAGE));
-
-      function starHtml() {
-        var s = '';
-        for (var n = 0; n < 5; n++) s += '<svg class="review-card__star" aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
-        return s;
-      }
-
-      function cardHtml(r) {
-        return '<div class="review-card"><div class="review-card__stars">' + starHtml() + '</div>' +
-               '<p class="review-card__text">' + r.text + '</p>' +
-               '<div class="review-card__footer"><span class="review-card__name">' + r.name + '</span></div></div>';
-      }
-
-      function totalPages() { return isMobile ? reviews.length : desktopPages.length; }
-      function currentPage() { return isMobile ? mobilePage : desktopPage; }
-
-      function applyTransform() {
-        var dt = document.getElementById('carousel-desktop-track');
-        var mt = document.getElementById('carousel-mobile-track');
-        if (dt) dt.style.transform = 'translateX(-' + (desktopPage * 100) + '%)';
-        if (mt) mt.style.transform  = 'translateX(-' + (mobilePage  * 100) + '%)';
-        updateDots();
-      }
-
-      function updateDots() {
-        var el = document.getElementById('carousel-dots'); if (!el) return;
-        el.innerHTML = '';
-        var total = totalPages(), cur = currentPage();
-        for (var d = 0; d < total; d++) {
-          var btn = document.createElement('button');
-          btn.className = 'review-carousel__dot' + (d === cur ? ' is-active' : '');
-          btn.setAttribute('role', 'tab');
-          btn.setAttribute('aria-selected', d === cur ? 'true' : 'false');
-          btn.setAttribute('aria-label', 'Page ' + (d + 1));
-          btn.setAttribute('data-page', d);
-          btn.addEventListener('click', function () { goToPage(parseInt(this.getAttribute('data-page'), 10)); });
-          el.appendChild(btn);
-        }
-      }
-
-      function goToPage(p) {
-        var t = totalPages(), c = (p + t) % t;
-        if (isMobile) mobilePage = c; else desktopPage = c;
-        applyTransform(); clearInterval(autoTimer); autoTimer = setInterval(function () { goToPage(currentPage() + 1); }, 10000);
-      }
-
-      function checkMobile() {
-        var was = isMobile; isMobile = window.innerWidth < 768;
-        if (was !== isMobile) { desktopPage = 0; mobilePage = 0; applyTransform(); }
-      }
-
-      var dt = document.getElementById('carousel-desktop-track');
-      var mt = document.getElementById('carousel-mobile-track');
-      if (!dt || !mt) return;
-
-      dt.innerHTML = desktopPages.map(function (p) { return '<div class="review-carousel__page-desktop">' + p.map(cardHtml).join('') + '</div>'; }).join('');
-      mt.innerHTML = reviews.map(function (r) { return '<div class="review-carousel__slide-mobile">' + cardHtml(r) + '</div>'; }).join('');
-
-      checkMobile(); applyTransform();
-      autoTimer = setInterval(function () { goToPage(currentPage() + 1); }, 10000);
-      document.getElementById('carousel-prev').addEventListener('click', function () { goToPage(currentPage() - 1); });
-      document.getElementById('carousel-next').addEventListener('click', function () { goToPage(currentPage() + 1); });
-      window.addEventListener('resize', checkMobile);
-    })();
-
-    /* ----------------------------------------------------------------
-       VIDEO TOGGLE
-       ---------------------------------------------------------------- */
-    (function () {
-      var wrap = document.getElementById('video-wrap');
-      var video = document.getElementById('product-video');
-      var overlay = document.getElementById('video-overlay');
-      if (!wrap || !video) return;
-      function toggle() {
-        if (video.paused) {
-          video.play(); overlay.hidden = true;
-          wrap.setAttribute('aria-pressed', 'true');
-          wrap.setAttribute('aria-label', 'Pause Fynla dashboard product tour video');
-        } else {
-          video.pause(); overlay.hidden = false;
-          wrap.setAttribute('aria-pressed', 'false');
-          wrap.setAttribute('aria-label', 'Play Fynla dashboard product tour video');
-        }
-      }
-      wrap.addEventListener('click', toggle);
-      wrap.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
-      video.addEventListener('ended', function () { overlay.hidden = false; wrap.setAttribute('aria-pressed', 'false'); wrap.setAttribute('aria-label', 'Play Fynla dashboard product tour video'); });
-    })();
-
-    /* ----------------------------------------------------------------
-       FYN ACCORDION
-       ---------------------------------------------------------------- */
-    (function () {
-      var btn = document.getElementById('fyn-accordion-btn');
-      var panel = document.getElementById('fyn-accordion-panel');
-      if (!btn || !panel) return;
-      var chevron = btn.querySelector('.fyn-accordion__chevron');
-      btn.addEventListener('click', function () {
-        var open = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!open));
-        panel.classList.toggle('is-open', !open);
-        if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
-      });
-    })();
-
-    /* ----------------------------------------------------------------
-       SMOOTH SCROLL (hero sub-links)
-       ---------------------------------------------------------------- */
-    (function () {
-      function smoothScrollTo(targetId) {
-        var el = document.getElementById(targetId); if (!el) return;
-        var navH = (document.querySelector('.site-header') || {}).offsetHeight || 0;
-        var target = el.getBoundingClientRect().top + window.scrollY - navH;
-        var start = window.scrollY, dist = target - start, dur = 1500, startTime = null;
-        function ease(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
-        function step(ts) {
-          if (!startTime) startTime = ts;
-          var p = Math.min((ts - startTime) / dur, 1);
-          window.scrollTo(0, start + dist * ease(p));
-          if (p < 1) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
-      }
-      var mf = document.getElementById('scroll-meet-fyn');
-      var db = document.getElementById('scroll-dashboard');
-      if (mf) mf.addEventListener('click', function (e) { e.preventDefault(); smoothScrollTo('meet-fyn'); });
-      if (db) db.addEventListener('click', function (e) { e.preventDefault(); smoothScrollTo('dashboard'); });
-    })();
-
-    /* ----------------------------------------------------------------
-       LATEST INSIGHTS — fetch from API, fall back to static grid
-       ---------------------------------------------------------------- */
-    (function () {
-      var dynEl    = document.getElementById('insights-dynamic');
-      var staticEl = document.getElementById('insights-static');
-
-      fetch('/api/insights?featured=1')
-        .then(function (res) { if (!res.ok) throw new Error('API unavailable'); return res.json(); })
-        .then(function (data) {
-          var featured = data.featured || null;
-          var supporting = data.supporting || [];
-          if (!featured) throw new Error('No featured insight');
-
-          var featuredEl  = document.getElementById('insight-featured');
-          var featuredImg = document.getElementById('insight-featured-img');
-          var featuredTit = document.getElementById('insight-featured-title');
-          var featuredSum = document.getElementById('insight-featured-summary');
-          featuredEl.href = '/insights/' + featured.slug;
-          featuredEl.setAttribute('aria-label', featured.title);
-          if (featured.image_card) { featuredImg.src = featured.image_card; featuredImg.alt = ''; /* decorative: title in adjacent h3 */ }
-          featuredTit.textContent = featured.title;
-          featuredSum.textContent = featured.summary;
-
-          var supEl = document.getElementById('insights-supporting');
-          supEl.innerHTML = supporting.slice(0, 2).map(function (a) {
-            return '<a href="/insights/' + a.slug + '" class="insights-support-card">' +
-              '<div class="insights-support-card__thumb">' +
-              (a.image_card ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" />' : '') + /* alt="" decorative: title in adjacent h4 */
-              '</div><div class="insights-support-card__body"><h4 class="insights-support-card__title">' + a.title + '</h4></div></a>';
-          }).join('');
-
-          if (dynEl)    dynEl.hidden    = false;
-          if (staticEl) staticEl.hidden = true;
-        })
-        .catch(function () {
-          if (dynEl)    dynEl.hidden    = true;
-          if (staticEl) staticEl.hidden = false;
-        });
-    })();
-  </script>
+  <script src="/pages/js/site.js?v=112" defer></script>
+  <!-- Page-specific interactions (carousel, video, accordion, insights, demo modal) -->
+  <script src="/pages/js/index.js?v=112" defer></script>
 
 </body>
 </html>

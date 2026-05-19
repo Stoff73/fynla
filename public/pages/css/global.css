@@ -205,9 +205,10 @@ button { cursor: pointer; font-family: inherit; }
 }
 .nav-signin-btn:hover { background: var(--light-pink-200); }
 
-/* Hamburger */
+/* Hamburger — margin-left:auto pushes it to the far right of the nav bar */
 .nav-hamburger {
   display: flex; align-items: center; justify-content: center;
+  margin-left: auto;
   padding: 0.5rem; border-radius: var(--radius-md);
   background: none; border: none; color: var(--horizon-400);
   transition: background 0.15s ease, color 0.15s ease;

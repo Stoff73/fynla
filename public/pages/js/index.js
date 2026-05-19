@@ -225,18 +225,30 @@
     function smoothScrollTo(targetId) {
       var el = document.getElementById(targetId);
       if (!el) return;
+      /* Disable CSS scroll-behavior:smooth for the duration of our JS animation.
+         If left enabled, the browser's native smooth-scroll buffers our scrollTo()
+         calls, producing a noticeable delay before movement starts — then the
+         buffered calls fire all at once, making the scroll feel jerky/rushed. */
+      document.documentElement.style.scrollBehavior = 'auto';
       /* Use cached navHeight — avoids forced reflow inside rAF loop */
       var target    = el.getBoundingClientRect().top + window.scrollY - navHeight;
       var start     = window.scrollY;
       var dist      = target - start;
-      var dur       = 1500;
+      var dur       = 1300;
       var startTime = null;
-      function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+      /* Cubic ease-out: starts immediately at full speed, decelerates smoothly.
+         1300ms gives a relaxed, unhurried feel without being sluggish. */
+      function ease(t) { return 1 - Math.pow(1 - t, 3); }
       function step(ts) {
         if (!startTime) startTime = ts;
         var p = Math.min((ts - startTime) / dur, 1);
         window.scrollTo(0, start + dist * ease(p));
-        if (p < 1) requestAnimationFrame(step);
+        if (p < 1) {
+          requestAnimationFrame(step);
+        } else {
+          /* Restore CSS smooth-scroll once our animation is complete */
+          document.documentElement.style.scrollBehavior = '';
+        }
       }
       requestAnimationFrame(step);
     }
@@ -277,6 +289,8 @@
         featuredEl.href = '/insights/' + featured.slug;
         featuredEl.setAttribute('aria-label', featured.title);
         if (featured.image_card) {
+          /* Clear any display:none set by onerror on the empty initial src="" */
+          featuredImg.style.display = '';
           featuredImg.src = featured.image_card;
           featuredImg.alt = ''; /* decorative: title already in adjacent h3 */
         }
@@ -288,8 +302,8 @@
           return '<a href="/insights/' + a.slug + '" class="insights-support-card">' +
                  '<div class="insights-support-card__thumb">' +
                  (a.image_card
-                   ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" />'
-                   : '') + /* alt="" decorative: title in adjacent h4 */
+                   ? '<img src="' + a.image_card + '" alt="" width="300" height="200" loading="lazy" onerror="this.parentElement.style.display=\'none\'" />'
+                   : '') + /* alt="" decorative: title in adjacent h4; onerror hides thumb container to avoid empty grey box */
                  '</div>' +
                  '<div class="insights-support-card__body">' +
                  '<h4 class="insights-support-card__title">' + a.title + '</h4>' +
@@ -323,11 +337,41 @@
     var status   = document.getElementById('demo-modal-status');
     if (!modal) return;
 
+    /* Make all persona cards the same height so the three columns look
+       balanced. Cards have variable content (different focus-tag counts,
+       detail line lengths) so we measure after layout then set min-height.
+       Runtime inline style is intentional here — the value is computed
+       dynamically and cannot be expressed as a static CSS class. */
+    function equalizeCards() {
+      /* Only equalise at desktop where cards sit side by side — on mobile
+         the single-column stacked layout needs each card at its natural height */
+      if (window.innerWidth < 900) {
+        modal.querySelectorAll('.demo-persona-card').forEach(function (c) { c.style.minHeight = ''; });
+        return;
+      }
+      var cards = modal.querySelectorAll('.demo-persona-card');
+      if (!cards.length) return;
+      /* Reset to natural height first so we measure real content height */
+      cards.forEach(function (c) { c.style.minHeight = ''; });
+      var maxH = 0;
+      cards.forEach(function (c) { maxH = Math.max(maxH, c.offsetHeight); });
+      if (maxH > 0) {
+        cards.forEach(function (c) { c.style.minHeight = maxH + 'px'; });
+      }
+    }
+
     function openModal() {
       modal.hidden = false;
       document.body.style.overflow = 'hidden';
       if (closeBtn) closeBtn.focus();
+      /* Equalize after the modal is visible so offsetHeight is accurate */
+      requestAnimationFrame(equalizeCards);
     }
+
+    /* Re-equalise (or clear) on resize so mobile→desktop transitions are correct */
+    window.addEventListener('resize', debounce(function () {
+      if (!modal.hidden) equalizeCards();
+    }, 150));
 
     function closeModal() {
       modal.hidden = true;
