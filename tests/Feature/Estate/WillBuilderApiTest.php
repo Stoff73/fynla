@@ -6,9 +6,13 @@ use App\Models\Estate\Will;
 use App\Models\Estate\WillDocument;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    // Will Builder is a full-Estate sub-route (spec §10.2): the acting user
+    // must be on a full-Estate tier. Tier config seeded so TeaserGate resolves.
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 describe('Will Builder API', function () {
@@ -22,6 +26,7 @@ describe('Will Builder API', function () {
                 'middle_name' => null,
                 'surname' => 'Carter',
                 'occupation' => 'Engineer',
+                'tier' => 'tier2',
             ]);
 
             $response = $this->actingAs($user)->getJson('/api/estate/will-builder/pre-populate');
@@ -46,7 +51,7 @@ describe('Will Builder API', function () {
 
     describe('GET /estate/will-builder', function () {
         it('returns null when no draft exists', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
 
             $response = $this->actingAs($user)->getJson('/api/estate/will-builder');
 
@@ -55,7 +60,7 @@ describe('Will Builder API', function () {
         });
 
         it('returns existing draft', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             $response = $this->actingAs($user)->getJson('/api/estate/will-builder');
@@ -68,7 +73,7 @@ describe('Will Builder API', function () {
 
     describe('POST /estate/will-builder', function () {
         it('creates a new will document draft', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
 
             $response = $this->actingAs($user)->postJson('/api/estate/will-builder', [
                 'will_type' => 'simple',
@@ -94,7 +99,7 @@ describe('Will Builder API', function () {
         });
 
         it('validates required fields', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
 
             $this->actingAs($user)->postJson('/api/estate/will-builder', [])
                 ->assertStatus(422);
@@ -103,7 +108,7 @@ describe('Will Builder API', function () {
 
     describe('PUT /estate/will-builder/{id}', function () {
         it('saves step data incrementally', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             $response = $this->actingAs($user)->putJson("/api/estate/will-builder/{$doc->id}", [
@@ -122,7 +127,7 @@ describe('Will Builder API', function () {
         });
 
         it('prevents access to another users document', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $otherUser = User::factory()->create();
             $doc = WillDocument::factory()->create(['user_id' => $otherUser->id]);
 
@@ -135,7 +140,7 @@ describe('Will Builder API', function () {
 
     describe('POST /estate/will-builder/{id}/complete', function () {
         it('marks a valid document as complete', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create([
                 'user_id' => $user->id,
                 'executors' => [['name' => 'John Smith', 'address' => '10 High St']],
@@ -159,7 +164,7 @@ describe('Will Builder API', function () {
         });
 
         it('rejects completion with validation errors', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create([
                 'user_id' => $user->id,
                 'executors' => [],
@@ -182,6 +187,7 @@ describe('Will Builder API', function () {
                 'first_name' => 'James',
                 'surname' => 'Carter',
                 'spouse_id' => $spouse->id,
+                'tier' => 'tier2',
             ]);
 
             $doc = WillDocument::factory()->mirror()->create([
@@ -207,7 +213,7 @@ describe('Will Builder API', function () {
 
     describe('DELETE /estate/will-builder/{id}', function () {
         it('soft-deletes a draft', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
             $this->actingAs($user)->deleteJson("/api/estate/will-builder/{$doc->id}")
@@ -219,7 +225,7 @@ describe('Will Builder API', function () {
         });
 
         it('prevents deleting another users document', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $other = User::factory()->create();
             $doc = WillDocument::factory()->create(['user_id' => $other->id]);
 
@@ -230,7 +236,7 @@ describe('Will Builder API', function () {
 
     describe('GET /estate/will-builder/{id}/validate', function () {
         it('returns validation warnings', function () {
-            $user = User::factory()->create();
+            $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create([
                 'user_id' => $user->id,
                 'executors' => [],
