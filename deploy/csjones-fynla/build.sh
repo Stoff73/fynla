@@ -83,6 +83,15 @@ if [ ! -f "public/build/manifest.json" ]; then
     exit 1
 fi
 
+# SP3 — isolated mobile build (subdirectory deployment: /fynla/m-build/).
+echo "Building isolated mobile assets (SP3)..."
+export VITE_MOBILE_BASE_PATH=/fynla/m-build/
+npm run build:mobile
+if [ ! -f "public/m-build/manifest.json" ]; then
+    echo "ERROR: Mobile build failed - public/m-build/manifest.json not found"
+    exit 1
+fi
+
 # Get build size
 BUILD_SIZE=$(du -sh "public/build" | cut -f1)
 
@@ -103,6 +112,9 @@ echo "fynla-app/public (not the app root). Upload / cd targets below."
 echo ""
 echo "1. Upload public/build/ directory to:"
 echo "   ~/www/csjones.co/fynla-app/public/build/"
+echo ""
+echo "1b. Upload public/m-build/ directory to:"
+echo "   ~/www/csjones.co/fynla-app/public/m-build/"
 echo ""
 echo "   Preserve-old-chunks pattern (keeps in-flight sessions alive):"
 echo "     cd ~/www/csjones.co/fynla-app"

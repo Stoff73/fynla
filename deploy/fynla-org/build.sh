@@ -65,6 +65,15 @@ if [ ! -f "public/build/manifest.json" ]; then
     exit 1
 fi
 
+# SP3 — isolated mobile build (root deployment: /m-build/).
+echo "Building isolated mobile assets (SP3)..."
+export VITE_MOBILE_BASE_PATH=/m-build/
+npm run build:mobile
+if [ ! -f "public/m-build/manifest.json" ]; then
+    echo "ERROR: Mobile build failed - public/m-build/manifest.json not found"
+    exit 1
+fi
+
 # Get build size
 BUILD_SIZE=$(du -sh "public/build" | cut -f1)
 
@@ -81,6 +90,9 @@ echo "============================================="
 echo ""
 echo "1. Upload public/build/ directory to:"
 echo "   ~/www/fynla.org/public_html/public/build/"
+echo ""
+echo "1b. Upload public/m-build/ directory to:"
+echo "   ~/www/fynla.org/public_html/public/m-build/"
 echo ""
 echo "2. Upload any changed PHP files (check deployment notes)"
 echo ""

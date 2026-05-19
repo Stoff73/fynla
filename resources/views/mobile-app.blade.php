@@ -13,9 +13,9 @@
             $manifest = json_decode((string) file_get_contents($manifestPath), true) ?: [];
             $entry = $manifest['resources/mobile/main.js'] ?? null;
             if ($entry) {
-                $entryJs = '/m-build/' . $entry['file'];
+                $entryJs = asset('m-build/' . $entry['file']);
                 foreach (($entry['css'] ?? []) as $css) {
-                    $entryCss[] = '/m-build/' . $css;
+                    $entryCss[] = asset('m-build/' . $css);
                 }
             }
         }
