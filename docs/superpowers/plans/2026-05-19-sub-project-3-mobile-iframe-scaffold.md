@@ -19,7 +19,7 @@
 ## Exact backend contracts (verified, do not re-derive)
 
 **Login:** `POST /api/auth/login` body `{ "email": string, "password": string }`
-→ `200 { "success": true, "data": { "requires_verification": true, "challenge_token": "<64-char>", "email": "<masked>" } }` and emails a 6-digit code.
+→ `200 { "success": true, "requires_verification": true, "data": { "challenge_token": "<64-char>", "email": "<masked>" } }` and emails a 6-digit code. **NOTE:** `requires_verification` is TOP-LEVEL (sibling of `data`); only `challenge_token`/`email` are nested under `data`. (Verified against `AuthController::login()` lines 276–284 — corrected post-review of Task 5.)
 (Preview users / MFA branches exist but are out of scope for the scaffold.)
 
 **Verify:** `POST /api/auth/verify-code` body `{ "code": "<6 digits>", "type": "login", "challenge_token": "<from login>" }`
@@ -697,7 +697,7 @@ export default {
       this.loading = true;
       const { ok, data } = await apiPost('/api/auth/login', { email: this.email, password: this.password });
       this.loading = false;
-      if (ok && data?.data?.requires_verification) {
+      if (ok && data?.requires_verification) {
         store.challengeToken = data.data.challenge_token;
         store.maskedEmail = data.data.email;
         this.$router.push({ name: 'verify' });
