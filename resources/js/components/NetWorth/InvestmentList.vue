@@ -242,6 +242,19 @@
     <div v-if="errorMessage" class="notification error animate-slide-in-right">
       {{ errorMessage }}
     </div>
+
+    <!-- Open Banking Affordance — SP2 PR8 §14: shown only when open_api_affordance flag is true (Tier 2/3) -->
+    <div v-if="openApiAffordance && !selectedAccount" class="mt-6 bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-semibold text-horizon-500">Connect via Open Banking — coming soon</h3>
+          <p class="text-sm text-neutral-500 mt-1">Automatically import and sync your investment accounts via Open Banking.</p>
+        </div>
+        <button disabled class="ml-4 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-100 border border-neutral-200 rounded-lg cursor-not-allowed whitespace-nowrap">
+          Coming soon
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -313,6 +326,7 @@ export default {
       'holdingsCount',
     ]),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
+    ...mapGetters('auth', ['openApiAffordance']),
 
     // Calculate portfolio-wide diversification score (value-weighted average)
     portfolioDiversificationScore() {

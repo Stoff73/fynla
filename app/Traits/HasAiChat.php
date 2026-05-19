@@ -82,6 +82,15 @@ trait HasAiChat
      */
     private ?string $systemPromptOverride = null;
 
+    /**
+     * Verbatim FynContextAssembler block captured for the current turn under
+     * the unified prompt architecture (the exact user-turn content sent to
+     * the provider). Persisted on the assistant ai_message for the admin
+     * AI-Audit forensic view. Null under legacy (system_prompt is already
+     * the complete prompt there) and reset per stream.
+     */
+    private ?string $assembledContext = null;
+
     private ?string $unifiedOnboardingFocus = null;
 
     public function setUnifiedOnboardingFocus(?string $focus): void
@@ -125,6 +134,10 @@ trait HasAiChat
         string $message,
         ?string $currentRoute = null
     ): \Generator {
+        // Reset per-stream forensic capture (mirrors $systemPromptOverride
+        // lifecycle). Set on the unified seam below; stays null under legacy.
+        $this->assembledContext = null;
+
         // Save user message (skipped when the caller has already persisted
         // the message itself — for example OnboardingChatDirector saves it
         // BEFORE delegating here, so the history reflects the user turn
@@ -170,12 +183,21 @@ trait HasAiChat
                 $currentRoute,
                 $classification,
                 $conversation,
+                $kycResult,
             );
         }
 
         // Model selection
         $complexity = $this->classifyComplexity($message, $conversation->message_count);
         $model = $this->getAiModel($user, $complexity);
+
+        // Soft-degrade notice (PR 6 — Rule #16: plain text only, no icon/emoji/glyph).
+        // Prepend to the system prompt so the AI knows to keep responses shorter and
+        // to relay the notice. Chat is NEVER hard-walled by the weekly budget.
+        if ($this->isWeeklyBudgetExceeded($user)) {
+            $systemPrompt = 'Fyn is running in a lighter mode this week — upgrade for full responses.'
+                ."\n\n".$systemPrompt;
+        }
         $maxTokens = $this->getAiMaxTokens($user);
         $isXai = $this->getAiProvider() === 'xai';
         $toolDefinitions = $isXai
@@ -228,6 +250,12 @@ trait HasAiChat
         $totalOutputTokens = 0;
         $totalCachedTokens = 0;
         $toolCallsSummary = [];
+        // Full, uncompressed tool round-trips for the admin AI-Audit view.
+        // tool_calls = what the model emitted; tool_results = what the tool
+        // produced (raw) AND the verbatim payload sent back to the model
+        // (post-compressToolResultForModel). No cap — admin-only forensic.
+        $fullToolCalls = [];
+        $fullToolResults = [];
         $messages = $messageHistory;
 
         // S0.11.2 — track the last tool dispatched + how many wrote so an
@@ -632,6 +660,13 @@ trait HasAiChat
                         'result_summary' => $this->summariseToolResult($toolResult),
                     ];
 
+                    $toolSeq = count($fullToolCalls);
+                    $fullToolCalls[] = [
+                        'sequence' => $toolSeq,
+                        'tool' => $functionName,
+                        'input' => $functionArgs,
+                    ];
+
                     $isToolError = isset($toolResult['error']) && $toolResult['error'] === true;
 
                     // April30Updates F-3 — compress the tool result before
@@ -643,7 +678,34 @@ trait HasAiChat
                     // entity_type, top-level metrics, error state, fingerprints)
                     // while trimming verbose nested payloads.
                     $toolResultForModel = $this->compressToolResultForModel($functionName, $toolResult);
+
+                    // May18 — unified tripled-ack fix (Fix A). In a
+                    // data_capture turn the HasAiChat loop re-invokes the
+                    // model with the create_/update_ tool_result still in
+                    // context; FynCaptureTurnInstructions (D4-verbatim, not
+                    // editable here) carries no "you are done" signal, so the
+                    // model re-narrates its preamble AND re-calls create on
+                    // every continuation until it happens to stop — the user
+                    // saw "Got it — recording that now." x3. Attach a terse
+                    // terminal directive to the result the model reads so it
+                    // confirms once and ends the turn. Multi-entity is safe:
+                    // all N creates fire as parallel tool_use blocks in the
+                    // model's first response, so the directive only forbids
+                    // RE-calling on the next continuation, never the initial
+                    // batch.
+                    $captureDirective = $this->captureTurnCompleteDirective($functionName, $toolResult);
+                    if ($captureDirective !== null) {
+                        $toolResultForModel['capture_turn_complete'] = $captureDirective;
+                    }
+
                     $toolResultJson = json_encode($toolResultForModel);
+
+                    $fullToolResults[] = [
+                        'sequence' => $toolSeq,
+                        'is_error' => $isToolError,
+                        'raw' => $toolResult,
+                        'sent_to_llm' => $toolResultJson,
+                    ];
 
                     if ($isXai) {
                         // OpenAI format: each tool result is a separate message
@@ -719,26 +781,28 @@ trait HasAiChat
                 : 0;
         }
 
-        // April30Updates F-8 — persist a SHA-256 hash of the system prompt
-        // rather than the full text. The full prompt embeds user PII
-        // (income, family names, financial position) and is ~10KB per
-        // assistant message — duplicating it across every row of a long
-        // conversation creates needless DB bloat and a redundant copy
-        // of data already in the canonical user/records tables. The
-        // hash is enough to confirm whether the prompt structure changed
-        // between turns when debugging.
+        // Persist the verbatim effective system prompt that was sent to
+        // the provider this turn ($systemPrompt is the same value passed
+        // as the `system` message above, so it includes the static base
+        // plus any per-turn FynContextAssembler layers). This is the
+        // forensic source the admin AI-eval view renders behind the
+        // "View full system prompt" expandable link (EvalRecordingController
+        // ::systemPrompt + AiAuditController) — the whole prompt sent must
+        // be readable, exactly as it was for the grok-4.1 recordings.
         //
-        // The column is still named `system_prompt` (renaming requires a
-        // migration that's out of audit scope) — we just write a hash to
-        // it going forward instead of the full text. Legacy rows retain
-        // the full prompt and can be migrated separately. The hash is
-        // prefixed with `sha256:` so a future reader can tell hashes
-        // from legacy full-prompt rows at a glance.
+        // (April30Updates F-8 previously replaced this with a SHA-256
+        // hash for PII/bloat reasons; that silently broke the admin
+        // prompt view for every post-F-8 row. The forensic requirement —
+        // admin-only data, never user-exposed — overrides the bloat
+        // concern. Restored to verbatim.)
         $assistantExtra = array_merge([
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
             'model_used' => $model,
-            'system_prompt' => 'sha256:'.hash('sha256', $systemPrompt),
+            'system_prompt' => $systemPrompt,
+            'assembled_context' => $this->assembledContext,
+            'tool_calls' => $fullToolCalls ?: null,
+            'tool_results' => $fullToolResults ?: null,
         ], ! empty($messageMetadata) ? ['metadata' => $messageMetadata] : []);
 
         if ($this->personaOverride !== null) {
@@ -850,6 +914,7 @@ trait HasAiChat
         ?string $currentRoute,
         ?array $classification,
         AiConversation $conversation,
+        ?array $kycResult = null,
     ): array {
         $focus = $this->unifiedOnboardingFocus;
         $ctx = FynTurnContext::make(
@@ -861,6 +926,7 @@ trait HasAiChat
             isPreview: (bool) $user->is_preview_user,
             classification: $classification,
             conversation: $conversation,
+            kycResult: $kycResult,
         );
 
         // Forward the same sized-analysis closure the legacy path supplies
@@ -870,6 +936,10 @@ trait HasAiChat
             $ctx,
             orchestrateAnalysis: fn (int $userId) => $this->analyzeRelevantModules($userId, $classification),
         );
+
+        // Capture the exact user-turn content sent to the provider this turn
+        // for the admin AI-Audit forensic view (admin-only, never user-exposed).
+        $this->assembledContext = $block;
 
         for ($i = count($messageHistory) - 1; $i >= 0; $i--) {
             if (($messageHistory[$i]['role'] ?? null) === 'user') {
@@ -993,6 +1063,61 @@ trait HasAiChat
 
         // General compression — recursively trim oversized nested data.
         return $this->trimForModel($result, depth: 0);
+    }
+
+    /**
+     * May18 — Fix A for the unified tripled capture-ack.
+     *
+     * Returns a terse terminal instruction to attach to a write tool_result
+     * during a data_capture turn, or null when the directive does not apply.
+     *
+     * Scope is deliberately narrow:
+     *  - Only data_capture turns (persona === 'data_capture'). Advice turns
+     *    are untouched; under FYN_PROMPT_ARCH=legacy the advice→capture
+     *    journey security-refuses before any write, so this is inert there.
+     *  - Only when a record write actually LANDED or was DEDUPED this turn
+     *    (created / updated / success+entity_id / duplicate warning). A
+     *    failed/validation result is left clean so the model can retry.
+     *
+     * The directive forbids only RE-invoking create_/update_ on the next
+     * loop continuation and caps the post-write narration at one sentence —
+     * it never blocks the model's initial parallel tool_use batch, so the
+     * multi-entity onboarding rule ("one tool_use per record in the first
+     * response") still works. It carries no glyphs/emoji (Rule #16) and does
+     * not alter the D4-verbatim FynCaptureTurnInstructions wording.
+     */
+    private function captureTurnCompleteDirective(string $toolName, array $result): ?string
+    {
+        if ($this->personaOverride !== 'data_capture') {
+            return null;
+        }
+
+        // A pure error/validation failure must stay retryable — the model's
+        // FIRST create_ call frequently returns a non-persisting result and
+        // only lands on a corrected retry. Never short-circuit that retry.
+        if (isset($result['error']) && $result['error'] === true) {
+            return null;
+        }
+
+        // Fire ONLY when a record write actually LANDED or was DEDUPED this
+        // turn. Keyed on the result shape, never on the tool NAME — a
+        // create_ call that did not persist must not be told "you are done".
+        $landed = (isset($result['created']) && $result['created'] === true)
+            || (isset($result['updated']) && $result['updated'] === true)
+            || (isset($result['success']) && $result['success'] === true && isset($result['entity_id']));
+
+        $deduped = isset($result['warning']) && $result['warning'] === true
+            && isset($result['existing_id']);
+
+        if (! $landed && ! $deduped) {
+            return null;
+        }
+
+        return 'CAPTURE_TURN_COMPLETE: this record is saved (or already '
+            .'existed and was skipped). Do not call any create_ or update_ '
+            .'tool again in this turn. Reply with at most one short '
+            .'confirmation sentence (15 words or fewer), then end your turn. '
+            .'Do not repeat any earlier acknowledgement.';
     }
 
     /**

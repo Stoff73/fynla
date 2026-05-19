@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\TierConfigurationController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdvisorController;
 use App\Http\Controllers\Api\AiAuditController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Api\HolisticPlanningController;
 use App\Http\Controllers\Api\HouseholdController;
 use App\Http\Controllers\Api\IncomeDefinitionsController;
 use App\Http\Controllers\Api\InfoGuideController;
+use App\Http\Controllers\Api\Investment\AccountRebalancingController;
 use App\Http\Controllers\Api\Investment\AssetLocationController;
 use App\Http\Controllers\Api\Investment\ContributionOptimizerController;
 use App\Http\Controllers\Api\Investment\EfficientFrontierController;
@@ -42,7 +44,6 @@ use App\Http\Controllers\Api\Investment\FeeImpactController;
 use App\Http\Controllers\Api\Investment\GoalProgressController;
 use App\Http\Controllers\Api\Investment\InvestmentScenarioController;
 use App\Http\Controllers\Api\Investment\ModelPortfolioController;
-use App\Http\Controllers\Api\Investment\AccountRebalancingController;
 use App\Http\Controllers\Api\Investment\PerformanceAttributionController;
 use App\Http\Controllers\Api\Investment\PortfolioStrategyController;
 use App\Http\Controllers\Api\Investment\RebalancingActionsController;
@@ -70,6 +71,7 @@ use App\Http\Controllers\Api\Plans\PlanController;
 use App\Http\Controllers\Api\PortfolioOptimizationController;
 use App\Http\Controllers\Api\PostcodeLookupController;
 use App\Http\Controllers\Api\PreviewController;
+use App\Http\Controllers\Api\PricingConfigController;
 use App\Http\Controllers\Api\ProfileCompletenessController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\ProtectionActionDefinitionController;
@@ -893,46 +895,57 @@ Route::middleware(['auth:sanctum', 'feature:pro'])->prefix('estate')->group(func
     Route::get('/trust-recommendations', [TrustController::class, 'getTrustRecommendations']);
     Route::get('/trusts/upcoming-tax-returns', [TrustController::class, 'getUpcomingTaxReturns']);
 
-    // Will Builder
-    Route::prefix('will-builder')->group(function () {
-        Route::get('/pre-populate', [WillDocumentController::class, 'prePopulate']);
-        Route::get('/', [WillDocumentController::class, 'index']);
-        Route::post('/', [WillDocumentController::class, 'store']);
-        Route::get('/{id}', [WillDocumentController::class, 'show']);
-        Route::put('/{id}', [WillDocumentController::class, 'update']);
-        Route::post('/{id}/complete', [WillDocumentController::class, 'complete']);
-        Route::post('/{id}/mirror', [WillDocumentController::class, 'generateMirror']);
-        Route::get('/{id}/validate', [WillDocumentController::class, 'validateDocument']);
-        Route::delete('/{id}', [WillDocumentController::class, 'destroy']);
+    // Will Builder + Will + Bequests + LPA are Estate-module sub-routes.
+    // Spec §7 has no separate will/POA capability key — they fall under
+    // "Estate planning" (teaser for Free/Tier1). §10.2 requires them gated
+    // server-side, not just hidden. The legacy `feature:pro` above is NOT
+    // sufficient: a grandfathered legacy-paid sub resolves to the `free`
+    // tier under SP2 and must hit the Estate teaser, so the canonical
+    // TeaserGate (`estate.full`) is applied here too.
+    Route::middleware('estate.full')->group(function () {
+
+        // Will Builder
+        Route::prefix('will-builder')->group(function () {
+            Route::get('/pre-populate', [WillDocumentController::class, 'prePopulate']);
+            Route::get('/', [WillDocumentController::class, 'index']);
+            Route::post('/', [WillDocumentController::class, 'store']);
+            Route::get('/{id}', [WillDocumentController::class, 'show']);
+            Route::put('/{id}', [WillDocumentController::class, 'update']);
+            Route::post('/{id}/complete', [WillDocumentController::class, 'complete']);
+            Route::post('/{id}/mirror', [WillDocumentController::class, 'generateMirror']);
+            Route::get('/{id}/validate', [WillDocumentController::class, 'validateDocument']);
+            Route::delete('/{id}', [WillDocumentController::class, 'destroy']);
+        });
+
+        // Will and Bequests
+        Route::get('/will', [WillController::class, 'getWill']);
+        Route::post('/will', [WillController::class, 'storeOrUpdateWill']);
+        Route::post('/calculate-intestacy', [WillController::class, 'calculateIntestacy']);
+        Route::prefix('bequests')->group(function () {
+            Route::get('/', [WillController::class, 'getBequests']);
+            Route::post('/', [WillController::class, 'storeBequest']);
+            Route::put('/{id}', [WillController::class, 'updateBequest']);
+            Route::delete('/{id}', [WillController::class, 'deleteBequest']);
+        });
+
+        // Lasting Powers of Attorney
+        Route::prefix('lpa')->group(function () {
+            Route::get('/', [LpaController::class, 'index']);
+            Route::post('/', [LpaController::class, 'store']);
+            Route::get('/donor-defaults', [LpaController::class, 'donorDefaults']);
+            Route::post('/upload', [LpaController::class, 'upload']);
+            Route::get('/{id}', [LpaController::class, 'show'])->where('id', '[0-9]+');
+            Route::put('/{id}', [LpaController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('/{id}', [LpaController::class, 'destroy'])->where('id', '[0-9]+');
+            Route::get('/{id}/compliance', [LpaController::class, 'compliance'])->where('id', '[0-9]+');
+            Route::post('/{id}/register', [LpaController::class, 'markRegistered'])->where('id', '[0-9]+');
+        });
     });
 
-    // Will and Bequests
-    Route::get('/will', [WillController::class, 'getWill']);
-    Route::post('/will', [WillController::class, 'storeOrUpdateWill']);
-    Route::post('/calculate-intestacy', [WillController::class, 'calculateIntestacy']);
-    Route::prefix('bequests')->group(function () {
-        Route::get('/', [WillController::class, 'getBequests']);
-        Route::post('/', [WillController::class, 'storeBequest']);
-        Route::put('/{id}', [WillController::class, 'updateBequest']);
-        Route::delete('/{id}', [WillController::class, 'deleteBequest']);
-    });
     Route::post('/calculate-discount', [GiftingController::class, 'calculateDiscountedGiftDiscount']);
 
     // Letter to Spouse cross-validation
     Route::get('/letter-validation', [LetterValidationController::class, 'checkConsistency']);
-
-    // Lasting Powers of Attorney
-    Route::prefix('lpa')->group(function () {
-        Route::get('/', [LpaController::class, 'index']);
-        Route::post('/', [LpaController::class, 'store']);
-        Route::get('/donor-defaults', [LpaController::class, 'donorDefaults']);
-        Route::post('/upload', [LpaController::class, 'upload']);
-        Route::get('/{id}', [LpaController::class, 'show'])->where('id', '[0-9]+');
-        Route::put('/{id}', [LpaController::class, 'update'])->where('id', '[0-9]+');
-        Route::delete('/{id}', [LpaController::class, 'destroy'])->where('id', '[0-9]+');
-        Route::get('/{id}/compliance', [LpaController::class, 'compliance'])->where('id', '[0-9]+');
-        Route::post('/{id}/register', [LpaController::class, 'markRegistered'])->where('id', '[0-9]+');
-    });
 });
 
 // Retirement module routes
@@ -1064,6 +1077,9 @@ Route::prefix('payment')->group(function () {
     Route::get('/plans', [PaymentController::class, 'plans']);
 });
 
+// Public pricing config — reads live tier store; no auth required
+Route::get('/pricing-config', [PricingConfigController::class, 'index']);
+
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/trial-status', [PaymentController::class, 'trialStatus']);
@@ -1170,6 +1186,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::put('/discount-codes/{id}', [AdminController::class, 'updateDiscountCode']);
     Route::delete('/discount-codes/{id}', [AdminController::class, 'deleteDiscountCode']);
     Route::patch('/discount-codes/{id}/toggle', [AdminController::class, 'toggleDiscountCode']);
+
+    // Tier configuration admin CRUD — reads/writes TierConfigurationStore
+    Route::get('/tier-configurations', [TierConfigurationController::class, 'index']);
+    Route::put('/tier-configurations/{tier}', [TierConfigurationController::class, 'update']);
 });
 
 // Admin Insights CMS

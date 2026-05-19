@@ -6,6 +6,8 @@ namespace App\Traits;
 
 use App\Models\AiDailyUsage;
 use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +20,13 @@ trait HasAiGuardrails
     private const DEFAULT_MODEL_ANTHROPIC = 'claude-haiku-4-5-20251001';
 
     private const DEFAULT_MODEL_XAI = 'grok-4.3';
+
+    /**
+     * Cheapest tier used when the rolling weekly budget is exceeded.
+     * Matches DEFAULT_MODEL_ANTHROPIC — kept as a named constant so the
+     * soft-degrade test can assert by name rather than by string literal.
+     */
+    public const SOFT_DEGRADE_MODEL = 'claude-haiku-4-5-20251001';
 
     /**
      * Get the active AI provider, checking admin toggle (cache) first, then .env.
@@ -69,14 +78,65 @@ trait HasAiGuardrails
         );
     }
 
-    private const DAILY_TOKEN_LIMITS = [
-        'preview' => 100_000,
-        'trial' => 1_000_000,
-        'student' => 300_000,
-        'standard' => 1_000_000,
-        'family' => 1_500_000,
-        'pro' => 2_000_000,
-    ];
+    // ─── Tier-store helpers (PR 6) ────────────────────────────────────────
+
+    private function tierStore(): TierConfigurationStore
+    {
+        return app(TierConfigurationStore::class);
+    }
+
+    private function userTier(User $user): string
+    {
+        return app(TierResolver::class)->resolve($user);
+    }
+
+    /**
+     * Sum of tokens used in the rolling 7-day window (today + 6 prior days).
+     */
+    private function weeklyTokenUsage(User $user): int
+    {
+        return (int) AiDailyUsage::query()
+            ->where('user_id', $user->id)
+            ->where('usage_date', '>=', now()->subDays(6)->toDateString())
+            ->sum('tokens_used');
+    }
+
+    /**
+     * True when the user's rolling weekly token total meets or exceeds the
+     * tier's weekly budget. Triggers soft-degrade (cheaper model + plain-text
+     * notice); the chat never hard-walls on this condition.
+     */
+    protected function isWeeklyBudgetExceeded(User $user): bool
+    {
+        // Preview personas are seeded demo users — never metered or
+        // soft-degraded, and carry no implicit tier-store dependency.
+        if ($user->is_preview_user) {
+            return false;
+        }
+
+        $budget = $this->tierStore()->forTier($this->userTier($user))->fyn_weekly_token_budget;
+
+        return $this->weeklyTokenUsage($user) >= $budget;
+    }
+
+    /**
+     * True when today's token total meets or exceeds the tier's daily hard
+     * backstop. This is an abuse ceiling only — normal weekly soft-degrade
+     * never blocks chat. The daily limit is read exclusively from the tier
+     * store (fyn_daily_hard_backstop); no hardcoded constants remain (PR 9).
+     */
+    protected function isDailyBackstopExceeded(User $user): bool
+    {
+        // Preview personas are seeded demo users — never metered or
+        // soft-degraded, and carry no implicit tier-store dependency.
+        if ($user->is_preview_user) {
+            return false;
+        }
+
+        $backstop = $this->tierStore()->forTier($this->userTier($user))->fyn_daily_hard_backstop;
+
+        return $this->getTodayTokenUsage($user) >= $backstop;
+    }
 
     /**
      * Get the appropriate model for this user and query complexity.
@@ -87,6 +147,12 @@ trait HasAiGuardrails
         $provider = static::getAiProvider();
         $configKey = $provider === 'xai' ? 'services.xai' : 'services.anthropic';
         $defaultModel = $provider === 'xai' ? self::DEFAULT_MODEL_XAI : self::DEFAULT_MODEL_ANTHROPIC;
+
+        // Soft-degrade: rolling weekly budget exceeded → cheapest model.
+        // Chat stays open; the system prompt prepends a plain-text notice.
+        if ($this->isWeeklyBudgetExceeded($user)) {
+            return self::SOFT_DEGRADE_MODEL; // terser/cheaper until the rolling week resets
+        }
 
         $configModel = config("{$configKey}.chat_model");
         if ($configModel) {
@@ -143,25 +209,32 @@ trait HasAiGuardrails
 
     /**
      * Check if the user has remaining token budget for today.
+     *
+     * PR 9: fully store-driven. Preview users are never budget-limited
+     * (isDailyBackstopExceeded short-circuits on is_preview_user).
      */
     protected function hasTokenBudget(User $user): bool
     {
-        $plan = $user->is_preview_user ? 'preview' : $this->getUserPlan($user);
-        $limit = self::DAILY_TOKEN_LIMITS[$plan] ?? self::DAILY_TOKEN_LIMITS['student'];
-
-        $todayUsage = $this->getTodayTokenUsage($user);
-
-        return $todayUsage < $limit;
+        return ! $this->isDailyBackstopExceeded($user);
     }
 
     /**
      * Get token usage details including reset time.
      * Resets daily at midnight (00:00 UTC).
+     *
+     * PR 9: limit is read from the tier store (fyn_daily_hard_backstop).
+     * Preview personas are never metered; a sentinel limit of PHP_INT_MAX
+     * is returned so callers receive a well-formed shape without a tier-store
+     * lookup (preview users have no tier row).
      */
     public function getTokenUsageDetails(User $user): array
     {
-        $plan = $user->is_preview_user ? 'preview' : $this->getUserPlan($user);
-        $limit = self::DAILY_TOKEN_LIMITS[$plan] ?? self::DAILY_TOKEN_LIMITS['student'];
+        if ($user->is_preview_user) {
+            $limit = PHP_INT_MAX;
+        } else {
+            $limit = $this->tierStore()->forTier($this->userTier($user))->fyn_daily_hard_backstop;
+        }
+
         $used = $this->getTodayTokenUsage($user);
         $remaining = max(0, $limit - $used);
 

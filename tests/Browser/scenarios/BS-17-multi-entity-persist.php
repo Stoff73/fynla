@@ -57,7 +57,7 @@ declare(strict_types=1);
  *
  *   #1 — In-turn idempotency on protection handlers (CoordinatingAgent.php).
  *     First RUN 1 attempt produced 1 life + 2 CI duplicates because
- *     grok-4-1-fast non-deterministically emitted create_protection_policy
+ *     grok-4.3 non-deterministically emitted create_protection_policy
  *     three times in one response (1× life + 2× identical Vitality CI).
  *     Fix: handleCreateProtectionPolicy life/CI/IP branches now check for
  *     an existing row with the same provider + policy_type + sum_assured

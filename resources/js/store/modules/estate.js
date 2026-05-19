@@ -1,6 +1,11 @@
 import estateService from '@/services/estateService';
 
 const state = {
+    // SP2 PR7: teaser-gate mode ('full' | 'teaser' | null while loading)
+    mode: null,
+    teaserData: null,
+    teaserCta: null,
+
     assets: [],
     investmentAccounts: [], // Investment accounts from Investment module
     liabilities: [],
@@ -24,6 +29,11 @@ const state = {
 };
 
 const getters = {
+    // SP2 PR7: teaser-gate getters
+    mode: (state) => state.mode,
+    teaserData: (state) => state.teaserData,
+    teaserCta: (state) => state.teaserCta,
+
     assets: (state) => state.assets,
     investmentAccounts: (state) => state.investmentAccounts,
     liabilities: (state) => state.liabilities,
@@ -239,17 +249,33 @@ const actions = {
 
         try {
             const response = await estateService.getEstateData();
-            commit('setAssets', response.data.assets || []);
-            commit('setInvestmentAccounts', response.data.investment_accounts || []);
-            commit('setLiabilities', response.data.liabilities || []);
-            commit('setGifts', response.data.gifts || []);
-            commit('setTrusts', response.data.trusts || []);
-            commit('setIHTProfile', response.data.iht_profile);
-            commit('setLifeEvents', response.data.life_events || []);
-            commit('setLifeEventImpact', response.data.life_event_impact || null);
-            if (response.data.will_info) {
-                commit('setWillInfo', response.data.will_info);
+
+            // SP2 PR7: branch on mode — teaser (Free/Tier1) vs full (Tier2/Tier3).
+            // The server is the authoritative gate; the Vue view also branches for
+            // defence-in-depth (spec §10.2).
+            const responseMode = response.mode || (response.success ? 'full' : null);
+            commit('setMode', responseMode);
+
+            if (responseMode === 'teaser') {
+                commit('setTeaserData', response.teaser || null);
+                commit('setTeaserCta', response.cta || null);
+            } else {
+                // Full module — clear any stale teaser state from a previous tier, then populate.
+                commit('setTeaserData', null);
+                commit('setTeaserCta', null);
+                commit('setAssets', response.data.assets || []);
+                commit('setInvestmentAccounts', response.data.investment_accounts || []);
+                commit('setLiabilities', response.data.liabilities || []);
+                commit('setGifts', response.data.gifts || []);
+                commit('setTrusts', response.data.trusts || []);
+                commit('setIHTProfile', response.data.iht_profile);
+                commit('setLifeEvents', response.data.life_events || []);
+                commit('setLifeEventImpact', response.data.life_event_impact || null);
+                if (response.data.will_info) {
+                    commit('setWillInfo', response.data.will_info);
+                }
             }
+
             return response;
         } catch (error) {
             const errorMessage = error.message || 'Failed to fetch estate data';
@@ -696,6 +722,19 @@ const actions = {
 };
 
 const mutations = {
+    // SP2 PR7: teaser-gate mutations
+    setMode(state, mode) {
+        state.mode = mode;
+    },
+
+    setTeaserData(state, teaserData) {
+        state.teaserData = teaserData;
+    },
+
+    setTeaserCta(state, cta) {
+        state.teaserCta = cta;
+    },
+
     setAssets(state, assets) {
         state.assets = assets;
     },

@@ -34,7 +34,37 @@
         </div>
       </div>
 
-      <!-- Main Content -->
+      <!-- Teaser Gate: Free / Tier 1 users (SP2 PR7) -->
+      <!-- Rule #16: detail views are a banned surface for icons/emoji. Plain text + design tokens only. -->
+      <div v-else-if="mode === 'teaser'" class="max-w-2xl mx-auto px-4 py-10">
+        <h2 class="text-xl font-bold text-horizon-500 mb-2">Estate Planning</h2>
+
+        <div v-if="teaserData" class="bg-white border border-horizon-200 rounded-lg p-6 mb-6">
+          <p class="text-horizon-500 text-base mb-1">{{ teaserData.headline }}</p>
+          <p
+            v-if="teaserData.exposed && teaserData.estimated_liability_gbp > 0"
+            class="text-sm text-horizon-500 mt-2"
+          >
+            Estimated Inheritance Tax exposure: <span class="font-semibold">{{ formatCurrency(teaserData.estimated_liability_gbp) }}</span>
+          </p>
+        </div>
+
+        <div class="bg-eggshell border border-horizon-200 rounded-lg p-6">
+          <p class="text-sm text-horizon-500 mb-4">
+            Upgrade to unlock the full Estate Planning module, including personalised
+            Inheritance Tax planning, gifting strategies, will planning, trusts, and
+            Powers of Attorney.
+          </p>
+          <router-link
+            to="/pricing"
+            class="inline-block bg-raspberry-500 hover:bg-raspberry-600 text-white font-semibold text-sm px-6 py-2 rounded transition-colors"
+          >
+            {{ teaserCta ? teaserCta.label : 'Upgrade to unlock full Estate Planning' }}
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Full Module: Tier 2 / Tier 3 users -->
       <div v-else>
         <!-- Will Builder Banner (only show when no will exists) -->
         <div v-if="!hasWillDocument" class="mb-6">
@@ -70,15 +100,18 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
 import IHTPlanning from '@/components/Estate/IHTPlanning.vue';
 import estateService from '@/services/estateService';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'EstateDashboard',
+
+  mixins: [currencyMixin],
 
   components: {
     AppLayout,
@@ -95,6 +128,7 @@ export default {
 
   computed: {
     ...mapState('estate', ['error', 'willInfo']),
+    ...mapGetters('estate', ['mode', 'teaserData', 'teaserCta']),
 
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];

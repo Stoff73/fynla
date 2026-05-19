@@ -10,7 +10,12 @@ use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsStore;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Support\Facades\Event;
+
+beforeEach(function () {
+    $this->seed(TierConfigurationSeeder::class);
+});
 
 it('SavingsStore::create emits SavingsAccountCreated', function () {
     Event::fake();

@@ -1,7 +1,130 @@
 # CSJTODO — Fynla
 
-*Last updated: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
-*Previous session: 17 May 2026 — session 1 clear (Fyn prompt-rework plan COMPLETE; PR #332 → dev open)*
+*Last updated: 19 May 2026 — session 6 clear (git tree clean: 12 local + 18 remote merged branches pruned, 2 worktrees + stash removed; stale freemium memory corrected)*
+*Previous session: 19 May 2026 — session 5 clear (Will/POA teaser-gate deployed to prod + dev, verified)*
+
+---
+
+## Session 6 (19 May 2026) — Git tree + remote cleanup (context-clear)
+
+**Branch:** `dev` (synced `248d3a3`) · **Tree:** clean · **No repo code changed** · **No PR** (git hygiene only)
+
+### Done
+- [x] Auto-resumed handover-5 (nothing pending). CSJ asked to clean tree + remove all deployed branches.
+- [x] Verified real merge state (squash hides branches from `--no-merged`); deleted **12 local branches**, removed **2 worktrees** (git 2.10.1 → manual `rm -rf` + `worktree prune`), dropped `stash@{0}` (rejected `tenants_in_common`→SavingsStore change; reflog `1f1c630`).
+- [x] Pruned **18 CSJ-authored merged remote branches** (9× `sp2-pr*`, 2× `backmerge/*`, `freemium`, `sp2Freemium`, `estateTeaserWillPoa`, `fynPromptRework`, `feat/savings-store-pr5a`, `adhoc-changes-2`, `post-live-updates`).
+- [x] Preserved fynEvalContextView's 2 local-only docs → `fynlaBrain/May/May19Updates/` before deletion.
+- [x] **Corrected stale memory** `project_pr317_gated_on_freemium_refactor` → RESOLVED/SUPERSEDED (#317 CLOSED unmerged; freemium=SP2 shipped via #336/#337/#340) + MEMORY.md index line.
+
+### Outstanding / next session (priority order)
+- [ ] **vault-sync overdue** (deferred again — context-clear; standing practice = run at next **end-of-day** session-end). Must also pick up the 2 preserved fynEvalContextView docs.
+- [ ] Optional, NOT started (CSJ has not asked): 15-May prod `RecommendationPersonaliser::formatCurrency()` TypeError (`RecommendationPersonaliser.php:420` → `FormatsCurrency.php:21`, userId 617).
+- [ ] Stale-unmerged remote branches left on purpose (CSJ asked *merged* only): `rss-feed` (#237 CLOSED), `email-onboarding-video` (no PR). Contributor branches `brett-dev1`/`automated-marketing` not ours. `feature/csj/python-agent-sidecar` parked-kept.
+- [ ] ~~PR #317 parked on freemium~~ **RESOLVED** — #317 closed, freemium shipped (see corrected memory).
+- [ ] ~~PR #335 OPEN~~ **MERGED** (#335/#332 → dev → main via #340; live on prod).
+- [ ] Carried doc backlog: KycGateChecker delta doc-fix.
+
+---
+
+## Session 12 (18 May 2026) — Billing surface restored under unified (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean · **Commits:** `8bc5f6d` (billing fix), `acfe67d` (handover) · pushed · **PR:** [#335](https://github.com/Stoff73/fynla/pull/335) OPEN → `dev`, updated (CSJ to review/admin-merge to deploy)
+
+### Done
+- [x] Auto-resumed handover-11. Ran `tech-debt-session` on full PR #335 delta → `tech-debt-report.md`.
+- [x] CSJ decisions: W1 (PII/bloat) deferred (noted for future purge); W2 (billing) FIXED not deferred.
+- [x] Billing 3-layer fix (parity w/ legacy): FynContextAssembler classification-gated `<billing_guidance>` layer; QueryClassifier billing-beats-NAVIGATION; QuerySchemas bare `billing`/`subscription` (ISA-guarded). +10 Pest cases, 292 passed full AI/Fyn. Browser-verified GREEN under unified (`8bc5f6d`).
+- [x] Standing law written: memory `feedback_fyn_reaches_every_surface`.
+- [x] Committed + pushed; PR #335 updated for deploy.
+
+### Outstanding / next session (priority order)
+- [ ] **Move into tech debt** (CSJ's stated next). `tech-debt-report.md` priority items:
+  - [ ] **C1 (actionable): PR #335 ships a RED test** — `CassetteModelProvenanceTest.php` fails (11 cassettes stranded `xai/grok-4-1-fast-reasoning` vs config `grok-4.3`). Fix: `php artisan eval:record --providers=xai` + delete stale dir, commit onto PR #335. Confirm re-record vs delete-only with CSJ (changes fixtures).
+  - [ ] S2/S3/S4 cosmetic suggestions — low priority, CSJ's call.
+  - [ ] W1 DEFERRED — do NOT action (`project_ai_messages_forensic_columns_need_purge`).
+- [ ] **CSJ: review/admin-merge PR #335 → dev** (deploy path). Do NOT self-approve.
+- [ ] **vault-sync DEFERRED this session** (budget-over at session-end; context-handover skips it by design). Run vault-sync next session-end.
+- [ ] PR #317 (release dev→main) parked on freemium refactor (`project_pr317_gated_on_freemium_refactor`).
+- [ ] Carried doc backlog: KycGateChecker delta doc-fix; `fynlaFeatu*Modules` rename fate (not ours).
+
+---
+
+## Session 10 (18 May 2026) — AiAudit `982dc28` verification GREEN (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean · **No code changes** (verification only) · **PR:** [#335](https://github.com/Stoff73/fynla/pull/335) still OPEN → `dev`
+
+### Done
+- [x] Auto-resumed handover-9. Ran Rule #15 browser verification of `982dc28` (admin AiAudit assembled-context + full tool round-trips).
+- [x] **Criterion 1 GREEN** — "Show assembled context (unified)" renders real ~1700-token per-turn `<context>` (user_profile, known_facts, financial_context, existing_records, data_completeness, kyc_status). Not a hash.
+- [x] **Criterion 2 GREEN** — "Show full tool round-trips" renders verbatim Raw (5889 chars/3248px) vs Sent-to-LLM (2392 chars/848px); compression delta on-screen.
+- [x] Rule #15 loop: diagnosed John's expenditure-blank profile pre-refusing module analysis; fixed via Expenditure UI (legit test data).
+- [x] Reported 2 non-defect nuances to CSJ (fixed-height clamped panels = by-design pattern mirror; `<financial_context>` POSITION-bucket gating = working as designed).
+
+### Outstanding / next session (priority order)
+- [ ] **#1 CRITICAL — run vault-sync** (overdue 5+ sessions; deferred session 10 due to ~496k context exhaustion). Carry `May/May18Updates/VAULT-SYNC-PENDING.md` 3 files incl. `April/April24Updates/spec/00-canonical.md` (`/April/` gitignored = data-loss risk). Amend `00-canonical.md` dispatch wording during carry.
+- [ ] tech-debt-session on PR #335 diff (still not done).
+- [ ] **CSJ: review/admin-merge PR #335 → dev** when ready (do NOT self-approve).
+- [ ] Note: `john@example.com` now has £2,300/mo ExpenditureProfile (test data from session-10 Rule #15 loop) — harmless, restorable via db:seed.
+- [ ] Carried: KycGateChecker delta doc-fix; pre-existing `fynlaFeatu*Modules` rename fate; SEVERE pre-existing legacy emergency-rollback advice→capture refusal (logged, CSJ: proceed per contract).
+
+---
+
+## Session 6 (18 May 2026) — PR #335 opened (fynPromptRework → dev); legacy-refusal logged
+
+**Branch:** `fynPromptRework` · **Tree:** clean · **Squashed:** `9c19dcc`..`db47635` (13 commits) → one feature commit `5337ab9`, force-pushed · **PR:** [#335](https://github.com/Stoff73/fynla/pull/335) OPEN → `dev` (NOT self-approved, NOT auto-merged)
+
+### Done
+- [x] Auto-resumed session-5-clear handover. Both gates GREEN (recorded; parity NOT re-run — code unchanged).
+- [x] Squashed post-#332 delta to one clean commit (`git reset --soft origin/dev` + single commit, 30 files / 1945+ / 52−), force-pushed with lease.
+- [x] PR #335 opened `fynPromptRework → dev` with full body (unified prompt path + tripled-ack fix + verification + known-separate-item note).
+- [x] Legacy-refusal finding formalised: memory `reference_legacy_refuses_advice_capture_journey.md` + MEMORY.md pointer + cross-linked from `fyn-tripled-ack-classification.md`.
+
+### Outstanding / next session (priority order)
+- [ ] **CSJ: review PR #335 → dev.** Do NOT self-approve. Admin-merge only when CSJ says so (`feedback_admin_merge_pattern_for_solo_reviewer_prs`).
+- [ ] **SEVERE pre-existing (separate from PR #335) — legacy emergency-rollback broken for advice→capture:** under `FYN_PROMPT_ARCH=legacy` the advice→capture write journey security-refuses (0 rows). Pest-invisible (LLM mocked). If a unified incident forces rollback, advice→capture writes silently fail for all users. CSJ decided "log separately, proceed per contract". See memory `reference_legacy_refuses_advice_capture_journey.md`.
+- [ ] **#1 CRITICAL — run vault-sync** (still overdue; carry `May/May18Updates/VAULT-SYNC-PENDING.md` 3 files: `00-canonical.md` [`/April/` gitignored = data-loss risk], Fyn map, delta).
+- [ ] tech-debt-session on the PR #335 diff (in progress this session).
+- [ ] Carried: KycGateChecker delta decision (#2); `00-canonical.md` dispatch-wording doc-fix; pre-existing `fynlaFeatu*Modules` rename fate.
+
+---
+
+## Session 2 (18 May 2026) — Claude Code tooling + Fyn pipeline map (context-clear)
+
+**Branch:** `fynPromptRework` · **Tree:** clean re my work (pre-existing `fynlaFeatu*Modules` rename left untouched, not mine) · **Commits:** `0171d5f` (.claude hooks), `b4e976f` (Fyn docs) · pushed · **No app code touched**
+
+### Done
+- [x] PreToolUse Bash guard (`.claude/hooks/dangerous-command-guard.sh`) — blocks 4 NEVER-rule command classes; live-verified
+- [x] PostToolUse Pint auto-format hook (`.claude/hooks/pint-format.sh`) — live-verified
+- [x] context-watch.sh budget 200k→250k + `context-handover` skill desc synced (skill is in HOME, not repo)
+- [x] Fyn unified prompt/response pipeline mapped (file:line) → `May/May18Updates/fyn-prompt-and-response-process-map.md`
+- [x] Canonical-vs-implementation delta + `VAULT-SYNC-PENDING.md` flag written
+
+### Outstanding / next session (priority order)
+- [x] **#1 CRITICAL — run vault-sync** — DONE 2026-05-18 session 6 (also verified the canonical-spec carry was already completed session 2; the data-loss risk is closed).
+- [x] ~~**CSJ DECISION — Fyn delta #2** (single gate source vs telemetry-only)~~ — **NOT A DECISION. STRUCK.** Misdiagnosis. Delta 2 was a parity *bug* (under `unified`, `FynContextAssembler` discarded `$kycResult`, dropping the legacy Layer-9 KYC `prompt_text`), not a redundant-compute design choice. **FIXED 2026-05-18** by threading `kycResult` into `FynContextAssembler` (the change shipped in PR #335). Authoritative verdict: `fyn-canonical-vs-implementation-delta.md` §Delta 2 — "parity restored. Closed in this session — no CSJ decision required." Do not resurface.
+- [ ] Doc-fix — amend `00-canonical.md` dispatch wording (3-part predicate, not pure `onboarding_completed`) during vault carry
+- [x] Carried from session 1: squash + new PR `fynPromptRework → dev` — DONE 2026-05-18 session 6 (PR #335). Legacy rollback sanity still open (tracked via memory `reference_legacy_refuses_advice_capture_journey`).
+- [ ] Decide fate of pre-existing `fynlaFeatuuresModules`→`fynlaFeaturesModules` working-tree changes (not from this session)
+
+---
+
+## Session 4 (17 May 2026) — unified cutover verification COMPLETE (end-of-day)
+
+**Branch:** `fynPromptRework` · **Tree:** clean, all pushed (`dfb74e7`) · **Code commit:** `9c19dcc` (session-3 WIP, needs squash) · **Flag default:** `unified` (cutover live + verified)
+
+### Done
+- [x] Journey (b) browser-GREEN under unified — SavingsAccount #260 (Barclays £3k) created via Fyn chat, no security-clause-6 refusal (DB-verified)
+- [x] Journey (a) browser-GREEN under unified — advice read-only, accurate/hedged/FCA signpost, zero writes
+- [x] Journey (c) GREEN (scoped) — fresh uid 110 Fyn onboarding bubble flow under unified, multi-fact one-turn capture DB-verified
+- [x] Targeted Fyn+Onboarding suite 179/1 + **full Pest suite 3771/25 exit 0 under NEW unified default**
+- [x] EOD handover written (repo + vault mirror) → `May/May18Updates/handover-2026-05-18-session-1.md`
+
+### Outstanding / next session (priority order)
+- [ ] **#1 CRITICAL — run vault-sync + carry `April/April24Updates/spec/00-canonical.md` to vault** (overdue 4 sessions; `/April/` gitignored = data-loss risk; deferred this EOD due to ~212k context exhaustion — could not safely run heavy skill)
+- [ ] **Legacy rollback sanity:** `FYN_PROMPT_ARCH=legacy ./vendor/bin/pest --compact` — fix strict-mock failures with sanctioned `->zeroOrMoreTimes()` idiom; loop per Rule #15
+- [ ] **Squash `9c19dcc` + open NEW PR `fynPromptRework → dev`** (PR #332 already merged pre-cutover state — do NOT reopen; no self-approve)
+- [ ] tech-debt-session on session-3's 5-file diff (deferred since session 2, low risk)
+- [ ] Flipping default was done & verified — cutover no longer "out of scope", it IS the prompt now
 
 ---
 

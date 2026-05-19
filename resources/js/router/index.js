@@ -160,6 +160,36 @@ const EstateDetail = () => import('@/mobile/views/EstateDetail.vue');
 const GoalsDetail = () => import('@/mobile/views/GoalsDetail.vue');
 const CoordinationDetail = () => import('@/mobile/views/CoordinationDetail.vue');
 
+/**
+ * Route guard for full-Estate sub-routes (spec §10.2 / SP2 PR7).
+ *
+ * Will Builder and Power of Attorney are Estate-module routes — there is no
+ * separate will/POA capability key in the SP2 matrix, so they fall under
+ * "Estate planning" (teaser for Free/Tier1). Teaser-tier users are redirected
+ * to the canonical Estate teaser (upgrade CTA) rather than the creation
+ * wizard. The estate store `mode` is sourced from /api/estate via the same
+ * canonical TeaserGate the backend enforces — NOT the legacy plan map, which
+ * lets grandfathered legacy-paid subs through incorrectly. The backend 403 is
+ * the authoritative gate; this is defence-in-depth UX.
+ */
+async function requireFullEstateAccess(to, from, next) {
+  let mode = store.getters['estate/mode'];
+  if (mode === null) {
+    try {
+      await store.dispatch('estate/fetchEstateData');
+      mode = store.getters['estate/mode'];
+    } catch (e) {
+      // Transient fetch failure — let the view/backend handle it (backend
+      // remains the authoritative 403 gate).
+    }
+  }
+  if (mode === 'teaser') {
+    next({ name: 'Estate' });
+  } else {
+    next();
+  }
+}
+
 const routes = [
   // Public routes
   {
@@ -917,6 +947,7 @@ const routes = [
     path: '/estate/power-of-attorney',
     name: 'PowerOfAttorney',
     component: () => import('@/views/Estate/PowerOfAttorneyView.vue'),
+    beforeEnter: requireFullEstateAccess,
     meta: {
       requiresAuth: true,
       breadcrumb: [
@@ -930,6 +961,7 @@ const routes = [
     path: '/estate/lpa/create/:type',
     name: 'CreateLpa',
     component: () => import('@/views/Estate/LpaWizardView.vue'),
+    beforeEnter: requireFullEstateAccess,
     meta: {
       requiresAuth: true,
       breadcrumb: [
@@ -943,6 +975,7 @@ const routes = [
     path: '/estate/will-builder',
     name: 'WillBuilder',
     component: () => import('@/views/Estate/WillBuilderView.vue'),
+    beforeEnter: requireFullEstateAccess,
     meta: {
       requiresAuth: true,
       breadcrumb: [

@@ -41,6 +41,50 @@ describe('QueryClassifier', function () {
         });
     });
 
+    describe('billing classification (precedence over navigation)', function () {
+        // Regression: billing is answered in-chat via get_subscription_status
+        // + list_invoices; <billing_guidance> forbids navigating the user to a
+        // settings page. A billing entity in the message must beat the
+        // NAVIGATION step so the unified assembler injects <billing_guidance>.
+        it('classifies "show me my invoice" as billing, not navigation', function () {
+            expect($this->classifier->classify('show me my invoice')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "show my subscription" as billing', function () {
+            expect($this->classifier->classify('show my subscription')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "where is my invoice" as billing', function () {
+            expect($this->classifier->classify('where is my invoice')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "show me my billing" as billing', function () {
+            expect($this->classifier->classify('show me my billing')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        it('classifies "what is my subscription status and where are my invoices" as billing', function () {
+            expect($this->classifier->classify('what is my subscription status and where are my invoices')['primary'])
+                ->toBe(QuerySchemas::BILLING);
+        });
+
+        // ISA-subscription is a savings concept, NOT Fynla billing — the
+        // fixed-width negative lookbehind must keep it out of BILLING.
+        it('does NOT classify "what is my ISA subscription limit" as billing', function () {
+            expect($this->classifier->classify('what is my ISA subscription limit')['primary'])
+                ->not->toBe(QuerySchemas::BILLING);
+        });
+
+        // Genuine navigation with no billing entity must still be navigation.
+        it('keeps "take me to my goals page" as navigation', function () {
+            expect($this->classifier->classify('take me to my goals page')['primary'])
+                ->toBe(QuerySchemas::NAVIGATION);
+        });
+    });
+
     describe('advice classification', function () {
         it('classifies "How do I maximise my pension?" as retirement_contribution with related types', function () {
             $result = $this->classifier->classify('How do I maximise my pension?');
@@ -76,6 +120,44 @@ describe('QueryClassifier', function () {
             $result = $this->classifier->classify('Do I have enough cash buffer?');
             expect($result['primary'])->toBe(QuerySchemas::SAVINGS_EMERGENCY);
             expect($result['related'])->toContain(QuerySchemas::AFFORDABILITY);
+        });
+
+        // "protected for my savings" is FSCS deposit protection, NOT life
+        // insurance. The bare "am i protected" pattern must not claim it.
+        it('classifies "am i protected for my savings" as savings_accounts (FSCS, not life cover)', function () {
+            $result = $this->classifier->classify('am i protected for my savings');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "are my savings safe" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('are my savings safe');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "is my money protected in the bank" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('is my money protected in the bank');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        it('classifies "is my cash deposit protected" as savings_accounts (FSCS)', function () {
+            $result = $this->classifier->classify('is my cash deposit protected');
+            expect($result['primary'])->toBe(QuerySchemas::SAVINGS_ACCOUNTS);
+        });
+
+        // Regression: genuine life-cover questions must still be protection.
+        it('still classifies "am i protected?" (no savings object) as protection_cover', function () {
+            $result = $this->classifier->classify('am i protected?');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
+
+        it('still classifies "am i covered enough" as protection_cover', function () {
+            $result = $this->classifier->classify('am i covered enough');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
+        });
+
+        it('still classifies "do I have enough life cover for my family" as protection_cover', function () {
+            $result = $this->classifier->classify('do I have enough life cover for my family');
+            expect($result['primary'])->toBe(QuerySchemas::PROTECTION_COVER);
         });
     });
 

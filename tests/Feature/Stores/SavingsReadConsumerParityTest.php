@@ -38,6 +38,7 @@ use App\Services\UserProfile\LetterToSpouseService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 use Database\Seeders\EstateActionDefinitionSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -48,6 +49,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 it('CrossModuleAssetAggregator::calculateCashTotal returns correct sum after store migration', function () {

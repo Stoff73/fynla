@@ -430,6 +430,77 @@ class RevolutSubscriptionService
         return null;
     }
 
+    // ── Tier Plan Upsert (SP2 PR5) ──
+
+    /**
+     * Create or update a Revolut subscription plan for a Fynla tier.
+     *
+     * Creates a single plan with one monthly variation for the given tier.
+     * Returns the first variation's id so the caller can write it back via
+     * TierConfigurationStore. The plan is named "Fynla {displayName} Tier".
+     *
+     * This is a CREATE call (POST /subscription-plans) because Revolut does
+     * not expose a PATCH endpoint for plan-level pricing — to update prices
+     * the caller must create a new plan and re-subscribe affected customers.
+     * Since there are no existing paid subscribers (A9), create is safe.
+     *
+     * @param  string  $displayName  Human-readable tier name, e.g. "Tier 2"
+     * @param  int  $monthlyPricePence  Monthly price in pence
+     * @return array{id: string|null, plan_id: string} Variation id (null if
+     *                                                 Revolut returned no
+     *                                                 variation) + plan id
+     */
+    public function upsertTierPlan(string $displayName, int $monthlyPricePence): array
+    {
+        $body = [
+            'name' => "Fynla {$displayName} Tier",
+            'trial_duration' => 'P7D',
+            'variations' => [
+                [
+                    'phases' => [
+                        [
+                            'ordinal' => 1,
+                            'cycle_duration' => 'P1M',
+                            'amount' => $monthlyPricePence,
+                            'currency' => 'GBP',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = Http::withHeaders($this->headers())
+            ->post("{$this->apiUrl}/subscription-plans", $body);
+
+        if ($response->failed()) {
+            Log::error('Revolut upsertTierPlan failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'display_name' => $displayName,
+                'monthly_price_pence' => $monthlyPricePence,
+            ]);
+            $response->throw();
+        }
+
+        $data = $response->json();
+        $variationId = $data['variations'][0]['id'] ?? null;
+
+        if ($variationId === null) {
+            Log::warning('Revolut upsertTierPlan returned no variation id', [
+                'display_name' => $displayName,
+                'plan_id' => $data['id'],
+            ]);
+        } else {
+            Log::info('Revolut tier plan upserted', [
+                'display_name' => $displayName,
+                'plan_id' => $data['id'],
+                'variation_id' => $variationId,
+            ]);
+        }
+
+        return ['id' => $variationId, 'plan_id' => $data['id']];
+    }
+
     /**
      * Build standard headers for Revolut API calls.
      */

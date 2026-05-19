@@ -6,6 +6,7 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\LpaAttorney;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 use Laravel\Sanctum\Sanctum;
@@ -14,7 +15,10 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->user = User::factory()->create();
+    // LPA is a full-Estate sub-route (spec §10.2): the acting user must be on
+    // a full-Estate tier. Tier config seeded so TeaserGate resolves.
+    $this->seed(TierConfigurationSeeder::class);
+    $this->user = User::factory()->create(['tier' => 'tier2']);
     Sanctum::actingAs($this->user);
 });
 

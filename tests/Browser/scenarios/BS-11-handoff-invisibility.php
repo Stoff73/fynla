@@ -82,7 +82,7 @@ declare(strict_types=1);
  *   First-pass UI run uncovered TWO architectural gaps that the
  *   stub hadn't anticipated. Both folded into the same loop per
  *   §S0.16b:
- *     (a) The LLM (grok-4-1-fast) is unreliable on multi-intent
+ *     (a) The LLM (grok-4.3) is unreliable on multi-intent
  *         messages: sometimes calls delegate_to_capture correctly,
  *         sometimes asks follow-up questions, sometimes emits the
  *         tool call as plain `<function_call>` markup in the content

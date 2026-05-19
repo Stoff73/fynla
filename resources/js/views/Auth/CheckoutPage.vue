@@ -283,6 +283,8 @@ export default {
 
     planDisplayName() {
       if (!this.plan) return '';
+      // Prefer the resolved display_name from the tier store / plan data.
+      if (this.planData && this.planData.name) return this.planData.name;
       return this.plan.charAt(0).toUpperCase() + this.plan.slice(1);
     },
 
@@ -354,9 +356,29 @@ export default {
   methods: {
     async fetchPlanData() {
       try {
-        const response = await api.get('/payment/plans');
-        const plans = response.data.plans || [];
-        this.planData = plans.find(p => p.slug === this.plan) || null;
+        const TIER_KEYS = ['free', 'tier1', 'tier2', 'tier3'];
+        if (TIER_KEYS.includes(this.plan)) {
+          // Tier-based plan: resolve display name + price from the tier store.
+          const response = await api.get('/pricing-config');
+          const tiers = response.data.tiers || [];
+          const tier = tiers.find(t => t.tier === this.plan) || null;
+          if (tier) {
+            // Adapt to the shape planPrice / displayPrice computed props expect.
+            this.planData = {
+              slug: tier.tier,
+              monthly_price: tier.price_monthly_pence,
+              yearly_price: tier.price_annual_pence,
+              launch_monthly_price: null,
+              launch_yearly_price: null,
+              name: tier.display_name,
+            };
+          }
+        } else {
+          // Legacy plan: resolve from /payment/plans as before.
+          const response = await api.get('/payment/plans');
+          const plans = response.data.plans || [];
+          this.planData = plans.find(p => p.slug === this.plan) || null;
+        }
       } catch {
         // Non-critical — price just shows "..."
       }
