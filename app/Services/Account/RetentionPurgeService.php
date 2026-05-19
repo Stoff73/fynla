@@ -132,6 +132,7 @@ class RetentionPurgeService
                 'household_id' => null,
                 // Subscription
                 'plan' => 'free',
+                'tier' => null,
                 'trial_ends_at' => null,
             ]);
         });

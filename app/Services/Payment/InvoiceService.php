@@ -9,6 +9,7 @@ use App\Models\DiscountCode;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Stores\TierConfigurationStore;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Storage;
 
 class InvoiceService
 {
+    public function __construct(private readonly TierConfigurationStore $tierStore) {}
+
     /**
      * Generate an invoice for a completed payment.
      */
@@ -43,7 +46,7 @@ class InvoiceService
             'currency' => $payment->currency ?? 'GBP',
             'discount_code' => $discount?->code,
             'discount_description' => $discount ? $this->describeDiscount($discount) : null,
-            'plan_name' => ucfirst($payment->plan_slug ?? $subscription->plan),
+            'plan_name' => $this->resolvePlanName($payment->plan_slug ?? $subscription->plan),
             'billing_cycle' => $payment->billing_cycle ?? $subscription->billing_cycle,
             'period_start' => $subscription->current_period_start,
             'period_end' => $subscription->current_period_end,
@@ -135,6 +138,25 @@ class InvoiceService
         ]);
 
         return count($lines) > 0 ? implode("\n", $lines) : null;
+    }
+
+    /**
+     * Resolve a human-readable plan name for invoice line items.
+     * For tier-based plans (free/tier1/tier2/tier3) the display_name comes from
+     * TierConfigurationStore so a single admin edit propagates to all new invoices.
+     * Legacy plan slugs (student/standard/family/pro) fall back to ucfirst.
+     */
+    private function resolvePlanName(?string $planSlug): string
+    {
+        if ($planSlug && in_array($planSlug, ['free', 'tier1', 'tier2', 'tier3'], true)) {
+            try {
+                return $this->tierStore->forTier($planSlug)->display_name;
+            } catch (\Throwable) {
+                // Store unavailable — fall through to fallback
+            }
+        }
+
+        return ucfirst((string) $planSlug);
     }
 
     private function describeDiscount(DiscountCode $discount): string

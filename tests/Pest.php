@@ -91,3 +91,25 @@ beforeEach(function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+function tierConfigFixture(string $tier): array
+{
+    return [
+        'tier' => $tier,
+        'display_name' => ucfirst($tier),
+        'price_monthly_pence' => 0,
+        'price_annual_pence' => 0,
+        'revolut_plan_variation_id' => null,
+        'capability_matrix' => ['dashboard' => 'full'],
+        'count_caps' => ['savings_account' => $tier === 'free' ? 3 : null],
+        'document_upload_allowance' => 3,
+        'document_storage_gb' => null,
+        'fyn_weekly_token_budget' => 100_000,
+        'fyn_daily_hard_backstop' => 500_000,
+        'currency_display_mode' => 'gbp_only',
+        'snapshot_surfacing_window_days' => 90,
+        'open_api_affordance' => false,
+        'is_active' => true,
+        'updated_by' => null,
+    ];
+}

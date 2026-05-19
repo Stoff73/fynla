@@ -1064,6 +1064,9 @@ Route::prefix('payment')->group(function () {
     Route::get('/plans', [PaymentController::class, 'plans']);
 });
 
+// Public pricing config — reads live tier store; no auth required
+Route::get('/pricing-config', [\App\Http\Controllers\Api\PricingConfigController::class, 'index']);
+
 // Payment routes (authenticated)
 Route::middleware('auth:sanctum')->prefix('payment')->group(function () {
     Route::get('/trial-status', [PaymentController::class, 'trialStatus']);
@@ -1170,6 +1173,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::put('/discount-codes/{id}', [AdminController::class, 'updateDiscountCode']);
     Route::delete('/discount-codes/{id}', [AdminController::class, 'deleteDiscountCode']);
     Route::patch('/discount-codes/{id}/toggle', [AdminController::class, 'toggleDiscountCode']);
+
+    // Tier configuration admin CRUD — reads/writes TierConfigurationStore
+    Route::get('/tier-configurations', [\App\Http\Controllers\Api\Admin\TierConfigurationController::class, 'index']);
+    Route::put('/tier-configurations/{tier}', [\App\Http\Controllers\Api\Admin\TierConfigurationController::class, 'update']);
 });
 
 // Admin Insights CMS

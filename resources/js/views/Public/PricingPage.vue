@@ -53,274 +53,51 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
 
-          <!-- Student Plan -->
-          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
-            <div class="mb-6">
-              <h3 class="text-2xl font-bold text-white mb-1">Student</h3>
-              <p class="text-sm text-white/60">Get started with the essentials</p>
-            </div>
-
-            <div class="mb-6">
-              <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('student') }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('student') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
-              </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('student') }}</p>
-            </div>
-
-            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              7-day free trial
-            </div>
-
-            <ul class="space-y-3 mb-8 flex-1">
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Full financial dashboard</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Protection module</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Savings module</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Goal tracking</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Investment module</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Retirement module</span>
-              </li>
-            </ul>
-
-            <button
-              @click="startTrial('student')"
-              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
-            >
-              {{ ctaLabel }}
-            </button>
-          </div>
-
-          <!-- Standard Plan -->
-          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
-
-            <div class="mb-6">
-              <h3 class="text-2xl font-bold text-white mb-1">Standard</h3>
-              <p class="text-sm text-white/60">Full platform access</p>
-            </div>
-
-            <div class="mb-6">
-              <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('standard') }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('standard') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
-              </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('standard') }}</p>
-            </div>
-
-            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              7-day free trial
-            </div>
-
-            <ul class="space-y-3 mb-8 flex-1">
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Everything in Student</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Personal Valuables</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Business</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Property</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Letter to Spouse / Expression of Wishes</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Coordination module</span>
-              </li>
-            </ul>
-
-            <button
-              @click="startTrial('standard')"
-              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all shadow-lg"
-            >
-              {{ ctaLabel }}
-            </button>
-          </div>
-
-          <!-- Family Plan (Featured) -->
-          <div class="bg-horizon-500 rounded-2xl border-[3px] border-raspberry-500 p-8 flex flex-col relative">
-            <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+          <!-- Tier cards — identity, pricing and features driven entirely by /api/pricing-config -->
+          <div
+            v-for="(tier, index) in tiers"
+            :key="tier.tier"
+            class="bg-horizon-500 rounded-2xl p-8 flex flex-col"
+            :class="index === featuredIndex
+              ? 'border-[3px] border-raspberry-500 relative'
+              : 'border border-horizon-500'"
+          >
+            <div v-if="index === featuredIndex" class="absolute -top-4 left-1/2 -translate-x-1/2">
               <span class="px-4 py-1.5 bg-raspberry-500 text-white text-xs font-semibold rounded-full shadow-lg">Most Popular</span>
             </div>
-            <div class="mb-6">
-              <h3 class="text-2xl font-bold text-white mb-1">Family</h3>
-              <p class="text-sm text-white/60">Plan together as a household</p>
-            </div>
 
             <div class="mb-6">
-              <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('family') }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('family') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
-              </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('family') }}</p>
-            </div>
-
-            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              7-day free trial
-            </div>
-
-            <ul class="space-y-3 mb-8 flex-1">
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Everything in Standard</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Family module</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Parents included</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Children for free</span>
-              </li>
-            </ul>
-
-            <button
-              @click="startTrial('family')"
-              class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
-            >
-              {{ ctaLabel }}
-            </button>
-          </div>
-
-          <!-- Pro Plan -->
-          <div class="bg-horizon-500 rounded-2xl border border-horizon-500 p-8 flex flex-col">
-            <div class="mb-6">
-              <h3 class="text-2xl font-bold text-white mb-1">Pro</h3>
-              <p class="text-sm text-white/60">For power users who need it all</p>
+              <h3 class="text-2xl font-bold text-white mb-1">{{ tier.display_name }}</h3>
+              <p class="text-sm text-white/60">{{ tierTagline(tier) }}</p>
             </div>
 
             <div class="mb-6">
               <div class="flex items-baseline gap-1">
-                <span class="text-neutral-400 line-through text-lg">{{ fullPrice('pro') }}</span>
-                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500 ml-1">{{ price('pro') }}</span><span class="text-white/50 text-sm">/{{ isYearly ? 'year' : 'month' }}</span></span>
+                <span class="whitespace-nowrap"><span class="text-3xl font-bold text-raspberry-500">{{ tierPrice(tier) }}</span><span class="text-white/50 text-sm">{{ tierPriceSuffix(tier) }}</span></span>
               </div>
-              <p v-if="isYearly" class="text-sm text-spring-500 mt-1">{{ monthlyEquivalent('pro') }}</p>
+              <p v-if="isYearly && tierMonthlyEquivalent(tier)" class="text-sm text-spring-500 mt-1">{{ tierMonthlyEquivalent(tier) }}</p>
             </div>
 
-            <div v-if="!isAuthenticated" class="inline-flex items-center gap-1.5 px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div v-if="!isAuthenticated" class="inline-flex items-center px-3 py-1 bg-light-pink-100 border border-light-pink-200 rounded-full text-raspberry-500 text-xs font-medium mb-6 w-fit">
               7-day free trial
             </div>
 
             <ul class="space-y-3 mb-8 flex-1">
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Full access to all features</span>
+              <li v-if="index > 0" class="text-white/80 text-sm font-medium">
+                Everything in {{ tiers[index - 1].display_name }}, plus:
               </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Estate Planning</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Holistic Plan</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Wills, Powers of Attorney, Trusts</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">AI document extraction</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Advanced projections</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-spring-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-white/70 text-sm">Priority support</span>
+              <li
+                v-for="feature in tierFeatures(tier)"
+                :key="feature.key"
+                class="text-sm"
+                :class="feature.included ? 'text-white/70' : 'text-white/35 line-through'"
+              >
+                {{ feature.label }}
               </li>
             </ul>
 
             <button
-              @click="startTrial('pro')"
+              @click="startTrial(tier.tier)"
               class="w-full py-3 px-6 rounded-xl font-semibold text-sm bg-spring-500 text-white hover:bg-spring-600 transition-all"
             >
               {{ ctaLabel }}
@@ -432,6 +209,28 @@ import PublicLayout from '@/layouts/PublicLayout.vue';
 import { getPricingFaqs } from '@/constants/faqData';
 import api from '@/services/api';
 
+// Human-readable, British-English labels for each capability_matrix /
+// count_caps entity key. Acronyms spelled out (Rule #10; ISA may stay).
+const FEATURE_LABELS = {
+  dashboard: 'Financial dashboard',
+  income: 'Income tracking',
+  expenditure: 'Expenditure tracking',
+  liabilities: 'Liabilities tracking',
+  protection: 'Protection module',
+  savings_account: 'Savings accounts',
+  investment: 'Investments',
+  investments_exotic: 'Alternative investments',
+  pension_account: 'Pensions',
+  retirement_decumulation: 'Retirement decumulation planning',
+  property: 'Property',
+  chattels: 'Personal valuables',
+  goals: 'Goals and life events',
+  family_module: 'Family module',
+  benefits_child: 'Child benefit modelling',
+  estate: 'Estate planning',
+  letter_to_spouse: 'Letter to spouse and expression of wishes',
+};
+
 export default {
   name: 'PricingPage',
 
@@ -445,6 +244,11 @@ export default {
     ctaLabel() {
       return this.isAuthenticated ? 'Upgrade now' : 'Start Free Trial';
     },
+
+    // Feature the most-popular badge: second-from-top tier when present.
+    featuredIndex() {
+      return this.tiers.length >= 2 ? this.tiers.length - 2 : -1;
+    },
   },
 
   data() {
@@ -452,62 +256,97 @@ export default {
       isYearly: true,
       openFaq: null,
       faqs: getPricingFaqs().map(item => ({ question: item.q, answer: item.a })),
-      plans: {},
+      tiers: [],
     };
   },
 
   mounted() {
     document.title = 'Pricing — Simple, Transparent Plans | Fynla';
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required.');
-    this.fetchPlans();
+    if (meta) meta.setAttribute('content', 'Start with a 7-day free trial. Choose the Fynla tier that fits — from the Free tier to higher tiers with full estate planning and unlimited accounts. No credit card required.');
+    this.fetchTiers();
   },
 
   methods: {
-    async fetchPlans() {
+    async fetchTiers() {
       try {
-        const response = await api.get('/payment/plans');
-        const plansList = response.data.plans || [];
-        const map = {};
-        plansList.forEach(p => { map[p.slug] = p; });
-        this.plans = map;
+        // Single source of truth: the live tier store (PR 4).
+        const response = await api.get('/pricing-config');
+        this.tiers = response.data.data || [];
       } catch {
-        // Prices will show fallback
+        // Cards render their fallback ('...') price until the store responds.
       }
     },
 
-    price(slug) {
-      const p = this.plans[slug];
-      if (!p) return '...';
-      const pence = this.isYearly
-        ? (p.launch_yearly_price || p.yearly_price)
-        : (p.launch_monthly_price || p.monthly_price);
+    tierTagline(tier) {
+      if ((tier.price_monthly_pence ?? 0) === 0) {
+        return 'Get started with the essentials';
+      }
+      if (this.featuredIndex >= 0 && this.tiers[this.featuredIndex] === tier) {
+        return 'Our most popular tier';
+      }
+      return 'More capabilities and higher limits';
+    },
+
+    tierPrice(tier) {
+      const pence = this.isYearly ? tier.price_annual_pence : tier.price_monthly_pence;
+      if (pence === null || pence === undefined) return '...';
+      if (pence === 0) return 'Free';
       return '£' + (pence / 100).toFixed(2);
     },
 
-    fullPrice(slug) {
-      const p = this.plans[slug];
-      if (!p) return '...';
-      const pence = this.isYearly ? p.yearly_price : p.monthly_price;
-      return '£' + (pence / 100).toFixed(2);
+    tierPriceSuffix(tier) {
+      const pence = this.isYearly ? tier.price_annual_pence : tier.price_monthly_pence;
+      if (pence === 0) return '';
+      return this.isYearly ? '/year' : '/month';
     },
 
-    monthlyEquivalent(slug) {
-      const p = this.plans[slug];
-      if (!p) return '';
-      const launchMonthly = p.launch_monthly_price || p.monthly_price;
-      const launchYearly = p.launch_yearly_price || p.yearly_price;
-      const monthlyEq = (launchYearly / 12 / 100).toFixed(2);
-      const saving = Math.round((1 - launchYearly / (launchMonthly * 12)) * 100);
+    tierMonthlyEquivalent(tier) {
+      const annual = tier.price_annual_pence;
+      const monthly = tier.price_monthly_pence;
+      if (!annual || !monthly) return '';
+      const monthlyEq = (annual / 12 / 100).toFixed(2);
+      const saving = Math.round((1 - annual / (monthly * 12)) * 100);
+      if (saving <= 0) return '';
       return `£${monthlyEq}/mo — save ${saving}%`;
     },
 
-    startTrial(plan) {
+    // Build the feature list from the tier's own capability_matrix +
+    // count_caps. full → included; teaser → preview only; limited → "Up to N"
+    // (or "Unlimited" when cap is null); none → shown as not included.
+    tierFeatures(tier) {
+      const matrix = tier.capability_matrix || {};
+      const caps = tier.count_caps || {};
+      return Object.keys(FEATURE_LABELS)
+        .filter(key => key in matrix)
+        .map(key => {
+          const capability = matrix[key];
+          const name = FEATURE_LABELS[key];
+          if (capability === 'full') {
+            return { key, label: name, included: true };
+          }
+          if (capability === 'teaser') {
+            return { key, label: `${name} — preview only`, included: true };
+          }
+          if (capability === 'limited') {
+            const cap = caps[key];
+            if (cap === null || cap === undefined) {
+              return { key, label: `Unlimited ${name.toLowerCase()}`, included: true };
+            }
+            return { key, label: `Up to ${cap} ${name.toLowerCase()}`, included: true };
+          }
+          // 'none' or unknown — show as not included
+          return { key, label: name, included: false };
+        });
+    },
+
+    startTrial(tierKey) {
+      // Pass the tier KEY (free/tier1/tier2/tier3), never a legacy slug (§5.2).
       if (this.isAuthenticated) {
         this.$router.push({
           path: '/checkout',
           query: {
-            plan,
+            plan: tierKey,
             cycle: this.isYearly ? 'yearly' : 'monthly',
           },
         });
@@ -515,7 +354,7 @@ export default {
         this.$router.push({
           path: '/register',
           query: {
-            plan,
+            plan: tierKey,
             billing: this.isYearly ? 'yearly' : 'monthly',
           },
         });

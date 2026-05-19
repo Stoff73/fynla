@@ -101,6 +101,7 @@
         <AiAudit v-if="activeTab === 'ai-audit'" />
         <EvalRecordings v-if="activeTab === 'eval-recordings'" />
         <DiscountCodes v-if="activeTab === 'discount-codes'" />
+        <TierConfiguration v-if="activeTab === 'tier-configuration'" />
       </div>
     </div>
   </AppLayout>
@@ -120,6 +121,7 @@ const UserMetrics = defineAsyncComponent(() => import('../../components/Admin/me
 const AiAudit = defineAsyncComponent(() => import('../../components/Admin/AiAudit.vue'));
 const DiscountCodes = defineAsyncComponent(() => import('../../components/Admin/DiscountCodes.vue'));
 const EvalRecordings = defineAsyncComponent(() => import('../../components/Admin/EvalRecordings.vue'));
+const TierConfiguration = defineAsyncComponent(() => import('../../components/Admin/TierConfiguration.vue'));
 
 export default {
   name: 'AdminPanel',
@@ -136,6 +138,7 @@ export default {
     AiAudit,
     DiscountCodes,
     EvalRecordings,
+    TierConfiguration,
   },
 
   data() {
@@ -166,6 +169,7 @@ export default {
         { id: 'discount-codes', label: 'Discount Codes', shortLabel: 'Codes' },
         { id: 'decision-matrix', label: 'Decision Matrix', shortLabel: 'Matrix' },
         { id: 'tax-settings', label: 'Tax Settings', shortLabel: 'Tax' },
+        { id: 'tier-configuration', label: 'Tier Configuration', shortLabel: 'Tiers' },
         { id: 'backups', label: 'Database', shortLabel: 'Data' },
         // Insights CMS lives on its own route stack, not as an embedded tab — the
         // `path` key tells the sidebar to router-push instead of switching activeTab.
