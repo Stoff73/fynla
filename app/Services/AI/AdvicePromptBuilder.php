@@ -1004,6 +1004,31 @@ PROMPT;
         return $this->buildDataCompletenessBlock($this->buildPrerequisiteStateContext($user));
     }
 
+    /**
+     * C1 (May/May19Updates/unified-fyn-audit-and-prompt-optimisation.md):
+     * lean <data_completeness> for the unified per-turn context — the
+     * per-user READY/BLOCKED matrix ONLY. The static NAVIGATION /
+     * BLOCKED-MODULE / MODULE-DEPENDENCY rules that
+     * buildDataCompletenessBlock() inlines (~595 tok) are, under
+     * FYN_PROMPT_ARCH=unified, hoisted into the cached FynSystemPrompt
+     * (<data_completeness_rules>) so they are paid once per cache window
+     * instead of on every advice turn. The legacy path
+     * (buildDataCompletenessBlock, used by build():174-175) is byte-identical
+     * and unaffected — parity with FYN_PROMPT_ARCH=legacy is preserved
+     * because the model still receives the same total instruction set.
+     */
+    public function buildPrerequisiteStateContextLean(User $user): string
+    {
+        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+
+        return <<<PROMPT
+        <data_completeness>
+        The following shows which modules have sufficient data for analysis:
+        {$prerequisiteState}
+        </data_completeness>
+        PROMPT;
+    }
+
     private function buildDataCompletenessBlock(string $prerequisiteState): string
     {
         return <<<PROMPT

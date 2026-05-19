@@ -66,7 +66,11 @@ final class FynContextAssembler
         }
 
         if ($has(ContextBucket::READINESS)) {
-            $lines[] = $this->advice->buildPrerequisiteStateContextWrapped($ctx->user);
+            // C1: lean per-turn block (per-user READY/BLOCKED matrix only).
+            // The static NAVIGATION / BLOCKED-MODULE / MODULE-DEPENDENCY rules
+            // now live once in the cached FynSystemPrompt
+            // (<data_completeness_rules>) instead of ~595 tok every advice turn.
+            $lines[] = $this->advice->buildPrerequisiteStateContextLean($ctx->user);
         }
 
         // KYC gate result (parity with legacy AdvicePromptBuilder Layer 9,
