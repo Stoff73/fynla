@@ -130,3 +130,80 @@ it('tier2 user can POST to calculate-iht (full module access)', function () {
     $response = $this->postJson('/api/estate/calculate-iht', []);
     expect($response->status())->not->toBe(403);
 });
+
+// --- Will Builder + Power of Attorney are Estate-module routes: spec §7 has no
+// separate will/POA capability key, so they fall under "Estate planning"
+// (teaser for Free/Tier1). §10.2 requires them gated server-side, not just
+// hidden. These were missed in SP2 PR7 — only IHT/EstateController were gated.
+
+it('free user cannot create/update a will (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/will', [])->assertForbidden();
+});
+
+it('tier1 user cannot create/update a will (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier1']));
+
+    $this->postJson('/api/estate/will', [])->assertForbidden();
+});
+
+it('free user cannot create a bequest (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/bequests', [])->assertForbidden();
+});
+
+it('free user cannot calculate intestacy (full Estate engine, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/calculate-intestacy', [])->assertForbidden();
+});
+
+it('free user cannot create a will-builder document (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/will-builder', [])->assertForbidden();
+});
+
+it('tier1 user cannot create a will-builder document (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier1']));
+
+    $this->postJson('/api/estate/will-builder', [])->assertForbidden();
+});
+
+it('free user cannot create a Lasting Power of Attorney (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/lpa', [])->assertForbidden();
+});
+
+it('tier1 user cannot create a Lasting Power of Attorney (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier1']));
+
+    $this->postJson('/api/estate/lpa', [])->assertForbidden();
+});
+
+it('free user cannot upload a Lasting Power of Attorney (full Estate sub-route, spec §10.2)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'free']));
+
+    $this->postJson('/api/estate/lpa/upload', [])->assertForbidden();
+});
+
+it('tier2 user can POST to will (gate allows through to validation, not 403)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier2']));
+
+    expect($this->postJson('/api/estate/will', [])->status())->not->toBe(403);
+});
+
+it('tier2 user can POST to lpa (gate allows through to validation, not 403)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier2']));
+
+    expect($this->postJson('/api/estate/lpa', [])->status())->not->toBe(403);
+});
+
+it('tier3 user can POST to will-builder (gate allows through, not 403)', function () {
+    Sanctum::actingAs(User::factory()->create(['tier' => 'tier3']));
+
+    expect($this->postJson('/api/estate/will-builder', [])->status())->not->toBe(403);
+});

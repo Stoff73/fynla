@@ -12,6 +12,7 @@ use App\Http\Middleware\CaptureAwcCookie;
 use App\Http\Middleware\CheckFeatureAccess;
 use App\Http\Middleware\CheckSubscription;
 use App\Http\Middleware\EncryptCookies;
+use App\Http\Middleware\EnsureFullEstateAccess;
 use App\Http\Middleware\EnsureMFAVerified;
 use App\Http\Middleware\ETagResponse;
 use App\Http\Middleware\HasPermission;
@@ -126,6 +127,7 @@ class Kernel extends HttpKernel
         'advisor' => AdvisorMiddleware::class,
         'advisor.impersonate' => AdvisorImpersonationMiddleware::class,
         'feature' => CheckFeatureAccess::class,
+        'estate.full' => EnsureFullEstateAccess::class,
         'insights.seo' => InsightsSeoMetaInjector::class,
         'idempotent' => IdempotencyKeyMiddleware::class,
     ];
