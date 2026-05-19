@@ -1033,6 +1033,10 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ## Task 8: Legacy mobile retirement
 
+> **EXECUTION NOTE (2026-05-19): scope was expanded mid-execution with CSJ approval.** The original Step-1 inventory under-counted cross-references — `resources/js/mobile/` was NOT isolated. CSJ-authorized expanded scope: (a) **relocate** `resources/js/mobile/OfflineBanner.vue` → `resources/js/components/Common/OfflineBanner.vue` (web-facing, rendered on every authenticated page via `AppLayout.vue`) instead of deleting it; (b) also clean dead refs in `resources/js/app.js` (remove `appLifecycle` import + the `if(isNativePlatform()){…}` native bootstrap block) and `resources/js/store/modules/auth.js` (remove the `mobileDashboard/clearCache` dispatch). Delivered in commit `9e050d8e` (76 files, +2/−7120; build green; SP3 9 tests pass; 15 Pest failures proven pre-existing via stash-comparison — `app.ai_audit_hmac_key` env gap, zero SP3 causal path).
+>
+> **KNOWN RESIDUAL (post-review finding, NOT a web regression):** 4 stale `/m/*` SPA-navigation strings remain — `resources/js/services/api.js:124` (`window.__appRouter.push('/m/login')`) and `resources/js/store/modules/preview.js:263,318,407` (`/m/home`,`/m/login`). All are gated by `isCapacitor`/`isNativePlatform()` (always false in a web browser) and the native path is moot since Task 6 repointed Capacitor at the new build — behaviourally inert, but they reference now-deleted routes. Cleanup decision pending CSJ (Task 8b vs follow-up ticket).
+
 Highest-risk task — done only after the scaffold is verified green. Remove the old mobile frontend so the new one is the single mobile surface.
 
 **Files:**
