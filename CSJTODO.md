@@ -1,7 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 18 May 2026 — session 12 clear (billing surface restored under unified `8bc5f6d`; PR #335 updated; tech-debt-session done)*
-*Previous session: 18 May 2026 — session 11 clear (Fyn-chat bug-fix loop; nav-router + FSCS classification)*
+*Last updated: 19 May 2026 — session 6 clear (git tree clean: 12 local + 18 remote merged branches pruned, 2 worktrees + stash removed; stale freemium memory corrected)*
+*Previous session: 19 May 2026 — session 5 clear (Will/POA teaser-gate deployed to prod + dev, verified)*
+
+---
+
+## Session 6 (19 May 2026) — Git tree + remote cleanup (context-clear)
+
+**Branch:** `dev` (synced `248d3a3`) · **Tree:** clean · **No repo code changed** · **No PR** (git hygiene only)
+
+### Done
+- [x] Auto-resumed handover-5 (nothing pending). CSJ asked to clean tree + remove all deployed branches.
+- [x] Verified real merge state (squash hides branches from `--no-merged`); deleted **12 local branches**, removed **2 worktrees** (git 2.10.1 → manual `rm -rf` + `worktree prune`), dropped `stash@{0}` (rejected `tenants_in_common`→SavingsStore change; reflog `1f1c630`).
+- [x] Pruned **18 CSJ-authored merged remote branches** (9× `sp2-pr*`, 2× `backmerge/*`, `freemium`, `sp2Freemium`, `estateTeaserWillPoa`, `fynPromptRework`, `feat/savings-store-pr5a`, `adhoc-changes-2`, `post-live-updates`).
+- [x] Preserved fynEvalContextView's 2 local-only docs → `fynlaBrain/May/May19Updates/` before deletion.
+- [x] **Corrected stale memory** `project_pr317_gated_on_freemium_refactor` → RESOLVED/SUPERSEDED (#317 CLOSED unmerged; freemium=SP2 shipped via #336/#337/#340) + MEMORY.md index line.
+
+### Outstanding / next session (priority order)
+- [ ] **vault-sync overdue** (deferred again — context-clear; standing practice = run at next **end-of-day** session-end). Must also pick up the 2 preserved fynEvalContextView docs.
+- [ ] Optional, NOT started (CSJ has not asked): 15-May prod `RecommendationPersonaliser::formatCurrency()` TypeError (`RecommendationPersonaliser.php:420` → `FormatsCurrency.php:21`, userId 617).
+- [ ] Stale-unmerged remote branches left on purpose (CSJ asked *merged* only): `rss-feed` (#237 CLOSED), `email-onboarding-video` (no PR). Contributor branches `brett-dev1`/`automated-marketing` not ours. `feature/csj/python-agent-sidecar` parked-kept.
+- [ ] ~~PR #317 parked on freemium~~ **RESOLVED** — #317 closed, freemium shipped (see corrected memory).
+- [ ] ~~PR #335 OPEN~~ **MERGED** (#335/#332 → dev → main via #340; live on prod).
+- [ ] Carried doc backlog: KycGateChecker delta doc-fix.
 
 ---
 
