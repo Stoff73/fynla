@@ -1,0 +1,12 @@
+/* SP3 scaffold styling — DISPOSABLE. The future mobile redesign replaces this wholesale. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Inter, system-ui, sans-serif; background: #F7F6F4; color: #1F2A44; }
+#m-app { max-width: 420px; margin: 0 auto; min-height: 100vh; padding: 24px; }
+.m-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.m-field { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 16px; }
+.m-btn { width: 100%; padding: 14px; background: #E83E6D; color: #fff; border: 0; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.m-btn:disabled { opacity: .5; cursor: not-allowed; }
+.m-err { color: #C42B54; font-size: 14px; margin: 8px 0; }
+.m-h1 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+.m-sub { color: #6B7280; font-size: 14px; margin-bottom: 16px; }
+.m-tag { display: inline-block; background: #1F2A44; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-bottom: 12px; }

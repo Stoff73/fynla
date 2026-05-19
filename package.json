@@ -5,7 +5,8 @@
         "dev": "vite",
         "build": "vite build",
         "test": "vitest",
-        "test:run": "vitest run"
+        "test:run": "vitest run",
+        "build:mobile": "vite build --config vite.mobile.config.js"
     },
     "devDependencies": {
         "@capacitor/cli": "^6.2.1",
