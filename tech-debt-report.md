@@ -1,75 +1,40 @@
-# Tech Debt Report — Session 2026-05-14 (PR #292 post-merge)
+# Tech Debt Report — Session 2026-05-19 (EOD): SP3 mobile iframe scaffold (iFrames vs origin/dev)
 
-**Files analysed:** 3
-- `app/Services/Investment/Rebalancing/TaxAwareRebalancer.php`
-- `app/Http/Controllers/Api/Investment/RebalancingCalculationController.php`
-- `tests/Unit/Services/Investment/Rebalancing/TaxAwareRebalancerCgtAllowanceTest.php`
-
-**Issues found:** 6 (1 new observation + 5 carry-forward from 2026-05-13 session 3 audit)
-**Severity breakdown:** 0 critical · 3 warnings · 3 suggestions
-
-PR #292 itself is **clean** — no new debt introduced by the diff. The findings below either carry forward from the prior audit (still open, not yet addressed) or are new sibling observations about the same files.
-
-## Critical Issues
-
-None. The PR #292 fix itself is the canonical fail-loud pattern from PR #289/#291, applied cleanly with mirror-shape helpers + 6 fresh Pest cases.
+**Files analysed:** 31 (14 new, 17 modified) — 70 deleted legacy files out of scope
+**Issues found:** 7
+**Severity breakdown:** 0 critical, 2 warnings, 5 suggestions
 
 ## Warnings
 
-### Warning #1 — `RebalancingCalculationController::getAccountRebalancing` is a 154-line god-method (CARRY-FORWARD)
+### resources/views/mobile-host.blade.php:16 / app/Http/Middleware/SecurityHeaders.php:25 — Category 5: `/m/app/` (trailing slash, no sub-segment) may fall through to `DENY`
+The `SAMEORIGIN` / `frame-ancestors 'self'` carve-out matches `m`, `m/app`, `m/app/*`. The inner Vue router uses `createWebHistory('/m/app/')`. A browser refresh on the exact path `/m/app/` (trailing slash, no further segment) is not matched by `m/app` nor `m/app/*`, so it can fall through to the default `DENY` and break the frame. Suggested fix: add `m/app/` to the match set or normalise the trailing slash before matching; add a Pest case asserting `SAMEORIGIN` on `/m/app/` exactly.
 
-- **File:** `app/Http/Controllers/Api/Investment/RebalancingCalculationController.php:312-465`
-- **Category:** Complexity & Maintainability
-- **What's wrong:** Method does account lookup, risk-profile resolution (user + custom), target-allocation lookup, threshold setup, empty-holdings branch, drift analysis, conditional rebalancing calculation, and conditional CGT optimisation — all in one body. Same finding as previous audit; PR #292 touched lines 442-453 (within this method) but didn't extract.
-- **Suggested fix:** Extract `resolveAccountRiskProfile(InvestmentAccount $account, User $user): array` (currently lines 336-371) into a service or model method. Same suggestion as 2026-05-13 audit; deferred to a dedicated refactor PR.
-
-### Warning #2 — `RebalancingCalculationController.php` is 634 lines (CARRY-FORWARD)
-
-- **File:** `app/Http/Controllers/Api/Investment/RebalancingCalculationController.php`
-- **Category:** Complexity & Maintainability
-- **What's wrong:** Past the 500-line guideline. Houses both portfolio-level rebalancing actions (calculate, compare CGT, within-allowance, drift) and account-level (`getAccountRebalancing`, `updateRebalancingThreshold`) — two responsibilities in one class.
-- **Suggested fix:** Split into `RebalancingCalculationController` (portfolio-level) + new `AccountRebalancingController` (account-level). Would also unblock Warning #1 — the account methods become smaller in isolation.
-
-### Warning #3 — `TaxAwareRebalancer.php` is 606 lines (NEW)
-
-- **File:** `app/Services/Investment/Rebalancing/TaxAwareRebalancer.php`
-- **Category:** Complexity & Maintainability
-- **What's wrong:** New observation — service file is also past the 500-line guideline. Sibling pattern to Warning #2. Houses 4 public methods (`optimizeForCGT`, `compareStrategies`, `rebalanceWithinCGTAllowance`) plus 8 private helpers, including CGT calculation, tax-loss harvesting identification, summary generation, and strategy comparison.
-- **Suggested fix:** Lower priority than Warning #2 — service file is more cohesive than the controller (all CGT-flavoured). Candidate extraction: `TaxLossHarvestingIdentifier` for the `identifyTaxLossHarvesting` block (lines 256-324, ~69 lines including docblock). Flag only — not yet acutely painful.
+### resources/mobile/store.js:6 / resources/mobile/views/Verify.vue:35 — Category 5: bearer token in `localStorage` inside same-origin iframe
+Scaffold stores the access token in `localStorage` (`m_scaffold_token`). With `/m/app` same-origin framed and CSP allowing `'unsafe-inline'`, any XSS exposes the token (no `httpOnly`). Acceptable for a disposable scaffold; real exposure only if `resources/mobile/*` ships to production before the redesign. Suggested fix: keep scaffold off production builds, or document the localStorage risk explicitly in `resources/mobile/README.md` (Task 9 deliverable).
 
 ## Suggestions
 
-### Suggestion #4 — Tax-config mutation block duplicated in test files (CARRY-FORWARD)
+### resources/js/app.js:34 — Category 2: unused `getItem` import (KNOWN — handover-recorded)
+The biometric block using `getItem` was deleted in this diff; only `isNativePlatform()`/`getToken()` remain in use. `getItem` is now dead. Fix: drop `getItem` from the import list.
 
-- **File:** `tests/Unit/Services/Investment/Rebalancing/TaxAwareRebalancerCgtAllowanceTest.php:113-116, 128-131` (and sibling `TaxAwareRebalancerCgtRateTest.php:116-122, 161-166`)
-- **Category:** Duplicate Code
-- **What's wrong:** The "load active TaxConfiguration, unset a key, save" pattern now appears 4 times across 2 test files. Still suggestion territory (rule of three not yet breached for an *extracted* helper — but very close).
-- **Suggested fix:** When a third CGT-fail-loud sibling test file arrives (e.g. higher-rate-band, or trustees-rate), extract `unsetCgtConfigKey(string $key): void` into a shared test helper or trait.
+### resources/js/store/modules/auth.js:128-133 — Category 2: stale Face ID / Keychain docblock on `mobileLogout` (KNOWN — handover-recorded)
+Docblock still describes preserving the iOS Keychain biometric credential for Face ID auto-login; that path was removed across this branch. Fix: update/remove the docblock to reflect SP3 reality.
 
-### Suggestion #5 — `optimizeSellOrder` docblock promises an unimplemented step 3 (CARRY-FORWARD)
+### resources/mobile/style.css:3-12 / Dashboard.vue:6,13 / Login.vue / Verify.vue — Category 3: hardcoded hex / inline styles vs palette tokens
+Scaffold hardcodes brand hex (`#F7F6F4`, `#1F2A44`, `#E83E6D`, `#C42B54`) plus off-palette greys (`#6B7280`, `#374151`, `#E5E7EB`). Isolated build has no Tailwind pipeline so tokens aren't available — acceptable scaffold-only, but the redesign must map these to `neutral-*`/`light-gray`/`horizon-*` and consume design-system tokens. Track as scaffold-only.
 
-- **File:** `app/Services/Investment/Rebalancing/TaxAwareRebalancer.php:166-195`
-- **Category:** Dead & Redundant Code (stale docblock)
-- **What's wrong:** Docblock at lines 168-172 lists three strategies — "1. Sell loss-making positions first / 2. Sell positions with smallest gains / 3. Consider holding period (longer-held assets first if tax benefits)". The implementation at lines 178-195 only does steps 1 and 2 — `sortBy('gain_or_loss')` for losses and `sortBy('gain_or_loss')` for gains. No holding-period tiebreaker.
-- **Suggested fix:** Drop "3. Consider holding period (longer-held assets first if tax benefits)" from the docblock. Either that, or actually implement the tiebreaker using `holding_period_days` from the `cgt_data` block — but UK CGT post-30-October-2024 has no holding-period rate distinction, so deletion is the truer fix.
+### resources/mobile/views/Login.vue:26 / Verify.vue:29 — Category 6: scaffold API client diverges from `resources/js/services/api.js`
+Hand-rolled `fetch` wrapper (`resources/mobile/api.js`) has no interceptors, no 401-redirect, no token-invalidation-on-401 (a 401 only sets `this.error`). Intentional decoupling for the isolated build, but flag for graduation: reuse the shared api service or add 401 handling when the scaffold becomes real.
 
-### Suggestion #6 — `resolveTaxRate` and `resolveCgtAllowance` share an extractable shape (NEW)
+### app/Http/Middleware/RedirectPhoneToMobile.php:78 — Category 4: phone/tablet UA detection best-effort (acknowledged)
+`isPhone()` may misclassify Android tablets reporting a phone-style `Mobile` UA. Code comments acknowledge this; `?full=1` escape hatch + `m_full_site` cookie pin (correctly in `EncryptCookies` exceptions + excluded routes) mitigate. No fix required — flagged for visibility only.
 
-- **File:** `app/Services/Investment/Rebalancing/TaxAwareRebalancer.php:559-605`
-- **Category:** Duplicate Code (mild)
-- **What's wrong:** Both helpers follow the same "caller-supplied option wins → config key present? → return; else throw `taxConfigError`" shape. Two methods, ~13 lines each, identical structure.
-- **Suggested fix:** **Hold for now.** The pair is intentional: each carries a distinct error message and a distinct domain (rate vs. allowance), and the explicit per-key shape is easier to grep for during audits. Extract only if a third resolver lands in the same service (e.g. higher-rate CGT, trustees' rate) — at that point a `resolveOrThrow(array $options, string $optionKey, array $cgtConfig, string $configKey, string $reason): float` helper becomes worth the indirection.
+## Clean categories
+- **Duplicate code:** none — no duplicated `formatCurrency`, spinner/scrollbar CSS, or ownership re-implementation.
+- **Backend conventions:** `RedirectPhoneToMobile.php` has `declare(strict_types=1)`, full type hints, no `DB` facade/hardcoded tax/`sole`. New `routes/web.php` entries ordered before SPA catch-all. Test file Pest-conformant.
+- **Rule #16 (icons):** no decorative icons/emoji/Unicode-as-icons introduced in any scaffold view, blade, or middleware.
+- **Scaffold API contract:** all called endpoints resolve (`/api/auth/login`, `/api/auth/verify-code`, `/api/v1/mobile/dashboard`, `/api/v1/health`); response shapes match `AuthController`.
+- **Legacy retirement:** no dangling imports remain in `app.js`, `router/index.js`, `store/index.js`, `auth.js`, `preview.js`, `AppLayout.vue` (`OfflineBanner` correctly repointed to existing `components/Common/OfflineBanner.vue`).
 
 ---
-
-## Summary
-
-Top 3 most impactful:
-
-1. **Warning #1 + Warning #2** — Same-file follow-up: extract `resolveAccountRiskProfile()` + split controller into portfolio/account pair. Unblocks the next REVIEW §4 tasks in the area without touching new tax logic.
-2. **Warning #3 (new)** — Sibling 500-line breach on `TaxAwareRebalancer.php`. Lower priority than #1/#2 because the service is more cohesive, but worth tracking.
-3. **Suggestion #5** — Drop the unimplemented step-3 promise from the `optimizeSellOrder` docblock. Two-line edit; eliminates future "why doesn't this work?" debugging.
-
-**Nothing blocks commit.** PR #292 is already merged into `dev` at `23c3c18`; this report is the deferred audit per the 2026-05-13 session 3 handover. Findings #1/#2/#4/#5 are explicit carry-forwards; #3 and #6 are new observations.
-
-*Generated by tech-debt-session skill — 2026-05-14*
+*Generated by tech-debt-session skill — 2026-05-19 EOD wrap*

@@ -1,7 +1,20 @@
 # CSJTODO — Fynla
 
-*Last updated: 19 May 2026 — session 1 clear (SP3 mobile-iframe scaffold: spec+plan+Tasks 1–8+8b done; Task 9 pending)*
-*Previous session: 17 May 2026 — session 2 clear (PR #332 code-reviewed; ALL findings fixed + verified + pushed)*
+*Last updated: 19 May 2026 — EOD wrap (tech-debt audit run on SP3 diff; 0 critical; handover → May/May20Updates)*
+*Previous session: 19 May 2026 — session 1 clear (SP3 mobile-iframe scaffold: spec+plan+Tasks 1–8+8b done; Task 9 pending)*
+
+---
+
+## EOD wrap (19 May 2026) — SP3 tech-debt audit + handover
+
+**Branch:** `iFrames` · **Tree:** clean · **HEAD:** `560b4107` · **No new code** (wrap of the day's clear-session work)
+
+### Done
+- [x] Deferred `tech-debt-session` audit run on the 31-file SP3 surface → `tech-debt-report.md` — **0 critical, 2 warnings, 5 suggestions**
+- [x] EOD handover written `May/May20Updates/handover-2026-05-20-session-1.md`; planning-with-files docs updated (Path A)
+
+### Outstanding (new from audit)
+- [ ] **`/m/app/` trailing-slash frame-header gap** — `SecurityHeaders.php:25` carve-out misses bare `/m/app/`; refresh there can fall through to `DENY`. One-line match-set fix + Pest assertion — **fold into Task 9**.
 
 ---
 

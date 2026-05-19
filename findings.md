@@ -7,6 +7,7 @@
 - **`m_full_site` cookie must be in `EncryptCookies::$except`** to be readable as plaintext for the pin check; tests use `assertPlainCookie` not `assertCookie`.
 
 ## Open / to verify next session
+- **`/m/app/` trailing-slash frame-header gap (from 2026-05-20 tech-debt audit).** `SecurityHeaders.php:25` carve-out matches `m`/`m/app`/`m/app/*` but NOT the exact path `/m/app/` (trailing slash, no sub-segment). Inner router is `createWebHistory('/m/app/')`; a refresh on bare `/m/app/` can fall through to default `DENY` and break the frame. Fix = add `m/app/` to the match set + Pest assertion. Fold into Task 9.
 - **Pest baseline: 60 failed vs documented ~15.** Task 8b argued this is pre-existing DB-contamination/test-ordering (8b changed only 2 frontend JS files never loaded by Pest; isolated run of a "failing" class passed). Logically sound but NOT independently re-verified — stash/isolation-check before Task 9. Task 8's 15-failure set WAS proven pre-existing via stash-compare (root cause `app.ai_audit_hmac_key` not configured, `AuditChainService.php:53` — local env gap).
 
 ## Process note
