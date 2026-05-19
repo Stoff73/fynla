@@ -3,6 +3,32 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/dangerous-command-guard.sh",
+            "timeout": 10,
+            "statusMessage": "Checking command against Fynla NEVER rules..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/CSJ/Desktop/fynla/.claude/hooks/pint-format.sh",
+            "timeout": 30,
+            "statusMessage": "Pint: formatting PHP (PSR-12)..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

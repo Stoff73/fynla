@@ -233,6 +233,58 @@
                 v-if="expandedSections[msg.id + '-prompt']"
                 class="bg-horizon-50 text-xs font-mono p-3 rounded overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap break-words text-horizon-500"
               >{{ msg.system_prompt }}</pre>
+
+              <!-- Expandable: Assembled Context (unified) -->
+              <button
+                v-if="msg.assembled_context"
+                @click="toggleSection(msg.id, 'assembled')"
+                class="text-xs text-violet-600 hover:text-violet-800 font-medium"
+              >
+                {{ expandedSections[msg.id + '-assembled'] ? 'Hide' : 'Show' }} assembled context (unified) ({{ Math.round((msg.assembled_context || '').length / 4) }} tokens)
+              </button>
+              <pre
+                v-if="expandedSections[msg.id + '-assembled']"
+                class="bg-horizon-50 text-xs font-mono p-3 rounded overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap break-words text-horizon-500"
+              >{{ msg.assembled_context }}</pre>
+              <div
+                v-else-if="!msg.assembled_context && msg.system_prompt"
+                class="text-xs text-neutral-500 italic"
+              >
+                Assembled context not captured for this turn (legacy mode or pre-enhancement).
+              </div>
+
+              <!-- Expandable: Full Tool Round-Trips -->
+              <button
+                v-if="msg.tool_calls && msg.tool_calls.length"
+                @click="toggleSection(msg.id, 'roundtrips')"
+                class="text-xs text-violet-600 hover:text-violet-800 font-medium"
+              >
+                {{ expandedSections[msg.id + '-roundtrips'] ? 'Hide' : 'Show' }} full tool round-trips ({{ msg.tool_calls.length }})
+              </button>
+              <div
+                v-if="expandedSections[msg.id + '-roundtrips']"
+                class="space-y-3"
+              >
+                <div
+                  v-for="rt in zipToolRoundTrips(msg)"
+                  :key="rt.sequence"
+                  class="border border-savannah-200 rounded p-2 space-y-1.5"
+                >
+                  <div class="text-xs font-semibold text-horizon-500">
+                    #{{ rt.sequence }} {{ rt.tool }}
+                    <span
+                      v-if="rt.is_error"
+                      class="ml-2 px-2 py-0.5 bg-raspberry-100 text-raspberry-700 rounded-full"
+                    >error</span>
+                  </div>
+                  <div class="text-xs text-neutral-500">Input (model to tool)</div>
+                  <pre class="bg-horizon-50 text-xs font-mono p-2 rounded overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-horizon-500">{{ prettyJson(rt.input) }}</pre>
+                  <div class="text-xs text-neutral-500">Raw result (tool output, uncompressed)</div>
+                  <pre class="bg-savannah-100 text-xs font-mono p-2 rounded overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-horizon-500">{{ prettyJson(rt.raw) }}</pre>
+                  <div class="text-xs text-neutral-500">Sent to LLM (post-compression, verbatim)</div>
+                  <pre class="bg-eggshell text-xs font-mono p-2 rounded overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-horizon-500 border border-horizon-200">{{ rt.sent_to_llm }}</pre>
+                </div>
+              </div>
             </div>
           </div>
         </template>
@@ -429,6 +481,29 @@ export default {
         ...this.expandedSections,
         [key]: !this.expandedSections[key],
       };
+    },
+
+    zipToolRoundTrips(msg) {
+      const calls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
+      const results = Array.isArray(msg.tool_results) ? msg.tool_results : [];
+      const bySeq = {};
+      results.forEach((r) => { bySeq[r.sequence] = r; });
+      return calls.map((c) => ({
+        sequence: c.sequence,
+        tool: c.tool,
+        input: c.input,
+        raw: bySeq[c.sequence]?.raw ?? null,
+        sent_to_llm: bySeq[c.sequence]?.sent_to_llm ?? null,
+        is_error: bySeq[c.sequence]?.is_error ?? false,
+      }));
+    },
+
+    prettyJson(value) {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch (e) {
+        return String(value);
+      }
     },
 
     formatDate(iso) {
