@@ -17,8 +17,8 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\ProtectionProfile;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -86,8 +86,7 @@ class EstateAssetAggregatorService
         });
 
         // Savings/Cash - Single-record pattern
-        $savingsAccounts = SavingsAccount::forUserOrJoint($user->id)
-            ->get();
+        $savingsAccounts = app(SavingsStore::class)->forUser($user);
         $savingsAssets = $savingsAccounts->map(function ($account) use ($user) {
             return (object) [
                 'user_id' => $user->id,

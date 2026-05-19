@@ -166,14 +166,51 @@ class BusinessInterestService
         $badrEligible = $this->isBADREligible($business);
         $yearsHeld = $this->calculateYearsHeld($business);
 
-        // Determine CGT rate (rates stored as decimals: 0.10 = 10%)
+        // Determine CGT rate (rates stored as decimals: 0.14 = 14%).
+        // Wave 2.5 (REVIEW §4 High #34): the BADR rate must come from
+        // TaxConfigService. The pre-Wave-2 fallback of `?? 0.10` was the
+        // pre-Autumn-2024 statutory rate — using it as a silent default
+        // would surface wrong tax advice (£40k+ understated CGT at the £1m
+        // lifetime limit). Fail loud if the config is missing; that is a
+        // seeding/deploy bug, not something to paper over.
         $cgtConfig = $this->taxConfig->getCapitalGainsTax();
-        $badrRate = $cgtConfig['business_asset_disposal_relief_rate'] ?? 0.10;
-        $higherRate = $cgtConfig['higher_rate'] ?? 0.20;
-        $basicRate = $cgtConfig['basic_rate'] ?? 0.10;
+        if (! isset($cgtConfig['business_asset_disposal_relief_rate'])) {
+            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+                'business_asset_disposal_relief_rate',
+                'BADR rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
+            );
+        }
+        $badrRate = (float) $cgtConfig['business_asset_disposal_relief_rate'];
+
+        // Sibling defect to Wave 2.5: the prior `?? 0.20` / `?? 0.10` fallbacks
+        // were the pre-Autumn-2024 statutory CGT rates. Post-30-October-2024 they
+        // are 0.24 / 0.18 — silently falling back would surface 4-percentage-point
+        // wrong tax advice on every non-BADR business sale. Fail loud.
+        if (! isset($cgtConfig['higher_rate'])) {
+            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+                'higher_rate',
+                'CGT higher rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
+            );
+        }
+        if (! isset($cgtConfig['basic_rate'])) {
+            throw \App\Exceptions\FinancialCalculationException::taxConfigError(
+                'basic_rate',
+                'CGT basic rate missing from active TaxConfiguration — refusing to fall back to a stale default.'
+            );
+        }
+        $higherRate = (float) $cgtConfig['higher_rate'];
+        $basicRate = (float) $cgtConfig['basic_rate'];
 
         // BADR lifetime limit
         $badrLimit = $cgtConfig['business_asset_disposal_relief_lifetime_limit'] ?? 1000000;
+
+        // Format the BADR rate as a percentage string for user-facing text
+        // so the warning never lies about the current rate. Cast to int when
+        // the decimal is whole (e.g. 14 not 14.0).
+        $badrRatePct = $badrRate * 100;
+        $badrRateDisplay = (floor($badrRatePct) == $badrRatePct)
+            ? (int) $badrRatePct.'%'
+            : number_format($badrRatePct, 1).'%';
 
         $warnings = [];
         $cgtRate = $higherRate; // Default to higher rate
@@ -186,7 +223,7 @@ class BusinessInterestService
                 $warnings[] = 'Capital gain exceeds the £'.number_format($badrLimit).' lifetime Business Asset Disposal Relief limit. Gains above this threshold may be taxed at higher rates.';
             }
         } else {
-            $warnings[] = 'Business Asset Disposal Relief may not apply. The 10% rate requires 2+ years ownership and trading business status.';
+            $warnings[] = 'Business Asset Disposal Relief may not apply. The '.$badrRateDisplay.' rate requires 2+ years ownership and trading business status.';
         }
 
         // Calculate CGT due (cgtRate is already a decimal, e.g., 0.10 for 10%)

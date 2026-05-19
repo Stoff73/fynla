@@ -22,7 +22,6 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
@@ -32,6 +31,7 @@ use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -280,8 +280,11 @@ PROMPT;
      * when the query's primary classification is BILLING. Centralised here
      * (rather than inline in build()) so the guard can be unit-tested
      * directly and reused by future per-classification layers.
+     *
+     * Public so the unified FynContextAssembler reuses the identical gate
+     * verbatim (parity with legacy Layer 3c — no behavioural drift).
      */
-    private function isBillingQuery(?array $classification): bool
+    public function isBillingQuery(?array $classification): bool
     {
         return ($classification['primary'] ?? null) === QuerySchemas::BILLING;
     }
@@ -294,8 +297,11 @@ PROMPT;
      * `get_subscription_status` tool result (HasAiChat consumes the
      * `action: navigate` field) — the assistant must NOT add a manual
      * "click here" link or instruct the user to navigate.
+     *
+     * Public so the unified FynContextAssembler emits the identical block
+     * verbatim (parity with legacy Layer 3c — no behavioural drift).
      */
-    private function getBillingGuidance(): string
+    public function getBillingGuidance(): string
     {
         return <<<'PROMPT'
 <billing_guidance>
@@ -753,7 +759,7 @@ PROMPT;
 
             // Savings
             if ($include('savings_account')) {
-                $savings = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $savings = app(SavingsStore::class)->forUserWithJointOwner($user);
                 if ($savings->isNotEmpty()) {
                     // S0.10 — account_name and institution are user-controlled free text.
                     $items = $savings->map(fn ($a) => '[ID:'.$a->id
@@ -767,7 +773,7 @@ PROMPT;
 
             // Investments
             if ($include('investment_account')) {
-                $investments = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $investments = InvestmentAccount::with('jointOwner')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($investments->isNotEmpty()) {
                     // S0.10 — provider is user-controlled free text.
                     $items = $investments->map(fn ($a) => '[ID:'.$a->id
@@ -805,7 +811,7 @@ PROMPT;
 
             // Properties — show total value, user's share, mortgage, and ownership with co-owner name
             if ($include('property') || $include('mortgage')) {
-                $properties = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $properties = Property::with(['mortgages', 'jointOwner'])->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
                 if ($properties->isNotEmpty()) {
                     $items = $properties->map(function ($p) use ($userId, $ownershipLabel) {
                         $totalValue = (float) $p->current_value;
@@ -988,6 +994,41 @@ PROMPT;
         return $this->prerequisiteGate->buildCompletenessContext($user);
     }
 
+    /**
+     * FynContextAssembler passthrough — returns the full <data_completeness>
+     * block (prerequisite state wrapped in XML tags) so the assembler does
+     * not need to call the private buildDataCompletenessBlock() directly.
+     */
+    public function buildPrerequisiteStateContextWrapped(User $user): string
+    {
+        return $this->buildDataCompletenessBlock($this->buildPrerequisiteStateContext($user));
+    }
+
+    /**
+     * C1 (May/May19Updates/unified-fyn-audit-and-prompt-optimisation.md):
+     * lean <data_completeness> for the unified per-turn context — the
+     * per-user READY/BLOCKED matrix ONLY. The static NAVIGATION /
+     * BLOCKED-MODULE / MODULE-DEPENDENCY rules that
+     * buildDataCompletenessBlock() inlines (~595 tok) are, under
+     * FYN_PROMPT_ARCH=unified, hoisted into the cached FynSystemPrompt
+     * (<data_completeness_rules>) so they are paid once per cache window
+     * instead of on every advice turn. The legacy path
+     * (buildDataCompletenessBlock, used by build():174-175) is byte-identical
+     * and unaffected — parity with FYN_PROMPT_ARCH=legacy is preserved
+     * because the model still receives the same total instruction set.
+     */
+    public function buildPrerequisiteStateContextLean(User $user): string
+    {
+        $prerequisiteState = $this->buildPrerequisiteStateContext($user);
+
+        return <<<PROMPT
+        <data_completeness>
+        The following shows which modules have sufficient data for analysis:
+        {$prerequisiteState}
+        </data_completeness>
+        PROMPT;
+    }
+
     private function buildDataCompletenessBlock(string $prerequisiteState): string
     {
         return <<<PROMPT
@@ -1160,6 +1201,16 @@ PROMPT;
     }
 
     // ─── Layer 10: Module Context ────────────────────────────────────
+
+    /**
+     * Null-safe passthrough used by FynContextAssembler.
+     * Normalises the ?string return of getModuleContext() to string so
+     * the assembler can interpolate without a null check at the call site.
+     */
+    public function moduleContextFor(?string $route): string
+    {
+        return (string) ($this->getModuleContext($route) ?? '');
+    }
 
     public function getModuleContext(?string $currentRoute): ?string
     {

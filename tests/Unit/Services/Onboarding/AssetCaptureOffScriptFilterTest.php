@@ -44,6 +44,11 @@ function runAssetCapture(User $user, AiConversation $conversation, array $events
                 yield $event;
             }
         });
+    // Under FYN_PROMPT_ARCH=unified the spec-locked onboarding seam
+    // (OnboardingChatDirector::handleAssetCaptureTurn) also drives
+    // CoordinatingAgent::setUnifiedOnboardingFocus(); zero-call-satisfied
+    // under legacy. Mirrors ChildrenDOBFallbackTest invalidateUserCache.
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
     test()->instance(CoordinatingAgent::class, $mock);
 
     $director = app(OnboardingChatDirector::class);

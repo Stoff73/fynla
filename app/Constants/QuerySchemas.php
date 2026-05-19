@@ -221,7 +221,15 @@ final class QuerySchemas
             '/\binvoice(s)?\b/i',
             '/\breceipt(s)?\b/i',
             '/\b(billing|bill)\s+(history|cycle|date)\b/i',
+            // Bare "billing" is unambiguously the billing surface in Fynla
+            // ("show me my billing", "billing page"). The narrower
+            // history|cycle|date pattern above stays for related-type signal.
+            '/\bbilling\b/i',
             '/\bsubscription\s+(status|plan|active|cancelled|paused|trial|trialing|renew(al|s)?)\b/i',
+            // Bare "subscription" ("show my subscription", "my subscription")
+            // EXCEPT the ISA-subscription savings concept ("ISA subscription
+            // limit") — fixed-width negative lookbehind, case-insensitive.
+            '/\b(?<!isa\s)subscription\b/i',
             '/\bnext\s+(charge|payment|bill|invoice)\b/i',
             '/\bwhen\s+(am\s+i\s+)?charged\b/i',
             '/\bwhen\s+(does|will)\s+my\s+(trial|subscription|plan)\b/i',
@@ -271,7 +279,10 @@ final class QuerySchemas
             '/\b(enough|adequate|sufficient)\s+(life\s+)?cover\b/i',
             '/\b(enough|adequate|sufficient)\s+(life\s+)?(coverage|insurance|protection)\b/i',
             '/\bcovered?\s+(enough|adequately|sufficiently)\b/i',
-            '/\bam\s+i\s+(insured|covered|protected)\b/i',
+            // "am i protected/covered/insured" is life cover ONLY when the
+            // object is not savings/cash/deposits — "am i protected for my
+            // savings" is FSCS deposit protection (see SAVINGS_ACCOUNTS).
+            '/\bam\s+i\s+(insured|covered|protected)\b(?!.{0,15}\b(savings?|cash|deposits?|money|bank)\b)/i',
             '/\bcoverage\s+gap\b/i',
             '/\bincome\s+protection\b/i',
             '/\bcritical\s+illness\b/i',
@@ -300,6 +311,12 @@ final class QuerySchemas
             '/\bfscs\b/i',
             '/\bcash\s+isa\b/i',
             '/\bbest\s+(savings|interest)\s+rate\b/i',
+            // FSCS deposit protection — "are my savings safe", "is my money
+            // protected in the bank", "protected for my savings". This is
+            // deposit protection, NOT life insurance.
+            '/\b(savings?|cash|deposits?|money)\b.{0,20}\b(protect|protected|protection|safe|secure|covered|fscs|guarantee)\b/i',
+            '/\b(protect|protected|protection|safe|secure|covered|guarantee)\b.{0,20}\b(savings?|cash|deposits?|money|bank\s+account)\b/i',
+            '/\bdeposit\s+protection\b/i',
         ],
         self::SAVINGS_DEBT => [
             '/\b(pay\s+off|repay).*mortgage\b.*\b(or|vs|versus)\b.*\b(invest|save)\b/i',

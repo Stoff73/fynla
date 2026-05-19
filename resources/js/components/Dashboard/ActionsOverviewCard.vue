@@ -306,8 +306,8 @@ export default {
 }
 
 .module-estate {
-  @apply bg-purple-50;
-  @apply text-purple-600;
+  @apply bg-violet-50;
+  @apply text-violet-600;
 }
 
 .module-protection {

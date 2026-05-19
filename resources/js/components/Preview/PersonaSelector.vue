@@ -263,7 +263,7 @@ export default {
             const colors = {
                 young_family: 'bg-violet-100',
                 peak_earners: 'bg-spring-100',
-                widow: 'bg-purple-100',
+                widow: 'bg-violet-100',
                 entrepreneur: 'bg-fuchsia-100',
                 young_saver: 'bg-cyan-100',
                 student: 'bg-teal-100',

@@ -19,8 +19,8 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
@@ -140,7 +140,7 @@ class EstateActionDefinitionService
         $results = [];
         foreach ($policies as $policy) {
             $vars = [
-                'policy_value' => '£'.number_format((float) ($policy->cover_amount ?? 0), 0),
+                'policy_value' => '£'.number_format((float) ($policy->sum_assured ?? 0), 0),
             ];
             $results[] = $this->buildRecommendation($definition, $vars, $priority);
             $priority++;
@@ -346,7 +346,8 @@ class EstateActionDefinitionService
         $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
 
         // Savings accounts
-        $total += (float) SavingsAccount::where('user_id', $user->id)->sum('current_balance');
+        $savingsCollection = app(SavingsStore::class)->forUser($user);
+        $total += (float) $savingsCollection->where('user_id', $user->id)->sum('current_balance');
 
         // Cash accounts
         $total += (float) CashAccount::where('user_id', $user->id)->sum('current_balance');
@@ -360,11 +361,11 @@ class EstateActionDefinitionService
         // Life insurance (death benefit adds to estate if not in trust)
         $total += (float) LifeInsurancePolicy::where('user_id', $user->id)
             ->where('in_trust', false)
-            ->sum('cover_amount');
+            ->sum('sum_assured');
 
         // Subtract liabilities
-        $total -= (float) Mortgage::where('user_id', $user->id)->sum('current_balance');
-        $total -= (float) Liability::where('user_id', $user->id)->sum('amount');
+        $total -= (float) Mortgage::where('user_id', $user->id)->sum('outstanding_balance');
+        $total -= (float) Liability::where('user_id', $user->id)->sum('current_balance');
 
         return max(0.0, $total);
     }

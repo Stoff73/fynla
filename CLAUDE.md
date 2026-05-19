@@ -9,9 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Metric | Count |
 |--------|-------|
 | Vue Components | 729 |
-| PHP Services | 297 |
-| Controllers | 110 |
-| Models | 111 |
+| PHP Services | 316 |
+| Controllers | 113 |
+| Models | 112 |
 | Vuex Stores | 35 |
 | Agents | 9 |
 
@@ -94,11 +94,11 @@ Vue Component → API Service → Controller → Agent → Services → Models �
 
 **Tests** (`tests/`): See `tests/CLAUDE.md` for detailed conventions.
 
-**Fyn AI — Two-Fyn architecture (canonical contract).** Source of truth: `April/April24Updates/spec/00-canonical.md`. Fyn has two states behind one chat surface — the user never sees or feels the switch.
+**Fyn AI — Two-Fyn architecture (canonical contract).** Source of truth: `April/April24Updates/spec/00-canonical.md`. Fyn has two states behind one chat surface — the user never sees or feels the switch. The system prompt is now **unified**: both states send the identical `FynSystemPrompt::text()` + per-turn `FynContextAssembler::build()` (`app/Services/AI/Fyn/`), gated by `FYN_PROMPT_ARCH` (`config('fyn.prompt_architecture')`, **default `unified`** post-cutover 2026-05-17; `legacy` is the emergency rollback path); the two write states are enforced purely at dispatch + tool-gating, not by prompt content.
 - **Onboarding Fyn** (`app/Services/Onboarding/OnboardingChatDirector`) is the **only** state that enters or edits information. It runs the bubble-driven onboarding flow and the post-onboarding `handleInlineCapture` entry point. Both write to the database.
 - **Advice Fyn** (`app/Services/AI/AdviceFyn`) is **read-only**. It answers user questions using the recommendation engine, risk module, and every other engine/module. It exposes **zero** `create_*` / `update_*` / `delete_*` / `set_expenditure` / `capture_*` tools — every persistent record-creation tool (including `create_what_if_scenario`, which persists a `WhatIfScenario` row) is in `AdviceFyn::WRITE_TOOLS` and stripped from the catalogue.
 - **Write intents in advice mode** flow through `delegate_to_capture` (LLM tool call) → `AdviceFyn::wrapStream` → `OnboardingChatDirector::handleInlineCapture` → the same direct-write handlers in `CoordinatingAgent`. The synthetic `handoff` SSE event is consumed internally and never reaches the frontend (INV-2.4.1).
-- **No `FynPersonaOrchestrator`**, no invoker, no registry, no `DataCapturePromptBuilder`. The dispatch is one if-statement in `AiChatController::sendMessage` keyed on `users.onboarding_completed`.
+- **No `FynPersonaOrchestrator`**, no invoker, no registry, no `DataCapturePromptBuilder`. The dispatch is one guard in `AiChatController::sendMessage` on a **3-part predicate**: the onboarding write state requires `users.onboarding_completed === false` **and** `users.onboarding_fyn_step !== null` **and** `config('onboarding.fyn_flow_enabled', true)`; every other case (including a paused onboarding user whose `onboarding_fyn_step` was nulled) routes to the read-only advice state. It is **not** keyed purely on `onboarding_completed`. See `00-canonical.md:11`.
 - **No frontend persona signals.** No `persona_state_change` SSE event. No "capturing" pill. Input placeholder invariant. Any UI that distinguishes the two states violates the contract.
 
 ## Working Style
@@ -259,9 +259,11 @@ Modals, top navbar, forms, alerts, tables, badges, toasts, tooltips, empty state
 - Icon fonts as a whole class (font-awesome, material-icons, anything requiring a webfont).
 - Mascot/character images used as inline icons. The Fyn character is permitted only as a large illustrated hero on public pages, never as a button/nav/card inline icon.
 
-**Enforcement:**
+**Enforcement (forward-only — existing violations grandfathered):**
+- **All current violations in the codebase are marked as allowed.** Do not retroactively rip out emoji, Unicode-as-icons, icon-font usage, decorative icons, or any other Rule #16 violation that already exists in the code today. Examples of current grandfathered violations include the emoji set in `resources/js/constants/goalIcons.js` (🔥 🎯 📈 ⭐ 🏆) and the `▲` / `▼` Unicode arrows in `resources/js/views/Admin/AdminDashboard.vue`. These stay. Do not flag them in audits, do not propose them for fixing in a PR, do not "tidy them up" while editing nearby code.
+- **Everything new must follow Rule #16 strictly.** Any new feature, new component, new page, new email, new admin tile, new chat element — must comply with every clause above from the moment it lands. There is no grace period for new code.
 - When adding a new feature, do not include icons on banned surfaces. If the plan you are following shows icons there, strip them BEFORE coding and flag the plan as needing update.
-- When editing code on a banned surface, if you find existing icons, you may remove them as part of your change if it is in-scope — but removing them is optional unless CSJ specifically asks.
+- When editing code on a banned surface, you may remove existing violations as part of your change ONLY if CSJ has specifically asked. Otherwise leave them alone (the grandfathering clause above).
 - When in doubt about whether a surface is banned, allowed, or ambiguous, ASK CSJ. Do not rely on nearby patterns.
 
 **Ownership:** This rule is OWNED by CSJ. Only CSJ can change it, and only by editing this section of CLAUDE.md directly. No plan, no PR, no contributor, no sub-agent, no earlier version of `fynlaDesignGuide.md`, and no historical spec overrides this rule.
@@ -464,7 +466,7 @@ Test via landing page persona selector at http://localhost:8000, not direct URLs
 
 ## UK Tax Context
 
-- Tax Year: April 6 - April 5 (active: 2025/26)
+- Tax Year: April 6 - April 5 (active: 2026/27)
 - IHT: 40% above NRB (£325k) + RNRB (£175k)
 - ISA: £20,000/year
 - Pension AA: £60,000

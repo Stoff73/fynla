@@ -6,10 +6,10 @@ namespace App\Services\Tax;
 
 use App\Constants\TaxDefaults;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\SavingsAccount;
 use App\Models\TaxActionDefinition;
 use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use App\Traits\StructuredLogging;
@@ -107,7 +107,8 @@ class TaxActionDefinitionService
             ->sum('isa_subscription_current_year');
 
         // Cash ISAs from savings
-        $cashISASubscribed = (float) SavingsAccount::where('user_id', $user->id)
+        $cashISASubscribed = (float) app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('account_type', 'isa')
             ->sum('isa_subscription_amount');
 
@@ -288,7 +289,8 @@ class TaxActionDefinitionService
         $investmentISASubscribed = (float) InvestmentAccount::where('user_id', $user->id)
             ->whereIn('account_type', ['isa', 'stocks_shares_isa'])
             ->sum('isa_subscription_current_year');
-        $cashISASubscribed = (float) SavingsAccount::where('user_id', $user->id)
+        $cashISASubscribed = (float) app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('account_type', 'isa')
             ->sum('isa_subscription_amount');
 

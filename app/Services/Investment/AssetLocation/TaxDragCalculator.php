@@ -291,16 +291,27 @@ class TaxDragCalculator
     }
 
     /**
-     * Estimate interest rate for a holding based on asset type
+     * Estimate interest rate for a holding based on asset type.
+     *
+     * Wave 2.6 (REVIEW §4 High #21): reads from the same canonical
+     * TaxConfigService `investment.asset_class_yields` block that
+     * estimateDividendYield() uses, so cash + bond interest rates can
+     * be tuned year-over-year via the seeder without touching code. The
+     * previous implementation hardcoded "4.5% for cash (2024/25 rates)"
+     * which was both stale (current seeded value is 4.0%) and
+     * disconnected from the dividend-yield estimator that ran on the
+     * same input.
      *
      * @param  Holding  $holding  Holding
      * @return float Estimated interest rate (0-1)
      */
     private function estimateInterestRate(Holding $holding): float
     {
+        $yields = $this->taxConfig->get('investment.asset_class_yields', []);
+
         return match ($holding->asset_type) {
-            'bond', 'fixed_income' => 0.04, // 4% for bonds
-            'cash', 'money_market' => 0.045, // 4.5% for cash (2024/25 rates)
+            'bond', 'fixed_income' => $yields['bonds']['income_yield'] ?? 0.04,
+            'cash', 'money_market' => $yields['cash']['income_yield'] ?? 0.04,
             default => 0.0, // No interest for equities
         };
     }
@@ -314,7 +325,13 @@ class TaxDragCalculator
      */
     public function calculatePortfolioTaxDrag(int $userId, array $userTaxProfile): array
     {
-        $accounts = InvestmentAccount::where('user_id', $userId)
+        // Wave 2.6 (REVIEW §4 High #21 / CLAUDE.md Rule #7): use the
+        // `forUserOrJoint` scope so joint-owned investment accounts are
+        // included in the user's portfolio tax-drag total. The previous
+        // `where('user_id', $userId)` silently dropped joint accounts
+        // where the user was the secondary owner — understating their
+        // tax drag and breaking the dashboard total.
+        $accounts = InvestmentAccount::forUserOrJoint($userId)
             ->with('holdings')
             ->get();
 

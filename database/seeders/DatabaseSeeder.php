@@ -32,6 +32,9 @@ class DatabaseSeeder extends Seeder
             // Tax configuration - rates, allowances, thresholds
             TaxConfigurationSeeder::class,
 
+            // Tier configuration - capability matrix, count caps, pricing placeholders
+            TierConfigurationSeeder::class,
+
             // Tax product reference - ISA/GIA/Bond tax treatment info
             TaxProductReferenceSeeder::class,
 

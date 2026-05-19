@@ -15,7 +15,7 @@ use RuntimeException;
  *
  * The {provider}/{model} layout lets the same scenario be recorded against
  * multiple Anthropic models (haiku-4-5, sonnet-4-6, …) and multiple xAI
- * models (grok-4-1-fast-reasoning, grok-4-1-fast-non-reasoning, …) for
+ * models (grok-4.3, …) for
  * cross-model comparison per CSJ's direction.
  *
  * Each fixture begins with a `__meta` event:

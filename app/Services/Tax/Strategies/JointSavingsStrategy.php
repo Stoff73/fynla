@@ -7,7 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
-use App\Models\SavingsAccount;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
 
@@ -53,11 +53,13 @@ final class JointSavingsStrategy implements TaxStrategy
 
         // Sole-name non-ISA savings — joint accounts (joint_owner_id set) are
         // already split 50/50 by HMRC default and cannot benefit further.
-        $soleSavings = SavingsAccount::query()
+        // forUser() is joint-aware; the Collection-level where('user_id') keeps
+        // strictly single-owner semantics (whereNull('joint_owner_id') further
+        // excludes joint accounts owned by this user).
+        $soleSavings = app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
             ->whereNull('joint_owner_id')
-            ->where('is_isa', false)
-            ->get(['current_balance', 'interest_rate']);
+            ->where('is_isa', false);
 
         if ($soleSavings->isEmpty()) {
             return [];

@@ -167,8 +167,14 @@ describe('PUT /api/investment/accounts/{id}', function () {
     });
 
     it('does not 500 when country arrives null on update — preserves existing value', function () {
+        // Pin account_type/ownership_type: the factory randomises both, and an
+        // isa + non-individual combo makes updateAccount correctly 422 (joint
+        // ISAs are illegal). This test only exercises the country-null path, so
+        // the fixture must be deterministic and not hostage to Faker RNG state.
         $account = InvestmentAccount::factory()->create([
             'user_id' => $this->user->id,
+            'account_type' => 'gia',
+            'ownership_type' => 'individual',
             'country' => 'United Kingdom',
             'provider' => 'Existing',
             'current_value' => 1000,

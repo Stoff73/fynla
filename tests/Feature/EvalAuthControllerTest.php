@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
+    $this->seed(TierConfigurationSeeder::class);
     Artisan::call('db:seed', ['--class' => 'PreviewUserSeeder']);
 });
 
@@ -26,6 +28,24 @@ it('refuses in production environment', function () {
     app()->detectEnvironment(fn () => 'production');
 
     $this->postJson('/api/eval/login/peak_earners')->assertStatus(403);
+});
+
+it('fails closed when APP_ENV is unset/empty (REVIEW §4 High #20)', function () {
+    app()->detectEnvironment(fn () => '');
+
+    $this->postJson('/api/eval/login/peak_earners')->assertStatus(403);
+});
+
+it('fails closed when APP_ENV is an unknown/typo value (REVIEW §4 High #20)', function () {
+    app()->detectEnvironment(fn () => 'prodcution');
+
+    $this->postJson('/api/eval/login/peak_earners')->assertStatus(403);
+});
+
+it('serves on staging APP_ENV (csjones)', function () {
+    app()->detectEnvironment(fn () => 'staging');
+
+    $this->postJson('/api/eval/login/peak_earners')->assertOk();
 });
 
 it('returns 400 for invalid persona', function () {

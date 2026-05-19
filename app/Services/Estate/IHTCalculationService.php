@@ -52,15 +52,29 @@ class IHTCalculationService
     ) {}
 
     /**
-     * Calculate IHT liability with caching
+     * Calculate IHT liability with caching.
+     *
+     * Wave 2.4 (REVIEW §4 High #22): persistence is now opt-in. The default
+     * is read-only — callers in read flows (dashboards, advice queries,
+     * Fyn chat tool calls) do not write a row to the `iht_calculations`
+     * audit table. Callers that genuinely want to capture a snapshot
+     * (e.g. immediately after a trust create/update) pass `persist: true`.
      *
      * @param  User  $user  The primary user
      * @param  User|null  $spouse  The spouse (if married and linked)
      * @param  bool  $dataSharingEnabled  Whether spouse data sharing is enabled
+     * @param  bool  $persist  Write the calculation result to the
+     *                        `iht_calculations` audit table. Defaults to
+     *                        false — opt in only when a caller has a
+     *                        specific reason to capture the snapshot.
      * @return array IHT calculation results with all breakdown values
      */
-    public function calculate(User $user, ?User $spouse = null, bool $dataSharingEnabled = false): array
-    {
+    public function calculate(
+        User $user,
+        ?User $spouse = null,
+        bool $dataSharingEnabled = false,
+        bool $persist = false,
+    ): array {
         // Eager load relationships to prevent N+1 queries
         $user->loadMissing(['investmentAccounts', 'mortgages', 'liabilities', 'savingsAccounts', 'properties']);
         if ($spouse) {
@@ -223,8 +237,10 @@ class IHTCalculationService
         $pensionAmendment = $this->calculatePensionAmendmentScenario($user, $spouse, $dataSharingEnabled, $result);
         $result['pension_amendment'] = $pensionAmendment;
 
-        // 10. Save to database
-        $this->saveCalculation($user, $result, $userAssets, $spouseAssets, $userLiabilities, $spouseLiabilities);
+        // 10. Save to database (opt-in only — see method docblock).
+        if ($persist) {
+            $this->saveCalculation($user, $result, $userAssets, $spouseAssets, $userLiabilities, $spouseLiabilities);
+        }
 
         return $result;
     }

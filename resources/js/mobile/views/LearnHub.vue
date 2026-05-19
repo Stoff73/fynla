@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import learnTopics from '@/mobile/learn/learnTopics';
+import { getLearnTopics } from '@/mobile/learn/learnTopics';
 import LearnTopicCard from '@/mobile/learn/LearnTopicCard.vue';
 
 export default {
@@ -39,10 +39,10 @@ export default {
     LearnTopicCard,
   },
 
-  data() {
-    return {
-      topics: learnTopics,
-    };
+  computed: {
+    topics() {
+      return getLearnTopics(this.$store);
+    },
   },
 
   methods: {

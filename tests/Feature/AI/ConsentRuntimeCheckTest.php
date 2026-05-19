@@ -164,6 +164,13 @@ it('allows startOnboarding to stream when ai_chat consent is granted', function 
 // ─── Mid-stream withdrawal ──────────────────────────────────────────────
 
 it('emits consent_required SSE and closes the stream when consent is withdrawn mid-stream', function (): void {
+    // W1-L: assert the strict per-event withdrawal behaviour by forcing
+    // the consent recheck interval to 0. With the default 2-second interval,
+    // microsecond-fast tests would never re-query the cache and would see
+    // all events flow through — the slow-stream behaviour is covered by the
+    // companion test below.
+    config()->set('ai_chat.consent_recheck_interval_seconds', 0);
+
     $user = User::factory()->create([
         'onboarding_completed' => true,
         'is_preview_user' => false,
@@ -203,4 +210,50 @@ it('emits consent_required SSE and closes the stream when consent is withdrawn m
 
     $consentEvent = $events->firstWhere('type', 'consent_required');
     expect($consentEvent['required'] ?? null)->toBe('ai_chat');
+});
+
+// ─── W1-L: bounded-TTL consent recheck ──────────────────────────────────
+
+it('queries hasConsent at most once across a fast SSE stream (W1-L perf cache)', function (): void {
+    // Default 2-second interval. A microsecond-fast stream never elapses
+    // that interval, so the in-stream recheck never fires — only the
+    // entry gate at sendMessage start should query the consent table.
+    config()->set('ai_chat.consent_recheck_interval_seconds', 2.0);
+
+    $user = User::factory()->create([
+        'onboarding_completed' => true,
+        'is_preview_user' => false,
+    ]);
+    grantAiChatConsent($user);
+    $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
+
+    // Spy on the application's ConsentService — partial mock so other
+    // methods (e.g. recordConsent if anything in the chain touches it)
+    // pass through to the real implementation.
+    $spy = Mockery::mock(ConsentService::class)->makePartial();
+    $spy->shouldReceive('hasConsent')->passthru();
+    app()->instance(ConsentService::class, $spy);
+
+    // Emit 25 events; pre-W1-L this would have produced 25 hasConsent
+    // queries (plus the entry gate). Post-W1-L: just the entry gate.
+    bindAdviceFynStubGenerator(function () {
+        return (function () {
+            for ($i = 0; $i < 25; $i++) {
+                yield ['type' => 'content', 'text' => "chunk-{$i}"];
+            }
+            yield ['type' => 'done'];
+        })();
+    });
+
+    $response = $this->actingAs($user)
+        ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
+            'message' => 'hi',
+        ]);
+
+    $response->assertOk();
+    $events = parseSseEvents($response->streamedContent());
+    expect($events->count())->toBe(26); // 25 chunks + done
+
+    // 1 call only: the entry-point gate at sendMessage line 149.
+    $spy->shouldHaveReceived('hasConsent')->once();
 });

@@ -712,19 +712,19 @@
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">🏦 Retirement Planner Enhancements</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Income Tax Slider:</strong> Interactive slider to model different retirement income levels and see the tax impact in real-time.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Decumulation Graph:</strong> Visual projection of pension fund drawdown over retirement years.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>DB/State Pension Fallback:</strong> Dashboard retirement card now shows projected income for users with only DB or State pensions.</span>
@@ -933,31 +933,31 @@
             <h3 class="text-body-lg font-semibold text-horizon-500 mb-4">🏛️ Estate & Retirement Module Updates</h3>
             <ul class="space-y-2">
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>IHT → Inheritance Tax:</strong> Replaced acronym with full term throughout 19 components for clarity.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Tax Projection Columns:</strong> Added -5 and +5 year projections to Inheritance Tax calculation tables.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Estate Dashboard Redesign:</strong> Tab navigation removed, strategies accessible via clickable cards.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Retirement Dashboard:</strong> New 3-column layout with Monte Carlo projections, pension sidebar, and income summary.</span>
               </li>
               <li class="flex items-start">
-                <svg class="w-5 h-5 text-purple-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5 text-violet-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
                 <span class="text-body-base text-neutral-500"><strong>Protection Gap Analysis:</strong> Moved into Policy Overview tab with 5 shortfall cards and affordability assessment.</span>

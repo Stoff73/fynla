@@ -38,6 +38,9 @@ use App\Models\SpousePermission;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Models\UserConsent;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -822,24 +825,27 @@ class PreviewUserSeeder extends Seeder
             $monthlyContribution = $account['monthly_contribution'] ?? 0;
             $contributionFrequency = ($monthlyContribution > 0) ? ($account['contribution_frequency'] ?? 'monthly') : null;
 
-            SavingsAccount::create([
-                'user_id' => $owner->id,
-                'account_name' => $account['account_name'] ?? null,
-                'institution' => $account['provider_name'] ?? '',
-                'account_type' => $accountType,
-                'current_balance' => $totalBalance, // FULL balance
-                'interest_rate' => $account['interest_rate'] ?? null,
-                'is_isa' => $isIsa,
-                'isa_type' => $isaType,
-                'isa_subscription_amount' => $isaSubscriptionAmount,
-                'isa_subscription_year' => $isaSubscriptionYear,
-                'regular_contribution_amount' => $monthlyContribution > 0 ? $monthlyContribution : null,
-                'contribution_frequency' => $contributionFrequency,
-                'access_type' => $account['access_type'] ?? 'immediate',
-                'ownership_type' => $account['ownership_type'] ?? 'individual',
-                'ownership_percentage' => $isJoint ? 50 : 100,
-                'joint_owner_id' => $jointOwnerId,
-            ]);
+            app(SavingsStore::class)->create(
+                app(SavingsAccountNormaliser::class)->fromForm([
+                    'account_name' => $account['account_name'] ?? null,
+                    'institution' => $account['provider_name'] ?? '',
+                    'account_type' => $accountType,
+                    'current_balance' => $totalBalance,
+                    'interest_rate' => $account['interest_rate'] ?? null,
+                    'is_isa' => $isIsa,
+                    'isa_type' => $isaType,
+                    'isa_subscription_amount' => $isaSubscriptionAmount,
+                    'isa_subscription_year' => $isaSubscriptionYear,
+                    'regular_contribution_amount' => $monthlyContribution > 0 ? $monthlyContribution : null,
+                    'contribution_frequency' => $contributionFrequency,
+                    'access_type' => $account['access_type'] ?? 'immediate',
+                    'ownership_type' => $account['ownership_type'] ?? 'individual',
+                    'ownership_percentage' => $isJoint ? 50 : 100,
+                    'joint_owner_id' => $jointOwnerId,
+                ]),
+                $owner,
+                IngestSource::SEEDER
+            );
             // Single-record pattern: NO reciprocal account for other owner
         }
     }

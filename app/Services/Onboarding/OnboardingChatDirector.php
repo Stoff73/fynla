@@ -13,6 +13,8 @@ use App\Models\FamilyMember;
 use App\Models\OnboardingProgress;
 use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
+use App\Services\AI\Fyn\FynPromptMode;
+use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\ValueObjects\CaptureContext;
@@ -26,7 +28,9 @@ use Illuminate\Support\Facades\Log;
  *
  * The director owns every turn except asset_capture. For asset_capture it
  * delegates to CoordinatingAgent::chat() with a restricted system prompt
- * (OnboardingPromptBuilder) and the focus-filtered create_* tool list.
+ * (OnboardingPromptBuilder under FYN_PROMPT_ARCH=legacy; FynSystemPrompt
+ * under =unified — see resolveUnifiedRestrictedPrompt) and the
+ * focus-filtered create_* tool list.
  *
  * Control flow:
  *
@@ -1724,8 +1728,11 @@ PROMPT;
         // Swap the coordinating agent's system prompt for this turn only.
         // We do this by calling chat() with a short-lived prompt override —
         // see CoordinatingAgent::chatWithPromptOverride() below.
-        $restrictedPrompt = $this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation);
+        [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
 
         try {
             $generator = $this->coordinatingAgent->chatWithPromptOverride(
@@ -1848,6 +1855,14 @@ PROMPT;
             ];
 
             return;
+        } finally {
+            // Always clear the unified onboarding focus — including the
+            // \Throwable path above, which returns before this point. A
+            // leaked focus would make the next advice turn on this agent
+            // build an onboarding-mode FynTurnContext.
+            if ($unifiedFocus !== null) {
+                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+            }
         }
 
         // Record the step in onboarding_progress (best-effort — tool calls
@@ -2124,6 +2139,22 @@ PROMPT;
     }
 
     /**
+     * Unified mode: the system prompt is the static FynSystemPrompt and the
+     * onboarding focus is carried separately so HasAiChat can build the
+     * capture-turn context. Legacy mode: the verbatim asset-capture prompt.
+     *
+     * @return array{0:string,1:?string} [systemPrompt, onboardingFocusOrNull]
+     */
+    private function resolveUnifiedRestrictedPrompt(User $user, string $selection, ?AiConversation $conversation = null): array
+    {
+        if (FynPromptMode::isUnified()) {
+            return [FynSystemPrompt::text(), $selection];
+        }
+
+        return [$this->promptBuilder->buildAssetCapturePrompt($user, $selection, $conversation), null];
+    }
+
+    /**
      * FR-M14 — strip off-script sentences from an asset_capture content
      * event. Splits the text on sentence terminators (`.`, `!`, `?`, newline)
      * and drops any sentence that poses a question (with or without a `?`
@@ -2336,21 +2367,22 @@ PROMPT;
     ): \Generator {
         $allowedTools = $this->captureToolSet($context);
 
-        // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
-        // chat() turn that emitted delegate_to_capture already saved the
-        // user message. Re-saving from inside the inline-capture turn would
-        // produce a duplicate row in ai_messages.
-        $generator = $this->coordinatingAgent->chatWithPromptOverride(
-            user: $user,
-            conversation: $conversation,
-            message: $message,
-            currentRoute: $currentRoute,
-            systemPromptOverride: null,
-            allowedTools: $allowedTools,
-            persistUserMessage: false,
-            toolsListOverride: null,
-            personaOverride: 'data_capture',
-        );
+        // Unified prompt seam: handleInlineCapture IS an asset-capture turn
+        // (the advice-mode write handoff target — both the deterministic
+        // AdviceFyn route and the LLM delegate_to_capture path land here).
+        // HasAiChat::injectUnifiedTurnContext keys the CAPTURE bucket off the
+        // agent's unifiedOnboardingFocus; without it the turn is framed as
+        // advice, FynCaptureTurnInstructions is never injected, and the model
+        // falls back to the security refusal instead of calling create_*.
+        // Mirror handleAssetCaptureTurn: derive the focus from the
+        // CaptureContext and carry it for the duration of the turn (no-op
+        // under legacy — the property is only read on the unified path).
+        $unifiedFocus = FynPromptMode::isUnified()
+            ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? null)
+            : null;
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
         $llmEmittedFills = [];
@@ -2358,28 +2390,53 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        foreach ($generator as $event) {
-            $type = $event['type'] ?? '';
+        try {
+            // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
+            // chat() turn that emitted delegate_to_capture already saved the
+            // user message. Re-saving from inside the inline-capture turn would
+            // produce a duplicate row in ai_messages.
+            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+                user: $user,
+                conversation: $conversation,
+                message: $message,
+                currentRoute: $currentRoute,
+                systemPromptOverride: null,
+                allowedTools: $allowedTools,
+                persistUserMessage: false,
+                toolsListOverride: null,
+                personaOverride: 'data_capture',
+            );
 
-            if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
-                continue;
+            foreach ($generator as $event) {
+                $type = $event['type'] ?? '';
+
+                if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
+                    continue;
+                }
+
+                if ($type === 'fill_form') {
+                    $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+                }
+
+                // Track every record persisted by a create_* / direct-write handler
+                // so the closing capture_complete event carries the full list.
+                if ($type === 'entity_created') {
+                    $recordsCreated[] = [
+                        'type' => (string) ($event['entity_type'] ?? ''),
+                        'id' => $event['entity_id'] ?? null,
+                        'name' => (string) ($event['name'] ?? ''),
+                    ];
+                }
+
+                yield $event;
             }
-
-            if ($type === 'fill_form') {
-                $llmEmittedFills[] = (array) ($event['fields'] ?? []);
+        } finally {
+            // Always clear the carried focus — including the generator-throw
+            // path — so the next advice turn on this agent is not misframed
+            // as onboarding capture.
+            if ($unifiedFocus !== null) {
+                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
             }
-
-            // Track every record persisted by a create_* / direct-write handler
-            // so the closing capture_complete event carries the full list.
-            if ($type === 'entity_created') {
-                $recordsCreated[] = [
-                    'type' => (string) ($event['entity_type'] ?? ''),
-                    'id' => $event['entity_id'] ?? null,
-                    'name' => (string) ($event['name'] ?? ''),
-                ];
-            }
-
-            yield $event;
         }
 
         yield from $this->emitGapFillFromCaptureContext(

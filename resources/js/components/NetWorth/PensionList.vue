@@ -97,7 +97,7 @@
                       </div>
                       <div v-if="pension.lump_sum_entitlement" class="guaranteed-detail-row">
                         <span>Tax-Free Lump Sum</span>
-                        <span class="font-semibold text-purple-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
+                        <span class="font-semibold text-violet-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
                       </div>
                       <div v-if="pension.normal_retirement_age" class="guaranteed-detail-row">
                         <span>Normal Retirement Age</span>
@@ -276,7 +276,7 @@
                       </div>
                       <div v-if="pension.lump_sum_entitlement" class="detail-row">
                         <span class="detail-label">Lump Sum</span>
-                        <span class="detail-value text-purple-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
+                        <span class="detail-value text-violet-600">{{ formatCurrency(pension.lump_sum_entitlement) }}</span>
                       </div>
                     </div>
                   </div>
@@ -1128,8 +1128,8 @@ export default {
 }
 
 .badge-db {
-  @apply bg-purple-100;
-  @apply text-purple-800;
+  @apply bg-violet-100;
+  @apply text-violet-800;
 }
 
 .badge-state {
@@ -1699,7 +1699,7 @@ export default {
 }
 
 .summary-item.purple {
-  @apply bg-purple-50;
+  @apply bg-violet-50;
 }
 
 .summary-item.green {

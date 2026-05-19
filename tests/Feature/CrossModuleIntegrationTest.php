@@ -11,6 +11,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -33,10 +34,16 @@ class CrossModuleIntegrationTest extends TestCase
     {
         parent::setUp();
         $this->seed(TaxConfigurationSeeder::class);
+        $this->seed(TierConfigurationSeeder::class);
 
+        // tier2 grants full Estate access — this suite exercises the full
+        // cross-module path including /api/estate/net-worth (gated by
+        // TeaserGate::isFull since SP2 PR7). Matches the canonical
+        // EstateApiTest setup.
         $this->user = User::factory()->create([
             'email' => 'test@example.com',
             'password' => bcrypt('password'),
+            'tier' => 'tier2',
         ]);
 
         $this->actingAs($this->user, 'sanctum');

@@ -84,9 +84,9 @@ export default {
     policyTypeBadgeClass() {
       const classes = {
         life: 'bg-violet-100 text-violet-800',
-        criticalIllness: 'bg-purple-100 text-purple-800',
+        criticalIllness: 'bg-violet-100 text-violet-800',
         incomeProtection: 'bg-spring-100 text-spring-800',
-        disability: 'bg-indigo-100 text-indigo-800',
+        disability: 'bg-violet-100 text-violet-800',
         sicknessIllness: 'bg-raspberry-100 text-raspberry-800',
       };
       return classes[this.policy.policy_type] || 'bg-savannah-100 text-horizon-500';

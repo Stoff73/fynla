@@ -157,17 +157,17 @@
               <template v-else>
                 <tr class="bg-eggshell-500">
                   <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
                 </tr>
                 <tr class="bg-eggshell-500">
                   <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                  <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                  <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                  <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
                 </tr>
               </template>
             </template>
@@ -335,17 +335,17 @@
             <template v-else-if="showSpouse">
               <tr class="bg-eggshell-500">
                 <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.user?.name }}'s Tax-Free Allowance</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
               </tr>
               <tr class="bg-eggshell-500">
                 <td class="px-4 py-2 text-sm text-neutral-500 pl-8">{{ assetsBreakdown.spouse?.name }}'s Tax-Free Allowance</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
-                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(IHT_NIL_RATE_BAND) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                <td v-if="showMinus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                <td class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
+                <td v-if="showPlus5Years" class="px-4 py-2 text-sm text-right text-neutral-500">-{{ formatCurrency(ihtNilRateBand) }}</td>
               </tr>
             </template>
           </template>
@@ -481,8 +481,8 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { IHT_NIL_RATE_BAND } from '@/constants/taxConfig';
 import IHTAssetBreakdown from './IHTAssetBreakdown.vue';
 import IHTLiabilityBreakdown from './IHTLiabilityBreakdown.vue';
 
@@ -620,11 +620,12 @@ export default {
       expandedAllowances: false,
       expandedNRB: false,
       expandedRNRB: false,
-      IHT_NIL_RATE_BAND,
     };
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['ihtNilRateBand']),
+
     columnCount() {
       return 2 + (this.showMinus5Years ? 1 : 0) + (this.showPlus5Years ? 1 : 0);
     },

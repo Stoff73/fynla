@@ -66,7 +66,7 @@ export default {
 
   computed: {
     topic() {
-      return getTopicById(this.$route.params.topic);
+      return getTopicById(this.$store, this.$route.params.topic);
     },
   },
 

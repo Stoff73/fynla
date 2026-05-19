@@ -36,16 +36,24 @@ class Holding extends Model
         'ocf_percent',
     ];
 
+    /*
+     * Casts intentionally mirror schema precision. The columns are stored
+     * as decimal(15, N) — casting to `float` lossily round-tripped every
+     * read. With `decimal:N` Eloquent returns a string preserving full
+     * precision. Consumers that need numeric arithmetic apply (float) at
+     * the boundary; see app/Services/Investment/* for the pattern.
+     * Audit reference: May/May12Updates/review-database.md §S-02.
+     */
     protected $casts = [
-        'allocation_percent' => 'float',
-        'quantity' => 'float',
-        'purchase_price' => 'float',
+        'allocation_percent' => 'decimal:2',
+        'quantity' => 'decimal:6',
+        'purchase_price' => 'decimal:4',
         'purchase_date' => 'date',
-        'current_price' => 'float',
-        'current_value' => 'float',
-        'cost_basis' => 'float',
-        'dividend_yield' => 'float',
-        'ocf_percent' => 'float',
+        'current_price' => 'decimal:4',
+        'current_value' => 'decimal:2',
+        'cost_basis' => 'decimal:2',
+        'dividend_yield' => 'decimal:4',
+        'ocf_percent' => 'decimal:4',
     ];
 
     /**

@@ -58,7 +58,7 @@
     <div v-else-if="isTrustIncome" class="space-y-2 mb-3">
       <!-- Trust Type Badge -->
       <div class="flex items-center gap-2 mb-2">
-        <span class="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">
+        <span class="px-2 py-1 text-xs font-medium rounded bg-violet-100 text-violet-800">
           {{ breakdown.tax_breakdown.trust_type_label || 'Trust' }}
         </span>
       </div>

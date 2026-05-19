@@ -1474,13 +1474,17 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = store.getters['auth/isAuthenticated'];
   const isAdmin = store.getters['auth/isAdmin'];
   const isPreviewMode = store.getters['preview/isPreviewMode'];
-  const isPreviewRoute = to.meta.previewMode || to.path.startsWith('/preview');
+  // Use to.matched.some() rather than to.meta — child routes do NOT inherit
+  // parent meta in Vue Router. /preview/net-worth has nested children that
+  // would otherwise miss the previewMode flag and be treated as auth routes.
+  // REVIEW.md §4 High #27.
+  const isPreviewRoute = to.matched.some(r => r.meta.previewMode) || to.path.startsWith('/preview');
 
   // Debug logging
   if (import.meta.env.DEV) {
     console.log('[Router Guard]', {
       to: to.path,
-      requiresAuth: to.meta.requiresAuth,
+      requiresAuth: to.matched.some(r => r.meta.requiresAuth),
       isAuthenticated,
       isPreviewMode,
       isPreviewRoute,
@@ -1540,11 +1544,15 @@ router.beforeEach(async (to, from, next) => {
     } else {
       next({ name: 'Login' });
     }
-  } else if (to.meta.requiresGuest && isAuthenticated && !isPreviewMode) {
-    // Redirect to dashboard if already authenticated (but allow preview users to register)
+  } else if (to.matched.some(r => r.meta.requiresGuest) && isAuthenticated && !isPreviewMode) {
+    // Redirect to dashboard if already authenticated (but allow preview users to register).
+    // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
+    // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
-  } else if (to.meta.requiresAdmin && !isAdmin) {
-    // Redirect to dashboard if route requires admin access (preview mode cannot access admin)
+  } else if (to.matched.some(r => r.meta.requiresAdmin) && !isAdmin) {
+    // Redirect to dashboard if route requires admin access (preview mode cannot access admin).
+    // Use to.matched.some() not to.meta — child routes don't inherit parent meta in Vue Router.
+    // REVIEW.md §4 High #27.
     next({ name: 'Dashboard' });
   } else if (to.matched.some(r => r.meta.requiresAdvisor) && !store.getters['auth/isAdvisor']) {
     // Redirect to dashboard if route requires advisor access

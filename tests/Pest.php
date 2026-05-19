@@ -24,7 +24,7 @@ uses(
 uses(
     TestCase::class,
     RefreshDatabase::class,
-)->in('Unit/Services', 'Unit/Observers');
+)->in('Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Database');
 
 // Agent tests that need database access (RefreshDatabase)
 uses(
@@ -37,6 +37,10 @@ uses(TestCase::class)->in('Unit/Agents/BaseAgentTest.php');
 
 // Mail render tests need Laravel app (config/url helpers) but no DB — factory()->make() only.
 uses(TestCase::class)->in('Unit/Mail');
+
+// Trait tests resolve the full agent graph via app(CoordinatingAgent::class) — they
+// need the Laravel container (AppServiceProvider bindings, e.g. TierGate) but no DB.
+uses(TestCase::class)->in('Unit/Traits');
 
 uses(
     TestCase::class,
@@ -64,7 +68,7 @@ beforeEach(function () {
             TaxConfiguration::factory()->create(['is_active' => true]);
         }
     }
-})->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php', 'Integration');
+})->in('Feature', 'Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Agents/ProtectionAgentTest.php', 'Unit/Agents/SavingsAgentTest.php', 'Unit/Agents/GoalsAgentTest.php', 'Unit/Agents/SavingsAgentGoalsTest.php', 'Unit/Agents/ProtectionAgentGoalsTest.php', 'Unit/Agents/EstateAgentGoalsTest.php', 'Unit/Agents/RetirementAgentGoalsTest.php', 'Integration');
 
 /*
 |--------------------------------------------------------------------------
@@ -87,3 +91,25 @@ beforeEach(function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+function tierConfigFixture(string $tier): array
+{
+    return [
+        'tier' => $tier,
+        'display_name' => ucfirst($tier),
+        'price_monthly_pence' => 0,
+        'price_annual_pence' => 0,
+        'revolut_plan_variation_id' => null,
+        'capability_matrix' => ['dashboard' => 'full'],
+        'count_caps' => ['savings_account' => $tier === 'free' ? 3 : null],
+        'document_upload_allowance' => 3,
+        'document_storage_gb' => null,
+        'fyn_weekly_token_budget' => 100_000,
+        'fyn_daily_hard_backstop' => 500_000,
+        'currency_display_mode' => 'gbp_only',
+        'snapshot_surfacing_window_days' => 90,
+        'open_api_affordance' => false,
+        'is_active' => true,
+        'updated_by' => null,
+    ];
+}

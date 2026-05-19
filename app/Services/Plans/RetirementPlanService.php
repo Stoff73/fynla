@@ -11,7 +11,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\PlanActionFundingSelection;
 use App\Models\RetirementProfile;
-use App\Models\SavingsAccount;
+use App\Services\Stores\SavingsStore;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\PensionProjector;
@@ -554,11 +554,12 @@ class RetirementPlanService extends BasePlanService
         $accounts = [];
 
         // Cash accounts (non-ISA, liquid types)
-        $cashAccounts = SavingsAccount::where('user_id', $user->id)
+        $cashAccounts = app(SavingsStore::class)->forUser($user)
+            ->where('user_id', $user->id)
             ->where('is_isa', false)
             ->whereIn('account_type', self::FUNDING_CASH_ACCOUNT_TYPES)
-            ->orderByDesc('current_balance')
-            ->get();
+            ->sortByDesc('current_balance')
+            ->values();
 
         foreach ($cashAccounts as $account) {
             $balance = (float) $account->current_balance;

@@ -75,8 +75,17 @@ class QueryClassifier
             return $this->buildResult(QuerySchemas::DATA_ENTRY);
         }
 
-        // 2. Check navigation — user wants to go somewhere
-        if ($this->matchesType($message, QuerySchemas::NAVIGATION)) {
+        // 2. Check navigation — user wants to go somewhere. A billing query
+        // ("show me my invoice", "where's my subscription") is NOT page
+        // navigation: billing is answered in-chat via get_subscription_status
+        // + list_invoices, and <billing_guidance> explicitly forbids sending
+        // the user to a settings page. So when a message names a billing
+        // entity, NAVIGATION must NOT swallow it — fall through to step 3 so
+        // BILLING wins. Same carve-out shape as the wealth-summary exclusion
+        // in QuerySchemas::KEYWORD_PATTERNS[NAVIGATION] (those phrasings are
+        // excluded so they reach HOLISTIC_HEALTH for the chat answer).
+        if ($this->matchesType($message, QuerySchemas::NAVIGATION)
+            && ! $this->matchesType($message, QuerySchemas::BILLING)) {
             return $this->buildResult(QuerySchemas::NAVIGATION);
         }
 

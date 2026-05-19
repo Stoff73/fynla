@@ -80,6 +80,16 @@ class TaxConfigurationSeeder extends Seeder
                 'personal_allowance_taper_threshold' => 100000,
                 'personal_allowance_taper_rate' => 0.5,
 
+                // Top-level aliases for absolute band thresholds. Match
+                // bands[0]['upper_limit'] and bands[1]['upper_limit'] respectively.
+                // Many services (DecumulationPlanner, RetirementActionDefinitionService,
+                // SavingsActionDefinitionService, PSACalculator, TaxOptimisationService,
+                // TaxActionDefinitionService, AdvicePromptBuilder) expect these keys
+                // and silently fall back to literals when missing. Keep aliases in sync
+                // with the bands when overriding for historical years.
+                'higher_rate_threshold' => 50270,
+                'additional_rate_threshold' => 125140,
+
                 'bands' => [
                     [
                         'name' => 'Basic Rate',
@@ -236,6 +246,15 @@ class TaxConfigurationSeeder extends Seeder
                 'money_purchase_annual_allowance' => 10000,
                 'mpaa' => 10000,
                 'lifetime_allowance_abolished' => true,
+                // Lump Sum Allowance (LSA) — caps tax-free PCLS at £268,275 since 6 April 2024
+                // when the LTA was abolished. Frozen until April 2031.
+                'lump_sum_allowance' => 268275,
+                // Lump Sum and Death Benefit Allowance (LSDBA) — caps total tax-free lump sums
+                // (PCLS + tax-free death benefits) at £1,073,100. Frozen until April 2031.
+                'lump_sum_and_death_benefit_allowance' => 1073100,
+                // PCLS rate — proportion of crystallised pension funds payable tax-free
+                // (subject to the LSA cap above).
+                'pcls_rate' => 0.25,
                 'carry_forward_years' => 3,
                 'tapered_annual_allowance' => [
                     'threshold_income' => 200000,
@@ -267,8 +286,8 @@ class TaxConfigurationSeeder extends Seeder
                         'apprentice' => 7.55,
                     ],
                     'conservative_proxy_floor' => 10000,         // Use auto-enrolment earnings trigger as proxy
-                    'nic_exemption_cap' => 2000,                 // From April 2029: only first £2,000 of employee salary sacrifice exempt from NICs
-                    'nic_exemption_cap_effective_date' => '2029-04-06', // When the cap takes effect
+                    'nic_exemption_cap' => 2000,                 // From April 2027: only first £2,000 of employee salary sacrifice exempt from NICs
+                    'nic_exemption_cap_effective_date' => '2027-04-06', // Start of 2027/28 tax year — CSJ confirmed 2026-05-12
                 ],
 
                 // Auto-enrolment thresholds
@@ -589,6 +608,41 @@ class TaxConfigurationSeeder extends Seeder
                     ],
                     'non_resident_surcharge' => 0.02,  // 2% for non-UK residents
                 ],
+
+                // Land and Buildings Transaction Tax — Scotland
+                // Bands stored in lower-bound style (rate applies from threshold up),
+                // matching the existing 'residential' shape above.
+                'lbtt' => [
+                    'bands' => [
+                        ['threshold' => 0, 'rate' => 0.00],
+                        ['threshold' => 145000, 'rate' => 0.02],
+                        ['threshold' => 250000, 'rate' => 0.05],
+                        ['threshold' => 325000, 'rate' => 0.10],
+                        ['threshold' => 750000, 'rate' => 0.12],
+                    ],
+                    'additional_surcharge' => 0.08,  // 8% surcharge for additional dwellings (raised from 6% on 5 Dec 2024)
+                    'non_uk_surcharge' => 0.02,      // 2% for non-UK residents
+                ],
+
+                // Land Transaction Tax — Wales
+                'ltt' => [
+                    'bands' => [
+                        ['threshold' => 0, 'rate' => 0.00],
+                        ['threshold' => 225000, 'rate' => 0.06],
+                        ['threshold' => 400000, 'rate' => 0.075],
+                        ['threshold' => 750000, 'rate' => 0.10],
+                        ['threshold' => 1500000, 'rate' => 0.12],
+                    ],
+                    'additional_surcharge' => 0.05,  // 5% surcharge for additional dwellings (raised from 4% on 11 Dec 2024)
+                    'non_uk_surcharge' => 0.02,      // 2% for non-UK residents
+                ],
+            ],
+
+            // Student Loan Repayments
+            // 9% of income above the relevant plan threshold; rate is identical
+            // across Plans 1, 2, 4, 5; postgraduate loans use 6% (not stored yet).
+            'student_loan' => [
+                'repayment_rate' => 0.09,
             ],
 
             'assumptions' => [
@@ -1447,6 +1501,7 @@ class TaxConfigurationSeeder extends Seeder
         $config['income_tax']['bands'][1]['max'] = 150000;
         $config['income_tax']['bands'][2]['lower_limit'] = 150000;
         $config['income_tax']['bands'][2]['min'] = 150000;
+        $config['income_tax']['additional_rate_threshold'] = 150000;
 
         // 2021/22 had higher CGT allowance
         $config['capital_gains_tax']['annual_exempt_amount'] = 12300;

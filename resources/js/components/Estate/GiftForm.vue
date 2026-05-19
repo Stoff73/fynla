@@ -133,10 +133,9 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
+import { mapState, mapGetters } from 'vuex';
 
 import logger from '@/utils/logger';
-import { ANNUAL_GIFT_EXEMPTION } from '@/constants/taxConfig';
 export default {
   name: 'GiftForm',
 
@@ -155,7 +154,6 @@ export default {
 
   data() {
     return {
-      annualGiftExemption: ANNUAL_GIFT_EXEMPTION,
       formData: {
         gift_date: '',
         recipient: '',
@@ -170,6 +168,7 @@ export default {
 
   computed: {
     ...mapState('aiFormFill', ['pendingFill', 'highlightedField', 'filling']),
+    ...mapGetters('taxConfig', ['annualGiftExemption']),
 
     isEditMode() {
       return this.mode === 'edit' && this.gift !== null;
@@ -185,7 +184,7 @@ export default {
         clt: 'Gift to a trust or company - immediately taxable at 20%',
         exempt: 'Gifts to spouses, charities, or political parties',
         small_gift: 'Up to £250 per person per year (exempt immediately)',
-        annual_exemption: `First £${ANNUAL_GIFT_EXEMPTION.toLocaleString()} of gifts each tax year (exempt immediately)`,
+        annual_exemption: `First £${(this.annualGiftExemption || 0).toLocaleString()} of gifts each tax year (exempt immediately)`,
       };
       return descriptions[this.formData.gift_type] || 'Select a type to see description';
     },

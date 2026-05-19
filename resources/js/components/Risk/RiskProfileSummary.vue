@@ -106,7 +106,7 @@
               <p class="text-xs text-neutral-500">Cash</p>
             </div>
             <div class="text-center p-3 bg-eggshell-500 rounded-lg">
-              <p class="text-2xl font-bold text-purple-600">{{ riskConfig.asset_allocation?.alternatives || 0 }}%</p>
+              <p class="text-2xl font-bold text-violet-600">{{ riskConfig.asset_allocation?.alternatives || 0 }}%</p>
               <p class="text-xs text-neutral-500">Alternatives</p>
             </div>
           </div>
@@ -350,7 +350,7 @@ export default {
       if (type === 'investment') {
         return 'bg-blue-100 text-blue-600';
       }
-      return 'bg-purple-100 text-purple-600';
+      return 'bg-violet-100 text-violet-600';
     },
   },
 };

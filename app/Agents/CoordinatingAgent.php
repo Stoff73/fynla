@@ -54,6 +54,10 @@ use App\Services\Eval\EvalBypassGate;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\SavingsStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use App\Services\WhatIf\WhatIfScenarioService;
@@ -80,6 +84,18 @@ class CoordinatingAgent extends BaseAgent
 {
     use HasAiChat;
     use HasAiGuardrails;
+
+    /**
+     * Canonical savings account_type whitelist. Single source of truth for
+     * both the create_savings_account coercion guard and its Rule::in
+     * validation in handleCreateSavingsAccount() — keep them from drifting.
+     *
+     * @var list<string>
+     */
+    private const SAVINGS_ACCOUNT_TYPES = [
+        'easy_access', 'notice', 'fixed', 'fixed_term',
+        'regular_saver', 'cash_isa', 'junior_isa',
+    ];
 
     public function __construct(
         private readonly ConflictResolver $conflictResolver,
@@ -1460,7 +1476,7 @@ class CoordinatingAgent extends BaseAgent
 
         switch ($entityType) {
             case 'savings_account':
-                $items = SavingsAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = app(SavingsStore::class)->forUser($user);
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_balance;
@@ -1473,7 +1489,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'investment_account':
-                $items = InvestmentAccount::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = InvestmentAccount::forUserOrJoint($userId)->get();
                 $records = $items->map(function ($a) use ($ownershipFields) {
                     $fields = $ownershipFields($a);
                     $total = (float) $a->current_value;
@@ -1494,7 +1510,7 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'scheme_type' => $p->scheme_type, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years, 'pensionable_salary' => $p->pensionable_salary ? (float) $p->pensionable_salary : null, 'normal_retirement_age' => $p->normal_retirement_age, 'spouse_pension_percent' => $p->spouse_pension_percent ? (float) $p->spouse_pension_percent : null, 'lump_sum_entitlement' => $p->lump_sum_entitlement ? (float) $p->lump_sum_entitlement : null, 'inflation_protection' => $p->inflation_protection])->toArray();
                 break;
             case 'property':
-                $items = Property::with('mortgages')->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Property::with('mortgages')->forUserOrJoint($userId)->get();
                 $records = $items->map(function ($p) use ($ownershipFields) {
                     $fields = $ownershipFields($p);
                     $total = (float) $p->current_value;
@@ -1516,7 +1532,7 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'mortgage':
-                $items = Mortgage::whereHas('property', fn ($q) => $q->where('user_id', $userId)->orWhere('joint_owner_id', $userId))->with('property')->get();
+                $items = Mortgage::whereHas('property', fn ($q) => $q->forUserOrJoint($userId))->with('property')->get();
                 $records = $items->map(fn ($m) => ['id' => $m->id, 'property' => $m->property->address_line_1 ?? 'Unknown', 'lender' => $m->lender_name, 'outstanding_balance' => (float) $m->outstanding_balance, 'interest_rate' => (float) ($m->interest_rate ?? 0), 'rate_type' => $m->rate_type, 'rate_fix_end_date' => $m->rate_fix_end_date?->format('Y-m-d'), 'monthly_payment' => (float) ($m->monthly_payment ?? 0), 'mortgage_type' => $m->mortgage_type, 'remaining_term_months' => $m->remaining_term_months, 'start_date' => $m->start_date?->format('Y-m-d'), 'maturity_date' => $m->maturity_date?->format('Y-m-d'), 'original_loan_amount' => (float) ($m->original_loan_amount ?? 0)])->toArray();
                 break;
             case 'life_insurance':
@@ -1536,15 +1552,15 @@ class CoordinatingAgent extends BaseAgent
                 $records = $items->map(fn ($t) => ['id' => $t->id, 'trust_name' => $t->trust_name, 'trust_type' => $t->trust_type, 'current_value' => (float) $t->current_value, 'initial_value' => $t->initial_value ? (float) $t->initial_value : null, 'creation_date' => $t->trust_creation_date?->format('Y-m-d'), 'settlor' => $t->settlor, 'beneficiaries' => $t->beneficiaries, 'trustees' => $t->trustees, 'purpose' => $t->purpose, 'is_relevant_property_trust' => (bool) $t->is_relevant_property_trust, 'retained_income_annual' => $t->retained_income_annual ? (float) $t->retained_income_annual : null, 'loan_amount' => $t->loan_amount ? (float) $t->loan_amount : null, 'is_active' => (bool) $t->is_active])->toArray();
                 break;
             case 'business_interest':
-                $items = BusinessInterest::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = BusinessInterest::forUserOrJoint($userId)->get();
                 $records = $items->map(fn ($b) => array_merge(['id' => $b->id, 'business_name' => $b->business_name, 'business_type' => $b->business_type, 'estimated_value' => (float) $b->current_valuation, 'annual_revenue' => $b->annual_revenue ? (float) $b->annual_revenue : null, 'annual_profit' => $b->annual_profit ? (float) $b->annual_profit : null, 'annual_dividend_income' => $b->annual_dividend_income ? (float) $b->annual_dividend_income : null, 'trading_status' => $b->trading_status, 'employee_count' => $b->employee_count, 'acquisition_date' => $b->acquisition_date?->format('Y-m-d'), 'acquisition_cost' => $b->acquisition_cost ? (float) $b->acquisition_cost : null, 'bpr_eligible' => $b->bpr_eligible], $ownershipFields($b)))->toArray();
                 break;
             case 'chattel':
-                $items = Chattel::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Chattel::forUserOrJoint($userId)->get();
                 $records = $items->map(fn ($c) => array_merge(['id' => $c->id, 'name' => $c->name, 'description' => $c->description, 'category' => $c->chattel_type, 'estimated_value' => (float) $c->current_value, 'purchase_price' => $c->purchase_price ? (float) $c->purchase_price : null, 'purchase_date' => $c->purchase_date?->format('Y-m-d'), 'make' => $c->make, 'model' => $c->model, 'year' => $c->year], $ownershipFields($c)))->toArray();
                 break;
             case 'estate_liability':
-                $items = Liability::where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $items = Liability::forUserOrJoint($userId)->get();
                 $records = $items->map(fn ($l) => array_merge(['id' => $l->id, 'liability_name' => $l->liability_name, 'type' => $l->liability_type, 'balance' => (float) $l->current_balance, 'interest_rate' => $l->interest_rate ? (float) $l->interest_rate : null, 'monthly_payment' => $l->monthly_payment ? (float) $l->monthly_payment : null, 'maturity_date' => $l->maturity_date?->format('Y-m-d'), 'is_priority_debt' => (bool) $l->is_priority_debt], $ownershipFields($l)))->toArray();
                 break;
             case 'estate_gift':
@@ -2052,15 +2068,48 @@ class CoordinatingAgent extends BaseAgent
             return $this->previewBlocked('savings account');
         }
 
+        // May18 — the model frequently invents an out-of-enum account_type
+        // (most commonly the literal "savings_account" when the user just
+        // says "add a savings account" with no type). Hard-rejecting that
+        // made the FIRST create_savings_account call fail validation; the
+        // model only sometimes self-corrected on a retry, so the record was
+        // intermittently never created and the capture turn re-narrated.
+        // Coerce a recognised synonym / unknown value to a sensible default
+        // BEFORE validation so a plain "savings account" lands on the first
+        // call. easy_access is the correct default for an untyped savings
+        // account; cash_isa when the user flagged it as an ISA.
+        if (isset($input['account_type'])) {
+            if (! in_array($input['account_type'], self::SAVINGS_ACCOUNT_TYPES, true)) {
+                $synonyms = [
+                    'savings_account' => 'easy_access',
+                    'savings' => 'easy_access',
+                    'instant_access' => 'easy_access',
+                    'instant access' => 'easy_access',
+                    'easy access' => 'easy_access',
+                    'current_account' => 'easy_access',
+                    'isa' => 'cash_isa',
+                    'cash isa' => 'cash_isa',
+                    'junior isa' => 'junior_isa',
+                    'fixed_rate' => 'fixed',
+                    'fixed rate' => 'fixed',
+                    'bond' => 'fixed',
+                    'notice_account' => 'notice',
+                ];
+                $key = strtolower((string) $input['account_type']);
+                $input['account_type'] = $synonyms[$key]
+                    ?? (! empty($input['is_isa']) ? 'cash_isa' : 'easy_access');
+            }
+        }
+
         $validationError = $this->validateToolInput($input, [
             'account_name' => 'required|string|max:255',
             'current_balance' => 'required|numeric|min:0|max:999999999.99',
-            'account_type' => ['nullable', Rule::in(['easy_access', 'notice', 'fixed_term', 'regular_saver', 'savings_account', 'current_account', 'instant_access', 'fixed', 'cash_isa', 'junior_isa', 'premium_bonds', 'nsi'])],
+            'account_type' => ['nullable', Rule::in(self::SAVINGS_ACCOUNT_TYPES)],
             'institution' => 'nullable|string|max:255',
-            'interest_rate' => 'nullable|numeric|min:0|max:25',
+            'interest_rate' => 'nullable|numeric|min:0|max:20',
             'is_isa' => 'nullable|boolean',
             'is_emergency_fund' => 'nullable|boolean',
-            'regular_contribution_amount' => 'nullable|numeric|min:0|max:999999.99',
+            'regular_contribution_amount' => 'nullable|numeric|min:0',
         ]);
         if ($validationError) {
             return $validationError;
@@ -2071,52 +2120,22 @@ class CoordinatingAgent extends BaseAgent
             return $duplicateCheck;
         }
 
-        $isIsa = (bool) ($input['is_isa'] ?? false);
-        $accountType = $input['account_type'] ?? 'easy_access';
+        $canonical = app(SavingsAccountNormaliser::class)->fromFyn($input);
 
-        // AI tool enum → canonical DB value. `fixed_term`/`regular_saver` are
-        // AI-facing conveniences that map onto existing DB categories.
-        $dbAccountType = match ($accountType) {
-            'fixed_term' => 'fixed',
-            'regular_saver' => 'easy_access',
-            default => $accountType,
-        };
-
-        // ISA inference — if flagged ISA but account_type isn't already an
-        // ISA variant, promote to cash_isa so downstream ISA tracking works.
-        if ($isIsa && ! in_array($dbAccountType, ['cash_isa', 'junior_isa'], true)) {
-            $dbAccountType = 'cash_isa';
+        try {
+            $account = app(SavingsStore::class)->create(
+                $canonical,
+                $user,
+                IngestSource::FYN_AI
+            );
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for savings account.',
+            ];
         }
-
-        $accessType = match ($dbAccountType) {
-            'notice' => 'notice',
-            'fixed' => 'fixed',
-            default => 'immediate',
-        };
-
-        $payload = [
-            'user_id' => $user->id,
-            'account_name' => $input['account_name'],
-            'institution' => ! empty($input['institution']) ? $input['institution'] : $input['account_name'],
-            'account_type' => $dbAccountType,
-            'current_balance' => (float) $input['current_balance'],
-            'access_type' => $accessType,
-            'is_isa' => $isIsa,
-            'is_emergency_fund' => (bool) ($input['is_emergency_fund'] ?? false),
-            'ownership_type' => 'individual',
-            'ownership_percentage' => 100.00,
-        ];
-
-        // interest_rate / regular_contribution_amount are optional on the AI
-        // tool; only include them when actually supplied so DB defaults apply.
-        if (isset($input['interest_rate'])) {
-            $payload['interest_rate'] = (float) $input['interest_rate'];
-        }
-        if (isset($input['regular_contribution_amount'])) {
-            $payload['regular_contribution_amount'] = (float) $input['regular_contribution_amount'];
-        }
-
-        $account = DB::transaction(fn () => SavingsAccount::create($payload));
 
         $this->invalidateUserCache($user->id);
 
@@ -2126,7 +2145,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'savings_account',
             'entity_id' => $account->id,
             'name' => $account->account_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($canonical),
             'message' => "I've added your \"{$account->account_name}\" savings account.",
         ];
     }
@@ -2758,7 +2777,7 @@ class CoordinatingAgent extends BaseAgent
                 }
             }
 
-            // BS-17 in-turn idempotency: grok-4-1-fast occasionally emits
+            // BS-17 in-turn idempotency: grok-4.3 occasionally emits
             // create_protection_policy twice for the same entity inside one
             // multi-entity message. Without this guard the second tool call
             // creates a duplicate row before the LLM has a chance to see the

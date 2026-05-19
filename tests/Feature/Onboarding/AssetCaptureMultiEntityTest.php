@@ -73,6 +73,9 @@ it('forwards multiple tool_success events from a single user turn and advances t
                 yield $event;
             }
         });
+    // Unified prompt mode arms + resets the onboarding focus on the agent
+    // (OnboardingChatDirector::handleAssetCaptureTurn) — allow it.
+    $mock->shouldReceive('setUnifiedOnboardingFocus')->zeroOrMoreTimes();
 
     $this->instance(CoordinatingAgent::class, $mock);
 

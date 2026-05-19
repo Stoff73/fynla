@@ -14,8 +14,8 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Carbon;
 
 /**
@@ -223,10 +223,9 @@ final class AssetCaptureEntityExtractor
     {
         $keys = [];
 
-        foreach (SavingsAccount::query()
+        foreach (app(SavingsStore::class)->forUser($user)
             ->where('user_id', $user->id)
-            ->where('created_at', '>', $cutoff)
-            ->get(['institution', 'account_name', 'is_isa']) as $row) {
+            ->filter(fn ($a) => $a->created_at > $cutoff) as $row) {
             $keys[] = $this->savingsIdentityKey([
                 'institution' => $row->institution,
                 'account_name' => $row->account_name,

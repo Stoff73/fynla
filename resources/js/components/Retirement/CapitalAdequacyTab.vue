@@ -268,9 +268,8 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapGetters } from 'vuex';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { ANNUAL_ALLOWANCE } from '@/constants/taxConfig';
 
 import logger from '@/utils/logger';
 export default {
@@ -300,6 +299,7 @@ export default {
       'annualAllowance',
       'error',
     ]),
+    ...mapGetters('taxConfig', ['pensionAnnualAllowance']),
 
     loading() {
       return this.projectionsLoading || this.requiredCapitalLoading || this.strategiesLoading;
@@ -341,7 +341,7 @@ export default {
 
     // Annual Allowance calculations
     standardAllowance() {
-      return ANNUAL_ALLOWANCE;
+      return this.pensionAnnualAllowance;
     },
 
     currentTaxYear() {

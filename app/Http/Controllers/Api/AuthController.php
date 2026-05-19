@@ -26,6 +26,9 @@ use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Payment\ReferralService;
 use App\Services\Payment\TrialService;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,7 +49,9 @@ class AuthController extends Controller
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
         private readonly TrialService $trialService,
-        private readonly ConsentService $consentService
+        private readonly ConsentService $consentService,
+        private readonly TierConfigurationStore $tierStore,
+        private readonly TierResolver $tierResolver,
     ) {}
 
     /**
@@ -181,15 +186,11 @@ class AuthController extends Controller
         // Check if user exists first
         $user = User::where('email', $email)->first();
 
-        // Auto-promote admin users on login if listed in ADMIN_EMAILS
-        if ($user && ! $user->is_admin && in_array($email, config('auth.admin_emails', []), true)) {
-            $adminRole = Role::findByName(Role::ROLE_ADMIN);
-            if ($adminRole) {
-                $user->role_id = $adminRole->id;
-                $user->is_admin = true;
-                $user->save();
-            }
-        }
+        // Admin promotion is a deliberate admin action via the /admin/users UI.
+        // The previous ADMIN_EMAILS auto-promote-at-login path was removed
+        // because it allowed an attacker who registered an admin-listed email
+        // to silently gain admin on next login with no review workflow.
+        // Closes REVIEW.md Top-10 #6 / §4 High #15.
 
         if (! $user) {
             // Record failed attempt
@@ -389,6 +390,28 @@ class AuthController extends Controller
             $dataCompletedSteps = $lifeStageService->getDataCompleteness($user);
         }
 
+        // SP2 PR8 §14 — per-user tier flags sourced from TierConfigurationStore.
+        // Preview users sit outside tiers; TierResolver resolves them to 'free'.
+        $resolvedTier = $this->tierResolver->resolve($user);
+        try {
+            $tierConfig = $this->tierStore->forTier($resolvedTier);
+            $tierFlags = [
+                'resolved_tier' => $resolvedTier,
+                'open_api_affordance' => $tierConfig->open_api_affordance,
+                'currency_display_mode' => $tierConfig->currency_display_mode,
+                'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
+            ];
+        } catch (ModelNotFoundException) {
+            // Seeder not yet run — return nulls so the frontend degrades gracefully.
+            // open_api_affordance defaults false (capability-off, not a tier number).
+            $tierFlags = [
+                'resolved_tier' => $resolvedTier,
+                'open_api_affordance' => false,
+                'currency_display_mode' => null,
+                'snapshot_surfacing_window_days' => null,
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -396,6 +419,7 @@ class AuthController extends Controller
                 'role' => $user->role?->name ?? ($user->is_admin ? 'admin' : null),
                 'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
                 'data_completed_steps' => $dataCompletedSteps,
+                'tier_flags' => $tierFlags,
             ],
         ]);
     }
@@ -497,12 +521,13 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            // Create the user from pending registration
-            $adminEmails = config('auth.admin_emails', []);
-            $isAdmin = in_array($pending->email, $adminEmails);
-            $role = $isAdmin
-                ? Role::findByName(Role::ROLE_ADMIN)
-                : Role::findByName(Role::ROLE_USER);
+            // Create the user from pending registration. Always assign the
+            // user role and is_admin=false. Admin promotion is a deliberate
+            // action via the /admin/users UI — never granted by email match
+            // at registration time, since an attacker who registered an
+            // admin-listed email would otherwise gain admin without review.
+            // Closes REVIEW.md Top-10 #6 / §4 High #15.
+            $role = Role::findByName(Role::ROLE_USER);
 
             $user = User::create([
                 'first_name' => $pending->first_name,
@@ -515,9 +540,8 @@ class AuthController extends Controller
                 'signup_source' => $pending->signup_source,
             ]);
 
-            // Sync is_admin flag (bypasses guarded)
-            $user->is_admin = $isAdmin;
-            $user->save();
+            // is_admin is intentionally NOT set here. The User model defaults
+            // it to false and admin promotion is granted only via /admin/users.
 
             Log::info('User created from pending registration', [
                 'user_id' => $user->id,

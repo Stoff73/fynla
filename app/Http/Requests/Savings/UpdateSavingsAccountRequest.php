@@ -29,6 +29,7 @@ class UpdateSavingsAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'account_name' => 'sometimes|nullable|string|max:255',
             'account_type' => 'sometimes|string|max:255',
             'institution' => 'sometimes|string|max:255',
             'account_number' => [

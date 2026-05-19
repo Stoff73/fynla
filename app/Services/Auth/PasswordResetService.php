@@ -76,7 +76,10 @@ class PasswordResetService
             ];
         }
 
-        if ($session->email_code !== $code) {
+        // Constant-time comparison — the email_code is a secret. Using !== leaks
+        // timing on each matched byte and lets an attacker recover the code with
+        // ~10^6 probes per character. hash_equals is timing-safe.
+        if (! is_string($session->email_code) || ! hash_equals($session->email_code, (string) $code)) {
             return [
                 'success' => false,
                 'message' => 'Invalid verification code.',

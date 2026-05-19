@@ -290,7 +290,7 @@ export default {
       const base = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
       return source === 'agent'
-        ? `${base} bg-indigo-100 text-indigo-800`
+        ? `${base} bg-violet-100 text-violet-800`
         : `${base} bg-teal-100 text-teal-800`;
     },
   },

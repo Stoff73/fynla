@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Database\Seeders\PreviewUserSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
+    $this->seed(TierConfigurationSeeder::class);
     $this->seed(PreviewUserSeeder::class);
 });
 

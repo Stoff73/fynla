@@ -372,9 +372,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import estateService from '@/services/estateService';
 import { currencyMixin } from '@/mixins/currencyMixin';
-import { IHT_NIL_RATE_BAND } from '@/constants/taxConfig';
 
 export default {
   name: 'TrustPlanningStrategy',
@@ -385,7 +385,6 @@ export default {
 
   data() {
     return {
-      ihtNilRateBand: IHT_NIL_RATE_BAND,
       trustStrategy: null,
       loadingTrustStrategy: false,
       trustStrategyError: null,
@@ -395,6 +394,7 @@ export default {
   },
 
   computed: {
+    ...mapGetters('taxConfig', ['ihtNilRateBand']),
     isPreviewMode() {
       return this.$store.getters['preview/isPreviewMode'];
     },
