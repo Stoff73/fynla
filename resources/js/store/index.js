@@ -25,8 +25,6 @@ import plans from './modules/plans';
 import taxConfig from './modules/taxConfig';
 import household from './modules/household';
 import journeys from './modules/journeys';
-import mobileDashboard from './modules/mobileDashboard';
-import mobileNotifications from './modules/mobileNotifications';
 import advisor from './modules/advisor';
 import lifeStage from './modules/lifeStage';
 import completeness from './modules/completeness';
@@ -85,8 +83,6 @@ const store = createStore({
     taxConfig,
     household,
     journeys,
-    mobileDashboard,
-    mobileNotifications,
     advisor,
     lifeStage,
     completeness,
@@ -106,8 +102,6 @@ const store = createStore({
         'dashboard',
         'aiChat.conversations',
         'goals.goals',
-        'mobileDashboard',
-        'mobileNotifications.permissionStatus',
       ],
       storage: storageBackend,
     }),
