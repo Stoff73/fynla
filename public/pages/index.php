@@ -343,38 +343,35 @@
           <div class="insights-supporting" id="insights-supporting"></div>
         </div>
 
-        <!-- Static fallback: always visible until API succeeds -->
-        <div id="insights-static" class="insights-static">
-          <a href="/insights/how-much-to-retire-uk" class="insight-static-card">
-            <div class="insight-static-card__thumb">
-              <img src="/images/insights/pension-contribution-limits.jpg" alt="" width="400" height="225" loading="lazy" />
-            </div>
-            <div class="insight-static-card__body">
-              <p class="insight-static-card__date">14 April 2026</p>
-              <h3 class="insight-static-card__title">How Much Do I Need to Retire in the UK?</h3>
-              <p class="insight-static-card__summary">Calculate your UK retirement number using 2026 PLSA living standards and bridge the State Pension gap.</p>
-            </div>
-          </a>
-          <a href="/insights/stocks-shares-isa-uk" class="insight-static-card">
-            <div class="insight-static-card__thumb">
-              <img src="/images/insights/isa-allowance.jpg" alt="" width="400" height="225" loading="lazy" />
-            </div>
-            <div class="insight-static-card__body">
-              <p class="insight-static-card__date">13 April 2026</p>
-              <h3 class="insight-static-card__title">What Is a Stocks and Shares ISA?</h3>
-              <p class="insight-static-card__summary">How they work, what you can invest in, tax benefits, risks, fees, and how to choose a platform.</p>
+        <!-- Static fallback: same featured+supporting layout as dynamic, visible until API succeeds -->
+        <div id="insights-static" class="insights-dynamic">
+          <a href="/insights/how-much-to-retire-uk" class="insights-featured" aria-label="How Much Do I Need to Retire in the UK? A Realistic Guide">
+            <img src="/storage/insights/bespoke/how-much-to-retire-uk.jpg" alt="" class="insights-featured__img" width="800" height="420" loading="eager" />
+            <div class="insights-featured__overlay" aria-hidden="true"></div>
+            <div class="insights-featured__body">
+              <span class="insights-featured__badge">Featured</span>
+              <h3 class="insights-featured__title">How Much Do I Need to Retire in the UK? A Realistic Guide</h3>
+              <p class="insights-featured__summary">Calculate your UK retirement number using 2026 PLSA living standards. Pension pot sizes needed and how to bridge the State Pension gap.</p>
             </div>
           </a>
-          <a href="/insights/isa-guide-uk" class="insight-static-card">
-            <div class="insight-static-card__thumb">
-              <img src="/images/insights/pension-iht-changes.jpg" alt="" width="400" height="225" loading="lazy" />
-            </div>
-            <div class="insight-static-card__body">
-              <p class="insight-static-card__date">8 April 2026</p>
-              <h3 class="insight-static-card__title">The Ultimate Guide to ISAs in the UK</h3>
-              <p class="insight-static-card__summary">Everything you need to know about ISAs in 2026 â€" types, allowances, rules, and choosing the right one.</p>
-            </div>
-          </a>
+          <div class="insights-supporting">
+            <a href="/insights/stocks-shares-isa-uk" class="insights-support-card">
+              <div class="insights-support-card__thumb">
+                <img src="/storage/insights/bespoke/stocks-shares-isa.jpg" alt="" width="300" height="200" loading="lazy" />
+              </div>
+              <div class="insights-support-card__body">
+                <h4 class="insights-support-card__title">What Is a Stocks and Shares ISA? How It Works, Benefits &amp; Risks</h4>
+              </div>
+            </a>
+            <a href="/insights/isa-guide-uk" class="insights-support-card">
+              <div class="insights-support-card__thumb">
+                <img src="/images/insights/isa-allowance.jpg" alt="" width="300" height="200" loading="lazy" />
+              </div>
+              <div class="insights-support-card__body">
+                <h4 class="insights-support-card__title">The Ultimate Guide to ISAs in the UK</h4>
+              </div>
+            </a>
+          </div>
         </div>
 
         <p class="insights-footer">

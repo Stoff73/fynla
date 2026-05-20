@@ -279,6 +279,11 @@
         var payload    = (data && data.data) ? data.data : data;
         var featured   = payload.featured   || null;
         var supporting = payload.supporting || [];
+        /* If no explicitly-featured article, promote the first supporting one */
+        if (!featured && supporting.length) {
+          featured   = supporting[0];
+          supporting = supporting.slice(1);
+        }
         if (!featured) throw new Error('No featured insight');
 
         var featuredEl  = document.getElementById('insight-featured');
