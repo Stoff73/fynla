@@ -78,6 +78,22 @@ Route::get('/storage/{path}', function (string $path) {
         ->setPublic();
 })->where('path', '.*');
 
+// Homepage — server-render the public landing page for unauthenticated visitors;
+// authenticated users get the Vue SPA directly.
+// Cache-Control: public, max-age=300 lets Cloudflare / browser cache the
+// unauthenticated response for 5 minutes, cutting TTFB for repeat visitors.
+Route::get('/', function () {
+    if (auth()->check()) {
+        return view('app');
+    }
+    ob_start();
+    include public_path('pages/index.php');
+    $html = ob_get_clean();
+    return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+        ->header('Vary', 'Accept-Encoding');
+});
+
 // Serve Vue.js SPA for all routes (catch-all)
 Route::get('/{any}', function () {
     return view('app');

@@ -279,12 +279,14 @@
         var payload    = (data && data.data) ? data.data : data;
         var featured   = payload.featured   || null;
         var supporting = payload.supporting || [];
-        /* If no explicitly-featured article, promote the first supporting one */
-        if (!featured && supporting.length) {
+        /* If no explicitly-featured article, promote the first supporting one —
+           but only if at least 2 supporting remain after promotion (so both
+           right-column panels are filled). Otherwise fall back to static. */
+        if (!featured && supporting.length >= 3) {
           featured   = supporting[0];
           supporting = supporting.slice(1);
         }
-        if (!featured) throw new Error('No featured insight');
+        if (!featured || supporting.length < 2) throw new Error('Not enough insights for dynamic layout');
 
         var featuredEl  = document.getElementById('insight-featured');
         var featuredImg = document.getElementById('insight-featured-img');
