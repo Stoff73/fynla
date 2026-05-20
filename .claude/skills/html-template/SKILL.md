@@ -99,22 +99,38 @@ Before writing a single line of HTML:
 - **Focus indicators**: never use `outline: none` without an equally visible replacement.
 - **Form labels**: every `<input>` must have an associated `<label>` (via `for`/`id` or wrapping).
 
-### 2.3 No Inline CSS
-- All styles go in the external page CSS file (`css/<slug>.css`) or, for above-fold critical styles,
-  in an inline `<style>` block in `<head>` (see Phase 5).
-- `style="..."` attribute is allowed ONLY when the value is computed at runtime by JS and cannot be
-  expressed as a CSS class (e.g. a dynamically calculated pixel width or `min-height` set by
-  `equalizeGridItems`). Comment when you do this.
+### 2.3 CSS location rules
+- **Global stylesheet first**: any style that could apply to more than one page belongs in
+  `global.css`, not the page CSS file and not inline. Before adding a rule to `<slug>.css`,
+  ask whether it is truly page-specific. If not, put it in `global.css`.
+- **Page CSS file second**: page-specific rules go in `css/<slug>.css` loaded asynchronously
+  (see Phase 5). Never put page-specific rules in `global.css`.
+- **Inline `<style>` last resort**: only use an inline `<style>` block in `<head>` for the
+  minimum above-fold critical CSS needed before the external files load (tokens, reset, skip-nav,
+  site-header skeleton, hero). Everything else — including all below-fold sections — must live in
+  the external files. Do not put rules in `<head>` that already exist verbatim in `global.css` or
+  `<slug>.css`; duplication causes the external file to silently override the inline version after
+  it loads, risking CLS if the values differ.
+- **`style="..."` attribute**: allowed ONLY when the value is computed at runtime by JS and cannot
+  be expressed as a CSS class (e.g. a dynamically calculated pixel width or `min-height` set by
+  `equalizeGridItems`). Always add an inline comment explaining why.
 - Never use `!important` unless overriding a third-party stylesheet.
 
-### 2.4 Graceful JS Degradation
-- The page must render useful, navigable content with JavaScript disabled.
-- JS may enhance (smooth scroll, accordions open/close, lazy loading), but must not gate content.
+### 2.4 JavaScript location rules
+- **External `.js` files always**: all JavaScript must live in `js/<slug>.js` (page-specific) or
+  `js/site.js` (shared). Never write `<script>` blocks containing logic directly in the PHP/HTML
+  file. The only exception is a small `<script>` that is genuinely required for the page to function
+  at all before the external file loads (e.g. a feature-detection polyfill) — in that case add an
+  inline comment explaining why it cannot be deferred to the `.js` file.
+- **No inline event handlers**: never use `onclick=""`, `onchange=""`, or any `on*=""` attributes
+  in HTML. All event wiring belongs in the `.js` file.
+- **Graceful degradation**: the page must render useful, navigable content with JavaScript disabled.
+  JS may enhance (smooth scroll, accordions, lazy loading) but must not gate content.
 - Wrap every JS block in a null-check: `if (document.querySelector('.accordion')) { ... }`.
 - Use `<noscript>` tags for critical fallbacks where needed.
-- Never block the parser: use `defer` on all `<script>` tags. Never use `document.write()`.
-- If a Vue `mounted()` hook fetches data, replicate this with a vanilla `fetch()` wrapped in a
-  try/catch that falls back to inline static content.
+- Never block the parser: use `defer` on all external `<script>` tags. Never use `document.write()`.
+- If a Vue `mounted()` hook fetches data, replicate this with a vanilla `fetch()` in the `.js` file,
+  wrapped in a try/catch that falls back to inline static content.
 
 ### 2.5 SEO
 Every page must include in `<head>`:
@@ -372,6 +388,8 @@ Other public pages do not need this check unless they have an authenticated vari
 - CLS risks: [none / ...]
 - JS degradation: [PASS / ...]
 - Functionality preserved: [list any Vue feature that needed a vanilla JS polyfill]
+- HTML Visibility: [PASS — curl returns 0 matches for "div id=\"app\"" / FAIL — route missing from web.php]
+- Speed Test: [TTFB: Xms, FCP: Xs, LCP: Xs, CLS: X.XX — via DebugBear/PageSpeed / pending deployment]
 ```
 
 ---
@@ -422,6 +440,29 @@ Every distinct content section on a page MUST have:
   <div class="feature-grid__inner"> ... </div>
 </section>
 ```
+
+### Semantic element selection guide
+
+Pick the correct element for the content type — never default to `<div>` when a semantic element exists.
+
+| Content type | Correct element | Notes |
+|---|---|---|
+| News / insight / blog post | `<article>` | Self-contained, independently redistributable content |
+| News / insight card (in a list) | `<article>` inside `<section>` | Each card is its own article; the list is a section |
+| Site-wide primary nav | `<nav aria-label="Primary navigation">` | One per page |
+| Supplementary nav (footer links, breadcrumbs) | `<nav aria-label="Footer navigation">` | Give each a distinct label |
+| Page hero / marketing band | `<section>` with `aria-labelledby` pointing to its `<h2>` | Not `<div>` |
+| Sidebar / related content | `<aside>` | Content tangentially related to the main content |
+| Author bio, product card | `<article>` | Self-contained item |
+| Testimonial / review | `<article>` or `<blockquote>` with `<cite>` | |
+| FAQ / accordion items | `<dl>` + `<dt>` / `<dd>`, or `<details>` / `<summary>` | Never bare `<div>` |
+| Pricing tiers | `<section>` containing `<article>` per tier | |
+| Step-by-step / how-it-works | `<ol>` with `<li>` | Ordered — sequence matters |
+| Feature list | `<ul>` with `<li>` | Unordered — sequence doesn't matter |
+
+**Specific rule for insights/news content:** every article card, article preview, and full article page
+MUST use `<article>`. The container listing multiple articles uses `<section id="insights">`. Never
+render news/insight content inside a plain `<div>`.
 
 ---
 
@@ -533,7 +574,92 @@ wrapper.addEventListener('mouseleave', scheduleClose);
 
 ---
 
-## Phase 8 — No hardcoded colours anywhere
+## Phase 8 — HTML Visibility Verification (MANDATORY after writing)
+
+After writing the page, verify that the raw HTML is actually visible to crawlers — not an empty SPA shell.
+
+**The critical check:** `curl -s http://localhost:8000/PAGE-SLUG | grep -c "<h1\|<p\|<section"` must return > 0.
+If it returns 0, the route is serving the Vue SPA shell (`<div id="app"></div>`) instead of the PHP page.
+
+**How to verify:**
+```bash
+# 1. Check the homepage route returns PHP content (not the SPA shell)
+curl -s http://localhost:8000/ | grep -c "div id=\"app\""
+# → Must return 0 (zero matches = PHP page, not SPA shell)
+
+# 2. Check meaningful HTML exists
+curl -s http://localhost:8000/ | grep -E "<h1|<section|<main" | head -5
+# → Must show real HTML tags
+
+# 3. Check the page title is correct
+curl -s http://localhost:8000/ | grep "<title>"
+# → Must show the page title, not a generic fallback
+```
+
+**Why this matters:** If `routes/web.php` is missing the explicit route for the page path, Laravel's
+SPA catch-all (`/{any}`) serves `view('app')` — a `<div id="app"></div>` shell. Google sees nothing.
+All the SEO meta tags, schema markup, and content are invisible to crawlers.
+
+**When it fails:** Add an explicit route BEFORE the catch-all in `routes/web.php`:
+```php
+// MUST come before the catch-all Route::get('/{any}', ...)
+Route::get('/your-page', function () {
+    if (auth()->check()) { return view('app'); }
+    ob_start();
+    include public_path('pages/your-page.php');
+    $html = ob_get_clean();
+    return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+        ->header('Vary', 'Accept-Encoding');
+});
+```
+
+Add this check to the compliance report under a new **HTML Visibility** line.
+
+---
+
+## Phase 9 — Speed Test Check (run after every new or updated page)
+
+After writing and deploying (or locally serving) the page, run a speed test to verify performance
+improvements. Use DebugBear or PageSpeed Insights against the live URL.
+
+**DebugBear** (preferred — matches what the user monitors):
+- URL: https://www.debugbear.com/test/website-speed
+- Test the production URL or the deployed dev URL
+- Target metrics (from Fynla's baseline):
+  - **TTFB**: < 500ms (was 796ms–1.2s)
+  - **FCP**: < 2s (was 1.7s–4.3s)
+  - **LCP**: < 2.5s (was 4.3s–5.4s)
+  - **CLS**: 0.00 (maintain)
+
+**PageSpeed Insights** (quick alternative):
+```
+https://pagespeed.web.dev/report?url=https://fynla.org/
+```
+
+**What to look for after each change:**
+
+| Change type | Expected metric improvement |
+|---|---|
+| Lazy-loading large GIFs/images | LCP ↓ significantly |
+| Moving preload link to top of `<head>` | FCP ↓ |
+| `Cache-Control: public, max-age=300` on route | TTFB ↓ for cached responses |
+| Async CSS (`media="print"` pattern) | FCP ↓ (removes render-blocking CSS) |
+| Stripping inline `<style>` to critical-only | FCP ↓ |
+
+**Local Lighthouse check** (when production deploy isn't available):
+```bash
+# Requires: npm install -g lighthouse
+lighthouse http://localhost:8000/ --output=json --output-path=/tmp/lh.json --chrome-flags="--headless"
+node -e "const r=require('/tmp/lh.json').categories; Object.keys(r).forEach(k=>console.log(k,r[k].score*100))"
+```
+
+Add the speed test results to the compliance report under a **Speed Test** line with
+before/after numbers where available.
+
+---
+
+## Phase 10 — No hardcoded colours anywhere
 
 **All colour values MUST use CSS custom properties from `global.css`.** Never write a hex, `rgb()`,
 or `hsl()` value outside of `:root`. For alpha variants, define a named token in `:root`:
@@ -545,7 +671,7 @@ or `hsl()` value outside of `:root`. For alpha variants, define a named token in
 
 ---
 
-## Phase 9 — What NOT to do
+## Phase 11 — What NOT to do
 
 - Never use Vue, React, Alpine.js, or any JS framework.
 - Never use inline `style=""` for anything expressible as a CSS class.
@@ -572,3 +698,107 @@ or `hsl()` value outside of `:root`. For alpha variants, define a named token in
   `<slug>.css` file. The inline block is for critical above-fold content only (tokens, reset, nav, hero).
 - Never inline styles that already exist verbatim in `global.css` or `<slug>.css` — duplication causes
   the external file to silently override the inline version after it loads, and risks CLS if the values differ.
+- Never skip the HTML visibility check (Phase 8) — a missing `routes/web.php` entry silently serves the
+  SPA shell, making all SEO content invisible to crawlers. `curl | grep "div id=\"app\""` must return 0.
+- Never skip the speed test check (Phase 9) — always verify TTFB/FCP/LCP before marking done.
+- Never leave large animated GIFs (> 500 KB) with `loading="eager"` — they block LCP. Use `loading="lazy"`
+  for any GIF not in the hero's LCP critical path.
+- Never serve dynamic API images without an `onerror` handler — broken images leave empty grey boxes.
+  Use `onerror="this.parentElement.style.display='none'"` on img tags whose src comes from an API.
+- Never skip the visual consistency test (Phase 12) — a screenshot before/after is mandatory for every
+  styling change. The page must look right, not just validate.
+- Never skip the sitemap check (Phase 13) — if a page slug or file name changes, `sitemap.xml` must
+  be updated in the same change set.
+
+---
+
+## Phase 12 — Visual Consistency Testing (mandatory for every styling change)
+
+After any change that touches CSS, layout, or content structure, take a screenshot before AND after
+and compare them visually. This catches invisible regressions — spacing drift, font changes, element
+resizing — that W3C validators and Lighthouse cannot detect.
+
+### How to run the visual check
+
+1. **Before making changes** — take a screenshot of the affected page section:
+   - Use Playwright MCP (`browser_take_screenshot`) against `http://localhost:8000/<slug>`
+   - Or use the browser's DevTools device toolbar at 1280px (desktop) and 390px (mobile)
+   - Save/label it "before"
+
+2. **After making changes** — take a second screenshot with the same viewport and label it "after"
+
+3. **Compare the two images** and verify ALL of the following:
+
+| Check | What to look for |
+|---|---|
+| **Margin / padding** | No unexpected gaps or collapsed spacing between elements |
+| **Font size** | Headings and body text match the before state (check `rem` / `em` cascades) |
+| **Font type** | Correct family in use — Segoe UI / Inter, not a browser fallback serif |
+| **Font format** | Weight correct — 900 for display/h1, 700 for h2–h5, 400/500 for body |
+| **Element sizing** | Cards, images, buttons, containers — same width/height as before |
+| **Main content area** | Content starts at the correct offset (no nav overlap, no extra top gap) |
+| **Alignment** | Nothing has shifted left/right due to a missing `margin: auto` or changed `max-width` |
+| **Responsive breakpoints** | Check at 390px (mobile) AND 1280px (desktop) — a change that looks fine at one size often breaks the other |
+
+### When to run this check
+
+- **Always**: when editing any CSS rule in `global.css`, `<slug>.css`, or an inline `<style>` block.
+- **Always**: when adding, removing, or restructuring HTML elements in a page section.
+- **Always**: when updating any external asset URL, image `width`/`height`, or `aspect-ratio`.
+- **Not needed**: for purely backend changes (controller, route, API logic) with no HTML/CSS output change.
+
+### What to do if the before/after differ unexpectedly
+
+1. Identify the differing element using browser DevTools (computed styles panel).
+2. Trace the change — did the new CSS override an existing rule? Did a `global.css` rule cascade differently?
+3. Fix the root cause — do not add `!important` to paper over it.
+4. Take a third screenshot and verify the fix matches the "before" state.
+
+Add a **Visual Consistency** line to the compliance report:
+```
+- Visual Consistency: [PASS — before/after screenshots match / FAIL — <describe diff, fix applied>]
+```
+
+---
+
+## Phase 13 — Sitemap.xml Check (mandatory when URLs change)
+
+Whenever a page is added, renamed, or removed, `public/sitemap.xml` must be updated in the same
+change set. Crawlers cache sitemap entries — a stale entry pointing at a 404 burns crawl budget and
+delays deindexing.
+
+### When this check is required
+
+- A new public page is created (new `<slug>.php` + `routes/web.php` entry)
+- An existing page slug changes (e.g. `/insights` → `/news`)
+- A page is removed or redirected
+- A page's canonical URL changes (e.g. trailing slash added/removed)
+
+### What to check
+
+1. Read `public/sitemap.xml` (or `public/sitemap_index.xml` if the site uses a sitemap index).
+2. For a **new page**: add a `<url>` entry with `<loc>`, `<lastmod>` (today's date, `YYYY-MM-DD`),
+   `<changefreq>`, and `<priority>`.
+3. For a **renamed page**: update the `<loc>` in the existing entry AND update `<lastmod>`.
+4. For a **removed page**: delete the `<url>` entry entirely.
+5. Verify every `<loc>` URL matches the canonical URL in the page's `<link rel="canonical">` tag exactly
+   (same scheme, same domain, same path, no trailing slash mismatch).
+
+### Sitemap entry template
+
+```xml
+<url>
+  <loc>https://fynla.org/PAGE-SLUG</loc>
+  <lastmod>YYYY-MM-DD</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+</url>
+```
+
+Priority guidance: `1.0` = homepage, `0.9` = primary marketing pages (pricing, about),
+`0.8` = content pages (insights, features), `0.6` = secondary pages (legal, contact).
+
+Add a **Sitemap** line to the compliance report:
+```
+- Sitemap: [PASS — entry added/updated/removed / N/A — no URL change]
+```
