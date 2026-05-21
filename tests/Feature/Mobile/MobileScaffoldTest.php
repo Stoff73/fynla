@@ -30,6 +30,12 @@ it('allows same-origin framing on /m and /m/app only', function () {
     expect($appNested->headers->get('X-Frame-Options'))->toBe('SAMEORIGIN');
     expect($appNested->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'self'");
 
+    // Bare /m/app/ (trailing slash, no sub-segment) is the canonical inner-router
+    // base — must keep SAMEORIGIN even though it matches neither m/app nor m/app/*.
+    $appTrailing = get('/m/app/');
+    expect($appTrailing->headers->get('X-Frame-Options'))->toBe('SAMEORIGIN');
+    expect($appTrailing->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'self'");
+
     // Desktop SPA stays locked down.
     $home = get('/');
     expect($home->headers->get('X-Frame-Options'))->toBe('DENY');

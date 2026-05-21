@@ -56,7 +56,7 @@ SP1 (canonical store) is shipped for its first pass and SP2 (freemium) is in pro
 ### 2.1 Goals
 
 - A **new, isolated frontend codebase** at `resources/mobile/` with its own Vite build, its own entry, its own (future) design system, and **zero shared components** with the existing web app.
-- A **same-origin iframe seam**: a `/m` host page that embeds the new SPA via `<iframe>`, so the new frontend runs in its own document but shares the origin (and therefore the Sanctum session).
+- A **same-origin iframe seam**: a `/m` host page that embeds the new SPA via `<iframe>`, so the new frontend runs in its own document but shares the origin (so `/api/*` calls hit the same backend with no CORS).
 - **Phone-only device routing**: phones (web + native) → new mobile surface; desktop/tablet → existing web app, unchanged.
 - **Provable backend connectivity**: the scaffold ships functional-but-disposable placeholder screens — login, email verification, and a dashboard placeholder rendering real logged-in user data — so the seam is demonstrably real.
 - **Retire the legacy mobile code** (`resources/js/mobile/`, legacy `/m/*` Vue routes, `platform.isNative()` guard) and **repoint Capacitor** at the new frontend.
@@ -84,7 +84,7 @@ SP3 is complete when all acceptance criteria in §10 hold and the work is browse
 1. New isolated Vue 3 + Vite frontend at `resources/mobile/` (own `main.js`, own `vite.mobile.config.js`, own minimal store/router, own bootstrap).
 2. Laravel `GET /m` host route → thin Blade (`resources/views/mobile-host.blade.php`) rendering the device-frame chrome + a same-origin `<iframe src="/m/app">`.
 3. Laravel `GET /m/app/{any?}` route → Blade that boots the new mobile SPA from `public/m-build/`.
-4. Scaffold screens inside the iframe: **Login → Verify (email code) → Dashboard placeholder**, all calling existing `/api/*`, authenticating via the existing Sanctum session cookie.
+4. Scaffold screens inside the iframe: **Login → Verify (email code) → Dashboard placeholder**, all calling existing `/api/*`, authenticating via the existing Bearer-token flow (`/api/auth/login` → `/api/auth/verify-code` → `data.access_token`).
 5. Server-side phone device detection (Laravel middleware) + client-side backstop; `?full=1` override cookie.
 6. Retirement of legacy `resources/js/mobile/`, legacy `/m/*` Vue routes, and the `platform.isNative()` guard.
 7. Capacitor repoint: `deploy/mobile/build-ios.sh` and Capacitor `webDir`/entry build and load the new frontend.
@@ -107,7 +107,7 @@ The new mobile frontend uses **Vue 3 + Vite** — the same toolchain as the rest
 
 ## 4. Architectural principles
 
-1. **One origin, one backend, one Sanctum session.** The iframe is same-origin; auth, cookies, and CSRF behave normally inside it. No token handoff, no CORS, no postMessage for auth.
+1. **One origin, one backend, one Bearer token.** The iframe is same-origin; `/api/*` calls reach the same backend with no CORS. The new SPA performs its own login against the existing Bearer-token endpoints and stores the access token in iframe `localStorage`. No token handoff, no postMessage for auth.
 2. **Hard frontend isolation.** The new frontend shares zero components, stores, or build config with the existing web app. Enforced by directory boundary and a build/arch check.
 3. **Backend is frozen.** SP3 changes no `/api/*`, no controller, no model, no Sanctum config. Consistent with canonical-store doc §19.
 4. **Desktop is frozen.** The existing web app is byte-for-byte unchanged for desktop/tablet. SP3 is additive plus the explicit legacy-mobile retirement.
@@ -129,23 +129,25 @@ Visitor → Laravel
                  /m/app/{any?} → Blade boots NEW mobile SPA (public/m-build/)
                      Login → Verify → Dashboard placeholder
                        └─ all call existing /api/*
-                       └─ auth = existing Sanctum session cookie (same origin)
+                       └─ auth = existing Bearer-token flow (login → verify-code → access_token in iframe localStorage)
 ```
 
 ### 5.2 The iframe seam
 
 - `/m` host page is a thin Blade with effectively no JS — it renders the frame chrome and the `<iframe>`.
 - `/m/app/{any?}` serves the new SPA shell (assets from `public/m-build/`). The SPA owns its own internal routing under the `/m/app/` base.
-- The iframe is same-origin, so the Sanctum session cookie set by the login POST is automatically valid inside it.
+- The iframe is same-origin, so the SPA's in-iframe `fetch('/api/*')` calls hit the same backend with no CORS, and the Bearer token (stored in iframe `localStorage`) is sent unaltered on the `Authorization` header.
 
 ### 5.3 Auth flow (mobile web)
 
-1. New SPA loads in the iframe; if unauthenticated, shows its own Login screen.
-2. SPA fetches the Sanctum CSRF cookie (`/sanctum/csrf-cookie`).
-3. Login POST → existing auth endpoint → email-verification code → existing verify endpoint.
-4. Sanctum session cookie set **same-origin** → valid in the iframe → SPA fetches `/api/*` (e.g. `/api/user`, existing dashboard endpoint) and renders the dashboard placeholder with real data.
+> **Spec correction (2026-05-19):** the codebase reality (verified in `app/Http/Controllers/Api/AuthController.php` + `app/Http/CLAUDE.md`) is **Bearer-token** auth, not a Sanctum session cookie. This section reflects the implemented contract.
 
-No new auth routes are introduced, so `PreviewWriteInterceptor` `EXCLUDED_ROUTES` (CLAUDE.md Rule #8) needs no change.
+1. New SPA loads in the iframe; if no stored token, shows its own Login screen.
+2. Login POST → `POST /api/auth/login` `{email, password}` → `200 { success, requires_verification: true, data: { challenge_token, email } }` and emails a 6-digit code. `requires_verification` is top-level (sibling of `data`); only `challenge_token`/`email` are nested under `data`.
+3. `POST /api/auth/verify-code` `{ code, type: "login", challenge_token }` → `200 { success, data: { user, access_token, token_type: "Bearer" } }`.
+4. Token stored in `localStorage` (key `m_scaffold_token`); sent as `Authorization: Bearer <access_token>` on `/api/*` (e.g. `/api/v1/mobile/dashboard`) → dashboard placeholder renders real data.
+
+Auth is Bearer-token (existing backend behaviour), not a session cookie. Same origin still matters: CSP `connect-src 'self'` covers the in-iframe `/api/*` calls with no CORS. No new auth routes are introduced, so `PreviewWriteInterceptor` `EXCLUDED_ROUTES` (CLAUDE.md Rule #8) needs no change.
 
 ### 5.4 Framing headers
 
@@ -208,7 +210,7 @@ The placeholder dashboard calls an **existing** dashboard endpoint (reusing `Mob
 
 ### 7.3 Known limitation — native auth (documented, not solved in SP3)
 
-In native Capacitor the origin is `capacitor://localhost`, so the same-origin Sanctum cookie does not cross into native. SP3's *working* auth proof is **mobile web**. Native token/biometric auth is deferred to the future redesign — consistent with CSJ's decision that iOS is not a live concern and the scaffold is acceptable for native. The Capacitor repoint in SP3 is the build/`webDir` switch so native loads the new scaffold UI; full native auth is future work.
+In native Capacitor the origin is `capacitor://localhost`, so the same-origin web-session model does not cross into native. SP3's *working* auth proof is **mobile web**. Native token/biometric auth is deferred to the future redesign — consistent with CSJ's decision that iOS is not a live concern and the scaffold is acceptable for native. The Capacitor repoint in SP3 is the build/`webDir` switch so native loads the new scaffold UI; full native auth is future work.
 
 ---
 
