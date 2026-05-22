@@ -13,7 +13,7 @@
 </head>
 <body>
     <div class="m-frame-wrap">
-        <iframe src="/m/app" title="Fynla" allow="clipboard-read; clipboard-write"></iframe>
+        <iframe src="{{ url('/m/app') }}" title="Fynla" allow="clipboard-read; clipboard-write"></iframe>
     </div>
 </body>
 </html>
