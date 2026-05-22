@@ -1,0 +1,79 @@
+/**
+ * Fynla public pages — faq page stylesheet
+ *
+ * Page-specific styles for public/pages/faq.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles (including .faq__*)
+ * live in global.css. This file adds only what's unique to this page.
+ */
+
+/* ===================================================================
+   HERO MODULE  [id=hero]
+   Critical classes live in inline <style> in faq.php.
+   =================================================================== */
+
+/* ===================================================================
+   FILTER BAR  [id=faq-filter]
+   =================================================================== */
+.faq-filter { background: var(--eggshell-500); padding: 3rem 0 2rem; }
+.faq-filter__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.faq-filter__intro {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625;
+  margin-bottom: 2rem; max-width: 60rem;
+}
+.faq-filter__tabs {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+}
+.faq-filter__tab {
+  padding: 0.375rem 1rem; border-radius: var(--radius-full);
+  font-size: 0.75rem; font-weight: 600;
+  background: var(--white); border: 1px solid var(--light-gray);
+  color: var(--neutral-500);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  min-height: 2.25rem; /* 36px — supplemented by padding for touch */
+  cursor: pointer;
+}
+.faq-filter__tab:hover {
+  border-color: var(--raspberry-300); color: var(--horizon-500);
+}
+.faq-filter__tab.is-active {
+  background: var(--horizon-500); color: var(--white); border-color: var(--horizon-500);
+}
+
+/* ===================================================================
+   FAQ CONTENT  [id=faq-content]
+   =================================================================== */
+.faq-content { background: var(--eggshell-500); padding-bottom: 2rem; }
+.faq-content__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+
+/* FAQ group: category label + accordion list */
+.faq-group { margin-bottom: 2.5rem; }
+.faq-group[hidden] { display: none !important; }
+.faq-group__label {
+  font-size: 1rem; font-weight: 700; color: var(--raspberry-500);
+  background: var(--light-pink-100); border-radius: var(--radius-md);
+  padding: 0.375rem 1rem; margin-bottom: 1rem;
+  display: inline-block;
+}
+
+/* The .faq__* accordion styles are defined in global.css MODULE STYLES.
+   Override: white cards instead of eggshell background for each item here. */
+.faq-content .faq__list {
+  background: var(--white); border-radius: var(--radius-lg);
+  border: 1px solid var(--light-gray); overflow: hidden;
+}
+.faq-content .faq__item {
+  border-bottom: 1px solid var(--light-gray);
+}
+.faq-content .faq__item:last-child { border-bottom: none; }
+.faq-content .faq__toggle {
+  padding-left: 1rem; padding-right: 1rem;
+}
+.faq-content .faq__answer { padding-left: 1rem; padding-right: 1rem; }
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 1024px) {
+  .faq-filter__inner,
+  .faq-content__inner { padding-left: 2rem; padding-right: 2rem; }
+}

@@ -420,7 +420,8 @@
             if (!res.ok) throw new Error('Login failed');
             return res.json();
           })
-          .then(function () {
+          .then(function (data) {
+            if (data.token) sessionStorage.setItem('auth_token', data.token);
             window.location.href = '/dashboard';
           })
           .catch(function () {

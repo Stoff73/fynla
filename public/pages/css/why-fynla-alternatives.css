@@ -1,0 +1,70 @@
+/**
+ * Fynla public pages — why-fynla/alternatives page stylesheet
+ *
+ * Page-specific styles for public/pages/why-fynla/alternatives.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ */
+
+/* ===================================================================
+   HERO MODULE  [id=hero]
+   Critical hero classes live in the inline <style> block — not duplicated here.
+   =================================================================== */
+
+/* ===================================================================
+   COMPARISON CARDS  [id=comparisons]
+   =================================================================== */
+.alt-comparisons {
+  background: var(--eggshell-500);
+  padding: 4rem 0;
+}
+.alt-comparisons__sr-heading {
+  /* visually hidden — heading hierarchy maintained for screen readers */
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+.alt-comparisons__inner {
+  max-width: 56rem; margin: 0 auto; padding: 0 1rem;
+}
+.alt-comparisons__grid {
+  display: grid; grid-template-columns: 1fr; gap: 1.5rem;
+}
+.alt-comp-card {
+  background: var(--white);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+.alt-comp-card__header {
+  display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;
+}
+.alt-comp-card__icon-wrap {
+  width: 2.25rem; height: 2.25rem; flex-shrink: 0;
+  border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white);
+}
+/* Icon background colours — using palette only */
+.alt-comp-card__icon-wrap--horizon   { background: var(--horizon-100); color: var(--horizon-500); }
+.alt-comp-card__icon-wrap--spring    { background: var(--spring-100);  color: var(--spring-600);  }
+.alt-comp-card__icon-wrap--violet    { background: var(--violet-100);  color: var(--violet-600);  }
+.alt-comp-card__icon-wrap--raspberry { background: var(--light-pink-50); color: var(--raspberry-500); }
+.alt-comp-card__heading {
+  font-size: 1rem; font-weight: 700; color: var(--horizon-500);
+}
+.alt-comp-card__body {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 768px) {
+  .alt-comparisons__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .alt-comparisons__inner { padding-left: 2rem; padding-right: 2rem; max-width: 60rem; }
+}

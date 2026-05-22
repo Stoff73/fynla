@@ -33,6 +33,12 @@ Before writing a single line of HTML:
    - If it must remain dynamic: write a vanilla JS `fetch()` with a visible loading state and a
      graceful fallback (the page must show meaningful content even if the fetch fails).
 
+5. **Check the Module Catalogue (Phase 14) before writing any new markup.** For each section on
+   the page, look it up in the catalogue. If a module exists for that section type (FAQ, carousel,
+   CTA band, hero, etc.), use the PHP partial — do NOT write new markup from scratch. If no module
+   exists and the section is likely to appear on other pages, create a new module and add it to
+   the catalogue before continuing.
+
 ---
 
 ## Phase 2 — Mandatory rules (enforce all, every time)
@@ -170,15 +176,14 @@ Every page must include in `<head>`:
   images. Use `loading="eager"` for the hero/LCP image.
 - **Preload LCP image**: add `<link rel="preload" as="image" href="..." fetchpriority="high">` for the
   largest above-the-fold image.
-- **Async CSS loading**: external stylesheets load with `media="print"` trick so they never block render.
-  The critical CSS inline block (see Phase 5) covers above-the-fold rendering:
+- **Blocking CSS — no FOUC**: load external stylesheets with standard `<link rel="stylesheet">` so
+  the browser never paints an unstyled frame. The `media="print"` async trick causes a visible flash
+  (FOUC) when the inline critical CSS block is incomplete — the flash IS a CLS event, so blocking CSS
+  is the correct default for these PHP pages. CSS files are served from the same server, so the
+  round-trip penalty is negligible:
   ```html
-  <link rel="stylesheet" href="/pages/css/global.css?v=N" media="print" onload="this.media='all'" />
-  <link rel="stylesheet" href="/pages/css/slug.css?v=N" media="print" onload="this.media='all'" />
-  <noscript>
-    <link rel="stylesheet" href="/pages/css/global.css?v=N" />
-    <link rel="stylesheet" href="/pages/css/slug.css?v=N" />
-  </noscript>
+  <link rel="stylesheet" href="/pages/css/global.css?v=N" />
+  <link rel="stylesheet" href="/pages/css/<slug>.css?v=N" />
   ```
 - **Cache-busting**: all external assets (`css/*.css`, `js/*.js`) use `?v=N` query strings. Increment N
   on every change.
@@ -354,14 +359,9 @@ is genuinely shared across all pages.
     /* @media (min-width: 1024px) { nav padding, hero padding } */
   </style>
 
-  <!-- Async external CSS — media="print" prevents render-blocking;
-       onload swaps to 'all' once downloaded. noscript fallback for no-JS. -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=N" media="print" onload="this.media='all'" />
-  <link rel="stylesheet" href="/pages/css/<slug>.css?v=N" media="print" onload="this.media='all'" />
-  <noscript>
-    <link rel="stylesheet" href="/pages/css/global.css?v=N" />
-    <link rel="stylesheet" href="/pages/css/<slug>.css?v=N" />
-  </noscript>
+  <!-- Blocking CSS — prevents FOUC. Files are same-server so render penalty is negligible. -->
+  <link rel="stylesheet" href="/pages/css/global.css?v=N" />
+  <link rel="stylesheet" href="/pages/css/<slug>.css?v=N" />
 </head>
 ```
 
@@ -389,6 +389,12 @@ Other public pages do not need this check unless they have an authenticated vari
 - JS degradation: [PASS / ...]
 - Functionality preserved: [list any Vue feature that needed a vanilla JS polyfill]
 - HTML Visibility: [PASS — curl returns 0 matches for "div id=\"app\"" / FAIL — route missing from web.php]
+- Smoke tests:
+    - Page HTML visible (not SPA shell): [PASS / FAIL]
+    - /login returns 200: [PASS / FAIL]
+    - /register returns 200: [PASS / FAIL]
+    - Demo CTAs return token: [PASS / FAIL / N/A]
+    - /dashboard returns 200: [PASS / FAIL / N/A]
 - Speed Test: [TTFB: Xms, FCP: Xs, LCP: Xs, CLS: X.XX — via DebugBear/PageSpeed / pending deployment]
 ```
 
@@ -477,15 +483,21 @@ render news/insight content inside a plain `<div>`.
 Without this, `display: flex` or `display: grid` on a parent overrides the browser's default for
 `[hidden]` and makes hidden panels visible. This breaks every accordion, mega menu, and modal.
 
-### Async CSS loading — the `onload` swap trick
+### CSS loading — use blocking `<link>`, not the `media="print"` trick
+
+The `media="print"` async trick causes FOUC (Flash of Unstyled Content) whenever the inline critical
+CSS block is incomplete — and incomplete is inevitable in practice. FOUC IS a CLS event (content
+shifts from unstyled to styled after first paint). Since our CSS files live on the same server as the
+PHP, there is no meaningful render-blocking penalty from a standard `<link rel="stylesheet">`.
+
+Always use plain blocking links:
 
 ```html
-<link rel="stylesheet" href="/pages/css/global.css?v=N" media="print" onload="this.media='all'" />
+<link rel="stylesheet" href="/pages/css/global.css?v=N" />
+<link rel="stylesheet" href="/pages/css/<slug>.css?v=N" />
 ```
 
-The browser downloads it at low priority (print-only), then the `onload` handler makes it apply to
-all media. The inline critical CSS block covers the user's above-fold view during this window. Always
-add a `<noscript>` fallback with normal `<link>` tags.
+Do not add `media="print" onload` or `<noscript>` fallbacks — they are no longer the pattern.
 
 ### Mega menu positioning
 
@@ -644,7 +656,7 @@ https://pagespeed.web.dev/report?url=https://fynla.org/
 | Lazy-loading large GIFs/images | LCP ↓ significantly |
 | Moving preload link to top of `<head>` | FCP ↓ |
 | `Cache-Control: public, max-age=300` on route | TTFB ↓ for cached responses |
-| Async CSS (`media="print"` pattern) | FCP ↓ (removes render-blocking CSS) |
+| Blocking CSS (`<link rel="stylesheet">`) | No FOUC, no CLS from style flash |
 | Stripping inline `<style>` to critical-only | FCP ↓ |
 
 **Local Lighthouse check** (when production deploy isn't available):
@@ -690,8 +702,8 @@ or `hsl()` value outside of `:root`. For alpha variants, define a named token in
 - Never create `.html` files — always `.php`.
 - Never omit `[hidden] { display: none !important; }` from the critical CSS reset.
 - Never use `grid-auto-rows: 1fr` to equalise item heights — use `equalizeGridItems()` JS.
-- Never load external CSS with a plain `<link>` — use the `media="print"` async pattern with
-  a `<noscript>` fallback.
+- Never use `media="print" onload="this.media='all'"` for CSS loading — it causes FOUC. Use plain
+  blocking `<link rel="stylesheet">` instead.
 - Never forget to increment the `?v=N` cache-buster when changing any CSS or JS file.
 - Never redefine `:root` or nav/footer rules in the page CSS file — `global.css` owns those.
 - Never put below-fold module styles in the inline `<style>` block — they belong in the external
@@ -709,6 +721,14 @@ or `hsl()` value outside of `:root`. For alpha variants, define a named token in
   styling change. The page must look right, not just validate.
 - Never skip the sitemap check (Phase 13) — if a page slug or file name changes, `sitemap.xml` must
   be updated in the same change set.
+- Never skip the smoke tests (Phase 15) — verify `/login`, `/register`, demo CTAs, and `/dashboard`
+  all return 200 before marking any page task done. A missing `public/hot` file or absent preview
+  user seed will cause 500s that are invisible until a user clicks a demo button.
+- Never write FAQ accordion markup from scratch — use `partials/modules/faq.php`.
+- Never write review carousel markup from scratch — use `partials/modules/review-carousel.php`.
+- Never write a page CTA band from scratch — use `partials/modules/cta-band.php`.
+- Never write a page hero from scratch — use `partials/modules/section-hero.php`.
+- Never add carousel or FAQ accordion JS to a page-specific `.js` file — the initialisers live in `site.js`.
 
 ---
 
@@ -802,3 +822,238 @@ Add a **Sitemap** line to the compliance report:
 ```
 - Sitemap: [PASS — entry added/updated/removed / N/A — no URL change]
 ```
+
+---
+
+## Phase 14 — Reusable Module System
+
+### Architecture overview
+
+Every common page section is built once as a three-layer unit:
+
+1. **PHP partial** (`public/pages/partials/modules/<module>.php`) — the markup, written once.
+   The caller sets a `$module` array then `include`s the partial. The partial reads from `$module`
+   and calls `htmlspecialchars()` on every user-supplied value before rendering.
+
+2. **Base CSS** (`public/pages/css/global.css` — MODULE STYLES section) — the default appearance.
+   All colours use CSS custom properties from `:root`. No hardcoded hex anywhere.
+
+3. **JS initialiser** (`public/pages/js/site.js` — MODULE INITIALISERS section) — the interactive
+   behaviour. Detects its module via `data-*` attributes. Auto-runs on DOMContentLoaded.
+
+Page CSS may add **BEM modifier classes** (`.faq--dark`) or **page-scoped descendant selectors**
+(`.pricing-page .faq`) to customise appearance without forking the partial.
+
+### Module Catalogue
+
+| Module | Partial | CSS root class | JS trigger | BEM modifiers |
+|--------|---------|---------------|------------|---------------|
+| FAQ Accordion | `partials/modules/faq.php` | `.faq` | `[data-faq-item]` | `.faq--dark` |
+| Review Carousel | `partials/modules/review-carousel.php` | `.review-carousel` | `[data-module="review-carousel"]` | — |
+| CTA Band | `partials/modules/cta-band.php` | `.cta-band` | — | `.cta-band--raspberry` |
+| Section Hero | `partials/modules/section-hero.php` | `.section-hero` | — | `.section-hero--light` |
+
+### PHP caller pattern
+
+Set `$module` immediately before the `include`. Never pass the array any other way.
+
+```php
+<?php
+$module = [
+  'id'      => 'pricing-faq',        // unique section id (required)
+  'heading' => 'Common questions',   // section heading (required)
+  'items'   => [
+    ['q' => 'How much does it cost?', 'a' => 'See our pricing page for details.'],
+  ],
+];
+include __DIR__ . '/partials/modules/faq.php';
+?>
+```
+
+**FAQ partial fields:**
+
+| Field | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `id` | string | yes | `'faq'` | Unique `id` on the `<section>` |
+| `heading` | string | yes | — | Section heading text |
+| `heading_tag` | string | no | `'h2'` | HTML tag for the heading (`h2`–`h4`) |
+| `modifier` | string | no | `''` | BEM modifier class e.g. `'faq--dark'` |
+| `items` | array | yes | — | Each item: `['q' => '...', 'a' => '...']` |
+
+**Review carousel partial fields:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `id` | string | yes | Unique `id` on the `<section>` |
+| `heading` | string | yes | Section heading text |
+| `modifier` | string | no | BEM modifier class |
+| `reviews` | array | yes | Each item: `['name' => '...', 'text' => '...']` |
+
+**CTA Band partial fields:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `id` | string | yes | Unique `id` on the `<section>` |
+| `heading` | string | yes | Section heading text |
+| `heading_tag` | string | no | Defaults to `h2` |
+| `modifier` | string | no | e.g. `'cta-band--raspberry'` |
+| `subtext` | string | no | Paragraph below the heading |
+| `actions` | array | yes | Each item: `['text' => '...', 'href' => '...', 'primary' => true/false]` |
+
+**Section Hero partial fields:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `id` | string | yes | Unique `id` on the `<section>` |
+| `heading` | string | yes | Main heading text |
+| `heading_tag` | string | no | Defaults to `h1` |
+| `modifier` | string | no | e.g. `'section-hero--light'` |
+| `badge` | string | no | Small pill label above the heading |
+| `subtext` | string | no | Paragraph below the heading |
+| `cta_primary` | array | no | `['text' => '...', 'href' => '...']` |
+| `cta_secondary` | array | no | `['text' => '...', 'href' => '...']` |
+
+### Override strategy
+
+**Prefer BEM modifiers** for colour/theme variants that may be needed on multiple pages:
+
+```css
+/* global.css — MODULE STYLES */
+.faq--dark { background: var(--horizon-600); }
+.faq--dark .faq__heading { color: var(--white); }
+```
+
+```php
+$module = ['id' => 'help-faq', 'modifier' => 'faq--dark', 'heading' => '...', 'items' => [...]];
+include __DIR__ . '/partials/modules/faq.php';
+```
+
+**Use page-scoped descendant selectors** for one-off positional tweaks that only make sense on
+a single page (e.g. removing the top padding because this FAQ follows directly after a hero):
+
+```css
+/* pricing.css — page-specific only */
+.pricing-page .faq { padding-top: 2rem; }
+```
+
+Never fork the module partial for a one-page visual change. If the same override is needed on
+three or more pages, promote it to a BEM modifier in `global.css`.
+
+### Adding a new module
+
+When a new section type appears that will be used on more than one page:
+
+1. Create the partial in `public/pages/partials/modules/<module-name>.php`.
+   - Accept config via a `$module` array.
+   - Call `htmlspecialchars()` on every output value.
+   - Use `[hidden]` (not `display:none`) for any element that starts hidden.
+   - No inline `style=""` except runtime-computed values (add a comment explaining why).
+   - No `on*=""` event attributes.
+2. Add base CSS to `global.css` under the MODULE STYLES section.
+   - All colours via CSS custom properties — no hex literals.
+   - Include at least one BEM modifier if the module has theme variants.
+3. Add JS init to `site.js` under MODULE INITIALISERS (only if interactive).
+   - Guard with a `data-*` presence check so it is a no-op on pages without the module.
+4. Add a row to the Module Catalogue table above.
+5. Add a "Never write X from scratch" rule to Phase 11.
+
+---
+
+## Phase 15 — Post-Conversion Smoke Tests (mandatory after every new or converted page)
+
+After the page is wired up (PHP file written, route added, dev server running), run these four
+checks before marking the task done. Each one catches a class of failure that has caused real
+production incidents. Do not skip any of them, even if the page has no demo CTAs.
+
+### 15.1 — Page renders HTML (not SPA shell)
+
+```bash
+curl -s http://localhost:8000/PAGE-SLUG | grep -c "div id=\"app\""
+# Must return 0. Any non-zero result means the route is missing or the auth guard is firing.
+```
+
+If it returns non-zero:
+- Check the route exists in `routes/web.php` before the SPA catch-all.
+- Check whether `auth()->check()` is the culprit. For pages that are pure content (learn articles,
+  guides, glossary, tax explainers) — remove the auth guard so authenticated users also see the PHP.
+  For pages that have an in-app equivalent (pricing, features, homepage) — the auth guard is correct.
+
+### 15.2 — Sign in and register return 200
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/login
+# Must return 200
+
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/register
+# Must return 200
+```
+
+Both pages render `view('app')` via the SPA catch-all, which requires the Vite manifest or the
+`public/hot` dev file to exist. A 500 here means one of:
+
+1. **`public/hot` is missing** — Vite is running but wrote its hot file to the main repo's
+   `public/` directory, not the worktree's. Fix:
+   ```bash
+   cp /path/to/main-repo/public/hot public/hot
+   # or create it manually:
+   echo -n "http://127.0.0.1:5173" > public/hot
+   ```
+2. **`public/build/manifest.json` is missing and Vite is not running** — start Vite from the
+   correct directory.
+
+If `/login` or `/register` returns 500, **all demo CTAs will also fail** because the post-login
+redirect to `/dashboard` hits the same `view('app')` code path.
+
+### 15.3 — Demo CTAs return a token (only if the page has `data-demo-persona` attributes)
+
+Check the page's HTML for any `data-demo-persona` attribute. If found, test every distinct persona:
+
+```bash
+curl -s -X POST http://localhost:8000/api/preview/login/PERSONA_ID \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  | grep -c '"token"'
+# Must return 1 (token present in response)
+```
+
+Common persona IDs: `student`, `young_saver`, `young_family`, `peak_earners`, `retired_couple`,
+`entrepreneur`.
+
+A 500 here means the preview user seeder hasn't been run. Fix:
+```bash
+php artisan db:seed --class=PreviewUserSeeder --force
+```
+
+A 200 with no token field means `PreviewController::login()` encountered a logic error — check
+`storage/logs/laravel.log`.
+
+### 15.4 — Dashboard loads after demo login (only if page has demo CTAs)
+
+After confirming the API returns a token, verify the destination page (`/dashboard`) won't 500:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/dashboard
+# Must return 200 (SPA shell loads without Vite manifest error)
+```
+
+A 500 here is the same Vite manifest issue as 15.2. Fix is identical.
+
+### Adding results to the compliance report
+
+```
+- Smoke tests:
+    - Page HTML visible (not SPA shell): [PASS / FAIL — route missing / auth guard firing]
+    - /login returns 200: [PASS / FAIL — Vite manifest missing, fix applied: ...]
+    - /register returns 200: [PASS / FAIL — Vite manifest missing, fix applied: ...]
+    - Demo CTAs return token: [PASS / FAIL / N/A — no demo CTAs on this page]
+    - /dashboard returns 200: [PASS / FAIL / N/A — no demo CTAs on this page]
+```
+
+---
+
+### Never duplicate module markup
+
+If a section matches a catalogue module, using anything other than the partial is a violation.
+Writing bespoke FAQ accordion HTML on a new page when `faq.php` exists is the same class of
+problem as duplicating CSS — one change to the module now requires a change on every page that
+copied the markup.
