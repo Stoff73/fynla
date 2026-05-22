@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActionDefinitionController;
 use App\Http\Controllers\Api\Admin\ActuarialLifeTableController;
+use App\Http\Controllers\Api\Admin\CurrencyRateController;
 use App\Http\Controllers\Api\Admin\DocumentArticleController;
 use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
@@ -1204,6 +1205,12 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::post('/actuarial-life-tables', [ActuarialLifeTableController::class, 'store']);
     Route::patch('/actuarial-life-tables/{id}', [ActuarialLifeTableController::class, 'update']);
     Route::delete('/actuarial-life-tables/{id}', [ActuarialLifeTableController::class, 'destroy']);
+
+    // SP1 Pass 2 R2: Currency rates admin CRUD — reads/writes CurrencyRateStore
+    Route::get('/currency-rates', [CurrencyRateController::class, 'index']);
+    Route::post('/currency-rates', [CurrencyRateController::class, 'store']);
+    Route::patch('/currency-rates/{id}', [CurrencyRateController::class, 'update']);
+    Route::delete('/currency-rates/{id}', [CurrencyRateController::class, 'destroy']);
 });
 
 // Admin Insights CMS
