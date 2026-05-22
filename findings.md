@@ -39,3 +39,22 @@
 - **CLAUDE.md metrics drift** — 5 counts diverged. Refresh during a routine pass.
 - **csjones R2 deploy** — server still on R3 head; the deploy needs `migrate --force` (new `currency_rates` table) + `db:seed --class=CurrencyRatesSeeder --force`. Full procedure in `May/May22Updates/deploy-2026-05-22-r3-r2.md`.
 - **Tech-debt-session deferred** for this session (context budget). Low risk because pattern was a tight mirror — but worth running after R1 to catch any drift across the three reference-data tracks.
+
+## Session 3 (2026-05-22) — R1 findings
+
+### Plan-vs-reality reconciliations
+- **`getModel()` was dead code** — the plan implicitly assumed `TaxConfigService` exposes the model via `getModel()` for "relationships". Greppable as a public method on the service, but `grep -rn '->getModel()\b\|getModel(): ?TaxConfiguration'` returns ZERO callers across `app/` and `tests/`. Removing it during R1.4 closed the last `TaxConfiguration` type reference in the service. **Lesson**: a method advertised "for X" is not the same as actually used for X. Grep before assuming public API needs preserving.
+- **`getCalculations()` is hardcoded UK tax bands** — 125-line method in `TaxSettingsController` returning literal display strings ("£0 - £12,570 (0%)", "£325,000 (transferable between spouses)"). Pre-existing; R1.2 rewrote the controller but preserved this method verbatim per scope discipline. **Surfaced as W1 in `tech-debt-report.md`** — natural bundle with R1.5.
+- **Audit FK cascades on delete** — `tax_configuration_audits.tax_configuration_id` is `ON DELETE CASCADE` at the DB level. So writing a `deleted` audit row would be immediately cascade-removed. Either accept no delete-audit trail, or migrate the FK to `ON DELETE SET NULL` with a nullable column. R1.4 chose the former (matches pre-store behaviour); flagged for R1.5 if B2 audit cares.
+- **Seeder `setActive` writes one extra audit row per re-seed** — for an admin-only operation; aligns with controller audit semantics. Acceptable noise.
+
+### R3 regression caught at session start
+- **`ComprehensiveEstatePlanService.php`** had a missing `use App\Services\Stores\ActuarialLifeTableStore;` import after PR #356 (R3.3). PHP was resolving the type-hinted constructor dep to `App\Services\Estate\ActuarialLifeTableStore` (the current namespace) which doesn't exist. Container resolution crashed any code path that touched `RecommendationCacheObserver` — including `db:seed`. Hotfixed via direct push to `dev` as `3506d70`.
+- **Lesson** — Pint reformatted file imports during multi-edit sessions can mask missing-import bugs that only fail at runtime via reflection-driven container resolution. Worth a follow-up Pest test that explicitly resolves every Estate service through the container to catch this class of regression.
+
+### TaxConfig store memo
+- **Two-level cache** between `TaxConfigService` (request-scoped `$config` array) and `TaxConfigStore` (instance-scoped `$activeMemo`) created a staleness bug: when a test mutated `tax_configurations.is_active` out-of-band and called `$service->clearCache()`, the service emptied its cache but the store's memo persisted, returning the stale value on the next `loadActiveConfig()` call. **Fix**: `TaxConfigStore::forgetActive()` is now public; `TaxConfigService::clearCache()` calls both. **Lesson** — when a consumer holds its own cache on top of a memoised store, the consumer's cache-clear must propagate to the store.
+
+### Boundary lock-down pattern (now verified 4×)
+- R4 → R3 → R2 → R1 all locked at `[Store, Factory]` for greenfield entities, or `[Store, AuditModel, Factory]` for entities with a model-on-model audit relation (R1 is the only one with this — `TaxConfigurationAudit::belongsTo(TaxConfiguration::class)`). Pattern is now stable.
+- `TaxConfigService` was the unique R1 challenge — it has a typed property + typed return on `getModel()`, so just removing `TaxConfiguration::` static calls wasn't enough. Removing the dead `getModel()` method + its property finished the migration.

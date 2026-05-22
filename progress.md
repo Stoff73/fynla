@@ -35,3 +35,14 @@
 - vault-sync ran (overdue from session 1). Metrics drift surfaced (Vue 664→667, Services 323→330, Controllers 115→118, Models 113→114, Stores 33→36) — CLAUDE.md not yet updated.
 - Tech-debt-session skipped to preserve context budget; pattern was a tight mirror of yesterday's R4 work, debt risk low.
 - Next: csjones deploy of R2 → R1 track (R1.0 browser-interactive, blocked) → final review + finishing-a-development-branch.
+
+## 2026-05-22 — session 3 (end-of-day, SP1 Pass 2 R1 + csjones deploy)
+
+- Handover: [[handover-2026-05-23-session-1]] (written to next day's folder per EOD convention)
+- Branch: `dev` (HEAD `d3e1cf6`)
+- Commits this session: 6 PRs + 1 direct-push hotfix (#364 → #368 plus `3506d70`)
+- Status: clean (0 uncommitted; pre-existing untracked files unchanged)
+- Shipped: hotfix for `ComprehensiveEstatePlanService` missing import → SP1 Pass 2 R1 × 5 (#364–#368) → csjones deploy of R1 + R2 + hotfix combined (HEAD `d3e1cf6`). SP1 Pass 2 now **22 of 26 PRs done**.
+- csjones deploy verified: 4 admin endpoints (R1/R2/R3/R4) 401, root + mobile 200, no errors. DB: 4 currency rates / 6 tax configs (2026/27 active) / 44 life tables / 10 market rates.
+- Tech-debt-session run on 11 R1-touched files: 0 critical, 1 warning (`TaxSettingsController::getCalculations()` hardcoded values — preserved through R1.2 rewrite per scope discipline), 4 pre-existing suggestions. Full report at `tech-debt-report.md`.
+- Next: R1.0 audit (browser-blocked, needs CSJ) → R1.5 fix + roll W1 into it → final pass-wide review → finishing-a-development-branch release PR.

@@ -1,7 +1,43 @@
 # CSJTODO — Fynla
 
-*Last updated: 22 May 2026 — session 2 clear (SP1 Pass 2 R3 + R2 tracks both COMPLETE on dev; csjones R2 deploy pending)*
-*Previous session: 22 May 2026 session 1 (SP3 fallout + R4 track)*
+*Last updated: 22 May 2026 — session 3 end-of-day (SP1 Pass 2 R1 + R2 tracks both LIVE on csjones; 22 of 26 PRs done)*
+*Previous session: 22 May 2026 session 2 (R3 + R2 inline, csjones R2 deploy pending)*
+
+---
+
+## Session 3 (22 May 2026) — end-of-day after SP1 Pass 2 R1 track complete + csjones deployed
+
+**Branch:** `dev` (at `d3e1cf6`) · **Tree:** clean · **6 PRs + 1 direct-push hotfix this session** (#364 → #368 plus `3506d70`)
+
+### Done — hotfix
+- [x] **`3506d70`** (direct push to dev) — added missing `use App\Services\Stores\ActuarialLifeTableStore;` to `ComprehensiveEstatePlanService.php`. PR #356 (R3.3) added the constructor dependency but missed the import, so PHP was resolving the class to `App\Services\Estate\ActuarialLifeTableStore` (the current namespace) which doesn't exist. Crashed `db:seed` via `RecommendationCacheObserver` → container resolution chain. Discovered during session-start when seed failed; same regression would have crashed R3 on csjones.
+
+### Done — SP1 Pass 2 R1 track (TaxConfiguration, 5 PRs inline)
+- [x] **#364 R1.1** — `TaxConfigStore` facade + `TaxConfigNormaliser` + arch boundary + 28 new tests
+- [x] **#365 R1.2** — `TaxSettingsController` writes routed via store (all 5 endpoints); 12 new feature tests in `tests/Feature/Admin/TaxConfigAdminTest.php`; `Cache::flush()` after activation preserved in a private `flushAgentCaches()` helper
+- [x] **#366 R1.3** — `TaxConfigurationSeeder` writes via `$store->create/update` with `IngestSource::SEEDER` + `setActive` for the target year (replaces trailing where-update belt); idempotency preserved via `findByTaxYear()`
+- [x] **#367 R1.4** — `TaxConfigService` internal reads via `$store->activeConfig()`; dead `getModel()` removed (zero callers); allowlist down to permanent 3 entries
+- [x] **#368 R1.6** — Boundary LOCKED. Allowlist = `[TaxConfigStore, TaxConfigurationAudit, TaxConfigurationFactory]` (audit + factory are permanent per spec §14.2)
+- [ ] **R1.5** — parked (depends on R1.0 B2 audit memo; browser-blocked)
+
+### Done — csjones deploy
+- [x] **R1 + R2 + hotfix all deployed mid-session 3.** Build locally, `scp public/build public/m-build`, ssh, `git pull origin dev` (12 commits), `php artisan migrate --force` (R2 `currency_rates` table created — 29ms), `db:seed --class=CurrencyRatesSeeder --force` + `db:seed --class=TaxConfigurationSeeder --force` (R1.3 store path verified live), cache clears + composer dump-autoload + optimize. csjones HEAD: `d3e1cf6`. Smoke: 4 admin endpoints (R1/R2/R3/R4) all 401; root + mobile 200; no errors in laravel.log. DB verified: 4 currency rates / 6 tax configs (2026/27 active) / 44 life tables / 10 market rates.
+
+### Done — wrap
+- [x] tech-debt-session run on 11 R1-touched files. 0 critical, 1 warning (W1: `getCalculations()` hardcoded tax-band strings — pre-existing, preserved through R1.2 rewrite), 4 pre-existing suggestions (Cache::flush blunt, file lengths, old PHPUnit style in TaxConfigServiceTest). Report at `tech-debt-report.md`.
+- [x] vault-sync ran (Phase 9 summary in this session's vault folder).
+
+### Outstanding (CSJ decisions / next session)
+- [ ] **PR R1.0 (B2 audit) — browser-interactive, deferred** — needs CSJ at a browser to verify `TaxSettings.vue` field round-trips
+- [ ] **PR R1.5 (B2 admin-edit fix) — depends on R1.0** — natural place to also fix W1 from tech-debt-report (move `getCalculations()` hardcoded values into `TaxConfigService` lookups)
+- [ ] **Final pass-wide review + finishing-a-development-branch** — last 2 items of 26
+- [ ] **Cassette C1** — still deferred
+- [ ] **Unidentified 4th Pest failure** — still uninvestigated
+- [ ] **W1 from tech-debt-report**: `TaxSettingsController::getCalculations()` hardcoded values (~125 lines). Roll into R1.5 or do standalone
+
+### Pass-wide status (SP1 Pass 2 = 26 PRs)
+- **22 of 26 shipped** (PR 0 + plan doc + R4 × 5 + R3 × 5 + R2 × 5 + R1 × 5 minus R1.0/R1.5 still parked)
+- **4 remaining**: R1.0 + R1.5 + final review + finishing-a-development-branch
 
 ---
 
