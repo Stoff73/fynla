@@ -27,6 +27,7 @@ class SavingsStore
     public function __construct(
         private readonly TierGate $tierGate,
         private readonly SavingsAccountDerivedColumnCalculator $derivedCalc,
+        private readonly SnapshotPolicies $snapshotPolicies,
     ) {}
 
     // ---------- Reads ----------
@@ -218,9 +219,9 @@ class SavingsStore
         ])->save();
 
         $policies = [
-            'balance_gbp' => SnapshotPolicies::savingsAccountBalance(),
-            'annual_interest_projected_gbp' => SnapshotPolicies::savingsAnnualInterestProjected(),
-            'isa_allowance_used_pct' => SnapshotPolicies::savingsIsaAllowanceUsedPct(),
+            'balance_gbp' => $this->snapshotPolicies->savingsAccountBalance(),
+            'annual_interest_projected_gbp' => $this->snapshotPolicies->savingsAnnualInterestProjected(),
+            'isa_allowance_used_pct' => $this->snapshotPolicies->savingsIsaAllowanceUsedPct(),
         ];
 
         foreach ($policies as $column => $policy) {

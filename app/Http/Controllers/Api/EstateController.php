@@ -15,6 +15,7 @@ use App\Http\Resources\Estate\AssetResource;
 use App\Http\Resources\Estate\GiftResource;
 use App\Http\Resources\Estate\LiabilityResource;
 use App\Http\Resources\Estate\TrustResource;
+use App\Http\Traits\GatesEstateAccess;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
@@ -30,13 +31,17 @@ use App\Services\Estate\CashFlowProjector;
 use App\Services\Estate\ComprehensiveEstatePlanService;
 use App\Services\Estate\NetWorthAnalyzer;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\TierConfigurationStore;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\EstateIhtExposureDetector;
+use App\Services\Tiers\TeaserGate;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EstateController extends Controller
 {
+    use GatesEstateAccess;
     use SanitizedErrorResponse;
 
     public function __construct(
@@ -45,15 +50,43 @@ class EstateController extends Controller
         private readonly ComprehensiveEstatePlanService $comprehensiveEstatePlan,
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly TeaserGate $teaserGate,
+        private readonly EstateIhtExposureDetector $ihtExposureDetector,
+        private readonly TierConfigurationStore $tierStore,
     ) {}
 
     /**
-     * Get all estate planning data for authenticated user
+     * Get all estate planning data for authenticated user.
+     *
+     * Server-side teaser gate (spec §10.2 / SP2 PR7): Free and Tier1 users
+     * receive a cheap IHT-exposure signal rather than the full module.
+     * The Vue view branches on `mode` for defence-in-depth, but this
+     * response is authoritative.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        // Defence-in-depth: server is the authoritative gate (spec §10.2).
+        if (! $this->teaserGate->isFull($user, 'estate')) {
+            $teaser = $this->ihtExposureDetector->detect($user);
+
+            // CTA label/target: cheapest tier that grants full Estate (plan §7.3 — not hardcoded).
+            $targetTier = $this->tierStore->lowestTierWithCapability('estate', 'full');
+            $ctaLabel = $targetTier
+                ? "Upgrade to {$targetTier['display_name']} to unlock full Estate Planning"
+                : 'Upgrade to unlock full Estate Planning';
+
+            return response()->json([
+                'mode' => 'teaser',
+                'teaser' => $teaser,
+                'cta' => [
+                    'label' => $ctaLabel,
+                    'target_tier' => $targetTier['tier'] ?? null,
+                ],
+            ]);
+        }
 
         $assets = Asset::where('user_id', $user->id)->limit(100)->get();
         $liabilities = Liability::where('user_id', $user->id)->limit(100)->get();
@@ -116,6 +149,7 @@ class EstateController extends Controller
         });
 
         return response()->json([
+            'mode' => 'full',
             'success' => true,
             'data' => [
                 'assets' => AssetResource::collection($assets),
@@ -145,6 +179,7 @@ class EstateController extends Controller
     public function getComprehensiveEstatePlan(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
 
         try {
             // Eager load relationships needed for IHT calculations
@@ -179,6 +214,7 @@ class EstateController extends Controller
     public function getNetWorth(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
 
         try {
             $netWorth = $this->netWorthAnalyzer->generateSummary($user->id);
@@ -202,6 +238,7 @@ class EstateController extends Controller
     public function getCashFlow(Request $request): JsonResponse
     {
         $user = $request->user();
+        $this->requireFullEstate($user);
         $taxYear = $request->query('taxYear', $this->taxConfig->getTaxYear());
 
         try {

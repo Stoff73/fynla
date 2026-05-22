@@ -26,6 +26,9 @@ use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Payment\ReferralService;
 use App\Services\Payment\TrialService;
+use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,7 +49,9 @@ class AuthController extends Controller
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
         private readonly TrialService $trialService,
-        private readonly ConsentService $consentService
+        private readonly ConsentService $consentService,
+        private readonly TierConfigurationStore $tierStore,
+        private readonly TierResolver $tierResolver,
     ) {}
 
     /**
@@ -385,6 +390,28 @@ class AuthController extends Controller
             $dataCompletedSteps = $lifeStageService->getDataCompleteness($user);
         }
 
+        // SP2 PR8 §14 — per-user tier flags sourced from TierConfigurationStore.
+        // Preview users sit outside tiers; TierResolver resolves them to 'free'.
+        $resolvedTier = $this->tierResolver->resolve($user);
+        try {
+            $tierConfig = $this->tierStore->forTier($resolvedTier);
+            $tierFlags = [
+                'resolved_tier' => $resolvedTier,
+                'open_api_affordance' => $tierConfig->open_api_affordance,
+                'currency_display_mode' => $tierConfig->currency_display_mode,
+                'snapshot_surfacing_window_days' => $tierConfig->snapshot_surfacing_window_days,
+            ];
+        } catch (ModelNotFoundException) {
+            // Seeder not yet run — return nulls so the frontend degrades gracefully.
+            // open_api_affordance defaults false (capability-off, not a tier number).
+            $tierFlags = [
+                'resolved_tier' => $resolvedTier,
+                'open_api_affordance' => false,
+                'currency_display_mode' => null,
+                'snapshot_surfacing_window_days' => null,
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -392,6 +419,7 @@ class AuthController extends Controller
                 'role' => $user->role?->name ?? ($user->is_admin ? 'admin' : null),
                 'permissions' => $user->role?->permissions?->pluck('name')->toArray() ?? [],
                 'data_completed_steps' => $dataCompletedSteps,
+                'tier_flags' => $tierFlags,
             ],
         ]);
     }

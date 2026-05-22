@@ -17,7 +17,8 @@ it('contains every required block exactly once', function (): void {
         '<identity>', '<security>', '<scope>', '<personality>',
         '<response_format>', '<instructions>', '<regulatory_compliance>',
         '<tool_use>', '<fca_process>', '<available_actions>',
-        '<handoff_guidance>', '<billing_guidance>', '<fca_signposting>',
+        '<data_completeness_rules>',
+        '<handoff_guidance>', '<fca_signposting>',
     ] as $tag) {
         // Block delimiters sit alone on their own line; an inline
         // backtick cross-reference (e.g. `<handoff_guidance>` inside
@@ -46,4 +47,15 @@ it('preserves the mandatory-hedging compliance clause verbatim', function (): vo
     expect(FynSystemPrompt::text())->toContain(
         '1. Hedging language is mandatory. Frame all guidance as "you may want to consider"'
     );
+});
+
+it('C1: carries the relocated data-completeness rules verbatim', function (): void {
+    // The three static rule sub-blocks were hoisted out of the per-turn
+    // <data_completeness> block (AdvicePromptBuilder::buildDataCompletenessBlock,
+    // ~595 tok/turn) into the cached static prompt. They must be byte-verbatim.
+    expect(FynSystemPrompt::text())
+        ->toContain('NAVIGATION RULES:')
+        ->toContain('RULES FOR BLOCKED MODULES:')
+        ->toContain('MODULE DEPENDENCY GUIDANCE:')
+        ->toContain('If a tool call returns a "blocked" result, follow the instruction field in that result — explain the missing data to the user and navigate them to the right page.');
 });

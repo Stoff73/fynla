@@ -9,6 +9,7 @@ use App\Models\Estate\Liability;
 use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 
@@ -17,7 +18,10 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Carbon::setTestNow(Carbon::create(2025, 6, 15));
     $this->seed(TaxConfigurationSeeder::class);
-    $this->user = User::factory()->create();
+    // SP2 PR7: TeaserGate reads TierConfigurationStore — seed tier rows so the
+    // gate resolves correctly. Tests use tier2 to exercise the full module path.
+    $this->seed(TierConfigurationSeeder::class);
+    $this->user = User::factory()->create(['tier' => 'tier2']);
     Sanctum::actingAs($this->user);
 });
 

@@ -23,6 +23,7 @@ final class FynTurnContext
         public readonly bool $isPreview,
         public readonly ?array $classification,
         public readonly ?AiConversation $conversation,
+        public readonly ?array $kycResult = null,
     ) {}
 
     public static function make(
@@ -34,6 +35,7 @@ final class FynTurnContext
         bool $isPreview,
         ?array $classification,
         ?AiConversation $conversation = null,
+        ?array $kycResult = null,
     ): self {
         if (! in_array($mode, ['advice', 'onboarding'], true)) {
             throw new InvalidArgumentException("Invalid Fyn turn mode: {$mode}");
@@ -42,6 +44,7 @@ final class FynTurnContext
         return new self(
             $user, $message, $currentRoute, $mode,
             $onboardingFocus, $isPreview, $classification, $conversation,
+            $kycResult,
         );
     }
 

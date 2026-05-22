@@ -12,6 +12,9 @@ const state = {
   // Populated by AppLayout.checkTrialStatus. Read by router/index.js feature-gating
   // guard at line 1558 to enforce plan-tier access on URL-direct route hits.
   subscriptionData: null,
+  // SP2 PR8 §14 — per-user tier flags sourced from TierConfigurationStore via /api/auth/user.
+  // null until fetchUser completes.
+  tierFlags: null,
 };
 
 const getters = {
@@ -26,6 +29,10 @@ const getters = {
   hasPermission: (state) => (perm) => state.permissions.includes(perm),
   loading: (state) => state.loading,
   error: (state) => state.error,
+  // SP2 PR8 §14 — tier flags from backend store
+  tierFlags: (state) => state.tierFlags,
+  openApiAffordance: (state) => state.tierFlags?.open_api_affordance === true,
+  currencyDisplayMode: (state) => state.tierFlags?.currency_display_mode ?? 'gbp_only',
 };
 
 const actions = {
@@ -155,6 +162,7 @@ const actions = {
       commit('setUser', data.user);
       commit('setRole', data.role);
       commit('setPermissions', data.permissions || []);
+      commit('setTierFlags', data.tier_flags || null);
 
       // Always sync life stage from the authenticated user's data.
       // This ensures stale state from a previous user is cleared on login,
@@ -216,6 +224,11 @@ const mutations = {
     state.role = null;
     state.permissions = [];
     state.subscriptionData = null;
+    state.tierFlags = null;
+  },
+
+  setTierFlags(state, flags) {
+    state.tierFlags = flags;
   },
 
   setSubscriptionData(state, data) {

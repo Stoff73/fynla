@@ -6,6 +6,7 @@ use App\Agents\CoordinatingAgent;
 use App\Models\AiDailyUsage;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +23,14 @@ uses(RefreshDatabase::class);
  * to MySQL and every write happens inside a DB::transaction with
  * `SELECT ... FOR UPDATE` — concurrent writes serialise on the row
  * lock, so the daily total cannot be lost or overwritten.
+ *
+ * PR 9: preview users are never metered (hasTokenBudget always returns
+ * true for them). Tests that assert budget-limit behaviour now use a
+ * free-tier user whose daily backstop (500k) comes from TierConfigurationStore.
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 function callRecordTokenUsage(User $user, int $tokens): void
@@ -151,24 +157,27 @@ describe('Atomic token budget — getTodayTokenUsage / hasTokenBudget (S0.11.1)'
     });
 
     it('hasTokenBudget returns true while under the daily limit', function () {
-        $user = User::factory()->create(['is_preview_user' => true]); // preview = 100k
+        // PR 9: limit comes from tier store (free backstop = 500k). Use a
+        // real free-tier user so the store lookup resolves correctly.
+        $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'free']);
 
         AiDailyUsage::create([
             'user_id' => $user->id,
             'usage_date' => now()->toDateString(),
-            'tokens_used' => 50000,
+            'tokens_used' => 50000, // well under the 500k free backstop
         ]);
 
         expect(callHasTokenBudget($user))->toBeTrue();
     });
 
     it('hasTokenBudget returns false at the daily limit', function () {
-        $user = User::factory()->create(['is_preview_user' => true]);
+        // PR 9: limit comes from tier store (free backstop = 500k).
+        $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'free']);
 
         AiDailyUsage::create([
             'user_id' => $user->id,
             'usage_date' => now()->toDateString(),
-            'tokens_used' => 100000,
+            'tokens_used' => 500000, // exactly at the 500k free backstop
         ]);
 
         expect(callHasTokenBudget($user))->toBeFalse();
@@ -177,30 +186,32 @@ describe('Atomic token budget — getTodayTokenUsage / hasTokenBudget (S0.11.1)'
 
 describe('Atomic token budget — concurrency (S0.11.1)', function () {
     it('two sequential record calls at the boundary preserve both writes', function () {
-        $user = User::factory()->create(['is_preview_user' => true]);
+        // PR 9: use a free-tier user; backstop = 500k from TierConfigurationStore.
+        $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'free']);
 
-        // Pre-load to just below the preview limit (100k).
+        // Pre-load to just below the free-tier backstop (500k).
         AiDailyUsage::create([
             'user_id' => $user->id,
             'usage_date' => now()->toDateString(),
-            'tokens_used' => 95000,
+            'tokens_used' => 496000,
         ]);
 
         // Two consecutive consumes — both writes survive (no lost update),
-        // total ends at 95k + 3k + 3k = 101k. The next hasTokenBudget
+        // total ends at 496k + 3k + 3k = 502k. The next hasTokenBudget
         // check sees the user is over their cap.
         callRecordTokenUsage($user, 3000);
         callRecordTokenUsage($user, 3000);
 
-        expect(callGetTodayTokenUsage($user))->toBe(101000)
+        expect(callGetTodayTokenUsage($user))->toBe(502000)
             ->and(callHasTokenBudget($user))->toBeFalse();
     });
 
     it('a second request at the boundary sees token_limit on hasTokenBudget', function () {
-        $user = User::factory()->create(['is_preview_user' => true]);
+        // PR 9: use a free-tier user; backstop = 500k from TierConfigurationStore.
+        $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'free']);
 
         // Request A burns the entire budget.
-        callRecordTokenUsage($user, 100000);
+        callRecordTokenUsage($user, 500000);
 
         // Request B starts fresh — the new ai_daily_usage row is
         // immediately visible on the next hasTokenBudget call (no 5min

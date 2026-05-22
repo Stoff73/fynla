@@ -251,11 +251,16 @@
           </div>
         </div>
 
-        <!-- Open Banking Card -->
-        <div class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
-          <div class="flex items-center gap-2.5 mb-4">
-            <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
-            <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
+        <!-- Open Banking Card — SP2 PR8 §14: shown only when open_api_affordance flag is true (Tier 2/3) -->
+        <div v-if="openApiAffordance" class="bg-light-blue-50 rounded-lg border border-light-blue-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+              <h3 class="text-lg font-semibold text-horizon-500">Open Banking</h3>
+              <span class="text-xs font-semibold text-neutral-600 bg-neutral-200 px-2.5 py-0.5 rounded-full">Coming Soon</span>
+            </div>
+            <button disabled class="px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-100 border border-neutral-200 rounded-lg cursor-not-allowed">
+              Connect via Open Banking — coming soon
+            </button>
           </div>
           <p class="text-sm text-neutral-500 mb-4">
             Securely connect your bank accounts to unlock powerful financial insights and automated tracking.
@@ -358,6 +363,7 @@ export default {
     ...mapGetters('userProfile', ['totalAnnualIncome']),
     ...mapGetters('preview', ['isPreviewMode']),
     ...mapGetters('subNav', ['pendingAction', 'actionCounter']),
+    ...mapGetters('auth', ['openApiAffordance']),
 
     // Filter accounts by type for real users view
     currentAccounts() {

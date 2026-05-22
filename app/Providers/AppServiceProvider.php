@@ -15,9 +15,9 @@ use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
 use App\Services\Lifecycle\LifecycleEngine;
 use App\Services\Lifecycle\LifecycleSnapshotService;
 use App\Services\Plans\PlanConfigService;
-use App\Services\Stores\PermissiveTierGate;
 use App\Services\Stores\TierGate;
 use App\Services\TaxConfigService;
+use App\Services\Tiers\DbTierGate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
 
@@ -57,10 +57,10 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
-        // TierGate — permissive default until sub-project 2 supplies the real impl
+        // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(
             TierGate::class,
-            PermissiveTierGate::class
+            DbTierGate::class
         );
 
         // LifecycleEngine is a singleton so its per-run caches

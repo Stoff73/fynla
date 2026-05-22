@@ -32,7 +32,7 @@ it('summariser populates summary, topics, entities_mentioned, intents_stated, su
         'user_id' => $user->id,
         'title' => 'Test',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'fyn_onboarding'],
         'last_message_at' => now()->subMinutes(45),
     ]);
@@ -87,7 +87,7 @@ it('job calls the summariser service with the correct conversation id', function
         'user_id' => $user->id,
         'title' => 'Test',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subMinutes(45),
     ]);
 
@@ -129,7 +129,7 @@ it('summariser is a no-op when the api key is not configured', function () {
         'user_id' => $user->id,
         'title' => 'Test',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subMinutes(45),
     ]);
 
@@ -154,7 +154,7 @@ it('summariser absorbs non-JSON provider responses without persisting anything',
         'user_id' => $user->id,
         'title' => 'Test',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subMinutes(45),
     ]);
 
@@ -193,7 +193,7 @@ it('emitDoneTurn dispatches the summariser job with the conversation id', functi
         'user_id' => $user->id,
         'title' => 'Onboarding',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'fyn_onboarding'],
         'last_message_at' => now()->subMinutes(45),
     ]);
@@ -223,7 +223,7 @@ it('scheduler command dispatches the job for stale conversations', function () {
         'user_id' => $user->id,
         'title' => 'Stale',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subHours(2),
     ]);
 
@@ -231,7 +231,7 @@ it('scheduler command dispatches the job for stale conversations', function () {
         'user_id' => $user->id,
         'title' => 'Recently summarised',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subHours(2),
         'summarised_at' => now()->subMinutes(5),
     ]);
@@ -240,7 +240,7 @@ it('scheduler command dispatches the job for stale conversations', function () {
         'user_id' => $user->id,
         'title' => 'In flight',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subMinutes(5),
     ]);
 
@@ -248,7 +248,7 @@ it('scheduler command dispatches the job for stale conversations', function () {
         'user_id' => $user->id,
         'title' => 'Moved on since last summary',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'last_message_at' => now()->subHours(2),
         'summarised_at' => now()->subHours(3),
     ]);
@@ -285,7 +285,7 @@ it('scheduler skips in-flight onboarding conversations even when idle', function
         'user_id' => $midFlow->id,
         'title' => 'Onboarding in flight',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'fyn_onboarding'],
         'last_message_at' => now()->subHours(4),
     ]);
@@ -297,7 +297,7 @@ it('scheduler skips in-flight onboarding conversations even when idle', function
         'user_id' => $midFlow->id,
         'title' => 'Random chat',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'advice'],
         'last_message_at' => now()->subHours(4),
     ]);
@@ -306,7 +306,7 @@ it('scheduler skips in-flight onboarding conversations even when idle', function
         'user_id' => $completed->id,
         'title' => 'Completed-user chat',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'advice'],
         'last_message_at' => now()->subHours(4),
     ]);
@@ -339,7 +339,7 @@ it('resume contract is preserved even when a stale summary has been written to t
         'user_id' => $user->id,
         'title' => 'Onboarding',
         'status' => 'active',
-        'model_used' => 'grok-4-1-fast-reasoning',
+        'model_used' => 'grok-4.3',
         'metadata' => ['source' => 'fyn_onboarding'],
         'last_message_at' => now()->subHours(2),
         // pretend the summariser had run on a partial state at some point
