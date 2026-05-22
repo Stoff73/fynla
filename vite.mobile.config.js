@@ -13,6 +13,12 @@ import path from 'path';
 //   - no PWA / service worker in this build
 export default defineConfig({
     base: process.env.VITE_MOBILE_BASE_PATH || '/m-build/',
+    // Default publicDir is <root>/public — but outDir is INSIDE that, so Vite
+    // would recursively copy public/* (incl. 100MB+ of images, the SPA build,
+    // mockups, storage symlink) into public/m-build/. The mobile app reads
+    // public/m-build/manifest.json directly and has no static assets of its
+    // own; disable publicDir entirely to keep the bundle to just the JS.
+    publicDir: false,
     plugins: [
         vue({
             template: { transformAssetUrls: false },
