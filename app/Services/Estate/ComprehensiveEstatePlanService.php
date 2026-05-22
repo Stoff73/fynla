@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
-use App\Models\ActuarialLifeTable;
 use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
@@ -38,7 +37,8 @@ class ComprehensiveEstatePlanService
         private readonly EstateAssetAggregatorService $assetAggregator,
         private readonly ProfileCompletenessChecker $completenessChecker,
         private readonly TaxConfigService $taxConfig,
-        private readonly LifeEventIntegrationService $lifeEventIntegration
+        private readonly LifeEventIntegrationService $lifeEventIntegration,
+        private readonly ActuarialLifeTableStore $actuarialStore,
     ) {}
 
     /**
@@ -192,12 +192,12 @@ class ComprehensiveEstatePlanService
         $age = $user->age ?? Carbon::parse($user->date_of_birth)->age;
         $gender = $user->gender ?? 'male';
 
-        // Query actuarial life tables (same approach as IHTCalculationService)
-        $lifeExpectancy = ActuarialLifeTable::where('gender', $gender)
-            ->where('age', '<=', $age)
-            ->where('table_year', '2020-2022')
-            ->orderBy('age', 'desc')
-            ->value('life_expectancy_years');
+        // Read via canonical store — nearest-lower-or-equal age in the cohort.
+        $lifeExpectancy = $this->actuarialStore->forCohort($gender, '2020-2022')
+            ->filter(fn ($row) => $row->age <= $age)
+            ->sortByDesc('age')
+            ->first()
+            ?->life_expectancy_years;
 
         if ($lifeExpectancy) {
             return max(1, (int) ceil((float) $lifeExpectancy));

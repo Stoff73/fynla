@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\TaxConfiguration;
 use App\Services\Estate\FutureValueCalculator;
+use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\TaxConfigService;
 
 beforeEach(function () {
@@ -13,7 +14,8 @@ beforeEach(function () {
     }
 
     $taxConfig = app(TaxConfigService::class);
-    $this->calculator = new FutureValueCalculator($taxConfig);
+    $actuarialStore = app(ActuarialLifeTableStore::class);
+    $this->calculator = new FutureValueCalculator($taxConfig, $actuarialStore);
 });
 
 it('calculates future value correctly', function () {
