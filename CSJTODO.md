@@ -1,7 +1,41 @@
 # CSJTODO — Fynla
 
-*Last updated: 19 May 2026 — session 6 clear (git tree clean: 12 local + 18 remote merged branches pruned, 2 worktrees + stash removed; stale freemium memory corrected)*
-*Previous session: 19 May 2026 — session 5 clear (Will/POA teaser-gate deployed to prod + dev, verified)*
+*Last updated: 22 May 2026 — session-start (merged origin/dev into iFrames; PR #342 conflict-clean)*
+*Previous session: 19 May 2026 — EOD wrap (tech-debt audit run on SP3 diff; 0 critical; handover → May/May20Updates); dev-line up to 19 May session 6 (git cleanup, Will/POA teaser deployed prod)*
+
+---
+
+## EOD wrap (19 May 2026) — SP3 tech-debt audit + handover
+
+**Branch:** `iFrames` · **Tree:** clean · **HEAD:** `560b4107` · **No new code** (wrap of the day's clear-session work)
+
+### Done
+- [x] Deferred `tech-debt-session` audit run on the 31-file SP3 surface → `tech-debt-report.md` — **0 critical, 2 warnings, 5 suggestions**
+- [x] EOD handover written `May/May20Updates/handover-2026-05-20-session-1.md`; planning-with-files docs updated (Path A)
+
+### Outstanding (new from audit)
+- [ ] **`/m/app/` trailing-slash frame-header gap** — `SecurityHeaders.php:25` carve-out misses bare `/m/app/`; refresh there can fall through to `DENY`. One-line match-set fix + Pest assertion — **fold into Task 9**.
+
+---
+
+## Session 1 (19 May 2026) — SP3 mobile-iframe scaffold: build-out (context-clear)
+
+**Branch:** `iFrames` (off `origin/dev`, pushed to `origin/iFrames`) · **Tree:** clean · **HEAD:** `5d293659` · **No PR yet**
+
+### Done
+- [x] SP3 ("Mobile-first iframe scaffold", overhaul item 3): brainstorming (visual companion) → spec → plan, all committed
+  - Spec `docs/superpowers/specs/2026-05-19-sub-project-3-mobile-iframe-scaffold-design.md` (CSJ-approved)
+  - Plan `docs/superpowers/plans/2026-05-19-sub-project-3-mobile-iframe-scaffold.md`
+- [x] Executed via subagent-driven-development (implement → spec-review → code-quality-review → fix loop)
+  - Task 1 isolated mobile Vite build · 2 `/m` host+`/m/app` Blades/routes · 3 scoped SAMEORIGIN frame headers · 4 phone-UA redirect mw · 5 Login/Verify/Dashboard scaffold (critical login-contract bug caught+fixed) · 6 Capacitor repoint · 7 two-env deploy wiring · 8 legacy `resources/js/mobile/` retirement (CSJ-approved scope expansion: OfflineBanner relocated, dead app.js/auth.js refs cleaned) · 8b residual `/m/*` nav cleanup
+  - Build green throughout; SP3's 9 `MobileScaffoldTest` pass; Task 8 15-failure baseline proven pre-existing via stash-compare
+
+### Outstanding / next session
+- [ ] **Re-run Task 8b reviews** (spec + code-quality) — interrupted by `/session-end`. Base `ac9d57f0` → head `5d293659`.
+- [ ] **Resolve Pest 60-vs-15 baseline question** — Task 8b run showed 60 failed vs documented ~15; argued pre-existing DB-ordering/contamination (8b only touched 2 frontend JS files never loaded by Pest). NOT independently re-verified — confirm via stash/isolation before Task 9.
+- [ ] **Task 9** (final SP3 task, tracker #14): Playwright E2E (desktop unchanged / phone→`/m` iframe / login→verify→dashboard real data / `?full=1`); `resources/mobile/README.md`; spec §5.3 cookie→Bearer fix; push; open PR `iFrames` → `dev`.
+- [ ] Non-blocking nits (in plan Task-8 note): unused `getItem` import `app.js`; stale Face-ID docblock `auth.js mobileLogout`.
+- [ ] **No vault on this machine** (`/Users/Chris/Desktop/fynlaBrain` absent) — vault-sync skipped; planning-with-files docs seeded as fallback. Carry to vault when on a machine that has it. (Note 22 May: vault IS present at `/Users/CSJ/Desktop/fynlaBrain` — earlier "absent" check used a stale `/Users/Chris/...` path.)
 
 ---
 

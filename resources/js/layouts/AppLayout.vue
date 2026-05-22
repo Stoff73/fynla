@@ -165,7 +165,7 @@ import FynOnboardingChat from '@/components/Fyn/FynOnboardingChat.vue';
 import ToastNotification from '@/components/Shared/ToastNotification.vue';
 import SideMenu from '@/components/SideMenu.vue';
 import SideMenuMobileToggle from '@/components/SideMenuMobileToggle.vue';
-import OfflineBanner from '@/mobile/OfflineBanner.vue';
+import OfflineBanner from '@/components/Common/OfflineBanner.vue';
 import AdvisorBanner from '@/components/Advisor/AdvisorBanner.vue';
 import SubNavBar from '@/components/SubNavBar.vue';
 import PlanSelectionModal from '@/components/Payment/PlanSelectionModal.vue';

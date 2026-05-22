@@ -147,7 +147,6 @@ const actions = {
       // Reset module states to prevent data leakage
       commit('userProfile/resetState', null, { root: true });
       dispatch('netWorth/resetState', null, { root: true }).catch(() => {});
-      dispatch('mobileDashboard/clearCache', null, { root: true }).catch(() => {});
       dispatch('aiChat/reset', null, { root: true }).catch(() => {});
     } finally {
       commit('setLoading', false);
