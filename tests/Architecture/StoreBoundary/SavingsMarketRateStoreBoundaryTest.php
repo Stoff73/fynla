@@ -9,16 +9,15 @@ declare(strict_types=1);
  *
  * Allowlist for this PR (will shrink as subsequent PRs migrate each site):
  *   - App\Services\Stores\SavingsMarketRateStore (the store itself)
- *   - App\Services\Savings\RateComparator (read consumer — never mutates;
- *     here until PR R4.3 migrates it to store reads)
  *   - Database\Seeders\SavingsMarketRatesSeeder (migrated in PR R4.4)
  *   - App\Http\Controllers\Api\Admin\SavingsMarketRateController (added in PR R4.2)
+ *
+ * RateComparator removed from allowlist in PR R4.3 (now reads via store).
  */
 arch('only SavingsMarketRateStore mutates SavingsMarketRate')
     ->expect('App\Models\SavingsMarketRate')
     ->toOnlyBeUsedIn([
         'App\Services\Stores\SavingsMarketRateStore',
-        'App\Services\Savings\RateComparator',
         'Database\Seeders\SavingsMarketRatesSeeder',
         'Database\Factories\SavingsMarketRateFactory',
         'App\Http\Controllers\Api\Admin\SavingsMarketRateController',
