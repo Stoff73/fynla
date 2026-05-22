@@ -35,6 +35,7 @@ import toast from './modules/toast';
 import insights from './modules/insights';
 import taxStrategy from './modules/taxStrategy';
 import documentArticles from './modules/documentArticles';
+import savingsMarketRates from './modules/savingsMarketRates';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -93,6 +94,7 @@ const store = createStore({
     insights,
     taxStrategy,
     documentArticles,
+    savingsMarketRates,
   },
   plugins: [
     createPersistedState({
