@@ -1,7 +1,39 @@
 # CSJTODO — Fynla
 
-*Last updated: 22 May 2026 — session 1 (PR #342 admin-merged to dev; 8b + Pest settled; vault-sync complete)*
-*Previous session: 19 May 2026 — EOD wrap (tech-debt audit run on SP3 diff; 0 critical; handover → May/May20Updates); dev-line up to 19 May session 6 (git cleanup, Will/POA teaser deployed prod)*
+*Last updated: 22 May 2026 — session 1 clear (tripwire @ 923k; SP1 Pass 2 R4 track COMPLETE on dev; csjones deploy pending)*
+*Previous session: 22 May 2026 (same day, single arc — SP3 fallout + csjones deploy + SP1 Pass 2 plan + R4 track all on this one session)*
+
+---
+
+## Session 1 (22 May 2026) — context-clear at 923k tripwire — SP1 Pass 2 R4 track complete
+
+**Branch:** `dev` (at `951ac9e`) · **Tree:** clean · **13 PRs merged today** (#342 → #352)
+
+### Done — SP3 fallout
+- [x] PRs #342 / #343 / #344 / #345 all admin-merged to `dev` (SP3 main + ProviderSwapLockTest fix + vite publicDir fix + subdir-aware iframe/router)
+- [x] csjones deploy for SP3: built locally, uploaded `public/build` + `public/m-build` via scp, `git pull origin dev`, cache clears. All endpoints 200 incl. phone-UA redirect chain and `/fynla/m/app` iframe load
+- [x] `iFrames` branch deleted local + remote
+
+### Done — SP1 Pass 2 planning + R4 track
+- [x] **Pass-2 plan written** (`docs/superpowers/plans/2026-05-22-sub-project-1-pass-2-reference-data.md`, 2369 lines, 26 PRs across R4/R3/R1/R2) — shipped as PR #347
+- [x] **PR #346 (PR 0)** — shared `ReferenceDataStore` base + `ReferenceDataUpdated` event
+- [x] **PR #348 R4.1** — `SavingsMarketRateStore` facade + arch boundary (schema reconciled — `rate_key/label/rate/tax_year/effective_from`, not plan's aspirational names)
+- [x] **PR #349 R4.2** — admin CRUD + Vue panel; AdminPanel "Savings Rates" tab; includes Carbon date round-trip fix in store::read()
+- [x] **PR #350 R4.3** — RateComparator reads via store::forTaxYear()
+- [x] **PR #351 R4.4** — Seeder writes via store::create/update with `IngestSource::SEEDER`; new `findByKeyAndTaxYear()` store method
+- [x] **PR #352 R4.5** — Boundary LOCKED. Allowlist = `[Store, Factory]` only. New `findEloquent()` so controller doesn't need direct model access
+
+### Outstanding (CSJ decisions / next session)
+- [ ] **csjones deploy of today's SP1 Pass 2 work** — R4 track + PR 0 (~7 commits beyond what's on csjones now). Trigger: local build → upload `public/build` + `public/m-build` → SSH → `git pull origin dev` → cache clear + view clear + composer dump-autoload + optimize. No migrations.
+- [ ] **Continue SP1 Pass 2 inline** — CSJ chose inline-only execution after subagent truncation pattern. Next: R3 track (5 PRs: ActuarialLifeTableStore + admin + 3 consumers + seeder + lock-down)
+- [ ] **PR R1.0 (B2 audit) — browser-interactive, deferred** — needs CSJ at a browser to verify TaxSettings.vue round-trips
+- [ ] **vault-sync overdue** (skipped this session due to tripwire) — next EOD must run it
+- [ ] **Cassette C1** — still deferred per yesterday's "fail-loud guard" decision
+- [ ] **Unidentified 4th Pest failure** — full --compact run obscured it; re-run without `--compact` if needed
+
+### Pass-wide status (SP1 Pass 2 = 26 PRs)
+- **6 of 26 shipped today** (PR 0 + plan doc + R4 × 5)
+- **17 remaining**: R3 × 5 + R1.0–R1.6 + R2 × 5 + final review + finishing-a-development-branch
 
 ---
 
