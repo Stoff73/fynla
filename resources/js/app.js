@@ -31,7 +31,7 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
-import { isNativePlatform, getToken, getItem } from './services/tokenStorage';
+import { isNativePlatform, getToken } from './services/tokenStorage';
 import logger from './utils/logger';
 import { captureSourceFromUrl } from './utils/sourceCapture';
 
