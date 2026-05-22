@@ -49,7 +49,27 @@
         "name": "Fynla",
         "url": "https://fynla.org",
         "logo": "https://fynla.org/images/logos/LogoHiResFynlaDark.png",
-        "description": "UK financial planning platform helping individuals and families plan savings, investments, retirement, and estate with confidence."
+        "description": "UK financial planning platform helping individuals and families plan savings, investments, retirement, and estate with confidence.",
+        "sameAs": [
+            "https://www.linkedin.com/company/fynla"
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Fynla",
+        "url": "https://fynla.org",
+        "description": "UK financial planning platform for savings, investments, retirement, and estate planning.",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://fynla.org/insights?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+        }
     }
     </script>
     <script type="application/ld+json">

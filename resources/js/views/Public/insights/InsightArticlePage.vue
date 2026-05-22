@@ -6,7 +6,12 @@
       ></div>
     </div>
 
-    <div v-else-if="article" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+    <article
+      v-else-if="article"
+      class="insight-body max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14"
+      itemscope
+      itemtype="https://schema.org/Article"
+    >
       <div v-if="article.tags && article.tags.length" class="flex items-center gap-2 mb-4 flex-wrap">
         <span
           v-for="tag in article.tags"
@@ -26,6 +31,7 @@
           :src="article.hero_image.full"
           :alt="article.title"
           class="block w-full h-auto"
+          itemprop="image"
         />
         <div
           class="pointer-events-none absolute inset-0 bg-gradient-to-t from-horizon-500/85 via-horizon-500/40 to-transparent"
@@ -40,6 +46,7 @@
           <h1
             class="text-2xl sm:text-3xl md:text-5xl font-black leading-tight drop-shadow-sm"
             style="letter-spacing:-0.02em;"
+            itemprop="name"
           >
             {{ article.title }}
           </h1>
@@ -58,6 +65,7 @@
           <h1
             class="flex-1 text-4xl md:text-5xl font-black text-horizon-500 leading-tight"
             style="letter-spacing:-0.02em;"
+            itemprop="name"
           >
             {{ article.title }}
           </h1>
@@ -73,18 +81,20 @@
         </p>
       </header>
 
-      <p v-if="byline" class="text-sm text-neutral-400 mb-10">{{ byline }}</p>
+      <p v-if="byline" class="text-sm text-neutral-400 mb-10" itemprop="author">{{ byline }}</p>
 
       <!-- CMS-imported document articles carry sanitised raw HTML in body_html
            (already passed through HTMLPurifier on import). Native insights use
            structured body_blocks. Render whichever the article supplies. -->
-      <div
-        v-if="article.body_html"
-        class="article-html-body"
-        v-html="article.body_html"
-      ></div>
-      <ArticleBlockRenderer v-else :blocks="article.body_blocks || []" />
-    </div>
+      <div class="insight-content" itemprop="articleBody">
+        <div
+          v-if="article.body_html"
+          class="article-html-body"
+          v-html="article.body_html"
+        ></div>
+        <ArticleBlockRenderer v-else :blocks="article.body_blocks || []" />
+      </div>
+    </article>
 
     <div v-else class="max-w-4xl mx-auto px-4 py-20 text-center">
       <h1 class="text-3xl font-bold text-horizon-500 mb-4">Article not found</h1>

@@ -1,0 +1,481 @@
+/**
+ * compare-best-tools.css
+ * Page-specific styles for /compare/best-financial-planning-tools-uk
+ * All design tokens come from global.css :root — no hex values defined here.
+ */
+
+/* ================================================================
+   HERO
+   ================================================================ */
+/* Skeleton defined in critical CSS inline block.
+   Only below-fold refinements go here. */
+.compare-hero__inner {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+/* ================================================================
+   CONTENT WRAPPER
+   ================================================================ */
+.compare-content {
+  padding: 2.5rem 0;
+  background: var(--eggshell-500);
+}
+.compare-content__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* ================================================================
+   SECTION HEADING (shared across content sections)
+   ================================================================ */
+.compare-section-heading {
+  font-size: clamp(1.25rem, 4vw, 1.875rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 1rem;
+}
+
+/* ================================================================
+   OVERVIEW PANEL
+   ================================================================ */
+.compare-overview {
+  background: var(--light-blue-100);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+}
+.compare-overview .compare-section-heading {
+  margin-bottom: 0.75rem;
+}
+.compare-overview__body {
+  font-size: 0.875rem;
+  color: var(--neutral-600);
+  line-height: 1.625;
+}
+
+/* ================================================================
+   COMPARISON TABLES
+   ================================================================ */
+.compare-table-section {
+  /* intentionally no extra background — sits on eggshell */
+}
+.compare-table-wrap {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--light-gray);
+  overflow-x: auto;
+}
+.compare-table {
+  width: 100%;
+  font-size: 0.8125rem;
+  border-collapse: collapse;
+  min-width: 37.5rem; /* 600px — prevents squash before horizontal scroll kicks in */
+}
+.compare-table--pricing {
+  min-width: 0; /* pricing table is 2-col — no horizontal scroll needed */
+}
+.compare-table thead tr {
+  background: var(--savannah-100);
+}
+.compare-table__th {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--horizon-500);
+  text-align: center;
+  white-space: nowrap;
+}
+.compare-table__th--left {
+  text-align: left;
+}
+.compare-table__th--right {
+  text-align: right;
+}
+.compare-table tbody tr {
+  border-top: 1px solid var(--light-gray);
+}
+.compare-table__label {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+}
+.compare-table__cell {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--neutral-400);
+}
+.compare-table__cell--yes {
+  color: var(--spring-500);
+  font-weight: 600;
+}
+.compare-table__cell--partial {
+  color: var(--neutral-400);
+}
+.compare-table__cell--no {
+  color: var(--neutral-400);
+}
+.compare-table__cell--right {
+  text-align: right;
+  color: var(--neutral-500);
+}
+
+/* ================================================================
+   TOOL-BY-TOOL SUMMARIES
+   ================================================================ */
+.compare-summaries__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.compare-summary-card {
+  background: var(--white);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+.compare-summary-card__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--horizon-500);
+  margin-bottom: 0.25rem;
+}
+.compare-summary-card__body {
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+.compare-summary-card__link {
+  display: inline-block;
+  font-size: 0.8125rem;
+  color: var(--raspberry-500);
+  text-decoration: underline;
+  margin-top: 0.25rem;
+  transition: color 0.15s ease;
+}
+.compare-summary-card__link:hover {
+  color: var(--raspberry-600);
+}
+
+/* ================================================================
+   RELATED LINKS
+   ================================================================ */
+.compare-related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  border-top: 1px solid var(--light-gray);
+  padding-top: 1.5rem;
+}
+.compare-related__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+.compare-related__link {
+  font-size: 0.8125rem;
+  color: var(--raspberry-500);
+  transition: color 0.15s ease;
+}
+.compare-related__link:hover {
+  color: var(--light-pink-200);
+}
+.compare-related__divider {
+  font-size: 0.8125rem;
+  color: var(--horizon-300);
+  user-select: none;
+}
+
+/* ================================================================
+   CTA BAND
+   ================================================================ */
+.compare-cta {
+  padding: 2.5rem 1rem;
+  background: var(--light-pink-100);
+}
+.compare-cta__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+.compare-cta__card {
+  background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+  border-radius: var(--radius-2xl);
+  padding: 1.5rem;
+}
+.compare-cta__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 0.5rem;
+}
+.compare-cta__subtext {
+  font-size: 1.125rem;
+  color: var(--white-70);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.compare-cta__btn {
+  display: inline-block;
+  padding: 0.625rem 1.5rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  min-height: 2.75rem; /* 44px touch target */
+  line-height: 1.5;
+  transition: background 0.15s ease;
+}
+.compare-cta__btn:hover {
+  background: var(--spring-600);
+}
+
+/* ================================================================
+   DEMO MODAL
+   Styles mirror those in index.php — copied here so this page is
+   self-contained without pulling in the whole landing page CSS.
+   ================================================================ */
+.demo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.demo-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--horizon-700-80, rgba(2, 6, 23, 0.80));
+  z-index: 0;
+}
+.demo-modal__panel {
+  position: relative;
+  z-index: 1;
+  background: var(--white);
+  border-radius: var(--radius-2xl);
+  width: 100%;
+  max-width: 56rem;
+  margin: 2rem auto;
+  box-shadow: 0 25px 50px -12px var(--black-10);
+  overflow: hidden;
+}
+.demo-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--light-gray);
+}
+.demo-modal__title {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+.demo-modal__subtitle {
+  font-size: 0.875rem;
+  color: var(--neutral-500);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+.demo-modal__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--eggshell-500);
+  border: none;
+  color: var(--neutral-500);
+  transition: background 0.15s ease;
+}
+.demo-modal__close:hover {
+  background: var(--light-gray);
+}
+.demo-modal__body {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+.demo-modal__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+.demo-modal__note {
+  font-size: 0.875rem;
+  color: var(--neutral-500);
+  text-align: center;
+  margin-top: 1rem;
+  min-height: 1.25rem; /* reserves space so status text doesn't cause CLS */
+}
+
+/* Demo groups */
+.demo-group {
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.demo-group__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.demo-group__header--pink    { background: var(--light-pink-100); color: var(--raspberry-500); }
+.demo-group__header--horizon { background: var(--horizon-100);    color: var(--horizon-500); }
+.demo-group__header--spring  { background: var(--spring-400);     color: var(--spring-700); }
+.demo-group__header--violet  { background: var(--horizon-200);    color: var(--violet-500); }
+.demo-group__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Persona cards */
+.demo-persona-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+  padding: 0.875rem 0.75rem;
+  background: var(--white);
+  border: none;
+  border-top: 1px solid var(--light-gray);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.demo-persona-card:first-child {
+  border-top: none;
+}
+.demo-persona-card:hover {
+  background: var(--eggshell-500);
+}
+.demo-persona-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.demo-persona-card--pink   { border-left: 3px solid var(--raspberry-500); }
+.demo-persona-card--purple { border-left: 3px solid var(--violet-500); }
+.demo-persona-card--green  { border-left: 3px solid var(--spring-500); }
+.demo-persona-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+.demo-persona-card__tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--neutral-500);
+}
+.demo-persona-card__income {
+  font-size: 0.6875rem;
+  color: var(--neutral-400);
+  margin-left: auto;
+}
+.demo-persona-card__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+.demo-persona-card__detail {
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+  line-height: 1.4;
+}
+.demo-persona-card__focus-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+.demo-persona-card__focus-tags span {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--eggshell-500);
+  color: var(--neutral-500);
+  border: 1px solid var(--light-gray);
+}
+.demo-persona-card__cta {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--raspberry-500);
+  margin-top: 0.25rem;
+}
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+@media (min-width: 640px) {
+  .compare-content__inner {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .compare-cta {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .demo-modal__grid {
+    grid-template-columns: 1fr 2fr;
+  }
+  .demo-group--wide {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .demo-group__cards {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .demo-persona-card {
+    flex: 1;
+    border-top: none;
+    border-left: 1px solid var(--light-gray);
+    min-width: 10rem;
+  }
+  .demo-persona-card:first-child {
+    border-left: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .compare-content__inner {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  .compare-cta {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  .compare-cta__card {
+    padding: 1.5rem 2rem;
+  }
+  .demo-modal__grid {
+    grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
+  }
+  .demo-group--wide {
+    grid-column: 2 / 4;
+    grid-row: auto;
+  }
+}

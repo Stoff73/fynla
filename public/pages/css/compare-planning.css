@@ -1,0 +1,338 @@
+/**
+ * compare-planning.css
+ * Page-specific styles for /compare/fynla-vs-financial-planning-platform
+ *
+ * Rules here are scoped to this page only.
+ * All design tokens and nav/footer styles live in global.css — not duplicated here.
+ * No :root block. No hardcoded hex values — all colours via CSS custom properties.
+ */
+
+/* ===================================================================
+   HERO
+   =================================================================== */
+
+.compare-hero {
+  background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+  overflow: hidden;
+}
+
+.compare-hero__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem;
+}
+
+.compare-hero__heading {
+  font-size: clamp(2rem, 7vw, 3.75rem);
+  line-height: 1.1;
+  font-weight: 900;
+  color: var(--white);
+  margin-bottom: 1rem;
+}
+
+.compare-hero__heading-accent {
+  color: var(--raspberry-300);
+}
+
+.compare-hero__subtext {
+  font-size: 1.125rem;
+  color: var(--white-70);
+  line-height: 1.625;
+}
+
+@media (min-width: 1024px) {
+  .compare-hero__inner {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ===================================================================
+   CONTENT WRAPPER
+   =================================================================== */
+
+.compare-content {
+  padding: 2.5rem 0;
+  background: var(--eggshell-500);
+}
+
+.compare-content__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .compare-content__inner {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ===================================================================
+   OVERVIEW PANEL
+   =================================================================== */
+
+.compare-panel {
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+}
+
+.compare-panel--blue {
+  background: var(--light-blue-100);
+}
+
+.compare-panel__heading {
+  font-size: clamp(1.25rem, 3vw, 1.875rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 1rem;
+}
+
+.compare-panel__body {
+  font-size: 0.875rem;
+  color: var(--neutral-600);
+  line-height: 1.625;
+}
+
+/* ===================================================================
+   STRENGTHS LISTS
+   =================================================================== */
+
+.compare-strengths__heading {
+  font-size: clamp(1.25rem, 3vw, 1.875rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 1rem;
+}
+
+.compare-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.compare-feature-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--neutral-600);
+  line-height: 1.5;
+}
+
+.compare-feature-list__dot {
+  flex-shrink: 0;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-full);
+  background: var(--spring-500);
+  margin-top: 0.5rem;
+  /* Expand tap target to meet 44px minimum — dot is decorative,
+     but needs sufficient space beside the text. */
+  position: relative;
+}
+
+/* ===================================================================
+   COMPARISON TABLE
+   =================================================================== */
+
+.compare-table-section__heading {
+  font-size: clamp(1.25rem, 3vw, 1.875rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 1rem;
+}
+
+.compare-table-wrap {
+  background: var(--light-blue-100);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.compare-table__th {
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.compare-table__th--feature {
+  color: var(--horizon-500);
+}
+
+.compare-table__th--fynla {
+  color: var(--raspberry-500);
+  text-align: center;
+}
+
+.compare-table__th--other {
+  color: var(--horizon-500);
+  text-align: center;
+}
+
+.compare-table__row + .compare-table__row {
+  border-top: 1px solid var(--white-50);
+}
+
+.compare-table__td {
+  padding: 0.75rem 1.25rem;
+}
+
+.compare-table__td--label {
+  color: var(--neutral-600);
+}
+
+.compare-table__td--check {
+  text-align: center;
+}
+
+/* Indicator dots */
+.compare-dot {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+}
+
+.compare-dot--full {
+  background: var(--spring-500);
+}
+
+.compare-dot--half {
+  background: linear-gradient(to right, var(--spring-500) 50%, var(--horizon-500-10) 50%);
+  border: 2px solid var(--horizon-500-20);
+}
+
+.compare-dot--none {
+  background: var(--horizon-500-10);
+  border: 2px solid var(--horizon-500-20);
+}
+
+/* Inline legend dots — slightly smaller */
+.compare-dot--inline {
+  width: 1rem;
+  height: 1rem;
+  vertical-align: middle;
+}
+
+.compare-table-legend {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ===================================================================
+   AUDIENCE CARDS
+   =================================================================== */
+
+.compare-audience__heading {
+  font-size: clamp(1.25rem, 3vw, 1.875rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 1rem;
+}
+
+.compare-audience__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .compare-audience__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.compare-audience__card {
+  background: var(--light-pink-100);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+}
+
+.compare-audience__card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 0.75rem;
+}
+
+.compare-audience__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: var(--neutral-500);
+  line-height: 1.5;
+}
+
+.compare-audience__list li {
+  padding-left: 0.75rem;
+  position: relative;
+}
+
+.compare-audience__list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: var(--radius-full);
+  background: var(--raspberry-500);
+}
+
+/* ===================================================================
+   RELATED LINKS
+   =================================================================== */
+
+.compare-related {
+  border-top: 1px solid var(--light-gray);
+  padding-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+}
+
+.compare-related__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+
+.compare-related__link {
+  font-size: 0.75rem;
+  color: var(--raspberry-500);
+  transition: color 0.15s ease;
+}
+
+.compare-related__link:hover,
+.compare-related__link:focus {
+  color: var(--light-pink-200);
+}
+
+.compare-related__link:focus {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.compare-related__sep {
+  color: var(--horizon-300);
+  font-size: 0.875rem;
+}

@@ -1,0 +1,102 @@
+/**
+ * Fynla public pages — when-can-i-retire feature page stylesheet
+ *
+ * Contains: shared feature page layout + retirement calculator mock-up styles.
+ */
+
+/* ── Shared layout ───────────────────────────────────────────────── */
+.feat-btn-primary { display: inline-flex; align-items: center; padding: 0.625rem 1.5rem; min-height: 2.75rem; font-size: 0.875rem; font-weight: 600; color: var(--white); background: var(--raspberry-500); border-radius: var(--radius-button); border: none; transition: background 0.15s ease; white-space: nowrap; }
+.feat-btn-primary:hover { background: var(--raspberry-600); }
+.feat-btn-secondary { display: inline-flex; align-items: center; padding: 0.625rem 1.5rem; min-height: 2.75rem; font-size: 0.875rem; font-weight: 600; color: var(--white); border-bottom: 1px solid var(--white-70); transition: border-color 0.15s ease; }
+.feat-btn-secondary:hover { border-color: var(--white); }
+.feat-section__inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+.feat-section__inner--narrow { max-width: 48rem; }
+.feat-section__heading { font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700; color: var(--horizon-500); margin-bottom: 2rem; }
+.feat-section__heading--center { text-align: center; }
+.feat-section__heading--white  { color: var(--white); }
+.feat-cards-3 { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+.feat-card { border-radius: var(--radius-lg); padding: 1.5rem; }
+.feat-card--pink { background: var(--light-pink-100); border: 1px solid var(--light-pink-200); }
+.feat-card--dark { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+.feat-card__title { font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.5rem; }
+.feat-card__title--white { color: var(--white); }
+.feat-card__body { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625; }
+.feat-card__body--faded { color: var(--white-70); }
+.feat-problem       { background: var(--eggshell-500); padding: 4rem 0; }
+.feat-solution      { background: var(--horizon-500);  padding: 4rem 0; }
+.feat-compare-section { background: var(--light-pink-100); padding: 4rem 0; }
+.feat-mockup        { background: var(--white); padding: 3rem 0; border-top: 1px solid var(--light-gray); border-bottom: 1px solid var(--light-gray); }
+.feat-quote         { background: var(--light-pink-100); padding: 3rem 0; }
+.feat-quote__inner  { max-width: 48rem; margin: 0 auto; padding: 0 1rem; text-align: center; }
+.feat-quote__block  { margin: 0; }
+.feat-quote__text   { font-size: clamp(1.125rem, 3.5vw, 1.75rem); font-weight: 600; color: var(--horizon-500); font-style: italic; line-height: 1.4; }
+.feat-quote__text::before { content: '\201C'; color: var(--raspberry-500); margin-right: 0.125rem; }
+.feat-quote__text::after  { content: '\201D'; color: var(--raspberry-500); margin-left: 0.125rem; }
+.feat-table-scroll  { overflow-x: auto; border-radius: var(--radius-lg); }
+.feat-table         { width: 100%; border-collapse: collapse; background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--light-gray); font-size: 0.875rem; }
+.feat-th            { text-align: left; padding: 0.875rem 1rem; font-weight: 700; color: var(--horizon-500); border-bottom: 1px solid var(--light-gray); white-space: nowrap; }
+.feat-th--label     { color: var(--neutral-500); font-weight: 500; min-width: 12rem; }
+.feat-th--fynla     { color: var(--raspberry-500); }
+.feat-tr            { border-bottom: 1px solid var(--light-gray); }
+.feat-tr:last-child { border-bottom: none; }
+.feat-td            { padding: 0.75rem 1rem; color: var(--neutral-500); vertical-align: middle; }
+.feat-td--label     { font-weight: 600; color: var(--horizon-500); }
+.feat-td--fynla     { background: #FDF0F4; }
+.feat-yes           { color: var(--spring-600); font-weight: 600; }
+.feat-no            { color: var(--neutral-400); }
+.feat-related       { background: var(--eggshell-500); padding: 2.5rem 0; }
+.feat-related__heading { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--neutral-500); margin-bottom: 0.75rem; }
+.feat-related__list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.feat-related__link { padding: 0.375rem 0.875rem; font-size: 0.8125rem; font-weight: 500; color: var(--horizon-500); background: var(--white); border: 1px solid var(--light-gray); border-radius: var(--radius-full); transition: color 0.15s ease, border-color 0.15s ease; min-height: 2.75rem; display: inline-flex; align-items: center; }
+.feat-related__link:hover { color: var(--raspberry-500); border-color: var(--raspberry-500); }
+
+/* ===================================================================
+   WHEN CAN I RETIRE — retirement age card mock-up
+   =================================================================== */
+.feat-retire-card {
+  background: var(--white); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-2xl); padding: 1.5rem;
+  box-shadow: var(--shadow-sm); max-width: 32rem; margin: 0 auto;
+}
+.feat-retire-card__header {
+  font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--neutral-500); margin-bottom: 1.25rem;
+}
+
+.feat-retire-ages {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.feat-retire-age {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--eggshell-500); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg); padding: 0.875rem 0.5rem; text-align: center;
+}
+.feat-retire-age--active {
+  background: var(--light-pink-100); border-color: var(--raspberry-500);
+}
+.feat-retire-age__num {
+  font-size: 1.75rem; font-weight: 900; color: var(--horizon-500); line-height: 1;
+}
+.feat-retire-age--active .feat-retire-age__num { color: var(--raspberry-500); }
+.feat-retire-age__label { font-size: 0.6875rem; color: var(--neutral-400); margin: 0.25rem 0; }
+.feat-retire-age__income { font-size: 0.8125rem; font-weight: 600; }
+.feat-retire-age__income--green  { color: var(--spring-600); }
+.feat-retire-age__income--violet { color: var(--violet-500); }
+
+.feat-retire-card__note {
+  font-size: 0.75rem; color: var(--neutral-500); margin-bottom: 0.5rem;
+  padding: 0.625rem; background: var(--eggshell-500); border-radius: var(--radius-md);
+}
+.feat-retire-card__confidence {
+  font-size: 0.75rem; font-weight: 600; color: var(--spring-600);
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 640px) { .feat-cards-3 { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) {
+  .feat-section__inner, .feat-section__inner--narrow { padding-left: 2rem; padding-right: 2rem; }
+  .feat-cards-3 { grid-template-columns: repeat(3, 1fr); }
+}
