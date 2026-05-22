@@ -11,6 +11,7 @@ use App\Models\FamilyMember;
 use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Goals\LifeEventIntegrationService;
+use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 use App\Traits\CalculatesOwnershipShare;
