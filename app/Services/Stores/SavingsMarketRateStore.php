@@ -45,6 +45,19 @@ class SavingsMarketRateStore extends ReferenceDataStore
     }
 
     /**
+     * Returns all market rates, ordered by rate_key then most-recent effective_from.
+     * Used by the admin index endpoint.
+     *
+     * @return Collection<int, SavingsMarketRate>
+     */
+    public function all(): Collection
+    {
+        return SavingsMarketRate::orderBy('rate_key')
+            ->orderByDesc('effective_from')
+            ->get();
+    }
+
+    /**
      * Returns all market rates for a given tax year.
      * This is the access pattern used by RateComparator — it queries by
      * tax_year and works across all rate_key values for that year.
@@ -73,7 +86,19 @@ class SavingsMarketRateStore extends ReferenceDataStore
     {
         $row = SavingsMarketRate::find($id);
 
-        return $row ? $row->toArray() : [];
+        if (! $row) {
+            return [];
+        }
+
+        $arr = $row->toArray();
+        // Carbon date casts serialise to ISO 8601 ('YYYY-MM-DDTHH:MM:SS.NNNZ');
+        // that's incompatible with MySQL date columns on round-trip update.
+        // Re-emit as Y-m-d so the partial-merge → persist path works.
+        if ($row->effective_from !== null) {
+            $arr['effective_from'] = $row->effective_from->toDateString();
+        }
+
+        return $arr;
     }
 
     protected function delete_(int $id): void

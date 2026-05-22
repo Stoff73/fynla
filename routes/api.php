@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
 use App\Http\Controllers\Api\Admin\InsightImageController;
 use App\Http\Controllers\Api\Admin\InsightTemplateController;
+use App\Http\Controllers\Api\Admin\SavingsMarketRateController;
 use App\Http\Controllers\Api\Admin\TierConfigurationController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdvisorController;
@@ -1190,6 +1191,12 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     // Tier configuration admin CRUD — reads/writes TierConfigurationStore
     Route::get('/tier-configurations', [TierConfigurationController::class, 'index']);
     Route::put('/tier-configurations/{tier}', [TierConfigurationController::class, 'update']);
+
+    // SP1 Pass 2 R4: Savings market rates admin CRUD — reads/writes SavingsMarketRateStore
+    Route::get('/savings-market-rates', [SavingsMarketRateController::class, 'index']);
+    Route::post('/savings-market-rates', [SavingsMarketRateController::class, 'store']);
+    Route::patch('/savings-market-rates/{id}', [SavingsMarketRateController::class, 'update']);
+    Route::delete('/savings-market-rates/{id}', [SavingsMarketRateController::class, 'destroy']);
 });
 
 // Admin Insights CMS

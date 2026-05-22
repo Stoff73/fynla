@@ -20,5 +20,6 @@ arch('only SavingsMarketRateStore mutates SavingsMarketRate')
         'App\Services\Stores\SavingsMarketRateStore',
         'App\Services\Savings\RateComparator',
         'Database\Seeders\SavingsMarketRatesSeeder',
+        'Database\Factories\SavingsMarketRateFactory',
         'App\Http\Controllers\Api\Admin\SavingsMarketRateController',
     ]);
