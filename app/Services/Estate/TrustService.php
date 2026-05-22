@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Constants\TaxDefaults;
-use App\Models\ActuarialLifeTable;
 use App\Models\Estate\Trust;
+use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -14,7 +14,8 @@ use Illuminate\Support\Collection;
 class TrustService
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly ActuarialLifeTableStore $actuarialStore,
     ) {}
 
     /**
@@ -342,13 +343,13 @@ class TrustService
     {
         // Use actuarial tables when gender is available
         if ($gender) {
-            $actuarialExpectancy = ActuarialLifeTable::where('gender', $gender)
-                ->where('age', '<=', $age)
-                ->where('table_year', '2020-2022')
-                ->orderBy('age', 'desc')
-                ->value('life_expectancy_years');
+            $actuarialExpectancy = $this->actuarialStore->forCohort($gender, '2020-2022')
+                ->filter(fn ($row) => $row->age <= $age)
+                ->sortByDesc('age')
+                ->first()
+                ?->life_expectancy_years;
 
-            $lifeExpectancy = $actuarialExpectancy
+            $lifeExpectancy = $actuarialExpectancy !== null
                 ? max(5, (int) ceil((float) $actuarialExpectancy))
                 : max(5, 90 - $age);
         } else {
