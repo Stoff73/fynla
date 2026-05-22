@@ -15,6 +15,15 @@ use Illuminate\Support\Facades\DB;
 
 class TaxConfigStore extends ReferenceDataStore
 {
+    /**
+     * Per-instance memoisation of the active row.
+     *
+     * Kept separate from the base's id-keyed `cache` so it can be invalidated
+     * independently when is_active flips on any row (setActive / forgetAll).
+     * Tri-state: unset = not loaded; null = loaded, no active row; array = loaded.
+     */
+    private array $activeMemo = [];
+
     public function __construct(
         private readonly TaxConfigNormaliser $normaliser = new TaxConfigNormaliser,
     ) {}
@@ -201,9 +210,37 @@ class TaxConfigStore extends ReferenceDataStore
     }
 
     /**
+     * Return the active tax-configuration row as a canonical array, or null
+     * if no row is active. Memoised per-instance — any write that touches
+     * is_active (setActive / forgetAll) drops the memo. Consumers that hold
+     * their own cache (e.g. TaxConfigService) call forgetActive() to invalidate
+     * after out-of-band DB mutations.
+     */
+    public function activeConfig(): ?array
+    {
+        if (! array_key_exists('current', $this->activeMemo)) {
+            $row = TaxConfiguration::where('is_active', true)->first();
+            $this->activeMemo['current'] = $row ? $this->read($row->id) : null;
+        }
+
+        return $this->activeMemo['current'];
+    }
+
+    /**
+     * Invalidate the activeConfig() memo. Public so external consumers
+     * (TaxConfigService::clearCache, integration tests, the admin Cache::flush
+     * call site) can force a re-read after out-of-band mutations.
+     */
+    public function forgetActive(): void
+    {
+        $this->activeMemo = [];
+    }
+
+    /**
      * Return the Eloquent model for a given id, or null. Used by the admin
      * controller to construct response Resources without touching the model
-     * directly (boundary enforcement; spec §5.1).
+     * directly (boundary enforcement; spec §5.1). Callers needing the active
+     * row's model can chain: $store->findEloquent($store->activeConfig()['id']).
      */
     public function findEloquent(int $id): ?TaxConfiguration
     {
@@ -289,8 +326,9 @@ class TaxConfigStore extends ReferenceDataStore
     }
 
     /**
-     * Drop the entire per-request memoised cache. Used after setActive() which
-     * can flip is_active on any/all rows.
+     * Drop the entire per-request memoised cache (both the id-keyed `cache`
+     * on the base class and this store's `activeMemo`). Used after setActive()
+     * which can flip is_active on any/all rows.
      */
     private function forgetAll(): void
     {
@@ -298,5 +336,7 @@ class TaxConfigStore extends ReferenceDataStore
         $cacheProp = $reflection->getProperty('cache');
         $cacheProp->setAccessible(true);
         $cacheProp->setValue($this, []);
+
+        $this->activeMemo = [];
     }
 }
