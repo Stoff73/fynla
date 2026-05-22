@@ -53,6 +53,9 @@ class DatabaseSeeder extends Seeder
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
 
+            // Currency rates (GBP base) - admin-managed FX rates for the multi-currency conversion path
+            CurrencyRatesSeeder::class,
+
             // ONS SOC 2020 occupation codes for autocomplete
             OccupationCodeSeeder::class,
 
@@ -125,6 +128,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             PreviewUserSeeder::class,
             SavingsMarketRatesSeeder::class,
+            CurrencyRatesSeeder::class,
             OccupationCodeSeeder::class,
             PlanConfigurationSeeder::class,
             RetirementActionDefinitionSeeder::class,
