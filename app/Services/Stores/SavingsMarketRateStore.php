@@ -81,6 +81,17 @@ class SavingsMarketRateStore extends ReferenceDataStore
             ->first();
     }
 
+    /**
+     * Return the Eloquent model for a given id, or null. Used by the admin
+     * controller to construct response Resources without touching the model
+     * directly (boundary enforcement; spec §5.1 — reads return Eloquent
+     * instances, but the entry point is the store).
+     */
+    public function findEloquent(int $id): ?SavingsMarketRate
+    {
+        return SavingsMarketRate::find($id);
+    }
+
     // ── Abstract base overrides ───────────────────────────────────────────────
 
     protected function persist(array $canonical, ?int $id = null): int

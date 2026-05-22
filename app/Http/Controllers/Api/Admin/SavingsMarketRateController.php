@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSavingsMarketRateRequest;
 use App\Http\Requests\Admin\UpdateSavingsMarketRateRequest;
 use App\Http\Resources\SavingsMarketRateResource;
-use App\Models\SavingsMarketRate;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\SavingsMarketRateStore;
 use Illuminate\Http\JsonResponse;
@@ -35,7 +34,7 @@ class SavingsMarketRateController extends Controller
         );
 
         return response()->json([
-            'data' => new SavingsMarketRateResource(SavingsMarketRate::find($id)),
+            'data' => new SavingsMarketRateResource($this->store->findEloquent($id)),
         ], 201);
     }
 
@@ -49,7 +48,7 @@ class SavingsMarketRateController extends Controller
         );
 
         return response()->json([
-            'data' => new SavingsMarketRateResource(SavingsMarketRate::find($id)),
+            'data' => new SavingsMarketRateResource($this->store->findEloquent($id)),
         ]);
     }
 
