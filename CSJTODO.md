@@ -1,7 +1,62 @@
 # CSJTODO — Fynla
 
-*Last updated: 19 May 2026 — session 6 clear (git tree clean: 12 local + 18 remote merged branches pruned, 2 worktrees + stash removed; stale freemium memory corrected)*
-*Previous session: 19 May 2026 — session 5 clear (Will/POA teaser-gate deployed to prod + dev, verified)*
+*Last updated: 22 May 2026 — session 1 (PR #342 admin-merged to dev; 8b + Pest settled; vault-sync complete)*
+*Previous session: 19 May 2026 — EOD wrap (tech-debt audit run on SP3 diff; 0 critical; handover → May/May20Updates); dev-line up to 19 May session 6 (git cleanup, Will/POA teaser deployed prod)*
+
+---
+
+## Session 1 (22 May 2026) — SP3 merged to dev + outstanding cleanup
+
+**Branch:** `iFrames` (now merged to `dev` via PR #342 mergeCommit `7892418`) · **Tree:** clean · **No PR open**
+
+### Done
+- [x] Auto-resumed from `May/May20Updates/handover-2026-05-20-session-1.md`; found Task 9 already shipped on `11dacce` and PR #342 open-but-CONFLICTING
+- [x] Merged `origin/dev` into `iFrames` (98 commits behind) — 6 conflict files resolved by hand; 113-file PR diff but only 3 code files genuinely overlapped (`Kernel.php`, `router/index.js`, `auth.js`) — all clean
+- [x] Replayed local 800k context-watch tripwire bump on top of dev's 250k
+- [x] **Task 8b reviews complete** (spec-compliance APPROVE, code-quality APPROVE-with-minor); single nit fixed (`853eda2` — unused `getItem` import in `app.js:34`). Auth.js mobileLogout docblock verified NOT stale (handover's earlier framing was incorrect).
+- [x] **Pest 60-vs-15 settled.** Post-merge baseline: 4 failed / 3919 passed / 25 skipped (99.9%). 2× `ProviderSwapLockTest` FIXED this session (`1900e3f` — env-coupling stub); 1× documented `CassetteModelProvenanceTest` C1 still red (see Outstanding); 1 unidentified (compact-mode output rewrote progress).
+- [x] **PR #342 admin-merged** to `dev` (mergeCommit `7892418`, 06:47:39Z) — SP3 full stack now in dev
+- [x] **vault-sync complete** — all overdue carry items delivered: April canonical contract (`00-canonical.md` 3-part-predicate Delta 1), May18 prompt map + delta doc, May19Updates files, May20Updates folder. May Index, Home.md, git history all updated. CLAUDE.md metrics refreshed (`c3c0e50`): Vue 729→664, PHP Services 316→323, Controllers 113→115, Models 112→113, Stores 35→33.
+- [x] **KycGateChecker delta doc-fix verified DONE** — both Delta 1 (3-part dispatch predicate) and Delta 2 (KYC `prompt_text` parity under unified) already shipped 2026-05-18. Repo + vault canonical-spec line 11 confirmed in sync. The "carried doc backlog: KycGateChecker delta doc-fix" line in prior CSJTODO entries was stale.
+
+### Outstanding (CSJ decisions)
+- [ ] **Cassette C1 — `CassetteModelProvenanceTest`** — 11 stranded `.jsonl` cassettes under `tests/Feature/Fyn/Eval/fixtures/xai/grok-4-1-fast-reasoning/` vs configured `grok-4.3`. Re-record path: `php artisan eval:record <scenario> --providers=xai` per scenario × 11 — costs real xai API spend (rough estimate $0.10–$0.55 total). Alternatives: defer / skip the provenance test / delete the dir + lose those eval scenarios. **CSJ decision needed.**
+- [ ] **iFrames branch cleanup** — now merged to `dev`; local + remote `iFrames` branch could be deleted at next git-hygiene pass.
+- [ ] **Unidentified 4th Pest failure** — full --compact run showed `4 failed` but only 3 are identified. Could re-run Pest without `--compact` to capture the 4th if you want it pinned down.
+
+---
+
+## EOD wrap (19 May 2026) — SP3 tech-debt audit + handover
+
+**Branch:** `iFrames` · **Tree:** clean · **HEAD:** `560b4107` · **No new code** (wrap of the day's clear-session work)
+
+### Done
+- [x] Deferred `tech-debt-session` audit run on the 31-file SP3 surface → `tech-debt-report.md` — **0 critical, 2 warnings, 5 suggestions**
+- [x] EOD handover written `May/May20Updates/handover-2026-05-20-session-1.md`; planning-with-files docs updated (Path A)
+
+### Outstanding (new from audit) — RESOLVED 2026-05-22
+- [x] **`/m/app/` trailing-slash frame-header gap** — `SecurityHeaders.php:25` carve-out missed bare `/m/app/`. **Folded into Task 9** (commit `11dacce`) — match-set now includes `m/app/`, Pest assertion added in `MobileScaffoldTest.php`.
+
+---
+
+## Session 1 (19 May 2026) — SP3 mobile-iframe scaffold: build-out (context-clear)
+
+**Branch:** `iFrames` (off `origin/dev`, pushed to `origin/iFrames`) · **Tree:** clean · **HEAD:** `5d293659` · **No PR yet**
+
+### Done
+- [x] SP3 ("Mobile-first iframe scaffold", overhaul item 3): brainstorming (visual companion) → spec → plan, all committed
+  - Spec `docs/superpowers/specs/2026-05-19-sub-project-3-mobile-iframe-scaffold-design.md` (CSJ-approved)
+  - Plan `docs/superpowers/plans/2026-05-19-sub-project-3-mobile-iframe-scaffold.md`
+- [x] Executed via subagent-driven-development (implement → spec-review → code-quality-review → fix loop)
+  - Task 1 isolated mobile Vite build · 2 `/m` host+`/m/app` Blades/routes · 3 scoped SAMEORIGIN frame headers · 4 phone-UA redirect mw · 5 Login/Verify/Dashboard scaffold (critical login-contract bug caught+fixed) · 6 Capacitor repoint · 7 two-env deploy wiring · 8 legacy `resources/js/mobile/` retirement (CSJ-approved scope expansion: OfflineBanner relocated, dead app.js/auth.js refs cleaned) · 8b residual `/m/*` nav cleanup
+  - Build green throughout; SP3's 9 `MobileScaffoldTest` pass; Task 8 15-failure baseline proven pre-existing via stash-compare
+
+### Outstanding / next session
+- [ ] **Re-run Task 8b reviews** (spec + code-quality) — interrupted by `/session-end`. Base `ac9d57f0` → head `5d293659`.
+- [ ] **Resolve Pest 60-vs-15 baseline question** — Task 8b run showed 60 failed vs documented ~15; argued pre-existing DB-ordering/contamination (8b only touched 2 frontend JS files never loaded by Pest). NOT independently re-verified — confirm via stash/isolation before Task 9.
+- [ ] **Task 9** (final SP3 task, tracker #14): Playwright E2E (desktop unchanged / phone→`/m` iframe / login→verify→dashboard real data / `?full=1`); `resources/mobile/README.md`; spec §5.3 cookie→Bearer fix; push; open PR `iFrames` → `dev`.
+- [ ] Non-blocking nits (in plan Task-8 note): unused `getItem` import `app.js`; stale Face-ID docblock `auth.js mobileLogout`.
+- [ ] **No vault on this machine** (`/Users/Chris/Desktop/fynlaBrain` absent) — vault-sync skipped; planning-with-files docs seeded as fallback. Carry to vault when on a machine that has it. (Note 22 May: vault IS present at `/Users/CSJ/Desktop/fynlaBrain` — earlier "absent" check used a stale `/Users/Chris/...` path.)
 
 ---
 

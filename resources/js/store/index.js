@@ -25,8 +25,6 @@ import plans from './modules/plans';
 import taxConfig from './modules/taxConfig';
 import household from './modules/household';
 import journeys from './modules/journeys';
-import mobileDashboard from './modules/mobileDashboard';
-import mobileNotifications from './modules/mobileNotifications';
 import advisor from './modules/advisor';
 import lifeStage from './modules/lifeStage';
 import completeness from './modules/completeness';
@@ -37,6 +35,7 @@ import toast from './modules/toast';
 import insights from './modules/insights';
 import taxStrategy from './modules/taxStrategy';
 import documentArticles from './modules/documentArticles';
+import savingsMarketRates from './modules/savingsMarketRates';
 
 /**
  * Create a storage backend that uses Capacitor Preferences on native
@@ -85,8 +84,6 @@ const store = createStore({
     taxConfig,
     household,
     journeys,
-    mobileDashboard,
-    mobileNotifications,
     advisor,
     lifeStage,
     completeness,
@@ -97,6 +94,7 @@ const store = createStore({
     insights,
     taxStrategy,
     documentArticles,
+    savingsMarketRates,
   },
   plugins: [
     createPersistedState({
@@ -106,8 +104,6 @@ const store = createStore({
         'dashboard',
         'aiChat.conversations',
         'goals.goals',
-        'mobileDashboard',
-        'mobileNotifications.permissionStatus',
       ],
       storage: storageBackend,
     }),

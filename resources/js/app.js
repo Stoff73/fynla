@@ -31,8 +31,7 @@ import { previewDisabled } from './directives/previewDisabled';
 // Import session lifecycle service for security
 import { initSessionLifecycle } from './services/sessionLifecycleService';
 
-import { isNativePlatform, getToken, getItem } from './services/tokenStorage';
-import { initAppLifecycle, attemptBiometricLogin } from './mobile/appLifecycle';
+import { isNativePlatform, getToken } from './services/tokenStorage';
 import logger from './utils/logger';
 import { captureSourceFromUrl } from './utils/sourceCapture';
 
@@ -127,27 +126,6 @@ async function initAndMount() {
     console.error('[App Init] Step 8-ERR: Router failed:', e?.message || e);
   }
 
-  // On native, initialise app lifecycle (background/foreground handling)
-  // and attempt biometric login if no token was restored from storage
-  if (isNativePlatform()) {
-    logger.debug('App Init', 'Step 9: Initialising native app lifecycle');
-    initAppLifecycle(store, router);
-
-    // Auto-login with Face ID if user has previously set it up
-    if (!store.getters['auth/isAuthenticated']) {
-      const biometricFlag = await getItem('biometric_enabled');
-      if (biometricFlag === 'true') {
-        try {
-          const success = await attemptBiometricLogin(store);
-          if (success) {
-            router.push('/m/home');
-          }
-        } catch {
-          // Face ID failed or cancelled — fall through to login screen
-        }
-      }
-    }
-  }
 }
 
 initAndMount().catch(e => {
