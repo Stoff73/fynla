@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActionDefinitionController;
+use App\Http\Controllers\Api\Admin\ActuarialLifeTableController;
 use App\Http\Controllers\Api\Admin\DocumentArticleController;
 use App\Http\Controllers\Api\Admin\EvalRecordingController;
 use App\Http\Controllers\Api\Admin\InsightArticleController;
@@ -1197,6 +1198,12 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
     Route::post('/savings-market-rates', [SavingsMarketRateController::class, 'store']);
     Route::patch('/savings-market-rates/{id}', [SavingsMarketRateController::class, 'update']);
     Route::delete('/savings-market-rates/{id}', [SavingsMarketRateController::class, 'destroy']);
+
+    // SP1 Pass 2 R3: Actuarial life tables admin CRUD — reads/writes ActuarialLifeTableStore
+    Route::get('/actuarial-life-tables', [ActuarialLifeTableController::class, 'index']);
+    Route::post('/actuarial-life-tables', [ActuarialLifeTableController::class, 'store']);
+    Route::patch('/actuarial-life-tables/{id}', [ActuarialLifeTableController::class, 'update']);
+    Route::delete('/actuarial-life-tables/{id}', [ActuarialLifeTableController::class, 'destroy']);
 });
 
 // Admin Insights CMS
