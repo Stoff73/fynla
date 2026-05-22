@@ -1,7 +1,50 @@
 # CSJTODO — Fynla
 
-*Last updated: 22 May 2026 — session 1 clear (tripwire @ 923k; SP1 Pass 2 R4 track COMPLETE on dev; csjones deploy pending)*
-*Previous session: 22 May 2026 (same day, single arc — SP3 fallout + csjones deploy + SP1 Pass 2 plan + R4 track all on this one session)*
+*Last updated: 22 May 2026 — session 2 clear (SP1 Pass 2 R3 + R2 tracks both COMPLETE on dev; csjones R2 deploy pending)*
+*Previous session: 22 May 2026 session 1 (SP3 fallout + R4 track)*
+
+---
+
+## Session 2 (22 May 2026) — context-clear after SP1 Pass 2 R3 + R2 tracks both complete
+
+**Branch:** `dev` (at `e2bb243`) · **Tree:** clean · **10 PRs merged this session** (#354 → #363) · **23 PRs merged today total** (#342 → #363 with a gap at #353)
+
+### Done — csjones deploys
+- [x] csjones deploy of yesterday's SP1 Pass 2 R4 work — built locally, scp'd `public/build` + `public/m-build`, `git pull origin dev`, cache clears + composer dump-autoload + optimize. Smoke green (root 200, R4 admin endpoint 401, phone-UA → `/fynla/m` 302)
+- [x] csjones redeploy mid-session with R3 included — `php artisan migrate --force` (none needed for R3), cache clears. Smoke green (R3 admin endpoint `/api/admin/actuarial-life-tables` 401, all earlier endpoints still 200)
+
+### Done — SP1 Pass 2 R3 track (ActuarialLifeTable, 5 PRs inline)
+- [x] **#354 R3.1** — `ActuarialLifeTableStore` facade + arch boundary + `forCohort()` read API
+- [x] **#355 R3.2** — admin CRUD + Vue panel + factory; new "Life Tables" tab in AdminPanel; FormRequest::authorize()=true (defers to permission:admin.access)
+- [x] **#356 R3.3** — TrustService / FutureValueCalculator / ComprehensiveEstatePlanService all migrated to `$store->forCohort()` — Estate consumers no longer import the model
+- [x] **#357 R3.4** — `ActuarialLifeTablesSeeder` writes via store with `IngestSource::SEEDER`
+- [x] **#358 R3.5** — Boundary LOCKED. Allowlist = `[Store, Factory]` only
+
+### Done — SP1 Pass 2 R2 track (CurrencyRate, 5 PRs inline, greenfield)
+- [x] **#359 R2.1** — `currency_rates` migration + `CurrencyRate` model + factory + seeder (direct-write per plan; migrated to store in R2.4)
+- [x] **#360 R2.2** — `CurrencyRateStore` + arch boundary. Read API: `latestFor()` / `convert()` / `historical()` / `findByPairAndEffectiveAt()`
+- [x] **#361 R2.3** — admin CRUD + Vue panel; AdminPanel "Currency Rates" tab; DATETIME canonicalisation in store::read() (Carbon ISO-8601 round-trip fix)
+- [x] **#362 R2.4** — `CurrencyRatesSeeder` writes via store with `IngestSource::SEEDER`
+- [x] **#363 R2.5** — Boundary LOCKED. Allowlist = `[Store, Factory]` only
+
+### Done — wrap
+- [x] vault-sync ran (was overdue from session 1's tripwire). 47 commits captured for 2026-05-22; May commits now 502 in vault git history. Frontmatter added to 5 May19 patch-notes files.
+- [x] `May/May22Updates/deploy-2026-05-22-r3-r2.md` — full csjones deploy procedure for R2 (NOT YET DEPLOYED).
+- [x] planning-with-files updated (progress + findings + task_plan)
+
+### Outstanding (CSJ decisions / next session)
+- [ ] **csjones deploy of R2** — see `May/May22Updates/deploy-2026-05-22-r3-r2.md`. Migration step is new and important: `php artisan migrate --force` creates the `currency_rates` table; `db:seed --class=CurrencyRatesSeeder --force` seeds 4 GBP-base rates.
+- [ ] **PR R1.0 (B2 audit) — browser-interactive, deferred** — needs CSJ at a browser to verify TaxSettings.vue round-trips
+- [ ] **R1.1–R1.6 inline** — could potentially run R1.1–R1.6 ahead of R1.0 depending on plan-vs-reality findings; or wait until R1.0 is unblocked
+- [ ] **Final pass-wide review + finishing-a-development-branch** — 2 of 9 remaining items
+- [ ] **CLAUDE.md metrics refresh** — drift surfaced by vault-sync: Vue 664→667, Services 323→330, Controllers 115→118, Models 113→114, Stores 33→36
+- [ ] **Tech-debt-session** — skipped this session (context budget). Run after R1 to catch cross-track drift.
+- [ ] **Cassette C1** — still deferred (no progress this session)
+- [ ] **Unidentified 4th Pest failure** — still uninvestigated (no progress this session)
+
+### Pass-wide status (SP1 Pass 2 = 26 PRs)
+- **17 of 26 shipped** (PR 0 + plan doc + R4 × 5 + R3 × 5 + R2 × 5)
+- **9 remaining**: R1.0–R1.6 + final review + finishing-a-development-branch
 
 ---
 
