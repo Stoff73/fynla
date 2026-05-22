@@ -33,6 +33,13 @@ beforeEach(function () {
     for ($v = 1; $v <= 10; $v++) {
         Cache::forget("ai_provider:v{$v}");
     }
+
+    // AdminController::setAiProvider 422s when the target provider's API key
+    // is empty in config — that's correct production behaviour but couples
+    // these tests to the local .env. Stub both keys so the test deterministically
+    // exercises the version-bump lock, not the env wiring.
+    config()->set('services.anthropic.api_key', 'test-stub-anthropic');
+    config()->set('services.xai.api_key', 'test-stub-xai');
 });
 
 function callGetAiProviderForLoop(): string

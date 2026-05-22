@@ -1,7 +1,28 @@
 # CSJTODO — Fynla
 
-*Last updated: 22 May 2026 — session-start (merged origin/dev into iFrames; PR #342 conflict-clean)*
+*Last updated: 22 May 2026 — session 1 (PR #342 admin-merged to dev; 8b + Pest settled; vault-sync complete)*
 *Previous session: 19 May 2026 — EOD wrap (tech-debt audit run on SP3 diff; 0 critical; handover → May/May20Updates); dev-line up to 19 May session 6 (git cleanup, Will/POA teaser deployed prod)*
+
+---
+
+## Session 1 (22 May 2026) — SP3 merged to dev + outstanding cleanup
+
+**Branch:** `iFrames` (now merged to `dev` via PR #342 mergeCommit `7892418`) · **Tree:** clean · **No PR open**
+
+### Done
+- [x] Auto-resumed from `May/May20Updates/handover-2026-05-20-session-1.md`; found Task 9 already shipped on `11dacce` and PR #342 open-but-CONFLICTING
+- [x] Merged `origin/dev` into `iFrames` (98 commits behind) — 6 conflict files resolved by hand; 113-file PR diff but only 3 code files genuinely overlapped (`Kernel.php`, `router/index.js`, `auth.js`) — all clean
+- [x] Replayed local 800k context-watch tripwire bump on top of dev's 250k
+- [x] **Task 8b reviews complete** (spec-compliance APPROVE, code-quality APPROVE-with-minor); single nit fixed (`853eda2` — unused `getItem` import in `app.js:34`). Auth.js mobileLogout docblock verified NOT stale (handover's earlier framing was incorrect).
+- [x] **Pest 60-vs-15 settled.** Post-merge baseline: 4 failed / 3919 passed / 25 skipped (99.9%). 2× `ProviderSwapLockTest` FIXED this session (`1900e3f` — env-coupling stub); 1× documented `CassetteModelProvenanceTest` C1 still red (see Outstanding); 1 unidentified (compact-mode output rewrote progress).
+- [x] **PR #342 admin-merged** to `dev` (mergeCommit `7892418`, 06:47:39Z) — SP3 full stack now in dev
+- [x] **vault-sync complete** — all overdue carry items delivered: April canonical contract (`00-canonical.md` 3-part-predicate Delta 1), May18 prompt map + delta doc, May19Updates files, May20Updates folder. May Index, Home.md, git history all updated. CLAUDE.md metrics refreshed (`c3c0e50`): Vue 729→664, PHP Services 316→323, Controllers 113→115, Models 112→113, Stores 35→33.
+- [x] **KycGateChecker delta doc-fix verified DONE** — both Delta 1 (3-part dispatch predicate) and Delta 2 (KYC `prompt_text` parity under unified) already shipped 2026-05-18. Repo + vault canonical-spec line 11 confirmed in sync. The "carried doc backlog: KycGateChecker delta doc-fix" line in prior CSJTODO entries was stale.
+
+### Outstanding (CSJ decisions)
+- [ ] **Cassette C1 — `CassetteModelProvenanceTest`** — 11 stranded `.jsonl` cassettes under `tests/Feature/Fyn/Eval/fixtures/xai/grok-4-1-fast-reasoning/` vs configured `grok-4.3`. Re-record path: `php artisan eval:record <scenario> --providers=xai` per scenario × 11 — costs real xai API spend (rough estimate $0.10–$0.55 total). Alternatives: defer / skip the provenance test / delete the dir + lose those eval scenarios. **CSJ decision needed.**
+- [ ] **iFrames branch cleanup** — now merged to `dev`; local + remote `iFrames` branch could be deleted at next git-hygiene pass.
+- [ ] **Unidentified 4th Pest failure** — full --compact run showed `4 failed` but only 3 are identified. Could re-run Pest without `--compact` to capture the 4th if you want it pinned down.
 
 ---
 
@@ -13,8 +34,8 @@
 - [x] Deferred `tech-debt-session` audit run on the 31-file SP3 surface → `tech-debt-report.md` — **0 critical, 2 warnings, 5 suggestions**
 - [x] EOD handover written `May/May20Updates/handover-2026-05-20-session-1.md`; planning-with-files docs updated (Path A)
 
-### Outstanding (new from audit)
-- [ ] **`/m/app/` trailing-slash frame-header gap** — `SecurityHeaders.php:25` carve-out misses bare `/m/app/`; refresh there can fall through to `DENY`. One-line match-set fix + Pest assertion — **fold into Task 9**.
+### Outstanding (new from audit) — RESOLVED 2026-05-22
+- [x] **`/m/app/` trailing-slash frame-header gap** — `SecurityHeaders.php:25` carve-out missed bare `/m/app/`. **Folded into Task 9** (commit `11dacce`) — match-set now includes `m/app/`, Pest assertion added in `MobileScaffoldTest.php`.
 
 ---
 
