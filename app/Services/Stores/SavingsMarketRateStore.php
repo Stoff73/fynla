@@ -69,6 +69,18 @@ class SavingsMarketRateStore extends ReferenceDataStore
         return SavingsMarketRate::where('tax_year', $taxYear)->get();
     }
 
+    /**
+     * Find a rate by its composite identity (rate_key, tax_year).
+     * Used by the seeder for upsert lookups and by admin reads that need
+     * the canonical row without scanning a full tax_year set.
+     */
+    public function findByKeyAndTaxYear(string $rateKey, string $taxYear): ?SavingsMarketRate
+    {
+        return SavingsMarketRate::where('rate_key', $rateKey)
+            ->where('tax_year', $taxYear)
+            ->first();
+    }
+
     // ── Abstract base overrides ───────────────────────────────────────────────
 
     protected function persist(array $canonical, ?int $id = null): int
