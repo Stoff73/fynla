@@ -7,36 +7,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaxConfigurationRequest;
 use App\Http\Traits\SanitizedErrorResponse;
-use App\Models\TaxConfiguration;
-use App\Models\TaxConfigurationAudit;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\TaxConfigStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TaxSettingsController extends Controller
 {
     use SanitizedErrorResponse;
 
-    /**
-     * Log an audit record for a tax configuration change
-     */
-    private function logAudit(
-        TaxConfiguration $config,
-        string $changeType,
-        ?array $beforeState = null,
-        ?string $rationale = null
-    ): void {
-        TaxConfigurationAudit::log(
-            $config,
-            $changeType,
-            $beforeState,
-            auth()->id(),
-            $rationale,
-            request()->ip()
-        );
-    }
+    public function __construct(
+        private readonly TaxConfigStore $store,
+    ) {}
 
     /**
      * Get current active tax configuration
@@ -44,7 +29,7 @@ class TaxSettingsController extends Controller
     public function getCurrent(): JsonResponse
     {
         try {
-            $config = TaxConfiguration::where('is_active', true)->first();
+            $config = $this->store->all()->firstWhere('is_active', true);
 
             if (! $config) {
                 return response()->json([
@@ -62,7 +47,6 @@ class TaxSettingsController extends Controller
                 'is_active' => $config->is_active,
             ];
 
-            // Merge config_data fields into response
             if ($config->config_data && is_array($config->config_data)) {
                 $response = array_merge($response, $config->config_data);
             }
@@ -82,11 +66,9 @@ class TaxSettingsController extends Controller
     public function getAll(): JsonResponse
     {
         try {
-            $configs = TaxConfiguration::orderBy('effective_from', 'desc')->get();
-
             return response()->json([
                 'success' => true,
-                'data' => $configs,
+                'data' => $this->store->all(),
             ]);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to fetch tax configurations', $e);
@@ -98,9 +80,7 @@ class TaxSettingsController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $config = TaxConfiguration::find($id);
-
-        if (! $config) {
+        if (! $this->store->findEloquent($id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tax configuration not found',
@@ -116,44 +96,42 @@ class TaxSettingsController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($config, $request) {
-                // Capture before state for audit
-                $beforeState = $config->config_data;
+            $payload = $request->only(['tax_year', 'effective_from', 'effective_to', 'config_data']);
+            $activateAfter = $request->boolean('is_active');
 
-                if ($request->has('tax_year')) {
-                    $config->tax_year = $request->tax_year;
-                }
-                if ($request->has('effective_from')) {
-                    $config->effective_from = $request->effective_from;
-                }
-                if ($request->has('effective_to')) {
-                    $config->effective_to = $request->effective_to;
-                }
-                if ($request->has('config_data')) {
-                    $config->config_data = $request->config_data;
-                }
-                if ($request->has('is_active') && $request->is_active) {
-                    // Deactivate all others first
-                    TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
-                    $config->is_active = true;
-                }
-
-                $config->save();
-
-                // Log audit
-                $this->logAudit(
-                    $config,
-                    'updated',
-                    $beforeState,
-                    $request->input('rationale')
+            if ($payload) {
+                $this->store->update(
+                    $id,
+                    $payload,
+                    IngestSource::ADMIN,
+                    auth()->id(),
+                    $request->input('rationale'),
+                    $request->ip(),
                 );
+            }
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Tax configuration updated successfully',
-                    'data' => $config,
-                ]);
-            });
+            if ($activateAfter) {
+                $this->store->setActive(
+                    $id,
+                    IngestSource::ADMIN,
+                    auth()->id(),
+                    $request->input('rationale'),
+                    $request->ip(),
+                );
+                $this->flushAgentCaches();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tax configuration updated successfully',
+                'data' => $this->store->findEloquent($id),
+            ]);
+        } catch (StoreValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors,
+            ], 422);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to update tax configuration', $e);
         }
@@ -165,34 +143,36 @@ class TaxSettingsController extends Controller
     public function create(StoreTaxConfigurationRequest $request): JsonResponse
     {
         try {
-            return DB::transaction(function () use ($request) {
-                // If setting as active, deactivate all others
-                if ($request->is_active) {
-                    TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
-                }
+            $id = $this->store->create(
+                $request->validated(),
+                IngestSource::ADMIN,
+                auth()->id(),
+                $request->input('rationale'),
+                $request->ip(),
+            );
 
-                $config = TaxConfiguration::create([
-                    'tax_year' => $request->tax_year,
-                    'effective_from' => $request->effective_from,
-                    'effective_to' => $request->effective_to,
-                    'config_data' => $request->config_data,
-                    'is_active' => $request->is_active ?? false,
-                ]);
-
-                // Log audit
-                $this->logAudit(
-                    $config,
-                    'created',
-                    null,
-                    $request->input('rationale')
+            if ($request->boolean('is_active')) {
+                $this->store->setActive(
+                    $id,
+                    IngestSource::ADMIN,
+                    auth()->id(),
+                    $request->input('rationale'),
+                    $request->ip(),
                 );
+                $this->flushAgentCaches();
+            }
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Tax configuration created successfully',
-                    'data' => $config,
-                ], 201);
-            });
+            return response()->json([
+                'success' => true,
+                'message' => 'Tax configuration created successfully',
+                'data' => $this->store->findEloquent($id),
+            ], 201);
+        } catch (StoreValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors,
+            ], 422);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to create tax configuration', $e);
         }
@@ -203,9 +183,7 @@ class TaxSettingsController extends Controller
      */
     public function setActive(Request $request, int $id): JsonResponse
     {
-        $config = TaxConfiguration::find($id);
-
-        if (! $config) {
+        if (! $this->store->findEloquent($id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tax configuration not found',
@@ -213,52 +191,34 @@ class TaxSettingsController extends Controller
         }
 
         try {
-            $result = DB::transaction(function () use ($config, $request) {
-                // Log deactivation of current active config
-                $currentActive = TaxConfiguration::where('is_active', true)->first();
-                if ($currentActive && $currentActive->id !== $config->id) {
-                    $currentActive->is_active = false;
-                    $currentActive->save();
-                    $this->logAudit($currentActive, 'deactivated');
-                }
+            $this->store->setActive(
+                $id,
+                IngestSource::ADMIN,
+                auth()->id(),
+                $request->input('rationale'),
+                $request->ip(),
+            );
 
-                // Deactivate all others
-                TaxConfiguration::where('is_active', true)
-                    ->where('id', '!=', $config->id)
-                    ->update(['is_active' => false]);
+            $this->flushAgentCaches();
 
-                // Activate this one
-                $config->is_active = true;
-                $config->save();
-
-                // Log activation
-                $this->logAudit(
-                    $config,
-                    'activated',
-                    null,
-                    $request->input('rationale')
-                );
-
-                return $config;
-            });
-
-            // Flush cached analyses so every user sees the new tax year immediately.
-            // Agents cache per-user analysis results keyed as v1_{agent}_{userId}_{suffix};
-            // those results embed tax rates (dividend, BADR, APR/BPR, etc.) that change
-            // when the active year changes. This is an admin-only, rare operation.
-            Cache::flush();
-
+            $config = $this->store->findEloquent($id);
             Log::info('Tax configuration activated — caches flushed', [
-                'tax_year' => $result->tax_year,
-                'config_id' => $result->id,
+                'tax_year' => $config?->tax_year,
+                'config_id' => $id,
                 'admin_user_id' => auth()->id(),
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Tax configuration activated successfully',
-                'data' => $result,
+                'data' => $config,
             ]);
+        } catch (StoreValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors,
+            ], 422);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to activate tax configuration', $e);
         }
@@ -358,9 +318,7 @@ class TaxSettingsController extends Controller
      */
     public function duplicate(Request $request, int $id): JsonResponse
     {
-        $source = TaxConfiguration::find($id);
-
-        if (! $source) {
+        if (! $this->store->findEloquent($id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Source tax configuration not found',
@@ -374,30 +332,27 @@ class TaxSettingsController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($source, $request) {
-                // Create duplicate with new dates and tax year
-                $duplicate = TaxConfiguration::create([
-                    'tax_year' => $request->new_tax_year,
-                    'effective_from' => $request->effective_from,
-                    'effective_to' => $request->effective_to,
-                    'config_data' => $source->config_data, // Copy all tax values
-                    'is_active' => false, // New config starts as inactive
-                ]);
+            $newId = $this->store->duplicate(
+                $id,
+                $request->input('new_tax_year'),
+                $request->input('effective_from'),
+                $request->input('effective_to'),
+                IngestSource::ADMIN,
+                auth()->id(),
+                $request->ip(),
+            );
 
-                // Log audit
-                $this->logAudit(
-                    $duplicate,
-                    'duplicated',
-                    null,
-                    "Duplicated from tax year {$source->tax_year}"
-                );
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Tax configuration duplicated successfully',
-                    'data' => $duplicate,
-                ], 201);
-            });
+            return response()->json([
+                'success' => true,
+                'message' => 'Tax configuration duplicated successfully',
+                'data' => $this->store->findEloquent($newId),
+            ], 201);
+        } catch (StoreValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors,
+            ], 422);
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to duplicate tax configuration', $e);
         }
@@ -408,7 +363,7 @@ class TaxSettingsController extends Controller
      */
     public function delete(int $id): JsonResponse
     {
-        $config = TaxConfiguration::find($id);
+        $config = $this->store->findEloquent($id);
 
         if (! $config) {
             return response()->json([
@@ -417,7 +372,6 @@ class TaxSettingsController extends Controller
             ], 404);
         }
 
-        // Prevent deletion of active tax year
         if ($config->is_active) {
             return response()->json([
                 'success' => false,
@@ -426,7 +380,13 @@ class TaxSettingsController extends Controller
         }
 
         try {
-            $config->delete();
+            $this->store->delete(
+                $id,
+                IngestSource::ADMIN,
+                auth()->id(),
+                request()->input('rationale'),
+                request()->ip(),
+            );
 
             return response()->json([
                 'success' => true,
@@ -435,5 +395,15 @@ class TaxSettingsController extends Controller
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to delete tax configuration', $e);
         }
+    }
+
+    /**
+     * Flush agent-cached analyses. Tax-config changes alter dividend / BADR /
+     * APR / BPR / IHT rates which are embedded in cached per-user analyses
+     * keyed v1_{agent}_{userId}_{suffix}. This is an admin-only, rare operation.
+     */
+    private function flushAgentCaches(): void
+    {
+        Cache::flush();
     }
 }

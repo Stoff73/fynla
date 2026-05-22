@@ -128,6 +128,9 @@ class TaxConfigStore extends ReferenceDataStore
     /**
      * Create a new (inactive) configuration by copying the config_data of an
      * existing one. The new row gets caller-supplied tax_year / effective dates.
+     *
+     * Writes a TaxConfigurationAudit row with change_type='duplicated' (not
+     * 'created') so audit history preserves the semantic action.
      */
     public function duplicate(
         int $sourceId,
@@ -143,22 +146,23 @@ class TaxConfigStore extends ReferenceDataStore
             throw new StoreValidationException(['source_id' => 'tax configuration not found']);
         }
 
+        $canonical = $this->normaliser->fromAdmin([
+            'tax_year' => $newTaxYear,
+            'effective_from' => $effectiveFrom,
+            'effective_to' => $effectiveTo,
+            'config_data' => $existing['config_data'],
+            'is_active' => false,
+            'notes' => "Duplicated from {$existing['tax_year']}",
+        ]);
+
         $rationale = "Duplicated from tax year {$existing['tax_year']}";
 
-        return $this->create(
-            [
-                'tax_year' => $newTaxYear,
-                'effective_from' => $effectiveFrom,
-                'effective_to' => $effectiveTo,
-                'config_data' => $existing['config_data'],
-                'is_active' => false,
-                'notes' => "Duplicated from {$existing['tax_year']}",
-            ],
-            $source,
-            $actorUserId,
-            $rationale,
-            $ipAddress,
-        );
+        return DB::transaction(function () use ($canonical, $source, $actorUserId, $rationale, $ipAddress) {
+            $id = parent::create($canonical, $source, $actorUserId);
+            $this->writeAudit($id, 'duplicated', null, $actorUserId, $rationale, $ipAddress);
+
+            return $id;
+        });
     }
 
     /**

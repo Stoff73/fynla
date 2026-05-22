@@ -193,7 +193,7 @@ describe('TaxConfigStore::duplicate', function () {
 
         $audit = TaxConfigurationAudit::where('tax_configuration_id', $newId)->first();
         expect($audit)->not->toBeNull()
-            ->and($audit->change_type)->toBe('created')
+            ->and($audit->change_type)->toBe('duplicated')
             ->and($audit->rationale)->toContain('2026/27');
     });
 
