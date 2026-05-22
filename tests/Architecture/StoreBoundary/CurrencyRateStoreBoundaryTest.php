@@ -6,20 +6,19 @@ declare(strict_types=1);
  * SP1 Pass 2, R2: only CurrencyRateStore (and explicitly allowlisted call sites)
  * may mutate the CurrencyRate model. Hard CI failure per spec §14.1.
  *
- * Allowlist for this PR (will shrink as subsequent PRs migrate each site):
+ * Allowlist for this PR (final R2 lock-down):
  *   - App\Services\Stores\CurrencyRateStore (the store itself)
- *   - App\Http\Controllers\Api\Admin\CurrencyRateController (R2.3;
- *     reads via $store->findEloquent(), never touches model directly to mutate)
  *   - Database\Factories\CurrencyRateFactory (test fixtures only — spec §14.2 permanent allowlist)
- *   - Database\Seeders\CurrencyRatesSeeder (migrates to the store in PR R2.4)
  *
- * R2.5 will lock down to [Store, Factory] only.
+ * CurrencyRatesSeeder removed in PR R2.4 (now writes via $store->create/update with IngestSource::SEEDER).
+ * CurrencyRateController removed in PR R2.5 (reads return models via $store->findEloquent() — the controller never imports the model directly).
+ *
+ * R2 boundary is now LOCKED. Adding a new direct-model consumer requires adding it
+ * to this allowlist with justification, or routing through the store (preferred).
  */
 arch('only CurrencyRateStore mutates CurrencyRate')
     ->expect('App\Models\CurrencyRate')
     ->toOnlyBeUsedIn([
         'App\Services\Stores\CurrencyRateStore',
-        'App\Http\Controllers\Api\Admin\CurrencyRateController',
         'Database\Factories\CurrencyRateFactory',
-        'Database\Seeders\CurrencyRatesSeeder',
     ]);
