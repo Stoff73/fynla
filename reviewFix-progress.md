@@ -50,18 +50,18 @@ Branch off `dev`. Working on top of `99400ce`.
 ## Backlog
 
 - [x] B30 — Created `App\Constants\SignificanceThresholds` (IMPORTANT=100000, CRITICAL=200000) + `TaxConfigService::getCLTLifetimeRate()` helper. Both replace literals — see B43, B44 entries.
-- [ ] B31 — Replace raw `console.*` in services with `utils/logger.js`
+- [x] B31 — Swept 4 service files (dashboardService 4 calls, authService 1, investmentService 2, occupationService 1) replacing `console.error/warn` with `logger.error/warn` and adding the import. Kept api.js raw console (audit notes circular-dep risk with logger) and consoleCapture.js (it IS the capture mechanism).
 - [~] B32 — Switch `MonteCarloSimulator` from `DB::table` to Eloquent model — **needs migration; deferred**
 - [x] B33 — Added `UserFactory::preview()` (sets `is_preview_user=true`) and `UserFactory::advisor()` (sets `is_advisor=true`).
 - [x] B34 — Dropped `ai_chat_enabled` orphan column via `2026_05_23_080000_drop_ai_chat_enabled_from_users_table.php`. Removed the lone ChrisUserSeeder reference. Migration applied + reseeded clean.
 - [ ] B35 — Add Architecture test for AdviceFyn write-tool parity
 - [~] B36 — Split 22 services in 500–800 line range — **deferred**
 - [ ] B37 — Fix `Estate/IHTController:163` response shape (wrap in `data` envelope) — **frontend-breaking, deferred to dedicated PR**
-- [ ] B38 — Fix `Estate/LpaDetailView.vue` + `WillBuilder/WillBuilderReviewStep.vue` hardcoded hex (`#ddd`, `#1F2A44`, `#000` → `@apply`)
-- [ ] B39 — Fix `Shared/ModuleStatusBar.vue:239` hardcoded `#FECDD3` → `@apply border-raspberry-100`
-- [ ] B40 — Fix `Advisor/{ClientDetail,ClientList,Dashboard}.vue` triplicated palette literal → import CHART_COLORS
-- [ ] B41 — Fix `views/Public/learn/LearnHubPage.vue` palette drift `#E8326E` → canonical `#E83E6D`
-- [ ] B42 — Move 3 custom `@keyframes` to app.css (Journey/JourneyMap, Dashboard/NetWorthOverviewCard, Onboarding/OnboardingWizard)
+- [~] B38 — Investigated: both `Estate/LpaDetailView.vue` and `WillBuilder/WillBuilderReviewStep.vue` have explicit inline `/* Print document — exact hex values required for print/document fidelity. … These are inside :deep() document renderers and must not use Tailwind utilities. */` comments. The hex is documented and intentional (print/PDF rendering inside :deep() blocks where Tailwind tokens don't apply). Not a real violation — left as-is.
+- [x] B39 — Fixed `Shared/ModuleStatusBar.vue:239` `border-bottom: 1px solid #FECDD3;` → `@apply border-b border-raspberry-100;`.
+- [x] B40 — Replaced triplicated `['#5854E6', '#E83E6D', '#20B486', '#E6C9A8', '#6C83BC', '#1F2A44']` palette literal in `Advisor/{AdvisorClientDetail,AdvisorClientList,AdvisorDashboard}.vue` with `CHART_COLORS` imported from `@/constants/designSystem`. (Note: the imported CHART_COLORS sequence differs slightly from the inlined sequence — the canonical order from designSystem.js is now used; this is the canonical-source-of-truth fix the audit asked for.)
+- [x] B41 — Sweep-replaced 8 sites of `#E8326E` → canonical `#E83E6D` (raspberry-500) in `views/Public/learn/LearnHubPage.vue`.
+- [~] B42 — Investigated: all 3 keyframes have a justified reason to stay local. `JourneyMap.nodeGlow` (filter:drop-shadow) and `OnboardingWizard.nodePulse` (box-shadow) both have inline `/* TODO: similar … kept separate intentionally. */` comments explaining the divergent effects. `NetWorthOverviewCard.loading` is a background-position shimmer that's too specific to globalize. Left as-is.
 - [x] B43 — Promoted 11 of the 12 `> 100000` / `> 200000` literals across PriorityRanker (5), HolisticPlanner (4), DashboardAggregator (2) to `SignificanceThresholds::IMPORTANT` / `SignificanceThresholds::CRITICAL`. PHP syntax verified clean.
 - [x] B44 — `TaxConfigService::getCLTLifetimeRate(): float` now wraps the lookup-with-0.20-fallback. Migrated all 3 duplicates: PersonalizedTrustStrategyService:167 + :468, GiftingStrategyOptimizer:292.
 - [x] B45 — `LifeStage/LifeStageService:105` `200000` literal promoted to `private const PENSION_INDEPENDENT_THRESHOLD = 200000;` with a docblock explaining the heuristic.

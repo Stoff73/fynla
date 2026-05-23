@@ -1,4 +1,5 @@
 import api from './api';
+import logger from '@/utils/logger';
 import { getTokenSync, setToken as storageSetToken, removeToken } from './tokenStorage';
 
 const authService = {
@@ -44,7 +45,7 @@ const authService = {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.error('Logout API error:', error);
+      logger.error('authService', 'Logout API error:', error);
     } finally {
       await this.clearAuth();
     }

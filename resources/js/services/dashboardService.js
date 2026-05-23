@@ -1,4 +1,5 @@
 import api from './api';
+import logger from '@/utils/logger';
 
 const API_BASE_URL = '/api/dashboard';
 
@@ -17,7 +18,7 @@ const dashboardService = {
             const response = await api.get(API_BASE_URL);
             return response.data;
         } catch (error) {
-            console.error('Failed to fetch dashboard data:', error);
+            logger.error('dashboardService', 'Failed to fetch dashboard data:', error);
             throw error;
         }
     },
@@ -31,7 +32,7 @@ const dashboardService = {
             const response = await api.get(`${API_BASE_URL}/alerts`);
             return response.data;
         } catch (error) {
-            console.error('Failed to fetch alerts:', error);
+            logger.error('dashboardService', 'Failed to fetch alerts:', error);
             throw error;
         }
     },
@@ -46,7 +47,7 @@ const dashboardService = {
             const response = await api.post(`${API_BASE_URL}/alerts/${alertId}/dismiss`);
             return response.data;
         } catch (error) {
-            console.error('Failed to dismiss alert:', error);
+            logger.error('dashboardService', 'Failed to dismiss alert:', error);
             throw error;
         }
     },
@@ -74,7 +75,7 @@ const dashboardService = {
                 },
             };
         } catch (error) {
-            console.error('Failed to fetch all dashboard data:', error);
+            logger.error('dashboardService', 'Failed to fetch all dashboard data:', error);
             throw error;
         }
     },
