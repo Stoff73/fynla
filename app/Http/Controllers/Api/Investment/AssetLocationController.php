@@ -244,22 +244,24 @@ class AssetLocationController extends Controller
      */
     private function buildDefaultTaxProfile($user): array
     {
-        $annualIncome = $user->gross_annual_income ?? 50000;
+        // gross_annual_income may legitimately be 0 for non-earners — only the
+        // tax-config lookups must be present. Income is a profile field, not tax data.
+        $annualIncome = $user->gross_annual_income ?? 0;
         $age = $user->date_of_birth
             ? Carbon::parse($user->date_of_birth)->age
             : 45;
 
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
+        $higherRateThreshold = $this->requireTaxValue($incomeTax['bands'][0]['upper_limit'] ?? null, 'income_tax.bands.0.upper_limit');
 
-        $isaAllowance = $this->taxConfig->getISAAllowances()['annual_allowance'] ?? 20000;
-        $retirementAge = (int) $this->taxConfig->get('pension.state_pension.current_spa', 66);
-        $expectedReturn = (float) $this->taxConfig->get('assumptions.investment_growth.balanced_portfolio', 0.04);
-        $basicRate = (float) $this->taxConfig->get('income_tax.bands.0.rate', 0.20);
+        $isaAllowance = $this->requireTaxValue($this->taxConfig->getISAAllowances()['annual_allowance'] ?? null, 'isa.annual_allowance');
+        $retirementAge = (int) $this->requireTaxValue($this->taxConfig->get('pension.state_pension.current_spa'), 'pension.state_pension.current_spa');
+        $expectedReturn = (float) $this->requireTaxValue($this->taxConfig->get('assumptions.investment_growth.balanced_portfolio'), 'assumptions.investment_growth.balanced_portfolio');
+        $basicRate = (float) $this->requireTaxValue($this->taxConfig->get('income_tax.bands.0.rate'), 'income_tax.bands.0.rate');
 
         return [
             'annual_income' => $annualIncome,
-            'income_tax_rate' => $this->calculateIncomeTaxRate($annualIncome),
+            'income_tax_rate' => $this->calculateIncomeTaxRate((float) $annualIncome),
             'cgt_rate' => $annualIncome <= $higherRateThreshold ? 0.10 : 0.20,
             'isa_allowance_remaining' => $isaAllowance,
             'cgt_allowance_used' => 0,
@@ -281,9 +283,9 @@ class AssetLocationController extends Controller
     private function calculateIncomeTaxRate(float $income): float
     {
         $incomeTax = $this->taxConfig->getIncomeTax();
-        $personalAllowance = (float) ($incomeTax['personal_allowance'] ?? 12570);
-        $higherRateThreshold = (float) ($incomeTax['bands'][0]['upper_limit'] ?? 50270);
-        $additionalRateThreshold = (float) ($incomeTax['bands'][1]['upper_limit'] ?? 125140);
+        $personalAllowance = (float) $this->requireTaxValue($incomeTax['personal_allowance'] ?? null, 'income_tax.personal_allowance');
+        $higherRateThreshold = (float) $this->requireTaxValue($incomeTax['bands'][0]['upper_limit'] ?? null, 'income_tax.bands.0.upper_limit');
+        $additionalRateThreshold = (float) $this->requireTaxValue($incomeTax['bands'][1]['upper_limit'] ?? null, 'income_tax.bands.1.upper_limit');
 
         if ($income <= $personalAllowance) {
             return 0.0;
@@ -294,5 +296,23 @@ class AssetLocationController extends Controller
         } else {
             return 0.45;
         }
+    }
+
+    /**
+     * Fail loud rather than silently substituting a stale 2026/27 default when
+     * TaxConfigService is missing a value. A missing tax constant indicates a
+     * broken active TaxConfiguration row — surfacing it is safer than running
+     * the calculation against a hardcoded magic number that goes out of date
+     * with every Budget.
+     */
+    private function requireTaxValue(mixed $value, string $key): mixed
+    {
+        if ($value === null) {
+            throw new \RuntimeException(
+                "TaxConfigService missing required key '{$key}' — check the active TaxConfiguration row for the current tax year."
+            );
+        }
+
+        return $value;
     }
 }

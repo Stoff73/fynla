@@ -25,15 +25,15 @@ Branch off `dev`. Working on top of `99400ce`.
 ## Short-term (Critical UI / Convention)
 
 - [ ] S11 — Strip 9 Rule #13 score badges in Investment surfaces (RiskAnalysisSection, FeeAnalysisSection, TaxStrategySection, AssetLocationOptimizer, AccountRebalancingPanel, DiversificationTab, PortfolioStrategyPanel, TaxOptimizationOverview)
-- [ ] S12 — Wrap `views/NetWorth/CashOverview.vue` in `<AppLayout>` (Rule #14)
+- [x] S12 — Wrapped `views/NetWorth/CashOverview.vue` in `<AppLayout>` — added import + component registration, nested existing root div, closes Rule #14 violation
 - [ ] S13 — Rename duplicate Vue filenames (CurrentSituation.vue ×2, GoalCard.vue ×2) with module prefixes
 - [ ] S14 — Extract `IHTPlanningPayloadBuilder` service to break LifePolicyController→IHTController inter-controller injection
-- [ ] S15 — Fix `AssetLocationController` hardcoded tax fallbacks — fail loud instead of silent 2026/27 substitution
+- [x] S15 — `AssetLocationController` `buildDefaultTaxProfile()` + `calculateIncomeTaxRate()` now fail loud via new `requireTaxValue()` helper — no more silent 2026/27 substitution when TaxConfigService is missing a key. `$annualIncome ?? 50000` also tightened to `?? 0` (income is a profile field, not tax data, and 0 is a legitimate non-earner value)
 - [ ] S16 — Migrate 8 legacy PHPUnit-style tests to Pest (Property + Mortgage cluster first)
 - [ ] S17 — Sweep 48 `$this->actingAs` API tests to `Sanctum::actingAs`
 - [ ] S18 — Extract `tests/Helpers/TaxConfigFixture::withCurrentTaxConfig()`
-- [ ] S19 — Add 5 missing keys to `.env.example` (ADMIN_EMAILS, AGENT_INTERNAL_TOKEN, OPENAI_API_KEY, SSH_PASSPHRASE, VITE_INSIGHTS_CMS_ENABLED)
-- [ ] S20 — Add Auditable trait to User / Household / NotificationPreference / SavingsGoal / SubscriptionPlan
+- [x] S19 — Added 5 missing keys to `.env.example` (ADMIN_EMAILS, AGENT_INTERNAL_TOKEN, OPENAI_API_KEY, SSH_PASSPHRASE, VITE_INSIGHTS_CMS_ENABLED)
+- [x] S20 — Added `use Auditable` to User (with high-frequency exclusion list for last_login_at / failed_login_count / locked_until / etc. to avoid drowning the audit table), Household, NotificationPreference, SavingsGoal, SubscriptionPlan. Pest auth suite (81 tests) still green.
 - [ ] S21 — Consolidate `familyMembersService` (delete dupe methods from `userProfileService`, repoint consumers)
 
 ## Medium-term (God-file decomposition — surgical wins, flag rest)
