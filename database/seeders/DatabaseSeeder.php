@@ -83,6 +83,11 @@ class DatabaseSeeder extends Seeder
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
 
+            // Invoice sequence counter — schema:dump captures DDL only, so the
+            // create_invoice_sequences_table migration's seed INSERT is lost
+            // when boots load from the SQL dump.
+            InvoiceSequenceSeeder::class,
+
             // Discount codes (promotional codes for checkout)
             DiscountCodeSeeder::class,
 
@@ -138,6 +143,7 @@ class DatabaseSeeder extends Seeder
             TaxActionDefinitionSeeder::class,
             EstateActionDefinitionSeeder::class,
             SubscriptionPlanSeeder::class,
+            InvoiceSequenceSeeder::class,
         ]);
     }
 }

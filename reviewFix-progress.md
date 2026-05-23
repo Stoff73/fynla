@@ -95,6 +95,12 @@ Branch off `dev`. Working on top of `99400ce`.
 
 ---
 
+## Pest fix — Q9 follow-up
+
+- [x] **Q9-fix** — Q9's schema dump refresh (244 → 386 migrations) absorbed `2026_04_08_100004_create_invoice_sequences_table` into the dump's DDL but `schema:dump` discards DML, so the migration's seed `INSERT INTO invoice_sequences (next_value) VALUES (1)` was lost on schema-load. `Invoice::generateNumber()` then crashed on `null->next_value` in 4 tests (BillingToolsTest × 3 + PaymentWebhookRaceTest — all passing on `dev`, all failing on `reviewFix`). Fix: model self-heals via `insertOrIgnore` when the sequence row is absent (resilient to future re-dumps); also added `InvoiceSequenceSeeder` wired into `DatabaseSeeder` phase 1 + the `seedRequiredDataOnly()` path so `db:seed` populates the row idempotently. Full Pest run confirms 4 → 0 reviewFix-induced failures, 4026 / 4029 passing. Remaining 3 failures (FynMetering model-literal drift, MobileScaffold iframe absolute-URL, CassetteModelProvenance xai cassettes at old model path) are pre-existing on `dev`, unrelated to this branch.
+
+---
+
 ## Out-of-scope for this branch (large refactors needing dedicated PRs)
 
 These are tracked above with `[~]` and explained inline. Rough scoping for follow-up:
