@@ -46,3 +46,9 @@
 - csjones deploy verified: 4 admin endpoints (R1/R2/R3/R4) 401, root + mobile 200, no errors. DB: 4 currency rates / 6 tax configs (2026/27 active) / 44 life tables / 10 market rates.
 - Tech-debt-session run on 11 R1-touched files: 0 critical, 1 warning (`TaxSettingsController::getCalculations()` hardcoded values — preserved through R1.2 rewrite per scope discipline), 4 pre-existing suggestions. Full report at `tech-debt-report.md`.
 - Next: R1.0 audit (browser-blocked, needs CSJ) → R1.5 fix + roll W1 into it → final pass-wide review → finishing-a-development-branch release PR.
+
+## 2026-05-23 — session 2 (context-handover tripwire)
+- Handover: [[handover-2026-05-23-session-2-clear]]
+- Branch: reviewFix
+- WIP commit: none (tree was clean — last commit 77470bf)
+- Pick up at: investigate 7 Pest failures (`/tmp/.../bh1bt45kt.output`), triage pre-existing vs new, then open `reviewFix → dev` PR
