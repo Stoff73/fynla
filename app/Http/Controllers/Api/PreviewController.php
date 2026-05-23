@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\CriticalIllnessPolicy;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -31,6 +32,8 @@ use Illuminate\Support\Str;
 
 class PreviewController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Available persona IDs
      */
@@ -316,11 +319,8 @@ class PreviewController extends Controller
                 'success' => true,
                 'message' => 'Persona data seeded successfully',
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to seed persona data: '.$e->getMessage(),
-            ], 500);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Persona seeding');
         }
     }
 

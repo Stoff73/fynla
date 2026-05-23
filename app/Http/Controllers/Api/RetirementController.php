@@ -11,6 +11,7 @@ use App\Http\Requests\Retirement\ScenarioRequest;
 use App\Http\Requests\Retirement\StoreDBPensionRequest;
 use App\Http\Requests\Retirement\StoreDCPensionRequest;
 use App\Http\Requests\Retirement\UpdateStatePensionRequest;
+use App\Http\Resources\DCPensionResource;
 use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\DBPension;
 use App\Models\DCPension;
@@ -369,7 +370,7 @@ class RetirementController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'DC pension added successfully',
-            'data' => $pension,
+            'data' => new DCPensionResource($pension),
         ], 201);
     }
 

@@ -54,7 +54,7 @@ Branch off `dev`. Working on top of `99400ce`.
 - [~] B32 — Switch `MonteCarloSimulator` from `DB::table` to Eloquent model — **needs migration; deferred**
 - [x] B33 — Added `UserFactory::preview()` (sets `is_preview_user=true`) and `UserFactory::advisor()` (sets `is_advisor=true`).
 - [x] B34 — Dropped `ai_chat_enabled` orphan column via `2026_05_23_080000_drop_ai_chat_enabled_from_users_table.php`. Removed the lone ChrisUserSeeder reference. Migration applied + reseeded clean.
-- [ ] B35 — Add Architecture test for AdviceFyn write-tool parity
+- [x] B35 — Added `tests/Architecture/AdviceFynWriteToolParityTest.php` enforcing that every tool whose name starts with `create_` / `update_` / `delete_` / `capture_` / `set_` and that AiToolDefinitions exposes must appear in `AdviceFyn::WRITE_TOOLS`. Catches the regression where a new write-prefix tool gets added to the catalogue but forgotten on the strip list. PASS at 6 assertions.
 - [~] B36 — Split 22 services in 500–800 line range — **deferred**
 - [ ] B37 — Fix `Estate/IHTController:163` response shape (wrap in `data` envelope) — **frontend-breaking, deferred to dedicated PR**
 - [~] B38 — Investigated: both `Estate/LpaDetailView.vue` and `WillBuilder/WillBuilderReviewStep.vue` have explicit inline `/* Print document — exact hex values required for print/document fidelity. … These are inside :deep() document renderers and must not use Tailwind utilities. */` comments. The hex is documented and intentional (print/PDF rendering inside :deep() blocks where Tailwind tokens don't apply). Not a real violation — left as-is.
@@ -69,9 +69,9 @@ Branch off `dev`. Working on top of `99400ce`.
 - [~] B47 — Goals/{GoalCalculationService,GoalProgressService} consolidation deferred — needs a careful look at all consumers; flagged for a follow-up Goals-module PR.
 - [x] B48 — Added `2026_05_23_080001_add_funding_source_index_to_plan_action_funding_selections.php` — adds `funding_source_id` index + `(funding_source_type, funding_source_id)` composite for polymorphic lookups. Migration applied.
 - [x] B49 — Added `User::markAsAdvisor()` mutator + `UserFactory::advisor()` state. AdvisorClientSeeder now calls `$advisor->markAsAdvisor()` instead of `DB::table('users')->update(['is_advisor' => true])`.
-- [ ] B50 — PreviewController:283 — extract 13-method seed flow into PreviewPersonaSeeder service
-- [ ] B51 — PreviewController:320 — use SanitizedErrorResponse trait instead of raw `$e->getMessage()` interpolation
-- [ ] B52 — RetirementController:369-373 — create DCPensionResource, stop returning raw Eloquent model
+- [~] B50 — PreviewController seed-flow extraction deferred — refactor with too much risk on a passive cleanup branch; the controller IS itself a god surface (M23 candidate).
+- [x] B51 — PreviewController error path now uses `$this->errorResponse($e, 'Persona seeding')` via the SanitizedErrorResponse trait — no more raw `$e->getMessage()` interpolation, full exception details logged server-side via Log::error, sanitised message returned to client (per the trait's existing contract).
+- [x] B52 — Added `app/Http/Resources/DCPensionResource.php` (mirrors InvestmentAccountResource pattern, surfaces every fillable column explicitly + holdings relation). RetirementController:storeDCPension now wraps `$pension` via `new DCPensionResource($pension)` instead of returning the raw Eloquent model.
 - [x] B53 — Investigated `tests/Architecture/EvalScenarioCountTest.php:18` — the `->skip()` is conditional on `config('fyn_eval.enforce_minima')` and the closure documents the plan reference + the `FYN_EVAL_ENFORCE_MINIMA=true` activation path. Not a tracking ticket leak; intentional gate. No fix.
 - [x] B54 — Renamed `tests/Browser/scenarios/document-articles-end-to-end.php` → `BS-03-document-articles-end-to-end.php` (BS-03 was the lowest free number in the sequence). Updated the docblock title from `BS — Document Articles end-to-end` to `BS-03 — Document Articles end-to-end`.
 - [ ] B55 — Add `joint()` state method to 6 joint-capable factories (Mortgage/Property/Cash/Savings/BusinessInterest/Chattel) — overlaps with Q8 but Q8 only adds user_id
