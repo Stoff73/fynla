@@ -208,22 +208,6 @@ const mutations = {
     state.error = error;
   },
 
-  clearError(state) {
-    state.error = null;
-  },
-
-  // Preview mode mutation
-  SET_PREVIEW_MODE(state, { isPreview, data }) {
-    state.isPreviewMode = isPreview;
-    state.previewData = data;
-
-    if (isPreview && data?.trusts) {
-      state.trusts = data.trusts;
-    } else if (!isPreview) {
-      state.isPreviewMode = false;
-      state.previewData = null;
-    }
-  },
 };
 
 export default {

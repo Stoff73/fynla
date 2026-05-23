@@ -316,10 +316,6 @@ const mutations = {
         state.isaAllowance = allowance;
     },
 
-    setRecommendations(state, recommendations) {
-        state.recommendations = recommendations;
-    },
-
     setLifeEvents(state, events) {
         state.lifeEvents = events;
     },

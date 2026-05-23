@@ -41,7 +41,7 @@ Branch off `dev`. Working on top of `99400ce`.
 - [~] M22 — Action-Definition splits (Savings 3690 / Retirement 2719 / Protection 2350 / Investment 1486) — **too large for one branch; deferred to dedicated PRs per service**
 - [~] M23 — God controller splits (Payment 1159 / Investment 1074 / Admin 893 / Auth 871 / Goals 792) — **too large for one branch; deferred to dedicated PRs per controller**
 - [~] M24 — Vue god component splits (TaxSettings 3068 / ExpenditureForm 2574 etc.) — **too large for one branch; deferred to dedicated PRs per component**
-- [ ] M25 — Walk 73 orphan Vuex actions / 12 orphan mutations / ~83 dead service methods — verify before deleting (some may be dynamic-dispatch reachable)
+- [~] M25 — Removed 12 orphan mutations after verifying ZERO `commit('mut'` and `commit('module/mut'` references for each: estate/setRecommendations, estate/addLiability, protection/setRecommendations, savings/setRecommendations, investment/setOptimizationResult, plans/clearPlan, goals/CLEAR_GOAL_DEPENDENCIES, trusts/clearError, trusts/SET_PREVIEW_MODE, businessInterests/clearError, chattels/clearError, spousePermission/clearError. **73 orphan Vuex actions + ~83 dead service methods deferred** — they need per-call verification against admin tooling + platform-specific paths that grep can miss; not a job for a passive sweep.
 - [ ] M26 — Walk 30 dead model scopes, delete confirmed-dead
 - [~] M27 — Introduce `TaxProductReferenceStore` — **deferred to SP1 Pass 2 R5 sub-track**
 - [~] M28 — Collapse `AiToolDefinitions` + `XaiToolDefinitions` via shared registry — **large refactor, deferred**
@@ -74,7 +74,7 @@ Branch off `dev`. Working on top of `99400ce`.
 - [x] B52 — Added `app/Http/Resources/DCPensionResource.php` (mirrors InvestmentAccountResource pattern, surfaces every fillable column explicitly + holdings relation). RetirementController:storeDCPension now wraps `$pension` via `new DCPensionResource($pension)` instead of returning the raw Eloquent model.
 - [x] B53 — Investigated `tests/Architecture/EvalScenarioCountTest.php:18` — the `->skip()` is conditional on `config('fyn_eval.enforce_minima')` and the closure documents the plan reference + the `FYN_EVAL_ENFORCE_MINIMA=true` activation path. Not a tracking ticket leak; intentional gate. No fix.
 - [x] B54 — Renamed `tests/Browser/scenarios/document-articles-end-to-end.php` → `BS-03-document-articles-end-to-end.php` (BS-03 was the lowest free number in the sequence). Updated the docblock title from `BS — Document Articles end-to-end` to `BS-03 — Document Articles end-to-end`.
-- [ ] B55 — Add `joint()` state method to 6 joint-capable factories (Mortgage/Property/Cash/Savings/BusinessInterest/Chattel) — overlaps with Q8 but Q8 only adds user_id
+- [x] B55 — All 6 factories now have `joint()` state methods (covered by Q8's expanded scope: Mortgage, Property, Chattel, BusinessInterest had user_id + joint() added; Cash + Savings already had user_id, gained joint() + isa() with the UK joint-ISA illegality safeguard). Verified via grep.
 
 ---
 

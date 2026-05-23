@@ -779,10 +779,6 @@ const mutations = {
         state.analysis = analysis;
     },
 
-    setRecommendations(state, recommendations) {
-        state.recommendations = recommendations;
-    },
-
     setSecondDeathPlanning(state, secondDeathPlanning) {
         state.secondDeathPlanning = secondDeathPlanning;
     },
@@ -807,10 +803,6 @@ const mutations = {
         if (index !== -1) {
             state.assets.splice(index, 1);
         }
-    },
-
-    addLiability(state, liability) {
-        state.liabilities.push(liability);
     },
 
     updateLiability(state, liability) {
