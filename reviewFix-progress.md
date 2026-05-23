@@ -9,6 +9,23 @@ Branch off `dev`. Working on top of `99400ce`.
 
 ---
 
+## Status summary
+
+| State | Count | What this is |
+|-------|-------|--------------|
+| `[x]` Done | 33 | Shipped on this branch — Q1, Q3–Q9, S11, S12, S13, S15, S17, S19, S20, M29, B30, B31, B33, B34, B35, B39, B40, B41, B43, B44, B45, B48, B49, B51, B52, B53, B54, B55 |
+| `[~]` Partial | 14 | Helper/groundwork in place, full migration deferred — Q2, S18, M22, M23, M24, M25, M27, M28, B32, B36, B38, B42, B46, B47, B50 |
+| `[ ]` Not started | 4 | Big refactors awaiting their own PR — S14, S16, S21, M26, B37 |
+| `[!]` Blocked on CSJ | 1 | Q10 — soft-delete fate for 11 financial models |
+
+**Headline coverage:** every Critical / High the audit raised is either closed (✓ joint-ISA, ✓ Rule #14, ✓ Rule #13 ×8, ✓ Symfony CVEs, ✓ schema dump, ✓ factory FKs) or explicitly deferred with rationale (god-file decomposition split into per-file PRs). Net: 16 commits, no regressions in Pest, no UI smoke yet (deferred — needs browser run).
+
+**Needs CSJ input:** Q10 (SoftDeletes everywhere OR drop the `deleted_at` columns on Mortgage, Property, Goal, SavingsAccount, CashAccount, Investment/Holding, Subscription, Estate/Will, LifeInsurancePolicy, DBPension, DCPension).
+
+---
+
+---
+
 ## Immediate (Quick Wins — Critical Security & Trivial Fixes)
 
 - [x] Q1 — `composer update symfony/*` — all 7 CVEs cleared (`composer audit` now reports "No security vulnerability advisories found")
