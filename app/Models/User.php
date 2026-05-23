@@ -822,4 +822,16 @@ class User extends Authenticatable
             && $this->deletion_reason !== 'legacy_purged'
             && ($this->purge_eligible_at === null || $this->purge_eligible_at->isFuture());
     }
+
+    /**
+     * Promote this user to advisor. Replaces the DB::table()->update workaround
+     * used by AdvisorClientSeeder and exposes a semantic entry point for any
+     * future advisor-onboarding flow.
+     */
+    public function markAsAdvisor(): bool
+    {
+        $this->is_advisor = true;
+
+        return $this->save();
+    }
 }

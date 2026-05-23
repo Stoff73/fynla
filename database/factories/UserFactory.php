@@ -47,4 +47,27 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Mark the user as a preview persona. Preview users are seeded test
+     * personas isolated from real users by `is_preview_user = true`;
+     * PreviewWriteInterceptor blocks all writes from this flag.
+     */
+    public function preview(): static
+    {
+        return $this->state(fn () => [
+            'is_preview_user' => true,
+        ]);
+    }
+
+    /**
+     * Mark the user as an advisor. Replaces the DB::table()->update workaround
+     * that AdvisorClientSeeder used to bypass the User model's $guarded array.
+     */
+    public function advisor(): static
+    {
+        return $this->state(fn () => [
+            'is_advisor' => true,
+        ]);
+    }
 }

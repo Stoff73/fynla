@@ -274,6 +274,19 @@ class TaxConfigService
     }
 
     /**
+     * CLT lifetime rate — the IHT rate charged on chargeable lifetime
+     * transfers above the nil-rate band when the trust pays (default 0.20).
+     *
+     * Centralised here during the 2026-05-23 tech-debt audit (B44) after the
+     * same `?? 0.20` lookup was found duplicated across
+     * PersonalizedTrustStrategyService (×2) and GiftingStrategyOptimizer.
+     */
+    public function getCLTLifetimeRate(): float
+    {
+        return (float) ($this->get('inheritance_tax.chargeable_lifetime_transfers.lifetime_rate') ?? 0.20);
+    }
+
+    /**
      * Get the 14-year rule configuration
      *
      * @return array Contains lookback periods and calculation steps

@@ -10,6 +10,7 @@ use App\Agents\ProtectionAgent;
 use App\Agents\RetirementAgent;
 use App\Agents\SavingsAgent;
 use App\Constants\TaxDefaults;
+use App\Constants\SignificanceThresholds;
 
 class DashboardAggregator
 {
@@ -427,7 +428,7 @@ class DashboardAggregator
             $gaps = $data['gaps'] ?? [];
             foreach ($gaps as $gapType => $gap) {
                 if (is_array($gap) && ($gap['shortfall'] ?? 0) > 0) {
-                    $severity = ($gap['shortfall'] > 100000) ? 'critical' : 'important';
+                    $severity = ($gap['shortfall'] > SignificanceThresholds::IMPORTANT) ? 'critical' : 'important';
                     $alerts[] = [
                         'id' => $alertId++,
                         'module' => 'Protection',
@@ -752,7 +753,7 @@ class DashboardAggregator
                 $alerts[] = [
                     'id' => $alertId++,
                     'module' => 'Estate',
-                    'severity' => $ihtLiability > 100000 ? 'critical' : 'important',
+                    'severity' => $ihtLiability > SignificanceThresholds::IMPORTANT ? 'critical' : 'important',
                     'title' => 'Inheritance Tax Liability',
                     'message' => sprintf(
                         'Your estate has a projected Inheritance Tax liability of %s. Consider mitigation strategies.',

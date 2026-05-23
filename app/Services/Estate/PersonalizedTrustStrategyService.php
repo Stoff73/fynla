@@ -164,7 +164,7 @@ class PersonalizedTrustStrategyService
     ): array {
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $cltLifetimeRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
+        $cltLifetimeRate = $this->taxConfig->getCLTLifetimeRate();
         $cltSettlorRate = $cltLifetimeRate / (1 - $cltLifetimeRate); // Grossed-up rate when settlor pays
 
         $liquidAssets = collect($liquidityAnalysis['liquid']['assets'] ?? []);
@@ -465,7 +465,7 @@ class PersonalizedTrustStrategyService
         // Get IHT configuration
         $ihtConfig = $this->taxConfig->getInheritanceTax();
         $ihtRate = (float) ($ihtConfig['standard_rate'] ?? TaxDefaults::IHT_RATE);
-        $cltLifetimeRate = (float) ($ihtConfig['chargeable_lifetime_transfers']['lifetime_rate'] ?? 0.20);
+        $cltLifetimeRate = $this->taxConfig->getCLTLifetimeRate();
 
         // Discounted gift trust: gift with retained income rights
         // Discount reduces the CLT value

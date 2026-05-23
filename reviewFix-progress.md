@@ -31,7 +31,7 @@ Branch off `dev`. Working on top of `99400ce`.
 - [x] S15 — `AssetLocationController` `buildDefaultTaxProfile()` + `calculateIncomeTaxRate()` now fail loud via new `requireTaxValue()` helper — no more silent 2026/27 substitution when TaxConfigService is missing a key. `$annualIncome ?? 50000` also tightened to `?? 0` (income is a profile field, not tax data, and 0 is a legitimate non-earner value)
 - [ ] S16 — Migrate 8 legacy PHPUnit-style tests to Pest (Property + Mortgage cluster first)
 - [x] S17 — Swept 31 Feature test files (210 calls) replacing bare `$this->actingAs($user)` with `$this->actingAs($user, 'sanctum')` for `/api/*` endpoints. Initially tried `Sanctum::actingAs($user)->fooJson(...)` but that chain breaks because Sanctum::actingAs returns the User, not the TestCase — reverted and used the canonical second-arg form per `tests/CLAUDE.md`. Smoke green: 1546 of 1547 tests passing (1 pre-existing PaymentWebhookRaceTest failure, untouched by sweep).
-- [ ] S18 — Extract `tests/Helpers/TaxConfigFixture::withCurrentTaxConfig()`
+- [~] S18 — Created `tests/Helpers/TaxConfigFixture` with `inheritanceTax()`, `incomeTax()`, `isaAllowances()`, `pensionAllowances()` static methods + an `apply(MockInterface)` helper that wires all four into a Mockery mock in one call. All values sourced from `TaxDefaults::*` so a tax-year roll updates the helper, not 7 tests. **Migrating the existing 7 tests to consume it is deferred** to keep this branch from sprawling — the helper exists, the migration is mechanical when each test is next touched.
 - [x] S19 — Added 5 missing keys to `.env.example` (ADMIN_EMAILS, AGENT_INTERNAL_TOKEN, OPENAI_API_KEY, SSH_PASSPHRASE, VITE_INSIGHTS_CMS_ENABLED)
 - [x] S20 — Added `use Auditable` to User (with high-frequency exclusion list for last_login_at / failed_login_count / locked_until / etc. to avoid drowning the audit table), Household, NotificationPreference, SavingsGoal, SubscriptionPlan. Pest auth suite (81 tests) still green.
 - [ ] S21 — Consolidate `familyMembersService` (delete dupe methods from `userProfileService`, repoint consumers)
@@ -45,14 +45,14 @@ Branch off `dev`. Working on top of `99400ce`.
 - [ ] M26 — Walk 30 dead model scopes, delete confirmed-dead
 - [~] M27 — Introduce `TaxProductReferenceStore` — **deferred to SP1 Pass 2 R5 sub-track**
 - [~] M28 — Collapse `AiToolDefinitions` + `XaiToolDefinitions` via shared registry — **large refactor, deferred**
-- [ ] M29 — Fix AdvicePromptBuilder ResolvesIncome/Expenditure drift
+- [x] M29 — AdvicePromptBuilder now `use`s ResolvesIncome + ResolvesExpenditure traits. `calculateTotalUserIncome()` delegates to `resolveGrossAnnualIncome()`, `calculateTotalExpenditure()` delegates to `resolveMonthlyExpenditure()['amount']`. Closes the Fyn-advice tax-band estimation regression where annual_expenditure-only users got 0.
 
 ## Backlog
 
-- [ ] B30 — Promote `SignificanceThresholds` / `CLT_LIFETIME_RATE` / `TaxDefaults` rate constants
+- [x] B30 — Created `App\Constants\SignificanceThresholds` (IMPORTANT=100000, CRITICAL=200000) + `TaxConfigService::getCLTLifetimeRate()` helper. Both replace literals — see B43, B44 entries.
 - [ ] B31 — Replace raw `console.*` in services with `utils/logger.js`
 - [~] B32 — Switch `MonteCarloSimulator` from `DB::table` to Eloquent model — **needs migration; deferred**
-- [ ] B33 — Add `preview()` state to UserFactory
+- [x] B33 — Added `UserFactory::preview()` (sets `is_preview_user=true`) and `UserFactory::advisor()` (sets `is_advisor=true`).
 - [x] B34 — Dropped `ai_chat_enabled` orphan column via `2026_05_23_080000_drop_ai_chat_enabled_from_users_table.php`. Removed the lone ChrisUserSeeder reference. Migration applied + reseeded clean.
 - [ ] B35 — Add Architecture test for AdviceFyn write-tool parity
 - [~] B36 — Split 22 services in 500–800 line range — **deferred**
@@ -62,18 +62,18 @@ Branch off `dev`. Working on top of `99400ce`.
 - [ ] B40 — Fix `Advisor/{ClientDetail,ClientList,Dashboard}.vue` triplicated palette literal → import CHART_COLORS
 - [ ] B41 — Fix `views/Public/learn/LearnHubPage.vue` palette drift `#E8326E` → canonical `#E83E6D`
 - [ ] B42 — Move 3 custom `@keyframes` to app.css (Journey/JourneyMap, Dashboard/NetWorthOverviewCard, Onboarding/OnboardingWizard)
-- [ ] B43 — Replace `Coordination/{PriorityRanker,HolisticPlanner}` + `Dashboard/DashboardAggregator` £100k/£200k thresholds with SignificanceThresholds constants
-- [ ] B44 — Replace duplicated CLT lifetime-rate lookup (Estate/PersonalizedTrustStrategyService ×2 + GiftingStrategyOptimizer) with TaxConfigService helper
-- [ ] B45 — Promote `LifeStage/LifeStageService:105` hardcoded £200,000 to a private const
-- [ ] B46 — Extract holdings-with-cash-remainder duplication (Investment + Retirement controllers) into `HoldingsAllocationService`
-- [ ] B47 — Goals/GoalCalculationService ↔ Goals/GoalProgressService duplication consolidation
-- [ ] B48 — Add missing index on `plan_action_funding_selections.funding_source_id`
-- [ ] B49 — AdvisorClientSeeder bypass (`DB::table->update is_advisor`) → User `markAsAdvisor()` mutator
+- [x] B43 — Promoted 11 of the 12 `> 100000` / `> 200000` literals across PriorityRanker (5), HolisticPlanner (4), DashboardAggregator (2) to `SignificanceThresholds::IMPORTANT` / `SignificanceThresholds::CRITICAL`. PHP syntax verified clean.
+- [x] B44 — `TaxConfigService::getCLTLifetimeRate(): float` now wraps the lookup-with-0.20-fallback. Migrated all 3 duplicates: PersonalizedTrustStrategyService:167 + :468, GiftingStrategyOptimizer:292.
+- [x] B45 — `LifeStage/LifeStageService:105` `200000` literal promoted to `private const PENSION_INDEPENDENT_THRESHOLD = 200000;` with a docblock explaining the heuristic.
+- [~] B46 — `HoldingsAllocationService` extraction deferred — touches controllers that are themselves on the M23 god-controller split list, better done as part of that.
+- [~] B47 — Goals/{GoalCalculationService,GoalProgressService} consolidation deferred — needs a careful look at all consumers; flagged for a follow-up Goals-module PR.
+- [x] B48 — Added `2026_05_23_080001_add_funding_source_index_to_plan_action_funding_selections.php` — adds `funding_source_id` index + `(funding_source_type, funding_source_id)` composite for polymorphic lookups. Migration applied.
+- [x] B49 — Added `User::markAsAdvisor()` mutator + `UserFactory::advisor()` state. AdvisorClientSeeder now calls `$advisor->markAsAdvisor()` instead of `DB::table('users')->update(['is_advisor' => true])`.
 - [ ] B50 — PreviewController:283 — extract 13-method seed flow into PreviewPersonaSeeder service
 - [ ] B51 — PreviewController:320 — use SanitizedErrorResponse trait instead of raw `$e->getMessage()` interpolation
 - [ ] B52 — RetirementController:369-373 — create DCPensionResource, stop returning raw Eloquent model
-- [ ] B53 — `tests/Architecture/EvalScenarioCountTest.php:18` — investigate unconditional `->skip()` (count invariant currently unenforced)
-- [ ] B54 — `tests/Browser/scenarios/document-articles-end-to-end.php` — assign BS-NN number with docblock OR move to `tests/Browser/manual/`
+- [x] B53 — Investigated `tests/Architecture/EvalScenarioCountTest.php:18` — the `->skip()` is conditional on `config('fyn_eval.enforce_minima')` and the closure documents the plan reference + the `FYN_EVAL_ENFORCE_MINIMA=true` activation path. Not a tracking ticket leak; intentional gate. No fix.
+- [x] B54 — Renamed `tests/Browser/scenarios/document-articles-end-to-end.php` → `BS-03-document-articles-end-to-end.php` (BS-03 was the lowest free number in the sequence). Updated the docblock title from `BS — Document Articles end-to-end` to `BS-03 — Document Articles end-to-end`.
 - [ ] B55 — Add `joint()` state method to 6 joint-capable factories (Mortgage/Property/Cash/Savings/BusinessInterest/Chattel) — overlaps with Q8 but Q8 only adds user_id
 
 ---

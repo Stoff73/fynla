@@ -2543,6 +2543,8 @@ CREATE TABLE `plan_action_funding_selections` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `plan_funding_user_plan_category_target_unique` (`user_id`,`plan_type`,`action_category`,`target_account_id`),
   KEY `idx_plan_action_funding_selections_funding_source_id` (`funding_source_id`),
+  KEY `pafs_funding_source_id_idx` (`funding_source_id`),
+  KEY `pafs_funding_source_poly_idx` (`funding_source_type`,`funding_source_id`),
   CONSTRAINT `plan_action_funding_selections_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -4148,3 +4150,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (382,'2026_05_17_10
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (383,'2026_05_17_100002_add_tier_keys_to_subscriptions_plan_enum',14);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (384,'2026_05_22_120000_create_currency_rates_table',15);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (385,'2026_05_23_080000_drop_ai_chat_enabled_from_users_table',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (386,'2026_05_23_080001_add_funding_source_index_to_plan_action_funding_selections',17);
