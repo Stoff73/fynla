@@ -84,7 +84,6 @@ class ChrisUserSeeder extends Seeder
                 'transport_fuel' => 100.00,
                 'expenditure_entry_mode' => 'category',
                 'expenditure_sharing_mode' => 'joint',
-                'ai_chat_enabled' => true,
                 'info_guide_enabled' => true,
             ]
         );

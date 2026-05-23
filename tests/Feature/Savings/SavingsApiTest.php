@@ -310,7 +310,7 @@ describe('Savings API', function () {
             expect((float) $account->current_balance)->toBe(12000.0);
         });
 
-        it('HTTP POST infers UK country and 50/50 split for joint ISA', function () {
+        it('rejects joint ISA creation with 422 — joint ISAs are illegal under UK law', function () {
             $user = User::factory()->create();
             $spouse = User::factory()->create();
             Sanctum::actingAs($user);
@@ -322,14 +322,29 @@ describe('Savings API', function () {
                 'is_isa' => true,
                 'ownership_type' => 'joint',
                 'joint_owner_id' => $spouse->id,
-            ])->assertCreated();
+            ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['ownership_type']);
 
-            $this->assertDatabaseHas('savings_accounts', [
+            $this->assertDatabaseMissing('savings_accounts', [
                 'account_name' => 'Joint Cash ISA',
-                'country' => 'United Kingdom',
             ]);
-            $account = SavingsAccount::where('account_name', 'Joint Cash ISA')->firstOrFail();
-            expect((float) $account->ownership_percentage)->toBe(50.0);
+        });
+
+        it('rejects joint ISA created via is_isa=true even without explicit cash_isa account_type', function () {
+            $user = User::factory()->create();
+            $spouse = User::factory()->create();
+            Sanctum::actingAs($user);
+
+            $this->postJson('/api/savings/accounts', [
+                'account_name' => 'Sneaky Joint ISA',
+                'account_type' => 'savings',
+                'current_balance' => 5000,
+                'is_isa' => true,
+                'joint_owner_id' => $spouse->id,
+            ])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(['ownership_type']);
         });
     });
 

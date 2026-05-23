@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Models\Property;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,14 +21,14 @@ class PropertyFactory extends Factory
     public function definition(): array
     {
         $propertyType = fake()->randomElement(['main_residence', 'secondary_residence', 'buy_to_let']);
-        $ownershipType = fake()->randomElement(['individual', 'joint']);
         $purchasePrice = fake()->numberBetween(150000, 800000);
         $currentValue = $purchasePrice * fake()->randomFloat(2, 1.0, 1.5);
 
         return [
+            'user_id' => User::factory(),
             'property_type' => $propertyType,
-            'ownership_type' => $ownershipType,
-            'ownership_percentage' => $ownershipType === 'joint' ? fake()->randomElement([50.00, 100.00]) : 100.00,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
             'address_line_1' => fake()->streetAddress(),
             'address_line_2' => fake()->optional()->secondaryAddress(),
             'city' => fake()->city(),
@@ -49,5 +50,22 @@ class PropertyFactory extends Factory
             'other_annual_costs' => fake()->optional()->numberBetween(200, 1000),
             'notes' => fake()->optional()->sentence(),
         ];
+    }
+
+    public function joint(?User $partner = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'ownership_type' => 'joint',
+            'joint_owner_id' => $partner?->id ?? User::factory(),
+            'ownership_percentage' => 50.00,
+        ]);
+    }
+
+    public function trust(): static
+    {
+        return $this->state(fn () => [
+            'ownership_type' => 'trust',
+            'ownership_percentage' => 100.00,
+        ]);
     }
 }

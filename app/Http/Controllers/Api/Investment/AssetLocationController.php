@@ -295,21 +295,4 @@ class AssetLocationController extends Controller
             return 0.45;
         }
     }
-
-    /**
-     * Clear user's asset location cache (static method for use by other controllers)
-     *
-     * @param  int  $userId  User ID
-     */
-    public static function clearUserAssetLocationCache(int $userId): void
-    {
-        $cacheKeys = [
-            "asset_location_analysis_{$userId}",
-            "asset_location_score_{$userId}",
-        ];
-
-        foreach ($cacheKeys as $key) {
-            Cache::forget($key);
-        }
-    }
 }

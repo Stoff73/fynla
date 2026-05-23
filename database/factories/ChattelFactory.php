@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Models\Chattel;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,15 +20,15 @@ class ChattelFactory extends Factory
      */
     public function definition(): array
     {
-        $ownershipType = fake()->randomElement(['individual', 'joint']);
         $chattelType = fake()->randomElement(['vehicle', 'art', 'antique', 'jewelry', 'collectible', 'other']);
 
         return [
+            'user_id' => User::factory(),
             'chattel_type' => $chattelType,
             'name' => fake()->words(3, true),
             'description' => fake()->optional()->sentence(),
-            'ownership_type' => $ownershipType,
-            'ownership_percentage' => $ownershipType === 'joint' ? fake()->randomElement([50.00, 100.00]) : 100.00,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
             'purchase_price' => fake()->optional()->randomFloat(2, 1000, 100000),
             'purchase_date' => fake()->optional()->dateTimeBetween('-10 years', '-1 year'),
             'current_value' => fake()->randomFloat(2, 1000, 100000),
@@ -38,5 +39,14 @@ class ChattelFactory extends Factory
             'registration_number' => $chattelType === 'vehicle' ? fake()->regexify('[A-Z]{2}[0-9]{2} [A-Z]{3}') : null,
             'notes' => fake()->optional()->sentence(),
         ];
+    }
+
+    public function joint(?User $partner = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'ownership_type' => 'joint',
+            'joint_owner_id' => $partner?->id ?? User::factory(),
+            'ownership_percentage' => 50.00,
+        ]);
     }
 }
