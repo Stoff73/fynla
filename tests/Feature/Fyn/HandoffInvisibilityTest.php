@@ -24,7 +24,7 @@ it('zero persona_state_change SSE events emitted during handoff', function (): v
     app(ConsentService::class)->recordConsent($user, UserConsent::TYPE_AI_CHAT, true);
     $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
             'message' => 'I want advice — oh actually add Aviva life £300k',
         ]);

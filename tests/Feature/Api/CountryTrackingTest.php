@@ -19,7 +19,7 @@ describe('Country Tracking API', function () {
         it('saves property with specified country', function () {
             $user = User::factory()->create();
 
-            $response = $this->actingAs($user)->postJson('/api/properties', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/properties', [
                 'property_type' => 'secondary_residence',
                 'ownership_type' => 'individual',
                 'current_value' => 250000,
@@ -43,7 +43,7 @@ describe('Country Tracking API', function () {
         it('defaults to United Kingdom when country not provided', function () {
             $user = User::factory()->create();
 
-            $response = $this->actingAs($user)->postJson('/api/properties', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/properties', [
                 'property_type' => 'secondary_residence',
                 'ownership_type' => 'individual',
                 'current_value' => 250000,
@@ -71,7 +71,7 @@ describe('Country Tracking API', function () {
                 'postcode' => 'SW1A 1AA',
             ]);
 
-            $response = $this->actingAs($user)->putJson("/api/properties/{$property->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/properties/{$property->id}", [
                 'property_type' => $property->property_type,
                 'ownership_type' => $property->ownership_type,
                 'current_value' => $property->current_value,
@@ -98,7 +98,7 @@ describe('Country Tracking API', function () {
         it('saves non-ISA account with specified country', function () {
             $user = User::factory()->create();
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
                 'account_type' => 'easy_access',
                 'institution' => 'Foreign Bank',
                 'current_balance' => 10000,
@@ -120,7 +120,7 @@ describe('Country Tracking API', function () {
         it('forces ISA accounts to United Kingdom', function () {
             $user = User::factory()->create();
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
                 'account_type' => 'cash_isa',
                 'institution' => 'UK Bank',
                 'current_balance' => 15000,
@@ -146,7 +146,7 @@ describe('Country Tracking API', function () {
         it('defaults non-ISA to United Kingdom when country not provided', function () {
             $user = User::factory()->create();
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
                 'account_type' => 'easy_access',
                 'institution' => 'UK Bank',
                 'current_balance' => 5000,
@@ -175,7 +175,7 @@ describe('Country Tracking API', function () {
                 'access_type' => 'immediate',
             ]);
 
-            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'account_type' => $account->account_type,
                 'institution' => $account->institution,
                 'current_balance' => 20000,
@@ -206,7 +206,7 @@ describe('Country Tracking API', function () {
                 'country' => 'France',
             ]);
 
-            $response = $this->actingAs($user)->postJson("/api/properties/{$property->id}/mortgages", [
+            $response = $this->actingAs($user, 'sanctum')->postJson("/api/properties/{$property->id}/mortgages", [
                 'lender_name' => 'French Bank',
                 'mortgage_type' => 'repayment',
                 'original_loan_amount' => 200000,
@@ -235,7 +235,7 @@ describe('Country Tracking API', function () {
                 'country' => 'United Kingdom',
             ]);
 
-            $response = $this->actingAs($user)->postJson("/api/properties/{$property->id}/mortgages", [
+            $response = $this->actingAs($user, 'sanctum')->postJson("/api/properties/{$property->id}/mortgages", [
                 'lender_name' => 'UK Bank',
                 'mortgage_type' => 'repayment',
                 'original_loan_amount' => 200000,
@@ -267,7 +267,7 @@ describe('Country Tracking API', function () {
                 'country' => 'United Kingdom',
             ]);
 
-            $response = $this->actingAs($user)->putJson("/api/mortgages/{$mortgage->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/mortgages/{$mortgage->id}", [
                 'lender_name' => $mortgage->lender_name,
                 'mortgage_type' => $mortgage->mortgage_type,
                 'outstanding_balance' => $mortgage->outstanding_balance,
@@ -292,7 +292,7 @@ describe('Country Tracking API', function () {
             $validCountries = ['United Kingdom', 'France', 'Germany', 'Spain', 'Italy', 'USA'];
 
             foreach ($validCountries as $country) {
-                $response = $this->actingAs($user)->postJson('/api/properties', [
+                $response = $this->actingAs($user, 'sanctum')->postJson('/api/properties', [
                     'property_type' => 'secondary_residence',
                     'ownership_type' => 'individual',
                     'current_value' => 100000,
@@ -312,7 +312,7 @@ describe('Country Tracking API', function () {
             $user = User::factory()->create();
 
             // Don't include country field at all - should default to UK
-            $response = $this->actingAs($user)->postJson('/api/properties', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/properties', [
                 'property_type' => 'main_residence',
                 'ownership_type' => 'individual',
                 'current_value' => 300000,
@@ -338,7 +338,7 @@ describe('Country Tracking API', function () {
                 'country' => 'France',
             ]);
 
-            $response = $this->actingAs($user1)->putJson("/api/properties/{$property->id}", [
+            $response = $this->actingAs($user1, 'sanctum')->putJson("/api/properties/{$property->id}", [
                 'country' => 'Germany',
             ]);
 

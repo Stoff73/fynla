@@ -22,7 +22,7 @@ describe('Tax Optimisation API', function () {
                 'annual_employment_income' => 55000,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/tax/optimisation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax/optimisation-analysis');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -47,7 +47,7 @@ describe('Tax Optimisation API', function () {
                 'annual_employment_income' => 55000,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/tax/optimisation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax/optimisation-analysis');
             $data = $response->json('data');
 
             $response->assertOk();
@@ -67,7 +67,7 @@ describe('Tax Optimisation API', function () {
                 'annual_employment_income' => 55000,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/tax/optimisation-analysis');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax/optimisation-analysis');
 
             $response->assertOk();
         });
@@ -85,7 +85,7 @@ describe('Tax Optimisation API', function () {
                 'annual_employment_income' => 55000,
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/tax/strategies');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax/strategies');
 
             $response->assertOk()
                 ->assertJsonStructure([

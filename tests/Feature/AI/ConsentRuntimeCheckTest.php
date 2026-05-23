@@ -62,7 +62,7 @@ it('blocks sendMessage with 403 consent_required when ai_chat consent is missing
     ]);
     $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
             'message' => 'hello',
         ]);
@@ -84,7 +84,7 @@ it('blocks sendMessage when consent was withdrawn (consented=false row exists)',
 
     $conv = AiConversation::create(['user_id' => $user->id, 'status' => 'active', 'model_used' => 'test']);
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
             'message' => 'hello',
         ]);
@@ -108,7 +108,7 @@ it('allows sendMessage to stream when ai_chat consent is granted', function (): 
         })();
     });
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
             'message' => 'hi',
         ]);
@@ -129,7 +129,7 @@ it('blocks startOnboarding with 403 consent_required when ai_chat consent is mis
         'onboarding_fyn_step' => null,
     ]);
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/ai-chat/onboarding/start');
 
     $response->assertStatus(403)
@@ -147,7 +147,7 @@ it('allows startOnboarding to stream when ai_chat consent is granted', function 
     ]);
     grantAiChatConsent($user);
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson('/api/ai-chat/onboarding/start');
 
     $response->assertOk();
@@ -194,7 +194,7 @@ it('emits consent_required SSE and closes the stream when consent is withdrawn m
         })();
     });
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
             'message' => 'hi',
         ]);
@@ -245,7 +245,7 @@ it('queries hasConsent at most once across a fast SSE stream (W1-L perf cache)',
         })();
     });
 
-    $response = $this->actingAs($user)
+    $response = $this->actingAs($user, 'sanctum')
         ->postJson("/api/ai-chat/conversations/{$conv->id}/messages", [
             'message' => 'hi',
         ]);

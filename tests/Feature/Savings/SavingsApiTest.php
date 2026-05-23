@@ -22,7 +22,7 @@ describe('Savings API', function () {
             $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
             $goal = SavingsGoal::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->getJson('/api/savings');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -40,7 +40,7 @@ describe('Savings API', function () {
             $otherUser = User::factory()->create();
             SavingsAccount::factory()->create(['user_id' => $otherUser->id]);
 
-            $response = $this->actingAs($user)->getJson('/api/savings');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
 
             $response->assertOk()
                 ->assertJson([
@@ -64,7 +64,7 @@ describe('Savings API', function () {
                 'is_isa' => false,
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated()
                 ->assertJsonStructure([
@@ -83,7 +83,7 @@ describe('Savings API', function () {
         it('accepts empty request with defaults', function () {
             // All fields are nullable - account can be created with defaults
             $user = User::factory()->create();
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', []);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', []);
 
             $response->assertCreated();
             expect(SavingsAccount::where('user_id', $user->id)->count())->toBe(1);
@@ -103,7 +103,7 @@ describe('Savings API', function () {
                 'isa_subscription_amount' => 5000,
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated();
 
@@ -121,7 +121,7 @@ describe('Savings API', function () {
                 'country' => null,
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated();
 
@@ -140,7 +140,7 @@ describe('Savings API', function () {
                 'country' => '',
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated();
 
@@ -159,7 +159,7 @@ describe('Savings API', function () {
                 'country' => 'Ireland',
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $data);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $data);
 
             $response->assertCreated();
 
@@ -175,7 +175,7 @@ describe('Savings API', function () {
             $user = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 15000,
             ]);
 
@@ -193,7 +193,7 @@ describe('Savings API', function () {
             $otherUser = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $otherUser->id]);
 
-            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 15000,
             ]);
 
@@ -207,7 +207,7 @@ describe('Savings API', function () {
                 'country' => 'United Kingdom',
             ]);
 
-            $response = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 22000,
                 'country' => null,
             ]);
@@ -226,7 +226,7 @@ describe('Savings API', function () {
             $user = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->deleteJson("/api/savings/accounts/{$account->id}");
+            $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/savings/accounts/{$account->id}");
 
             $response->assertOk()
                 ->assertJson([
@@ -242,7 +242,7 @@ describe('Savings API', function () {
             $otherUser = User::factory()->create();
             $account = SavingsAccount::factory()->create(['user_id' => $otherUser->id]);
 
-            $response = $this->actingAs($user)->deleteJson("/api/savings/accounts/{$account->id}");
+            $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/savings/accounts/{$account->id}");
 
             $response->assertNotFound();
         });
@@ -268,7 +268,7 @@ describe('Savings API', function () {
                 'total_monthly_expenditure' => 2000,
             ]);
 
-            $response = $this->actingAs($user)->postJson('/api/savings/analyze');
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/analyze');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -353,7 +353,7 @@ describe('Savings API', function () {
             $user = User::factory()->create();
             // Use hyphen format instead of slash
             $taxYear = '2025-26';
-            $response = $this->actingAs($user)->getJson("/api/savings/isa-allowance/{$taxYear}");
+            $response = $this->actingAs($user, 'sanctum')->getJson("/api/savings/isa-allowance/{$taxYear}");
 
             $response->assertOk()
                 ->assertJsonStructure([

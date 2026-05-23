@@ -470,7 +470,7 @@ import userProfileService from '@/services/userProfileService';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
-  name: 'CurrentSituation',
+  name: 'ProtectionModuleOverview',
 
   emits: ['add-policy', 'edit-policy', 'refresh-data'],
 

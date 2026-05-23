@@ -40,7 +40,7 @@ describe('Protection Cache Invalidation', function () {
         $firstHumanCapital = $firstAnalysis['data']['needs']['human_capital'];
 
         // Update user income via API
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/income-occupation', [
                 'annual_employment_income' => 75000, // Increased income
                 'annual_self_employment_income' => 0,
@@ -157,7 +157,7 @@ describe('Protection Cache Invalidation', function () {
         $agent->analyze($spouse->id);
 
         // Update user income via API
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/income-occupation', [
                 'annual_employment_income' => 75000,
                 'annual_self_employment_income' => 0,

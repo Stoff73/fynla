@@ -19,7 +19,7 @@ it('requires authentication', function () {
 it('rejects pension_contribution_percent outside 0-100', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/tax-strategy/calculate', ['pension_contribution_percent' => 150])
         ->assertStatus(422)
         ->assertJsonValidationErrors('pension_contribution_percent');
@@ -28,7 +28,7 @@ it('rejects pension_contribution_percent outside 0-100', function () {
 it('rejects isa_additional_deposit > £20,000', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/tax-strategy/calculate', ['isa_additional_deposit' => 25000])
         ->assertStatus(422)
         ->assertJsonValidationErrors('isa_additional_deposit');
@@ -40,7 +40,7 @@ it('returns recalculated grid with override applied', function () {
         'annual_employment_income' => 50000,
     ]);
 
-    $response = $this->actingAs($user)->postJson('/api/tax-strategy/calculate', [
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/tax-strategy/calculate', [
         'pension_contribution_percent' => 10,
         'salary_sacrifice' => true,
     ]);
@@ -61,7 +61,7 @@ it('returns recalculated grid with override applied', function () {
 it('accepts an empty payload (no overrides) and returns the baseline', function () {
     $user = User::factory()->create(['household_calculation_mode' => 'single']);
 
-    $response = $this->actingAs($user)->postJson('/api/tax-strategy/calculate', []);
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/tax-strategy/calculate', []);
 
     $response->assertOk();
     // Canonical: 6 base allowances + Starting Rate for Savings (factory user

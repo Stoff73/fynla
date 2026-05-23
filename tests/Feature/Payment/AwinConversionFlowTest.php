@@ -69,7 +69,7 @@ describe('createOrder captures Awin attribution', function () {
         mockRevolutForCreateOrder();
         $user = User::factory()->create(['revolut_customer_id' => 'cust_123']);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'click-ref-xyz')
             ->postJson('/api/payment/create-order', [
@@ -89,7 +89,7 @@ describe('createOrder captures Awin attribution', function () {
         mockRevolutForCreateOrder();
         $user = User::factory()->create(['revolut_customer_id' => 'cust_123']);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/create-order', [
                 'plan' => 'standard',
                 'billing_cycle' => 'monthly',
@@ -109,7 +109,7 @@ describe('createOrder captures Awin attribution', function () {
             'status' => 'completed',
         ]);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/create-order', [
                 'plan' => 'standard',
                 'billing_cycle' => 'monthly',
@@ -127,7 +127,7 @@ describe('createOrder captures Awin attribution', function () {
         mockRevolutForCreateOrder();
         $user = User::factory()->create(['revolut_customer_id' => 'cust_123']);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'should-be-ignored')
             ->postJson('/api/payment/create-order', [
@@ -148,7 +148,7 @@ describe('createOrder captures Awin attribution', function () {
             'is_admin' => true,
         ]);
 
-        $this->actingAs($user)
+        $this->actingAs($user, 'sanctum')
             ->withCredentials()
             ->withUnencryptedCookie('awc', 'should-be-ignored')
             ->postJson('/api/payment/create-order', [

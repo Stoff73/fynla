@@ -26,11 +26,11 @@ Branch off `dev`. Working on top of `99400ce`.
 
 - [ ] S11 — Strip 9 Rule #13 score badges in Investment surfaces (RiskAnalysisSection, FeeAnalysisSection, TaxStrategySection, AssetLocationOptimizer, AccountRebalancingPanel, DiversificationTab, PortfolioStrategyPanel, TaxOptimizationOverview)
 - [x] S12 — Wrapped `views/NetWorth/CashOverview.vue` in `<AppLayout>` — added import + component registration, nested existing root div, closes Rule #14 violation
-- [ ] S13 — Rename duplicate Vue filenames (CurrentSituation.vue ×2, GoalCard.vue ×2) with module prefixes
+- [x] S13 — Renamed `components/Protection/CurrentSituation.vue` → `ProtectionModuleOverview.vue` and `components/Savings/CurrentSituation.vue` → `SavingsModuleOverview.vue` (avoided collision with existing `Plans/Protection/ProtectionCurrentSituation.vue`). Updated `name:` declarations + the two view imports. Also deleted `components/Investment/GoalCard.vue` (zero references — true dead code, not a duplicate concern any more).
 - [ ] S14 — Extract `IHTPlanningPayloadBuilder` service to break LifePolicyController→IHTController inter-controller injection
 - [x] S15 — `AssetLocationController` `buildDefaultTaxProfile()` + `calculateIncomeTaxRate()` now fail loud via new `requireTaxValue()` helper — no more silent 2026/27 substitution when TaxConfigService is missing a key. `$annualIncome ?? 50000` also tightened to `?? 0` (income is a profile field, not tax data, and 0 is a legitimate non-earner value)
 - [ ] S16 — Migrate 8 legacy PHPUnit-style tests to Pest (Property + Mortgage cluster first)
-- [ ] S17 — Sweep 48 `$this->actingAs` API tests to `Sanctum::actingAs`
+- [x] S17 — Swept 31 Feature test files (210 calls) replacing bare `$this->actingAs($user)` with `$this->actingAs($user, 'sanctum')` for `/api/*` endpoints. Initially tried `Sanctum::actingAs($user)->fooJson(...)` but that chain breaks because Sanctum::actingAs returns the User, not the TestCase — reverted and used the canonical second-arg form per `tests/CLAUDE.md`. Smoke green: 1546 of 1547 tests passing (1 pre-existing PaymentWebhookRaceTest failure, untouched by sweep).
 - [ ] S18 — Extract `tests/Helpers/TaxConfigFixture::withCurrentTaxConfig()`
 - [x] S19 — Added 5 missing keys to `.env.example` (ADMIN_EMAILS, AGENT_INTERNAL_TOKEN, OPENAI_API_KEY, SSH_PASSPHRASE, VITE_INSIGHTS_CMS_ENABLED)
 - [x] S20 — Added `use Auditable` to User (with high-frequency exclusion list for last_login_at / failed_login_count / locked_until / etc. to avoid drowning the audit table), Household, NotificationPreference, SavingsGoal, SubscriptionPlan. Pest auth suite (81 tests) still green.
