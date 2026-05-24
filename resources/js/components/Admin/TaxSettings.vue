@@ -2880,6 +2880,15 @@ export default {
             inheritance_tax: this.editableConfig.inheritance_tax,
             gifting_exemptions: this.editableConfig.gifting_exemptions,
             stamp_duty: this.editableConfig.stamp_duty,
+            // R1.5 (B2-A) — the five sections below were silently dropped
+            // by an earlier version of this method, so users could edit
+            // their values, see a success toast, reload, and find their
+            // edits gone. Keep these in the payload.
+            savings: this.editableConfig.savings,
+            investment: this.editableConfig.investment,
+            protection: this.editableConfig.protection,
+            benefits: this.editableConfig.benefits,
+            assumptions: this.editableConfig.assumptions,
           }
         });
 
