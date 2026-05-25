@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Metric | Count |
 |--------|-------|
-| Vue Components | 671 |
-| PHP Services | 332 |
+| Vue Components | 666 |
+| PHP Services | 331 |
 | Controllers | 118 |
 | Models | 114 |
-| Vuex Stores | 38 |
+| Vuex Stores | 34 |
 | Agents | 9 |
 
 **Production**: https://fynla.org | **Version**: v1.0
