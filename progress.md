@@ -52,3 +52,9 @@
 - Branch: reviewFix
 - WIP commit: none (tree was clean — last commit 77470bf)
 - Pick up at: investigate 7 Pest failures (`/tmp/.../bh1bt45kt.output`), triage pre-existing vs new, then open `reviewFix → dev` PR
+
+## 2026-05-24 — session 1 (context-handover tripwire)
+- Handover: [[handover-2026-05-24-session-1-clear]]
+- Branch: feature/sp1-pass-2-r1-5-b2-fix
+- WIP commit: none (tree clean — last commit `0511d27` R1.5 already pushed)
+- Pick up at: check PR statuses (#369 reviewFix, #370 Pass-3 plan, #371 R1.0 audit, #372 R1.5 B2 fix). After #372 merges, final pass-wide review + finishing-a-development-branch. Do NOT start Pass 3 until Pass 2 reaches main.

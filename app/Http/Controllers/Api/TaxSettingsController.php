@@ -230,78 +230,15 @@ class TaxSettingsController extends Controller
     public function getCalculations(): JsonResponse
     {
         try {
+            $config = $this->store->activeConfig()['config_data'] ?? [];
+
             $calculations = [
-                'income_tax' => [
-                    'name' => 'Income Tax',
-                    'description' => 'UK Income Tax on earned income',
-                    'formula' => 'Taxable Income × Tax Rate (after Personal Allowance)',
-                    'bands' => [
-                        'personal_allowance' => '£0 - £12,570 (0%)',
-                        'basic_rate' => '£12,571 - £50,270 (20%)',
-                        'higher_rate' => '£50,271 - £125,140 (40%)',
-                        'additional_rate' => 'Over £125,140 (45%)',
-                    ],
-                    'notes' => 'Personal allowance reduces by £1 for every £2 earned over £100,000',
-                ],
-                'national_insurance' => [
-                    'name' => 'National Insurance',
-                    'description' => 'UK National Insurance contributions',
-                    'class_1_employee' => [
-                        'primary_threshold' => '£12,570 per year',
-                        'upper_earnings_limit' => '£50,270 per year',
-                        'main_rate' => '12% (between thresholds)',
-                        'additional_rate' => '2% (above upper limit)',
-                    ],
-                    'class_1_employer' => [
-                        'secondary_threshold' => '£9,100 per year',
-                        'rate' => '13.8% (above threshold)',
-                    ],
-                    'class_4_self_employed' => [
-                        'lower_profits_limit' => '£12,570 per year',
-                        'upper_profits_limit' => '£50,270 per year',
-                        'main_rate' => '9% (between limits)',
-                        'additional_rate' => '2% (above upper limit)',
-                    ],
-                ],
-                'inheritance_tax' => [
-                    'name' => 'Inheritance Tax (IHT)',
-                    'description' => 'Tax on estate value above nil rate bands',
-                    'formula' => '(Estate Value - NRB - RNRB) × 40%',
-                    'nil_rate_band' => '£325,000 (transferable between spouses)',
-                    'residence_nil_rate_band' => '£175,000 (for main residence, transferable)',
-                    'standard_rate' => '40%',
-                    'reduced_rate' => '36% (if 10%+ to charity)',
-                    'pets' => 'Potentially Exempt Transfers - 7 year rule with taper relief',
-                    'taper_relief' => 'Years 3-7: 20% per year reduction in IHT',
-                ],
-                'capital_gains_tax' => [
-                    'name' => 'Capital Gains Tax (CGT)',
-                    'description' => 'Tax on profits from selling assets',
-                    'formula' => '(Gain - Annual Exemption) × CGT Rate',
-                    'annual_exemption' => '£3,000 per tax year',
-                    'rates' => [
-                        'basic_rate_taxpayer' => '10% (18% for property)',
-                        'higher_rate_taxpayer' => '20% (28% for property)',
-                    ],
-                ],
-                'pension_allowances' => [
-                    'name' => 'Pension Allowances',
-                    'annual_allowance' => '£60,000 per tax year',
-                    'tapered_allowance' => 'Reduces for high earners (threshold income >£200k, adjusted income >£260k)',
-                    'minimum_allowance' => '£10,000',
-                    'money_purchase_annual_allowance' => '£10,000 (after flexibly accessing pension)',
-                    'carry_forward' => 'Can carry forward unused allowance from previous 3 years',
-                    'lifetime_allowance' => 'Abolished from April 2024',
-                ],
-                'isa_allowances' => [
-                    'name' => 'ISA Allowances',
-                    'total_allowance' => '£20,000 per tax year',
-                    'cash_isa' => 'Part of total allowance',
-                    'stocks_shares_isa' => 'Part of total allowance',
-                    'lifetime_isa' => '£4,000 (counts towards total allowance)',
-                    'innovative_finance_isa' => 'Part of total allowance',
-                    'note' => 'Can split £20,000 across different ISA types',
-                ],
+                'income_tax' => $this->incomeTaxCalculations($config['income_tax'] ?? []),
+                'national_insurance' => $this->nationalInsuranceCalculations($config['national_insurance'] ?? []),
+                'inheritance_tax' => $this->inheritanceTaxCalculations($config['inheritance_tax'] ?? []),
+                'capital_gains_tax' => $this->capitalGainsTaxCalculations($config['capital_gains_tax'] ?? []),
+                'pension_allowances' => $this->pensionAllowanceCalculations($config['pension'] ?? []),
+                'isa_allowances' => $this->isaAllowanceCalculations($config['isa'] ?? []),
             ];
 
             return response()->json([
@@ -311,6 +248,146 @@ class TaxSettingsController extends Controller
         } catch (\Exception $e) {
             return $this->safeErrorResponse('Failed to fetch calculations', $e);
         }
+    }
+
+    /** Build the income-tax block from active config (W1 fix — was hardcoded). */
+    private function incomeTaxCalculations(array $incomeTax): array
+    {
+        $pa = (int) ($incomeTax['personal_allowance'] ?? 0);
+        $bands = $incomeTax['bands'] ?? [];
+        $taperThreshold = (int) ($incomeTax['personal_allowance_taper_threshold'] ?? 100000);
+        $taperRate = (float) ($incomeTax['personal_allowance_taper_rate'] ?? 0.5);
+        $taperFraction = $taperRate > 0 ? (int) round(1 / $taperRate) : 2;
+
+        $bandStrings = ['personal_allowance' => sprintf('£0 - £%s (0%%)', number_format($pa))];
+        foreach ($bands as $band) {
+            $name = strtolower(str_replace(' ', '_', (string) ($band['name'] ?? '')));
+            $lower = (int) ($band['lower_limit'] ?? $band['threshold'] ?? 0);
+            $upper = isset($band['upper_limit']) && $band['upper_limit'] !== null
+                ? '£'.number_format((int) $band['upper_limit'])
+                : 'no upper limit';
+            $rate = (float) ($band['rate'] ?? 0) * 100;
+            $bandStrings[$name.'_rate'] = sprintf(
+                '£%s - %s (%d%%)',
+                number_format($lower + 1),
+                $upper,
+                $rate
+            );
+        }
+
+        return [
+            'name' => 'Income Tax',
+            'description' => 'UK Income Tax on earned income',
+            'formula' => 'Taxable Income × Tax Rate (after Personal Allowance)',
+            'bands' => $bandStrings,
+            'notes' => sprintf(
+                'Personal allowance reduces by £1 for every £%d earned over £%s',
+                $taperFraction,
+                number_format($taperThreshold)
+            ),
+        ];
+    }
+
+    /** Build the NI block from active config (W1 fix — was hardcoded). */
+    private function nationalInsuranceCalculations(array $ni): array
+    {
+        $emp = $ni['class_1']['employee'] ?? [];
+        $empr = $ni['class_1']['employer'] ?? [];
+        $c4 = $ni['class_4'] ?? [];
+
+        return [
+            'name' => 'National Insurance',
+            'description' => 'UK National Insurance contributions',
+            'class_1_employee' => [
+                'primary_threshold' => sprintf('£%s per year', number_format((int) ($emp['primary_threshold'] ?? 0))),
+                'upper_earnings_limit' => sprintf('£%s per year', number_format((int) ($emp['upper_earnings_limit'] ?? 0))),
+                'main_rate' => sprintf('%g%% (between thresholds)', ((float) ($emp['main_rate'] ?? 0)) * 100),
+                'additional_rate' => sprintf('%g%% (above upper limit)', ((float) ($emp['additional_rate'] ?? 0)) * 100),
+            ],
+            'class_1_employer' => [
+                'secondary_threshold' => sprintf('£%s per year', number_format((int) ($empr['secondary_threshold'] ?? 0))),
+                'rate' => sprintf('%g%% (above threshold)', ((float) ($empr['rate'] ?? 0)) * 100),
+            ],
+            'class_4_self_employed' => [
+                'lower_profits_limit' => sprintf('£%s per year', number_format((int) ($c4['lower_profits_limit'] ?? 0))),
+                'upper_profits_limit' => sprintf('£%s per year', number_format((int) ($c4['upper_profits_limit'] ?? 0))),
+                'main_rate' => sprintf('%g%% (between limits)', ((float) ($c4['main_rate'] ?? 0)) * 100),
+                'additional_rate' => sprintf('%g%% (above upper limit)', ((float) ($c4['additional_rate'] ?? 0)) * 100),
+            ],
+        ];
+    }
+
+    /** Build the IHT block from active config (W1 fix — was hardcoded). */
+    private function inheritanceTaxCalculations(array $iht): array
+    {
+        return [
+            'name' => 'Inheritance Tax (IHT)',
+            'description' => 'Tax on estate value above nil rate bands',
+            'formula' => '(Estate Value - NRB - RNRB) × Standard Rate',
+            'nil_rate_band' => sprintf('£%s (transferable between spouses)', number_format((int) ($iht['nil_rate_band'] ?? 0))),
+            'residence_nil_rate_band' => sprintf('£%s (for main residence, transferable)', number_format((int) ($iht['residence_nil_rate_band'] ?? 0))),
+            'standard_rate' => sprintf('%g%%', ((float) ($iht['standard_rate'] ?? 0)) * 100),
+            'reduced_rate' => sprintf('%g%% (if 10%%+ to charity)', ((float) ($iht['reduced_rate'] ?? 0.36)) * 100),
+            'pets' => 'Potentially Exempt Transfers — 7-year rule with taper relief',
+            'taper_relief' => 'Years 3-7: tapered reduction in IHT (see active config for exact percentages)',
+        ];
+    }
+
+    /** Build the CGT block from active config (W1 fix — was hardcoded). */
+    private function capitalGainsTaxCalculations(array $cgt): array
+    {
+        return [
+            'name' => 'Capital Gains Tax (CGT)',
+            'description' => 'Tax on profits from selling assets',
+            'formula' => '(Gain - Annual Exemption) × CGT Rate',
+            'annual_exemption' => sprintf('£%s per tax year', number_format((int) ($cgt['annual_exempt_amount'] ?? 0))),
+            'rates' => [
+                'basic_rate_taxpayer' => sprintf(
+                    '%g%% (%g%% for residential property)',
+                    ((float) ($cgt['basic_rate'] ?? 0)) * 100,
+                    ((float) ($cgt['residential_property_basic_rate'] ?? 0)) * 100,
+                ),
+                'higher_rate_taxpayer' => sprintf(
+                    '%g%% (%g%% for residential property)',
+                    ((float) ($cgt['higher_rate'] ?? 0)) * 100,
+                    ((float) ($cgt['residential_property_higher_rate'] ?? 0)) * 100,
+                ),
+            ],
+        ];
+    }
+
+    /** Build the pension block from active config (W1 fix — was hardcoded). */
+    private function pensionAllowanceCalculations(array $pension): array
+    {
+        return [
+            'name' => 'Pension Allowances',
+            'annual_allowance' => sprintf('£%s per tax year', number_format((int) ($pension['annual_allowance'] ?? 0))),
+            'tapered_allowance' => 'Reduces for high earners (see income_tax + pension config for thresholds)',
+            'minimum_allowance' => sprintf('£%s', number_format((int) ($pension['minimum_allowance'] ?? 10000))),
+            'money_purchase_annual_allowance' => sprintf(
+                '£%s (after flexibly accessing pension)',
+                number_format((int) ($pension['money_purchase_annual_allowance'] ?? $pension['mpaa'] ?? 10000))
+            ),
+            'carry_forward' => 'Can carry forward unused allowance from previous 3 years',
+            'lifetime_allowance' => 'Abolished from April 2024',
+        ];
+    }
+
+    /** Build the ISA block from active config (W1 fix — was hardcoded). */
+    private function isaAllowanceCalculations(array $isa): array
+    {
+        return [
+            'name' => 'ISA Allowances',
+            'total_allowance' => sprintf('£%s per tax year', number_format((int) ($isa['annual_allowance'] ?? 0))),
+            'cash_isa' => 'Part of total allowance',
+            'stocks_shares_isa' => 'Part of total allowance',
+            'lifetime_isa' => sprintf(
+                '£%s (counts towards total allowance)',
+                number_format((int) ($isa['lifetime_isa']['annual_allowance'] ?? 4000))
+            ),
+            'innovative_finance_isa' => 'Part of total allowance',
+            'note' => sprintf('Can split £%s across different ISA types', number_format((int) ($isa['annual_allowance'] ?? 0))),
+        ];
     }
 
     /**

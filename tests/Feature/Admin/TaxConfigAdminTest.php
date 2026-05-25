@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\TaxConfiguration;
 use App\Models\TaxConfigurationAudit;
 use App\Models\User;
+use App\Services\Stores\TaxConfigStore;
 use Database\Seeders\RolesPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -202,5 +203,115 @@ describe('TaxSettings — delete', function () {
 
     it('returns 404 for unknown id', function () {
         $this->deleteJson('/api/tax-settings/99999')->assertNotFound();
+    });
+});
+
+describe('TaxSettings — B2 round-trip (R1.5)', function () {
+    it('preserves every Vue-editable section through a full saveChanges payload', function () {
+        // B2-A: the Vue form has v-model bindings across 14 config_data sections
+        // but saveChanges() omitted 5 of them. This test exercises the FULL
+        // canonical-Vue payload shape so any backend regression that drops a
+        // section on round-trip is caught.
+        $config = TaxConfiguration::factory()->forTaxYear('2027/28')->create([
+            'config_data' => [
+                'income_tax' => ['personal_allowance' => 12570],
+                'national_insurance' => ['class_1' => ['employee' => ['main_rate' => 0.08]]],
+                'isa' => ['annual_allowance' => 20000],
+                'capital_gains_tax' => ['annual_exempt_amount' => 3000],
+                'dividend_tax' => ['allowance' => 500],
+                'pension' => ['annual_allowance' => 60000],
+                'inheritance_tax' => ['nil_rate_band' => 325000],
+                'gifting_exemptions' => ['annual' => 3000],
+                'stamp_duty' => ['threshold' => 250000],
+                'savings' => ['premium_bonds_prize_fund_rate' => 0.033],
+                'investment' => ['default_growth_rate' => 0.05],
+                'protection' => ['life_insurance_default_term_years' => 20],
+                'benefits' => ['child_benefit' => ['eldest_child_weekly' => 27.05]],
+                'assumptions' => ['inflation_rate' => 0.025],
+            ],
+        ]);
+
+        $this->putJson("/api/tax-settings/{$config->id}", [
+            'config_data' => [
+                'income_tax' => ['personal_allowance' => 13000],
+                'national_insurance' => ['class_1' => ['employee' => ['main_rate' => 0.09]]],
+                'isa' => ['annual_allowance' => 21000],
+                'capital_gains_tax' => ['annual_exempt_amount' => 3500],
+                'dividend_tax' => ['allowance' => 600],
+                'pension' => ['annual_allowance' => 65000],
+                'inheritance_tax' => ['nil_rate_band' => 350000],
+                'gifting_exemptions' => ['annual' => 3500],
+                'stamp_duty' => ['threshold' => 275000],
+                'savings' => ['premium_bonds_prize_fund_rate' => 0.04],
+                'investment' => ['default_growth_rate' => 0.06],
+                'protection' => ['life_insurance_default_term_years' => 25],
+                'benefits' => ['child_benefit' => ['eldest_child_weekly' => 28.00]],
+                'assumptions' => ['inflation_rate' => 0.03],
+            ],
+            'rationale' => 'B2-A round-trip test',
+        ])->assertOk();
+
+        $config->refresh();
+
+        // All 14 sections must round-trip
+        expect($config->config_data['income_tax']['personal_allowance'])->toBe(13000);
+        expect($config->config_data['national_insurance']['class_1']['employee']['main_rate'])->toBe(0.09);
+        expect($config->config_data['isa']['annual_allowance'])->toBe(21000);
+        expect($config->config_data['capital_gains_tax']['annual_exempt_amount'])->toBe(3500);
+        expect($config->config_data['dividend_tax']['allowance'])->toBe(600);
+        expect($config->config_data['pension']['annual_allowance'])->toBe(65000);
+        expect($config->config_data['inheritance_tax']['nil_rate_band'])->toBe(350000);
+        expect($config->config_data['gifting_exemptions']['annual'])->toBe(3500);
+        expect($config->config_data['stamp_duty']['threshold'])->toBe(275000);
+        // The 5 previously-dropped sections must persist
+        expect((float) $config->config_data['savings']['premium_bonds_prize_fund_rate'])->toBe(0.04);
+        expect((float) $config->config_data['investment']['default_growth_rate'])->toBe(0.06);
+        expect((int) $config->config_data['protection']['life_insurance_default_term_years'])->toBe(25);
+        expect((float) $config->config_data['benefits']['child_benefit']['eldest_child_weekly'])->toBe(28.00);
+        expect((float) $config->config_data['assumptions']['inflation_rate'])->toBe(0.03);
+    });
+});
+
+describe('TaxSettings — getCalculations reads from active config (W1)', function () {
+    it('reflects the active configs personal allowance, not a hardcoded literal', function () {
+        // W1: getCalculations() previously hardcoded '£0 - £12,570 (0%)'.
+        // After the fix it must read from TaxConfigStore::activeConfig().
+        // Deactivate any pre-existing active row and drop the store memo
+        // so activeConfig() resolves to the row this test creates.
+        TaxConfiguration::where('is_active', true)->update(['is_active' => false]);
+        app(TaxConfigStore::class)->forgetActive();
+
+        $active = TaxConfiguration::factory()->forTaxYear('2030/31')->active()->create([
+            'config_data' => [
+                'income_tax' => [
+                    'personal_allowance' => 15000,
+                    'bands' => [
+                        ['name' => 'Basic', 'lower_limit' => 15000, 'upper_limit' => 60000, 'rate' => 0.20],
+                        ['name' => 'Higher', 'lower_limit' => 60000, 'upper_limit' => 150000, 'rate' => 0.40],
+                        ['name' => 'Additional', 'lower_limit' => 150000, 'upper_limit' => null, 'rate' => 0.45],
+                    ],
+                ],
+                'isa' => ['annual_allowance' => 25000],
+                'inheritance_tax' => ['nil_rate_band' => 400000, 'residence_nil_rate_band' => 200000, 'standard_rate' => 0.40],
+                'pension' => ['annual_allowance' => 80000],
+                'capital_gains_tax' => ['annual_exempt_amount' => 5000],
+            ],
+        ]);
+
+        $response = $this->getJson('/api/tax-settings/calculations');
+        $response->assertOk()->assertJsonPath('success', true);
+
+        $body = $response->json('data');
+
+        // Income tax band string must include the new personal allowance (15,000), not the legacy 12,570
+        expect($body['income_tax']['bands']['personal_allowance'] ?? '')->toContain('15,000');
+        expect($body['income_tax']['bands']['personal_allowance'] ?? '')->not->toContain('12,570');
+
+        // ISA, IHT, pension, CGT all reflect this config
+        expect($body['isa_allowances']['total_allowance'] ?? '')->toContain('25,000');
+        expect($body['inheritance_tax']['nil_rate_band'] ?? '')->toContain('400,000');
+        expect($body['inheritance_tax']['residence_nil_rate_band'] ?? '')->toContain('200,000');
+        expect($body['pension_allowances']['annual_allowance'] ?? '')->toContain('80,000');
+        expect($body['capital_gains_tax']['annual_exemption'] ?? '')->toContain('5,000');
     });
 });
