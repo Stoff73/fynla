@@ -161,7 +161,7 @@ describe('Data Erasure', function () {
             'is_preview_user' => true,
         ]);
 
-        $response = $this->actingAs($previewUser)
+        $response = $this->actingAs($previewUser, 'sanctum')
             ->postJson('/api/auth/gdpr/erasure', [
                 'confirm' => true,
             ]);
@@ -277,7 +277,7 @@ describe('Immediate Self-Service Deletion', function () {
             'is_preview_user' => true,
         ]);
 
-        $response = $this->actingAs($previewUser)
+        $response = $this->actingAs($previewUser, 'sanctum')
             ->postJson('/api/auth/gdpr/erasure/initiate', [
                 'type' => 'account',
             ]);

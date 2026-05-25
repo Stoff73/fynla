@@ -23,7 +23,7 @@ it('returns full payload for an authenticated single user', function () {
         'annual_employment_income' => 50000,
     ]);
 
-    $response = $this->actingAs($user)->getJson('/api/tax-strategy');
+    $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax-strategy');
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -53,7 +53,7 @@ it('returns household-category recommendations for single_earner_couple users', 
     ]);
     TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
 
-    $response = $this->actingAs($user)->getJson('/api/tax-strategy');
+    $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax-strategy');
 
     $recommendations = $response->json('data.recommendations');
     $household = collect($recommendations)->where('category', 'household')->values()->all();
@@ -75,7 +75,7 @@ it('returns spouse_allowances for dual_earner users', function () {
         'spouse_psa_band' => 'basic',
     ]);
 
-    $response = $this->actingAs($user)->getJson('/api/tax-strategy');
+    $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax-strategy');
 
     expect($response->json('data.calculation_mode'))->toBe('dual_earner');
     expect($response->json('data.spouse_allowances'))->toHaveCount(8);
@@ -89,7 +89,7 @@ it('returns household-category recommendations under recommendations[] for singl
     ]);
     TaxStrategyHouseholdInput::create(['user_id' => $user->id]);
 
-    $response = $this->actingAs($user)->getJson('/api/tax-strategy');
+    $response = $this->actingAs($user, 'sanctum')->getJson('/api/tax-strategy');
 
     expect($response->json('data.calculation_mode'))->toBe('single_earner_couple');
     expect($response->json('data'))->not->toHaveKey('asset_shifting_suggestions') // dropped Phase 2

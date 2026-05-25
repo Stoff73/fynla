@@ -163,7 +163,7 @@ import { currencyMixin } from '@/mixins/currencyMixin';
 
 import logger from '@/utils/logger';
 export default {
-  name: 'CurrentSituation',
+  name: 'SavingsModuleOverview',
 
   mixins: [currencyMixin],
 

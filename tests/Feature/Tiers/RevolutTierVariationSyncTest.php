@@ -207,7 +207,7 @@ it('locks an existing tier subscriber to their original price across a store pri
     app()->instance(RevolutService::class, $revolut);
 
     // Step 1: real createOrder for tier1 — price resolved from the store.
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/payment/create-order', [
             'plan' => 'tier1',
             'billing_cycle' => 'monthly',
@@ -219,7 +219,7 @@ it('locks an existing tier subscriber to their original price across a store pri
         ->and($payment->plan_slug)->toBe('tier1');
 
     // Step 2: real confirmPayment — activates the subscription.
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/payment/confirm', ['order_id' => $orderId])
         ->assertOk();
 
@@ -285,11 +285,11 @@ it('sets canonical users.tier on a tier1 purchase via confirmPayment and resolve
     ]);
     app()->instance(RevolutService::class, $revolut);
 
-    $this->actingAs($user)->postJson('/api/payment/create-order', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
         'plan' => 'tier1', 'billing_cycle' => 'monthly',
     ])->assertOk();
 
-    $this->actingAs($user)->postJson('/api/payment/confirm', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/confirm', [
         'order_id' => $orderId,
     ])->assertOk();
 
@@ -331,7 +331,7 @@ it('sets canonical users.tier on a tier2 purchase via the Revolut webhook path',
     ]);
     app()->instance(RevolutService::class, $createMock);
 
-    $this->actingAs($user)->postJson('/api/payment/create-order', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
         'plan' => 'tier2', 'billing_cycle' => 'monthly',
     ])->assertOk();
 
@@ -379,11 +379,11 @@ it('does NOT set users.tier for a legacy (pro) purchase — grandfather logic ow
     ]);
     app()->instance(RevolutService::class, $revolut);
 
-    $this->actingAs($user)->postJson('/api/payment/create-order', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
         'plan' => 'pro', 'billing_cycle' => 'monthly',
     ])->assertOk();
 
-    $this->actingAs($user)->postJson('/api/payment/confirm', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/confirm', [
         'order_id' => $orderId,
     ])->assertOk();
 

@@ -33,6 +33,8 @@ use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -53,6 +55,9 @@ use Illuminate\Support\Facades\Log;
  */
 class AdvicePromptBuilder
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PrerequisiteGateService $prerequisiteGate,
@@ -1252,26 +1257,19 @@ PROMPT;
 
     public function calculateTotalUserIncome(User $user): float
     {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
+        // Delegates to ResolvesIncome trait — canonical income resolution
+        // used by 20+ sibling services. Earlier hand-rolled version returned
+        // 0 when the user had only annual_expenditure populated, which
+        // produced wrong tax-band estimates in Fyn advice.
+        return $this->resolveGrossAnnualIncome($user);
     }
 
     public function calculateTotalExpenditure(User $user): float
     {
-        if ($user->monthly_expenditure && $user->monthly_expenditure > 0) {
-            return (float) $user->monthly_expenditure;
-        }
-
-        if ($user->annual_expenditure && $user->annual_expenditure > 0) {
-            return (float) $user->annual_expenditure / 12;
-        }
-
-        return 0;
+        // Delegates to ResolvesExpenditure trait — same priority chain
+        // (ExpenditureProfile → user.monthly → user.annual / 12) used by
+        // every other expenditure consumer.
+        return $this->resolveMonthlyExpenditure($user)['amount'];
     }
 
     public function estimateTaxBand(float $totalIncome): string

@@ -1061,14 +1061,4 @@ class InvestmentController extends Controller
             ]),
         ]);
     }
-
-    /**
-     * Calculate annualised return for an account based on holdings.
-     *
-     * @deprecated Use ReturnCalculationService::calculateAnnualisedReturn() directly
-     */
-    private function calculateAccountAnnualisedReturn(InvestmentAccount $account): ?float
-    {
-        return $this->returnCalculationService->calculateAnnualisedReturn($account);
-    }
 }

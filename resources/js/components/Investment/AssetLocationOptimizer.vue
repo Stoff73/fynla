@@ -19,23 +19,24 @@
     <div v-else class="space-y-6">
       <!-- Header with Optimization Score -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Optimization Score Card -->
+        <!-- Asset Location Status (descriptive — Rule #13: no scores) -->
         <div class="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Asset Location Score</h3>
-          <div class="flex items-center justify-center mb-4">
-            <apexchart
-              v-if="analysis"
-              type="radialBar"
-              :options="optimizationScoreChartOptions"
-              :series="[analysis.optimization_score?.score || 0]"
-              height="200"
-            />
-          </div>
-          <div class="text-center">
-            <p class="text-2xl font-bold mb-1" :class="getScoreColour(analysis?.optimization_score?.score)">
-              {{ optimisationLabel }}
-            </p>
-            <p class="text-sm text-neutral-500">{{ analysis?.optimization_score?.grade || 'N/A' }}</p>
+          <h3 class="text-lg font-semibold text-horizon-500 mb-4">Asset location status</h3>
+          <div class="space-y-3">
+            <div>
+              <p class="text-2xl font-semibold mb-1" :class="getScoreColour(analysis?.optimization_score?.score)">
+                {{ optimisationLabel }}
+              </p>
+              <p class="text-sm text-neutral-500">
+                Tax-inefficient placements across your accounts
+              </p>
+            </div>
+            <div class="pt-3 border-t border-violet-200">
+              <p class="text-sm text-neutral-500">Annual tax drag avoidable</p>
+              <p class="text-xl font-bold text-spring-600">
+                £{{ formatNumber(analysis?.tax_drag?.potential_savings || 0) }}
+              </p>
+            </div>
           </div>
         </div>
 

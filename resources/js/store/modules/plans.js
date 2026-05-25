@@ -100,11 +100,6 @@ const mutations = {
     state.error = error;
   },
 
-  clearPlan(state, type) {
-    const { [type]: removed, ...rest } = state.plans;
-    state.plans = rest;
-  },
-
   setActionFundingSource(state, { planKey, actionId, fundingSourceId, fundingSourceType }) {
     const plan = state.plans[planKey];
     if (!plan || !plan.actions) return;

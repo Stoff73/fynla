@@ -78,6 +78,20 @@ class Invoice extends Model
                 ->lockForUpdate()
                 ->first();
 
+            if ($sequence === null) {
+                // First call after a schema:load: the table exists but the
+                // seed row is absent because schema:dump captures DDL only.
+                // insertOrIgnore handles concurrent first-callers safely.
+                DB::table('invoice_sequences')->insertOrIgnore([
+                    'id' => 1,
+                    'next_value' => 1,
+                ]);
+                $sequence = DB::table('invoice_sequences')
+                    ->where('id', 1)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
             $nextValue = $sequence->next_value;
 
             DB::table('invoice_sequences')

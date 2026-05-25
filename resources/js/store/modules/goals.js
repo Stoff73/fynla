@@ -233,12 +233,6 @@ const mutations = {
         };
     },
 
-    CLEAR_GOAL_DEPENDENCIES(state, goalId) {
-        const deps = { ...state.goalDependencies };
-        delete deps[goalId];
-        state.goalDependencies = deps;
-    },
-
     // Allocation mutations
     SET_EVENT_ALLOCATIONS(state, { eventId, allocations }) {
         state.eventAllocations = { ...state.eventAllocations, [eventId]: allocations };

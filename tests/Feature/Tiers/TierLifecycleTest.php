@@ -172,12 +172,12 @@ it('sets users.tier to tier2 when a tier1 subscriber upgrades via upgradeSubscri
     app()->instance(RevolutService::class, $revolut);
 
     // Step 1: upgrade tier1 → tier2.
-    $this->actingAs($user)->postJson('/api/payment/upgrade', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/upgrade', [
         'plan' => 'tier2',
     ])->assertOk();
 
     // Step 2: confirm the upgrade payment.
-    $this->actingAs($user)->postJson('/api/payment/confirm', [
+    $this->actingAs($user, 'sanctum')->postJson('/api/payment/confirm', [
         'order_id' => $orderId,
     ])->assertOk();
 

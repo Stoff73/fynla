@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * BS — Document Articles end-to-end.
+ * BS-03 — Document Articles end-to-end.
  *
  * GREEN when:
  *   1. Admin logs in (/login → email code → /dashboard).

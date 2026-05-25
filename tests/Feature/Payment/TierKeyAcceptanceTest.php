@@ -26,7 +26,7 @@ describe('POST /api/payment/create-order — tier-key validation', function () {
 
     it('rejects old legacy slugs that were never valid — sanity check', function () {
         $user = User::factory()->create();
-        $response = $this->actingAs($user)->postJson('/api/payment/create-order', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
             'plan' => 'enterprise',
             'billing_cycle' => 'monthly',
         ]);
@@ -35,7 +35,7 @@ describe('POST /api/payment/create-order — tier-key validation', function () {
 
     it('accepts free tier and returns 422 with no-order message (not a plan validation failure)', function () {
         $user = User::factory()->create();
-        $response = $this->actingAs($user)->postJson('/api/payment/create-order', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
             'plan' => 'free',
             'billing_cycle' => 'monthly',
         ]);
@@ -57,7 +57,7 @@ describe('POST /api/payment/create-order — tier-key validation', function () {
             ], 200),
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/payment/create-order', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
             'plan' => 'tier1',
             'billing_cycle' => 'monthly',
         ]);
@@ -80,7 +80,7 @@ describe('POST /api/payment/create-order — tier-key validation', function () {
             ], 200),
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/payment/create-order', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
             'plan' => 'tier2',
             'billing_cycle' => 'monthly',
         ]);
@@ -100,7 +100,7 @@ describe('POST /api/payment/create-order — tier-key validation', function () {
             ], 200),
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/payment/create-order', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/create-order', [
             'plan' => 'tier3',
             'billing_cycle' => 'monthly',
         ]);
@@ -115,7 +115,7 @@ describe('POST /api/payment/validate-discount — tier-key validation', function
     it('accepts free tier key without plan validation error', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/payment/validate-discount', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/validate-discount', [
             'code' => 'TESTCODE',
             'plan' => 'free',
             'billing_cycle' => 'monthly',
@@ -134,7 +134,7 @@ describe('POST /api/payment/validate-discount — tier-key validation', function
     it('accepts tier1 key and resolves price from the tier store', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/payment/validate-discount', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/payment/validate-discount', [
             'code' => 'NOTEXIST',
             'plan' => 'tier1',
             'billing_cycle' => 'monthly',

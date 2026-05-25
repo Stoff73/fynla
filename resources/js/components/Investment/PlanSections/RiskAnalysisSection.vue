@@ -7,36 +7,30 @@
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Risk Score Overview -->
+      <!-- Risk Overview (descriptive — Rule #13: no scores) -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white border border-light-gray rounded-lg p-5">
-          <h5 class="text-sm font-semibold text-neutral-500 mb-3">Current Risk Score</h5>
-          <div class="flex items-center justify-center mb-2">
-            <div class="text-4xl font-bold" :class="getRiskScoreColour(data.current_risk_score)">
-              {{ data.current_risk_score || 0 }}<span class="text-2xl text-neutral-500">/10</span>
-            </div>
-          </div>
-          <p class="text-center text-sm text-neutral-500">{{ getRiskScoreLabel(data.current_risk_score) }}</p>
+          <h5 class="text-sm font-semibold text-neutral-500 mb-3">Current risk profile</h5>
+          <p class="text-2xl font-semibold mb-1" :class="getRiskScoreColour(data.current_risk_score)">
+            {{ getRiskScoreLabel(data.current_risk_score) }}
+          </p>
+          <p class="text-sm text-neutral-500">Based on your current portfolio mix</p>
         </div>
 
         <div class="bg-white border border-light-gray rounded-lg p-5">
-          <h5 class="text-sm font-semibold text-neutral-500 mb-3">Target Risk Score</h5>
-          <div class="flex items-center justify-center mb-2">
-            <div class="text-4xl font-bold text-violet-600">
-              {{ data.target_risk_score || 0 }}<span class="text-2xl text-neutral-500">/10</span>
-            </div>
-          </div>
-          <p class="text-center text-sm text-neutral-500">{{ getRiskScoreLabel(data.target_risk_score) }}</p>
+          <h5 class="text-sm font-semibold text-neutral-500 mb-3">Target risk profile</h5>
+          <p class="text-2xl font-semibold text-violet-600 mb-1">
+            {{ getRiskScoreLabel(data.target_risk_score) }}
+          </p>
+          <p class="text-sm text-neutral-500">Matched to your time horizon and goals</p>
         </div>
 
         <div class="bg-white border border-light-gray rounded-lg p-5">
-          <h5 class="text-sm font-semibold text-neutral-500 mb-3">Risk Alignment</h5>
-          <div class="flex items-center justify-center mb-2">
-            <div class="text-4xl font-bold" :class="getAlignmentColour(data.risk_alignment)">
-              {{ formatPercentage(data.risk_alignment || 0) }}<span class="text-2xl">%</span>
-            </div>
-          </div>
-          <p class="text-center text-sm text-neutral-500">{{ getAlignmentLabel(data.risk_alignment) }}</p>
+          <h5 class="text-sm font-semibold text-neutral-500 mb-3">Alignment with target</h5>
+          <p class="text-2xl font-semibold mb-1" :class="getAlignmentColour(data.risk_alignment)">
+            {{ getAlignmentLabel(data.risk_alignment) }}
+          </p>
+          <p class="text-sm text-neutral-500">How closely you match your target profile</p>
         </div>
       </div>
 

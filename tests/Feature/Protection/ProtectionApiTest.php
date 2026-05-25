@@ -31,7 +31,7 @@ describe('Protection API - Index', function () {
         $user = User::factory()->create();
         $profile = ProtectionProfile::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->getJson('/api/protection');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/protection');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -67,7 +67,7 @@ describe('Protection Profile', function () {
             'health_status' => 'good',
         ];
 
-        $response = $this->actingAs($user)->postJson('/api/protection/profile', $data);
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/profile', $data);
 
         $response->assertStatus(201)
             ->assertJsonStructure([
@@ -100,7 +100,7 @@ describe('Life Insurance Policies', function () {
             'in_trust' => false,
         ];
 
-        $response = $this->actingAs($user)->postJson('/api/protection/policies/life', $data);
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/policies/life', $data);
 
         $response->assertStatus(201);
         $this->assertDatabaseHas('life_insurance_policies', [
@@ -115,7 +115,7 @@ describe('Life Insurance Policies', function () {
 
         $data = ['sum_assured' => 600000];
 
-        $response = $this->actingAs($user)->putJson("/api/protection/policies/life/{$policy->id}", $data);
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/protection/policies/life/{$policy->id}", $data);
 
         $response->assertStatus(200);
         $this->assertDatabaseHas('life_insurance_policies', [
@@ -128,7 +128,7 @@ describe('Life Insurance Policies', function () {
         $user = User::factory()->create();
         $policy = LifeInsurancePolicy::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->deleteJson("/api/protection/policies/life/{$policy->id}");
+        $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/protection/policies/life/{$policy->id}");
 
         $response->assertStatus(200);
         $this->assertSoftDeleted('life_insurance_policies', ['id' => $policy->id]);
@@ -139,7 +139,7 @@ describe('Life Insurance Policies', function () {
         $user2 = User::factory()->create();
         $policy = LifeInsurancePolicy::factory()->create(['user_id' => $user1->id]);
 
-        $response = $this->actingAs($user2)->deleteJson("/api/protection/policies/life/{$policy->id}");
+        $response = $this->actingAs($user2, 'sanctum')->deleteJson("/api/protection/policies/life/{$policy->id}");
 
         $response->assertStatus(404);
         $this->assertDatabaseHas('life_insurance_policies', ['id' => $policy->id]);
@@ -160,7 +160,7 @@ describe('Critical Illness Policies', function () {
             'policy_term_years' => 20,
         ];
 
-        $response = $this->actingAs($user)->postJson('/api/protection/policies/critical-illness', $data);
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/policies/critical-illness', $data);
 
         $response->assertStatus(201);
     });
@@ -169,7 +169,7 @@ describe('Critical Illness Policies', function () {
         $user = User::factory()->create();
         $policy = CriticalIllnessPolicy::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->putJson("/api/protection/policies/critical-illness/{$policy->id}", [
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/protection/policies/critical-illness/{$policy->id}", [
             'sum_assured' => 150000,
         ]);
 
@@ -180,7 +180,7 @@ describe('Critical Illness Policies', function () {
         $user = User::factory()->create();
         $policy = CriticalIllnessPolicy::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->deleteJson("/api/protection/policies/critical-illness/{$policy->id}");
+        $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/protection/policies/critical-illness/{$policy->id}");
 
         $response->assertStatus(200);
     });
@@ -201,7 +201,7 @@ describe('Income Protection Policies', function () {
             'policy_start_date' => '2024-01-01',
         ];
 
-        $response = $this->actingAs($user)->postJson('/api/protection/policies/income-protection', $data);
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/policies/income-protection', $data);
 
         $response->assertStatus(201);
     });
@@ -222,7 +222,7 @@ describe('Disability Policies', function () {
             'coverage_type' => 'accident_and_sickness',
         ];
 
-        $response = $this->actingAs($user)->postJson('/api/protection/policies/disability', $data);
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/policies/disability', $data);
 
         $response->assertStatus(201);
     });
@@ -231,7 +231,7 @@ describe('Disability Policies', function () {
         $user = User::factory()->create();
         $policy = DisabilityPolicy::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->putJson("/api/protection/policies/disability/{$policy->id}", [
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/protection/policies/disability/{$policy->id}", [
             'benefit_amount' => 2500,
         ]);
 
@@ -253,7 +253,7 @@ describe('Sickness/Illness Policies', function () {
             'conditions_covered' => ['Cancer', 'Heart Attack'],
         ];
 
-        $response = $this->actingAs($user)->postJson('/api/protection/policies/sickness-illness', $data);
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/policies/sickness-illness', $data);
 
         $response->assertStatus(201);
     });
@@ -262,7 +262,7 @@ describe('Sickness/Illness Policies', function () {
         $user = User::factory()->create();
         $policy = SicknessIllnessPolicy::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->putJson("/api/protection/policies/sickness-illness/{$policy->id}", [
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/protection/policies/sickness-illness/{$policy->id}", [
             'benefit_amount' => 75000,
         ]);
 
@@ -273,7 +273,7 @@ describe('Sickness/Illness Policies', function () {
         $user = User::factory()->create();
         $policy = SicknessIllnessPolicy::factory()->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)->deleteJson("/api/protection/policies/sickness-illness/{$policy->id}");
+        $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/protection/policies/sickness-illness/{$policy->id}");
 
         $response->assertStatus(200);
     });
@@ -298,7 +298,7 @@ describe('Protection Analysis', function () {
             'sum_assured' => 300000,
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/protection/analyze');
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/analyze');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -323,7 +323,7 @@ describe('Protection Analysis', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/protection/analyze');
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/analyze');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -336,7 +336,7 @@ describe('Validation', function () {
     it('validates life insurance policy creation', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/protection/policies/life', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/policies/life', [
             'sum_assured' => -1000, // Invalid - must be >= 0
         ]);
 
@@ -347,7 +347,7 @@ describe('Validation', function () {
     it('validates protection profile creation', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->postJson('/api/protection/profile', [
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/protection/profile', [
             'annual_income' => 'invalid', // Should be numeric
             'number_of_dependents' => -1, // Should be >= 0
         ]);
