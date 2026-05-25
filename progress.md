@@ -58,3 +58,11 @@
 - Branch: feature/sp1-pass-2-r1-5-b2-fix
 - WIP commit: none (tree clean — last commit `0511d27` R1.5 already pushed)
 - Pick up at: check PR statuses (#369 reviewFix, #370 Pass-3 plan, #371 R1.0 audit, #372 R1.5 B2 fix). After #372 merges, final pass-wide review + finishing-a-development-branch. Do NOT start Pass 3 until Pass 2 reaches main.
+
+## 2026-05-25 — session 1 (end-of-day wrap)
+- Handover: [[handover-2026-05-26-session-1]]
+- Branch: dev (HEAD `72e6e5e`)
+- Commits this session: 8 across 6 PRs (#373/#374/#369/#371/#372/#370 merged; #375/#376 opened)
+- Status: clean
+- Shipped: SP1 Pass 2 fully landed (26/26 PRs). Mobile scaffold rebuilt — JSON dump replaced with welcome + net-worth + 6 module cards + drill-downs (PR #375 open). SP1 Pass 3 PR 0 audit complete (PR #376 open) — found 20 mutation sites (vs plan's 17), `StaticTierGate::LIMITS` dead, plan §117 PR-7 needs rewrite to seed `pension_account` into `tier_configurations`.
+- Next: merge #375 + #376, then start Pass 3 PR 1 (PensionStore facade + normaliser + 4 events + arch test). Csjones deploy is 12 commits behind — gates the tax-settings round-trip smoke from yesterday's handover.
