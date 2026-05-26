@@ -22,7 +22,9 @@ use App\Services\Documents\FieldMappers\InvestmentAccountMapper;
 use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
 use App\Services\Documents\FieldMappers\ProtectionMapper;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -386,7 +388,12 @@ class DocumentProcessor
                         if ($category === 'investment_holdings') {
                             $account = InvestmentAccount::create($accountData);
                         } else {
-                            $account = DCPension::create($accountData);
+                            $canonical = app(PensionNormaliser::class)->fromUploadDc($accountData);
+                            $account = app(PensionStore::class)->createDc(
+                                $canonical,
+                                $user,
+                                IngestSource::UPLOAD
+                            );
                         }
                     }
 
