@@ -287,7 +287,10 @@ describe('Country Tracking API', function () {
 
     describe('Country Field Validation', function () {
         it('accepts valid country names', function () {
-            $user = User::factory()->create();
+            // SP1 Pass 4 PR 2: tier1 lifts the free-tier property cap (3)
+            // so the 6-item loop below stays under the limit. The tier-cap is
+            // enforced by PropertyStore::create, not the controller.
+            $user = User::factory()->create(['tier' => 'tier1']);
 
             $validCountries = ['United Kingdom', 'France', 'Germany', 'Spain', 'Italy', 'USA'];
 

@@ -340,8 +340,12 @@ class RetirementController extends Controller
         } catch (TierLimitExceededException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pension limit reached for your tier',
-                'error_type' => 'tier_limit_exceeded',
+                'message' => 'Pension limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
             ], 403);
         }
 
@@ -477,8 +481,12 @@ class RetirementController extends Controller
         } catch (TierLimitExceededException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pension limit reached for your tier',
-                'error_type' => 'tier_limit_exceeded',
+                'message' => 'Pension limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
             ], 403);
         }
 

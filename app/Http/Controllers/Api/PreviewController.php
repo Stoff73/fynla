@@ -18,8 +18,10 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -440,13 +442,19 @@ class PreviewController extends Controller
 
     /**
      * Seed properties
+     *
+     * SP1 Pass 4 PR 2: Property creates routed through PropertyStore with
+     * IngestSource::SEEDER. Mortgage seeding remains a direct Mortgage::create
+     * until Pass 5 introduces MortgageStore.
      */
     private function seedProperties(User $user, array $properties): void
     {
+        $store = app(PropertyStore::class);
+        $normaliser = app(PropertyNormaliser::class);
+
         foreach ($properties as $property) {
-            Property::create(array_merge($property, [
-                'user_id' => $user->id,
-            ]));
+            $canonical = $normaliser->fromForm($property);
+            $store->create($canonical, $user, IngestSource::SEEDER);
         }
     }
 

@@ -75,3 +75,60 @@ it('fromFyn preserves trust ownership with trust_name and trust_id', function ()
     expect($canonical['trust_name'])->toBe('Smith Family Trust');
     expect($canonical['ownership_percentage'])->toBe(100.00);
 });
+
+// PR 2 regression coverage — the array_key_exists guards on property_type /
+// joint_ownership_type / tenure_type. Pre-PR-2 the normaliser unconditionally
+// wrote null for missing keys, which breaches properties.tenure_type
+// NOT NULL DEFAULT 'freehold'. Lock the guard so a "tidy-up" can't regress it.
+
+it('fromForm omits tenure_type when input omits it (NOT NULL DEFAULT breaches if written as null)', function () {
+    $normaliser = new PropertyNormaliser;
+    $canonical = $normaliser->fromForm([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+        'current_value' => 500000,
+    ]);
+
+    expect($canonical)->not->toHaveKey('tenure_type');
+});
+
+it('fromForm omits joint_ownership_type when input omits it', function () {
+    $normaliser = new PropertyNormaliser;
+    $canonical = $normaliser->fromForm([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+    ]);
+
+    expect($canonical)->not->toHaveKey('joint_ownership_type');
+});
+
+it('fromForm omits property_type when input omits it', function () {
+    $normaliser = new PropertyNormaliser;
+    $canonical = $normaliser->fromForm([
+        'ownership_type' => 'individual',
+        'current_value' => 350000,
+    ]);
+
+    expect($canonical)->not->toHaveKey('property_type');
+});
+
+it('fromFyn omits tenure_type when input omits it', function () {
+    $normaliser = new PropertyNormaliser;
+    $canonical = $normaliser->fromFyn([
+        'address' => '5 Acacia Avenue',
+        'property_type' => 'main_residence',
+    ]);
+
+    expect($canonical)->not->toHaveKey('tenure_type');
+});
+
+it('fromUpload omits tenure_type when extraction omits it', function () {
+    $normaliser = new PropertyNormaliser;
+    $canonical = $normaliser->fromUpload([
+        'address_line_1' => '5 Acacia Avenue',
+        'current_value' => 350000,
+        'property_type' => 'main_residence',
+    ]);
+
+    expect($canonical)->not->toHaveKey('tenure_type');
+});
