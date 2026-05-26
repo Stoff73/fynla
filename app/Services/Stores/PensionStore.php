@@ -14,6 +14,7 @@ use App\Events\Pension\DCPensionRestored;
 use App\Events\Pension\DCPensionUpdated;
 use App\Events\Pension\PensionInputHistoryCaptured;
 use App\Events\Pension\StatePensionUpserted;
+use App\Models\AuditLog;
 use App\Models\DBPension;
 use App\Models\DBPensionValueSnapshot;
 use App\Models\DCPension;
@@ -101,12 +102,12 @@ class PensionStore
         $payload = array_merge($data, ['user_id' => $user->id]);
         unset($payload['type']);
 
-        $pension = DB::transaction(function () use ($payload, $user, $source) {
+        $pension = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($payload, $user, $source) {
             $pension = DCPension::create($payload);
             $this->recalculateDcDerived($pension, $user, $source, 'create');
 
             return $pension;
-        });
+        }));
 
         event(new DCPensionCreated($pension, $user, $source));
 
@@ -121,20 +122,19 @@ class PensionStore
         $payload = $data;
         unset($payload['type']);
 
-        $dirty = [];
-        $updated = DB::transaction(function () use ($pension, $payload, $user, $source, &$dirty) {
+        $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($pension, $payload, $user, $source) {
             $pension->fill($payload);
             $dirty = $pension->getDirty();
             $pension->save();
             $fresh = $pension->fresh();
             $this->recalculateDcDerived($fresh, $user, $source, 'update');
 
-            return $fresh;
-        });
+            return ['fresh' => $fresh, 'dirty' => $dirty];
+        }));
 
-        event(new DCPensionUpdated($updated, $dirty, $user, $source));
+        event(new DCPensionUpdated($result['fresh'], $result['dirty'], $user, $source));
 
-        return $updated;
+        return $result['fresh'];
     }
 
     public function updateOrCreateDc(array $match, array $data, User $user, IngestSource $source): DCPension
@@ -176,12 +176,12 @@ class PensionStore
         $payload = array_merge($data, ['user_id' => $user->id]);
         unset($payload['type']);
 
-        $pension = DB::transaction(function () use ($payload, $user, $source) {
+        $pension = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($payload, $user, $source) {
             $pension = DBPension::create($payload);
             $this->recalculateDbDerived($pension, $user, $source, 'create');
 
             return $pension;
-        });
+        }));
 
         event(new DBPensionCreated($pension, $user, $source));
 
@@ -196,20 +196,19 @@ class PensionStore
         $payload = $data;
         unset($payload['type']);
 
-        $dirty = [];
-        $updated = DB::transaction(function () use ($pension, $payload, $user, $source, &$dirty) {
+        $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($pension, $payload, $user, $source) {
             $pension->fill($payload);
             $dirty = $pension->getDirty();
             $pension->save();
             $fresh = $pension->fresh();
             $this->recalculateDbDerived($fresh, $user, $source, 'update');
 
-            return $fresh;
-        });
+            return ['fresh' => $fresh, 'dirty' => $dirty];
+        }));
 
-        event(new DBPensionUpdated($updated, $dirty, $user, $source));
+        event(new DBPensionUpdated($result['fresh'], $result['dirty'], $user, $source));
 
-        return $updated;
+        return $result['fresh'];
     }
 
     public function deleteDb(int $id, User $user, string $reason): void
@@ -239,7 +238,7 @@ class PensionStore
         $payload = $data;
         unset($payload['type']);
 
-        $state = DB::transaction(function () use ($user, $payload, $source) {
+        $state = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($user, $payload, $source) {
             $state = StatePension::updateOrCreate(['user_id' => $user->id], $payload);
             $this->recalculateStateDerived(
                 $state,
@@ -249,7 +248,7 @@ class PensionStore
             );
 
             return $state;
-        });
+        }));
 
         event(new StatePensionUpserted($state, $user, $source, wasRecentlyCreated: $state->wasRecentlyCreated));
 
@@ -268,8 +267,8 @@ class PensionStore
             $entries = $entries['entries'];
         }
 
-        $written = [];
-        DB::transaction(function () use ($entries, $user, &$written) {
+        $written = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($entries, $user) {
+            $written = [];
             foreach ($entries as $entry) {
                 if (! isset($entry['tax_year'], $entry['pension_input_amount'])) {
                     continue;
@@ -284,7 +283,9 @@ class PensionStore
                 );
                 $written[(string) $entry['tax_year']] = (float) $entry['pension_input_amount'];
             }
-        });
+
+            return $written;
+        }));
 
         if ($written === []) {
             throw new StoreValidationException(['history' => ['No valid history entries provided.']]);
