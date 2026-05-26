@@ -78,3 +78,11 @@
 - Branch: feat/pension-store-pr6
 - WIP commit: f7ba90b (amend before opening PR #383)
 - Pick up at: tail /tmp/pest-pr6.log → if green, amend WIP + open PR #383
+
+## 2026-05-26 — session 4 (end-of-day wrap, docs-only)
+- Handover: [[handover-2026-05-27-session-1]]
+- Branch: feat/property-store-pr3 (carrying SP1 Pass 3 + Pass 4 + today's CoALA docs)
+- Commits this session: 2 (b613426 CoALA plan + brief; f5a2412 six implementation PRDs)
+- Status: clean, pushed
+- Shipped: CoALA implementation plan v0.4 (734 lines + 6 mermaid diagrams), non-technical stakeholder brief, two self-contained HTML render artifacts, six engineering-ready implementation PRDs (one per phase, 1,525 lines total). Docs-only — no code changes, no deploys.
+- Next: embeddings-provider decision for Phase 1, Option A vs B confirm for class structure, Phase 5 cache-telemetry sub-plan as standalone PR, stakeholder review scheduled, resume SP1 Pass 4 if queue has bandwidth.
