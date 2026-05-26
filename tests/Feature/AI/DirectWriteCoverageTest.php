@@ -45,9 +45,11 @@ it('all create handlers return success: true on the success path', function (): 
         // Atomic persistence: either an inline DB::transaction, or delegation
         // to a canonical *Store whose create()/update() wraps the transaction
         // (Savings Canonical Store sub-project moved the boundary into the store).
+        // PensionStore uses typed dispatch — createDc/createDb/updateDc/updateDb —
+        // so the regex also accepts that pattern (SP1 Pass 3 PR 3).
         expect(
             str_contains($handlerBody, 'DB::transaction')
-            || preg_match('/Store::class\)->(create|update)\(/', $handlerBody) === 1
+            || preg_match('/Store::class\)->(create|update)[A-Za-z]*\(/', $handlerBody) === 1
         )->toBeTrue("{$name} must persist atomically (inline DB::transaction or *Store delegation)");
         expect($handlerBody)->toContain("'created' => true");
     }

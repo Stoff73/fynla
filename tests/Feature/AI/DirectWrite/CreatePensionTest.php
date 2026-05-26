@@ -7,12 +7,14 @@ use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 it('create_pension persists a DCPension when pension_category is dc', function (): void {

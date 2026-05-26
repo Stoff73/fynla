@@ -32,7 +32,6 @@ use App\Models\Invoice;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
-use App\Models\PensionInputHistory;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\Subscription;
@@ -55,8 +54,11 @@ use App\Services\NetWorth\NetWorthService;
 use App\Services\Onboarding\SpouseLinkingService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
@@ -64,6 +66,7 @@ use App\Services\WhatIf\WhatIfScenarioService;
 use App\Traits\HasAiChat;
 use App\Traits\HasAiGuardrails;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -2395,75 +2398,26 @@ class CoordinatingAgent extends BaseAgent
             return $dbDuplicate;
         }
 
-        $category = $input['pension_category'] ?? 'dc';
-        $schemeName = $input['scheme_name'];
+        $canonical = app(PensionNormaliser::class)->fromFynPension($input);
+        $entityType = $canonical['type'] === 'db' ? 'db_pension' : 'dc_pension';
 
-        if ($category === 'db') {
-            // DB pensions: scheme_type column is NOT NULL with enum
-            // (final_salary|career_average|public_sector). The DB form's
-            // free-text "scheme_type" field overlaps semantically — keep the
-            // existing default of final_salary when the AI didn't pin it.
-            $rawSchemeType = $input['scheme_type'] ?? 'final_salary';
-            $schemeType = in_array($rawSchemeType, ['final_salary', 'career_average', 'public_sector'], true)
-                ? $rawSchemeType
-                : 'final_salary';
-
-            $payload = [
-                'user_id' => $user->id,
-                'scheme_name' => $schemeName,
-                'scheme_type' => $schemeType,
+        try {
+            $pension = $canonical['type'] === 'db'
+                ? app(PensionStore::class)->createDb($canonical, $user, IngestSource::FYN_AI)
+                : app(PensionStore::class)->createDc($canonical, $user, IngestSource::FYN_AI);
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for pension.',
             ];
-
-            foreach (['accrued_annual_pension', 'pensionable_service_years', 'pensionable_salary', 'spouse_pension_percent', 'lump_sum_entitlement'] as $f) {
-                if (isset($input[$f]) && is_numeric($input[$f])) {
-                    $payload[$f] = (float) $input[$f];
-                }
-            }
-            if (isset($input['normal_retirement_age']) && is_numeric($input['normal_retirement_age'])) {
-                $payload['normal_retirement_age'] = (int) $input['normal_retirement_age'];
-            }
-            foreach (['revaluation_method', 'inflation_protection'] as $f) {
-                if (isset($input[$f]) && $input[$f] !== '') {
-                    $payload[$f] = $input[$f];
-                }
-            }
-
-            $pension = DB::transaction(fn () => DBPension::create($payload));
-            $entityType = 'db_pension';
-        } else {
-            // DC pensions: pension_type NOT NULL enum
-            // (occupational|sipp|personal|stakeholder), defaults to occupational.
-            $pensionType = match ($input['scheme_type'] ?? 'workplace') {
-                'workplace', 'occupational' => 'occupational',
-                'sipp', 'self_invested' => 'sipp',
-                'personal', 'personal_pension' => 'personal',
-                'stakeholder' => 'stakeholder',
-                default => 'occupational',
-            };
-
-            $payload = [
-                'user_id' => $user->id,
-                'scheme_name' => $schemeName,
-                'pension_type' => $pensionType,
-                'provider' => ! empty($input['provider']) ? $input['provider'] : $schemeName,
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_exceeded',
+                'message' => "You've reached your tier's pension limit. Upgrade to add more.",
             ];
-
-            foreach (['current_fund_value', 'annual_salary', 'employee_contribution_percent', 'employer_contribution_percent', 'employer_matching_limit', 'monthly_contribution_amount', 'lump_sum_contribution', 'expected_return_percent', 'platform_fee_percent', 'advisor_fee_percent'] as $f) {
-                if (isset($input[$f]) && is_numeric($input[$f])) {
-                    $payload[$f] = (float) $input[$f];
-                }
-            }
-            if (isset($input['retirement_age']) && is_numeric($input['retirement_age'])) {
-                $payload['retirement_age'] = (int) $input['retirement_age'];
-            }
-            foreach (['member_number', 'investment_strategy'] as $f) {
-                if (isset($input[$f]) && $input[$f] !== '') {
-                    $payload[$f] = $input[$f];
-                }
-            }
-
-            $pension = DB::transaction(fn () => DCPension::create($payload));
-            $entityType = 'dc_pension';
         }
 
         $this->invalidateUserCache($user->id);
@@ -2474,7 +2428,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => $entityType,
             'entity_id' => $pension->id,
             'name' => $pension->scheme_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys(array_diff_key($canonical, ['type' => null])),
             'message' => "I've added your \"{$pension->scheme_name}\" pension.",
         ];
     }
@@ -4075,25 +4029,15 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'history must be a non-empty array.'];
         }
 
-        $written = [];
-        foreach ($history as $entry) {
-            if (! is_array($entry)) {
-                continue;
-            }
-            $taxYear = isset($entry['tax_year']) ? (string) $entry['tax_year'] : null;
-            $amount = isset($entry['pension_input_amount']) ? (float) $entry['pension_input_amount'] : null;
-            if ($taxYear === null || $taxYear === '' || $amount === null || $amount < 0) {
-                continue;
-            }
+        $canonical = app(PensionNormaliser::class)->fromFynInputHistory(['history' => $history]);
 
-            PensionInputHistory::updateOrCreate(
-                ['user_id' => $user->id, 'tax_year' => $taxYear],
-                ['pension_input_amount' => $amount],
+        try {
+            $written = app(PensionStore::class)->captureInputHistory(
+                $canonical['entries'],
+                $user,
+                IngestSource::FYN_AI,
             );
-            $written[$taxYear] = $amount;
-        }
-
-        if ($written === []) {
+        } catch (StoreValidationException $e) {
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'No valid history entries provided.'];
         }
 
@@ -4200,6 +4144,35 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // Pension mutations route through PensionStore (canonical write path
+        // for SP1 Pass 3). Holdings + ancillary pension models continue to
+        // route through resolveModel until their own stores land.
+        if ($entityType === 'dc_pension' || $entityType === 'db_pension') {
+            try {
+                $store = app(PensionStore::class);
+                $pension = $entityType === 'dc_pension'
+                    ? $store->updateDc($entityId, $fields, $user, IngestSource::FYN_AI)
+                    : $store->updateDb($entityId, $fields, $user, IngestSource::FYN_AI);
+            } catch (ModelNotFoundException $e) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            } catch (StoreValidationException $e) {
+                return [
+                    'error' => true,
+                    'error_type' => 'validation_failed',
+                    'errors' => $e->errors,
+                    'message' => 'Validation failed for pension update.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $pension->id,
+                'fields_updated' => array_keys($fields),
+                'message' => 'Updated '.str_replace('_', ' ', $entityType).' successfully.',
+            ];
+        }
+
         $model = $this->resolveModel($entityType, $entityId, $user->id);
         if (is_array($model) && isset($model['error'])) {
             return $model;
@@ -4272,6 +4245,35 @@ class CoordinatingAgent extends BaseAgent
                 'preview_message' => 'This will permanently delete '
                     .str_replace('_', ' ', $entityType)." #{$entityId}. "
                     .'Confirm with the user before re-calling delete_record with this confirmation_token.',
+            ];
+        }
+
+        // Pension deletions route through PensionStore (canonical write path
+        // for SP1 Pass 3). Same pattern as update — fetch via the store for
+        // the name, then call the typed delete entry point.
+        if ($entityType === 'dc_pension' || $entityType === 'db_pension') {
+            $store = app(PensionStore::class);
+            $pension = $store->find($entityId, $entityType === 'dc_pension' ? 'dc' : 'db', $user);
+            if ($pension === null) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            }
+
+            $name = $pension->scheme_name ?? "#{$entityId}";
+
+            try {
+                $entityType === 'dc_pension'
+                    ? $store->deleteDc($entityId, $user, 'user_requested')
+                    : $store->deleteDb($entityId, $user, 'user_requested');
+            } catch (ModelNotFoundException $e) {
+                return ['error' => true, 'error_type' => 'not_found', 'message' => 'Record not found or unauthorized.'];
+            }
+
+            return [
+                'success' => true,
+                'deleted' => true,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'message' => ucfirst(str_replace('_', ' ', $entityType))." \"{$name}\" deleted.",
             ];
         }
 
