@@ -31,7 +31,8 @@ $propertyConsumers = [
     // CoordinatingAgent are non-write:
     //   - resolveModel() entity-type-map: `'property' => Property::class` (class-name ref only)
     //   - listEntities() 'property' case: Property::with('mortgages')->forUserOrJoint() (read — PR 5)
-    //   - handleCreateMortgage(): Property::where()->first() (read for FK resolution — PR 5)
+    //   - handleCreateMortgage(): Property::where()->{first,count}() (FK-resolution
+    //     read + property-count guidance read — PR 5)
     //   - resolvePropertyId(): Property::where()->get() (read — PR 5)
     // PR 5 routes these reads through PropertyStore::find / forUser. At that
     // point CoordinatingAgent can be fully removed from this allowlist.

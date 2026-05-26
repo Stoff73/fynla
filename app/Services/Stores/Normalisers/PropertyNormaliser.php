@@ -96,6 +96,40 @@ class PropertyNormaliser
             }
         }
 
+        // Monthly costs — Fyn tool exposes all nine of these to Grok via
+        // XaiToolDefinitions; PropertyStore::validateCanonical accepts them.
+        // Whitelist explicitly so they survive normalisation.
+        foreach ([
+            'monthly_council_tax',
+            'monthly_gas',
+            'monthly_electricity',
+            'monthly_water',
+            'monthly_building_insurance',
+            'monthly_contents_insurance',
+            'monthly_service_charge',
+            'monthly_maintenance_reserve',
+            'other_monthly_costs',
+            'managing_agent_fee',
+        ] as $field) {
+            if (isset($toolParams[$field]) && is_numeric($toolParams[$field])) {
+                $canonical[$field] = (float) $toolParams[$field];
+            }
+        }
+
+        // Tenant + managing-agent details — strings exposed via XaiToolDefinitions.
+        foreach ([
+            'tenant_name',
+            'tenant_email',
+            'managing_agent_name',
+            'managing_agent_company',
+            'managing_agent_email',
+            'managing_agent_phone',
+        ] as $field) {
+            if (isset($toolParams[$field]) && $toolParams[$field] !== '') {
+                $canonical[$field] = (string) $toolParams[$field];
+            }
+        }
+
         // Dates
         foreach (['purchase_date', 'valuation_date', 'lease_start_date', 'lease_end_date', 'lease_expiry_date'] as $field) {
             if (isset($toolParams[$field]) && $toolParams[$field] !== '') {

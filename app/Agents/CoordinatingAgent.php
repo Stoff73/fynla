@@ -2474,8 +2474,10 @@ class CoordinatingAgent extends BaseAgent
         }
 
         // Pass 4 PR 3 — route Property create through PropertyStore via fromFyn.
-        // Address/city/postcode defaults are applied here before normalisation so
-        // Fyn can omit them without breaking the DB NOT NULL constraints.
+        // Address/city/postcode placeholders preserve pre-PR Fyn handler behaviour
+        // (the response shape below surfaces $property->address_line_1 to the user,
+        // so a non-null display string is expected). DB columns are nullable; this
+        // is a UX-display default, not a constraint workaround.
         $propertyType = $input['property_type'];
         $ownershipType = $input['ownership_type'] ?? 'individual';
         $ownershipPct = isset($input['ownership_percentage'])
@@ -2486,7 +2488,8 @@ class CoordinatingAgent extends BaseAgent
                 default => 100.0,
             };
 
-        // Apply Fyn-specific defaults before normalisation so fromFyn sees them.
+        // array_merge with defaults FIRST + $input SECOND so Fyn's actual values
+        // override the placeholders. Equivalent to array_replace($defaults, $input).
         $toolInput = array_merge([
             'address_line_1' => ucfirst(str_replace('_', ' ', $propertyType)),
             'city' => 'Unknown',
@@ -2498,18 +2501,52 @@ class CoordinatingAgent extends BaseAgent
         $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
 
         // Mortgage auto-create — flagged via has_mortgage OR by legacy
-        // outstanding_mortgage / mortgage_outstanding_balance fields.
-        // The mortgage write stays inline until Pass 5 routes it through MortgageStore.
+        // outstanding_mortgage / mortgage_outstanding_balance fields. The
+        // mortgage write stays inline until Pass 5 routes it through MortgageStore.
+        // Wrap both writes in DB::transaction so a mortgage failure rolls back the
+        // property — atomicity invariant carried over from the pre-PR handler.
         $mortgageBalance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
         $hasMortgage = ! empty($input['has_mortgage'])
             || (is_numeric($mortgageBalance) && (float) $mortgageBalance > 0);
 
         try {
-            $property = app(PropertyStore::class)->create(
-                $canonical,
-                $user,
-                IngestSource::FYN_AI
-            );
+            $property = DB::transaction(function () use ($canonical, $user, $hasMortgage, $input, $mortgageBalance, $ownershipType, $ownershipPct) {
+                $property = app(PropertyStore::class)->create(
+                    $canonical,
+                    $user,
+                    IngestSource::FYN_AI
+                );
+
+                if ($hasMortgage) {
+                    $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
+                    $mortgagePayload = [
+                        'user_id' => $user->id,
+                        'property_id' => $property->id,
+                        'lender_name' => $input['mortgage_lender'] ?? null,
+                        'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+                        'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
+                        'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
+                        'ownership_type' => $ownershipType,
+                        'ownership_percentage' => $ownershipPct,
+                    ];
+                    if (is_numeric($rate)) {
+                        $mortgagePayload['interest_rate'] = (float) $rate;
+                    }
+                    if (isset($input['mortgage_monthly_payment']) && is_numeric($input['mortgage_monthly_payment'])) {
+                        $mortgagePayload['monthly_payment'] = (float) $input['mortgage_monthly_payment'];
+                    }
+                    if (isset($input['mortgage_start_date']) && $input['mortgage_start_date'] !== '') {
+                        $mortgagePayload['start_date'] = $input['mortgage_start_date'];
+                    }
+                    if (isset($input['mortgage_maturity_date']) && $input['mortgage_maturity_date'] !== '') {
+                        $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
+                    }
+
+                    Mortgage::create($mortgagePayload);
+                }
+
+                return $property;
+            });
         } catch (StoreValidationException $e) {
             return [
                 'error' => true,
@@ -2523,34 +2560,6 @@ class CoordinatingAgent extends BaseAgent
                 'error_type' => 'tier_limit_exceeded',
                 'message' => "You've reached your tier's property limit. Upgrade to add more.",
             ];
-        }
-
-        if ($hasMortgage) {
-            $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
-            $mortgagePayload = [
-                'user_id' => $user->id,
-                'property_id' => $property->id,
-                'lender_name' => $input['mortgage_lender'] ?? null,
-                'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
-                'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
-                'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
-                'ownership_type' => $ownershipType,
-                'ownership_percentage' => $ownershipPct,
-            ];
-            if (is_numeric($rate)) {
-                $mortgagePayload['interest_rate'] = (float) $rate;
-            }
-            if (isset($input['mortgage_monthly_payment']) && is_numeric($input['mortgage_monthly_payment'])) {
-                $mortgagePayload['monthly_payment'] = (float) $input['mortgage_monthly_payment'];
-            }
-            if (isset($input['mortgage_start_date']) && $input['mortgage_start_date'] !== '') {
-                $mortgagePayload['start_date'] = $input['mortgage_start_date'];
-            }
-            if (isset($input['mortgage_maturity_date']) && $input['mortgage_maturity_date'] !== '') {
-                $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
-            }
-
-            Mortgage::create($mortgagePayload);
         }
 
         $this->invalidateUserCache($user->id);
