@@ -69,11 +69,22 @@ $pensionConsumers = [
 
     // PR 3 removes: CoordinatingAgent (Fyn AI tool path)
     'App\Agents\CoordinatingAgent',
-    // PR 4 removes: DocumentProcessor (upload path), PreviewController, seeders
+    // Documented residual NON-QUERY references (post-PR-4).
+    //  - DocumentProcessor retains DCPension::class + DBPension::class as
+    //    keys in the field-mapper registry and as a type-discriminator in
+    //    the holdings-import branch. Non-query class-name references only;
+    //    the lone write (DC create on upload) now funnels through
+    //    PensionStore::createDc with IngestSource::UPLOAD.
     'App\Services\Documents\DocumentProcessor',
-    'App\Http\Controllers\Api\PreviewController',
+    // Seeders (preview/lifecycle persona fixtures) — §14.2 permanent.
+    //  - PreviewUserSeeder retains DCPension::where/delete cleanup paths
+    //    plus a DCPension::class polymorphic discriminator on Holding
+    //    rows. All creates (DC, DB, State) now route through PensionStore
+    //    with IngestSource::SEEDER.
+    //  - LifecycleTestSeeder uses DCPension::factory()->create() which is
+    //    a §14.2-permitted factory call (DCPensionFactory is on the
+    //    permanent allowlist).
     'Database\Seeders\PreviewUserSeeder',
-    'Database\Seeders\ChrisUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
     // PR 5 removes: read consumers
     'App\Http\Controllers\Api\Retirement\DecumulationController',
