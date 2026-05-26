@@ -226,10 +226,14 @@ class CashFlowCoordinator
     {
         $total = 0.0;
 
-        // Pension contributions (DC pensions with monthly contributions)
-        $total += (float) app(PensionStore::class)
-            ->forUserByType(User::findOrFail($userId), 'dc')
-            ->sum('monthly_contribution_amount');
+        // Pension contributions (DC pensions with monthly contributions).
+        // Non-existent user → 0 (parity with the pre-store DCPension::where + sum semantics).
+        $user = User::find($userId);
+        if ($user !== null) {
+            $total += (float) app(PensionStore::class)
+                ->forUserByType($user, 'dc')
+                ->sum('monthly_contribution_amount');
+        }
 
         // Protection premiums (convert to monthly based on frequency)
         $total += $this->sumMonthlyPremiums(LifeInsurancePolicy::class, $userId);
