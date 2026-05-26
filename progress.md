@@ -66,3 +66,9 @@
 - Status: clean
 - Shipped: SP1 Pass 2 fully landed (26/26 PRs). Mobile scaffold rebuilt — JSON dump replaced with welcome + net-worth + 6 module cards + drill-downs (PR #375 open). SP1 Pass 3 PR 0 audit complete (PR #376 open) — found 20 mutation sites (vs plan's 17), `StaticTierGate::LIMITS` dead, plan §117 PR-7 needs rewrite to seed `pension_account` into `tier_configurations`.
 - Next: merge #375 + #376, then start Pass 3 PR 1 (PensionStore facade + normaliser + 4 events + arch test). Csjones deploy is 12 commits behind — gates the tax-settings round-trip smoke from yesterday's handover.
+
+## 2026-05-26 — session 2 (context-handover tripwire)
+- Handover: [[handover-2026-05-26-session-2-clear]]
+- Branch: feat/pension-store-pr3
+- WIP commit: none (tree clean at invocation; last commit 151817e — Pass 3 PR 3 on PR #380)
+- Pick up at: merge #380, branch feat/pension-store-pr4 off dev, start Pass 3 PR 4 (upload + seeders → PensionStore) per plan lines 2518+
