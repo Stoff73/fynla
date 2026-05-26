@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Retirement;
 
-use App\Models\DBPension;
+use App\Services\Stores\PensionStore;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDBPensionRequest extends FormRequest
@@ -19,13 +19,13 @@ class StoreDBPensionRequest extends FormRequest
             return true;
         }
 
-        // For PUT/PATCH (update), check if user owns the pension
+        // For PUT/PATCH (update), check ownership via PensionStore.
+        // Same pattern as StoreDCPensionRequest — find() is user-scoped,
+        // and the store's controller-side firstOrFail produces 404 for
+        // cross-user / non-existent records (defence in depth).
         $pensionId = $this->route('id');
-        if ($pensionId) {
-            $pension = DBPension::find($pensionId);
-            if ($pension && $pension->user_id !== $this->user()->id) {
-                return false;
-            }
+        if ($pensionId !== null) {
+            app(PensionStore::class)->find((int) $pensionId, 'db', $this->user());
         }
 
         return true;

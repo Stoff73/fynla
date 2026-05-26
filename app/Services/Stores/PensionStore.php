@@ -296,8 +296,11 @@ class PensionStore
     private function validateDcCanonical(array $data, bool $partial = false): void
     {
         $rules = [
-            'scheme_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
-            'pension_type' => 'sometimes|in:occupational,sipp,personal,stakeholder',
+            // Mirrors StoreDCPensionRequest (nullable). Spec §7.2 — the
+            // inner layer is a canonical-shape sanity check, NOT a stricter
+            // gate. DC pensions are allowed to start with minimal data.
+            'scheme_name' => 'sometimes|nullable|string|max:255',
+            'pension_type' => 'sometimes|nullable|in:occupational,sipp,personal,stakeholder',
             'provider' => 'sometimes|nullable|string|max:255',
             'current_fund_value' => 'sometimes|numeric|min:0|max:999999999.99',
             'annual_salary' => 'sometimes|nullable|numeric|min:0|max:999999999.99',
