@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\AuditLog;
+use App\Models\Property;
+use App\Models\User;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
+use App\Services\Stores\PropertyStore;
+use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+    config(['audit.in_tests' => true]);
+});
+
+it('persists a Property via the Fyn capture path with IngestSource::FYN_AI', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+
+    // Mirror what CoordinatingAgent::handleCreateProperty does after the
+    // Fyn tool-call validator passes:
+    $canonical = (new PropertyNormaliser)->fromFyn([
+        'address' => '5 Acacia Avenue',
+        'property_type' => 'main_residence',
+        'value' => 350000,
+        'ownership_type' => 'individual',
+    ]);
+
+    $property = app(PropertyStore::class)->create($canonical, $user, IngestSource::FYN_AI);
+
+    expect(Property::where('user_id', $user->id)->count())->toBe(1);
+    expect($property->address_line_1)->toBe('5 Acacia Avenue');
+    expect((string) $property->current_value)->toBe('350000.00');
+
+    $auditRow = AuditLog::where('model_type', Property::class)
+        ->where('model_id', $property->id)
+        ->where('action', AuditLog::ACTION_CREATED)
+        ->latest('id')
+        ->first();
+
+    expect($auditRow)->not->toBeNull();
+    expect($auditRow->metadata['ingest_source'] ?? null)->toBe('fyn_ai');
+});

@@ -57,8 +57,10 @@ use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
@@ -2471,6 +2473,9 @@ class CoordinatingAgent extends BaseAgent
             return $validationError;
         }
 
+        // Pass 4 PR 3 — route Property create through PropertyStore via fromFyn.
+        // Address/city/postcode defaults are applied here before normalisation so
+        // Fyn can omit them without breaking the DB NOT NULL constraints.
         $propertyType = $input['property_type'];
         $ownershipType = $input['ownership_type'] ?? 'individual';
         $ownershipPct = isset($input['ownership_percentage'])
@@ -2481,75 +2486,72 @@ class CoordinatingAgent extends BaseAgent
                 default => 100.0,
             };
 
-        $payload = [
-            'user_id' => $user->id,
-            'property_type' => $propertyType,
-            'current_value' => (float) $input['current_value'],
+        // Apply Fyn-specific defaults before normalisation so fromFyn sees them.
+        $toolInput = array_merge([
+            'address_line_1' => ucfirst(str_replace('_', ' ', $propertyType)),
+            'city' => 'Unknown',
+            'postcode' => 'N/A',
             'ownership_type' => $ownershipType,
             'ownership_percentage' => $ownershipPct,
-            'address_line_1' => $input['address_line_1'] ?? ucfirst(str_replace('_', ' ', $propertyType)),
-            'city' => $input['city'] ?? 'Unknown',
-            'postcode' => $input['postcode'] ?? 'N/A',
-        ];
+        ], $input);
 
-        foreach (['address_line_2', 'county', 'tenure_type', 'joint_owner_name', 'tenant_name', 'managing_agent_name'] as $f) {
-            if (isset($input[$f]) && $input[$f] !== '') {
-                $payload[$f] = $input[$f];
-            }
-        }
-        foreach (['purchase_date', 'valuation_date', 'lease_expiry_date'] as $f) {
-            if (isset($input[$f]) && $input[$f] !== '') {
-                $payload[$f] = $input[$f];
-            }
-        }
-        foreach (['purchase_price', 'monthly_council_tax', 'monthly_gas', 'monthly_electricity', 'monthly_water', 'monthly_building_insurance', 'monthly_contents_insurance', 'monthly_service_charge', 'monthly_maintenance_reserve', 'other_monthly_costs', 'monthly_rental_income'] as $f) {
-            if (isset($input[$f]) && is_numeric($input[$f])) {
-                $payload[$f] = (float) $input[$f];
-            }
-        }
-        if (isset($input['lease_remaining_years']) && is_numeric($input['lease_remaining_years'])) {
-            $payload['lease_remaining_years'] = (int) $input['lease_remaining_years'];
-        }
+        $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
 
         // Mortgage auto-create — flagged via has_mortgage OR by legacy
         // outstanding_mortgage / mortgage_outstanding_balance fields.
+        // The mortgage write stays inline until Pass 5 routes it through MortgageStore.
         $mortgageBalance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
         $hasMortgage = ! empty($input['has_mortgage'])
             || (is_numeric($mortgageBalance) && (float) $mortgageBalance > 0);
 
-        $property = DB::transaction(function () use ($payload, $hasMortgage, $input, $mortgageBalance, $user, $ownershipType, $ownershipPct) {
-            $property = Property::create($payload);
+        try {
+            $property = app(PropertyStore::class)->create(
+                $canonical,
+                $user,
+                IngestSource::FYN_AI
+            );
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for property.',
+            ];
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_exceeded',
+                'message' => "You've reached your tier's property limit. Upgrade to add more.",
+            ];
+        }
 
-            if ($hasMortgage) {
-                $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
-                $mortgagePayload = [
-                    'user_id' => $user->id,
-                    'property_id' => $property->id,
-                    'lender_name' => $input['mortgage_lender'] ?? null,
-                    'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
-                    'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
-                    'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
-                    'ownership_type' => $ownershipType,
-                    'ownership_percentage' => $ownershipPct,
-                ];
-                if (is_numeric($rate)) {
-                    $mortgagePayload['interest_rate'] = (float) $rate;
-                }
-                if (isset($input['mortgage_monthly_payment']) && is_numeric($input['mortgage_monthly_payment'])) {
-                    $mortgagePayload['monthly_payment'] = (float) $input['mortgage_monthly_payment'];
-                }
-                if (isset($input['mortgage_start_date']) && $input['mortgage_start_date'] !== '') {
-                    $mortgagePayload['start_date'] = $input['mortgage_start_date'];
-                }
-                if (isset($input['mortgage_maturity_date']) && $input['mortgage_maturity_date'] !== '') {
-                    $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
-                }
-
-                Mortgage::create($mortgagePayload);
+        if ($hasMortgage) {
+            $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
+            $mortgagePayload = [
+                'user_id' => $user->id,
+                'property_id' => $property->id,
+                'lender_name' => $input['mortgage_lender'] ?? null,
+                'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
+                'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
+                'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
+                'ownership_type' => $ownershipType,
+                'ownership_percentage' => $ownershipPct,
+            ];
+            if (is_numeric($rate)) {
+                $mortgagePayload['interest_rate'] = (float) $rate;
+            }
+            if (isset($input['mortgage_monthly_payment']) && is_numeric($input['mortgage_monthly_payment'])) {
+                $mortgagePayload['monthly_payment'] = (float) $input['mortgage_monthly_payment'];
+            }
+            if (isset($input['mortgage_start_date']) && $input['mortgage_start_date'] !== '') {
+                $mortgagePayload['start_date'] = $input['mortgage_start_date'];
+            }
+            if (isset($input['mortgage_maturity_date']) && $input['mortgage_maturity_date'] !== '') {
+                $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
             }
 
-            return $property;
-        });
+            Mortgage::create($mortgagePayload);
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2559,7 +2561,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'property',
             'entity_id' => $property->id,
             'name' => $property->address_line_1,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys($canonical),
             'message' => "I've added your property at \"{$property->address_line_1}\".",
         ];
     }
