@@ -7,8 +7,6 @@ namespace App\Services\Estate;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Liability;
 use App\Models\ExpenditureProfile;
@@ -18,6 +16,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
@@ -158,7 +157,7 @@ class EstateAssetAggregatorService
         });
 
         // DC Pensions (not IHT liable but needed for income projections in gifting strategy)
-        $dcPensions = DCPension::where('user_id', $user->id)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
         $dcPensionAssets = $dcPensions->map(function ($pension) use ($user) {
             return (object) [
                 'user_id' => $user->id,
@@ -174,7 +173,7 @@ class EstateAssetAggregatorService
         });
 
         // DB Pensions (for income projections only - no transfer value in estate)
-        $dbPensions = DBPension::where('user_id', $user->id)->get();
+        $dbPensions = app(PensionStore::class)->forUserByType($user, 'db');
         $dbPensionAssets = $dbPensions->map(function ($pension) use ($user) {
             return (object) [
                 'user_id' => $user->id,

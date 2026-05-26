@@ -103,10 +103,6 @@ $pensionConsumers = [
     'App\Services\Retirement\SalarySacrificeAnalyzer',
     'App\Services\Retirement\RetirementActionDefinitionService',
     'App\Services\Retirement\PensionContributionOptimizer',
-    'App\Services\Estate\IHTCalculationService',
-    'App\Services\Estate\IHTFormattingService',
-    'App\Services\Estate\EstateAssetAggregatorService',
-    'App\Services\Estate\EstateActionDefinitionService',
     // PR 5b documented residual: RetirementPlanService retains DCPension
     // type hints on calculateMonthlyEmployeeContribution + calculateMonthlyEmployerContribution.
     'App\Services\Plans\RetirementPlanService',
