@@ -37,10 +37,20 @@ class PropertyNormaliser
             }
         }
 
-        $data['property_type'] = $this->canonicalPropertyType($data['property_type'] ?? null);
+        // Canonicalise enums. We DO NOT inject the key when the input omitted it —
+        // properties.tenure_type and properties.country are NOT NULL with DB defaults,
+        // so a stray `null` would breach the integrity constraint. Same shape as the
+        // controller's pre-PR-2 behaviour (omit the column, let the default kick in).
+        if (array_key_exists('property_type', $data)) {
+            $data['property_type'] = $this->canonicalPropertyType($data['property_type']);
+        }
         $data['ownership_type'] = $this->canonicalOwnershipType($data['ownership_type'] ?? null);
-        $data['joint_ownership_type'] = $this->canonicalJointOwnershipType($data['joint_ownership_type'] ?? null);
-        $data['tenure_type'] = $this->canonicalTenureType($data['tenure_type'] ?? null);
+        if (array_key_exists('joint_ownership_type', $data)) {
+            $data['joint_ownership_type'] = $this->canonicalJointOwnershipType($data['joint_ownership_type']);
+        }
+        if (array_key_exists('tenure_type', $data)) {
+            $data['tenure_type'] = $this->canonicalTenureType($data['tenure_type']);
+        }
 
         // ownership_percentage defaults to 100 for individual / trust; required for joint*.
         if (in_array($data['ownership_type'], ['individual', 'trust'], true)) {
@@ -93,11 +103,18 @@ class PropertyNormaliser
             }
         }
 
-        // Enums
-        $canonical['property_type'] = $this->canonicalPropertyType($toolParams['property_type'] ?? null);
+        // Enums — only emit the key when the tool call provided a value, so DB
+        // defaults (tenure_type = 'freehold', country = 'United Kingdom') apply.
+        if (array_key_exists('property_type', $toolParams)) {
+            $canonical['property_type'] = $this->canonicalPropertyType($toolParams['property_type']);
+        }
         $canonical['ownership_type'] = $this->canonicalOwnershipType($toolParams['ownership_type'] ?? null);
-        $canonical['joint_ownership_type'] = $this->canonicalJointOwnershipType($toolParams['joint_ownership_type'] ?? null);
-        $canonical['tenure_type'] = $this->canonicalTenureType($toolParams['tenure_type'] ?? null);
+        if (array_key_exists('joint_ownership_type', $toolParams)) {
+            $canonical['joint_ownership_type'] = $this->canonicalJointOwnershipType($toolParams['joint_ownership_type']);
+        }
+        if (array_key_exists('tenure_type', $toolParams)) {
+            $canonical['tenure_type'] = $this->canonicalTenureType($toolParams['tenure_type']);
+        }
 
         // is_joint shorthand → ownership_type='joint'.
         if (! isset($toolParams['ownership_type']) && ! empty($toolParams['is_joint'])) {
@@ -175,9 +192,13 @@ class PropertyNormaliser
             }
         }
 
-        $canonical['property_type'] = $this->canonicalPropertyType($extraction['property_type'] ?? null);
+        if (array_key_exists('property_type', $extraction)) {
+            $canonical['property_type'] = $this->canonicalPropertyType($extraction['property_type']);
+        }
         $canonical['ownership_type'] = $this->canonicalOwnershipType($extraction['ownership_type'] ?? null);
-        $canonical['tenure_type'] = $this->canonicalTenureType($extraction['tenure_type'] ?? null);
+        if (array_key_exists('tenure_type', $extraction)) {
+            $canonical['tenure_type'] = $this->canonicalTenureType($extraction['tenure_type']);
+        }
 
         // Uploads default to individual ownership at 100% unless specified.
         if ($canonical['ownership_type'] === 'individual' && ! isset($canonical['ownership_percentage'])) {

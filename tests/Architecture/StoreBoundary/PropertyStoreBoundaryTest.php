@@ -26,9 +26,6 @@ $propertyConsumers = [
     'App\Events\Property\PropertyRestored',
     'App\Providers\EventServiceProvider',
 
-    // PR 2 removes: HTTP write paths
-    'App\Http\Controllers\Api\PropertyController',
-    'App\Http\Controllers\Api\PreviewController',
     // PR 3 removes: Fyn AI tool path
     'App\Agents\CoordinatingAgent',
     // PR 4 removes: upload + onboarding + seeders
@@ -59,6 +56,21 @@ $propertyConsumers = [
     'App\Services\UserProfile\PersonalAccountsService',
     'App\Services\UserProfile\ProfileCompletenessChecker',
     'App\Services\UserProfile\UserProfileService',
+
+    // SP1 Pass 4 PR 2 documented residuals — write paths now routed through
+    // PropertyStore (POST/PUT/DELETE on /api/properties; PreviewController
+    // seedProperties via IngestSource::SEEDER). These controllers still carry
+    // direct Property reads (PropertyController::show / calculateCGT /
+    // calculateRentalIncomeTax / index; PropertyController::update + destroy
+    // pre-fetch via Property::where(...)->firstOrFail() for ownership-default
+    // resolution + the mortgage cascade soft-delete respectively;
+    // PropertyController::syncUserRentalIncome reads via
+    // Property::forUserOrJoint; PreviewController::seedMortgages does a
+    // Property::where lookup to populate the mortgage FK). PR 5 routes those
+    // reads through PropertyStore::find / forUser; the destroy pre-fetch
+    // moves into MortgageStore in Pass 5 once mortgage cascades live there.
+    'App\Http\Controllers\Api\PropertyController',
+    'App\Http\Controllers\Api\PreviewController',
 
     // Sibling models + console commands — out-of-Pass-4 read/infra refs
     'App\Models\Household',

@@ -15,6 +15,10 @@ use App\Models\User;
 use App\Services\Property\MortgageService;
 use App\Services\Property\PropertyService;
 use App\Services\Property\PropertyTaxService;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
+use App\Services\Stores\PropertyStore;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +41,9 @@ class PropertyController extends Controller
     public function __construct(
         private readonly PropertyService $propertyService,
         private readonly PropertyTaxService $propertyTaxService,
-        private readonly MortgageService $mortgageService
+        private readonly MortgageService $mortgageService,
+        private readonly PropertyStore $propertyStore,
+        private readonly PropertyNormaliser $propertyNormaliser,
     ) {}
 
     /**
@@ -54,6 +60,7 @@ class PropertyController extends Controller
         $user = $request->user();
 
         // Single-record pattern: Get properties where user is owner OR joint_owner
+        // PR 5 will route this read through PropertyStore::forUser.
         $properties = Property::forUserOrJoint($user->id)
             ->with(['mortgages', 'user', 'jointOwner'])
             ->orderBy('property_type')
@@ -98,8 +105,9 @@ class PropertyController extends Controller
     /**
      * Store a new property
      *
-     * Single-record pattern: Store FULL value directly, no splitting.
-     * Joint owner is linked via joint_owner_id field.
+     * SP1 Pass 4 PR 2: Property create is routed through PropertyStore::create.
+     * The mortgage_* fields below remain a direct Mortgage create via MortgageService —
+     * Pass 5 will route those through MortgageStore.
      *
      * POST /api/properties
      */
@@ -108,44 +116,59 @@ class PropertyController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        // Set defaults for optional fields
-        $validated['user_id'] = $user->id;
-        $validated['household_id'] = $user->household_id;
-        $validated['ownership_type'] = $validated['ownership_type'] ?? 'individual';
-        $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? 100.00;
+        // Resolve controller-level defaults before handing off to the normaliser.
+        // These are form-layer concerns (household_id from session, valuation_date default,
+        // address shorthand, postcode NOT NULL constraint, rental_income alias).
+        $validated['household_id'] = $validated['household_id'] ?? $user->household_id;
         $validated['valuation_date'] = $validated['valuation_date'] ?? now();
 
-        // Handle address field - populate address_line_1 from address if needed
         if (isset($validated['address']) && ! isset($validated['address_line_1'])) {
             $validated['address_line_1'] = $validated['address'];
         }
 
-        // Ensure postcode is never null (database requires NOT NULL)
         if (! isset($validated['postcode']) || $validated['postcode'] === null) {
             $validated['postcode'] = '';
         }
 
-        // Convert rental_income to monthly if provided
         if (isset($validated['rental_income']) && ! isset($validated['monthly_rental_income'])) {
             $validated['monthly_rental_income'] = $validated['rental_income'];
         }
 
-        // For joint or tenants_in_common ownership, default to 50/50 split if not specified
-        if (in_array($validated['ownership_type'], ['joint', 'tenants_in_common']) && $validated['ownership_percentage'] == 100.00) {
-            $validated['ownership_percentage'] = 50.00;
-        }
-
-        // Default country to United Kingdom if not provided
-        if (! isset($validated['country']) || $validated['country'] === null) {
+        // Default country to United Kingdom if absent/null/empty — the form layer's
+        // historical default. The DB has DEFAULT 'United Kingdom' too, but we set it
+        // explicitly so the response payload reflects the canonical value.
+        if (! isset($validated['country']) || in_array($validated['country'], [null, ''], true)) {
             $validated['country'] = 'United Kingdom';
         }
 
-        // Single-record pattern: Store FULL value directly (no splitting)
-        // current_value already contains the full property value from the form
+        // For joint/tenants_in_common, default to 50/50 split if user left ownership_percentage at 100.
+        $ownershipType = $validated['ownership_type'] ?? 'individual';
+        if (in_array($ownershipType, ['joint', 'tenants_in_common'], true) && ($validated['ownership_percentage'] ?? 100.00) == 100.00) {
+            $validated['ownership_percentage'] = 50.00;
+        }
 
-        $property = Property::create($validated);
+        // Normalise and route through PropertyStore (SP1 Pass 4 PR 2).
+        $canonical = $this->propertyNormaliser->fromForm($validated);
 
-        // Auto-create mortgage if outstanding_mortgage provided
+        try {
+            $property = $this->propertyStore->create($canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Property limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
+        }
+
+        // Pass 4 routes Property creates through PropertyStore. The mortgage_*
+        // fields below remain a direct Mortgage create via MortgageService —
+        // Pass 5 will route those through MortgageStore.
         $this->mortgageService->createFromPropertyData($property, $validated, $user);
 
         // Sync rental income to user table
@@ -172,6 +195,7 @@ class PropertyController extends Controller
      * Get a single property
      *
      * Returns property if user is primary owner OR joint owner.
+     * Read path stays direct until PR 5 routes reads through PropertyStore::find.
      *
      * GET /api/properties/{id}
      */
@@ -179,7 +203,8 @@ class PropertyController extends Controller
     {
         $user = $request->user();
 
-        // Single-record pattern: Allow access if user is owner OR joint_owner
+        // Single-record pattern: Allow access if user is owner OR joint_owner.
+        // PR 5 will route this through PropertyStore::find.
         $property = Property::where('id', $id)
             ->where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
@@ -225,43 +250,46 @@ class PropertyController extends Controller
      * Update a property
      *
      * Only primary owner (user_id) can update.
-     * Single-record pattern: Update the single record directly.
+     * SP1 Pass 4 PR 2: Property update is routed through PropertyStore::update.
      *
      * PUT /api/properties/{id}
      */
     public function update(UpdatePropertyRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
-
-        // Only primary owner can update
-        $property = Property::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
-
         $validated = $request->validated();
 
-        // Single-record pattern: Handle ownership percentage when changing to/from joint
-        $ownershipType = $validated['ownership_type'] ?? $property->ownership_type;
-        $jointOwnerId = $validated['joint_owner_id'] ?? $property->joint_owner_id;
+        // Resolve ownership defaults before passing to the normaliser.
+        // PropertyStore::update fetches the existing record itself (owner-only guard).
+        // We need the current state to apply the 50/50 default logic.
+        $existingProperty = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
 
-        if (in_array($ownershipType, ['joint', 'tenants_in_common']) && $jointOwnerId) {
-            // Switching to joint or already joint - default to 50% if not specified
+        $ownershipType = $validated['ownership_type'] ?? $existingProperty->ownership_type;
+        $jointOwnerId = $validated['joint_owner_id'] ?? $existingProperty->joint_owner_id;
+
+        if (in_array($ownershipType, ['joint', 'tenants_in_common'], true) && $jointOwnerId) {
             if (! isset($validated['ownership_percentage'])) {
                 $validated['ownership_percentage'] = 50.00;
             }
         } elseif ($ownershipType === 'individual') {
-            // Switching to individual - reset to 100%
             $validated['ownership_percentage'] = 100.00;
             $validated['joint_owner_id'] = null;
         }
 
         // Log joint property update if applicable
-        if ($this->isSharedOwnership($property) && $property->joint_owner_id) {
-            $this->logJointPropertyUpdate($user, $property, $validated);
+        if ($this->isSharedOwnership($existingProperty) && $existingProperty->joint_owner_id) {
+            $this->logJointPropertyUpdate($user, $existingProperty, $validated);
         }
 
-        // Single-record pattern: Update directly (no splitting, no reciprocal)
-        $property->update($validated);
+        // Normalise and route through PropertyStore (SP1 Pass 4 PR 2).
+        $canonical = $this->propertyNormaliser->fromForm($validated);
+
+        try {
+            $property = $this->propertyStore->update($id, $canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
+
         $property->load(['mortgages', 'household', 'trust']);
 
         // Sync rental income to user table
@@ -292,7 +320,7 @@ class PropertyController extends Controller
      * Delete a property
      *
      * Only primary owner (user_id) can delete.
-     * Single-record pattern: Delete the single record.
+     * SP1 Pass 4 PR 2: Property delete is routed through PropertyStore::delete.
      *
      * DELETE /api/properties/{id}
      */
@@ -300,17 +328,14 @@ class PropertyController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can delete
-        $property = Property::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
-
         // Soft-delete associated mortgages first (SQL CASCADE only fires on hard DELETE,
-        // not soft-delete, so we must cascade manually)
+        // not soft-delete, so we must cascade manually). Mortgage handling stays in the
+        // controller until Pass 5 introduces MortgageStore.
+        $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $property->mortgages()->delete();
 
-        // Then soft-delete the property
-        $property->delete();
+        // Route Property soft-delete through PropertyStore (SP1 Pass 4 PR 2).
+        $this->propertyStore->delete($id, $user, 'user_requested');
 
         // Sync rental income after deletion
         $this->syncUserRentalIncome($user);
@@ -360,7 +385,8 @@ class PropertyController extends Controller
             'disposal_costs' => 'sometimes|numeric|min:0',
         ]);
 
-        // Allow access if user is owner OR joint_owner
+        // Allow access if user is owner OR joint_owner.
+        // PR 5 will route this through PropertyStore::find.
         $property = Property::where('id', $id)
             ->where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
@@ -390,7 +416,8 @@ class PropertyController extends Controller
     {
         $user = $request->user();
 
-        // Allow access if user is owner OR joint_owner
+        // Allow access if user is owner OR joint_owner.
+        // PR 5 will route this through PropertyStore::find.
         $property = Property::where('id', $id)
             ->where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
@@ -448,12 +475,11 @@ class PropertyController extends Controller
      *
      * Single-record pattern: Apply ownership percentage when calculating
      * user's share of rental income.
+     * PR 5 will route this read through PropertyStore::forUser.
      */
     private function syncUserRentalIncome(User $user): void
     {
-        // Get properties where user is owner OR joint_owner
-        $properties = Property::forUserOrJoint($user->id)
-            ->get();
+        $properties = Property::forUserOrJoint($user->id)->get();
 
         $annualRentalIncome = $properties->sum(function ($property) use ($user) {
             $monthlyRental = $property->monthly_rental_income ?? 0;
