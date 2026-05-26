@@ -86,50 +86,34 @@ $pensionConsumers = [
     //    permanent allowlist).
     'Database\Seeders\PreviewUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
-    // PR 5 removes: read consumers
+    // PR 5b–5g removes: remaining read consumers
     'App\Http\Controllers\Api\Retirement\DecumulationController',
-    'App\Agents\RetirementAgent',
-    'App\Services\Retirement\RetirementActionDefinitionService',
-    'App\Services\Retirement\AnnualAllowanceChecker',
+    // PR 5a documented residual NON-QUERY references (post-migration).
+    // These files migrated all DCPension/DBPension/StatePension queries to
+    // PensionStore but retain non-query type-hint references in method
+    // signatures (e.g. `private function calculateAnnualisedPlatformFeePercent(DCPension $pension)`).
+    //  - PensionProjector: DCPension/DBPension/StatePension type hints on 8
+    //    public/private method signatures.
+    //  - SalarySacrificeAnalyzer: DCPension type hints + closure callback
+    //    (`fn (DCPension $pension) => ...`).
+    //  - RetirementActionDefinitionService: DCPension type hints on 3 private
+    //    fee/contribution helpers.
+    //  - PensionContributionOptimizer: DCPension type hints on 2 helpers.
     'App\Services\Retirement\PensionProjector',
-    'App\Services\Retirement\PensionContributionOptimizer',
-    'App\Services\Retirement\RetirementIncomeService',
-    'App\Services\Retirement\PensionPortfolioAnalyzer',
-    'App\Services\Retirement\RetirementStrategyService',
-    'App\Services\Retirement\DecumulationPlanner',
     'App\Services\Retirement\SalarySacrificeAnalyzer',
-    'App\Services\Retirement\RetirementDataReadinessService',
-    'App\Services\Retirement\RequiredCapitalCalculator',
-    'App\Services\Retirement\RetirementProjectionService',
-    'App\Services\Estate\IHTCalculationService',
-    'App\Services\Estate\IHTFormattingService',
-    'App\Services\Estate\EstateAssetAggregatorService',
-    'App\Services\Estate\EstateActionDefinitionService',
-    'App\Services\Coordination\HouseholdPlanningService',
-    'App\Services\Coordination\CashFlowCoordinator',
-    'App\Services\Goals\LifeEventAllocationService',
+    'App\Services\Retirement\RetirementActionDefinitionService',
+    'App\Services\Retirement\PensionContributionOptimizer',
+    // PR 5b documented residual: RetirementPlanService retains DCPension
+    // type hints on calculateMonthlyEmployeeContribution + calculateMonthlyEmployerContribution.
     'App\Services\Plans\RetirementPlanService',
-    'App\Services\Tax\Strategies\SalarySacrificeNiStrategy',
-    'App\Services\Tax\Strategies\PensionAACarryForwardStrategy',
-    'App\Services\Tax\Strategies\NonEarnerSpousePensionStrategy',
-    'App\Services\Tax\Strategies\TaperedAnnualAllowanceStrategy',
-    'App\Services\Tax\TaxStrategyMath',
-    'App\Services\AI\DuplicateAcknowledgement',
-    'App\Services\AI\AdvicePromptBuilder',
-    'App\Services\UserProfile\ProfileCompletenessChecker',
-    'App\Services\UserProfile\UserProfileService',
     'App\Services\UserProfile\ModuleDataRequirementsService',
-    'App\Services\Documents\HoldingsImportService',
+    // PR 5f permanent NON-QUERY residuals (type-constant references in
+    // field-mapper registry + mapper-supports-target methods + a ?DCPension
+    // return type hint on HoldingsImportService::matchPension).
     'App\Services\Documents\DocumentTypeDetector',
     'App\Services\Documents\FieldMappers\DBPensionMapper',
     'App\Services\Documents\FieldMappers\DCPensionMapper',
-    'App\Services\Investment\AssetLocation\TaxDragCalculator',
-    'App\Services\Eval\EvalHttpDriver',
-    'App\Services\NetWorth\NetWorthService',
-    'App\Services\Risk\AutoRiskCalculator',
-    'App\Services\Onboarding\AssetCaptureEntityExtractor',
-    'App\Services\Account\RetentionPurgeService',
-    'App\Services\GDPR\DataExportService',
+    'App\Services\Documents\HoldingsImportService',
     'App\Observers\NetWorthCacheObserver',
     'App\Observers\RecommendationCacheObserver',
     'App\Jobs\RecalculateRiskProfileJob',

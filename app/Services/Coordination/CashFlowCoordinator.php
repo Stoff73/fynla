@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Coordination;
 
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
 use App\Services\Plans\DisposableIncomeAccessor;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\ResolvesExpenditure;
 
@@ -226,9 +226,14 @@ class CashFlowCoordinator
     {
         $total = 0.0;
 
-        // Pension contributions (DC pensions with monthly contributions)
-        $total += (float) DCPension::where('user_id', $userId)
-            ->sum('monthly_contribution_amount');
+        // Pension contributions (DC pensions with monthly contributions).
+        // Non-existent user → 0 (parity with the pre-store DCPension::where + sum semantics).
+        $user = User::find($userId);
+        if ($user !== null) {
+            $total += (float) app(PensionStore::class)
+                ->forUserByType($user, 'dc')
+                ->sum('monthly_contribution_amount');
+        }
 
         // Protection premiums (convert to monthly based on frequency)
         $total += $this->sumMonthlyPremiums(LifeInsurancePolicy::class, $userId);

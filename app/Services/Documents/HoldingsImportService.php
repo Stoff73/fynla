@@ -8,6 +8,7 @@ use App\Models\DCPension;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -139,13 +140,16 @@ class HoldingsImportService
 
     private function matchPension(User $user, ?string $provider): ?DCPension
     {
-        $query = DCPension::where('user_id', $user->id);
+        $pensions = app(PensionStore::class)->forUserByType($user, 'dc');
 
         if ($provider) {
-            $query->where('provider', 'LIKE', "%{$provider}%");
+            $pensions = $pensions->filter(
+                fn ($p) => $p->provider !== null
+                    && stripos((string) $p->provider, (string) $provider) !== false
+            );
         }
 
-        return $query->first();
+        return $pensions->first();
     }
 
     private function findMatchingHolding($existingHoldings, array $imported): ?Holding

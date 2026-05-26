@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Onboarding;
 
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -15,6 +13,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Support\Carbon;
 
@@ -243,10 +242,9 @@ final class AssetCaptureEntityExtractor
     {
         $keys = [];
 
-        foreach (DCPension::query()
-            ->where('user_id', $user->id)
-            ->where('created_at', '>', $cutoff)
-            ->get(['provider', 'scheme_name']) as $row) {
+        $store = app(PensionStore::class);
+
+        foreach ($store->forUserByType($user, 'dc')->filter(fn ($p) => $p->created_at > $cutoff) as $row) {
             $keys[] = $this->pensionIdentityKey([
                 'provider' => $row->provider,
                 'scheme_name' => $row->scheme_name,
@@ -254,10 +252,7 @@ final class AssetCaptureEntityExtractor
             ], false);
         }
 
-        foreach (DBPension::query()
-            ->where('user_id', $user->id)
-            ->where('created_at', '>', $cutoff)
-            ->get(['scheme_name']) as $row) {
+        foreach ($store->forUserByType($user, 'db')->filter(fn ($p) => $p->created_at > $cutoff) as $row) {
             $keys[] = $this->pensionIdentityKey([
                 'provider' => null,
                 'scheme_name' => $row->scheme_name,

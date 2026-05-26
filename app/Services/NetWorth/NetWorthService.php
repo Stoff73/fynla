@@ -6,15 +6,13 @@ namespace App\Services\NetWorth;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Property;
 use App\Models\SavingsAccount;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\PensionStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -198,10 +196,10 @@ class NetWorthService
      */
     private function calculatePensionBreakdown(int $userId): array
     {
-        $dcValue = (float) DCPension::where('user_id', $userId)
-            ->sum('current_fund_value');
-
-        $hasDB = DBPension::where('user_id', $userId)->exists();
+        $user = User::findOrFail($userId);
+        $store = app(PensionStore::class);
+        $dcValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
+        $hasDB = $store->forUserByType($user, 'db')->isNotEmpty();
 
         return [
             'dc' => $dcValue,
@@ -247,9 +245,10 @@ class NetWorthService
         $breakdown = $this->assetAggregator->getAssetBreakdown($userId);
 
         // Calculate pension counts
-        $dcCount = DCPension::where('user_id', $userId)->count();
-        $dbCount = DBPension::where('user_id', $userId)->count();
-        $stateCount = StatePension::where('user_id', $userId)->count();
+        $store = app(PensionStore::class);
+        $dcCount = $store->forUserByType($user, 'dc')->count();
+        $dbCount = $store->forUserByType($user, 'db')->count();
+        $stateCount = $store->statePension($user) ? 1 : 0;
         $pensionCount = $dcCount + $dbCount + $stateCount;
 
         return [
@@ -294,8 +293,9 @@ class NetWorthService
         $userId = $user->id;
 
         // Get pension items
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        $dbPensions = DBPension::where('user_id', $userId)->get();
+        $store = app(PensionStore::class);
+        $dcPensions = $store->forUserByType($user, 'dc');
+        $dbPensions = $store->forUserByType($user, 'db');
 
         $pensionItems = [];
 

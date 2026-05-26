@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Eval;
 
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DCPension;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -236,7 +236,7 @@ final class EvalHttpDriver
                 + CriticalIllnessPolicy::where('user_id', $userId)->count()
                 + IncomeProtectionPolicy::where('user_id', $userId)->count(),
             'investment_count' => InvestmentAccount::where('user_id', $userId)->count(),
-            'pension_count' => DCPension::where('user_id', $userId)->count(),
+            'pension_count' => app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc')->count(),
         ];
     }
 

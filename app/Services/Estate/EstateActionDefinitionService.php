@@ -6,8 +6,6 @@ namespace App\Services\Estate;
 
 use App\Constants\TaxDefaults;
 use App\Models\CashAccount;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\Estate\Gift;
 use App\Models\Estate\LastingPowerOfAttorney;
@@ -20,6 +18,7 @@ use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
@@ -298,8 +297,9 @@ class EstateActionDefinitionService
         // This is a periodic reminder that triggers for any user
         // who has pensions or life insurance policies
         $hasPolicies = LifeInsurancePolicy::where('user_id', $user->id)->exists();
-        $hasPensions = DCPension::where('user_id', $user->id)->exists()
-            || DBPension::where('user_id', $user->id)->exists();
+        $store = app(PensionStore::class);
+        $hasPensions = $store->forUserByType($user, 'dc')->isNotEmpty()
+            || $store->forUserByType($user, 'db')->isNotEmpty();
 
         if (! $hasPolicies && ! $hasPensions) {
             return [];
@@ -356,7 +356,7 @@ class EstateActionDefinitionService
         $total += (float) Asset::where('user_id', $user->id)->sum('current_value');
 
         // DC Pensions (death benefit)
-        $total += (float) DCPension::where('user_id', $user->id)->sum('current_fund_value');
+        $total += (float) app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
 
         // Life insurance (death benefit adds to estate if not in trust)
         $total += (float) LifeInsurancePolicy::where('user_id', $user->id)

@@ -1505,11 +1505,11 @@ class CoordinatingAgent extends BaseAgent
                 })->toArray();
                 break;
             case 'dc_pension':
-                $items = DCPension::where('user_id', $userId)->get();
+                $items = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'pension_type' => $p->pension_type, 'provider' => $p->provider, 'current_value' => (float) $p->current_fund_value, 'employee_contribution' => (float) ($p->employee_contribution_percent ?? 0), 'employer_contribution' => (float) ($p->employer_contribution_percent ?? 0), 'employer_matching_limit' => $p->employer_matching_limit ? (float) $p->employer_matching_limit : null, 'monthly_contribution' => $p->monthly_contribution_amount ? (float) $p->monthly_contribution_amount : null, 'platform_fee_percent' => $p->platform_fee_percent ? (float) $p->platform_fee_percent : null, 'retirement_age' => $p->retirement_age, 'projected_value_at_retirement' => $p->projected_value_at_retirement ? (float) $p->projected_value_at_retirement : null, 'has_flexibly_accessed' => (bool) $p->has_flexibly_accessed])->toArray();
                 break;
             case 'db_pension':
-                $items = DBPension::where('user_id', $userId)->get();
+                $items = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'db');
                 $records = $items->map(fn ($p) => ['id' => $p->id, 'scheme_name' => $p->scheme_name, 'scheme_type' => $p->scheme_type, 'annual_pension' => (float) ($p->accrued_annual_pension ?? 0), 'service_years' => $p->pensionable_service_years, 'pensionable_salary' => $p->pensionable_salary ? (float) $p->pensionable_salary : null, 'normal_retirement_age' => $p->normal_retirement_age, 'spouse_pension_percent' => $p->spouse_pension_percent ? (float) $p->spouse_pension_percent : null, 'lump_sum_entitlement' => $p->lump_sum_entitlement ? (float) $p->lump_sum_entitlement : null, 'inflation_protection' => $p->inflation_protection])->toArray();
                 break;
             case 'property':
@@ -3911,9 +3911,7 @@ class CoordinatingAgent extends BaseAgent
             return ['error' => true, 'error_type' => 'validation_failed', 'message' => 'pension_id and salary_sacrifice are required.'];
         }
 
-        $pension = DCPension::where('id', $input['pension_id'])
-            ->where('user_id', $user->id)
-            ->first();
+        $pension = app(PensionStore::class)->find((int) $input['pension_id'], 'dc', $user);
 
         if (! $pension) {
             return ['error' => true, 'error_type' => 'not_found', 'message' => 'Pension not found or not owned by user.'];

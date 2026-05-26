@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Risk;
 
-use App\Models\DCPension;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\NetWorth\NetWorthService;
+use App\Services\Stores\PensionStore;
 use Carbon\Carbon;
 
 /**
@@ -127,7 +127,7 @@ class AutoRiskCalculator
 
         // Sum investments and pensions
         $investmentsTotal = InvestmentAccount::where('user_id', $user->id)->sum('current_value');
-        $pensionsTotal = DCPension::where('user_id', $user->id)->sum('current_fund_value');
+        $pensionsTotal = app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
         $atRiskAssets = $investmentsTotal + $pensionsTotal;
 
         // Calculate ratio

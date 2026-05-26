@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DBPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\RetirementProfile;
-use App\Services\Stores\SavingsStore;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Investment\InvestmentProjectionService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxBandTracker;
 use App\Services\TaxConfigService;
 
@@ -289,7 +288,9 @@ class RetirementIncomeService
         }
 
         // DB Pensions
-        $dbPensions = DBPension::whereIn('user_id', $userIds)->get();
+        $pensionStore = app(PensionStore::class);
+        $dbPensions = collect($userIds)
+            ->flatMap(fn ($uid) => $pensionStore->forUserByType(User::findOrFail($uid), 'db'));
         foreach ($dbPensions as $pension) {
             $annualIncome = (float) ($pension->accrued_annual_pension ?? 0);
             $accounts[] = [
@@ -309,7 +310,9 @@ class RetirementIncomeService
         }
 
         // State Pension
-        $statePensions = StatePension::whereIn('user_id', $userIds)->get();
+        $statePensions = collect($userIds)
+            ->map(fn ($uid) => $pensionStore->statePension(User::findOrFail($uid)))
+            ->filter();
         foreach ($statePensions as $pension) {
             $annualIncome = (float) ($pension->state_pension_forecast_annual ?? 0);
             $accounts[] = [
@@ -556,7 +559,9 @@ class RetirementIncomeService
             }
         }
 
-        $statePensions = StatePension::whereIn('user_id', $userIds)->get();
+        $statePensions = collect($userIds)
+            ->map(fn ($uid) => app(PensionStore::class)->statePension(User::findOrFail($uid)))
+            ->filter();
 
         $defaultSPA = (int) $this->taxConfig->get('pension.state_pension.current_spa', 67);
 

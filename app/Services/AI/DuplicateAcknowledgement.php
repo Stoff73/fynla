@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
@@ -16,6 +14,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 
 /**
@@ -311,10 +310,9 @@ final class DuplicateAcknowledgement
             $provider = (string) ($entity['provider'] ?? '');
 
             if ($category === 'db') {
-                $row = DBPension::query()
-                    ->where('user_id', $user->id)
-                    ->where('created_at', '>', $cutoff)
-                    ->latest('id')
+                $row = app(PensionStore::class)->forUserByType($user, 'db')
+                    ->filter(fn ($p) => $p->created_at > $cutoff)
+                    ->sortByDesc('id')
                     ->first();
                 if ($row === null) {
                     continue;
@@ -329,11 +327,10 @@ final class DuplicateAcknowledgement
                 continue;
             }
 
-            $row = DCPension::query()
-                ->where('user_id', $user->id)
+            $row = app(PensionStore::class)->forUserByType($user, 'dc')
                 ->where('provider', $provider)
-                ->where('created_at', '>', $cutoff)
-                ->latest('id')
+                ->filter(fn ($p) => $p->created_at > $cutoff)
+                ->sortByDesc('id')
                 ->first();
             if ($row === null) {
                 continue;
