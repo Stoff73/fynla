@@ -106,11 +106,6 @@ $pensionConsumers = [
     // PR 5b documented residual: RetirementPlanService retains DCPension
     // type hints on calculateMonthlyEmployeeContribution + calculateMonthlyEmployerContribution.
     'App\Services\Plans\RetirementPlanService',
-    'App\Services\Tax\Strategies\SalarySacrificeNiStrategy',
-    'App\Services\Tax\Strategies\PensionAACarryForwardStrategy',
-    'App\Services\Tax\Strategies\NonEarnerSpousePensionStrategy',
-    'App\Services\Tax\Strategies\TaperedAnnualAllowanceStrategy',
-    'App\Services\Tax\TaxStrategyMath',
     'App\Services\AI\DuplicateAcknowledgement',
     'App\Services\AI\AdvicePromptBuilder',
     'App\Services\UserProfile\ProfileCompletenessChecker',
