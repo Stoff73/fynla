@@ -88,7 +88,9 @@ Pass 3 PR 6 (uncommitted-then-WIP'd this session)
 
 ## Pick up from here (auto-continue contract)
 
-1. `tail -10 /tmp/pest-pr6.log` — confirm PR 6 final full Pest is green (expecting 4071+ passed, 0 failed). If notification arrived during tripwire, exit code is already known.
+> **PR 6 FINAL PEST: GREEN — 4083 passed, 26 skipped, 0 failed (15443 assertions, 482s).** Notification arrived just after the tripwire fired; result captured here. Skip step 1, proceed straight to step 2.
+
+1. ~~`tail -10 /tmp/pest-pr6.log`~~ — done, green confirmed (4083 passed).
 2. **If green**: amend WIP commit (`git commit --amend -m "feat(pensions): derived columns + snapshot tables (SP1 Pass 3 PR 6)" -m "<full body from f7ba90b>"`), force-push (`git push --force-with-lease`), open PR #383 against `dev` via `gh pr create --base dev --head feat/pension-store-pr6 --title "feat(pensions): derived columns + snapshot tables (SP1 Pass 3 PR 6)" --body "$(cat <<'EOF'...EOF)"`. CSJ admin-merges per established pattern.
 3. **If red**: diagnose. Most likely failure mode is a pre-existing test that does `PensionStore::createDc/createDb/upsertState` without seeding TaxConfigurationSeeder (the calculator's `getPensionAllowances()` lookup) or without setting `date_of_birth` on the user. Apply the same null-safe pattern used in `PensionDerivedColumnCalculator` (try/catch around taxConfig, null checks on date_of_birth).
 4. **Then PR 7**: Tier-cap enforcement at store level. Plan at `docs/superpowers/plans/2026-05-24-sub-project-1-pass-3-pensions-plan.md` lines 3791+. Very small: extend `StaticTierGate::LIMITS` with `pension_account` + write `tests/Feature/Stores/PensionTierCapTest.php` (4 cases per plan).
