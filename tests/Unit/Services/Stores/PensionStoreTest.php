@@ -41,11 +41,14 @@ it('PensionStore::createDc persists a DC pension through the canonical write pat
     expect(DCPension::count())->toBe(1);
 });
 
-it('PensionStore::createDc rejects writes with missing required fields', function () {
+it('PensionStore::createDc rejects writes with invalid canonical shape', function () {
     $user = User::factory()->create();
     $store = app(PensionStore::class);
 
-    expect(fn () => $store->createDc(['pension_type' => 'occupational'], $user, IngestSource::FORM))
+    // pension_type must be one of the allowed enum values. Per spec §7.2
+    // the inner validation layer mirrors the form (nullable scheme_name)
+    // but still enforces canonical-shape correctness (enum, ranges).
+    expect(fn () => $store->createDc(['pension_type' => 'made_up_type'], $user, IngestSource::FORM))
         ->toThrow(StoreValidationException::class);
 
     expect(DCPension::count())->toBe(0);

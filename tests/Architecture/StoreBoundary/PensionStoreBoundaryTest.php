@@ -30,7 +30,7 @@ $pensionConsumers = [
     'App\Models\StatePensionValueSnapshot',
     'App\Models\\',  // self-references in relationships
 
-    // Domain events introduced by this PR — typed constructor params
+    // Domain events introduced by PR 1 — typed constructor params
     // reference the pension models. These are part of the canonical write
     // path (dispatched only from PensionStore) and stay on the allowlist
     // permanently per spec §14.2 (events).
@@ -45,15 +45,28 @@ $pensionConsumers = [
     // which transitively reference the models; permanent per §14.2 (event wiring).
     'App\Providers\EventServiceProvider',
 
-    // Transition allowlist — removed by subsequent PRs in pass 3.
-    // PR 2 removes: HTTP controllers + form requests + API resource
+    // Documented residual NON-QUERY references (post-PR-2).
+    // All direct queries/mutations against the pension models have been
+    // migrated to PensionStore. The references that remain are static
+    // class-name uses for polymorphic holdable_type and type hints —
+    // they are not statically-resolvable queries and they cannot be
+    // removed until the holdings track lands in Pass 6 (HoldingsStore).
+    //
+    //  - RetirementController retains DCPension::class in the private
+    //    seedHoldingsForDcPension helper as polymorphic holdable_type for
+    //    Holding rows. All seven write methods + index reads now go
+    //    through PensionStore (PR 2).
     'App\Http\Controllers\Api\RetirementController',
+    //  - DCPensionHoldingsController retains DCPension::class in
+    //    Holding::where('holdable_type', DCPension::class) polymorphic
+    //    queries + a DCPension return-type hint on the
+    //    pensionForUserOr404 ownership helper. All ownership reads now
+    //    funnel through PensionStore::find (PR 2).
     'App\Http\Controllers\Api\Retirement\DCPensionHoldingsController',
-    'App\Http\Controllers\Api\Retirement\DecumulationController',
-    'App\Http\Requests\Retirement\StoreDCPensionRequest',
-    'App\Http\Requests\Retirement\StoreDBPensionRequest',
-    'App\Http\Requests\Retirement\UpdateStatePensionRequest',
+    //  - DCPensionResource: @mixin DCPension docblock on the API
+    //    resource. Permanent type hint; no query.
     'App\Http\Resources\DCPensionResource',
+
     // PR 3 removes: CoordinatingAgent (Fyn AI tool path)
     'App\Agents\CoordinatingAgent',
     // PR 4 removes: DocumentProcessor (upload path), PreviewController, seeders
@@ -63,6 +76,7 @@ $pensionConsumers = [
     'Database\Seeders\ChrisUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
     // PR 5 removes: read consumers
+    'App\Http\Controllers\Api\Retirement\DecumulationController',
     'App\Agents\RetirementAgent',
     'App\Services\Retirement\RetirementActionDefinitionService',
     'App\Services\Retirement\AnnualAllowanceChecker',

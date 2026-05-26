@@ -24,8 +24,25 @@ class DCPensionHoldingsController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly PensionStore $pensionStore,
     ) {}
+
+    /**
+     * Ownership-check helper. Replaces five inline
+     * DCPension::where('user_id', ...)->firstOrFail() sites — every entry
+     * point now routes through the canonical store's joint-aware read.
+     * Holdings mutation itself stays in this controller until Pass 6.
+     */
+    private function pensionForUserOr404(int $dcPensionId, $user): DCPension
+    {
+        $pension = $this->pensionStore->find($dcPensionId, 'dc', $user);
+        if ($pension === null) {
+            throw new ModelNotFoundException('DC pension not found or unauthorized');
+        }
+
+        return $pension;
+    }
 
     /**
      * Get all holdings for a DC pension
@@ -33,9 +50,7 @@ class DCPensionHoldingsController extends Controller
     public function index(Request $request, int $dcPensionId): JsonResponse
     {
         $user = $request->user();
-        $pension = DCPension::where('user_id', $user->id)
-            ->where('id', $dcPensionId)
-            ->firstOrFail();
+        $pension = $this->pensionForUserOr404($dcPensionId, $user);
 
         $holdings = $pension->holdings()
             ->orderBy('current_value', 'desc')
@@ -57,9 +72,7 @@ class DCPensionHoldingsController extends Controller
         $user = $request->user();
 
         // Verify pension ownership
-        $pension = DCPension::where('user_id', $user->id)
-            ->where('id', $dcPensionId)
-            ->firstOrFail();
+        $pension = $this->pensionForUserOr404($dcPensionId, $user);
 
         $validated = $request->validate([
             'security_name' => 'required|string|max:255',
@@ -105,9 +118,7 @@ class DCPensionHoldingsController extends Controller
         $user = $request->user();
 
         // Verify pension ownership
-        $pension = DCPension::where('user_id', $user->id)
-            ->where('id', $dcPensionId)
-            ->firstOrFail();
+        $pension = $this->pensionForUserOr404($dcPensionId, $user);
 
         // Get holding and verify it belongs to this pension
         $holding = Holding::where('id', $holdingId)
@@ -159,9 +170,7 @@ class DCPensionHoldingsController extends Controller
         $user = $request->user();
 
         // Verify pension ownership
-        $pension = DCPension::where('user_id', $user->id)
-            ->where('id', $dcPensionId)
-            ->firstOrFail();
+        $pension = $this->pensionForUserOr404($dcPensionId, $user);
 
         // Get holding and verify it belongs to this pension
         $holding = Holding::where('id', $holdingId)
@@ -189,9 +198,7 @@ class DCPensionHoldingsController extends Controller
         $user = $request->user();
 
         // Verify pension ownership
-        $pension = DCPension::where('user_id', $user->id)
-            ->where('id', $dcPensionId)
-            ->firstOrFail();
+        $pension = $this->pensionForUserOr404($dcPensionId, $user);
 
         $request->validate([
             'holdings' => 'required|array',
