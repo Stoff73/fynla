@@ -72,3 +72,9 @@
 - Branch: feat/pension-store-pr3
 - WIP commit: none (tree clean at invocation; last commit 151817e — Pass 3 PR 3 on PR #380)
 - Pick up at: merge #380, branch feat/pension-store-pr4 off dev, start Pass 3 PR 4 (upload + seeders → PensionStore) per plan lines 2518+
+
+## 2026-05-26 — session 3 (context-handover tripwire)
+- Handover: [[handover-2026-05-26-session-3-clear]]
+- Branch: feat/pension-store-pr6
+- WIP commit: f7ba90b (amend before opening PR #383)
+- Pick up at: tail /tmp/pest-pr6.log → if green, amend WIP + open PR #383
