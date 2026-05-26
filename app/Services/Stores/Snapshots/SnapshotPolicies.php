@@ -69,4 +69,53 @@ class SnapshotPolicies
             recalcCadence: 'on_change',
         );
     }
+
+    // SP1 Pass 3 / PR 6 — Pension snapshot policies.
+
+    public function dcPensionFundValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 500 || ($old > 0 && abs($new - $old) / $old > 0.02)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function dcPensionProjectedValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 1000 || ($old > 0 && abs($new - $old) / $old > 0.05)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function dbPensionAnnualValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 100 || ($old > 0 && abs($new - $old) / $old > 0.02)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function statePensionForecast(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null && abs($new - $old) > 50,
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
 }

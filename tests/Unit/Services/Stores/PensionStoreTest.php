@@ -3,9 +3,12 @@
 declare(strict_types=1);
 
 use App\Models\DBPension;
+use App\Models\DBPensionValueSnapshot;
 use App\Models\DCPension;
+use App\Models\DCPensionValueSnapshot;
 use App\Models\PensionInputHistory;
 use App\Models\StatePension;
+use App\Models\StatePensionValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
@@ -185,4 +188,92 @@ it('PensionStore::updateDc refuses to mutate a pension owned by another user', f
 
     expect(fn () => app(PensionStore::class)->updateDc($pension->id, ['current_fund_value' => 1], $intruder, IngestSource::FORM))
         ->toThrow(ModelNotFoundException::class);
+});
+
+// ---------- SP1 Pass 3 / PR 6 — derived columns + snapshots ----------
+
+it('createDc materialises current_fund_value_gbp + writes initial snapshot', function () {
+    $user = User::factory()->create();
+    $store = app(PensionStore::class);
+
+    $pension = $store->createDc([
+        'scheme_name' => 'Aviva',
+        'current_fund_value' => 50000,
+        'expected_return_percent' => 5,
+        'retirement_age' => 65,
+        'monthly_contribution_amount' => 0,
+    ], $user, IngestSource::FORM);
+
+    expect((float) $pension->current_fund_value_gbp)->toBe(50000.00)
+        ->and($pension->current_fund_value_gbp_calculated_at)->not->toBeNull();
+
+    // Initial creation (old === null) short-circuits shouldSnapshot to true
+    // for any non-null derived column, so at least one snapshot row exists.
+    expect(DCPensionValueSnapshot::where('dc_pension_id', $pension->id)->count())
+        ->toBeGreaterThanOrEqual(1);
+});
+
+it('updateDc fires snapshot only when policy threshold exceeded', function () {
+    $user = User::factory()->create();
+    $store = app(PensionStore::class);
+
+    $pension = $store->createDc([
+        'scheme_name' => 'Aviva',
+        'current_fund_value' => 50000,
+        'expected_return_percent' => 5,
+        'retirement_age' => 65,
+    ], $user, IngestSource::FORM);
+
+    $initial = DCPensionValueSnapshot::where('dc_pension_id', $pension->id)
+        ->where('column_name', 'current_fund_value_gbp')
+        ->count();
+
+    // Sub-threshold change — abs delta < 500 and % delta < 2% — no new snapshot.
+    $store->updateDc($pension->id, ['current_fund_value' => 50300], $user, IngestSource::FORM);
+    expect(DCPensionValueSnapshot::where('dc_pension_id', $pension->id)
+        ->where('column_name', 'current_fund_value_gbp')
+        ->count())->toBe($initial);
+
+    // Super-threshold change — snapshot fires.
+    $store->updateDc($pension->id, ['current_fund_value' => 70000], $user, IngestSource::FORM);
+    expect(DCPensionValueSnapshot::where('dc_pension_id', $pension->id)
+        ->where('column_name', 'current_fund_value_gbp')
+        ->count())->toBeGreaterThan($initial);
+});
+
+it('createDb materialises projected_annual_pension_at_nra_gbp + writes initial snapshot', function () {
+    $user = User::factory()->create();
+    $store = app(PensionStore::class);
+
+    $pension = $store->createDb([
+        'scheme_name' => 'Civil Service Pension',
+        'scheme_type' => 'final_salary',
+        'accrued_annual_pension' => 12000,
+        'spouse_pension_percent' => 50,
+    ], $user, IngestSource::FORM);
+
+    expect((float) $pension->projected_annual_pension_at_nra_gbp)->toBe(12000.00)
+        ->and((float) $pension->spouse_pension_projected_gbp)->toBe(6000.00);
+
+    expect(DBPensionValueSnapshot::where('db_pension_id', $pension->id)->count())
+        ->toBeGreaterThanOrEqual(1);
+});
+
+it('upsertState materialises forecast + writes initial snapshot', function () {
+    $user = User::factory()->create(['date_of_birth' => now()->subYears(55)]);
+    $store = app(PensionStore::class);
+
+    $state = $store->upsertState([
+        'ni_years_completed' => 30,
+        'ni_years_required' => 35,
+        'state_pension_forecast_annual' => 11000,
+        'state_pension_age' => 67,
+    ], $user, IngestSource::FORM);
+
+    expect((float) $state->state_pension_forecast_annual_gbp)->toBe(11000.00)
+        ->and((float) $state->ni_completion_pct)->toBeGreaterThan(85.0)
+        ->and((float) $state->ni_completion_pct)->toBeLessThan(86.0);
+
+    expect(StatePensionValueSnapshot::where('state_pension_id', $state->id)->count())
+        ->toBeGreaterThanOrEqual(1);
 });

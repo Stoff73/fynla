@@ -15,13 +15,18 @@ use App\Events\Pension\DCPensionUpdated;
 use App\Events\Pension\PensionInputHistoryCaptured;
 use App\Events\Pension\StatePensionUpserted;
 use App\Models\DBPension;
+use App\Models\DBPensionValueSnapshot;
 use App\Models\DCPension;
+use App\Models\DCPensionValueSnapshot;
 use App\Models\PensionInputHistory;
 use App\Models\StatePension;
+use App\Models\StatePensionValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\Recalc\PensionDerivedColumnCalculator;
+use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -33,6 +38,8 @@ class PensionStore
     public function __construct(
         private readonly PensionNormaliser $normaliser,
         private readonly TierGate $tierGate,
+        private readonly PensionDerivedColumnCalculator $derivedCalc,
+        private readonly SnapshotPolicies $snapshotPolicies,
     ) {}
 
     // ---------- Reads ----------
@@ -94,7 +101,12 @@ class PensionStore
         $payload = array_merge($data, ['user_id' => $user->id]);
         unset($payload['type']);
 
-        $pension = DB::transaction(fn () => DCPension::create($payload));
+        $pension = DB::transaction(function () use ($payload, $user, $source) {
+            $pension = DCPension::create($payload);
+            $this->recalculateDcDerived($pension, $user, $source, 'create');
+
+            return $pension;
+        });
 
         event(new DCPensionCreated($pension, $user, $source));
 
@@ -110,12 +122,14 @@ class PensionStore
         unset($payload['type']);
 
         $dirty = [];
-        $updated = DB::transaction(function () use ($pension, $payload, &$dirty) {
+        $updated = DB::transaction(function () use ($pension, $payload, $user, $source, &$dirty) {
             $pension->fill($payload);
             $dirty = $pension->getDirty();
             $pension->save();
+            $fresh = $pension->fresh();
+            $this->recalculateDcDerived($fresh, $user, $source, 'update');
 
-            return $pension->fresh();
+            return $fresh;
         });
 
         event(new DCPensionUpdated($updated, $dirty, $user, $source));
@@ -162,7 +176,12 @@ class PensionStore
         $payload = array_merge($data, ['user_id' => $user->id]);
         unset($payload['type']);
 
-        $pension = DB::transaction(fn () => DBPension::create($payload));
+        $pension = DB::transaction(function () use ($payload, $user, $source) {
+            $pension = DBPension::create($payload);
+            $this->recalculateDbDerived($pension, $user, $source, 'create');
+
+            return $pension;
+        });
 
         event(new DBPensionCreated($pension, $user, $source));
 
@@ -178,12 +197,14 @@ class PensionStore
         unset($payload['type']);
 
         $dirty = [];
-        $updated = DB::transaction(function () use ($pension, $payload, &$dirty) {
+        $updated = DB::transaction(function () use ($pension, $payload, $user, $source, &$dirty) {
             $pension->fill($payload);
             $dirty = $pension->getDirty();
             $pension->save();
+            $fresh = $pension->fresh();
+            $this->recalculateDbDerived($fresh, $user, $source, 'update');
 
-            return $pension->fresh();
+            return $fresh;
         });
 
         event(new DBPensionUpdated($updated, $dirty, $user, $source));
@@ -218,10 +239,17 @@ class PensionStore
         $payload = $data;
         unset($payload['type']);
 
-        $state = DB::transaction(fn () => StatePension::updateOrCreate(
-            ['user_id' => $user->id],
-            $payload
-        ));
+        $state = DB::transaction(function () use ($user, $payload, $source) {
+            $state = StatePension::updateOrCreate(['user_id' => $user->id], $payload);
+            $this->recalculateStateDerived(
+                $state,
+                $user,
+                $source,
+                $state->wasRecentlyCreated ? 'create' : 'update'
+            );
+
+            return $state;
+        });
 
         event(new StatePensionUpserted($state, $user, $source, wasRecentlyCreated: $state->wasRecentlyCreated));
 
@@ -265,6 +293,135 @@ class PensionStore
         event(new PensionInputHistoryCaptured($user, $written, $source));
 
         return $written;
+    }
+
+    // ---------- Derived columns + snapshots ----------
+
+    private function recalculateDcDerived(DCPension $pension, User $user, IngestSource $source, string $reason): void
+    {
+        $derived = $this->derivedCalc->calculateDc($pension, $user);
+        $now = now();
+
+        $oldValues = [
+            'current_fund_value_gbp' => $pension->current_fund_value_gbp !== null ? (float) $pension->current_fund_value_gbp : null,
+            'projected_value_at_retirement_gbp' => $pension->projected_value_at_retirement_gbp !== null ? (float) $pension->projected_value_at_retirement_gbp : null,
+        ];
+
+        $pension->fill([
+            'current_fund_value_gbp' => $derived['current_fund_value_gbp'],
+            'current_fund_value_gbp_calculated_at' => $now,
+            'projected_value_at_retirement_gbp' => $derived['projected_value_at_retirement_gbp'],
+            'projected_value_at_retirement_gbp_calculated_at' => $now,
+            'annual_contribution_gbp' => $derived['annual_contribution_gbp'],
+            'annual_contribution_gbp_calculated_at' => $now,
+            'years_to_drawdown' => $derived['years_to_drawdown'],
+            'years_to_drawdown_calculated_at' => $now,
+            'annual_allowance_used_gbp' => $derived['annual_allowance_used_gbp'],
+            'annual_allowance_used_gbp_calculated_at' => $now,
+        ])->save();
+
+        $policies = [
+            'current_fund_value_gbp' => $this->snapshotPolicies->dcPensionFundValue(),
+            'projected_value_at_retirement_gbp' => $this->snapshotPolicies->dcPensionProjectedValue(),
+        ];
+
+        foreach ($policies as $column => $policy) {
+            // A null derived value means the metric is not applicable — recording
+            // a snapshot would spuriously fire on every write (null short-circuits
+            // shouldSnapshot to true). Skip until the metric materialises.
+            if ($derived[$column] === null) {
+                continue;
+            }
+
+            if (! $policy->shouldSnapshot($oldValues[$column], $derived[$column])) {
+                continue;
+            }
+
+            DCPensionValueSnapshot::create([
+                'dc_pension_id' => $pension->id,
+                'column_name' => $column,
+                'value' => $derived[$column],
+                'currency' => 'GBP',
+                'value_gbp' => $derived[$column],
+                'taken_at' => $now,
+                'trigger_reason' => $reason,
+                'ingest_source' => $source->value,
+            ]);
+        }
+    }
+
+    private function recalculateDbDerived(DBPension $pension, User $user, IngestSource $source, string $reason): void
+    {
+        $derived = $this->derivedCalc->calculateDb($pension, $user);
+        $now = now();
+
+        $oldValue = $pension->projected_annual_pension_at_nra_gbp !== null
+            ? (float) $pension->projected_annual_pension_at_nra_gbp
+            : null;
+
+        $pension->fill([
+            'projected_annual_pension_at_nra_gbp' => $derived['projected_annual_pension_at_nra_gbp'],
+            'projected_annual_pension_at_nra_gbp_calculated_at' => $now,
+            'spouse_pension_projected_gbp' => $derived['spouse_pension_projected_gbp'],
+            'spouse_pension_projected_gbp_calculated_at' => $now,
+        ])->save();
+
+        if ($derived['projected_annual_pension_at_nra_gbp'] === null) {
+            return;
+        }
+
+        if (! $this->snapshotPolicies->dbPensionAnnualValue()->shouldSnapshot($oldValue, $derived['projected_annual_pension_at_nra_gbp'])) {
+            return;
+        }
+
+        DBPensionValueSnapshot::create([
+            'db_pension_id' => $pension->id,
+            'column_name' => 'projected_annual_pension_at_nra_gbp',
+            'value' => $derived['projected_annual_pension_at_nra_gbp'],
+            'currency' => 'GBP',
+            'value_gbp' => $derived['projected_annual_pension_at_nra_gbp'],
+            'taken_at' => $now,
+            'trigger_reason' => $reason,
+            'ingest_source' => $source->value,
+        ]);
+    }
+
+    private function recalculateStateDerived(StatePension $state, User $user, IngestSource $source, string $reason): void
+    {
+        $derived = $this->derivedCalc->calculateState($state, $user);
+        $now = now();
+
+        $oldForecast = $state->state_pension_forecast_annual_gbp !== null
+            ? (float) $state->state_pension_forecast_annual_gbp
+            : null;
+
+        $state->fill([
+            'state_pension_forecast_annual_gbp' => $derived['state_pension_forecast_annual_gbp'],
+            'state_pension_forecast_annual_gbp_calculated_at' => $now,
+            'ni_completion_pct' => $derived['ni_completion_pct'],
+            'ni_completion_pct_calculated_at' => $now,
+            'years_to_state_pension_age' => $derived['years_to_state_pension_age'],
+            'years_to_state_pension_age_calculated_at' => $now,
+        ])->save();
+
+        if ($derived['state_pension_forecast_annual_gbp'] === null) {
+            return;
+        }
+
+        if (! $this->snapshotPolicies->statePensionForecast()->shouldSnapshot($oldForecast, $derived['state_pension_forecast_annual_gbp'])) {
+            return;
+        }
+
+        StatePensionValueSnapshot::create([
+            'state_pension_id' => $state->id,
+            'column_name' => 'state_pension_forecast_annual_gbp',
+            'value' => $derived['state_pension_forecast_annual_gbp'],
+            'currency' => 'GBP',
+            'value_gbp' => $derived['state_pension_forecast_annual_gbp'],
+            'taken_at' => $now,
+            'trigger_reason' => $reason,
+            'ingest_source' => $source->value,
+        ]);
     }
 
     // ---------- Internal ----------

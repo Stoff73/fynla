@@ -19,7 +19,8 @@ $pensionConsumers = [
     // Permanent allowlist (per spec §14.2)
     'App\Services\Stores\PensionStore',
     'App\Services\Stores\Normalisers\PensionNormaliser',
-    'App\Services\Stores\Recalc\PensionDerivedColumnCalculator', // lands in PR 6
+    'App\Services\Stores\Recalc\PensionDerivedColumnCalculator',
+    'App\Console\Commands\BackfillPensionDerivedColumns', // §14.2 console command for one-off derived-column backfill
     'App\Observers\DCPensionRiskObserver',
     'Database\Factories\DCPensionFactory',
     'Database\Factories\DBPensionFactory',
