@@ -106,10 +106,6 @@ $pensionConsumers = [
     // PR 5b documented residual: RetirementPlanService retains DCPension
     // type hints on calculateMonthlyEmployeeContribution + calculateMonthlyEmployerContribution.
     'App\Services\Plans\RetirementPlanService',
-    'App\Services\AI\DuplicateAcknowledgement',
-    'App\Services\AI\AdvicePromptBuilder',
-    'App\Services\UserProfile\ProfileCompletenessChecker',
-    'App\Services\UserProfile\UserProfileService',
     'App\Services\UserProfile\ModuleDataRequirementsService',
     'App\Services\Documents\HoldingsImportService',
     'App\Services\Documents\DocumentTypeDetector',
@@ -118,7 +114,6 @@ $pensionConsumers = [
     'App\Services\Investment\AssetLocation\TaxDragCalculator',
     'App\Services\Eval\EvalHttpDriver',
     'App\Services\NetWorth\NetWorthService',
-    'App\Services\Risk\AutoRiskCalculator',
     'App\Services\Onboarding\AssetCaptureEntityExtractor',
     'App\Services\Account\RetentionPurgeService',
     'App\Services\GDPR\DataExportService',

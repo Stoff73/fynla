@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\UserProfile;
 
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DCPension;
 use App\Models\DisabilityPolicy;
 use App\Models\Estate\Liability;
 use App\Models\FamilyMember;
@@ -19,6 +18,7 @@ use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\PensionStore;
 use App\Services\UKTaxCalculator;
 use Carbon\Carbon;
 
@@ -694,7 +694,7 @@ class UserProfileService
 
         // 1. DC Pension Contributions
         // Note: DC Pensions are always individual - no joint ownership support
-        $dcPensions = DCPension::where('user_id', $user->id)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType($user, 'dc');
         foreach ($dcPensions as $pension) {
             if ($pension->monthly_contribution_amount > 0) {
                 // Apply ownership filter - DC pensions are always individual

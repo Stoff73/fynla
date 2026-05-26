@@ -10,8 +10,6 @@ use App\Models\AiConversation;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
@@ -31,6 +29,7 @@ use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
@@ -791,7 +790,7 @@ PROMPT;
 
             // DC Pensions
             if ($include('dc_pension')) {
-                $dcPensions = DCPension::where('user_id', $userId)->get();
+                $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
                 if ($dcPensions->isNotEmpty()) {
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dcPensions->map(fn ($p) => '[ID:'.$p->id
@@ -804,7 +803,7 @@ PROMPT;
 
             // DB Pensions
             if ($include('db_pension')) {
-                $dbPensions = DBPension::where('user_id', $userId)->get();
+                $dbPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'db');
                 if ($dbPensions->isNotEmpty()) {
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dbPensions->map(fn ($p) => '[ID:'.$p->id
