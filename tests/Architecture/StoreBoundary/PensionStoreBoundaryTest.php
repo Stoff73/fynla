@@ -107,9 +107,8 @@ $pensionConsumers = [
     'App\Services\Estate\IHTFormattingService',
     'App\Services\Estate\EstateAssetAggregatorService',
     'App\Services\Estate\EstateActionDefinitionService',
-    'App\Services\Coordination\HouseholdPlanningService',
-    'App\Services\Coordination\CashFlowCoordinator',
-    'App\Services\Goals\LifeEventAllocationService',
+    // PR 5b documented residual: RetirementPlanService retains DCPension
+    // type hints on calculateMonthlyEmployeeContribution + calculateMonthlyEmployerContribution.
     'App\Services\Plans\RetirementPlanService',
     'App\Services\Tax\Strategies\SalarySacrificeNiStrategy',
     'App\Services\Tax\Strategies\PensionAACarryForwardStrategy',
