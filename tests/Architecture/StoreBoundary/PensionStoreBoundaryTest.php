@@ -107,16 +107,13 @@ $pensionConsumers = [
     // type hints on calculateMonthlyEmployeeContribution + calculateMonthlyEmployerContribution.
     'App\Services\Plans\RetirementPlanService',
     'App\Services\UserProfile\ModuleDataRequirementsService',
-    'App\Services\Documents\HoldingsImportService',
+    // PR 5f permanent NON-QUERY residuals (type-constant references in
+    // field-mapper registry + mapper-supports-target methods + a ?DCPension
+    // return type hint on HoldingsImportService::matchPension).
     'App\Services\Documents\DocumentTypeDetector',
     'App\Services\Documents\FieldMappers\DBPensionMapper',
     'App\Services\Documents\FieldMappers\DCPensionMapper',
-    'App\Services\Investment\AssetLocation\TaxDragCalculator',
-    'App\Services\Eval\EvalHttpDriver',
-    'App\Services\NetWorth\NetWorthService',
-    'App\Services\Onboarding\AssetCaptureEntityExtractor',
-    'App\Services\Account\RetentionPurgeService',
-    'App\Services\GDPR\DataExportService',
+    'App\Services\Documents\HoldingsImportService',
     'App\Observers\NetWorthCacheObserver',
     'App\Observers\RecommendationCacheObserver',
     'App\Jobs\RecalculateRiskProfileJob',
