@@ -7,7 +7,6 @@ namespace App\Agents;
 use App\Constants\TaxDefaults;
 use App\Events\Eval\EngineCalled;
 use App\Events\Eval\GateChecked;
-use App\Models\DCPension;
 use App\Models\Goal;
 use App\Models\RetirementProfile;
 use App\Models\User;
@@ -25,6 +24,7 @@ use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
 use App\Services\Retirement\RetirementDataReadinessService;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -555,7 +555,7 @@ class RetirementAgent extends BaseAgent
     private function getDCPensions(int $userId): Collection
     {
         if ($this->dcPensions === null) {
-            $this->dcPensions = DCPension::where('user_id', $userId)->get();
+            $this->dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         }
 
         return $this->dcPensions;

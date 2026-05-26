@@ -8,8 +8,8 @@ use App\Constants\TaxDefaults;
 use App\Models\DCPension;
 use App\Models\RetirementActionDefinition;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
 use Carbon\Carbon;
@@ -47,7 +47,9 @@ class RetirementActionDefinitionService
 
         $userId = $analysisData['profile']['user_id'];
         $profile = RetirementProfile::find($analysisData['profile']['id']);
-        $dcPensions = DCPension::where('user_id', $userId)->with('holdings')->get();
+        $dcPensions = app(PensionStore::class)
+            ->forUserByType(User::findOrFail($userId), 'dc')
+            ->load('holdings');
 
         foreach ($definitions as $definition) {
             $results = $this->evaluateAgentTrigger($definition, $analysisData, $profile, $dcPensions, $priority);
@@ -920,7 +922,7 @@ class RetirementActionDefinitionService
 
         $userId = $analysisData['profile']['user_id'];
         $user = User::find($userId);
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $statePension = $user ? app(PensionStore::class)->statePension($user) : null;
 
         if (! $statePension || ! $profile) {
             return [];
@@ -1596,7 +1598,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 2: Pension positions (for annuity context)
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         $totalFundValue = 0;
         $pensionSummaries = [];
         foreach ($dcPensions as $pension) {
@@ -1818,7 +1820,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 2: State Pension record
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
         $forecastAmount = $statePension ? (float) ($statePension->state_pension_forecast_annual ?? 0) : 0;
         $spa = $statePension ? (int) ($statePension->state_pension_age ?? 67) : 67;
         $niCompleted = $statePension ? (int) ($statePension->ni_years_completed ?? 0) : 0;
@@ -1942,7 +1944,7 @@ class RetirementActionDefinitionService
         ];
 
         // Step 3: Pension details for decumulation context
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         $pensionSummaries = [];
         foreach ($dcPensions as $pension) {
             $name = $pension->provider.' '.($pension->scheme_name ?? $pension->pension_type ?? 'Pension');

@@ -6,8 +6,8 @@ namespace App\Services\Retirement;
 
 use App\Models\DCPension;
 use App\Models\RetirementProfile;
-use App\Models\StatePension;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -130,7 +130,7 @@ class PensionContributionOptimizer
 
         // Only subtract state pension if user retires at or after state pension age
         $userId = $profile->user_id;
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $statePension = app(PensionStore::class)->statePension(User::findOrFail($userId));
         $statePensionAge = $statePension ? ($statePension->state_pension_age ?? 67) : 67;
         $retiresBeforeSPA = $profile->target_retirement_age < $statePensionAge;
 

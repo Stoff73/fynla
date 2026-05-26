@@ -10,6 +10,7 @@ use App\Models\RetirementProfile;
 use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 
 /**
@@ -165,9 +166,11 @@ class PensionProjector
      */
     public function projectTotalRetirementIncome(int $userId): array
     {
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        $dbPensions = DBPension::where('user_id', $userId)->get();
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $user = User::findOrFail($userId);
+        $store = app(PensionStore::class);
+        $dcPensions = $store->forUserByType($user, 'dc');
+        $dbPensions = $store->forUserByType($user, 'db');
+        $statePension = $store->statePension($user);
 
         $totalDCValue = 0.0;
         $totalDBIncome = 0.0;

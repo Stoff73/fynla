@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Retirement;
 
-use App\Models\DCPension;
 use App\Models\RetirementProfile;
+use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -103,7 +104,7 @@ class AnnualAllowanceChecker
         $isCalendarYear = $taxYear === $this->getCalendarTaxYear();
 
         if ($isCalendarYear) {
-            $dcPensions = DCPension::where('user_id', $userId)->get();
+            $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
             $totalContributions = $this->calculateTotalAnnualContributions($dcPensions);
         } else {
             $totalContributions = 0.0;
@@ -230,18 +231,17 @@ class AnnualAllowanceChecker
      */
     public function checkMPAA(int $userId): array
     {
-        $isTriggered = DCPension::where('user_id', $userId)
-            ->where('has_flexibly_accessed', true)
-            ->exists();
+        $flexiblyAccessed = app(PensionStore::class)
+            ->forUserByType(User::findOrFail($userId), 'dc')
+            ->where('has_flexibly_accessed', true);
+
+        $isTriggered = $flexiblyAccessed->isNotEmpty();
 
         $mpaaAmount = $this->getMPAA();
 
-        $triggerDate = null;
-        if ($isTriggered) {
-            $triggerDate = DCPension::where('user_id', $userId)
-                ->where('has_flexibly_accessed', true)
-                ->min('flexible_access_date');
-        }
+        $triggerDate = $isTriggered
+            ? $flexiblyAccessed->min('flexible_access_date')
+            : null;
 
         return [
             'is_triggered' => $isTriggered,

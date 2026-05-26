@@ -86,21 +86,23 @@ $pensionConsumers = [
     //    permanent allowlist).
     'Database\Seeders\PreviewUserSeeder',
     'Database\Seeders\LifecycleTestSeeder',
-    // PR 5 removes: read consumers
+    // PR 5b–5g removes: remaining read consumers
     'App\Http\Controllers\Api\Retirement\DecumulationController',
-    'App\Agents\RetirementAgent',
-    'App\Services\Retirement\RetirementActionDefinitionService',
-    'App\Services\Retirement\AnnualAllowanceChecker',
+    // PR 5a documented residual NON-QUERY references (post-migration).
+    // These files migrated all DCPension/DBPension/StatePension queries to
+    // PensionStore but retain non-query type-hint references in method
+    // signatures (e.g. `private function calculateAnnualisedPlatformFeePercent(DCPension $pension)`).
+    //  - PensionProjector: DCPension/DBPension/StatePension type hints on 8
+    //    public/private method signatures.
+    //  - SalarySacrificeAnalyzer: DCPension type hints + closure callback
+    //    (`fn (DCPension $pension) => ...`).
+    //  - RetirementActionDefinitionService: DCPension type hints on 3 private
+    //    fee/contribution helpers.
+    //  - PensionContributionOptimizer: DCPension type hints on 2 helpers.
     'App\Services\Retirement\PensionProjector',
-    'App\Services\Retirement\PensionContributionOptimizer',
-    'App\Services\Retirement\RetirementIncomeService',
-    'App\Services\Retirement\PensionPortfolioAnalyzer',
-    'App\Services\Retirement\RetirementStrategyService',
-    'App\Services\Retirement\DecumulationPlanner',
     'App\Services\Retirement\SalarySacrificeAnalyzer',
-    'App\Services\Retirement\RetirementDataReadinessService',
-    'App\Services\Retirement\RequiredCapitalCalculator',
-    'App\Services\Retirement\RetirementProjectionService',
+    'App\Services\Retirement\RetirementActionDefinitionService',
+    'App\Services\Retirement\PensionContributionOptimizer',
     'App\Services\Estate\IHTCalculationService',
     'App\Services\Estate\IHTFormattingService',
     'App\Services\Estate\EstateAssetAggregatorService',
