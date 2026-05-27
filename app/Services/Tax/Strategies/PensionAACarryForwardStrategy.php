@@ -7,7 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
-use App\Models\PensionInputHistory;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\Tax\TaxStrategyMath;
@@ -58,11 +58,10 @@ final class PensionAACarryForwardStrategy implements TaxStrategy
             return [];
         }
 
-        $history = PensionInputHistory::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('tax_year')
-            ->limit(self::LOOKBACK_YEARS)
-            ->get(['tax_year', 'pension_input_amount']);
+        $history = app(PensionStore::class)
+            ->pensionInputHistory($user)
+            ->sortByDesc('tax_year')
+            ->take(self::LOOKBACK_YEARS);
 
         if ($history->isEmpty()) {
             return [];

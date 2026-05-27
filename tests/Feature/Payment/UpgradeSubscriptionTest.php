@@ -57,7 +57,7 @@ describe('POST /api/payment/upgrade', function () {
         $monthsRemaining = max(1, 12 - $monthsUsed);
         $expectedAmount = $monthlyDiff * $monthsRemaining;
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/upgrade', ['plan' => 'pro']);
 
         $response->assertOk();
@@ -101,7 +101,7 @@ describe('POST /api/payment/upgrade', function () {
         $monthlyDiff = (int) round($priceDiff / 12);
         $expectedAmount = $monthlyDiff * 9; // 9 months remaining
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/upgrade', ['plan' => 'family']);
 
         $response->assertOk();
@@ -137,7 +137,7 @@ describe('POST /api/payment/upgrade', function () {
         $proPrice = $proPlan->getLaunchPriceForCycle('monthly') ?? $proPlan->getPriceForCycle('monthly');
         $expectedAmount = $proPrice - $standardPrice;
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/upgrade', ['plan' => 'pro']);
 
         $response->assertOk();
@@ -154,7 +154,7 @@ describe('POST /api/payment/upgrade', function () {
                 'status' => 'active',
             ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/upgrade', ['plan' => 'standard']);
 
         $response->assertStatus(422);
@@ -170,7 +170,7 @@ describe('POST /api/payment/upgrade', function () {
                 'status' => 'active',
             ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/upgrade', ['plan' => 'standard']);
 
         $response->assertStatus(422);
@@ -182,7 +182,7 @@ describe('POST /api/payment/upgrade', function () {
             ->trialing()
             ->create(['user_id' => $user->id]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/upgrade', ['plan' => 'pro']);
 
         $response->assertStatus(403);
@@ -235,7 +235,7 @@ describe('confirmPayment keeps period dates for upgrades', function () {
             ], 200),
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/confirm', ['order_id' => $orderId]);
 
         $response->assertOk();
@@ -277,7 +277,7 @@ describe('confirmPayment keeps period dates for upgrades', function () {
             ], 200),
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->postJson('/api/payment/confirm', ['order_id' => $orderId]);
 
         $response->assertOk();

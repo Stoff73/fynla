@@ -12,15 +12,16 @@ use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
-use App\Models\Property;
 use App\Models\RetirementProfile;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -31,7 +32,8 @@ class OnboardingService
     public function __construct(
         private EstateOnboardingFlow $estateFlow,
         private TaxConfigService $taxConfig,
-        private readonly CacheInvalidationService $cacheInvalidation
+        private readonly CacheInvalidationService $cacheInvalidation,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -612,13 +614,16 @@ class OnboardingService
         // Process Properties
         if (isset($data['properties']) && is_array($data['properties'])) {
             $totalMonthlyRentalIncome = 0;
+            $user = User::findOrFail($userId);
 
             foreach ($data['properties'] as $propertyData) {
                 $monthlyRental = $propertyData['monthly_rental_income'] ?? 0;
 
-                // Create property record
-                $property = Property::create([
-                    'user_id' => $userId,
+                // Create property record via PropertyStore (IngestSource::FORM — onboarding payload is form-shape).
+                // Mirror the savings sibling below: normalise via fromForm() before the store call so future
+                // form-field drift (alias keys, enum variants) is canonicalised at the seam rather than failing
+                // validation deeper. annual_rental_income is a users column, not a properties column; omit it.
+                $canonical = app(PropertyNormaliser::class)->fromForm([
                     'property_type' => $propertyData['property_type'],
                     'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
                     'address_line_1' => $propertyData['address_line_1'],
@@ -629,8 +634,9 @@ class OnboardingService
                     'current_value' => $propertyData['current_value'],
                     'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
                     'monthly_rental_income' => $monthlyRental,
-                    'annual_rental_income' => $monthlyRental * 12,
                 ]);
+
+                $property = app(PropertyStore::class)->create($canonical, $user, IngestSource::FORM);
 
                 // Accumulate rental income for updating user's total rental income
                 if ($monthlyRental > 0) {
@@ -639,30 +645,31 @@ class OnboardingService
 
                 // If property has a mortgage, create a mortgage record linked to this property
                 if (isset($propertyData['outstanding_mortgage']) && $propertyData['outstanding_mortgage'] > 0) {
-                    Mortgage::create([
+                    $mortgageCanonical = MortgageNormaliser::fromForm([
                         'property_id' => $property->id,
-                        'user_id' => $userId,
-                        'lender_name' => 'Mortgage Provider', // Default name from onboarding
-                        'mortgage_type' => 'repayment', // Default to repayment
-                        'original_loan_amount' => $propertyData['outstanding_mortgage'], // Use current balance as original
+                        'lender_name' => 'Mortgage Provider',
+                        'mortgage_type' => 'repayment',
+                        'original_loan_amount' => $propertyData['outstanding_mortgage'],
                         'outstanding_balance' => $propertyData['outstanding_mortgage'],
-                        'interest_rate' => 0.0350, // Default 3.5% if not provided
+                        'interest_rate' => 0.0350,
                         'rate_type' => 'fixed',
                         'monthly_payment' => $this->calculateMortgagePayment(
                             $propertyData['outstanding_mortgage'],
                             0.0350,
                             25
                         ),
-                        'start_date' => now()->subYears(5), // Default 5 years ago
-                        'maturity_date' => now()->addYears(20), // Default 20 years remaining
-                        'remaining_term_months' => 240, // 20 years * 12 months
-                    ]);
+                        'start_date' => now()->subYears(5),
+                        'maturity_date' => now()->addYears(20),
+                        'remaining_term_months' => 240,
+                        'ownership_type' => 'individual',
+                        'ownership_percentage' => 100.00,
+                    ], $user);
+                    $this->mortgageStore->create($mortgageCanonical, $user, IngestSource::FORM);
                 }
             }
 
             // Update user's rental income if any buy-to-let properties were added
             if ($totalMonthlyRentalIncome > 0) {
-                $user = User::find($userId);
                 $user->update([
                     'annual_rental_income' => $totalMonthlyRentalIncome * 12,
                 ]);

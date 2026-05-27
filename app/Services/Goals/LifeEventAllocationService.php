@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Goals;
 
 use App\Constants\TaxDefaults;
-use App\Models\DCPension;
 use App\Models\Goal;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
@@ -16,6 +15,7 @@ use App\Models\User;
 use App\Services\Retirement\AnnualAllowanceChecker;
 use App\Services\Savings\EmergencyFundCalculator;
 use App\Services\Savings\ISATracker;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
@@ -500,7 +500,7 @@ class LifeEventAllocationService
         $remaining -= $allocateAmount;
 
         // Find user's DC pension
-        $pension = DCPension::where('user_id', $userId)->first();
+        $pension = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc')->first();
 
         $standardAA = $this->taxConfig->getPensionAllowances()['annual_allowance'];
         $carryNote = $carryForward > 0
@@ -650,7 +650,7 @@ class LifeEventAllocationService
 
         // Retirement goals → pension
         if ($goalType === 'retirement' || $assignedModule === 'retirement') {
-            $pension = DCPension::where('user_id', $userId)->first();
+            $pension = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc')->first();
 
             return [
                 'account_type' => 'dc_pension',

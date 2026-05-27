@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Services\UserProfile;
 
 use App\Models\LetterToSpouse;
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Carbon\Carbon;
 
 class LetterToSpouseService
 {
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
+
     /**
      * Get or create letter for user with auto-populated data
      */
@@ -232,7 +236,11 @@ class LetterToSpouseService
      */
     private function generateRealEstateInfo(User $user): ?string
     {
-        $properties = Property::where('user_id', $user->id)->get();
+        // Primary-owner-only — letter is about $user's directly-owned properties.
+        // PropertyStore::forUser is joint-aware; filter back down to preserve the
+        // pre-PR-5a semantics where joint-only-as-secondary properties were excluded.
+        $properties = $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id);
 
         if ($properties->isEmpty()) {
             return null;

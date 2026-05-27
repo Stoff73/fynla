@@ -281,6 +281,16 @@ class SavingsController extends Controller
             ], 201);
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Savings account limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
         } catch (\Exception $e) {
             return $this->errorResponse($e, 'Creating savings account');
         }

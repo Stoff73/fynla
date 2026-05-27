@@ -6,6 +6,7 @@ namespace App\Http\Requests\Savings;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreSavingsAccountRequest extends FormRequest
 {
@@ -61,6 +62,22 @@ class StoreSavingsAccountRequest extends FormRequest
             'joint_owner_id' => ['nullable', 'exists:users,id'],
             'trust_id' => ['nullable', 'exists:trusts,id'],
         ];
+    }
+
+    /**
+     * Joint ISAs do not exist in UK law — every ISA is held in a single name.
+     * Reject combinations that try to create one before they reach the controller.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            $isIsa = $this->boolean('is_isa') || in_array($this->input('account_type'), ['cash_isa', 'stocks_shares_isa', 'lifetime_isa', 'innovative_finance_isa'], true);
+            $isJoint = $this->input('ownership_type') === 'joint' || $this->filled('joint_owner_id');
+
+            if ($isIsa && $isJoint) {
+                $v->errors()->add('ownership_type', 'ISAs cannot be jointly owned — every ISA is held in a single name under UK law.');
+            }
+        });
     }
 
     public function messages(): array

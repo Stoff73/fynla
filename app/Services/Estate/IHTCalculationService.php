@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
-use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Settings\AssumptionsService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -48,7 +48,8 @@ class IHTCalculationService
         private readonly AssumptionsService $assumptionsService,
         private readonly InvestmentProjectionService $investmentProjectionService,
         private readonly FutureValueCalculator $futureValueCalculator,
-        private readonly LifeEventService $lifeEventService
+        private readonly LifeEventService $lifeEventService,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -64,9 +65,9 @@ class IHTCalculationService
      * @param  User|null  $spouse  The spouse (if married and linked)
      * @param  bool  $dataSharingEnabled  Whether spouse data sharing is enabled
      * @param  bool  $persist  Write the calculation result to the
-     *                        `iht_calculations` audit table. Defaults to
-     *                        false — opt in only when a caller has a
-     *                        specific reason to capture the snapshot.
+     *                         `iht_calculations` audit table. Defaults to
+     *                         false — opt in only when a caller has a
+     *                         specific reason to capture the snapshot.
      * @return array IHT calculation results with all breakdown values
      */
     public function calculate(
@@ -991,11 +992,21 @@ class IHTCalculationService
     ): float {
         $propertyGrowthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
 
-        $currentPropertyValue = (float) Property::where('user_id', $user->id)->sum('current_value');
+        // PropertyStore::forUser is joint-aware (user_id = ? OR joint_owner_id = ?).
+        // Filter to primary-owner-only here to preserve the pre-PR-5a single-count semantics:
+        // a joint property A+B is summed under A (primary) ONCE — never double-counted under
+        // both A and B in the data-sharing branch. Mirrors SavingsReadConsumerParityTest pattern.
+        $currentPropertyValue = (float) $this->propertyStore
+            ->forUser($user)
+            ->where('user_id', $user->id)
+            ->sum('current_value');
 
         // Include spouse properties if data sharing enabled
         if ($dataSharingEnabled && $spouse) {
-            $currentPropertyValue += (float) Property::where('user_id', $spouse->id)->sum('current_value');
+            $currentPropertyValue += (float) $this->propertyStore
+                ->forUser($spouse)
+                ->where('user_id', $spouse->id)
+                ->sum('current_value');
         }
 
         if ($yearsToProject <= 0) {
@@ -1327,18 +1338,23 @@ class IHTCalculationService
      */
     private function hasMainResidence(User $user, ?User $spouse): bool
     {
-        $userHasMainRes = Property::where('user_id', $user->id)
-            ->where('property_type', 'main_residence')
-            ->exists();
+        // PropertyStore::forUserByType is joint-aware. Filter to primary-owner-only so the
+        // RNRB-eligibility check matches the pre-PR-5a semantics: a user qualifies only when
+        // they are the primary owner of a main_residence record, not merely a joint owner.
+        $userHasMainRes = $this->propertyStore
+            ->forUserByType($user, 'main_residence')
+            ->where('user_id', $user->id)
+            ->isNotEmpty();
 
         if ($userHasMainRes) {
             return true;
         }
 
         if ($spouse) {
-            return Property::where('user_id', $spouse->id)
-                ->where('property_type', 'main_residence')
-                ->exists();
+            return $this->propertyStore
+                ->forUserByType($spouse, 'main_residence')
+                ->where('user_id', $spouse->id)
+                ->isNotEmpty();
         }
 
         return false;
@@ -1592,12 +1608,11 @@ class IHTCalculationService
         $effectiveDate = Carbon::parse($pensionInclusion['effective_date']);
 
         // Get total DC pension values
-        $userPensionValue = (float) DCPension::where('user_id', $user->id)
-            ->sum('current_fund_value');
+        $store = app(PensionStore::class);
+        $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
         if ($dataSharingEnabled && $spouse) {
-            $spousePensionValue = (float) DCPension::where('user_id', $spouse->id)
-                ->sum('current_fund_value');
+            $spousePensionValue = (float) $store->forUserByType($spouse, 'dc')->sum('current_fund_value');
         }
         $totalPensionValue = $userPensionValue + $spousePensionValue;
 

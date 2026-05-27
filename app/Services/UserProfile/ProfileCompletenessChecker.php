@@ -7,16 +7,20 @@ namespace App\Services\UserProfile;
 use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Chattel;
-use App\Models\DCPension;
 use App\Models\Estate\Asset;
 use App\Models\FamilyMember;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 
 class ProfileCompletenessChecker
 {
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
+
     /**
      * Check profile completeness for a user
      */
@@ -199,10 +203,10 @@ class ProfileCompletenessChecker
     private function hasAssets(User $user): bool
     {
         // Check various asset types
-        $hasProperty = Property::where('user_id', $user->id)->exists();
+        $hasProperty = $this->propertyStore->forUser($user)->where('user_id', $user->id)->isNotEmpty();
         $hasSavings = app(SavingsStore::class)->forUser($user)->where('user_id', $user->id)->isNotEmpty();
         $hasInvestments = InvestmentAccount::where('user_id', $user->id)->exists();
-        $hasPensions = DCPension::where('user_id', $user->id)->exists();
+        $hasPensions = app(PensionStore::class)->forUserByType($user, 'dc')->isNotEmpty();
         $hasBusiness = BusinessInterest::where('user_id', $user->id)->exists();
         $hasChattels = Chattel::where('user_id', $user->id)->exists();
         $hasCash = CashAccount::where('user_id', $user->id)->exists();

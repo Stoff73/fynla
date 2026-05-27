@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Plans;
 
 use App\Agents\RetirementAgent;
-use App\Models\DBPension;
 use App\Models\DCPension;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Investment\RiskProfile;
 use App\Models\PlanActionFundingSelection;
 use App\Models\RetirementProfile;
-use App\Services\Stores\SavingsStore;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Retirement\PensionProjector;
 use App\Services\Retirement\RetirementActionDefinitionService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Illuminate\Support\Collection;
 
@@ -57,7 +56,7 @@ class RetirementPlanService extends BasePlanService
 
         $currentSituation = $this->buildCurrentSituation($data, $userId);
         $recommendations = $this->getRecommendations($userId, $data);
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         $goals = $this->getGoalsForPlan($userId, 'retirement');
         $goalRecommendations = $this->actionDefinitionService->evaluateGoalActions($goals['linked'], $dcPensions);
         $allRecs = array_merge($goalRecommendations, $recommendations);
@@ -126,8 +125,9 @@ class RetirementPlanService extends BasePlanService
             ];
         }
 
-        $hasPension = DCPension::where('user_id', $userId)->exists() ||
-                      DBPension::where('user_id', $userId)->exists();
+        $pensionUser = User::findOrFail($userId);
+        $hasPension = app(PensionStore::class)->forUserByType($pensionUser, 'dc')->isNotEmpty()
+            || app(PensionStore::class)->forUserByType($pensionUser, 'db')->isNotEmpty();
         if (! $hasPension) {
             $missing[] = [
                 'field' => 'pensions',
@@ -305,9 +305,11 @@ class RetirementPlanService extends BasePlanService
         $allowance = $data['annual_allowance'] ?? [];
         $incomeProjection = $data['income_projection'] ?? [];
 
-        $dcPensions = DCPension::where('user_id', $userId)->get();
-        $dbPensions = DBPension::where('user_id', $userId)->get();
-        $statePension = StatePension::where('user_id', $userId)->first();
+        $pensionUser = User::findOrFail($userId);
+        $store = app(PensionStore::class);
+        $dcPensions = $store->forUserByType($pensionUser, 'dc');
+        $dbPensions = $store->forUserByType($pensionUser, 'db');
+        $statePension = $store->statePension($pensionUser);
 
         return [
             'summary' => $summary,
@@ -414,7 +416,7 @@ class RetirementPlanService extends BasePlanService
      */
     private function calculateTotalAnnualContributions(int $userId): float
     {
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         $total = 0.0;
 
         foreach ($dcPensions as $pension) {

@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\Property;
-use App\Models\StatePension;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
+use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +34,8 @@ use Illuminate\Support\Str;
 
 class PreviewController extends Controller
 {
+    use SanitizedErrorResponse;
+
     /**
      * Available persona IDs
      */
@@ -316,11 +321,8 @@ class PreviewController extends Controller
                 'success' => true,
                 'message' => 'Persona data seeded successfully',
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to seed persona data: '.$e->getMessage(),
-            ], 500);
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e, 'Persona seeding');
         }
     }
 
@@ -441,23 +443,34 @@ class PreviewController extends Controller
 
     /**
      * Seed properties
+     *
+     * SP1 Pass 4 PR 2: Property creates routed through PropertyStore with
+     * IngestSource::SEEDER. SP1 Pass 5 PR 2: Mortgage seeding routed through
+     * MortgageStore (see seedMortgages below).
      */
     private function seedProperties(User $user, array $properties): void
     {
+        $store = app(PropertyStore::class);
+        $normaliser = app(PropertyNormaliser::class);
+
         foreach ($properties as $property) {
-            Property::create(array_merge($property, [
-                'user_id' => $user->id,
-            ]));
+            $canonical = $normaliser->fromForm($property);
+            $store->create($canonical, $user, IngestSource::SEEDER);
         }
     }
 
     /**
      * Seed mortgages
+     *
+     * SP1 Pass 5 PR 2: routed through MortgageStore::create with IngestSource::SEEDER,
+     * mirroring the Pass 4 PropertyStore pattern above.
      */
     private function seedMortgages(User $user, array $mortgages): void
     {
         // Get the user's first property for association
         $property = Property::where('user_id', $user->id)->first();
+
+        $store = app(MortgageStore::class);
 
         foreach ($mortgages as $mortgage) {
             $mortgageData = array_merge($mortgage, [
@@ -469,7 +482,8 @@ class PreviewController extends Controller
                 $mortgageData['property_id'] = $property->id;
             }
 
-            Mortgage::create($mortgageData);
+            $canonical = MortgageNormaliser::fromForm($mortgageData, $user);
+            $store->create($canonical, $user, IngestSource::SEEDER);
         }
     }
 
@@ -530,10 +544,14 @@ class PreviewController extends Controller
      */
     private function seedDCPensions(User $user, array $pensions): void
     {
+        $store = app(PensionStore::class);
+        $normaliser = app(PensionNormaliser::class);
         foreach ($pensions as $pension) {
-            DCPension::create(array_merge($pension, [
-                'user_id' => $user->id,
-            ]));
+            $store->createDc(
+                $normaliser->fromFormDc($pension),
+                $user,
+                IngestSource::SEEDER
+            );
         }
     }
 
@@ -542,10 +560,14 @@ class PreviewController extends Controller
      */
     private function seedDBPensions(User $user, array $pensions): void
     {
+        $store = app(PensionStore::class);
+        $normaliser = app(PensionNormaliser::class);
         foreach ($pensions as $pension) {
-            DBPension::create(array_merge($pension, [
-                'user_id' => $user->id,
-            ]));
+            $store->createDb(
+                $normaliser->fromFormDb($pension),
+                $user,
+                IngestSource::SEEDER
+            );
         }
     }
 
@@ -558,9 +580,11 @@ class PreviewController extends Controller
             return;
         }
 
-        StatePension::create(array_merge($pension, [
-            'user_id' => $user->id,
-        ]));
+        app(PensionStore::class)->upsertState(
+            app(PensionNormaliser::class)->fromFormState($pension),
+            $user,
+            IngestSource::SEEDER
+        );
     }
 
     /**

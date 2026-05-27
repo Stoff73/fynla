@@ -111,20 +111,20 @@ export default {
 
       categories: [
         { key: 'all', label: 'All', color: null },
-        { key: 'explainers', label: 'Key Terms', color: '#E8326E' },
+        { key: 'explainers', label: 'Key Terms', color: '#E83E6D' },
         { key: 'decisions', label: 'Decision Support', color: '#20B486' },
         { key: 'stages', label: 'Personal Journey Guides', color: '#5854E6' },
         { key: 'tax', label: 'Tax & Allowances', color: '#E6C9A8' },
       ],
 
       allGuides: [
-        { title: 'What is an ISA?', to: '/learn/what-is-an-isa', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
-        { title: 'What is Drawdown?', to: '/learn/what-is-drawdown', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
-        { title: 'What is Salary Sacrifice?', to: '/learn/what-is-salary-sacrifice', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
-        { title: 'What is a Lasting Power of Attorney?', to: '/learn/what-is-an-lpa', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
-        { title: 'What is a Self-Invested Personal Pension?', to: '/learn/what-is-a-sipp', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
-        { title: 'What is Inheritance Tax?', to: '/learn/what-is-inheritance-tax', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
-        { title: 'What is Financial Planning?', to: '/learn', category: 'explainers', dotColor: '#E8326E', categoryLabel: 'Key Term' },
+        { title: 'What is an ISA?', to: '/learn/what-is-an-isa', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
+        { title: 'What is Drawdown?', to: '/learn/what-is-drawdown', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
+        { title: 'What is Salary Sacrifice?', to: '/learn/what-is-salary-sacrifice', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
+        { title: 'What is a Lasting Power of Attorney?', to: '/learn/what-is-an-lpa', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
+        { title: 'What is a Self-Invested Personal Pension?', to: '/learn/what-is-a-sipp', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
+        { title: 'What is Inheritance Tax?', to: '/learn/what-is-inheritance-tax', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
+        { title: 'What is Financial Planning?', to: '/learn', category: 'explainers', dotColor: '#E83E6D', categoryLabel: 'Key Term' },
         { title: 'Should I overpay my mortgage?', to: '/learn/should-i-overpay-my-mortgage', category: 'decisions', dotColor: '#20B486', categoryLabel: 'Decision Support' },
         { title: 'Should I consolidate my pensions?', to: '/learn/should-i-consolidate-pensions', category: 'decisions', dotColor: '#20B486', categoryLabel: 'Decision Support' },
         { title: 'When should I make a will?', to: '/learn/when-should-i-make-a-will', category: 'decisions', dotColor: '#20B486', categoryLabel: 'Decision Support' },

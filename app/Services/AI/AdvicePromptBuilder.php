@@ -10,8 +10,6 @@ use App\Models\AiConversation;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
@@ -21,7 +19,6 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
@@ -31,8 +28,12 @@ use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
+use App\Traits\ResolvesExpenditure;
+use App\Traits\ResolvesIncome;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -53,10 +54,14 @@ use Illuminate\Support\Facades\Log;
  */
 class AdvicePromptBuilder
 {
+    use ResolvesExpenditure;
+    use ResolvesIncome;
+
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PrerequisiteGateService $prerequisiteGate,
         private readonly MemoryRetrieverService $memory,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -531,7 +536,7 @@ PROMPT;
             }
 
             // Property
-            $ownsProperty = Property::forUserOrJoint($user->id)->exists();
+            $ownsProperty = $this->propertyStore->forUserWithJointOwner($user)->isNotEmpty();
             $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
 
             // Estate (IHT-specific)
@@ -786,7 +791,7 @@ PROMPT;
 
             // DC Pensions
             if ($include('dc_pension')) {
-                $dcPensions = DCPension::where('user_id', $userId)->get();
+                $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
                 if ($dcPensions->isNotEmpty()) {
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dcPensions->map(fn ($p) => '[ID:'.$p->id
@@ -799,7 +804,7 @@ PROMPT;
 
             // DB Pensions
             if ($include('db_pension')) {
-                $dbPensions = DBPension::where('user_id', $userId)->get();
+                $dbPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'db');
                 if ($dbPensions->isNotEmpty()) {
                     // S0.10 — scheme_name is user-controlled free text.
                     $items = $dbPensions->map(fn ($p) => '[ID:'.$p->id
@@ -811,7 +816,8 @@ PROMPT;
 
             // Properties — show total value, user's share, mortgage, and ownership with co-owner name
             if ($include('property') || $include('mortgage')) {
-                $properties = Property::with(['mortgages', 'jointOwner'])->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $properties = $this->propertyStore->forUserWithJointOwner($user);
+                $properties->load('mortgages');
                 if ($properties->isNotEmpty()) {
                     $items = $properties->map(function ($p) use ($userId, $ownershipLabel) {
                         $totalValue = (float) $p->current_value;
@@ -1252,26 +1258,19 @@ PROMPT;
 
     public function calculateTotalUserIncome(User $user): float
     {
-        return (float) $user->annual_employment_income
-            + (float) $user->annual_self_employment_income
-            + (float) $user->annual_rental_income
-            + (float) $user->annual_dividend_income
-            + (float) $user->annual_interest_income
-            + (float) $user->annual_other_income
-            + (float) $user->annual_trust_income;
+        // Delegates to ResolvesIncome trait — canonical income resolution
+        // used by 20+ sibling services. Earlier hand-rolled version returned
+        // 0 when the user had only annual_expenditure populated, which
+        // produced wrong tax-band estimates in Fyn advice.
+        return $this->resolveGrossAnnualIncome($user);
     }
 
     public function calculateTotalExpenditure(User $user): float
     {
-        if ($user->monthly_expenditure && $user->monthly_expenditure > 0) {
-            return (float) $user->monthly_expenditure;
-        }
-
-        if ($user->annual_expenditure && $user->annual_expenditure > 0) {
-            return (float) $user->annual_expenditure / 12;
-        }
-
-        return 0;
+        // Delegates to ResolvesExpenditure trait — same priority chain
+        // (ExpenditureProfile → user.monthly → user.annual / 12) used by
+        // every other expenditure consumer.
+        return $this->resolveMonthlyExpenditure($user)['amount'];
     }
 
     public function estimateTaxBand(float $totalIncome): string

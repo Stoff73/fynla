@@ -69,4 +69,84 @@ class SnapshotPolicies
             recalcCadence: 'on_change',
         );
     }
+
+    // SP1 Pass 3 / PR 6 — Pension snapshot policies.
+
+    public function dcPensionFundValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 500 || ($old > 0 && abs($new - $old) / $old > 0.02)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function dcPensionProjectedValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 1000 || ($old > 0 && abs($new - $old) / $old > 0.05)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function dbPensionAnnualValue(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 100 || ($old > 0 && abs($new - $old) / $old > 0.02)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function statePensionForecast(): SnapshotPolicy
+    {
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null && abs($new - $old) > 50,
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    // SP1 Pass 4 PR 6 — Property snapshot policies.
+
+    public function propertyValue(): SnapshotPolicy
+    {
+        // Threshold: any change >£1,000 or >0.5% (whichever triggers first). Retain 7 years.
+        // Property values are large; 0.5% relative threshold keeps noise down while
+        // capturing meaningful market movements.
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 1000 || ($old > 0 && abs($new - $old) / $old > 0.005)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
+
+    public function propertyEquity(): SnapshotPolicy
+    {
+        // Equity moves with both value changes and mortgage paydown — same threshold shape
+        // as propertyValue(). Pass 5 will reconcile equity_gbp against MortgageStore reads.
+        return new SnapshotPolicy(
+            triggerPredicate: fn ($old, $new) => $old !== null
+                && (abs($new - $old) > 1000 || ($old > 0 && abs($new - $old) / $old > 0.005)),
+            retentionDays: self::RETENTION_DAYS,
+            surfacingWindowDays: $this->tierWindowFromStore(),
+            maxRowsHardCap: 5000,
+            recalcCadence: 'on_change',
+        );
+    }
 }

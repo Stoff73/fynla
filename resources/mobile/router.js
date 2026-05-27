@@ -3,6 +3,7 @@ import { store } from './store.js';
 import Login from './views/Login.vue';
 import Verify from './views/Verify.vue';
 import Dashboard from './views/Dashboard.vue';
+import ModuleDetail from './views/ModuleDetail.vue';
 
 // Inner SPA lives under /m/app — but on subdirectory deploys (csjones serves the
 // whole app at /fynla/) the actual URL is /fynla/m/app/. Derive from VITE_ROUTER_BASE
@@ -16,6 +17,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: Login },
     { path: '/verify', name: 'verify', component: Verify },
     { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { auth: true } },
+    { path: '/module/:slug', name: 'module-detail', component: ModuleDetail, props: true, meta: { auth: true } },
   ],
 });
 

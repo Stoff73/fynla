@@ -14,6 +14,17 @@ class LifeStageService
     public const VALID_STAGES = ['university', 'early_career', 'mid_career', 'peak', 'retirement'];
 
     /**
+     * Pension-value threshold (£) at which a mid-career user is considered
+     * to have built enough retirement independence to qualify for the
+     * "peak" life stage even without other markers (married / multiple
+     * properties / independent children).
+     *
+     * Heuristic; not a tax-config value. Promoted from a magic number
+     * during the 2026-05-23 tech-debt audit (B45).
+     */
+    private const PENSION_INDEPENDENT_THRESHOLD = 200000;
+
+    /**
      * Set the life stage for a user.
      *
      * @throws \InvalidArgumentException
@@ -102,7 +113,7 @@ class LifeStageService
         }
 
         if ($currentStage === 'mid_career' && $age > 48) {
-            if ($this->hasIndependentChildren($user) || $this->hasPensionValueAbove($user, 200000)) {
+            if ($this->hasIndependentChildren($user) || $this->hasPensionValueAbove($user, self::PENSION_INDEPENDENT_THRESHOLD)) {
                 return 'peak';
             }
         }

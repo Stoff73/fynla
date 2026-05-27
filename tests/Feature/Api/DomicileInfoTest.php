@@ -19,7 +19,7 @@ describe('Domicile Info API', function () {
     it('allows authenticated user to update domicile info as uk_domiciled', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'uk_domiciled',
                 'country_of_birth' => 'United Kingdom',
@@ -43,7 +43,7 @@ describe('Domicile Info API', function () {
         $user = User::factory()->create();
         $arrivalDate = Carbon::now()->subYears(10)->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'France',
@@ -68,7 +68,7 @@ describe('Domicile Info API', function () {
         $user = User::factory()->create();
         $arrivalDate = Carbon::now()->subYears(18)->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'India',
@@ -85,7 +85,7 @@ describe('Domicile Info API', function () {
         $user = User::factory()->create();
         $arrivalDate = Carbon::now()->subYears(18)->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'Australia',
@@ -107,7 +107,7 @@ describe('Domicile Info API', function () {
         $user = User::factory()->create();
         $arrivalDate = Carbon::now()->subYears(10)->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'Canada',
@@ -124,7 +124,7 @@ describe('Domicile Info API', function () {
         $user = User::factory()->create();
         $arrivalDate = Carbon::now()->subYears(12)->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'Germany',
@@ -158,7 +158,7 @@ describe('Domicile Info Validation', function () {
     it('requires domicile_status field', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'country_of_birth' => 'Spain',
             ]);
@@ -170,7 +170,7 @@ describe('Domicile Info Validation', function () {
     it('requires country_of_birth field', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'uk_domiciled',
             ]);
@@ -182,7 +182,7 @@ describe('Domicile Info Validation', function () {
     it('requires uk_arrival_date for non_uk_domiciled status', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'Japan',
@@ -196,7 +196,7 @@ describe('Domicile Info Validation', function () {
     it('does NOT require uk_arrival_date for uk_domiciled status', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'uk_domiciled',
                 'country_of_birth' => 'United Kingdom',
@@ -209,7 +209,7 @@ describe('Domicile Info Validation', function () {
     it('rejects invalid domicile_status values', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'invalid_status',
                 'country_of_birth' => 'Italy',
@@ -223,7 +223,7 @@ describe('Domicile Info Validation', function () {
         $user = User::factory()->create();
         $futureDate = Carbon::now()->addYears(1)->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'Portugal',
@@ -238,7 +238,7 @@ describe('Domicile Info Validation', function () {
         $user = User::factory()->create();
         $today = Carbon::now()->toDateString();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'Netherlands',
@@ -254,7 +254,7 @@ describe('Cache Invalidation', function () {
         $user = User::factory()->create();
 
         // Update domicile - this should trigger cache invalidation code without errors
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'uk_domiciled',
                 'country_of_birth' => 'United Kingdom',
@@ -270,7 +270,7 @@ describe('Cache Invalidation', function () {
         $user = User::factory()->create(['spouse_id' => $spouse->id]);
 
         // Update domicile - this should trigger spouse cache invalidation without errors
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'non_uk_domiciled',
                 'country_of_birth' => 'France',
@@ -298,7 +298,7 @@ describe('Authentication', function () {
         $user2 = User::factory()->create();
 
         // User 1 updates their domicile
-        $this->actingAs($user1)
+        $this->actingAs($user1, 'sanctum')
             ->putJson('/api/user/profile/domicile', [
                 'domicile_status' => 'uk_domiciled',
                 'country_of_birth' => 'United Kingdom',

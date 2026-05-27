@@ -14,8 +14,12 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Property\MortgageService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Traits\CalculatesOwnershipShare;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,6 +31,8 @@ use Illuminate\Http\Request;
  * - user_id = primary owner (can edit/delete)
  * - joint_owner_id = secondary owner (view access)
  * - ownership_percentage = primary owner's share (default 50 for joint)
+ *
+ * SP1 Pass 5 PR 2: store/update/destroy route through MortgageStore (FORM ingest source).
  */
 class MortgageController extends Controller
 {
@@ -34,7 +40,8 @@ class MortgageController extends Controller
     use SanitizedErrorResponse;
 
     public function __construct(
-        private readonly MortgageService $mortgageService
+        private readonly MortgageService $mortgageService,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -81,8 +88,7 @@ class MortgageController extends Controller
     /**
      * Store a new mortgage for a property
      *
-     * Single-record pattern: Store FULL balance directly, no splitting.
-     * Only primary property owner can add mortgages.
+     * SP1 Pass 5 PR 2: routed through MortgageStore::create (FORM ingest source).
      *
      * POST /api/properties/{propertyId}/mortgages
      */
@@ -97,41 +103,20 @@ class MortgageController extends Controller
 
         $validated = $request->validated();
 
-        // Set sensible defaults for optional fields
-        // Normalize ownership_type: mortgages only support 'individual' and 'joint'
-        // tenants_in_common is treated as 'joint' for mortgage purposes
-        $rawOwnership = $validated['ownership_type'] ?? $property->ownership_type ?? 'individual';
-        $validated['ownership_type'] = in_array($rawOwnership, ['joint', 'tenants_in_common']) ? 'joint' : 'individual';
-        $validated['ownership_percentage'] = $validated['ownership_percentage'] ?? $property->ownership_percentage ?? 100;
+        // Apply form-layer defaults before normalisation.
         $validated['lender_name'] = $validated['lender_name'] ?? config('mortgage.default_lender_name', 'To be completed');
         $validated['mortgage_type'] = $validated['mortgage_type'] ?? config('mortgage.default_mortgage_type', 'repayment');
         $validated['interest_rate'] = $validated['interest_rate'] ?? config('mortgage.default_interest_rate', 0.0000);
         $validated['rate_type'] = $validated['rate_type'] ?? config('mortgage.default_rate_type', 'fixed');
-        $validated['start_date'] = $validated['start_date'] ?? now();
+        $validated['start_date'] = $validated['start_date'] ?? now()->toDateString();
 
-        // Calculate maturity date if not provided
         if (! isset($validated['maturity_date'])) {
-            $validated['maturity_date'] = now()->addYears(config('mortgage.default_term_years', 25));
+            $validated['maturity_date'] = now()->addYears(config('mortgage.default_term_years', 25))->toDateString();
         }
 
-        // Calculate remaining_term_months if not provided but dates are available
-        if (! isset($validated['remaining_term_months']) &&
-            isset($validated['start_date']) && $validated['start_date'] &&
-            isset($validated['maturity_date']) && $validated['maturity_date']) {
-            $startDate = $validated['start_date'] instanceof Carbon
-                ? $validated['start_date']
-                : Carbon::parse($validated['start_date']);
-            $maturityDate = $validated['maturity_date'] instanceof Carbon
-                ? $validated['maturity_date']
-                : Carbon::parse($validated['maturity_date']);
-
-            $validated['remaining_term_months'] = $startDate->diffInMonths($maturityDate);
-        } else {
-            $validated['remaining_term_months'] = $validated['remaining_term_months'] ?? config('mortgage.default_term_months', 300);
+        if (! isset($validated['remaining_term_months'])) {
+            $validated['remaining_term_months'] = config('mortgage.default_term_months', 300);
         }
-
-        // Single-record pattern: Store FULL values directly (no splitting)
-        // outstanding_balance, monthly_payment, original_loan_amount are FULL amounts
 
         // Copy joint ownership from property if applicable
         if (in_array($property->ownership_type, ['joint', 'tenants_in_common']) && $property->joint_owner_id) {
@@ -140,19 +125,33 @@ class MortgageController extends Controller
             $validated['joint_owner_name'] = $jointOwner ? $jointOwner->name : null;
         }
 
-        // Default country to United Kingdom if not provided
+        // Default country
         if (! isset($validated['country']) || $validated['country'] === null) {
             $validated['country'] = 'United Kingdom';
         }
 
-        $mortgage = Mortgage::create([
-            'property_id' => $propertyId,
-            'user_id' => $user->id,
-            ...$validated,
-        ]);
+        $canonical = MortgageNormaliser::fromForm(
+            array_merge($validated, ['property_id' => $property->id]),
+            $user
+        );
 
-        // Add calculated fields to response
-        $mortgageResource = (new MortgageResource($mortgage))->additional([
+        try {
+            $mortgage = $this->mortgageStore->create($canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mortgage limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
+        }
+
+        $mortgageResource = (new MortgageResource($mortgage->refresh()))->additional([
             'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
             'full_balance' => (float) $mortgage->outstanding_balance,
             'is_primary_owner' => true,
@@ -205,7 +204,7 @@ class MortgageController extends Controller
      * Update a mortgage
      *
      * Only primary owner (user_id) can update.
-     * Single-record pattern: Update the single record directly.
+     * SP1 Pass 5 PR 2: routed through MortgageStore::update (FORM ingest source).
      *
      * PUT /api/mortgages/{id}
      * PUT /api/properties/{propertyId}/mortgages/{mortgageId}
@@ -224,48 +223,35 @@ class MortgageController extends Controller
             ], 400);
         }
 
-        // Only primary owner can update
-        $mortgage = Mortgage::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        // Authorisation check — only primary owner may update.
+        // MortgageStore::update enforces this too via firstOrFail, but we surface a
+        // cleaner 404 here before building the canonical payload.
+        $mortgage = $this->mortgageStore->find($id, $user);
+        if ($mortgage === null || $mortgage->user_id !== $user->id) {
+            return $this->notFoundResponse('Mortgage');
+        }
 
         $validated = $request->validated();
 
-        // Calculate remaining_term_months if not provided but dates are
-        if (! isset($validated['remaining_term_months']) && isset($validated['start_date']) && isset($validated['maturity_date'])) {
-            $startDate = new \DateTime($validated['start_date']);
-            $maturityDate = new \DateTime($validated['maturity_date']);
-            $interval = $startDate->diff($maturityDate);
-            $validated['remaining_term_months'] = ($interval->y * 12) + $interval->m;
-        }
-
-        // Single-record pattern: Handle ownership percentage when changing to/from joint
-        $ownershipType = $validated['ownership_type'] ?? $mortgage->ownership_type;
-        $jointOwnerId = $validated['joint_owner_id'] ?? $mortgage->joint_owner_id;
-
-        if ($ownershipType === 'joint' && $jointOwnerId) {
-            // Switching to joint or already joint - default to 50% if not specified
-            if (! isset($validated['ownership_percentage'])) {
-                $validated['ownership_percentage'] = 50.00;
-            }
-        } elseif ($ownershipType === 'individual') {
-            // Switching to individual - reset to 100%
-            $validated['ownership_percentage'] = 100.00;
-            $validated['joint_owner_id'] = null;
-        }
-
-        // Log joint mortgage update if applicable
+        // Log joint mortgage update before changes are applied.
         if ($this->isSharedOwnership($mortgage) && $mortgage->joint_owner_id && isset($validated['outstanding_balance'])) {
             $this->logJointMortgageUpdate($user, $mortgage, $validated);
         }
 
-        // Single-record pattern: Update directly (no splitting, no reciprocal)
-        $mortgage->update($validated);
+        $canonical = MortgageNormaliser::fromForm(
+            array_merge($validated, ['property_id' => $mortgage->property_id]),
+            $user
+        );
 
-        // Add calculated fields to response
-        $mortgageResource = (new MortgageResource($mortgage))->additional([
-            'user_share' => $this->calculateUserMortgageShare($mortgage, $user->id),
-            'full_balance' => (float) $mortgage->outstanding_balance,
+        try {
+            $fresh = $this->mortgageStore->update($id, $canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
+
+        $mortgageResource = (new MortgageResource($fresh))->additional([
+            'user_share' => $this->calculateUserMortgageShare($fresh, $user->id),
+            'full_balance' => (float) $fresh->outstanding_balance,
             'is_primary_owner' => true,
         ]);
 
@@ -282,25 +268,31 @@ class MortgageController extends Controller
      * Delete a mortgage
      *
      * Only primary owner (user_id) can delete.
-     * Single-record pattern: Delete the single record.
+     * SP1 Pass 5 PR 2: routed through MortgageStore::delete (FORM ingest source).
      *
      * DELETE /api/mortgages/{id}
      * DELETE /api/properties/{propertyId}/mortgages/{mortgageId}
      */
     public function destroy(Request $request, ?int $propertyId = null, ?int $mortgageId = null): JsonResponse
     {
+        $user = $request->user();
+
         // Handle both route patterns
         $id = $mortgageId ?? $propertyId;
 
-        $user = $request->user();
+        if ($id === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mortgage ID is required',
+            ], 400);
+        }
 
-        // Only primary owner can delete
-        $mortgage = Mortgage::where('id', $id)
-            ->where('user_id', $user->id)
-            ->firstOrFail();
+        $mortgage = $this->mortgageStore->find($id, $user);
+        if ($mortgage === null || $mortgage->user_id !== $user->id) {
+            return $this->notFoundResponse('Mortgage');
+        }
 
-        // Single-record pattern: Just delete the one record
-        $mortgage->delete();
+        $this->mortgageStore->delete($id, $user, IngestSource::FORM);
 
         return response()->json([
             'success' => true,

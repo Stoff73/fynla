@@ -20,12 +20,18 @@ class SecurityHeaders
         $response = $next($request);
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        // SP3: /m (host) and /m/app* (isolated mobile SPA) are intentionally
-        // same-origin framed (host embeds the app). Every other route stays DENY.
-        // The 'm/app/' clause covers the bare trailing-slash refresh case — inner
-        // router is createWebHistory('/m/app/'), so /m/app/ (no sub-segment) is
-        // a legitimate path that must keep SAMEORIGIN.
-        $isMobileFramed = $request->is('m') || $request->is('m/app') || $request->is('m/app/') || $request->is('m/app/*');
+        // SP3: /m (host), /m/landing (HTML landing placeholder) and /m/app*
+        // (isolated mobile SPA) are intentionally same-origin framed (host embeds
+        // the landing initially, then user navigates the iframe to /m/app).
+        // Every other route stays DENY. The 'm/app/' clause covers the bare
+        // trailing-slash refresh case — inner router is
+        // createWebHistory('/m/app/'), so /m/app/ (no sub-segment) is a
+        // legitimate path that must keep SAMEORIGIN.
+        $isMobileFramed = $request->is('m')
+            || $request->is('m/landing')
+            || $request->is('m/app')
+            || $request->is('m/app/')
+            || $request->is('m/app/*');
         $response->headers->set('X-Frame-Options', $isMobileFramed ? 'SAMEORIGIN' : 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 

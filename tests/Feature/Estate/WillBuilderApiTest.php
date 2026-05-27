@@ -29,7 +29,7 @@ describe('Will Builder API', function () {
                 'tier' => 'tier2',
             ]);
 
-            $response = $this->actingAs($user)->getJson('/api/estate/will-builder/pre-populate');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/estate/will-builder/pre-populate');
 
             $response->assertOk()
                 ->assertJson([
@@ -53,7 +53,7 @@ describe('Will Builder API', function () {
         it('returns null when no draft exists', function () {
             $user = User::factory()->create(['tier' => 'tier2']);
 
-            $response = $this->actingAs($user)->getJson('/api/estate/will-builder');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/estate/will-builder');
 
             $response->assertOk()
                 ->assertJson(['success' => true, 'data' => null]);
@@ -63,7 +63,7 @@ describe('Will Builder API', function () {
             $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->getJson('/api/estate/will-builder');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/estate/will-builder');
 
             $response->assertOk()
                 ->assertJson(['success' => true])
@@ -75,7 +75,7 @@ describe('Will Builder API', function () {
         it('creates a new will document draft', function () {
             $user = User::factory()->create(['tier' => 'tier2']);
 
-            $response = $this->actingAs($user)->postJson('/api/estate/will-builder', [
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [
                 'will_type' => 'simple',
                 'testator_full_name' => 'James Carter',
                 'domicile_confirmed' => 'england_wales',
@@ -101,7 +101,7 @@ describe('Will Builder API', function () {
         it('validates required fields', function () {
             $user = User::factory()->create(['tier' => 'tier2']);
 
-            $this->actingAs($user)->postJson('/api/estate/will-builder', [])
+            $this->actingAs($user, 'sanctum')->postJson('/api/estate/will-builder', [])
                 ->assertStatus(422);
         });
     });
@@ -111,7 +111,7 @@ describe('Will Builder API', function () {
             $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
-            $response = $this->actingAs($user)->putJson("/api/estate/will-builder/{$doc->id}", [
+            $response = $this->actingAs($user, 'sanctum')->putJson("/api/estate/will-builder/{$doc->id}", [
                 'step' => 'executors',
                 'executors' => [
                     ['name' => 'John Smith', 'address' => '10 High St', 'relationship' => 'Brother', 'phone' => '07700900000'],
@@ -131,7 +131,7 @@ describe('Will Builder API', function () {
             $otherUser = User::factory()->create();
             $doc = WillDocument::factory()->create(['user_id' => $otherUser->id]);
 
-            $this->actingAs($user)->putJson("/api/estate/will-builder/{$doc->id}", [
+            $this->actingAs($user, 'sanctum')->putJson("/api/estate/will-builder/{$doc->id}", [
                 'step' => 'personal',
                 'testator_full_name' => 'Hacker',
             ])->assertNotFound();
@@ -149,7 +149,7 @@ describe('Will Builder API', function () {
                 'domicile_confirmed' => 'england_wales',
             ]);
 
-            $response = $this->actingAs($user)->postJson("/api/estate/will-builder/{$doc->id}/complete");
+            $response = $this->actingAs($user, 'sanctum')->postJson("/api/estate/will-builder/{$doc->id}/complete");
 
             $response->assertOk()
                 ->assertJson(['success' => true]);
@@ -171,7 +171,7 @@ describe('Will Builder API', function () {
                 'residuary_estate' => [],
             ]);
 
-            $this->actingAs($user)->postJson("/api/estate/will-builder/{$doc->id}/complete")
+            $this->actingAs($user, 'sanctum')->postJson("/api/estate/will-builder/{$doc->id}/complete")
                 ->assertStatus(422);
         });
     });
@@ -198,7 +198,7 @@ describe('Will Builder API', function () {
                 ],
             ]);
 
-            $response = $this->actingAs($user)->postJson("/api/estate/will-builder/{$doc->id}/mirror");
+            $response = $this->actingAs($user, 'sanctum')->postJson("/api/estate/will-builder/{$doc->id}/mirror");
 
             $response->assertOk()
                 ->assertJson(['success' => true]);
@@ -216,7 +216,7 @@ describe('Will Builder API', function () {
             $user = User::factory()->create(['tier' => 'tier2']);
             $doc = WillDocument::factory()->create(['user_id' => $user->id]);
 
-            $this->actingAs($user)->deleteJson("/api/estate/will-builder/{$doc->id}")
+            $this->actingAs($user, 'sanctum')->deleteJson("/api/estate/will-builder/{$doc->id}")
                 ->assertOk()
                 ->assertJson(['success' => true]);
 
@@ -229,7 +229,7 @@ describe('Will Builder API', function () {
             $other = User::factory()->create();
             $doc = WillDocument::factory()->create(['user_id' => $other->id]);
 
-            $this->actingAs($user)->deleteJson("/api/estate/will-builder/{$doc->id}")
+            $this->actingAs($user, 'sanctum')->deleteJson("/api/estate/will-builder/{$doc->id}")
                 ->assertNotFound();
         });
     });
@@ -243,7 +243,7 @@ describe('Will Builder API', function () {
                 'residuary_estate' => [],
             ]);
 
-            $response = $this->actingAs($user)->getJson("/api/estate/will-builder/{$doc->id}/validate");
+            $response = $this->actingAs($user, 'sanctum')->getJson("/api/estate/will-builder/{$doc->id}/validate");
 
             $response->assertOk()
                 ->assertJson([

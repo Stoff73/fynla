@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Estate;
 
 use App\Models\Estate\Liability;
-use App\Models\Mortgage;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -22,6 +22,10 @@ class IHTFormattingService
 
     /** Fallback expenditure ratio when no expenditure profile exists (assume 70% spent, 30% saved) */
     private const EXPENDITURE_FALLBACK_RATIO = 0.70;
+
+    public function __construct(
+        private readonly MortgageStore $mortgageStore,
+    ) {}
 
     /**
      * Format assets breakdown for response.
@@ -196,11 +200,8 @@ class IHTFormattingService
         ?User $spouse = null,
         bool $includeSpouse = false
     ): array {
-        // Get mortgages where user is primary owner OR joint owner
-        $userMortgages = Mortgage::where(function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->orWhere('joint_owner_id', $user->id);
-        })->with('property')->get();
+        // Get mortgages where user is primary owner OR joint owner (joint-aware via MortgageStore)
+        $userMortgages = $this->mortgageStore->forUser($user)->load('property');
         $userLiabilities = Liability::where('user_id', $user->id)->get();
 
         // Calculate user age at death for mortgage projections
@@ -224,11 +225,8 @@ class IHTFormattingService
         ];
 
         if ($includeSpouse && $spouse) {
-            // Get mortgages where spouse is primary owner OR joint owner
-            $spouseMortgages = Mortgage::where(function ($query) use ($spouse) {
-                $query->where('user_id', $spouse->id)
-                    ->orWhere('joint_owner_id', $spouse->id);
-            })->with('property')->get();
+            // Get mortgages where spouse is primary owner OR joint owner (joint-aware via MortgageStore)
+            $spouseMortgages = $this->mortgageStore->forUser($spouse)->load('property');
             $spouseLiabilities = Liability::where('user_id', $spouse->id)->get();
 
             // Calculate spouse age at death for mortgage projections

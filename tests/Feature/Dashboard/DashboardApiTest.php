@@ -193,7 +193,7 @@ it('provides separate cached data for different users', function () {
         ->getJson('/api/dashboard');
 
     // User 2 request
-    $this->actingAs($user2)
+    $this->actingAs($user2, 'sanctum')
         ->getJson('/api/dashboard');
 
     // Both should have separate cache keys

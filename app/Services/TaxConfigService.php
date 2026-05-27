@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\TaxConfiguration;
+use App\Services\Stores\TaxConfigStore;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use RuntimeException;
@@ -15,6 +15,11 @@ use RuntimeException;
  * Provides centralized access to the active UK tax configuration.
  * Request-scoped singleton - loads active config once per request and caches in memory.
  *
+ * Reads route through TaxConfigStore (SP1 P2 R1.4) — the service no longer
+ * touches the TaxConfiguration model directly. Public API is unchanged;
+ * every consumer in app/Constants and app/Agents continues to call
+ * TaxConfigService::getIncomeTax() etc.
+ *
  * Usage:
  *   $taxConfig = app(TaxConfigService::class);
  *   $personalAllowance = $taxConfig->get('income_tax.personal_allowance');
@@ -23,14 +28,13 @@ use RuntimeException;
 class TaxConfigService
 {
     /**
-     * Cached active tax configuration (request-scoped)
+     * Cached active tax configuration as a canonical array (request-scoped).
      */
     private ?array $config = null;
 
-    /**
-     * Active tax configuration model
-     */
-    private ?TaxConfiguration $taxConfigModel = null;
+    public function __construct(
+        private readonly TaxConfigStore $store = new TaxConfigStore,
+    ) {}
 
     /**
      * Get the full active tax configuration
@@ -174,9 +178,9 @@ class TaxConfigService
      * Caps at the Lump Sum Allowance (LSA, £268,275 since LTA abolition April 2024).
      *
      * @param  float  $crystallisedAmount  Total crystallised pension value
-     * @param  float  $lsaUsed             LSA already consumed by prior crystallisations.
-     *                                     Defaults to 0; pass actual tracked value when
-     *                                     per-user lsa_used tracking is implemented.
+     * @param  float  $lsaUsed  LSA already consumed by prior crystallisations.
+     *                          Defaults to 0; pass actual tracked value when
+     *                          per-user lsa_used tracking is implemented.
      * @return float Tax-free PCLS amount (≤ LSA remaining)
      */
     public function calculatePCLS(float $crystallisedAmount, float $lsaUsed = 0.0): float
@@ -267,6 +271,19 @@ class TaxConfigService
     public function getCLTRules(): array
     {
         return $this->get('inheritance_tax.chargeable_lifetime_transfers', []);
+    }
+
+    /**
+     * CLT lifetime rate — the IHT rate charged on chargeable lifetime
+     * transfers above the nil-rate band when the trust pays (default 0.20).
+     *
+     * Centralised here during the 2026-05-23 tech-debt audit (B44) after the
+     * same `?? 0.20` lookup was found duplicated across
+     * PersonalizedTrustStrategyService (×2) and GiftingStrategyOptimizer.
+     */
+    public function getCLTLifetimeRate(): float
+    {
+        return (float) ($this->get('inheritance_tax.chargeable_lifetime_transfers.lifetime_rate') ?? 0.20);
     }
 
     /**
@@ -503,22 +520,23 @@ class TaxConfigService
             return $this->config;
         }
 
-        // Load active tax configuration from database
-        $this->taxConfigModel = TaxConfiguration::where('is_active', true)->first();
+        // Load active tax configuration via the store (spec §14.1 boundary).
+        $active = $this->store->activeConfig();
 
-        if (! $this->taxConfigModel) {
+        if ($active === null) {
             throw new RuntimeException(
                 'No active tax configuration found. Please run TaxConfigurationSeeder or activate a tax year.'
             );
         }
 
-        // Cache the config_data array for this request
-        $this->config = $this->taxConfigModel->config_data;
+        // The store returns the full row (including is_active, notes, etc.);
+        // the public service contract is the config_data array, so extract it.
+        $this->config = $active['config_data'] ?? [];
 
         // Log which tax year is being used (helpful for debugging)
         logger()->debug('Tax Configuration Service loaded', [
-            'tax_year' => $this->config['tax_year'] ?? 'unknown',
-            'effective_from' => $this->config['effective_from'] ?? 'unknown',
+            'tax_year' => $this->config['tax_year'] ?? ($active['tax_year'] ?? 'unknown'),
+            'effective_from' => $this->config['effective_from'] ?? ($active['effective_from'] ?? 'unknown'),
         ]);
 
         return $this->config;
@@ -530,19 +548,7 @@ class TaxConfigService
     public function clearCache(): void
     {
         $this->config = null;
-        $this->taxConfigModel = null;
-    }
-
-    /**
-     * Get the underlying TaxConfiguration model (if needed for relationships)
-     */
-    public function getModel(): ?TaxConfiguration
-    {
-        if ($this->taxConfigModel === null) {
-            $this->loadActiveConfig();
-        }
-
-        return $this->taxConfigModel;
+        $this->store->forgetActive();
     }
 
     /**

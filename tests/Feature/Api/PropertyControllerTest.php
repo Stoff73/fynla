@@ -7,6 +7,7 @@ namespace Tests\Feature\Api;
 use App\Models\Property;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,11 @@ class PropertyControllerTest extends TestCase
     {
         parent::setUp();
         $this->seed(TaxConfigurationSeeder::class);
-        $this->user = User::factory()->create();
+        // SP1 Pass 4 PR 2: PropertyStore tier-cap check resolves the user's
+        // tier from tier_configurations. Without this seed, the inner
+        // firstOrFail() bubbles up as ModelNotFoundException → 404.
+        $this->seed(TierConfigurationSeeder::class);
+        $this->user = User::factory()->create(['tier' => 'tier1']);
         $this->token = $this->user->createToken('test-token')->plainTextToken;
     }
 

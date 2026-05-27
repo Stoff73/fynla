@@ -7,20 +7,20 @@
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Tax Efficiency Score -->
+      <!-- Tax Efficiency Headline (descriptive — Rule #13: no scores) -->
       <div class="bg-eggshell-500 rounded-lg p-6">
         <div class="flex justify-between items-center">
           <div>
-            <h5 class="text-sm font-semibold text-neutral-500 mb-2">Tax Efficiency Score</h5>
-            <p class="text-4xl font-bold" :class="getEfficiencyColour(data.efficiency_score)">
-              {{ formatPercentage(data.efficiency_score || 0) }}%
+            <h5 class="text-sm font-semibold text-neutral-500 mb-2">Tax efficiency</h5>
+            <p class="text-2xl font-semibold mb-1" :class="getEfficiencyColour(data.efficiency_score)">
+              {{ getEfficiencyLabel(data.efficiency_score) }}
             </p>
-            <p class="text-sm text-neutral-500 mt-2">{{ getEfficiencyLabel(data.efficiency_score) }}</p>
+            <p class="text-sm text-neutral-500">How well your wrappers and allowances are being used this tax year</p>
           </div>
           <div class="text-right">
-            <p class="text-sm text-neutral-500 mb-1">Potential Annual Tax Savings</p>
+            <p class="text-sm text-neutral-500 mb-1">Potential annual tax savings</p>
             <p class="text-2xl font-bold text-spring-600">£{{ formatNumber(data.potential_annual_saving || 0) }}</p>
-            <p class="text-xs text-neutral-500 mt-1">Through optimization</p>
+            <p class="text-xs text-neutral-500 mt-1">If the actions below are taken</p>
           </div>
         </div>
       </div>
@@ -84,8 +84,8 @@
               <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
             </svg>
           </div>
-          <p class="text-2xl font-bold text-horizon-500">{{ formatPercentage(data.location_efficiency || 0) }}%</p>
-          <p class="text-xs text-neutral-500 mt-1">Optimisation score</p>
+          <p class="text-2xl font-bold text-horizon-500">{{ data.location_recommendation_count || 0 }}</p>
+          <p class="text-xs text-neutral-500 mt-1">Holdings to relocate for tax efficiency</p>
         </div>
       </div>
 

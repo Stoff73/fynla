@@ -7,7 +7,7 @@ namespace App\Services\Tax\Strategies;
 use App\DataTransferObjects\StrategyRecommendation;
 use App\Enums\StrategyCategory;
 use App\Enums\StrategyPriority;
-use App\Models\DCPension;
+use App\Services\Stores\PensionStore;
 use App\Services\Tax\Strategies\Contract\TaxStrategy;
 use App\Services\TaxConfigService;
 
@@ -34,13 +34,10 @@ final class SalarySacrificeNiStrategy implements TaxStrategy
             return [];
         }
 
-        $eligiblePensions = DCPension::query()
-            ->where('user_id', $user->id)
-            ->where(function ($q) {
-                $q->whereNull('salary_sacrifice')->orWhere('salary_sacrifice', false);
-            })
-            ->where('monthly_contribution_amount', '>', 0)
-            ->get(['id', 'monthly_contribution_amount', 'employer_ni_rebate_pct']);
+        $eligiblePensions = app(PensionStore::class)
+            ->forUserByType($user, 'dc')
+            ->filter(fn ($p) => empty($p->salary_sacrifice)
+                && (float) ($p->monthly_contribution_amount ?? 0) > 0);
 
         if ($eligiblePensions->isEmpty()) {
             return [];

@@ -39,7 +39,12 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
+use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -636,8 +641,7 @@ class PreviewUserSeeder extends Seeder
             }
 
             // Single-record pattern: Store FULL value directly (no splitting)
-            $property = Property::create([
-                'user_id' => $user->id,
+            $property = app(PropertyStore::class)->create([
                 'property_type' => $prop['property_type'] ?? 'main_residence',
                 'current_value' => $totalValue, // FULL value
                 'purchase_price' => $prop['purchase_price'] ?? null,
@@ -665,7 +669,7 @@ class PreviewUserSeeder extends Seeder
                 'tenant_name' => $prop['tenant_name'] ?? null,
                 'lease_start_date' => $prop['lease_start_date'] ?? null,
                 'lease_end_date' => $prop['lease_end_date'] ?? null,
-            ]);
+            ], $user, IngestSource::SEEDER);
 
             $propertyMap[$prop['id']] = $property->id;
             // Single-record pattern: NO reciprocal property for spouse
@@ -752,25 +756,28 @@ class PreviewUserSeeder extends Seeder
                 }
             }
 
-            // Single-record pattern: Store FULL balances directly (no splitting)
-            Mortgage::create([
-                'user_id' => $user->id,
+            // Single-record pattern: Store FULL balances directly (no splitting).
+            // Routed through MortgageStore::updateOrCreate (PR 4) for idempotency on reseed.
+            // Match key: (user_id, property_id, lender_name).
+            $canonical = MortgageNormaliser::fromForm([
                 'property_id' => $propertyId,
-                'lender_name' => $mort['lender_name'] ?? '',
-                'outstanding_balance' => $totalBalance, // FULL balance
+                'lender_name' => $mort['lender_name'] ?? 'To be completed',
+                'outstanding_balance' => $totalBalance,
                 'original_loan_amount' => $mort['original_amount'] ?? null,
                 'mortgage_type' => $mort['mortgage_type'] ?? 'repayment',
                 'interest_rate' => $mort['interest_rate'] ?? null,
                 'rate_type' => $mort['rate_type'] ?? 'fixed',
                 'rate_fix_end_date' => $mort['fixed_rate_end_date'] ?? null,
-                'monthly_payment' => $totalPayment, // FULL payment
+                'monthly_payment' => $totalPayment ?? 0.00,
                 'remaining_term_months' => $mort['remaining_term_months'] ?? null,
                 'start_date' => $mort['mortgage_start_date'] ?? null,
                 'ownership_type' => $ownershipType,
                 'ownership_percentage' => $ownershipPercentage,
                 'joint_owner_id' => $jointOwnerId,
                 'joint_owner_name' => $jointOwnerName,
-            ]);
+            ], $user);
+
+            app(MortgageStore::class)->updateOrCreate($canonical, $user, IngestSource::SEEDER);
             // Single-record pattern: NO reciprocal mortgage for spouse
         }
     }
@@ -941,12 +948,14 @@ class PreviewUserSeeder extends Seeder
      */
     private function createDCPensions(User $user, ?User $spouse, array $pensions): void
     {
+        $store = app(PensionStore::class);
+        $normaliser = app(PensionNormaliser::class);
+
         foreach ($pensions as $pension) {
             // Determine if this pension belongs to spouse
             $owner = $this->determinePensionOwner($pension, $user, $spouse);
 
-            $dcPension = DCPension::create([
-                'user_id' => $owner->id,
+            $canonical = $normaliser->fromFormDc([
                 'scheme_name' => $pension['scheme_name'] ?? '',
                 'provider' => $pension['provider_name'] ?? '',
                 'pension_type' => $pension['pension_type'] ?? 'occupational',
@@ -962,6 +971,8 @@ class PreviewUserSeeder extends Seeder
                 'has_custom_risk' => ! empty($pension['has_custom_risk']),
                 'platform_fee_percent' => $pension['platform_fee_percent'] ?? null,
             ]);
+
+            $dcPension = $store->createDc($canonical, $owner, IngestSource::SEEDER);
 
             // Create holdings for the pension (e.g., SIPP holdings)
             foreach ($pension['holdings'] ?? [] as $holding) {
@@ -1067,12 +1078,14 @@ class PreviewUserSeeder extends Seeder
      */
     private function createDBPensions(User $user, ?User $spouse, array $pensions): void
     {
+        $store = app(PensionStore::class);
+        $normaliser = app(PensionNormaliser::class);
+
         foreach ($pensions as $pension) {
             // Determine if this pension belongs to spouse
             $owner = $this->determinePensionOwner($pension, $user, $spouse);
 
-            DBPension::create([
-                'user_id' => $owner->id,
+            $canonical = $normaliser->fromFormDb([
                 'scheme_name' => $pension['scheme_name'] ?? '',
                 'scheme_type' => $pension['pension_type'] ?? 'final_salary',
                 'accrued_annual_pension' => $pension['accrued_annual_pension'] ?? $pension['current_annual_pension'] ?? 0,
@@ -1082,6 +1095,8 @@ class PreviewUserSeeder extends Seeder
                 'spouse_pension_percent' => $pension['spouse_benefit_percentage'] ?? null,
                 'pensionable_service_years' => $pension['years_of_service'] ?? null,
             ]);
+
+            $store->createDb($canonical, $owner, IngestSource::SEEDER);
         }
     }
 
@@ -1090,27 +1105,36 @@ class PreviewUserSeeder extends Seeder
      */
     private function createStatePension(User $user, ?User $spouse, ?array $statePension, ?array $spouseStatePension = null): void
     {
+        $store = app(PensionStore::class);
+        $normaliser = app(PensionNormaliser::class);
+
         if ($statePension) {
-            StatePension::create([
-                'user_id' => $user->id,
-                'ni_years_completed' => $statePension['qualifying_years'] ?? 35,
-                'ni_years_required' => 35,
-                'state_pension_forecast_annual' => $statePension['forecast_annual_amount'] ?? 0,
-                'state_pension_age' => $statePension['state_pension_age'] ?? 66,
-                'already_receiving' => $statePension['already_receiving'] ?? false,
-            ]);
+            $store->upsertState(
+                $normaliser->fromFormState([
+                    'ni_years_completed' => $statePension['qualifying_years'] ?? 35,
+                    'ni_years_required' => 35,
+                    'state_pension_forecast_annual' => $statePension['forecast_annual_amount'] ?? 0,
+                    'state_pension_age' => $statePension['state_pension_age'] ?? 66,
+                    'already_receiving' => $statePension['already_receiving'] ?? false,
+                ]),
+                $user,
+                IngestSource::SEEDER
+            );
         }
 
         // Create spouse state pension if provided
         if ($spouse && $spouseStatePension) {
-            StatePension::create([
-                'user_id' => $spouse->id,
-                'ni_years_completed' => $spouseStatePension['qualifying_years'] ?? 35,
-                'ni_years_required' => 35,
-                'state_pension_forecast_annual' => $spouseStatePension['forecast_annual_amount'] ?? 0,
-                'state_pension_age' => $spouseStatePension['state_pension_age'] ?? 66,
-                'already_receiving' => $spouseStatePension['already_receiving'] ?? false,
-            ]);
+            $store->upsertState(
+                $normaliser->fromFormState([
+                    'ni_years_completed' => $spouseStatePension['qualifying_years'] ?? 35,
+                    'ni_years_required' => 35,
+                    'state_pension_forecast_annual' => $spouseStatePension['forecast_annual_amount'] ?? 0,
+                    'state_pension_age' => $spouseStatePension['state_pension_age'] ?? 66,
+                    'already_receiving' => $spouseStatePension['already_receiving'] ?? false,
+                ]),
+                $spouse,
+                IngestSource::SEEDER
+            );
         }
     }
 

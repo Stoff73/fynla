@@ -7,7 +7,7 @@ use App\Models\User;
 it('sets a valid life stage', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/life-stage/set', ['life_stage' => 'university'])
         ->assertOk()
         ->assertJson(['life_stage' => 'university']);
@@ -18,7 +18,7 @@ it('sets a valid life stage', function () {
 it('rejects invalid life stage', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/life-stage/set', ['life_stage' => 'invalid'])
         ->assertUnprocessable();
 });
@@ -26,7 +26,7 @@ it('rejects invalid life stage', function () {
 it('returns progress', function () {
     $user = User::factory()->create(['life_stage' => 'university']);
 
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->getJson('/api/life-stage/progress')
         ->assertOk()
         ->assertJsonStructure(['success', 'data' => ['life_stage', 'completed_steps']]);
@@ -38,7 +38,7 @@ it('completes a step', function () {
         'life_stage_completed_steps' => [],
     ]);
 
-    $this->actingAs($user)
+    $this->actingAs($user, 'sanctum')
         ->postJson('/api/life-stage/complete-step', ['step' => 'personal-info'])
         ->assertOk();
 

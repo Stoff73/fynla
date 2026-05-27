@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Tax;
 
 use App\DataTransferObjects\TaxStrategyOverridesDTO;
-use App\Models\DCPension;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -224,8 +224,8 @@ final class TaxStrategyMath
         // employee+employer percentages applied to the pension's
         // annual_salary (the user's earnings at that employer) — the
         // SaveTax onboarding writes %s, not a £ monthly figure.
-        return (float) DCPension::where('user_id', $user->id)
-            ->get()
+        return (float) app(PensionStore::class)
+            ->forUserByType($user, 'dc')
             ->sum(function ($pension) use ($userIncome) {
                 $monthly = (float) ($pension->monthly_contribution_amount ?? 0);
                 if ($monthly > 0) {
@@ -277,10 +277,9 @@ final class TaxStrategyMath
     {
         $userIncome = (float) ($user->annual_employment_income ?? 0);
 
-        return (float) DCPension::query()
-            ->where('user_id', $user->id)
+        return (float) app(PensionStore::class)
+            ->forUserByType($user, 'dc')
             ->whereNotNull('employer_contribution_percent')
-            ->get(['annual_salary', 'employer_contribution_percent'])
             ->sum(function ($p) use ($userIncome) {
                 $base = (float) ($p->annual_salary ?? 0) > 0
                     ? (float) $p->annual_salary

@@ -30,6 +30,13 @@ class StatePension extends Model
         'already_receiving',
         'ni_gaps',
         'gap_fill_cost',
+        // SP1 Pass 3 / PR 6 — derived columns
+        'state_pension_forecast_annual_gbp',
+        'state_pension_forecast_annual_gbp_calculated_at',
+        'ni_completion_pct',
+        'ni_completion_pct_calculated_at',
+        'years_to_state_pension_age',
+        'years_to_state_pension_age_calculated_at',
     ];
 
     protected $casts = [
@@ -40,6 +47,13 @@ class StatePension extends Model
         'already_receiving' => 'boolean',
         'ni_gaps' => 'array',
         'gap_fill_cost' => 'decimal:2',
+        // SP1 Pass 3 / PR 6 — derived columns
+        'state_pension_forecast_annual_gbp' => 'decimal:2',
+        'state_pension_forecast_annual_gbp_calculated_at' => 'datetime',
+        'ni_completion_pct' => 'decimal:2',
+        'ni_completion_pct_calculated_at' => 'datetime',
+        'years_to_state_pension_age' => 'integer',
+        'years_to_state_pension_age_calculated_at' => 'datetime',
     ];
 
     /**

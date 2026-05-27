@@ -89,7 +89,7 @@ describe('Provider-swap lock (S0.11.4 / INV-2.9.4)', function () {
     it('admin setAiProvider bumps the version and writes the new versioned key', function () {
         $admin = asAdminUser();
 
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/ai-provider', ['provider' => 'xai'])
             ->assertOk();
 
@@ -101,12 +101,12 @@ describe('Provider-swap lock (S0.11.4 / INV-2.9.4)', function () {
     it('admin toggle from xai → anthropic increments the version a second time', function () {
         $admin = asAdminUser();
 
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/ai-provider', ['provider' => 'xai'])
             ->assertOk();
         $v1 = (int) Cache::get('ai_provider_version', 0);
 
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/ai-provider', ['provider' => 'anthropic'])
             ->assertOk();
         $v2 = (int) Cache::get('ai_provider_version', 0);
@@ -119,7 +119,7 @@ describe('Provider-swap lock (S0.11.4 / INV-2.9.4)', function () {
         $admin = asAdminUser();
 
         // Start with anthropic
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/ai-provider', ['provider' => 'anthropic'])
             ->assertOk();
 
@@ -128,7 +128,7 @@ describe('Provider-swap lock (S0.11.4 / INV-2.9.4)', function () {
         expect($captured)->toBe('anthropic');
 
         // Admin swaps mid-stream
-        $this->actingAs($admin)
+        $this->actingAs($admin, 'sanctum')
             ->postJson('/api/admin/ai-provider', ['provider' => 'xai'])
             ->assertOk();
 
@@ -146,7 +146,7 @@ describe('Provider-swap lock (S0.11.4 / INV-2.9.4)', function () {
         Cache::forever('ai_provider_version', 5);
         Cache::forever('ai_provider:v5', 'xai');
 
-        $response = $this->actingAs($admin)->getJson('/api/admin/ai-provider');
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/admin/ai-provider');
 
         $response->assertOk()
             ->assertJsonPath('data.provider', 'xai');

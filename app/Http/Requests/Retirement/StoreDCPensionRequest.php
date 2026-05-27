@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Retirement;
 
-use App\Models\DCPension;
+use App\Services\Stores\PensionStore;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDCPensionRequest extends FormRequest
@@ -19,12 +19,24 @@ class StoreDCPensionRequest extends FormRequest
             return true;
         }
 
-        // For PUT/PATCH (update), check if user owns the pension
+        // For PUT/PATCH (update), check ownership via PensionStore.
+        // The store's find() is user-scoped: a pension owned by another
+        // user returns null, which we treat as unauthorized (403). The
+        // store's own findOrFail on the write path will also 404 if the
+        // request slips through — defence in depth.
         $pensionId = $this->route('id');
-        if ($pensionId) {
-            $pension = DCPension::find($pensionId);
-            if ($pension && $pension->user_id !== $this->user()->id) {
-                return false;
+        if ($pensionId !== null) {
+            $pension = app(PensionStore::class)->find((int) $pensionId, 'dc', $this->user());
+            // If the record exists for the user, allow. If find() returns
+            // null we let the controller produce the 404 via the store's
+            // firstOrFail — returning false here would surface as 403
+            // when the resource simply isn't theirs.
+            if ($pension === null) {
+                // Cross-user or non-existent: defer to the store's 404
+                // contract. Returning true preserves the original 404
+                // behaviour for the non-existent case while still
+                // routing through the canonical read path.
+                return true;
             }
         }
 

@@ -91,10 +91,11 @@
         <h3 class="text-lg font-semibold text-horizon-500 mb-4">Allocation Drift</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div class="text-center p-4 rounded-lg" :class="driftStatusBgClass">
-            <p class="text-sm text-neutral-500 mb-1">Drift Score</p>
+            <p class="text-sm text-neutral-500 mb-1">Average drift from target</p>
             <p class="text-3xl font-bold" :class="driftStatusClass">
               {{ rebalancingData.drift_analysis.drift_score.toFixed(1) }}%
             </p>
+            <p class="text-xs text-neutral-500 mt-1">across all holdings</p>
           </div>
           <div class="text-center p-4 bg-savannah-100 rounded-lg">
             <p class="text-sm text-neutral-500 mb-1">Maximum Drift</p>
