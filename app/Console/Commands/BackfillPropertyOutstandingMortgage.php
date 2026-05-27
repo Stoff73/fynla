@@ -8,7 +8,7 @@ use App\Models\Property;
 use App\Services\Stores\PropertyStore;
 use Illuminate\Console\Command;
 
-final class BackfillPropertyOutstandingMortgage extends Command
+class BackfillPropertyOutstandingMortgage extends Command
 {
     protected $signature = 'properties:backfill-outstanding-mortgage {--chunk=200}';
 

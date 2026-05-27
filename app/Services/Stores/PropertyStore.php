@@ -190,6 +190,15 @@ class PropertyStore
         $this->recalculateDerived($property, null, null, 'cross_store_recalc');
     }
 
+    /**
+     * Persists derived columns via `forceFill + saveQuietly`. Observer-dedup
+     * note: NetWorthCacheObserver / RecommendationCacheObserver / PropertyRiskObserver
+     * already fire from the originating store write (create/update) OR from the
+     * originating Mortgage write that triggered the cross-store listener. The
+     * derived-column write is a second persistence step that must NOT re-trigger
+     * those observers — `saveQuietly` enforces that. Cache invalidation is not
+     * lost because the originating write already fired the relevant observers.
+     */
     private function recalculateDerived(Property $property, ?User $user, ?IngestSource $source, string $reason): void
     {
         $derived = $this->derivedCalc->calculate($property, $user);
@@ -201,7 +210,8 @@ class PropertyStore
         ];
 
         // Pass 5 PR 6 — persist via saveQuietly to avoid firing Property events
-        // during cross-store recalc. Loop-prevention invariant.
+        // during cross-store recalc. Loop-prevention invariant + observer dedup
+        // (see method docblock).
         $property->forceFill([
             'current_value_gbp' => $derived['current_value_gbp'],
             'current_value_gbp_calculated_at' => $now,

@@ -8,7 +8,7 @@ use App\Models\Mortgage;
 use App\Services\Stores\Recalc\MortgageDerivedColumnCalculator;
 use Illuminate\Console\Command;
 
-final class BackfillMortgageDerivedColumns extends Command
+class BackfillMortgageDerivedColumns extends Command
 {
     protected $signature = 'mortgages:backfill-derived-columns {--chunk=200}';
 

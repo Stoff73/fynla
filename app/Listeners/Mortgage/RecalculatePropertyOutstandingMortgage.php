@@ -20,7 +20,7 @@ use App\Services\Stores\PropertyStore;
  * through PropertyStore::recalculateDerivedForPropertyId which writes directly
  * to the Property row via Eloquent (no Property events).
  */
-final class RecalculatePropertyOutstandingMortgage
+class RecalculatePropertyOutstandingMortgage
 {
     public function __construct(
         private readonly PropertyStore $propertyStore,
