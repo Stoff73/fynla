@@ -41,7 +41,7 @@ describe('Module Summary API', function () {
     it('returns module summary for authenticated user', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/modules/savings');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/modules/savings');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -68,7 +68,7 @@ describe('Module Summary API', function () {
     it('returns 404 for invalid module name', function () {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->getJson('/api/v1/mobile/modules/invalid')
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/modules/invalid')
             ->assertNotFound();
     });
 
@@ -77,7 +77,7 @@ describe('Module Summary API', function () {
         $modules = ['protection', 'savings', 'investment', 'retirement', 'estate', 'goals', 'tax'];
 
         foreach ($modules as $module) {
-            $response = $this->actingAs($user)->getJson("/api/v1/mobile/modules/{$module}");
+            $response = $this->actingAs($user, 'sanctum')->getJson("/api/v1/mobile/modules/{$module}");
 
             $response->assertOk()
                 ->assertJson([
@@ -92,7 +92,7 @@ describe('Module Summary API', function () {
     it('includes ETag header in response', function () {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/modules/savings');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/modules/savings');
 
         $response->assertOk();
         expect($response->headers->has('ETag'))->toBeTrue();
@@ -113,7 +113,7 @@ describe('Module Summary API', function () {
 
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/modules/savings');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/modules/savings');
 
         $response->assertOk();
 
@@ -132,14 +132,14 @@ describe('Module Summary API', function () {
         $user = User::factory()->create();
 
         // First request to get ETag
-        $response = $this->actingAs($user)->getJson('/api/v1/mobile/modules/savings');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/mobile/modules/savings');
         $response->assertOk();
         $etag = $response->headers->get('ETag');
 
         expect($etag)->not->toBeNull();
 
         // Second request with matching If-None-Match
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'sanctum')
             ->withHeader('If-None-Match', $etag)
             ->getJson('/api/v1/mobile/modules/savings');
 

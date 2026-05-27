@@ -58,7 +58,7 @@
         />
 
       <div class="bg-white rounded-lg border border-light-gray p-6">
-        <CurrentSituation
+        <ProtectionModuleOverview
           @add-policy="handleAddPolicy"
           @edit-policy="handleEditPolicy"
         />
@@ -81,7 +81,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
-import CurrentSituation from '@/components/Protection/CurrentSituation.vue';
+import ProtectionModuleOverview from '@/components/Protection/ProtectionModuleOverview.vue';
 import PolicyFormModal from '@/components/Protection/PolicyFormModal.vue';
 import ModuleLifeEvents from '@/components/Shared/ModuleLifeEvents.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
@@ -93,7 +93,7 @@ export default {
 
   components: {
     AppLayout,
-    CurrentSituation,
+    ProtectionModuleOverview,
     PolicyFormModal,
     ModuleLifeEvents,
     ModuleStatusBar,

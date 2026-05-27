@@ -657,10 +657,6 @@ const mutations = {
         state.scenarios = scenarios;
     },
 
-    setOptimizationResult(state, result) {
-        state.optimizationResult = result;
-    },
-
     setMonteCarloResults(state, { jobId, results }) {
         state.monteCarloResults = {
             ...state.monteCarloResults,

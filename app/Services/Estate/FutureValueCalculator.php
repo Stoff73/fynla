@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
-use App\Models\ActuarialLifeTable;
 use App\Models\User;
+use App\Services\Stores\ActuarialLifeTableStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -13,7 +13,8 @@ use Illuminate\Support\Collection;
 class FutureValueCalculator
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly ActuarialLifeTableStore $actuarialStore,
     ) {}
 
     /**
@@ -86,27 +87,23 @@ class FutureValueCalculator
         // Normalize gender
         $gender = in_array($gender, ['male', 'female']) ? $gender : 'male';
 
-        // Try exact match first
-        $exactMatch = ActuarialLifeTable::where('age', $age)
-            ->where('gender', $gender)
-            ->where('table_year', '2020-2022')
-            ->value('life_expectancy_years');
+        // Single store fetch — small cohort (~22 rows), all comparisons in memory.
+        $cohort = $this->actuarialStore->forCohort($gender, '2020-2022');
+
+        $exactMatch = $cohort->firstWhere('age', $age)?->life_expectancy_years;
 
         if ($exactMatch !== null) {
             return (float) $exactMatch;
         }
 
-        // Find surrounding ages for interpolation
-        $lowerRecord = ActuarialLifeTable::where('age', '<', $age)
-            ->where('gender', $gender)
-            ->where('table_year', '2020-2022')
-            ->orderBy('age', 'desc')
+        $lowerRecord = $cohort
+            ->filter(fn ($row) => $row->age < $age)
+            ->sortByDesc('age')
             ->first();
 
-        $upperRecord = ActuarialLifeTable::where('age', '>', $age)
-            ->where('gender', $gender)
-            ->where('table_year', '2020-2022')
-            ->orderBy('age', 'asc')
+        $upperRecord = $cohort
+            ->filter(fn ($row) => $row->age > $age)
+            ->sortBy('age')
             ->first();
 
         // Handle edge cases

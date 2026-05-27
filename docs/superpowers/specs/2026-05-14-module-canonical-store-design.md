@@ -15,9 +15,9 @@ Fynla is undergoing a major overhaul covering six independent sub-projects:
 
 | # | Sub-project | Status |
 |---|-------------|--------|
-| **1** | **Module canonical store-and-retrieve contract** *(this doc)* | drafting |
-| 2 | Freemium tier model + count caps + Fyn agent metering | not started |
-| 3 | Mobile-first surface via iframe-framed `/m/*` route | not started |
+| **1** | **Module canonical store-and-retrieve contract** *(this doc)* | APPROVED — pass 1 (Savings) DONE; pass 2 (Reference Data) DONE; pass 3 (Pensions) plan written, PR 1 next; passes 4–14 pending |
+| 2 | Freemium tier model + count caps + Fyn agent metering | shipped to prod 2026-05-19 (PRs #336 / #337 / #340; supersedes parked #317) |
+| 3 | Mobile-first surface via iframe-framed `/m/*` route | in progress — iframe scaffold + drill-down UI shipped to dev (PR #375 open) |
 | 4 | Campaign engine (Save Tax landing pages, future campaigns) | not started |
 | 5 | Track-lightweight onboarding (matched pension / spouse transfer / 60% trap) | not started |
 | 6 | Gamification (campaign progress + incremental unlocks) | not started |
@@ -169,60 +169,152 @@ Pest architecture tests run on every PR. They fail the build if any class outsid
 
 ## 5. The store contract
 
-Every entity store class implements the same shape. Below is the contract.
+Every entity store class implements one of two shapes. **User-data stores** (§5.A) handle per-user records with ownership, joint sharing, and soft-delete. **Reference-data stores** (§5.B) handle admin-managed lookup tables with no user scoping. The two shapes share principles (single write path, IngestSource on every mutation, audit, events) but diverge in method signatures.
 
-### 5.1 Public methods (read)
+Per-entity `Store.md` docs in `app/Services/Stores/` are the source of truth for each shipped store's exact API.
+
+### 5.1 Public methods (read) — user-data stores
 
 ```php
 namespace App\Services\Stores;
 
-class SavingsStore  // example; one per entity
+class SavingsStore  // canonical example; one per entity
 {
-    /** Return a single record visible to $user (respects ownership, soft-delete, joint sharing). */
+    /** Single record visible to $user (respects user_id OR joint_owner_id). */
     public function find(int $id, User $user): ?SavingsAccount;
 
-    /** Return all records the user can see (own + joint where they are joint_owner). */
+    /** All records the user can see (own + joint). */
     public function forUser(User $user): Collection;
 
-    /** Return records matching a documented filter set. */
-    public function query(User $user, SavingsQuery $filter): Collection;
+    /** Same as forUser, with joint-owner relation eager-loaded.
+     *  Required where Model::preventLazyLoading is on (e.g. staging AI prompt). */
+    public function forUserWithJointOwner(User $user): Collection;
+
+    /** Multi-user joint-aware read for household / multi-owner contexts. */
+    public function forUsers(array $userIds): Collection;
+
+    /** User-scoped id-list read. Empty Collection for unknown / other-user ids
+     *  — prevents cross-user leakage when callers pass externally-supplied id arrays. */
+    public function findMany(array $ids, User $user): Collection;
 }
 ```
 
-Reads return Eloquent model instances. Consumers may use the model's documented public surface (raw fields, canonical derived columns, declared relationships). They may not call mutation methods (`save`, `update`, `delete`, `forceDelete`). Pest architecture tests enforce this.
+Reads return Eloquent model instances or `Collection<Model>`. Consumers may use the model's documented public surface (raw fields, canonical derived columns, declared relationships). They may not call mutation methods (`save`, `update`, `delete`, `forceDelete`). Pest architecture tests enforce this.
 
-### 5.2 Public methods (write)
+Per-entity extension is allowed when the read shape genuinely differs (e.g. `forCohort` on `ActuarialLifeTableStore`). The five methods above are the **minimum** for a user-data store; extensions must remain joint-aware where applicable.
+
+A generic `query(User, EntityQuery)` filter API was specced in the original draft but not built — every shipped store satisfied its consumers with the explicit read methods above plus per-entity extensions. The contract therefore does not require it.
+
+### 5.2 Public methods (read) — reference-data stores
+
+Reference-data stores extend `App\Services\Stores\ReferenceDataStore`, which supplies `find(int $id): array` from a per-request memoised cache. Each entity adds the entity-specific reads it needs:
+
+```php
+class TaxConfigStore extends ReferenceDataStore
+{
+    public function find(int $id): array;                       // inherited
+    public function all(): Collection;                          // admin index
+    public function findByTaxYear(string $taxYear): ?TaxConfiguration;
+    public function activeConfig(): ?array;                     // memoised per-instance
+    public function forgetActive(): void;                       // drop the memo
+    public function findEloquent(int $id): ?TaxConfiguration;   // for admin controller
+}
+```
+
+Common patterns across the four shipped ref-data stores:
+- `find(int $id): array` (inherited from base)
+- `all(): Collection` (admin index)
+- one or more entity-specific reads (`forCohort`, `forTaxYear`, `findByX`)
+- a `findEloquent(int $id): ?Model` for the admin controller to build Resources
+
+### 5.3 Public methods (write) — user-data stores
 
 ```php
 public function create(
     array $data,
     User $user,
-    IngestSource $source     // FORM | FYN_AI | UPLOAD | SEEDER | ADMIN
-): SavingsAccount;
+    IngestSource $source     // FORM | FYN_AI | UPLOAD | SEEDER
+): Model;
 
 public function update(
     int $id,
     array $data,
     User $user,
     IngestSource $source
-): SavingsAccount;
+): Model;
+
+public function updateOrCreate(
+    array $match,
+    array $data,
+    User $user,
+    IngestSource $source
+): Model;
 
 public function delete(int $id, User $user, string $reason): void;
 
-public function restore(int $id, User $user): SavingsAccount;
+public function restore(int $id, User $user): Model;
 ```
 
-`IngestSource` is required and audited. This is how we trace where a value came from.
+`IngestSource` is required and audited via `AuditLog::withContext(['ingest_source' => $source->value], …)` (see §8.1). Writes are primary-owner-only — joint owners have read-only access. Soft-delete is the deletion contract; `forceDelete` is not exposed.
 
-### 5.3 Internal methods (recalc, snapshot, events)
+### 5.4 Public methods (write) — reference-data stores
 
 ```php
-protected function recalculateDerived(SavingsAccount $entity): void;
-protected function snapshotIfPolicySays(SavingsAccount $entity, string $reason): void;
-protected function emitEvent(string $eventClass, SavingsAccount $entity): void;
+public function create(
+    array $input,
+    IngestSource $source,           // ADMIN | SEEDER
+    ?int $actorUserId = null
+): int;                              // returns id
+
+public function update(
+    int $id,
+    array $input,
+    IngestSource $source,
+    ?int $actorUserId = null
+): void;
+
+public function delete(
+    int $id,
+    IngestSource $source,
+    ?int $actorUserId = null
+): void;
 ```
 
-These run automatically inside `create` / `update`. Consumers cannot call them directly.
+Reference-data stores accept only `IngestSource::ADMIN` or `IngestSource::SEEDER` (enforced by `ReferenceDataStore::guardSource`). There is **no `restore` method** — reference-data rows are not soft-deleted; `delete` is hard and idempotent. The `actorUserId` parameter exists so admin writes attribute correctly even though there's no `User $user` scoping. Per-store extensions (e.g. `TaxConfigStore::setActive`, `TaxConfigStore::duplicate`) are allowed for entity-specific lifecycle operations.
+
+### 5.5 Internal methods (recalc, snapshot, events)
+
+For user-data stores with derived columns, recalc and snapshotting run inside the `create()` / `update()` DB transaction. The shipped pattern is **one private method** that both materialises derived columns and writes per-column snapshots per policy:
+
+```php
+private function recalculateDerived(Model $entity, IngestSource $source, string $reason): void;
+```
+
+`$reason` is `'create'` or `'update'`, propagated into the snapshot row. Snapshot policies are injected per-column (`SnapshotPolicies::savingsAccountBalance()`, etc.) and decide whether a snapshot row is written for a given old/new value pair.
+
+Events are dispatched inline at the end of each public write method via `event(new EntityXxxxx(...))`. There is no `emitEvent()` helper.
+
+Consumers cannot call any of this directly — the methods are `private`.
+
+### 5.6 Tier-aware count caps (defence in depth)
+
+`create()` refuses to write if the user's tier doesn't permit another row. The check is:
+
+```php
+if (! $this->tierGate->canCreate($user, self::ENTITY_KEY, $this->countFor($user))) {
+    throw new TierLimitExceededException(...);
+}
+```
+
+UI hides the "add" button — the store check is the second line of defence. Sub-project 2 supplies the `TierGate` implementation (`DbTierGate`); sub-project 1 ensures every store consults it. Reference-data stores skip this check (admin-only; no per-user count).
+
+### 5.7 What the store does NOT expose
+
+- No raw Eloquent query builder. Consumers cannot do `SavingsStore::query()->where(...)->get()`.
+- No relationship eager-load hints from the outside. Reads return models with relationships pre-loaded per a documented per-method contract.
+- No "save this raw model" escape hatch. There is no `$store->save($model)` shortcut. All writes go through `create` / `update` / `updateOrCreate` / `delete` / `restore`.
+- No business-rule helpers ("is this account dormant?"). Those live in consumers.
+- No `forceDelete` or `withTrashed`-as-default reads on user-data stores. `restore()` is the only entry point that sees trashed rows, and only for the single id it operates on.
 
 ### 5.4 Tier-aware count caps (defence in depth)
 
@@ -497,7 +589,9 @@ Recalc is bounded — only the entity being written is touched. Cross-entity rec
 
 ### 11.1 Shape
 
-Every store emits exactly four event classes per entity:
+Event shape depends on the store type.
+
+**User-data stores** emit exactly four event classes per entity (one per write method):
 
 ```php
 class SavingsAccountCreated { public readonly SavingsAccount $entity; public readonly User $user; public readonly IngestSource $source; }
@@ -505,6 +599,21 @@ class SavingsAccountUpdated { public readonly SavingsAccount $entity; public rea
 class SavingsAccountDeleted { public readonly int $entityId; public readonly User $user; public readonly string $reason; }
 class SavingsAccountRestored { public readonly SavingsAccount $entity; public readonly User $user; }
 ```
+
+**Reference-data stores** emit a single discriminator event with `entity_type` payload (since there is no `User`, no soft-delete, and the listener set is small enough that a typed-payload event is cheaper than four classes per entity):
+
+```php
+class ReferenceDataUpdated {
+    public function __construct(
+        public readonly string $entityType,   // 'tax_configuration' | 'actuarial_life_table' | …
+        public readonly int $entityId,
+        public readonly array $changedKeys,   // array_keys($canonical) on create/update; ['is_active'] on TaxConfig::setActive; ['__deleted'] on delete
+        public readonly ?int $actorUserId,
+    ) {}
+}
+```
+
+Both shapes flow through Laravel's `event()` dispatch and are observed via `EventServiceProvider` listener registration.
 
 ### 11.2 Consumers
 
@@ -644,22 +753,22 @@ A new entity's PR 1 only opens after the previous entity's PR 8 has shipped to m
 
 ### 15.3 Order
 
-| Pass | Entity | Why this position |
-|------|--------|-------------------|
-| 1 | **Savings (bank/cash accounts)** | Simple, frequent Fyn-capture target. Modest consumer surface. Proves the pattern. |
-| 2 | **Reference data (R1–R4)** | Pulled forward from pass 14 to close B2 (`tax_configurations` wrong + admin views not wired) early, while the store template from pass 1 is still fresh. Every subsequent entity migrates against a clean tax-config foundation. |
-| 3 | **Pensions** | Most complex single entity (DB + DC + contributions + tax). If pattern survives this, it survives anything. |
-| 4 | **Properties** | Heavy consumer surface (dashboard, IHT, what-if, mortgage). High user value. |
-| 5 | **Liabilities** | Pairs with properties (mortgages). Logical next. |
-| 6 | **Investments** | Multi-table (`investment_accounts` + `holdings` + `investment_transactions`). |
-| 7 | **Income** + **Expenditure** | Cross-cutting financial inputs; near-twin entities. |
-| 8 | **Protection** | Insurance policies. |
-| 9 | **Family members** | Foundational but lightly consumed. |
-| 10 | **Goals + life events** | Already partly modernised. |
-| 11 | **Chattels** | Simple, low priority. |
-| 12 | **Business interests** | Small surface. |
-| 13 | **Trusts** | Paid-tier feature; small surface. |
-| 14 | **Wills** + **LPAs** | Repurposed from builders — biggest *behaviour* change but smallest *data* change. |
+| Pass | Entity | Status | Why this position |
+|------|--------|--------|-------------------|
+| 1 | **Savings (bank/cash accounts)** | **DONE** (8 PRs, #305–#323, locked) | Simple, frequent Fyn-capture target. Modest consumer surface. Proved the pattern. |
+| 2 | **Reference data (R1–R4)** | **DONE** (26 PRs across R1–R4 tracks, all locked) | Pulled forward from pass 14 to close B2 (`tax_configurations` wrong + admin views not wired) early, while the store template from pass 1 was still fresh. Every subsequent entity migrates against a clean tax-config foundation. |
+| 3 | **Pensions** | plan written, PR 1 next | Most complex single entity (DC + DB + State + InputHistory + contributions + tax). If pattern survives this, it survives anything. |
+| 4 | **Properties** | pending | Heavy consumer surface (dashboard, IHT, what-if, mortgage). High user value. |
+| 5 | **Liabilities** | pending | Pairs with properties (mortgages). Logical next. |
+| 6 | **Investments** | pending | Multi-table (`investment_accounts` + `holdings` + `investment_transactions`). |
+| 7 | **Income** + **Expenditure** | pending | Cross-cutting financial inputs; near-twin entities. |
+| 8 | **Protection** | pending | Insurance policies. |
+| 9 | **Family members** | pending | Foundational but lightly consumed. |
+| 10 | **Goals + life events** | pending | Already partly modernised. |
+| 11 | **Chattels** | pending | Simple, low priority. |
+| 12 | **Business interests** | pending | Small surface. |
+| 13 | **Trusts** | pending | Paid-tier feature; small surface. |
+| 14 | **Wills** + **LPAs** | pending | Repurposed from builders — biggest *behaviour* change but smallest *data* change. |
 
 Order between passes 4 and 14 can flex based on what surfaces during the work; passes 1, 2, and 3 are fixed (per the brainstorming agreement, with reference data pulled forward to pass 2 on 2026-05-14 to close B2 early).
 
@@ -692,11 +801,11 @@ For each entity, the end-state deliverables are:
 
 ### 16.2 Sub-project-wide acceptance
 
-1. All 13 user-data entities + 2 document-storage entities + 4 reference-data entities have stores.
-2. Pest architecture test suite is green for the full set.
-3. `tax_configurations` is fully editable from the admin panel (B2 closed).
-4. Fyn AI three-turn capture-and-read parity test passes for every entity (B1 closed).
-5. Documentation: each entity has an `app/Services/Stores/{Entity}Store.md` explaining its derived columns, snapshot policy, and tier caps.
+1. All 13 user-data entities + 2 document-storage entities + 4 reference-data entities have stores. **Progress: 5 of 19 shipped (Savings + 4 ref-data).**
+2. Pest architecture test suite is green for the full set. **Progress: 5 boundary tests locked (`SavingsStoreBoundaryTest`, `TaxConfigStoreBoundaryTest`, `ActuarialLifeTableStoreBoundaryTest`, `CurrencyRateStoreBoundaryTest`, `SavingsMarketRateStoreBoundaryTest`).**
+3. `tax_configurations` is fully editable from the admin panel (B2 closed). **DONE — admin CRUD via `TaxSettingsController` → `TaxConfigStore` (PRs R1.2 #365, R1.5 #372).**
+4. Fyn AI three-turn capture-and-read parity test passes for every entity (B1 closed). **Progress: Savings parity test shipped (#324); pattern to be replicated per entity in subsequent passes.**
+5. Documentation: each entity has an `app/Services/Stores/{Entity}Store.md` explaining its derived columns, snapshot policy, and tier caps. **Progress: 5 of 19 docs landed (`SavingsStore.md`, `TaxConfigStore.md`, `ActuarialLifeTableStore.md`, `CurrencyRateStore.md`, `SavingsMarketRateStore.md`).**
 
 ---
 
@@ -764,7 +873,22 @@ Sub-project 1 produces the foundation; everything else consumes it.
 
 ## 21. Sign-off
 
-Approved 2026-05-14 — all seven open questions resolved by CSJ (see §20). The next step is to invoke the `superpowers:writing-plans` skill to produce an implementation plan for **pass 1 (Savings)**. Subsequent passes (pass 2 = reference data, pass 3 = pensions, …) get their own implementation plans drawn from this design doc.
+Approved 2026-05-14 — all seven open questions resolved by CSJ (see §20).
+
+### 21.1 Implementation rollout
+
+| Pass | Entity | Plan | Status | Acceptance |
+|------|--------|------|--------|------------|
+| 1 | Savings | `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings-plan.md` | DONE — 8 PRs (#305–#323), boundary locked | Three-ingest parity #324; `SavingsStore.md`; derived columns + snapshots #321; tier-cap hook #322 |
+| 2 | Reference data (R1–R4) | `docs/superpowers/plans/2026-05-21-sub-project-1-pass-2-reference-data-plan.md` | DONE — 26 PRs across R1/R2/R3/R4 tracks, all locked | Four `*Store.md` docs (#373); admin UI for tax / actuarial / FX / savings-rates; B2 closed (#372) |
+| 3 | Pensions | `docs/superpowers/plans/2026-05-24-sub-project-1-pass-3-pensions-plan.md` (4200 lines) | plan + PR 0 audit (#376) shipped; PR 1 next | per §16.1 |
+| 4–14 | Properties → Wills/LPAs | not yet written | pending — §15.2 forbids more than one entity in flight at a time | per §16.1 |
+
+### 21.2 Contract status
+
+**APPROVED as a living contract.** The spec is the authoritative description of the canonical store/retrieve pattern. Per-entity `app/Services/Stores/{Entity}Store.md` docs are the source of truth for each shipped store's exact API surface, allowlist, and migration history.
+
+When implementation evolves the contract (e.g. extending `forUser` with joint-owner eager-loading, splitting the original `recalculateDerived/snapshotIfPolicySays/emitEvent` triple into a single recalc + inline `event()` dispatch), this spec is updated to match — not the other way round. The contract follows what consumers actually need; what consumers don't need does not get built.
 
 ---
 

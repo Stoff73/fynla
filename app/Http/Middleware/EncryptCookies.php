@@ -17,5 +17,8 @@ class EncryptCookies extends Middleware
         // Awin's affiliate click reference — must reach their S2S endpoint as
         // the raw value captured at click time, unencrypted by Laravel.
         'awc',
+        // SP3: mobile full-site pin cookie — must be readable as plaintext for
+        // the RedirectPhoneToMobile middleware pin-check.
+        'm_full_site',
     ];
 }

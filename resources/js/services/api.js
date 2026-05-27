@@ -119,14 +119,9 @@ api.interceptors.response.use(
           console.error('[API] 401 Unauthorized - Token expired or invalid. Redirecting to login...');
           // Clear token via tokenStorage abstraction layer
           await removeToken();
-          // On native (Capacitor), use SPA navigation to avoid page reload
-          if (isCapacitor && window.__appRouter) {
-            window.__appRouter.push('/m/login');
-          } else {
-            // routerBase is defined at the top of this file from VITE_ROUTER_BASE.
-            // The previous `/fps/` check was stale legacy and broke csjones (/fynla/).
-            window.location.href = `${routerBase}/login`;
-          }
+          // routerBase is defined at the top of this file from VITE_ROUTER_BASE.
+          // The previous `/fps/` check was stale legacy and broke csjones (/fynla/).
+          window.location.href = `${routerBase}/login`;
         } else {
           // For auth endpoints, return the error to be handled by the component
           return Promise.reject({

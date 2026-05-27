@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
-use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
@@ -28,6 +27,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -84,7 +84,6 @@ class ChrisUserSeeder extends Seeder
                 'transport_fuel' => 100.00,
                 'expenditure_entry_mode' => 'category',
                 'expenditure_sharing_mode' => 'joint',
-                'ai_chat_enabled' => true,
                 'info_guide_enabled' => true,
             ]
         );
@@ -209,9 +208,9 @@ class ChrisUserSeeder extends Seeder
         );
 
         // ── DC Pension: Scottish Widows ───────────────────────
-        DCPension::updateOrCreate(
-            ['user_id' => $userId, 'scheme_name' => 'Scottish Widows Workplace Pension'],
-            [
+        app(PensionStore::class)->updateOrCreateDc(
+            match: ['scheme_name' => 'Scottish Widows Workplace Pension'],
+            data: [
                 'scheme_type' => 'workplace',
                 'provider' => 'Scottish Widows',
                 'pension_type' => 'occupational',
@@ -227,7 +226,9 @@ class ChrisUserSeeder extends Seeder
                 'risk_preference' => 'upper_medium',
                 'has_custom_risk' => false,
                 'has_flexibly_accessed' => false,
-            ]
+            ],
+            user: $chris,
+            source: IngestSource::SEEDER,
         );
 
         // ── Investment Account: Vanguard S&S ISA ──────────────

@@ -91,7 +91,7 @@
           <!-- Tab Content -->
           <div :class="isEmbedded ? '' : 'p-6'">
             <!-- Current Situation Tab -->
-            <CurrentSituation
+            <SavingsModuleOverview
               v-if="activeTab === 'current'"
               @select-account="selectAccount"
             />
@@ -133,7 +133,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import AppLayout from '@/layouts/AppLayout.vue';
-import CurrentSituation from '@/components/Savings/CurrentSituation.vue';
+import SavingsModuleOverview from '@/components/Savings/SavingsModuleOverview.vue';
 import EmergencyFund from '@/components/Savings/EmergencyFund.vue';
 import SavingsRecommendations from '@/components/Savings/SavingsRecommendations.vue';
 import AccountDetails from '@/components/Savings/AccountDetails.vue';
@@ -148,7 +148,7 @@ export default {
 
   components: {
     AppLayout,
-    CurrentSituation,
+    SavingsModuleOverview,
     EmergencyFund,
     SavingsRecommendations,
     AccountDetails,

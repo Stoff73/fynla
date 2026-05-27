@@ -12,6 +12,7 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Liability;
 use App\Models\Estate\Trust;
 use App\Models\Investment\InvestmentAccount;
+use App\Traits\Auditable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,7 +25,25 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use Auditable, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+
+    /**
+     * High-frequency columns excluded from audit logging — these change on
+     * almost every request and would drown the audit table. Identity / billing /
+     * privilege / lifecycle changes still get audited via the trait defaults.
+     */
+    protected $auditExcludeFields = [
+        'last_login_at',
+        'last_failed_login_at',
+        'locked_until',
+        'failed_login_count',
+        'remember_token',
+        'mfa_secret',
+        'mfa_recovery_codes',
+        'password',
+        'last_active_at',
+        'last_seen_at',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -802,5 +821,17 @@ class User extends Authenticatable
         return $this->trashed()
             && $this->deletion_reason !== 'legacy_purged'
             && ($this->purge_eligible_at === null || $this->purge_eligible_at->isFuture());
+    }
+
+    /**
+     * Promote this user to advisor. Replaces the DB::table()->update workaround
+     * used by AdvisorClientSeeder and exposes a semantic entry point for any
+     * future advisor-onboarding flow.
+     */
+    public function markAsAdvisor(): bool
+    {
+        $this->is_advisor = true;
+
+        return $this->save();
     }
 }

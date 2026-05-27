@@ -10,8 +10,6 @@ use App\Models\BusinessInterest;
 use App\Models\CashAccount;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
-use App\Models\DBPension;
-use App\Models\DCPension;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
@@ -19,6 +17,7 @@ use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\PensionStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
@@ -406,7 +405,7 @@ class HouseholdPlanningService
         $investmentValue = $investments->sum(fn ($i) => $this->calculateUserShare($i, $userId));
 
         // DC Pensions (individual only)
-        $dcPensions = DCPension::where('user_id', $userId)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType(User::findOrFail($userId), 'dc');
         $pensionValue = $dcPensions->sum('current_fund_value');
 
         // Business interests
@@ -766,7 +765,7 @@ class HouseholdPlanningService
      */
     private function calculatePensionDeathBenefits(User $deceased): array
     {
-        $dcPensions = DCPension::where('user_id', $deceased->id)->get();
+        $dcPensions = app(PensionStore::class)->forUserByType($deceased, 'dc');
         $details = [];
         $total = 0.0;
 
@@ -791,7 +790,7 @@ class HouseholdPlanningService
      */
     private function calculateDBPensionSpouseBenefit(User $deceased): float
     {
-        $dbPensions = DBPension::where('user_id', $deceased->id)->get();
+        $dbPensions = app(PensionStore::class)->forUserByType($deceased, 'db');
         $total = 0.0;
 
         foreach ($dbPensions as $pension) {
@@ -846,7 +845,7 @@ class HouseholdPlanningService
      */
     private function calculateDCPensionValue(User $user): float
     {
-        return (float) DCPension::where('user_id', $user->id)->sum('current_fund_value');
+        return (float) app(PensionStore::class)->forUserByType($user, 'dc')->sum('current_fund_value');
     }
 
     /**

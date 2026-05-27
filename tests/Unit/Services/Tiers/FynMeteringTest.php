@@ -67,13 +67,12 @@ it('never meters or soft-degrades preview personas, regardless of usage', functi
     $h = $harness();
     // Both gates short-circuit on is_preview_user before any tier-store call,
     // so the soft-degrade branch in getAiModel() is never reached for a
-    // preview persona — proven by weeklyExceeded() being false despite usage
-    // that would trip every real tier. (SOFT_DEGRADE_MODEL coincides with the
-    // normal Anthropic default model string, so asserting on the returned
-    // model name cannot distinguish the two paths — the gate booleans do.)
+    // preview persona — proven by weeklyExceeded() / dailyBackstopHit being
+    // false despite usage that would trip every real tier, and by the
+    // returned model NOT being the soft-degrade model.
     expect($h->weeklyExceeded($u))->toBeFalse()
         ->and($h->dailyBackstopHit($u))->toBeFalse()
-        ->and($h->model($u, 'complex'))->toBe('claude-haiku-4-5-20251001');
+        ->and($h->model($u, 'complex'))->not->toBe($h->softDegradeModel());
 });
 
 it('the daily hard backstop only trips at the abuse ceiling, not the weekly number', function () use ($harness) {

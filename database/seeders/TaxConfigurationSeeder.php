@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\TaxConfiguration;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\TaxConfigStore;
 use Illuminate\Database\Seeder;
 
 class TaxConfigurationSeeder extends Seeder
@@ -22,11 +23,15 @@ class TaxConfigurationSeeder extends Seeder
      *
      * Seeds 6 UK tax years (2021/22 through 2026/27) with comprehensive tax configuration.
      * The year defined by self::ACTIVE_TAX_YEAR is set as the active tax year.
+     *
+     * All writes go through TaxConfigStore with IngestSource::SEEDER per spec §14.1.
      */
     public function run(): void
     {
         $this->command->info('');
         $this->command->info('Seeding UK tax configurations for 6 tax years...');
+
+        $store = app(TaxConfigStore::class);
 
         $taxYears = [
             '2021/22' => $this->getTaxConfig202122(),
@@ -38,27 +43,33 @@ class TaxConfigurationSeeder extends Seeder
         ];
 
         foreach ($taxYears as $taxYear => $config) {
-            $isActive = ($taxYear === self::ACTIVE_TAX_YEAR);
+            $payload = [
+                'tax_year' => $taxYear,
+                'effective_from' => $config['effective_from'],
+                'effective_to' => $config['effective_to'],
+                'config_data' => $config,
+                'is_active' => false, // setActive at the end handles the target row
+                'notes' => $config['notes'],
+            ];
 
-            TaxConfiguration::updateOrCreate(
-                ['tax_year' => $taxYear],
-                [
-                    'effective_from' => $config['effective_from'],
-                    'effective_to' => $config['effective_to'],
-                    'config_data' => $config,
-                    'is_active' => $isActive,
-                    'notes' => $config['notes'],
-                ]
-            );
+            $existing = $store->findByTaxYear($taxYear);
+
+            if ($existing) {
+                $store->update($existing->id, $payload, IngestSource::SEEDER);
+            } else {
+                $store->create($payload, IngestSource::SEEDER);
+            }
 
             $this->command->info("✓ Tax configuration for {$taxYear} seeded successfully.");
         }
 
-        // Ensure only the designated active year is marked active.
-        // Admins can change the active year at runtime via the Tax Settings admin UI
-        // without re-running this seeder; re-seeding will reset to self::ACTIVE_TAX_YEAR.
-        TaxConfiguration::where('tax_year', '!=', self::ACTIVE_TAX_YEAR)
-            ->update(['is_active' => false]);
+        // Activate the designated year. setActive() deactivates every other row
+        // atomically, so this also covers any admin-added rows that were active
+        // before re-seeding (spec §10.4 reset-to-canonical behaviour).
+        $active = $store->findByTaxYear(self::ACTIVE_TAX_YEAR);
+        if ($active) {
+            $store->setActive($active->id, IngestSource::SEEDER);
+        }
 
         $this->command->info('');
         $this->command->info('✓ All 6 tax years seeded successfully. '.self::ACTIVE_TAX_YEAR.' is the active tax year.');

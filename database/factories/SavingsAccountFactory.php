@@ -36,4 +36,30 @@ class SavingsAccountFactory extends Factory
             'isa_subscription_amount' => null,
         ];
     }
+
+    public function joint(?User $partner = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'ownership_type' => 'joint',
+            'joint_owner_id' => $partner?->id ?? User::factory(),
+            'ownership_percentage' => 50.00,
+            // Joint ISAs do not exist in UK law — never combine isa() with joint().
+            'is_isa' => false,
+        ]);
+    }
+
+    public function isa(): static
+    {
+        return $this->state(fn () => [
+            'account_type' => 'cash_isa',
+            'is_isa' => true,
+            'isa_type' => 'cash',
+            'isa_subscription_year' => '2025-26',
+            'isa_subscription_amount' => fake()->randomFloat(2, 1000, 20000),
+            // Explicit: ISAs are individual-only.
+            'ownership_type' => 'individual',
+            'joint_owner_id' => null,
+            'ownership_percentage' => 100.00,
+        ]);
+    }
 }

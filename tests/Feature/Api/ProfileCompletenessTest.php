@@ -35,7 +35,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -66,7 +66,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         expect($response->json('data.is_married'))->toBeTrue();
@@ -79,7 +79,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -100,7 +100,7 @@ describe('Profile Completeness API', function () {
             'annual_other_income' => 0,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -115,7 +115,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -138,7 +138,7 @@ describe('Profile Completeness API', function () {
             'valuation_date' => now(),
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -180,7 +180,7 @@ describe('Profile Completeness API', function () {
             'number_of_dependents' => 1,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -207,7 +207,7 @@ describe('Profile Completeness API', function () {
                 'is_married' => false,
             ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
     });
@@ -220,7 +220,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -243,7 +243,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 0, // Missing income
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -263,7 +263,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -279,7 +279,7 @@ describe('Profile Completeness API', function () {
             'annual_employment_income' => 50000,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/user/profile/completeness');
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/user/profile/completeness');
 
         $response->assertStatus(200);
         $data = $response->json('data');

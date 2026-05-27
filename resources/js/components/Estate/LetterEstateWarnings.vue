@@ -122,7 +122,7 @@ export default {
       this.error = null;
 
       try {
-        const response = await api.get('/api/estate/letter-validation');
+        const response = await api.get('/estate/letter-validation');
         if (response.data?.success) {
           this.warnings = response.data.data?.warnings || [];
         }

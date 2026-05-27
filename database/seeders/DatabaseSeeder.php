@@ -53,6 +53,9 @@ class DatabaseSeeder extends Seeder
             // Savings market benchmark rates
             SavingsMarketRatesSeeder::class,
 
+            // Currency rates (GBP base) - admin-managed FX rates for the multi-currency conversion path
+            CurrencyRatesSeeder::class,
+
             // ONS SOC 2020 occupation codes for autocomplete
             OccupationCodeSeeder::class,
 
@@ -79,6 +82,11 @@ class DatabaseSeeder extends Seeder
 
             // Subscription plans (pricing, trial config)
             SubscriptionPlanSeeder::class,
+
+            // Invoice sequence counter — schema:dump captures DDL only, so the
+            // create_invoice_sequences_table migration's seed INSERT is lost
+            // when boots load from the SQL dump.
+            InvoiceSequenceSeeder::class,
 
             // Discount codes (promotional codes for checkout)
             DiscountCodeSeeder::class,
@@ -125,6 +133,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             PreviewUserSeeder::class,
             SavingsMarketRatesSeeder::class,
+            CurrencyRatesSeeder::class,
             OccupationCodeSeeder::class,
             PlanConfigurationSeeder::class,
             RetirementActionDefinitionSeeder::class,
@@ -134,6 +143,7 @@ class DatabaseSeeder extends Seeder
             TaxActionDefinitionSeeder::class,
             EstateActionDefinitionSeeder::class,
             SubscriptionPlanSeeder::class,
+            InvoiceSequenceSeeder::class,
         ]);
     }
 }

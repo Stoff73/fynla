@@ -49,7 +49,7 @@ describe('Savings Integration Tests', function () {
             ]);
 
             // Fetch savings data
-            $response = $this->actingAs($user)->getJson('/api/savings');
+            $response = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -99,7 +99,7 @@ describe('Savings Integration Tests', function () {
             ]);
 
             // Analyze savings
-            $response = $this->actingAs($user)->postJson('/api/savings/analyze');
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/analyze');
 
             $response->assertOk()
                 ->assertJsonStructure([
@@ -136,7 +136,7 @@ describe('Savings Integration Tests', function () {
                 'maturity_date' => now()->addYear()->format('Y-m-d'),
             ];
 
-            $createResponse = $this->actingAs($user)->postJson('/api/savings/accounts', $accountData);
+            $createResponse = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $accountData);
 
             $createResponse->assertCreated()
                 ->assertJsonStructure([
@@ -151,7 +151,7 @@ describe('Savings Integration Tests', function () {
             expect(SavingsAccount::find($accountId))->not->toBeNull();
 
             // Fetch all accounts to verify
-            $fetchResponse = $this->actingAs($user)->getJson('/api/savings');
+            $fetchResponse = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
             $fetchResponse->assertOk();
 
             $accounts = $fetchResponse->json('data.accounts');
@@ -175,12 +175,12 @@ describe('Savings Integration Tests', function () {
                 'isa_subscription_amount' => 8000,
             ];
 
-            $response = $this->actingAs($user)->postJson('/api/savings/accounts', $isaData);
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', $isaData);
 
             $response->assertCreated();
 
             // Check ISA allowance
-            $allowanceResponse = $this->actingAs($user)->getJson('/api/savings/isa-allowance/2024-25');
+            $allowanceResponse = $this->actingAs($user, 'sanctum')->getJson('/api/savings/isa-allowance/2024-25');
             $allowanceResponse->assertOk();
 
             $allowance = $allowanceResponse->json('data');
@@ -203,7 +203,7 @@ describe('Savings Integration Tests', function () {
             ]);
 
             // Update balance
-            $updateResponse = $this->actingAs($user)->putJson("/api/savings/accounts/{$account->id}", [
+            $updateResponse = $this->actingAs($user, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 15000,
             ]);
 
@@ -229,7 +229,7 @@ describe('Savings Integration Tests', function () {
                 'monthly_discretionary' => 700,
             ]);
 
-            $analysisResponse = $this->actingAs($user)->postJson('/api/savings/analyze');
+            $analysisResponse = $this->actingAs($user, 'sanctum')->postJson('/api/savings/analyze');
             $analysisResponse->assertOk();
 
             $summary = $analysisResponse->json('data.summary');
@@ -252,7 +252,7 @@ describe('Savings Integration Tests', function () {
             ]);
 
             // Delete first account
-            $deleteResponse = $this->actingAs($user)->deleteJson("/api/savings/accounts/{$account1->id}");
+            $deleteResponse = $this->actingAs($user, 'sanctum')->deleteJson("/api/savings/accounts/{$account1->id}");
 
             $deleteResponse->assertOk()
                 ->assertJson([
@@ -265,7 +265,7 @@ describe('Savings Integration Tests', function () {
             expect(SavingsAccount::find($account2->id))->not->toBeNull();
 
             // Verify only one account remains
-            $fetchResponse = $this->actingAs($user)->getJson('/api/savings');
+            $fetchResponse = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
             $accounts = $fetchResponse->json('data.accounts');
             expect($accounts)->toHaveCount(1);
             expect($accounts[0]['id'])->toBe($account2->id);
@@ -283,7 +283,7 @@ describe('Savings Integration Tests', function () {
             $account = SavingsAccount::factory()->create(['user_id' => $user1->id]);
 
             // User 2 tries to access user 1's account
-            $accountResponse = $this->actingAs($user2)->putJson("/api/savings/accounts/{$account->id}", [
+            $accountResponse = $this->actingAs($user2, 'sanctum')->putJson("/api/savings/accounts/{$account->id}", [
                 'current_balance' => 99999,
             ]);
             $accountResponse->assertNotFound();
@@ -314,7 +314,7 @@ describe('Savings Integration Tests', function () {
             ]);
 
             // Step 2: Create savings accounts
-            $account1 = $this->actingAs($user)->postJson('/api/savings/accounts', [
+            $account1 = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
                 'account_type' => 'easy_access',
                 'institution' => 'Bank A',
                 'current_balance' => 10000,
@@ -324,7 +324,7 @@ describe('Savings Integration Tests', function () {
             ]);
             $account1->assertCreated();
 
-            $account2 = $this->actingAs($user)->postJson('/api/savings/accounts', [
+            $account2 = $this->actingAs($user, 'sanctum')->postJson('/api/savings/accounts', [
                 'account_type' => 'cash_isa',
                 'institution' => 'Bank B',
                 'current_balance' => 5000,
@@ -338,7 +338,7 @@ describe('Savings Integration Tests', function () {
             $account2->assertCreated();
 
             // Step 3: Analyze savings
-            $analysis = $this->actingAs($user)->postJson('/api/savings/analyze');
+            $analysis = $this->actingAs($user, 'sanctum')->postJson('/api/savings/analyze');
             $analysis->assertOk();
 
             $analysisData = $analysis->json('data');
@@ -348,7 +348,7 @@ describe('Savings Integration Tests', function () {
             expect($analysisData['isa_allowance']['remaining'])->toBe(15000);
 
             // Step 4: Verify final state
-            $finalData = $this->actingAs($user)->getJson('/api/savings');
+            $finalData = $this->actingAs($user, 'sanctum')->getJson('/api/savings');
             $finalData->assertOk();
 
             $final = $finalData->json('data');

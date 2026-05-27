@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Models\Mortgage;
 use App\Models\Property;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -31,6 +32,7 @@ class MortgageFactory extends Factory
         $remainingMonths = max(0, ($maturityDate->getTimestamp() - $now->getTimestamp()) / (30 * 24 * 60 * 60));
 
         return [
+            'user_id' => User::factory(),
             'property_id' => Property::factory(),
             'lender_name' => fake()->company().' Bank',
             'mortgage_account_number' => fake()->optional()->numerify('MG########'),
@@ -46,5 +48,12 @@ class MortgageFactory extends Factory
             'remaining_term_months' => (int) $remainingMonths,
             'notes' => fake()->optional()->sentence(),
         ];
+    }
+
+    public function joint(?User $partner = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'joint_owner_id' => $partner?->id ?? User::factory(),
+        ]);
     }
 }

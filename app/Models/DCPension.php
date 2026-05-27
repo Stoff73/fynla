@@ -56,6 +56,17 @@ class DCPension extends Model
         'flexible_access_date',
         'salary_sacrifice',
         'employer_ni_rebate_pct',
+        // SP1 Pass 3 / PR 6 — derived columns
+        'current_fund_value_gbp',
+        'current_fund_value_gbp_calculated_at',
+        'projected_value_at_retirement_gbp',
+        'projected_value_at_retirement_gbp_calculated_at',
+        'annual_contribution_gbp',
+        'annual_contribution_gbp_calculated_at',
+        'years_to_drawdown',
+        'years_to_drawdown_calculated_at',
+        'annual_allowance_used_gbp',
+        'annual_allowance_used_gbp_calculated_at',
     ];
 
     protected $casts = [
@@ -77,6 +88,17 @@ class DCPension extends Model
         'flexible_access_date' => 'date',
         'salary_sacrifice' => 'boolean',
         'employer_ni_rebate_pct' => 'decimal:4',
+        // SP1 Pass 3 / PR 6 — derived columns
+        'current_fund_value_gbp' => 'decimal:2',
+        'current_fund_value_gbp_calculated_at' => 'datetime',
+        'projected_value_at_retirement_gbp' => 'decimal:2',
+        'projected_value_at_retirement_gbp_calculated_at' => 'datetime',
+        'annual_contribution_gbp' => 'decimal:2',
+        'annual_contribution_gbp_calculated_at' => 'datetime',
+        'years_to_drawdown' => 'integer',
+        'years_to_drawdown_calculated_at' => 'datetime',
+        'annual_allowance_used_gbp' => 'decimal:2',
+        'annual_allowance_used_gbp_calculated_at' => 'datetime',
     ];
 
     protected $hidden = ['member_number'];

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Estate;
 
-use App\Models\DCPension;
 use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
@@ -14,6 +13,7 @@ use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Settings\AssumptionsService;
+use App\Services\Stores\PensionStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -64,9 +64,9 @@ class IHTCalculationService
      * @param  User|null  $spouse  The spouse (if married and linked)
      * @param  bool  $dataSharingEnabled  Whether spouse data sharing is enabled
      * @param  bool  $persist  Write the calculation result to the
-     *                        `iht_calculations` audit table. Defaults to
-     *                        false — opt in only when a caller has a
-     *                        specific reason to capture the snapshot.
+     *                         `iht_calculations` audit table. Defaults to
+     *                         false — opt in only when a caller has a
+     *                         specific reason to capture the snapshot.
      * @return array IHT calculation results with all breakdown values
      */
     public function calculate(
@@ -1592,12 +1592,11 @@ class IHTCalculationService
         $effectiveDate = Carbon::parse($pensionInclusion['effective_date']);
 
         // Get total DC pension values
-        $userPensionValue = (float) DCPension::where('user_id', $user->id)
-            ->sum('current_fund_value');
+        $store = app(PensionStore::class);
+        $userPensionValue = (float) $store->forUserByType($user, 'dc')->sum('current_fund_value');
         $spousePensionValue = 0;
         if ($dataSharingEnabled && $spouse) {
-            $spousePensionValue = (float) DCPension::where('user_id', $spouse->id)
-                ->sum('current_fund_value');
+            $spousePensionValue = (float) $store->forUserByType($spouse, 'dc')->sum('current_fund_value');
         }
         $totalPensionValue = $userPensionValue + $spousePensionValue;
 

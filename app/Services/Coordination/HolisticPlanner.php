@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Coordination;
 
 use App\Services\Plans\PlanConfigService;
+use App\Constants\SignificanceThresholds;
 
 /**
  * HolisticPlanner
@@ -157,7 +158,7 @@ class HolisticPlanner
 
         // IHT risk
         $ihtLiability = $allAnalysis['estate']['iht_liability'] ?? 0;
-        if ($ihtLiability > 100000) {
+        if ($ihtLiability > SignificanceThresholds::IMPORTANT) {
             $riskAreas[] = [
                 'area' => 'Inheritance Tax',
                 'severity' => 'medium',
@@ -302,7 +303,7 @@ class HolisticPlanner
         }
 
         // Positive net worth
-        if (($plan['estate']['net_worth'] ?? 0) > 100000) {
+        if (($plan['estate']['net_worth'] ?? 0) > SignificanceThresholds::IMPORTANT) {
             $strengths[] = [
                 'area' => 'Net Worth',
                 'description' => 'Strong positive net worth position.',
@@ -349,7 +350,7 @@ class HolisticPlanner
         }
 
         // IHT liability
-        if (($plan['estate']['iht_liability'] ?? 0) > 100000) {
+        if (($plan['estate']['iht_liability'] ?? 0) > SignificanceThresholds::IMPORTANT) {
             $vulnerabilities[] = [
                 'area' => 'Inheritance Tax',
                 'severity' => 'medium',
@@ -575,7 +576,7 @@ class HolisticPlanner
     private function getInvestmentMessage(array $data): string
     {
         $value = $data['total_portfolio_value'] ?? 0;
-        if ($value > 100000) {
+        if ($value > SignificanceThresholds::IMPORTANT) {
             return 'You have built a substantial investment portfolio.';
         } elseif ($value > 10000) {
             return 'Your investment portfolio is growing.';

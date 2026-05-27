@@ -2,13 +2,13 @@
 # context-watch.sh — UserPromptSubmit hook
 #
 # Estimates current transcript token count from $CLAUDE_TRANSCRIPT_PATH and emits
-# an escalating system-reminder when approaching the 250k soft cap CSJ has set
+# an escalating system-reminder when approaching the 800k soft cap CSJ has set
 # for Fynla sessions.
 #
 # Tiers (chars/4 ≈ tokens):
-#   >200k tokens (>80%)   — gentle: "consider /context-handover at next break"
-#   >225k tokens (>90%)   — strong: "run /context-handover BEFORE starting new work"
-#   >243k tokens (>97.5%) — STOP:   "invoke /context-handover NOW, then /clear"
+#   >700k tokens (>87.5%)  — gentle: "consider /context-handover at next break"
+#   >750k tokens (>93.75%) — strong: "run /context-handover BEFORE starting new work"
+#   >780k tokens (>97.5%)  — STOP:   "invoke /context-handover NOW, then /clear"
 #
 # The output is read by Claude Code as additional context for the user's prompt
 # (per UserPromptSubmit hook contract — stdout is injected as system context).
@@ -41,10 +41,10 @@ TOKENS=$((CHARS / 4))
 TOKENS_K=$((TOKENS / 1000))
 
 # Tripwire — escalating tiers
-if [ "$TOKENS" -gt 243000 ]; then
+if [ "$TOKENS" -gt 780000 ]; then
   cat <<EOF
 <system-reminder>
-CONTEXT TRIPWIRE — transcript at ~${TOKENS_K}k tokens (>97.5% of CSJ's 250k Fynla budget).
+CONTEXT TRIPWIRE — transcript at ~${TOKENS_K}k tokens (>97.5% of CSJ's 800k Fynla budget).
 
 STOP current work. Invoke the context-handover skill NOW via Skill({skill:"context-handover"}).
 After it writes the handover, run /clear, then say "start session". The session-start skill
@@ -55,19 +55,19 @@ You may finish a single in-flight tool call if it's already running, but DO NOT 
 investigation, edit, or test before invoking context-handover.
 </system-reminder>
 EOF
-elif [ "$TOKENS" -gt 225000 ]; then
+elif [ "$TOKENS" -gt 750000 ]; then
   cat <<EOF
 <system-reminder>
-Context at ~${TOKENS_K}k tokens (>90% of CSJ's 250k Fynla budget).
+Context at ~${TOKENS_K}k tokens (>93.75% of CSJ's 800k Fynla budget).
 
 Invoke Skill({skill:"context-handover"}) BEFORE starting any new investigation, edit, or
 multi-file change. Finishing a single in-flight task is fine; do not start new work.
 </system-reminder>
 EOF
-elif [ "$TOKENS" -gt 200000 ]; then
+elif [ "$TOKENS" -gt 700000 ]; then
   cat <<EOF
 <system-reminder>
-Context at ~${TOKENS_K}k tokens (>80% of CSJ's 250k Fynla budget).
+Context at ~${TOKENS_K}k tokens (>87.5% of CSJ's 800k Fynla budget).
 
 Consider invoking Skill({skill:"context-handover"}) at the next natural break — end of
 the current task, after the next commit, or before starting a new module of work.

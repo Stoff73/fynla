@@ -102,6 +102,9 @@
         <EvalRecordings v-if="activeTab === 'eval-recordings'" />
         <DiscountCodes v-if="activeTab === 'discount-codes'" />
         <TierConfiguration v-if="activeTab === 'tier-configuration'" />
+        <SavingsMarketRates v-if="activeTab === 'savings-market-rates'" />
+        <ActuarialLifeTables v-if="activeTab === 'actuarial-life-tables'" />
+        <CurrencyRates v-if="activeTab === 'currency-rates'" />
       </div>
     </div>
   </AppLayout>
@@ -122,6 +125,9 @@ const AiAudit = defineAsyncComponent(() => import('../../components/Admin/AiAudi
 const DiscountCodes = defineAsyncComponent(() => import('../../components/Admin/DiscountCodes.vue'));
 const EvalRecordings = defineAsyncComponent(() => import('../../components/Admin/EvalRecordings.vue'));
 const TierConfiguration = defineAsyncComponent(() => import('../../components/Admin/TierConfiguration.vue'));
+const SavingsMarketRates = defineAsyncComponent(() => import('../../components/Admin/SavingsMarketRates.vue'));
+const ActuarialLifeTables = defineAsyncComponent(() => import('../../components/Admin/ActuarialLifeTables.vue'));
+const CurrencyRates = defineAsyncComponent(() => import('../../components/Admin/CurrencyRates.vue'));
 
 export default {
   name: 'AdminPanel',
@@ -139,6 +145,9 @@ export default {
     DiscountCodes,
     EvalRecordings,
     TierConfiguration,
+    SavingsMarketRates,
+    ActuarialLifeTables,
+    CurrencyRates,
   },
 
   data() {
@@ -170,6 +179,9 @@ export default {
         { id: 'decision-matrix', label: 'Decision Matrix', shortLabel: 'Matrix' },
         { id: 'tax-settings', label: 'Tax Settings', shortLabel: 'Tax' },
         { id: 'tier-configuration', label: 'Tier Configuration', shortLabel: 'Tiers' },
+        { id: 'savings-market-rates', label: 'Savings Rates', shortLabel: 'Rates' },
+        { id: 'actuarial-life-tables', label: 'Life Tables', shortLabel: 'Tables' },
+        { id: 'currency-rates', label: 'Currency Rates', shortLabel: 'FX' },
         { id: 'backups', label: 'Database', shortLabel: 'Data' },
         // Insights CMS lives on its own route stack, not as an embedded tab — the
         // `path` key tells the sidebar to router-push instead of switching activeTab.
@@ -205,6 +217,8 @@ export default {
         'eval-recordings': 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
         'discount-codes': 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
         backups: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4',
+        'actuarial-life-tables': 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+        'currency-rates': 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
         insights: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
         documents: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
       };
