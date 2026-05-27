@@ -13,7 +13,6 @@ use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\ProtectionProfile;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
@@ -38,6 +37,10 @@ use Illuminate\Support\Collection;
 class EstateAssetAggregatorService
 {
     use CalculatesOwnershipShare;
+
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
 
     /**
      * Gather all assets for a user from all modules
@@ -67,8 +70,7 @@ class EstateAssetAggregatorService
         });
 
         // Properties - Single-record pattern
-        $properties = Property::forUserOrJoint($user->id)
-            ->get();
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
         $propertyAssets = $properties->map(function ($property) use ($user) {
             return (object) [
                 'user_id' => $user->id,

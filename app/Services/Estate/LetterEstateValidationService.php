@@ -7,13 +7,17 @@ namespace App\Services\Estate;
 use App\Models\Chattel;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Traits\StructuredLogging;
 
 class LetterEstateValidationService
 {
     use StructuredLogging;
+
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
 
     /**
      * Validate letter to spouse content against estate planning data.
@@ -205,7 +209,7 @@ class LetterEstateValidationService
 
         // Property check
         $letterRealEstate = trim($letter->real_estate_info ?? '');
-        $propertyCount = Property::where('user_id', $user->id)->count();
+        $propertyCount = $this->propertyStore->forUser($user)->count();
 
         if ($propertyCount > 0 && $letterRealEstate === '') {
             $warnings[] = [

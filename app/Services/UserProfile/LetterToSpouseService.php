@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Services\UserProfile;
 
 use App\Models\LetterToSpouse;
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Carbon\Carbon;
 
 class LetterToSpouseService
 {
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
+
     /**
      * Get or create letter for user with auto-populated data
      */
@@ -232,7 +236,7 @@ class LetterToSpouseService
      */
     private function generateRealEstateInfo(User $user): ?string
     {
-        $properties = Property::where('user_id', $user->id)->get();
+        $properties = $this->propertyStore->forUser($user);
 
         if ($properties->isEmpty()) {
             return null;
