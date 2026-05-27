@@ -1,6 +1,55 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-27 — session 5 — **SP1 Pass 5 (Mortgages) FULLY CLOSED** at PR 8 merge `e4d8039`. All 8 PRs shipped (#403-#414). 8/19 entity stores complete. csjones re-deploy gate has 5 migrations pending. §16.1 gate 8 (Playwright browser-smoke) open for csjones post-deploy.*
+*Last updated: 2026-05-27 — session 5 end — **SP1 Pass 5 (Mortgages) FULLY CLOSED** at PR 8 merge `e4d8039`. All 8 Pass 5 PRs shipped (#403-#414); 8/19 entity stores complete. **SP1 Pass 6 (Investments) plan WRITTEN** at `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (commit `1b3a900`, 768 lines, 16 PRs). Execution starts next session.*
+
+---
+
+## 🎯 Active track: SP1 Pass 6 (Investments)
+
+**Plan:** `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (768 lines, written 2026-05-27 session 5 after Pass 5 closure; CSJ-approved full Investment surface scope).
+
+**Scope:** All 6 Investment models — InvestmentAccount, Holding, InvestmentGoal, RiskProfile, InvestmentScenario, RebalancingAction. Largest entity surface in SP1 (173 InvestmentAccount refs alone). On Pass 6 close-out: SP1 = 14/19 stores shipped.
+
+**Execution pattern:** subagent-driven-development — Sonnet implementer → Opus spec reviewer → Opus code-quality reviewer → CSJ admin-merge per PR. Same as Pass 5.
+
+**Branch convention:** `feat/investment-store-prN` off `dev`.
+
+**Unique-to-Pass-6 architectural pieces (per plan §0.2):**
+1. **HoldingStore is cross-module** — accepts writes from BOTH `InvestmentController` AND `DCPensionHoldingsController` (closes Pass 3 deferral documented at `PensionStore.md:40`).
+2. **2 cross-store recalc listeners** — Account ← Holdings AND Pension ← Holdings (mirrors Pass 5 Mortgage → Property but doubled).
+3. **3 satellite stores bundled in PR 8** — InvestmentGoalStore + RiskProfileStore + InvestmentScenarioStore.
+4. **Observer entanglement** — InvestmentAccountRiskObserver + InvestmentAccountGoalObserver must keep firing on user-driven writes.
+5. **Polymorphic Holdings** — `morphTo('holdable')` accepting InvestmentAccount OR DCPension.
+
+**16 PRs planned:**
+- [ ] **PR 1** — InvestmentAccountStore facade + boundary + normaliser + events + tier-cap
+- [ ] **PR 2** — HTTP form requests through InvestmentAccountStore
+- [ ] **PR 3** — Fyn AI write tools through InvestmentAccountStore
+- [ ] **PR 4** — Upload + onboarding + seeders + MigrateEstateToNetWorth
+- [ ] **PR 5a** — Investment-internal Analytics/AssetLocation/Fees + InvestmentReadConsumerParityTest
+- [ ] **PR 5b** — Goals/ModelPortfolio/Performance reads
+- [ ] **PR 5c** — Rebalancing/Recommendation/Tax reads
+- [ ] **PR 5d** — Utilities + Agents reads (InvestmentAgent, GoalsAgent, RetirementAgent, EstateAgent)
+- [ ] **PR 5e** — Cross-module reads (NetWorth/Mobile/CrossModule/AI/Profile/Plans/GDPR)
+- [ ] **PR 6** — HoldingStore cross-module facade + 2 listeners + `PensionStore::recalculateDerivedForPensionId`
+- [ ] **PR 7** — Holding routing (HTTP InvestmentController + DCPensionHoldingsController + Fyn + upload)
+- [ ] **PR 8** — InvestmentGoalStore + RiskProfileStore + InvestmentScenarioStore (3 satellite stores + routing)
+- [ ] **PR 9** — RebalancingActionStore + routing (single confirmed write site at RebalancingActionsController:57)
+- [ ] **PR 10** — Canonical derived columns + snapshots + cross-store recalc (5-6 migrations)
+- [ ] **PR 11** — Tier-cap tests (×4 entities: InvestmentAccount, Holding, InvestmentGoal, InvestmentScenario)
+- [ ] **PR 12** — Lock-down + parity + audit + Store.md (×6 docs) + PensionStore.md cleanup
+
+**Open questions (per plan §19, resolve at PR 0 / PR 1 dispatch):**
+- Q1: Tier-cap defaults per entity (proposed defaults in plan)
+- Q2: HoldingStore::forParent return shape
+- Q6: HoldingStore location (proposed: top-level `app/Services/Stores/`)
+- Q8: Currency round-trip — defer or implement (proposed: defer, GBP-only)
+
+**Estimated execution:** 7-10 days at Pass 5 cadence.
+
+### Deploy gate (outstanding from Pass 5)
+
+- [ ] **csjones re-deploy** — currently at `f2b5bec1`. Needs `git pull origin dev` + `php artisan migrate --force` (5 pending migrations: 2 from Pass 4 PR 6 + 3 from Pass 5 PR 6) + `composer dump-autoload -o && php artisan optimize && cache:clear`. Then Playwright browser-smoke on `/mortgages` + `/net-worth/property` to close Pass 4 §16.1 gate 8 + Pass 5 §16.1 gate 8.
 
 ---
 
