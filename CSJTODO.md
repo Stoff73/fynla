@@ -1,10 +1,54 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-27 — session 3 — Pass 4 Properties at 4/8 PRs merged (PR #390 merged at `df357e9`); csjones deployed to `aa65ab80` at start of session*
+*Last updated: 2026-05-27 — session 4 — Pass 4 Properties COMPLETE (merge `c972fff`); Pass 5 Mortgages plan written + spec doc updated for Pass 4 close-out*
 
 ---
 
-## Active track: SP1 Pass 4 (Properties)
+## Active track: SP1 Pass 5 (Mortgages)
+
+**Plan:** `docs/superpowers/plans/2026-05-27-sub-project-1-pass-5-mortgages-plan.md` (3216 lines)
+**Scope decision:** Mortgages only — `App\Models\Estate\Liability` (unsecured consumer debt) deferred to Pass 5b. See plan §0.1 for rationale.
+**Execution pattern:** subagent-driven-development — implementer (Sonnet) → spec reviewer (Opus) → code-quality reviewer (Opus) → CSJ admin-merge per PR
+**Branch convention:** `feat/mortgage-store-prN` off `dev`
+
+### PRs planned (8 PRs)
+- [ ] **PR 1** — MortgageStore facade + boundary + normaliser + 4 events + tier-cap key. Plan §5.
+- [ ] **PR 2** — HTTP form requests through MortgageStore (MortgageController + PreviewController). Plan §6.
+- [ ] **PR 3** — Fyn AI write tools through MortgageStore (handleCreateMortgage). Plan §7.
+- [ ] **PR 4** — Upload + onboarding + seeders + `MortgageService::createFromPropertyData` through MortgageStore. Plan §8.
+- [ ] **PR 5** — Read consumers, sub-clustered 5a-5e (~24 service files + `MortgageReadConsumerParityTest`). Plan §9.
+- [ ] **PR 6** — Canonical derived columns + snapshot table + **cross-store recalc** (Mortgage → Property reconciliation, `properties.outstanding_mortgage` becomes a true derived column). Plan §10. **Includes 3 migrations.**
+- [ ] **PR 7** — Tier-cap test. Plan §11.
+- [ ] **PR 8** — Lock-down + parity + audit + `MortgageStore.md`. Plan §12.
+
+### Unique-to-Pass-5 architectural piece
+
+**Cross-store recalc.** A write to MortgageStore for `property_id=X` triggers `PropertyStore::recalculateDerivedForPropertyId(X)` via a synchronous event listener (`RecalculatePropertyOutstandingMortgage`). PropertyDerivedColumnCalculator updated to read canonical mortgages sum (not the denormalised `properties.outstanding_mortgage` field). One-way recalc — Mortgage → Property only, no loops. Locked by `MortgagePropertyReconciliationTest` (PR 6) + documented in `MortgageStore.md` quirk #9.
+
+This closes the deferred reconciliation flagged in Pass 4 plan §0.
+
+### Open questions (resolve at PR 1 dispatch)
+
+- **Q1** — Tier-cap default for `mortgage` (proposed: free=10, tier1+=null). Adjustable later.
+- **Q2** — `forUserByProperty` return shape (proposed: `Collection<int, Collection<int, Mortgage>>` keyed by property_id).
+- **Q5** — Keep or drop `properties.outstanding_mortgage` column (proposed: KEEP as write-only-by-recalc derived column).
+- **Q7** — Estate Liabilities defer to Pass 5b (proposed: YES).
+
+See plan §15 for the full list.
+
+### Deploy gate
+
+- [ ] **csjones re-deploy before PR 1 dispatch** — csjones at `f2b5bec1`, dev at `eb260fc` (Pass 4 PR 6 added 2 migrations not yet applied on csjones). Run `git pull origin dev` + `php artisan migrate --force` + cache:clear + optimize. Then Playwright browser-smoke on Properties pages to close Pass 4 §16.1 gate 8.
+
+---
+
+## Recently completed: SP1 Pass 4 (Properties) — DONE
+
+**Merge:** `c972fff` (PR #402, 2026-05-27). 12 PRs total shipped 2026-05-26 → 2026-05-27 via subagent-driven-development. PropertyStore fully shipped, boundary LOCKED, derived columns + snapshots LIVE, three-ingest parity test passing, `PropertyStore.md` 195 lines.
+
+**Spec doc updated** at commit `eb260fc` (2026-05-27 session 4) — `docs/superpowers/specs/2026-05-14-module-canonical-store-design.md` frontmatter + §0 + §15.3 + §16.2 + §21.1 + §21.3 all reflect Pass 4 close-out.
+
+### Archived: Pass 4 (Properties) detail
 
 **Plan:** `docs/superpowers/plans/2026-05-26-sub-project-1-pass-4-properties-plan.md`
 **Execution pattern:** subagent-driven-development — implementer (Sonnet) → spec reviewer (Opus) → code-quality reviewer (Opus) → CSJ admin-merge per PR
@@ -56,15 +100,16 @@ For consumers that originally used `Property::forUserOrJoint($userId)` (joint-aw
 
 ---
 
-## Sub-Project 1 overall — 6 of 19 entity stores shipped
+## Sub-Project 1 overall — 7 of 19 entity stores shipped
 
 | Pass | Entity | Status |
 |---|---|---|
 | 1 | Savings | DONE (locked PR 8) |
 | 2 | Reference data R1-R4 | DONE (locked 26 PRs) |
 | 3 | Pensions (DC/DB/State/InputHistory) | DONE (8 PRs + close-out PR #385) |
-| **4** | **Properties** | **8/8 PRs except final 2 small (this track) — derived columns + snapshots LIVE** |
-| 5 | Liabilities (incl. mortgages) | not started — no plan |
+| 4 | Properties | DONE (12 PRs, merge `c972fff`, boundary LOCKED) |
+| **5** | **Mortgages** | **plan written 2026-05-27, PR 1 not yet dispatched (this track)** |
+| 5b (future) | Estate Liabilities (`App\Models\Estate\Liability`) | not started — separate plan; see Pass 5 plan §0.1 |
 | 6 | Investments | not started — no plan |
 | 7 | Income + Expenditure | not started — no plan |
 | 8 | Protection | not started — no plan |
