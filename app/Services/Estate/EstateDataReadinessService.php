@@ -10,6 +10,7 @@ use App\Models\Estate\LastingPowerOfAttorney;
 use App\Models\Estate\Will;
 use App\Models\LetterToSpouse;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 
 /**
  * Data readiness gate for the Estate Planning module.
@@ -20,6 +21,10 @@ use App\Models\User;
  */
 class EstateDataReadinessService
 {
+    public function __construct(
+        private readonly MortgageStore $mortgageStore,
+    ) {}
+
     /**
      * Assess the data readiness of a user for estate planning analysis.
      *
@@ -203,8 +208,9 @@ class EstateDataReadinessService
      */
     private function checkLiabilities(User $user): array
     {
+        // Mortgages primary-only via MortgageStore — matches pre-PR-5a $user->mortgages() HasMany semantics
         $hasLiabilities = $user->liabilities()->exists()
-            || $user->mortgages()->exists();
+            || $this->mortgageStore->forUserPrimaryOnly($user)->isNotEmpty();
 
         return [
             'key' => 'liabilities',

@@ -12,9 +12,9 @@ use App\Models\Estate\Liability;
 use App\Models\ExpenditureProfile;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\ProtectionProfile;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -41,6 +41,7 @@ class EstateAssetAggregatorService
 
     public function __construct(
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -221,9 +222,8 @@ class EstateAssetAggregatorService
             return $userShare;
         });
 
-        // Get mortgages - single-record pattern
-        $mortgages = Mortgage::forUserOrJoint($user->id)
-            ->get()
+        // Get mortgages - single-record pattern (joint-aware via MortgageStore)
+        $mortgages = $this->mortgageStore->forUser($user)
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $user->id));
 
         return $liabilities + $mortgages;
@@ -236,8 +236,7 @@ class EstateAssetAggregatorService
      */
     public function getUserMortgages(User $user): Collection
     {
-        return Mortgage::forUserOrJoint($user->id)
-            ->get();
+        return $this->mortgageStore->forUser($user);
     }
 
     /**
