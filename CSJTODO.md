@@ -12,8 +12,8 @@
 **Branch convention:** `feat/mortgage-store-prN` off `dev`
 
 ### PRs planned (8 PRs)
-- [ ] **PR 1** — MortgageStore facade + boundary + normaliser + 4 events + tier-cap key. Plan §5.
-- [ ] **PR 2** — HTTP form requests through MortgageStore (MortgageController + PreviewController). Plan §6.
+- [x] **PR #403** — Pass 5 PR 1: MortgageStore facade + arch boundary + normaliser + 4 events + tier-cap (merge `fe5e1a1`). 17 tests pass. Code-quality review surfaced 4 Important sibling-convention drifts (boundary regex missed updateOrCreate, event shapes diverged from Property template, update/delete took Mortgage instance instead of int id, updateOrCreate dispatched empty changes payload) — all fixed in commit `4eeb4cb`. Migrated validateCanonical to Laravel Validator + StoreValidationException + ValidationLimits::currencyRules. Approved by both reviewers.
+- [x] **PR #404** — Pass 5 PR 2: HTTP form requests through MortgageStore (merge `a78ddd2`). MortgageController store/update/destroy routed through MortgageStore::create/update/delete with IngestSource::FORM. PreviewController::seedMortgages uses IngestSource::SEEDER (matches sibling seedProperties convention). Code-quality review surfaced: (a) missing TierLimitExceededException catch in store() — added with structured 403 + integration test, (b) unused Mortgage import in PreviewController removed, (c) destroy() null-guard added for consistency. Pre-existing PR 1 oversight fixed: MortgageStoreBoundaryTest needed `uses(Tests\TestCase::class)` binding. 18 tests pass.
 - [ ] **PR 3** — Fyn AI write tools through MortgageStore (handleCreateMortgage). Plan §7.
 - [ ] **PR 4** — Upload + onboarding + seeders + `MortgageService::createFromPropertyData` through MortgageStore. Plan §8.
 - [ ] **PR 5** — Read consumers, sub-clustered 5a-5e (~24 service files + `MortgageReadConsumerParityTest`). Plan §9.
