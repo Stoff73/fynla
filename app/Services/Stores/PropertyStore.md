@@ -127,6 +127,8 @@ Per spec §5.5, the store does **not** expose:
 
 10. **Tier-cap is enforced at `create()` only.** `TierGate::canCreate($user, 'property', $currentCount)` runs before persistence; on failure throws `TierLimitExceededException`. The free tier cap is 3 properties (seeded by `TierConfigurationSeeder`). `update()` / `delete()` / `restore()` do not re-check. (Spec §13; `PropertyTierCapTest` locked in PR 7.)
 
+11. **Upload ingest does not surface `joint_owner_name`.** `PropertyNormaliser::fromUpload`'s whitelist (extraction → canonical) covers address / value / dates / enums / ownership_percentage / country / lease_remaining_years but NOT `joint_owner_name`. The document-extraction pipeline (DocumentProcessor + the AI excerpt parser) does not currently extract joint-owner identity text from uploaded statements. Form and Fyn ingest paths DO carry `joint_owner_name` (form via the manual modal; Fyn via the LLM tool call). Upload-created joint property rows have `joint_owner_name = NULL` until the user edits via form or Fyn. `PropertyThreeIngestParityTest` Case 2 asserts this asymmetry explicitly. Pass 5 candidate: extend the upload field-mapper + normaliser whitelist to support joint-owner extraction once the document parser can identify spouse/co-owner mentions reliably.
+
 ## Events
 
 Per spec §11.1, four events are dispatched (each on its own write path):
