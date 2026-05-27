@@ -3,16 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Boundary architecture test for MortgageStore.
+ * Boundary architecture test for MortgageStore — LOCKED (SP1 Pass 5 PR 8).
  *
- * SP1 Pass 5 contract: every mutation of App\Models\Mortgage must go
- * through App\Services\Stores\MortgageStore. This test scans for direct
- * Mortgage::create / ::update / ::save / ::delete / ::forceDelete /
- * ::restore call sites outside the store + an allowlist that shrinks
- * each PR until LOCKED in PR 8.
- *
- * SOFT mode: allowlist contains every existing direct-write site for
- * incremental migration. LOCKED in PR 8.
+ * Every mutation of App\Models\Mortgage MUST go through App\Services\Stores\MortgageStore.
+ * The allowlist below documents the only legitimate exceptions, each with a justification.
  */
 
 use PHPUnit\Framework\Assert;
@@ -22,17 +16,28 @@ uses(TestCase::class);
 
 it('enforces MortgageStore as the only write path for Mortgage', function () {
     $allowlist = [
-        // PR 2 trimmed: MortgageController + PreviewController now route through MortgageStore.
-        // PR 3 trimmed: CoordinatingAgent::handleCreateMortgage now routes through MortgageStore.
-        // PR 4 trimmed: MortgageService::createFromPropertyData, OnboardingService, both seeders
-        //               (PreviewUserSeeder, ChrisUserSeeder), CoordinatingAgent::handleCreateProperty
-        //               residual auto-create, and PropertyController cascade-delete in destroy.
-        //               DocumentProcessor and AssetCaptureEntityExtractor never had direct Mortgage
-        //               writes (no patterns matched) so they were never on the list.
-        //               LifecycleTestSeeder also confirmed clean (no mortgage refs).
-        'app/Console/Commands/EncryptExistingData.php',            // PR 8 LOCKED — pre-existing migration command
-        'app/Console/Commands/ResetPreviewData.php',               // PR 8 LOCKED — admin reset
-        'database/seeders/PreviewUserSeeder.php',                  // PR 8 LOCKED — deleteUserData pre-seed bulk cleanup (not a user-facing write path; persona reset is admin-style)
+        // LOCKED (SP1 Pass 5 PR 8) — pre-existing migration command; uses
+        // Mortgage::chunkById + forceFill/saveQuietly for encryption backfill
+        // (spec §14.2 console-command category). Never a runtime write path.
+        'app/Console/Commands/EncryptExistingData.php',
+
+        // LOCKED (SP1 Pass 5 PR 8) — admin-only reset command; resets all
+        // mortgage records to a known state. Controlled console command
+        // (spec §14.2 console-command category). Never a runtime write path.
+        'app/Console/Commands/ResetPreviewData.php',
+
+        // LOCKED (SP1 Pass 5 PR 8) — PreviewUserSeeder::deleteUserData()
+        // uses Mortgage::where('user_id', $userId)->delete() for bulk
+        // pre-seed cleanup. This is a seeder-admin operation (spec §14.2
+        // seeder category) equivalent to the Property store's treatment of the
+        // same seeder: PropertyStoreBoundaryTest allowlists PreviewUserSeeder
+        // with the same rationale ("resetPersonaData() retains a bulk-delete
+        // path outside the ingest boundary"). Migrating to per-record
+        // MortgageStore::delete would be audit-noisy (one audit row per
+        // mortgage per persona) and would require a new bulk-cleanup store
+        // method out of scope for PR 8. Mirroring the Property precedent:
+        // kept allowlisted, documented here permanently.
+        'database/seeders/PreviewUserSeeder.php',
     ];
 
     $patterns = [
