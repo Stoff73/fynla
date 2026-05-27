@@ -6,6 +6,7 @@ namespace App\Services\UserProfile;
 
 use App\Models\LetterToSpouse;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Carbon\Carbon;
@@ -13,6 +14,7 @@ use Carbon\Carbon;
 class LetterToSpouseService
 {
     public function __construct(
+        private readonly MortgageStore $mortgageStore,
         private readonly PropertyStore $propertyStore,
     ) {}
 
@@ -272,7 +274,7 @@ class LetterToSpouseService
     private function generateLiabilitiesInfo(User $user): ?string
     {
         $liabilities = $user->liabilities;
-        $mortgages = $user->mortgages;
+        $mortgages = $this->mortgageStore->forUserPrimaryOnly($user);
 
         if ($liabilities->isEmpty() && $mortgages->isEmpty()) {
             return 'No outstanding liabilities recorded.';

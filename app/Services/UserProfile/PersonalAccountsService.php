@@ -11,6 +11,7 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
@@ -23,6 +24,7 @@ class PersonalAccountsService
     public function __construct(
         private readonly UKTaxCalculator $taxCalculator,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -404,8 +406,7 @@ class PersonalAccountsService
         $liabilities = [];
 
         // Mortgages - individual line items (include joint mortgages)
-        $mortgages = Mortgage::forUserOrJoint($user->id)
-            ->get();
+        $mortgages = $this->mortgageStore->forUser($user);
         foreach ($mortgages as $mortgage) {
             // Include property address to ensure uniqueness when multiple mortgages have same lender
             $mortgageLabel = $mortgage->lender_name ?? 'Mortgage';
