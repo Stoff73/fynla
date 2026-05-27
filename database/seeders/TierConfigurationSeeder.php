@@ -41,7 +41,7 @@ class TierConfigurationSeeder extends Seeder
                     'savings_account' => 'limited', 'investment' => 'limited',
                     'pension_account' => 'limited',
                 ],
-                'count_caps' => ['savings_account' => 3, 'investment' => 2, 'pension_account' => 5, 'property' => 3],
+                'count_caps' => ['savings_account' => 3, 'investment' => 2, 'pension_account' => 5, 'property' => 3, 'mortgage' => 10],
                 'document_upload_allowance' => 3,   // §22 A6
                 'document_storage_gb' => null,
                 'fyn_weekly_token_budget' => 100_000,
@@ -69,7 +69,7 @@ class TierConfigurationSeeder extends Seeder
                     'savings_account' => 'full', 'investment' => 'full',
                     'pension_account' => 'full',
                 ],
-                'count_caps' => ['savings_account' => null, 'investment' => null, 'pension_account' => null, 'property' => null],
+                'count_caps' => ['savings_account' => null, 'investment' => null, 'pension_account' => null, 'property' => null, 'mortgage' => null],
                 'document_upload_allowance' => 4,   // §22 A6
                 'document_storage_gb' => null,      // §22 A3
                 'fyn_weekly_token_budget' => 250_000,
@@ -96,7 +96,7 @@ class TierConfigurationSeeder extends Seeder
                     'savings_account' => 'full', 'investment' => 'full',
                     'pension_account' => 'full',
                 ],
-                'count_caps' => ['savings_account' => null, 'investment' => null, 'pension_account' => null, 'property' => null],
+                'count_caps' => ['savings_account' => null, 'investment' => null, 'pension_account' => null, 'property' => null, 'mortgage' => null],
                 'document_upload_allowance' => 5,   // §22 A6
                 'document_storage_gb' => 5.00,      // §22 A7
                 'fyn_weekly_token_budget' => 500_000,
@@ -123,7 +123,7 @@ class TierConfigurationSeeder extends Seeder
                     'savings_account' => 'full', 'investment' => 'full',
                     'pension_account' => 'full',
                 ],
-                'count_caps' => ['savings_account' => null, 'investment' => null, 'pension_account' => null, 'property' => null],
+                'count_caps' => ['savings_account' => null, 'investment' => null, 'pension_account' => null, 'property' => null, 'mortgage' => null],
                 'document_upload_allowance' => 6,   // §22 A6
                 'document_storage_gb' => 20.00,     // §22 A7
                 'fyn_weekly_token_budget' => 1_000_000,
