@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-27 — session 4 — Pass 4 Properties COMPLETE (merge `c972fff`); Pass 5 Mortgages plan written + spec doc updated for Pass 4 close-out*
+*Last updated: 2026-05-27 — session 5 — Pass 5 PR 5b merged (`e653602`); 6/9 PRs done, 5c next*
 
 ---
 
@@ -18,7 +18,7 @@
 - [ ] **PR 4** — Upload + onboarding + seeders + `MortgageService::createFromPropertyData` through MortgageStore. Plan §8.
 - [~] **PR 5** — Read consumers, sub-clustered 5a-5e (~24 service files + `MortgageReadConsumerParityTest`). Plan §9.
   - [x] **PR #407** — Pass 5 PR 5a: Estate/IHT reads + MortgageReadConsumerParityTest (merge `49b0dd2`). 6 Estate services routed through MortgageStore (EstateAssetAggregatorService joint-aware, EstateActionDefinitionService primary-only, EstateDataReadinessService primary-only, IHTFormattingService joint-aware with property eager-load, LetterEstateValidationService primary-only, ComprehensiveEstatePlanService joint-aware). EstateAgent audited — no direct reads. ComprehensiveEstatePlanService::getDetailedLiabilities signature changed `int $userId` → `User $user` (private method, no external callers). 7-case parity test locks joint-aware vs primary-only contract for 5b-5e. 346 store tests + 198 Estate regression + 16 downstream tests all pass. Implementer hit Pint import-strip 5/6 files — pattern: add import + reference in same edit; if formatter strips, re-add and the constructor reference preserves it on second pass.
-  - [ ] **PR 5b** — NetWorth/Mobile/CrossModule reads (NetWorthService, MobileDashboardAggregator, CrossModuleAssetAggregator).
+  - [x] **PR #408** — Pass 5 PR 5b: NetWorth/Mobile/CrossModule reads (merge `e653602`). 2 service files routed (CrossModuleAssetAggregator + MobileDashboardAggregator); NetWorthService confirmed to have zero direct mortgage reads (delegates entirely to CrossModuleAssetAggregator). Helper `sumMortgageJointOwnerShares(User $user, int $userId): float` introduced in MobileDashboardAggregator mirroring `sumPropertyJointOwnerShares` precedent. Both reviewers caught a unanimous CRITICAL regression in first cut: filtering `mortgageStore->forUser($user)` against itself collapsed the property-mortgage cross-link leg to an empty Collection (couple shares property + only one spouse holds mortgage scenario). Fix: revert the cross-link leg to raw `Mortgage::whereIn('property_id', ...)->whereNotIn('id', ...)->get()` matching Pass 4 PropertyStore sibling pattern (reads not policed by boundary). 8th parity case added locking the cross-link semantic so 5c/5d/5e implementers can't drop it again. 30 tests pass.
   - [ ] **PR 5c** — Coordination/AI/UserProfile reads (HouseholdPlanningService, AdvicePromptBuilder, DuplicateAcknowledgement, LetterToSpouseService, PersonalAccountsService, UserProfileService).
   - [ ] **PR 5d** — Goals/Plans/Investment reads (GoalsProjectionService, LifeEventService, SavingsPlanService, InvestmentPlanService, UserContextBuilder, TaxDragCalculator, GoalsAgent, RetirementAgent, SavingsAgent, ProtectionAgent).
   - [ ] **PR 5e** — Property-internal + DataExport + Protection reads (PropertyService, PropertyCalculationService, MortgageService own calc helpers, DataExportService, ProtectionDataReadinessService, SendMortgageRateAlerts).
