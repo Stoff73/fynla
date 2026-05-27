@@ -14,13 +14,13 @@ use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
-use App\Models\Property;
 use App\Models\RetirementProfile;
 use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
@@ -612,25 +612,29 @@ class OnboardingService
         // Process Properties
         if (isset($data['properties']) && is_array($data['properties'])) {
             $totalMonthlyRentalIncome = 0;
+            $user = User::findOrFail($userId);
 
             foreach ($data['properties'] as $propertyData) {
                 $monthlyRental = $propertyData['monthly_rental_income'] ?? 0;
 
-                // Create property record
-                $property = Property::create([
-                    'user_id' => $userId,
-                    'property_type' => $propertyData['property_type'],
-                    'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
-                    'address_line_1' => $propertyData['address_line_1'],
-                    'address_line_2' => $propertyData['address_line_2'] ?? null,
-                    'city' => $propertyData['city'] ?? null,
-                    'postcode' => $propertyData['postcode'] ?? null,
-                    'country' => $propertyData['country'] ?? 'United Kingdom',
-                    'current_value' => $propertyData['current_value'],
-                    'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
-                    'monthly_rental_income' => $monthlyRental,
-                    'annual_rental_income' => $monthlyRental * 12,
-                ]);
+                // Create property record via PropertyStore (IngestSource::FORM — onboarding payload is form-shape).
+                // Note: annual_rental_income is a users column, not a properties column; omit from store payload.
+                $property = app(PropertyStore::class)->create(
+                    [
+                        'property_type' => $propertyData['property_type'],
+                        'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
+                        'address_line_1' => $propertyData['address_line_1'],
+                        'address_line_2' => $propertyData['address_line_2'] ?? null,
+                        'city' => $propertyData['city'] ?? null,
+                        'postcode' => $propertyData['postcode'] ?? null,
+                        'country' => $propertyData['country'] ?? 'United Kingdom',
+                        'current_value' => $propertyData['current_value'],
+                        'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
+                        'monthly_rental_income' => $monthlyRental,
+                    ],
+                    $user,
+                    IngestSource::FORM
+                );
 
                 // Accumulate rental income for updating user's total rental income
                 if ($monthlyRental > 0) {
@@ -662,7 +666,6 @@ class OnboardingService
 
             // Update user's rental income if any buy-to-let properties were added
             if ($totalMonthlyRentalIncome > 0) {
-                $user = User::find($userId);
                 $user->update([
                     'annual_rental_income' => $totalMonthlyRentalIncome * 12,
                 ]);

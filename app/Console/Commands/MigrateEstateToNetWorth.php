@@ -6,7 +6,9 @@ namespace App\Console\Commands;
 
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
-use App\Models\Property;
+use App\Models\User;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\PropertyStore;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -164,28 +166,24 @@ class MigrateEstateToNetWorth extends Command
      */
     private function migrateProperty($asset): void
     {
-        Property::create([
-            'user_id' => $asset->user_id,
+        $user = User::findOrFail($asset->user_id);
+
+        app(PropertyStore::class)->create([
             'household_id' => null, // Will be set when household structure is created
             'trust_id' => null,
-            'property_type' => 'residential', // Default, can be updated manually
+            'property_type' => 'main_residence', // Default, can be updated manually
             'address_line_1' => $asset->asset_name,
             'address_line_2' => null,
             'city' => null,
             'county' => null,
             'postcode' => null,
-            'current_valuation' => $asset->current_valuation,
+            'current_value' => $asset->current_valuation,
             'purchase_price' => $asset->current_valuation, // Assume same as current value
             'purchase_date' => $asset->valuation_date,
             'valuation_date' => $asset->valuation_date,
             'ownership_type' => $asset->ownership_type === 'individual' ? 'individual' : 'joint',
             'ownership_percentage' => $asset->ownership_type === 'individual' ? 100 : 50, // Assume 50/50 for joint
-            'is_main_residence' => false, // Will be updated manually if needed
-            'is_iht_exempt' => $asset->is_iht_exempt,
-            'exemption_reason' => $asset->exemption_reason,
-            'created_at' => $asset->created_at,
-            'updated_at' => $asset->updated_at,
-        ]);
+        ], $user, IngestSource::ADMIN);
     }
 
     /**

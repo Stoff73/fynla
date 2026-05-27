@@ -1590,9 +1590,9 @@ it('persists a Property via the Fyn capture path with IngestSource::FYN_AI', fun
 
 ### Step 4.1: Route DocumentProcessor's property upload through the store
 
-- [ ] **Read `app/Services/Documents/DocumentProcessor.php`** — find the Property-extraction branch (similar shape to Pension's at line ~391).
+- [x] **Read `app/Services/Documents/DocumentProcessor.php`** — find the Property-extraction branch (similar shape to Pension's at line ~391).
 
-- [ ] **Replace** the existing `Property::create(...)` with:
+- [x] **Replace** the existing `Property::create(...)` with:
 
 ```php
 $canonical = app(\App\Services\Stores\Normalisers\PropertyNormaliser::class)->fromUpload($accountData);
@@ -1605,13 +1605,13 @@ $property = app(\App\Services\Stores\PropertyStore::class)->create(
 
 ### Step 4.2: Route OnboardingService property writes through the store
 
-- [ ] **Search OnboardingService for `Property::create` and `->properties()->create`.** Route each through `PropertyStore::create(..., IngestSource::FORM)` (onboarding payload is form-shape).
+- [x] **Search OnboardingService for `Property::create` and `->properties()->create`.** Route each through `PropertyStore::create(..., IngestSource::FORM)` (onboarding payload is form-shape).
 
-- [ ] **If `AssetCaptureEntityExtractor` creates Property rows, route those too.**
+- [x] **If `AssetCaptureEntityExtractor` creates Property rows, route those too.** (Confirmed read-only — no writes to route.)
 
 ### Step 4.3: Route persona seeders through the store
 
-- [ ] **In `PreviewUserSeeder` + `ChrisUserSeeder`,** locate every `Property::create([...])` call. Replace with:
+- [x] **In `PreviewUserSeeder` + `ChrisUserSeeder`,** locate every `Property::create([...])` call. Replace with:
 
 ```php
 app(\App\Services\Stores\PropertyStore::class)->create(
@@ -1621,7 +1621,7 @@ app(\App\Services\Stores\PropertyStore::class)->create(
 );
 ```
 
-- [ ] **Reseed locally** to confirm no failures:
+- [x] **Reseed locally** to confirm no failures:
 
 ```bash
 php artisan db:seed --class=PreviewUserSeeder --force
@@ -1630,11 +1630,11 @@ php artisan db:seed --class=ChrisUserSeeder --force
 
 ### Step 4.4: Route MigrateEstateToNetWorth (if applicable)
 
-- [ ] **Audit `app/Console/Commands/MigrateEstateToNetWorth.php`.** If it persists Property rows (probably from a prior data-migration job), route through `PropertyStore::create(..., IngestSource::ADMIN)`. If the command is a one-shot historical migration that's already been run, document that and leave it (`ADMIN` ingest source can be added retrospectively if the command is ever re-run).
+- [x] **Audit `app/Console/Commands/MigrateEstateToNetWorth.php`.** Persists Property rows — routed through `PropertyStore::create(..., IngestSource::ADMIN)`. The `assets` table exists with 0 rows (migration already run historically), so this is dormant code, but the store routing is correct for any future re-run.
 
 ### Step 4.5: Write the upload-ingest test
 
-- [ ] **Create `tests/Feature/Stores/PropertyUploadIngestTest.php`:**
+- [x] **Create `tests/Feature/Stores/PropertyUploadIngestTest.php`:**
 
 ```php
 <?php
@@ -1676,7 +1676,7 @@ it('persists a Property extraction via PropertyStore with IngestSource::UPLOAD',
 });
 ```
 
-- [ ] **Run, confirm 1 PASS:**
+- [x] **Run, confirm 1 PASS:**
 
 ```bash
 ./vendor/bin/pest tests/Feature/Stores/PropertyUploadIngestTest.php
@@ -1684,18 +1684,13 @@ it('persists a Property extraction via PropertyStore with IngestSource::UPLOAD',
 
 ### Step 4.6: Trim boundary allowlist
 
-- [ ] **Remove from `$propertyConsumers`:**
-  - `App\Services\Documents\DocumentProcessor` (if no residual class-name refs)
-  - `App\Services\Onboarding\OnboardingService` (likely will need to stay as documented residual — onboarding has cross-entity dispatch loops)
-  - `App\Services\Onboarding\AssetCaptureEntityExtractor`
-  - `Database\Seeders\PreviewUserSeeder`, `ChrisUserSeeder`, `LifecycleTestSeeder` — Pass 3 kept these as §14.2 permanent (seeders use `IngestSource::SEEDER`); recategorise rather than remove.
-  - `App\Console\Commands\MigrateEstateToNetWorth`
+- [x] **Remove from `$propertyConsumers`:** Removed `OnboardingService`, `ChrisUserSeeder`, `MigrateEstateToNetWorth` (fully clean). Kept `DocumentProcessor` (residual `Property::class` array-key in registerMappers), `AssetCaptureEntityExtractor` (read-only, deferred PR 5), `PreviewUserSeeder` (residual `Property::where()->delete()` in reset path), `LifecycleTestSeeder` (factory scaffolding). All with PR-numbered comments.
 
-- [ ] **Re-run the boundary test.** Move surviving residuals under "Documented residual NON-QUERY references" with comments.
+- [x] **Re-run the boundary test.** Green (1 assertion, PHP 8.5 `ReflectionMethod::setAccessible()` deprecation is vendor noise, not a test failure).
 
 ### Step 4.7: Commit + open PR 4
 
-- [ ] **Commit + open PR.** Pass 4 progress: 4/8.
+- [x] **Commit + open PR.** Pass 4 progress: 4/8.
 
 ---
 

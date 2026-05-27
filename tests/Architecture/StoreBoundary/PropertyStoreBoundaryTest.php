@@ -37,14 +37,24 @@ $propertyConsumers = [
     // PR 5 routes these reads through PropertyStore::find / forUser. At that
     // point CoordinatingAgent can be fully removed from this allowlist.
     'App\Agents\CoordinatingAgent',
-    // PR 4 removes: upload + onboarding + seeders
+    // PR 4 documented residuals (writes routed; non-write refs remain):
+    //
+    // DocumentProcessor: Property write in confirmExcel() now routes through
+    // PropertyStore::create (IngestSource::UPLOAD). Residual: `Property::class`
+    // used as an array key in registerMappers() — class-name-only reference,
+    // not a mutation or query site. PR 5 will sweep read consumers in this file.
     'App\Services\Documents\DocumentProcessor',
-    'App\Services\Onboarding\OnboardingService',
+    // AssetCaptureEntityExtractor: confirmed read-only (Property::query()
+    // only — no create/update/delete calls). Deferred to PR 5 (read consumers).
     'App\Services\Onboarding\AssetCaptureEntityExtractor',
+    // PreviewUserSeeder: Property write in createProperties() now routes through
+    // PropertyStore::create (IngestSource::SEEDER). Residual: resetPersonaData()
+    // uses Property::where($user->id)->delete() — a bulk-delete reset path
+    // outside the ingest boundary. PR 5 will address remaining direct refs.
     'Database\Seeders\PreviewUserSeeder',
-    'Database\Seeders\ChrisUserSeeder',
+    // LifecycleTestSeeder uses Property factory for test scaffolding;
+    // factory writes are not ingest events.
     'Database\Seeders\LifecycleTestSeeder',
-    'App\Console\Commands\MigrateEstateToNetWorth',
     // PR 5 removes: read consumers (~21 services + Mortgage relationship reads)
     'App\Http\Controllers\Api\MortgageController',
     'App\Services\AI\AdvicePromptBuilder',
