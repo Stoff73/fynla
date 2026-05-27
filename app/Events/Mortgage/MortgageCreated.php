@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Events\Mortgage;
 
 use App\Models\Mortgage;
-use Illuminate\Foundation\Events\Dispatchable;
+use App\Models\User;
+use App\Services\Stores\IngestSource;
 
-final class MortgageCreated
+class MortgageCreated
 {
-    use Dispatchable;
-
     public function __construct(
-        public readonly Mortgage $mortgage,
-        public readonly int $userId,
+        public readonly Mortgage $entity,
+        public readonly User $user,
+        public readonly IngestSource $source,
     ) {}
 }

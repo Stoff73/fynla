@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\MortgageStore;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -55,7 +56,7 @@ it('rejects ownership_type=tenants_in_common', function () {
     ];
 
     expect(fn () => $this->store->create($canonical, $this->user, IngestSource::FORM))
-        ->toThrow(InvalidArgumentException::class, 'tenants_in_common');
+        ->toThrow(StoreValidationException::class);
 });
 
 it('returns joint-aware reads via forUser', function () {
@@ -77,4 +78,68 @@ it('finds mortgages for a given property', function () {
     Mortgage::factory()->create(['user_id' => $this->user->id, 'property_id' => $this->property->id]);
 
     expect($this->store->forProperty($this->property->id, $this->user)->count())->toBe(2);
+});
+
+it('soft-deletes and restores a mortgage', function () {
+    $mortgage = Mortgage::factory()->create([
+        'user_id' => $this->user->id,
+        'property_id' => $this->property->id,
+    ]);
+
+    $this->store->delete($mortgage->id, $this->user, IngestSource::FORM);
+
+    expect(Mortgage::find($mortgage->id))->toBeNull();
+    expect(Mortgage::withTrashed()->find($mortgage->id))->not->toBeNull();
+
+    $restored = $this->store->restore($mortgage->id, $this->user, IngestSource::FORM);
+
+    expect($restored)->not->toBeNull();
+    expect($restored->deleted_at)->toBeNull();
+});
+
+it('updateOrCreate creates a new mortgage when no match exists', function () {
+    $canonical = [
+        'user_id' => $this->user->id,
+        'property_id' => $this->property->id,
+        'lender_name' => 'Santander',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 300000.00,
+        'monthly_payment' => 1800.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ];
+
+    $mortgage = $this->store->updateOrCreate($canonical, $this->user, IngestSource::SEEDER);
+
+    expect($mortgage->wasRecentlyCreated)->toBeTrue();
+    expect(Mortgage::where('lender_name', 'Santander')->count())->toBe(1);
+});
+
+it('updateOrCreate updates an existing mortgage matched by (user_id, property_id, lender_name)', function () {
+    $existing = Mortgage::factory()->create([
+        'user_id' => $this->user->id,
+        'property_id' => $this->property->id,
+        'lender_name' => 'Halifax',
+        'outstanding_balance' => 200000.00,
+        'monthly_payment' => 1200.00,
+        'mortgage_type' => 'repayment',
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $canonical = [
+        'user_id' => $this->user->id,
+        'property_id' => $this->property->id,
+        'lender_name' => 'Halifax',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 150000.00,
+        'monthly_payment' => 1200.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ];
+
+    $result = $this->store->updateOrCreate($canonical, $this->user, IngestSource::SEEDER);
+
+    expect($result->id)->toBe($existing->id);
+    expect((float) $result->outstanding_balance)->toEqual(150000.0);
 });

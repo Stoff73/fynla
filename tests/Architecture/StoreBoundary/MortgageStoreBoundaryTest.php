@@ -36,7 +36,7 @@ it('enforces MortgageStore as the only write path for Mortgage', function () {
     ];
 
     $patterns = [
-        '/\bMortgage::(create|insert|update|save|delete|forceDelete|restore|truncate)\b/',
+        '/\bMortgage::(create|insert|update|updateOrCreate|save|delete|forceDelete|restore|truncate)\b/',
         '/->mortgages\(\)->(create|insert|save|update|delete|forceDelete)\b/',
     ];
 

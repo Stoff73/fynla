@@ -34,7 +34,7 @@ final class MortgageNormaliser
         // Fyn AI passes user-friendly field names; map to canonical schema.
         $mapped = [
             'property_id' => $data['property_id'] ?? null,
-            'lender_name' => $data['lender_name'] ?? $data['lender'] ?? 'To be completed',
+            'lender_name' => $data['lender_name'] ?? $data['lender'] ?? null,
             'mortgage_type' => $data['mortgage_type'] ?? 'repayment',
             'original_loan_amount' => $data['original_loan_amount'] ?? $data['original_amount'] ?? null,
             'outstanding_balance' => $data['outstanding_balance'] ?? $data['outstanding_mortgage'] ?? $data['balance'] ?? 0,

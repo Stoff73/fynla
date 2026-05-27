@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\Events\Mortgage;
 
 use App\Models\Mortgage;
-use Illuminate\Foundation\Events\Dispatchable;
+use App\Models\User;
+use App\Services\Stores\IngestSource;
 
-final class MortgageUpdated
+class MortgageUpdated
 {
-    use Dispatchable;
-
     /**
-     * @param  array<string, array{0: mixed, 1: mixed}>  $dirty  Map of changed field → [from, to]
+     * @param  array<string, mixed>  $changes  Eloquent getDirty() diff captured pre-save.
      */
     public function __construct(
-        public readonly Mortgage $mortgage,
-        public readonly int $userId,
-        public readonly array $dirty,
+        public readonly Mortgage $entity,
+        public readonly array $changes,
+        public readonly User $user,
+        public readonly IngestSource $source,
     ) {}
 }

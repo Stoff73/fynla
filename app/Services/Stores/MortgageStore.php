@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Stores;
 
+use App\Constants\ValidationLimits;
 use App\Events\Mortgage\MortgageCreated;
 use App\Events\Mortgage\MortgageDeleted;
 use App\Events\Mortgage\MortgageRestored;
@@ -11,11 +12,11 @@ use App\Events\Mortgage\MortgageUpdated;
 use App\Models\AuditLog;
 use App\Models\Mortgage;
 use App\Models\User;
+use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
-use RuntimeException;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Canonical store for Mortgage entities. Every read and write of
@@ -27,10 +28,11 @@ use RuntimeException;
  *
  * Tier-cap key: 'mortgage' (free=10 by default, tier1+=null).
  *
- * Cross-store recalc: every write fires a Mortgage event which triggers
- * PropertyStore::recalculateDerivedForPropertyId. See §4.7 of the Pass 5 plan.
+ * Cross-store recalc (PR 6, deferred): writes will fire events consumed by a
+ * PropertyStore listener that recomputes properties.outstanding_mortgage from
+ * the canonical mortgages sum.
  */
-final class MortgageStore
+class MortgageStore
 {
     public const ENTITY_KEY = 'mortgage';
 
@@ -93,43 +95,41 @@ final class MortgageStore
         $this->validateCanonical($canonical, partial: false);
         $this->enforceTierCap($user);
 
-        return AuditLog::withContext(
+        $mortgage = AuditLog::withContext(
             ['ingest_source' => $source->value],
-            fn () => DB::transaction(function () use ($canonical, $user) {
-                $mortgage = Mortgage::create($canonical);
-                MortgageCreated::dispatch($mortgage, $user->id);
-
-                return $mortgage;
+            fn () => DB::transaction(function () use ($canonical) {
+                return Mortgage::create($canonical);
             })
         );
+
+        event(new MortgageCreated($mortgage, $user, $source));
+
+        return $mortgage;
     }
 
     /**
      * @param  array<string, mixed>  $canonical  Partial — only changed fields
      */
-    public function update(Mortgage $mortgage, array $canonical, User $user, IngestSource $source): Mortgage
+    public function update(int $id, array $canonical, User $user, IngestSource $source): Mortgage
     {
-        if ($mortgage->user_id !== $user->id) {
-            throw new RuntimeException('Cannot update a mortgage you do not own (joint owners are read-only)');
-        }
+        $mortgage = Mortgage::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $this->validateCanonical($canonical, partial: true);
 
         $result = AuditLog::withContext(
             ['ingest_source' => $source->value],
             fn () => DB::transaction(function () use ($mortgage, $canonical) {
                 $mortgage->fill($canonical);
-                $dirty = $mortgage->getDirty();
                 $changes = [];
-                foreach ($dirty as $field => $newValue) {
+                foreach ($mortgage->getDirty() as $field => $newValue) {
                     $changes[$field] = [$mortgage->getOriginal($field), $newValue];
                 }
                 $mortgage->save();
 
-                return ['fresh' => $mortgage->fresh(), 'dirty' => $changes];
+                return ['fresh' => $mortgage->fresh(), 'changes' => $changes];
             })
         );
 
-        MortgageUpdated::dispatch($result['fresh'], $user->id, $result['dirty']);
+        event(new MortgageUpdated($result['fresh'], $result['changes'], $user, $source));
 
         return $result['fresh'];
     }
@@ -145,7 +145,7 @@ final class MortgageStore
 
         return AuditLog::withContext(
             ['ingest_source' => $source->value],
-            fn () => DB::transaction(function () use ($canonical, $user) {
+            fn () => DB::transaction(function () use ($canonical, $user, $source) {
                 $existing = Mortgage::where('user_id', $user->id)
                     ->where('property_id', $canonical['property_id'])
                     ->where('lender_name', $canonical['lender_name'])
@@ -153,26 +153,29 @@ final class MortgageStore
 
                 if ($existing) {
                     $existing->fill($canonical);
+                    $changes = [];
+                    foreach ($existing->getDirty() as $field => $newValue) {
+                        $changes[$field] = [$existing->getOriginal($field), $newValue];
+                    }
                     $existing->save();
-                    MortgageUpdated::dispatch($existing->fresh(), $user->id, []);
+                    $fresh = $existing->fresh();
+                    event(new MortgageUpdated($fresh, $changes, $user, $source));
 
-                    return $existing->fresh();
+                    return $fresh;
                 }
 
                 $this->enforceTierCap($user);
                 $mortgage = Mortgage::create($canonical);
-                MortgageCreated::dispatch($mortgage, $user->id);
+                event(new MortgageCreated($mortgage, $user, $source));
 
                 return $mortgage;
             })
         );
     }
 
-    public function delete(Mortgage $mortgage, User $user, IngestSource $source, bool $force = false): void
+    public function delete(int $id, User $user, IngestSource $source, bool $force = false): void
     {
-        if ($mortgage->user_id !== $user->id) {
-            throw new RuntimeException('Cannot delete a mortgage you do not own');
-        }
+        $mortgage = Mortgage::where('id', $id)->where('user_id', $user->id)->firstOrFail();
 
         AuditLog::withContext(
             ['ingest_source' => $source->value],
@@ -181,7 +184,7 @@ final class MortgageStore
             })
         );
 
-        MortgageDeleted::dispatch($mortgage, $user->id, $force);
+        event(new MortgageDeleted($mortgage, $user, $source, $force));
     }
 
     public function restore(int $id, User $user, IngestSource $source): Mortgage
@@ -198,9 +201,10 @@ final class MortgageStore
             })
         );
 
-        MortgageRestored::dispatch($mortgage->fresh(), $user->id);
+        $fresh = $mortgage->fresh();
+        event(new MortgageRestored($fresh, $user, $source));
 
-        return $mortgage->fresh();
+        return $fresh;
     }
 
     // ─── INTERNAL ──────────────────────────────────────────────────────────
@@ -225,31 +229,29 @@ final class MortgageStore
      */
     private function validateCanonical(array $canonical, bool $partial): void
     {
-        if (! $partial) {
-            foreach (['property_id', 'user_id', 'lender_name', 'mortgage_type', 'outstanding_balance', 'monthly_payment', 'ownership_type', 'ownership_percentage'] as $required) {
-                if (! array_key_exists($required, $canonical)) {
-                    throw new InvalidArgumentException("Missing required field: {$required}");
-                }
-            }
-        }
+        $rules = [
+            'property_id' => ($partial ? 'sometimes|' : 'required|').'integer|exists:properties,id',
+            'user_id' => ($partial ? 'sometimes|' : 'required|').'integer|exists:users,id',
+            'lender_name' => ($partial ? 'sometimes|' : 'required|').'string|max:255',
+            'mortgage_type' => ($partial ? 'sometimes|' : 'required|').'in:repayment,interest_only,mixed',
+            'outstanding_balance' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::currencyRules(false),
+            'monthly_payment' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::currencyRules(false),
+            'ownership_type' => ($partial ? 'sometimes|' : 'required|').'in:individual,joint',
+            'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),
+            'interest_rate' => 'sometimes|nullable|numeric|min:0|max:100',
+            'rate_type' => 'sometimes|nullable|in:fixed,variable,tracker,discount,capped,offset',
+            'original_loan_amount' => 'sometimes|nullable|'.ValidationLimits::currencyRules(false),
+            'remaining_term_months' => 'sometimes|nullable|integer|min:0|max:600',
+            'start_date' => 'sometimes|nullable|date',
+            'maturity_date' => 'sometimes|nullable|date',
+            'joint_owner_id' => 'sometimes|nullable|integer|exists:users,id',
+            'joint_owner_name' => 'sometimes|nullable|string|max:255',
+            'notes' => 'sometimes|nullable|string|max:1000',
+        ];
 
-        if (isset($canonical['ownership_type']) && ! in_array($canonical['ownership_type'], ['individual', 'joint'], true)) {
-            throw new InvalidArgumentException("Invalid ownership_type: {$canonical['ownership_type']} (mortgages do not support tenants_in_common)");
-        }
-
-        if (isset($canonical['mortgage_type']) && ! in_array($canonical['mortgage_type'], ['repayment', 'interest_only', 'mixed'], true)) {
-            throw new InvalidArgumentException("Invalid mortgage_type: {$canonical['mortgage_type']}");
-        }
-
-        if (isset($canonical['outstanding_balance']) && (float) $canonical['outstanding_balance'] < 0) {
-            throw new InvalidArgumentException('outstanding_balance must be >= 0');
-        }
-
-        if (isset($canonical['ownership_percentage'])) {
-            $pct = (float) $canonical['ownership_percentage'];
-            if ($pct < 0 || $pct > 100) {
-                throw new InvalidArgumentException('ownership_percentage must be between 0 and 100');
-            }
+        $validator = Validator::make($canonical, $rules);
+        if ($validator->fails()) {
+            throw new StoreValidationException($validator->errors()->toArray());
         }
     }
 }
