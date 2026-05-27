@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Property\MortgageService;
 use App\Services\Property\PropertyService;
 use App\Services\Property\PropertyTaxService;
+use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\MortgageStore;
@@ -335,12 +336,20 @@ class PropertyController extends Controller
         // through MortgageStore::delete (SP1 Pass 5 PR 4) so audit + event semantics
         // mirror the per-record delete path.
         $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
-        foreach ($this->mortgageStore->forProperty($property->id, $user) as $mortgage) {
-            $this->mortgageStore->delete($mortgage->id, $user, IngestSource::FORM);
-        }
 
-        // Route Property soft-delete through PropertyStore (SP1 Pass 4 PR 2).
-        $this->propertyStore->delete($id, $user, 'user_requested');
+        // Atomic cascade: primary-only filter (joint owners are READ-ONLY in MortgageStore).
+        // Wrapped in DB::transaction so the property never lingers if a mortgage delete
+        // fails midway through the loop.
+        \DB::transaction(function () use ($property, $user, $id) {
+            $primaryMortgages = $this->mortgageStore->forProperty($property->id, $user)
+                ->where('user_id', $user->id);
+            foreach ($primaryMortgages as $mortgage) {
+                $this->mortgageStore->delete($mortgage->id, $user, IngestSource::FORM);
+            }
+
+            // Route Property soft-delete through PropertyStore (SP1 Pass 4 PR 2).
+            $this->propertyStore->delete($id, $user, 'user_requested');
+        });
 
         // Sync rental income after deletion
         $this->syncUserRentalIncome($user);

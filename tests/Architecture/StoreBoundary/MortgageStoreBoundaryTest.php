@@ -32,6 +32,7 @@ it('enforces MortgageStore as the only write path for Mortgage', function () {
         //               LifecycleTestSeeder also confirmed clean (no mortgage refs).
         'app/Console/Commands/EncryptExistingData.php',            // PR 8 LOCKED — pre-existing migration command
         'app/Console/Commands/ResetPreviewData.php',               // PR 8 LOCKED — admin reset
+        'database/seeders/PreviewUserSeeder.php',                  // PR 8 LOCKED — deleteUserData pre-seed bulk cleanup (not a user-facing write path; persona reset is admin-style)
     ];
 
     $patterns = [
