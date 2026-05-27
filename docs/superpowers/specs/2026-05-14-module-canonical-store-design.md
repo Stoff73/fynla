@@ -2,7 +2,8 @@
 title: Module Canonical Store-and-Retrieve Contract
 date: 2026-05-14
 sub_project: 1 of 6 (Fynla major-overhaul series)
-status: APPROVED — all 7 open questions resolved 2026-05-14; ready for implementation-plan pass
+status: APPROVED — all 7 open questions resolved 2026-05-14; passes 1–3 DONE, pass 4 (Properties) in flight at 4/8 PRs, passes 5–14 pending
+last_updated: 2026-05-27
 author: Claude (Opus 4.7) + CSJ
 related_specs: (forthcoming) freemium-tier-model, mobile-first-iframe-shell, campaign-engine, track-onboarding, gamification
 ---
@@ -15,7 +16,7 @@ Fynla is undergoing a major overhaul covering six independent sub-projects:
 
 | # | Sub-project | Status |
 |---|-------------|--------|
-| **1** | **Module canonical store-and-retrieve contract** *(this doc)* | APPROVED — pass 1 (Savings) DONE; pass 2 (Reference Data) DONE; pass 3 (Pensions) plan written, PR 1 next; passes 4–14 pending |
+| **1** | **Module canonical store-and-retrieve contract** *(this doc)* | APPROVED — pass 1 (Savings) DONE; pass 2 (Reference Data, R1–R4) DONE; pass 3 (Pensions) DONE (8 PRs + close-out #385); pass 4 (Properties) IN FLIGHT — 4/8 PRs merged (#387, #388, #389, #390); passes 5–14 pending |
 | 2 | Freemium tier model + count caps + Fyn agent metering | shipped to prod 2026-05-19 (PRs #336 / #337 / #340; supersedes parked #317) |
 | 3 | Mobile-first surface via iframe-framed `/m/*` route | in progress — iframe scaffold + drill-down UI shipped to dev (PR #375 open) |
 | 4 | Campaign engine (Save Tax landing pages, future campaigns) | not started |
@@ -757,20 +758,20 @@ A new entity's PR 1 only opens after the previous entity's PR 8 has shipped to m
 |------|--------|--------|-------------------|
 | 1 | **Savings (bank/cash accounts)** | **DONE** (8 PRs, #305–#323, locked) | Simple, frequent Fyn-capture target. Modest consumer surface. Proved the pattern. |
 | 2 | **Reference data (R1–R4)** | **DONE** (26 PRs across R1–R4 tracks, all locked) | Pulled forward from pass 14 to close B2 (`tax_configurations` wrong + admin views not wired) early, while the store template from pass 1 was still fresh. Every subsequent entity migrates against a clean tax-config foundation. |
-| 3 | **Pensions** | plan written, PR 1 next | Most complex single entity (DC + DB + State + InputHistory + contributions + tax). If pattern survives this, it survives anything. |
-| 4 | **Properties** | pending | Heavy consumer surface (dashboard, IHT, what-if, mortgage). High user value. |
-| 5 | **Liabilities** | pending | Pairs with properties (mortgages). Logical next. |
-| 6 | **Investments** | pending | Multi-table (`investment_accounts` + `holdings` + `investment_transactions`). |
-| 7 | **Income** + **Expenditure** | pending | Cross-cutting financial inputs; near-twin entities. |
-| 8 | **Protection** | pending | Insurance policies. |
-| 9 | **Family members** | pending | Foundational but lightly consumed. |
-| 10 | **Goals + life events** | pending | Already partly modernised. |
-| 11 | **Chattels** | pending | Simple, low priority. |
-| 12 | **Business interests** | pending | Small surface. |
-| 13 | **Trusts** | pending | Paid-tier feature; small surface. |
-| 14 | **Wills** + **LPAs** | pending | Repurposed from builders — biggest *behaviour* change but smallest *data* change. |
+| 3 | **Pensions** (DC + DB + State + InputHistory) | **DONE** (8 PRs + close-out #385, locked) | Most complex single entity. Pattern survived multi-table cross-record (contributions, InputHistory) handling. Three-ingest parity test (`PensionThreeIngestParityTest`) shipped with close-out. No joint-ownership (UK pensions are single-owner) — Properties (pass 4) restores joint-aware reads from the Savings template. |
+| 4 | **Properties** | **IN FLIGHT** — 4/8 PRs merged (PR 1 #387 facade + boundary + normaliser + 4 events; PR 2 #388 HTTP form requests + cross-store Option A tier-limit shape; PR 3 #389 Fyn AI write tools + DB::transaction atomicity; PR 4 #390 upload + onboarding + seeders, incl. `PropertyNormaliser::fromForm` seam in OnboardingService). PR 5 (read consumers, sub-clustered ~21 files — biggest PR of this pass) next. PR 6 derived columns + snapshot table; PR 7 tier-cap test; PR 8 lock-down + parity + audit + `PropertyStore.md`. | Heavy consumer surface (dashboard, IHT, what-if, mortgage). High user value. Second joint-aware entity (after Savings). |
+| 5 | **Liabilities** | pending — no plan | Pairs with properties (mortgages — `properties.outstanding_mortgage` is currently a denormalised cache; Pass 5 reconciles against the `mortgages` table as the canonical source). Logical next after Properties. |
+| 6 | **Investments** | pending — no plan | Multi-table (`investment_accounts` + `holdings` + `investment_transactions`). |
+| 7 | **Income** + **Expenditure** | pending — no plan | Cross-cutting financial inputs; near-twin entities. |
+| 8 | **Protection** | pending — no plan | Insurance policies. |
+| 9 | **Family members** | pending — no plan | Foundational but lightly consumed. |
+| 10 | **Goals + life events** | pending — no plan | Already partly modernised. |
+| 11 | **Chattels** | pending — no plan | Simple, low priority. Inherits same `current_valuation` → `current_value` bug pattern surfaced in Pass 4 PR 4 (`MigrateEstateToNetWorth::migrateChattel:223` still writes `current_valuation`) — apply same fix during this pass. |
+| 12 | **Business interests** | pending — no plan | Small surface. Same `current_valuation` bug-pattern as Chattels (`MigrateEstateToNetWorth::migrateBusiness:201`) — apply same fix during this pass. |
+| 13 | **Trusts** | pending — no plan | Paid-tier feature; small surface. |
+| 14 | **Wills** + **LPAs** | pending — no plan | Repurposed from builders — biggest *behaviour* change but smallest *data* change. |
 
-Order between passes 4 and 14 can flex based on what surfaces during the work; passes 1, 2, and 3 are fixed (per the brainstorming agreement, with reference data pulled forward to pass 2 on 2026-05-14 to close B2 early).
+Order between passes 5 and 14 can flex based on what surfaces during the work; passes 1, 2, 3, and 4 are fixed (passes 1–3 shipped to main; pass 4 plan is canonical at `docs/superpowers/plans/2026-05-26-sub-project-1-pass-4-properties-plan.md`).
 
 ### 15.4 What we ship per entity
 
@@ -801,11 +802,11 @@ For each entity, the end-state deliverables are:
 
 ### 16.2 Sub-project-wide acceptance
 
-1. All 13 user-data entities + 2 document-storage entities + 4 reference-data entities have stores. **Progress: 5 of 19 shipped (Savings + 4 ref-data).**
-2. Pest architecture test suite is green for the full set. **Progress: 5 boundary tests locked (`SavingsStoreBoundaryTest`, `TaxConfigStoreBoundaryTest`, `ActuarialLifeTableStoreBoundaryTest`, `CurrencyRateStoreBoundaryTest`, `SavingsMarketRateStoreBoundaryTest`).**
+1. All 13 user-data entities + 2 document-storage entities + 4 reference-data entities have stores meeting §16.1. **Progress: 6 of 19 fully shipped (Savings + 4 ref-data + Pensions). Properties in flight — store class + boundary + normaliser shipped (PR 1 #387), all three ingest paths routed (PRs 2–4), but §16.1 acceptance (derived columns + snapshot policy + tier-cap test + three-ingest parity + Store.md) lands across PRs 5–8.**
+2. Pest architecture test suite is green for the full set. **Progress: 7 boundary tests passing (`SavingsStoreBoundaryTest`, `TaxConfigStoreBoundaryTest`, `ActuarialLifeTableStoreBoundaryTest`, `CurrencyRateStoreBoundaryTest`, `SavingsMarketRateStoreBoundaryTest`, `PensionStoreBoundaryTest`, `PropertyStoreBoundaryTest`). All 7 enforce as hard-fail from their respective PR 1; the "lock-down" PR 8 trims the allowlist to its final form rather than flipping a soft→hard switch.**
 3. `tax_configurations` is fully editable from the admin panel (B2 closed). **DONE — admin CRUD via `TaxSettingsController` → `TaxConfigStore` (PRs R1.2 #365, R1.5 #372).**
-4. Fyn AI three-turn capture-and-read parity test passes for every entity (B1 closed). **Progress: Savings parity test shipped (#324); pattern to be replicated per entity in subsequent passes.**
-5. Documentation: each entity has an `app/Services/Stores/{Entity}Store.md` explaining its derived columns, snapshot policy, and tier caps. **Progress: 5 of 19 docs landed (`SavingsStore.md`, `TaxConfigStore.md`, `ActuarialLifeTableStore.md`, `CurrencyRateStore.md`, `SavingsMarketRateStore.md`).**
+4. Fyn AI three-turn capture-and-read parity test passes for every entity (B1 closed). **Progress: 2 of 13 user-data entities have parity tests shipped (`SavingsThreeIngestParityTest` #324, `PensionThreeIngestParityTest` PR #385). Properties parity test lands in PR 8 of Pass 4 (incl. `tenants_in_common` case per CLAUDE.md Rule #5).**
+5. Documentation: each entity has an `app/Services/Stores/{Entity}Store.md` explaining its derived columns, snapshot policy, and tier caps. **Progress: 6 of 19 docs landed (`SavingsStore.md`, `TaxConfigStore.md`, `ActuarialLifeTableStore.md`, `CurrencyRateStore.md`, `SavingsMarketRateStore.md`, `PensionStore.md`). `PropertyStore.md` ships in Pass 4 PR 8.**
 
 ---
 
@@ -881,14 +882,35 @@ Approved 2026-05-14 — all seven open questions resolved by CSJ (see §20).
 |------|--------|------|--------|------------|
 | 1 | Savings | `docs/superpowers/plans/2026-05-14-sub-project-1-pass-1-savings-plan.md` | DONE — 8 PRs (#305–#323), boundary locked | Three-ingest parity #324; `SavingsStore.md`; derived columns + snapshots #321; tier-cap hook #322 |
 | 2 | Reference data (R1–R4) | `docs/superpowers/plans/2026-05-21-sub-project-1-pass-2-reference-data-plan.md` | DONE — 26 PRs across R1/R2/R3/R4 tracks, all locked | Four `*Store.md` docs (#373); admin UI for tax / actuarial / FX / savings-rates; B2 closed (#372) |
-| 3 | Pensions | `docs/superpowers/plans/2026-05-24-sub-project-1-pass-3-pensions-plan.md` (4200 lines) | plan + PR 0 audit (#376) shipped; PR 1 next | per §16.1 |
-| 4–14 | Properties → Wills/LPAs | not yet written | pending — §15.2 forbids more than one entity in flight at a time | per §16.1 |
+| 3 | Pensions (DC + DB + State + InputHistory) | `docs/superpowers/plans/2026-05-24-sub-project-1-pass-3-pensions-plan.md` (4200 lines) | DONE — 8 PRs + close-out PR #385, boundary locked | `PensionStore.md` + `PensionThreeIngestParityTest` (#385); derived columns + snapshots; tier-cap hook; multi-table cross-record (contributions + InputHistory) pattern proven |
+| 4 | Properties | `docs/superpowers/plans/2026-05-26-sub-project-1-pass-4-properties-plan.md` (2743 lines) | IN FLIGHT — 4/8 PRs merged. PR 1 #387 (facade + boundary + `PropertyNormaliser` + 4 events). PR 2 #388 (HTTP form requests + Option A cross-store tier-limit response shape). PR 3 #389 (Fyn AI write tools + `DB::transaction` atomicity). PR 4 #390 (upload + onboarding + seeders + `PropertyStore::updateOrCreate` consumed by `ChrisUserSeeder`; `PropertyNormaliser::fromForm` seam in `OnboardingService`; 2 pre-existing bug fixes disclosed: `current_valuation`→`current_value`, `annual_rental_income` column-mismatch drop). | PR 5 read consumers (sub-clustered ~21 files), PR 6 derived columns + snapshot table, PR 7 tier-cap test, PR 8 lock-down + audit + `PropertyStore.md` + `PropertyThreeIngestParityTest` (incl. `tenants_in_common` case). Per §16.1. |
+| 5 | Liabilities (incl. mortgages) | not yet written | pending — §15.2 forbids more than one entity in flight at a time | per §16.1 |
+| 6 | Investments | not yet written | pending | per §16.1 |
+| 7 | Income + Expenditure | not yet written | pending | per §16.1 |
+| 8 | Protection | not yet written | pending | per §16.1 |
+| 9 | Family members | not yet written | pending | per §16.1 |
+| 10 | Goals + life events | not yet written | pending | per §16.1 |
+| 11 | Chattels | not yet written | pending — sweep `current_valuation`→`current_value` fix in `MigrateEstateToNetWorth::migrateChattel:223` during this pass | per §16.1 |
+| 12 | Business interests | not yet written | pending — sweep `current_valuation`→`current_value` fix in `MigrateEstateToNetWorth::migrateBusiness:201` during this pass | per §16.1 |
+| 13 | Trusts | not yet written | pending | per §16.1 |
+| 14 | Wills + LPAs | not yet written | pending | per §16.1 |
 
 ### 21.2 Contract status
 
 **APPROVED as a living contract.** The spec is the authoritative description of the canonical store/retrieve pattern. Per-entity `app/Services/Stores/{Entity}Store.md` docs are the source of truth for each shipped store's exact API surface, allowlist, and migration history.
 
-When implementation evolves the contract (e.g. extending `forUser` with joint-owner eager-loading, splitting the original `recalculateDerived/snapshotIfPolicySays/emitEvent` triple into a single recalc + inline `event()` dispatch), this spec is updated to match — not the other way round. The contract follows what consumers actually need; what consumers don't need does not get built.
+When implementation evolves the contract (e.g. extending `forUser` with joint-owner eager-loading, splitting the original `recalculateDerived/snapshotIfPolicySays/emitEvent` triple into a single recalc + inline `event()` dispatch, adding `updateOrCreate` for seeder-idempotency callers as in Pass 4 PR 4), this spec is updated to match — not the other way round. The contract follows what consumers actually need; what consumers don't need does not get built.
+
+### 21.3 Living progress log
+
+| Date | Update |
+|------|--------|
+| 2026-05-14 | Spec approved; all 7 open questions resolved. |
+| 2026-05-23 (approx) | Pass 1 (Savings) DONE — 8 PRs + parity test. Pattern established. |
+| 2026-05-24 (approx) | Pass 2 (Reference data R1–R4) DONE — 26 PRs, B2 closed, admin UI live. |
+| 2026-05-26 | Pass 3 (Pensions) DONE — 8 PRs + close-out PR #385 (`PensionStore.md` + `PensionThreeIngestParityTest`). Multi-table cross-record pattern proven. |
+| 2026-05-26 | Pass 4 (Properties) plan written (`docs/superpowers/plans/2026-05-26-sub-project-1-pass-4-properties-plan.md`, 2743 lines). PR 1 #387 + PR 2 #388 + PR 3 #389 merged same day via subagent-driven-development workflow. |
+| 2026-05-27 | Pass 4 PR 4 #390 merged (`df357e9`). 4/8 PRs done. Outstanding for Pass 4: PR 5 (read consumers, sub-clustered ~21 files), PR 6 (derived columns + snapshot table), PR 7 (tier-cap test), PR 8 (lock-down + audit + Store.md + parity). Two cross-pass debts surfaced: `current_valuation`→`current_value` sibling bug in `MigrateEstateToNetWorth` chattel/business branches (route through Pass 11/12). |
 
 ---
 
