@@ -8,7 +8,6 @@ use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;

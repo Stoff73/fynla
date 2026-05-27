@@ -13,7 +13,6 @@ use App\Models\CriticalIllnessPolicy;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;

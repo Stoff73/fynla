@@ -10,7 +10,6 @@ use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
 use App\Services\Stores\MortgageStore;
@@ -41,8 +40,8 @@ final class DuplicateAcknowledgement
 {
     public function __construct(
         private readonly AssetCaptureEntityExtractor $extractor,
-        private readonly MortgageStore $mortgageStore,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**

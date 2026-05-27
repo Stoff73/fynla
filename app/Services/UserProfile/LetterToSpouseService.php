@@ -14,8 +14,8 @@ use Carbon\Carbon;
 class LetterToSpouseService
 {
     public function __construct(
-        private readonly MortgageStore $mortgageStore,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
