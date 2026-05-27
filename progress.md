@@ -86,3 +86,9 @@
 - Status: clean, pushed
 - Shipped: CoALA implementation plan v0.4 (734 lines + 6 mermaid diagrams), non-technical stakeholder brief, two self-contained HTML render artifacts, six engineering-ready implementation PRDs (one per phase, 1,525 lines total). Docs-only — no code changes, no deploys.
 - Next: embeddings-provider decision for Phase 1, Option A vs B confirm for class structure, Phase 5 cache-telemetry sub-plan as standalone PR, stakeholder review scheduled, resume SP1 Pass 4 if queue has bandwidth.
+
+## 2026-05-27 — session 3 (context-handover tripwire)
+- Handover: [[handover-2026-05-27-session-3-clear]]
+- Branch: dev (tip c972fff → handover commit d2b4b1c)
+- WIP commit: none (tree clean after PR 8 merge)
+- Pick up at: update spec doc for Pass 4 close-out, then start Pass 5 (Liabilities) — brainstorm vs plan-write CSJ decision
