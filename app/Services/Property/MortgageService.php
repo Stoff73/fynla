@@ -7,10 +7,17 @@ namespace App\Services\Property;
 use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use Carbon\Carbon;
 
 class MortgageService
 {
+    public function __construct(
+        private readonly MortgageStore $mortgageStore,
+    ) {}
+
     /**
      * Create a mortgage record from property form data
      *
@@ -32,7 +39,6 @@ class MortgageService
 
         $mortgageData = [
             'property_id' => $property->id,
-            'user_id' => $user->id,
             'lender_name' => $validated['mortgage_lender_name'] ?? 'To be completed',
             'mortgage_type' => $validated['mortgage_type'] ?? 'repayment',
             'repayment_percentage' => $validated['mortgage_repayment_percentage'] ?? null,
@@ -76,7 +82,9 @@ class MortgageService
             }
         }
 
-        return Mortgage::create($mortgageData);
+        $canonical = MortgageNormaliser::fromForm($mortgageData, $user);
+
+        return $this->mortgageStore->create($canonical, $user, IngestSource::FORM);
     }
 
     /**

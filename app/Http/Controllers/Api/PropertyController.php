@@ -17,6 +17,7 @@ use App\Services\Property\PropertyService;
 use App\Services\Property\PropertyTaxService;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\PropertyStore;
 use App\Traits\CalculatesOwnershipShare;
@@ -44,6 +45,7 @@ class PropertyController extends Controller
         private readonly MortgageService $mortgageService,
         private readonly PropertyStore $propertyStore,
         private readonly PropertyNormaliser $propertyNormaliser,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -329,10 +331,13 @@ class PropertyController extends Controller
         $user = $request->user();
 
         // Soft-delete associated mortgages first (SQL CASCADE only fires on hard DELETE,
-        // not soft-delete, so we must cascade manually). Mortgage handling stays in the
-        // controller until Pass 5 introduces MortgageStore.
+        // not soft-delete, so we must cascade manually). Each mortgage is routed
+        // through MortgageStore::delete (SP1 Pass 5 PR 4) so audit + event semantics
+        // mirror the per-record delete path.
         $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
-        $property->mortgages()->delete();
+        foreach ($this->mortgageStore->forProperty($property->id, $user) as $mortgage) {
+            $this->mortgageStore->delete($mortgage->id, $user, IngestSource::FORM);
+        }
 
         // Route Property soft-delete through PropertyStore (SP1 Pass 4 PR 2).
         $this->propertyStore->delete($id, $user, 'user_requested');

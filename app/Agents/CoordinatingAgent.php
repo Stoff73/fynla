@@ -2503,10 +2503,12 @@ class CoordinatingAgent extends BaseAgent
         $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
 
         // Mortgage auto-create — flagged via has_mortgage OR by legacy
-        // outstanding_mortgage / mortgage_outstanding_balance fields. The
-        // mortgage write stays inline until Pass 5 routes it through MortgageStore.
-        // Wrap both writes in DB::transaction so a mortgage failure rolls back the
-        // property — atomicity invariant carried over from the pre-PR handler.
+        // outstanding_mortgage / mortgage_outstanding_balance fields. Routed
+        // through MortgageStore (Pass 5 PR 4). Both writes stay wrapped in
+        // DB::transaction so a mortgage failure rolls back the property —
+        // atomicity invariant carried over from the pre-PR handler. Nested
+        // DB::transaction (the store opens its own) is safe under Laravel
+        // savepoints.
         $mortgageBalance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
         $hasMortgage = ! empty($input['has_mortgage'])
             || (is_numeric($mortgageBalance) && (float) $mortgageBalance > 0);
@@ -2522,12 +2524,12 @@ class CoordinatingAgent extends BaseAgent
                 if ($hasMortgage) {
                     $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
                     $mortgagePayload = [
-                        'user_id' => $user->id,
                         'property_id' => $property->id,
-                        'lender_name' => $input['mortgage_lender'] ?? null,
+                        'lender_name' => $input['mortgage_lender'] ?? 'To be completed',
                         'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
                         'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
                         'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
+                        'monthly_payment' => 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipPct,
                     ];
@@ -2544,7 +2546,11 @@ class CoordinatingAgent extends BaseAgent
                         $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
                     }
 
-                    Mortgage::create($mortgagePayload);
+                    // Route through MortgageStore (PR 4). Nested DB::transaction is safe
+                    // (Laravel uses savepoints), and TierLimitExceededException /
+                    // StoreValidationException bubble up to the outer catch blocks.
+                    $mortgageCanonical = MortgageNormaliser::fromFyn($mortgagePayload, $user);
+                    app(MortgageStore::class)->create($mortgageCanonical, $user, IngestSource::FYN_AI);
                 }
 
                 return $property;
