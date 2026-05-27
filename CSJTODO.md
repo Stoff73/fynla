@@ -22,9 +22,15 @@
 - [x] **PR #399** — Pass 4 PR 5e: Tax + Documents read consumers (merge `d76e809`). Final cluster of PR 5. 1 real site (IncomeDefinitionsService:88 — buy-to-let rental income via `forUserByType`). 2 class-name-only residuals kept (DocumentTypeDetector + PropertyMapper — `Property::class` dispatch keys for the upload field-mapper registry). Handled directly without subagent dispatch given the tiny scope. **PR 5 COMPLETE.**
 
 ### PRs remaining (in order)
-- [ ] **PR 6** — Canonical derived columns + snapshot table. Plan §10. Adds `current_value_gbp`, `equity_gbp`, `loan_to_value_pct` columns + `PropertyValueSnapshot` table + `PropertyDerivedColumnCalculator` service + `BackfillPropertyDerivedColumns` artisan command + 2 snapshot policies. Includes migrations. Bigger PR than 5a-e.
+- [x] **PR #400** — Pass 4 PR 6: canonical derived columns + snapshot table (merge `84a55ac`). Adds `current_value_gbp` + `equity_gbp` + `loan_to_value_pct` columns + `current_value_gbp_calculated_at`/`equity_gbp_calculated_at`/`loan_to_value_pct_calculated_at` timestamps + `PropertyValueSnapshot` table + `PropertyDerivedColumnCalculator` + `BackfillPropertyDerivedColumns` artisan command + 2 snapshot policies (`propertyValue`, `propertyEquity` — £1k absolute OR 0.5% relative threshold, 2555-day retention matching Pension). `recalculateDerived` wired into create + update (transitively into updateOrCreate). Backfill uses `forceFill + saveQuietly + chunkById(200)` mirroring Savings/Pension precedent. Both reviewers APPROVE clean. **Includes 2 migrations** — csjones needs `php artisan migrate --force` on next deploy.
 - [ ] **PR 7** — Tier-cap test for property. Plan §11. PropertyTierCapTest with 5 cases. Enforcement seam already wired in PR 1.
 - [ ] **PR 8** — Lock-down + parity + audit + `PropertyStore.md`. Plan §12. Reword boundary to LOCKED framing, PropertyAuditIngestSourceTest, PropertyThreeIngestParityTest (incl. `tenants_in_common` case), PropertyStore.md. §16 close-out IN-LINE.
+
+### PR 6 cosmetic minors (deferred — code-quality review)
+
+- **M1** PropertyStore.php:198-201 — `recalculateDerived` skip-on-null comment says "null short-circuits shouldSnapshot to true". Behavior correct but rationale slightly misleading (it's OLD-null that short-circuits, not NEW-null). Same copy-paste from SavingsStore.php:231 — pre-existing pattern. Cosmetic.
+- **M2** Missing class-level docblock on `BackfillPropertyDerivedColumns`. Calculator has one; console command doesn't.
+- **M3** PropertyStoreTest:193-194 — `->toBeGreaterThanOrEqual(2)` could be tightened to `->toBe(2)` (current code always produces exactly 2 snapshots on first create with non-null value+mortgage). Forward-compat could justify the loose form.
 
 ### ⚠️ CRITICAL — PropertyStore::forUser is joint-aware (5a review-loop discovery)
 
@@ -57,7 +63,7 @@ For consumers that originally used `Property::forUserOrJoint($userId)` (joint-aw
 | 1 | Savings | DONE (locked PR 8) |
 | 2 | Reference data R1-R4 | DONE (locked 26 PRs) |
 | 3 | Pensions (DC/DB/State/InputHistory) | DONE (8 PRs + close-out PR #385) |
-| **4** | **Properties** | **7/8 PRs (this track) — PR 5 COMPLETE** |
+| **4** | **Properties** | **8/8 PRs except final 2 small (this track) — derived columns + snapshots LIVE** |
 | 5 | Liabilities (incl. mortgages) | not started — no plan |
 | 6 | Investments | not started — no plan |
 | 7 | Income + Expenditure | not started — no plan |
