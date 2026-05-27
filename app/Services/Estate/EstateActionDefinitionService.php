@@ -15,8 +15,8 @@ use App\Models\Estate\Will;
 use App\Models\EstateActionDefinition;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -41,6 +41,7 @@ class EstateActionDefinitionService
     public function __construct(
         private readonly TaxConfigService $taxConfig,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -369,8 +370,8 @@ class EstateActionDefinitionService
             ->where('in_trust', false)
             ->sum('sum_assured');
 
-        // Subtract liabilities
-        $total -= (float) Mortgage::where('user_id', $user->id)->sum('outstanding_balance');
+        // Subtract liabilities (mortgages primary-only via MortgageStore — matches pre-PR-5a $user_id semantics)
+        $total -= (float) $this->mortgageStore->forUserPrimaryOnly($user)->sum('outstanding_balance');
         $total -= (float) Liability::where('user_id', $user->id)->sum('current_balance');
 
         return max(0.0, $total);

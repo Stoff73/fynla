@@ -8,10 +8,10 @@ use App\Models\Estate\Asset;
 use App\Models\Estate\IHTProfile;
 use App\Models\Estate\Liability;
 use App\Models\FamilyMember;
-use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Stores\ActuarialLifeTableStore;
+use App\Services\Stores\MortgageStore;
 use App\Services\TaxConfigService;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 use App\Traits\CalculatesOwnershipShare;
@@ -40,6 +40,7 @@ class ComprehensiveEstatePlanService
         private readonly TaxConfigService $taxConfig,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
         private readonly ActuarialLifeTableStore $actuarialStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -452,7 +453,7 @@ class ComprehensiveEstatePlanService
             ];
         } else {
             // User's estate - get detailed liabilities
-            $userDetailedLiabilities = $this->getDetailedLiabilities($user->id);
+            $userDetailedLiabilities = $this->getDetailedLiabilities($user);
             $userLiabilitiesTotal = collect($userDetailedLiabilities)->sum('balance');
 
             $breakdown['user'] = [
@@ -467,7 +468,7 @@ class ComprehensiveEstatePlanService
 
             // Add spouse data if available and sharing enabled
             if ($dataSharingEnabled && $spouse && $spouseAggregatedAssets->isNotEmpty()) {
-                $spouseDetailedLiabilities = $this->getDetailedLiabilities($spouse->id);
+                $spouseDetailedLiabilities = $this->getDetailedLiabilities($spouse);
                 $spouseLiabilitiesTotal = collect($spouseDetailedLiabilities)->sum('balance');
 
                 $breakdown['spouse'] = [
@@ -522,14 +523,13 @@ class ComprehensiveEstatePlanService
      *
      * Single-record pattern: Apply ownership percentage to get user's share
      */
-    private function getDetailedLiabilities(int $userId): array
+    private function getDetailedLiabilities(User $user): array
     {
+        $userId = $user->id;
         $liabilities = [];
 
-        // Get mortgages where user is owner OR joint_owner, with property addresses
-        $mortgages = Mortgage::forUserOrJoint($userId)
-            ->with('property:id,address_line_1')
-            ->get();
+        // Get mortgages where user is owner OR joint_owner (joint-aware via MortgageStore)
+        $mortgages = $this->mortgageStore->forUser($user)->load('property:id,address_line_1');
 
         foreach ($mortgages as $mortgage) {
             // Apply ownership share calculation for user's portion of mortgage

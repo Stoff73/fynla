@@ -8,6 +8,7 @@ use App\Models\Chattel;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Traits\StructuredLogging;
 
@@ -17,6 +18,7 @@ class LetterEstateValidationService
 
     public function __construct(
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -227,7 +229,8 @@ class LetterEstateValidationService
 
         // Liabilities check
         $letterLiabilities = trim($letter->liabilities_info ?? '');
-        $liabilityCount = $user->liabilities()->count() + $user->mortgages()->count();
+        // Mortgages primary-only via MortgageStore — matches pre-PR-5a $user->mortgages() HasMany semantics
+        $liabilityCount = $user->liabilities()->count() + $this->mortgageStore->forUserPrimaryOnly($user)->count();
 
         if ($liabilityCount > 0 && ($letterLiabilities === '' || $letterLiabilities === 'No outstanding liabilities recorded.')) {
             $warnings[] = [
