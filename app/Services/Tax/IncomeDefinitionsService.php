@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Tax;
 
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
 
 class IncomeDefinitionsService
 {
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     public function calculate(int $userId): array
@@ -85,12 +86,11 @@ class IncomeDefinitionsService
      */
     private function calculateRentalIncome(User $user): float
     {
-        $properties = Property::where('property_type', 'buy_to_let')
-            ->where(function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->orWhere('joint_owner_id', $user->id);
-            })
-            ->get();
+        // PropertyStore::forUserByType is joint-aware (user_id = ? OR joint_owner_id = ?)
+        // + property_type filter. The loop below applies ownership_percentage per row so
+        // joint records correctly contribute the user's share — joint-aware is intentional,
+        // no primary-only filter. Same pattern as UserProfileService:197 (PR 5d).
+        $properties = $this->propertyStore->forUserByType($user, 'buy_to_let');
 
         $total = 0.0;
         foreach ($properties as $property) {
