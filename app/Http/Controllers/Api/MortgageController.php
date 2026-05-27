@@ -269,6 +269,13 @@ class MortgageController extends Controller
         // Handle both route patterns
         $id = $mortgageId ?? $propertyId;
 
+        if ($id === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mortgage ID is required',
+            ], 400);
+        }
+
         $mortgage = $this->mortgageStore->find($id, $user);
         if ($mortgage === null || $mortgage->user_id !== $user->id) {
             return $this->notFoundResponse('Mortgage');

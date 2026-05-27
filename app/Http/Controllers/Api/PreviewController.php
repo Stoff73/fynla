@@ -13,7 +13,6 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
