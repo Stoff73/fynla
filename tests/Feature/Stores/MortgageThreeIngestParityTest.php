@@ -67,7 +67,9 @@ beforeEach(function () {
 
 it('persists field-identical canonical rows for the same individual mortgage via form, fyn and upload', function () {
     $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
-    $property = Property::factory()->create(['user_id' => $user->id]);
+    // Pin current_value so the derived current_ltv_pct (200000 / 500000 * 100 = 40%)
+    // is deterministic — PropertyFactory's default current_value is randomised.
+    $property = Property::factory()->create(['user_id' => $user->id, 'current_value' => 500000]);
     $store = app(MortgageStore::class);
 
     // form — HTTP form-validated payload
@@ -116,6 +118,12 @@ it('persists field-identical canonical rows for the same individual mortgage via
         'outstanding_balance' => (string) $m->outstanding_balance,
         'monthly_payment' => (string) $m->monthly_payment,
         'interest_rate' => (string) $m->interest_rate,
+        // Derived columns materialised by MortgageDerivedColumnCalculator on store
+        // write — must be identical across form/fyn/upload to satisfy the docblock
+        // claim "field-identical canonical rows INCLUDING derived columns".
+        'outstanding_balance_gbp' => (string) $m->outstanding_balance_gbp,
+        'monthly_payment_gbp' => (string) $m->monthly_payment_gbp,
+        'current_ltv_pct' => (string) $m->current_ltv_pct,
     ];
 
     $expected = [
@@ -128,6 +136,9 @@ it('persists field-identical canonical rows for the same individual mortgage via
         'outstanding_balance' => '200000.00',
         'monthly_payment' => '1050.00',
         'interest_rate' => '3.5000',
+        'outstanding_balance_gbp' => '200000.00',
+        'monthly_payment_gbp' => '1050.00',
+        'current_ltv_pct' => '40.0000', // 200000 / 500000 * 100 (Property::factory default current_value=500000)
     ];
 
     expect($snap($form->fresh()))->toBe($expected);

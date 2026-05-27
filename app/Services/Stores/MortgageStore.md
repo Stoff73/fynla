@@ -202,14 +202,18 @@ For the three non-HTTP ingest paths (`FYN_AI`, `UPLOAD`, `SEEDER`), the normalis
 
 | PR | Number | Merge SHA | Description |
 |---|---|---|---|
-| PR 1 | #403 | — | Introduce `MortgageStore` facade + arch boundary + `MortgageNormaliser` + four events + tier-cap enforcement seam |
-| PR 2 | #404 | — | Point HTTP form requests at `MortgageStore` (`MortgageController` write paths) |
-| PR 3 | #405 | — | Point Fyn AI write tools at `MortgageStore` (`CoordinatingAgent::handleCreateMortgage` / `handleUpdateMortgage`) |
-| PR 4 | #406 | — | Point upload + onboarding + seeders at `MortgageStore`; `PreviewUserSeeder` bulk-delete allowlisted |
-| PR 5a–5e | #407–411 | — | Read consumer migration (controllers, agents, services, GDPR, protection, rate-alert consumers) |
-| PR 6 | #412 | `d258b10` | Canonical derived columns (`outstanding_balance_gbp`, `monthly_payment_gbp`, `current_ltv_pct`) + `mortgage_value_snapshots` table + per-column `SnapshotPolicy` + `MortgageDerivedColumnCalculator` + cross-store Property reconciliation |
-| PR 7 | #413 | `479cc6d` | Tier-cap test (`MortgageTierCapTest`) locking the spec §13 contract |
-| PR 8 | (this PR) | — | Boundary allowlist LOCKED (transition language dropped; entries recategorised) + `MortgageAuditIngestSourceTest` (5 cases) + `MortgageThreeIngestParityTest` (2 cases) + `MortgageStore.md` |
+| PR 1 | #403 | `fe5e1a1` | Introduce `MortgageStore` facade + arch boundary + `MortgageNormaliser` + four events + tier-cap enforcement seam |
+| PR 2 | #404 | `a78ddd2` | Point HTTP form requests at `MortgageStore` (`MortgageController` write paths) |
+| PR 3 | #405 | `54f215b` | Point Fyn AI write tools at `MortgageStore` (`CoordinatingAgent::handleCreateMortgage` / `handleUpdateMortgage`) |
+| PR 4 | #406 | `1e39c45` | Point upload + onboarding + seeders at `MortgageStore`; `PreviewUserSeeder` bulk-delete allowlisted |
+| PR 5a | #407 | `49b0dd2` | Read consumer migration — Estate/IHT cluster + `MortgageReadConsumerParityTest` |
+| PR 5b | #408 | `e653602` | Read consumer migration — NetWorth/Mobile/CrossModule cluster (incl. cross-link KEEP fix) |
+| PR 5c | #409 | `fc4fe51` | Read consumer migration — Coordination/AI/UserProfile cluster |
+| PR 5d | #410 | `46dc4f2` | Read consumer migration — Goals + Protection cluster |
+| PR 5e | #411 | `e50dfde` | Read consumer migration — GDPR/Protection/RateAlerts cluster (final read sub-cluster) |
+| PR 6 | #412 | `8ec33c6` | Canonical derived columns (`outstanding_balance_gbp`, `monthly_payment_gbp`, `current_ltv_pct`) + `mortgage_value_snapshots` table + per-column `SnapshotPolicy` + `MortgageDerivedColumnCalculator` + cross-store Property reconciliation |
+| PR 7 | #413 | `ad5f777` | Tier-cap test (`MortgageTierCapTest`) locking the spec §13 contract |
+| PR 8 | #414 | (this PR) | Boundary allowlist LOCKED (transition language dropped; entries recategorised) + `MortgageAuditIngestSourceTest` (6 cases incl. context-leak) + `MortgageThreeIngestParityTest` (2 cases) + `MortgageStore.md` |
 
 ## Acceptance criteria (spec §16)
 

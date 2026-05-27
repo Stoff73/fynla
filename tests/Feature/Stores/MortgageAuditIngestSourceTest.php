@@ -162,3 +162,43 @@ it('MortgageStore::create writes an audit row with ingest_source = admin', funct
     expect($auditRow)->not->toBeNull();
     expect($auditRow->metadata['ingest_source'] ?? null)->toBe('admin');
 });
+
+it('audit context is cleared after the mortgage store call (no leak to a later unrelated write)', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $property = Property::factory()->create(['user_id' => $user->id]);
+    $store = app(MortgageStore::class);
+
+    $store->create([
+        'property_id' => $property->id,
+        'user_id' => $user->id,
+        'lender_name' => 'Halifax',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 250000,
+        'monthly_payment' => 1500,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ], $user, IngestSource::UPLOAD);
+
+    // A subsequent audited write OUTSIDE any AuditLog::withContext() scope
+    // (e.g. a non-store Mortgage create — seeders, observers) must NOT
+    // inherit the previous ingest_source: try/finally restored the context.
+    $direct = Mortgage::create([
+        'user_id' => $user->id,
+        'property_id' => $property->id,
+        'lender_name' => 'NatWest',
+        'mortgage_type' => 'interest_only',
+        'outstanding_balance' => 100000,
+        'monthly_payment' => 400,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $directAudit = AuditLog::where('model_type', Mortgage::class)
+        ->where('model_id', $direct->id)
+        ->where('action', AuditLog::ACTION_CREATED)
+        ->latest('id')
+        ->first();
+
+    expect($directAudit)->not->toBeNull();
+    expect($directAudit->metadata['ingest_source'] ?? null)->toBeNull();
+});
