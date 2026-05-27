@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Estate\Trust;
 use App\Models\Property;
+use App\Models\PropertyValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
@@ -172,6 +173,49 @@ it('PropertyStore::forTrust does NOT return properties where trust_id is null', 
 
     expect($collection)->toHaveCount(1);
     expect($collection->first()->trust_id)->toBe($trust->id);
+});
+
+it('create materialises current_value_gbp + writes initial snapshot', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $store = app(PropertyStore::class);
+
+    $property = $store->create([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+        'current_value' => 350000,
+        'outstanding_mortgage' => 100000,
+    ], $user, IngestSource::FORM);
+
+    expect((string) $property->fresh()->current_value_gbp)->toBe('350000.00');
+    expect((string) $property->fresh()->equity_gbp)->toBe('250000.00');
+    expect((string) $property->fresh()->loan_to_value_pct)->toBe('28.57');
+
+    expect(PropertyValueSnapshot::where('property_id', $property->id)->count())
+        ->toBeGreaterThanOrEqual(2);  // current_value_gbp + equity_gbp
+});
+
+it('update fires snapshot only when policy threshold exceeded', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $store = app(PropertyStore::class);
+
+    $property = $store->create([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+        'current_value' => 350000,
+        'outstanding_mortgage' => 100000,
+    ], $user, IngestSource::FORM);
+
+    $initialSnapshots = PropertyValueSnapshot::where('property_id', $property->id)->count();
+
+    // Small change: below £1,000 absolute + below 0.5% relative — should not fire.
+    $store->update($property->id, ['current_value' => 350500], $user, IngestSource::FORM);
+    expect(PropertyValueSnapshot::where('property_id', $property->id)->count())
+        ->toBe($initialSnapshots);
+
+    // Big change: well above £1,000 — should fire.
+    $store->update($property->id, ['current_value' => 425000], $user, IngestSource::FORM);
+    expect(PropertyValueSnapshot::where('property_id', $property->id)->count())
+        ->toBeGreaterThan($initialSnapshots);
 });
 
 it('PropertyStore::delete soft-deletes; restore brings the row back', function () {

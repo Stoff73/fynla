@@ -10,10 +10,13 @@ use App\Events\Property\PropertyRestored;
 use App\Events\Property\PropertyUpdated;
 use App\Models\AuditLog;
 use App\Models\Property;
+use App\Models\PropertyValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
+use App\Services\Stores\Recalc\PropertyDerivedColumnCalculator;
+use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -25,6 +28,8 @@ class PropertyStore
     public function __construct(
         private readonly PropertyNormaliser $normaliser,
         private readonly TierGate $tierGate,
+        private readonly PropertyDerivedColumnCalculator $derivedCalc,
+        private readonly SnapshotPolicies $snapshotPolicies,
     ) {}
 
     // ---------- Reads ----------
@@ -102,8 +107,11 @@ class PropertyStore
 
         $attributes = array_merge($data, ['user_id' => $user->id]);
 
-        $property = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($attributes) {
-            return Property::create($attributes);
+        $property = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($attributes, $user, $source) {
+            $property = Property::create($attributes);
+            $this->recalculateDerived($property, $user, $source, 'create');
+
+            return $property;
         }));
 
         event(new PropertyCreated($property, $user, $source));
@@ -116,12 +124,14 @@ class PropertyStore
         $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $this->validateCanonical($data);
 
-        $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data) {
+        $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data, $user, $source) {
             $property->fill($data);
             $dirty = $property->getDirty();
             $property->save();
+            $fresh = $property->fresh();
+            $this->recalculateDerived($fresh, $user, $source, 'update');
 
-            return ['fresh' => $property->fresh(), 'dirty' => $dirty];
+            return ['fresh' => $fresh, 'dirty' => $dirty];
         }));
 
         event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source));
@@ -156,6 +166,57 @@ class PropertyStore
         event(new PropertyRestored($property, $user));
 
         return $property;
+    }
+
+    // ---------- Derived columns + snapshots ----------
+
+    private function recalculateDerived(Property $property, User $user, IngestSource $source, string $reason): void
+    {
+        $derived = $this->derivedCalc->calculate($property, $user);
+        $now = now();
+
+        $oldValues = [
+            'current_value_gbp' => $property->current_value_gbp !== null ? (float) $property->current_value_gbp : null,
+            'equity_gbp' => $property->equity_gbp !== null ? (float) $property->equity_gbp : null,
+        ];
+
+        $property->fill([
+            'current_value_gbp' => $derived['current_value_gbp'],
+            'current_value_gbp_calculated_at' => $now,
+            'equity_gbp' => $derived['equity_gbp'],
+            'equity_gbp_calculated_at' => $now,
+            'loan_to_value_pct' => $derived['loan_to_value_pct'],
+            'loan_to_value_pct_calculated_at' => $now,
+        ])->save();
+
+        $policies = [
+            'current_value_gbp' => $this->snapshotPolicies->propertyValue(),
+            'equity_gbp' => $this->snapshotPolicies->propertyEquity(),
+        ];
+
+        foreach ($policies as $column => $policy) {
+            // A null derived value means the metric is not applicable — recording
+            // a snapshot would spuriously fire on every write (null short-circuits
+            // shouldSnapshot to true). Skip until the metric materialises.
+            if ($derived[$column] === null) {
+                continue;
+            }
+
+            if (! $policy->shouldSnapshot($oldValues[$column], $derived[$column])) {
+                continue;
+            }
+
+            PropertyValueSnapshot::create([
+                'property_id' => $property->id,
+                'column_name' => $column,
+                'value' => $derived[$column],
+                'currency' => 'GBP',
+                'value_gbp' => $derived[$column],
+                'taken_at' => $now,
+                'trigger_reason' => $reason,
+                'ingest_source' => $source->value,
+            ]);
+        }
     }
 
     // ---------- Internal ----------
