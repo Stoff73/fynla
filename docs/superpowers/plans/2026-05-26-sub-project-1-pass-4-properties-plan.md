@@ -1807,7 +1807,7 @@ Per spec §4.3, materialise calcs as columns with `*_calculated_at` timestamps. 
 
 ### Step 6.2: Write the derived-column migration
 
-- [ ] **Create `database/migrations/2026_05_NN_NNNNNN_add_derived_columns_to_properties.php`:**
+- [x] **Create `database/migrations/2026_05_NN_NNNNNN_add_derived_columns_to_properties.php`:**
 
 ```php
 <?php
@@ -1849,7 +1849,7 @@ return new class extends Migration
 
 ### Step 6.3: Write the snapshot table migration
 
-- [ ] **Create `database/migrations/2026_05_NN_NNNNNN_create_property_value_snapshots_table.php`:**
+- [x] **Create `database/migrations/2026_05_NN_NNNNNN_create_property_value_snapshots_table.php`:**
 
 ```php
 <?php
@@ -1896,7 +1896,7 @@ return new class extends Migration
 
 ### Step 6.4: Create the PropertyValueSnapshot model
 
-- [ ] **Create `app/Models/PropertyValueSnapshot.php`:**
+- [x] **Create `app/Models/PropertyValueSnapshot.php`:**
 
 ```php
 <?php
@@ -1937,7 +1937,7 @@ class PropertyValueSnapshot extends Model
 
 ### Step 6.5: Create the derived-column calculator
 
-- [ ] **Create `app/Services/Stores/Recalc/PropertyDerivedColumnCalculator.php`:**
+- [x] **Create `app/Services/Stores/Recalc/PropertyDerivedColumnCalculator.php`:**
 
 ```php
 <?php
@@ -1986,7 +1986,7 @@ class PropertyDerivedColumnCalculator
 
 ### Step 6.6: Write the calculator test
 
-- [ ] **Create `tests/Unit/Services/Stores/Recalc/PropertyDerivedColumnCalculatorTest.php`:**
+- [x] **Create `tests/Unit/Services/Stores/Recalc/PropertyDerivedColumnCalculatorTest.php`:**
 
 ```php
 <?php
@@ -2055,7 +2055,7 @@ it('handles current_value = 0 by setting loan_to_value_pct = null', function () 
 });
 ```
 
-- [ ] **Run, confirm 4 PASS:**
+- [x] **Run, confirm 4 PASS:**
 
 ```bash
 php artisan migrate --force
@@ -2064,7 +2064,7 @@ php artisan migrate --force
 
 ### Step 6.7: Add property to fillable + casts
 
-- [ ] **Edit `app/Models/Property.php`:** add to `$fillable`:
+- [x] **Edit `app/Models/Property.php`:** add to `$fillable`:
 
 ```php
 'current_value_gbp',
@@ -2088,7 +2088,7 @@ And to `$casts`:
 
 ### Step 6.8: Add snapshot policies
 
-- [ ] **Edit `app/Services/Stores/Snapshots/SnapshotPolicies.php`:** add two new policy methods:
+- [x] **Edit `app/Services/Stores/Snapshots/SnapshotPolicies.php`:** add two new policy methods:
 
 ```php
 public function propertyValue(): SnapshotPolicy
@@ -2116,7 +2116,7 @@ public function propertyEquity(): SnapshotPolicy
 
 ### Step 6.9: Wire the calculator + snapshots into PropertyStore
 
-- [ ] **Edit `app/Services/Stores/PropertyStore.php`:** extend the constructor:
+- [x] **Edit `app/Services/Stores/PropertyStore.php`:** extend the constructor:
 
 ```php
 public function __construct(
@@ -2176,7 +2176,7 @@ private function recalculateDerived(Property $property, User $user, IngestSource
 }
 ```
 
-- [ ] **Invoke `recalculateDerived` inside the create + update transactions:**
+- [x] **Invoke `recalculateDerived` inside the create + update transactions:**
 
 In `create()`:
 
@@ -2204,7 +2204,7 @@ $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB
 
 ### Step 6.10: Add store-recalc test cases
 
-- [ ] **Append to `tests/Unit/Services/Stores/PropertyStoreTest.php`:**
+- [x] **Append to `tests/Unit/Services/Stores/PropertyStoreTest.php`:**
 
 ```php
 it('create materialises current_value_gbp + writes initial snapshot', function () {
@@ -2253,7 +2253,7 @@ it('update fires snapshot only when policy threshold exceeded', function () {
 
 ### Step 6.11: Write the backfill console command
 
-- [ ] **Create `app/Console/Commands/BackfillPropertyDerivedColumns.php`:**
+- [x] **Create `app/Console/Commands/BackfillPropertyDerivedColumns.php`:**
 
 ```php
 <?php
@@ -2304,7 +2304,7 @@ class BackfillPropertyDerivedColumns extends Command
 
 ### Step 6.12: Write the backfill feature test
 
-- [ ] **Create `tests/Feature/Stores/PropertyDerivedColumnsBackfillTest.php`:**
+- [x] **Create `tests/Feature/Stores/PropertyDerivedColumnsBackfillTest.php`:**
 
 ```php
 <?php
@@ -2343,7 +2343,7 @@ it('properties:backfill-derived populates derived columns on legacy rows', funct
 });
 ```
 
-- [ ] **Run, confirm PASS:**
+- [x] **Run, confirm PASS:**
 
 ```bash
 ./vendor/bin/pest tests/Feature/Stores/PropertyDerivedColumnsBackfillTest.php
@@ -2351,15 +2351,15 @@ it('properties:backfill-derived populates derived columns on legacy rows', funct
 
 ### Step 6.13: Update the boundary allowlist
 
-- [ ] **Add to the canonical write/read set:**
+- [x] **Add to the canonical write/read set:**
   - `App\Services\Stores\Recalc\PropertyDerivedColumnCalculator`
   - `App\Console\Commands\BackfillPropertyDerivedColumns`
-- [ ] **Add to permanent allowlist:**
+- [x] **Add to permanent allowlist:**
   - `App\Models\PropertyValueSnapshot`
 
 ### Step 6.14: Run + commit + open PR 6
 
-- [ ] **Run targeted Property suite:**
+- [x] **Run targeted Property suite:**
 
 ```bash
 ./vendor/bin/pest tests/Feature/Stores/Property*Test.php tests/Unit/Services/Stores/Property*Test.php tests/Unit/Services/Stores/Recalc/Property*Test.php tests/Architecture/StoreBoundary/PropertyStoreBoundaryTest.php

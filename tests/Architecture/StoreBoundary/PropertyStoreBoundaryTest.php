@@ -122,6 +122,14 @@ $propertyConsumers = [
     // MortgageService — Pass 5 territory (Liabilities store). Uses Property
     // for the property_id FK relationship lookups, not a mutation site.
     'App\Services\Property\MortgageService',
+
+    // SP1 Pass 4 PR 6 — canonical derived columns + snapshot table.
+    // Calculator: reads Property fields to derive canonical columns.
+    'App\Services\Stores\Recalc\PropertyDerivedColumnCalculator',
+    // Backfill command: reads all Property rows to populate derived columns on legacy data.
+    'App\Console\Commands\BackfillPropertyDerivedColumns',
+    // Snapshot model: permanent allowlist — sibling model (like DCPensionValueSnapshot).
+    'App\Models\PropertyValueSnapshot',
 ];
 
 arch('Property is only used inside the property canonical set (plus transition allowlist)')
