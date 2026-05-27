@@ -4,6 +4,10 @@
 **Status of code:** disposable placeholder scaffold. The Vue screens and the new
 HTML landing page are intentionally replaceable wholesale. Backend, routing,
 auth, and the mobile API surface are real and stable — design against them.
+**Live on production:** SP3 iframe scaffold + HTML landing placeholder deployed
+to `https://fynla.org` and verified by CSJ on 2026-05-27 (working as intended:
+`/m` renders the iframe host, iframe loads `/m/landing`, "Get started" boots
+the Vue SPA at `/m/app`, iPhone-UA visitors to `fynla.org` 302 to `/m`).
 **Last updated:** 2026-05-27.
 
 ---
@@ -361,12 +365,12 @@ the root `CLAUDE.md` (already enforced in `vite.mobile.config.js`):
 
 | Capability                                       | Status                             |
 |--------------------------------------------------|------------------------------------|
-| Phone-UA redirect to `/m`                        | **Wired** (production)             |
-| Iframe shell @ `/m`                              | **Wired**                          |
-| HTML landing placeholder @ `/m/landing`          | **Wired** (this brief adds it)     |
-| Login + MFA verify against real backend          | **Wired**                          |
-| Dashboard reading `/api/v1/mobile/dashboard`     | **Wired**                          |
-| Module drill-down reading `/api/v1/mobile/modules/{slug}` | **Wired**                  |
+| Phone-UA redirect to `/m`                        | **Live on prod** — verified by CSJ 2026-05-27 |
+| Iframe shell @ `/m`                              | **Live on prod** — verified by CSJ 2026-05-27 |
+| HTML landing placeholder @ `/m/landing`          | **Live on prod** — verified by CSJ 2026-05-27 |
+| Login + MFA verify against real backend          | **Live on prod** — verified by CSJ 2026-05-27 |
+| Dashboard reading `/api/v1/mobile/dashboard`     | **Live on prod** — verified by CSJ 2026-05-27 |
+| Module drill-down reading `/api/v1/mobile/modules/{slug}` | **Live on prod** — verified by CSJ 2026-05-27 |
 | Mobile design system / component library         | **Deferred** — design output       |
 | Redesigned screens                               | **Deferred** — design output       |
 | Native Capacitor auth (cookie / biometric)       | **Deferred** — post-redesign work  |
