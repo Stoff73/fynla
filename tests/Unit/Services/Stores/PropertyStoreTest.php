@@ -8,6 +8,7 @@ use App\Models\PropertyValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -184,6 +185,19 @@ it('create materialises current_value_gbp + writes initial snapshot', function (
         'ownership_type' => 'individual',
         'current_value' => 350000,
         'outstanding_mortgage' => 100000,
+    ], $user, IngestSource::FORM);
+
+    // Pass 5 PR 6: outstanding_mortgage is canonically derived from MortgageStore.
+    // Seed a mortgage via the store so the cross-store recalc reconciles equity_gbp.
+    app(MortgageStore::class)->create([
+        'property_id' => $property->id,
+        'user_id' => $user->id,
+        'lender_name' => 'Test Bank',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 100000,
+        'monthly_payment' => 600,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
     ], $user, IngestSource::FORM);
 
     expect((string) $property->fresh()->current_value_gbp)->toBe('350000.00');

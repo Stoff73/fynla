@@ -24,7 +24,7 @@ uses(
 uses(
     TestCase::class,
     RefreshDatabase::class,
-)->in('Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Database');
+)->in('Unit/Services', 'Unit/Observers', 'Unit/Http', 'Unit/Database', 'Unit/Listeners');
 
 // Agent tests that need database access (RefreshDatabase)
 uses(

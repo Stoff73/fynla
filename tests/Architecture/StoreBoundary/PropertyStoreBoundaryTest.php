@@ -42,6 +42,12 @@ $propertyConsumers = [
     // the derived columns only — a migration-style backfill
     // (spec §14.2 console-command category).
     'App\Console\Commands\BackfillPropertyDerivedColumns',
+    // Pass 5 PR 6 — one-off backfill that reconciles
+    // properties.outstanding_mortgage from canonical MortgageStore sum.
+    // Reads via Property::chunkById then funnels each id through
+    // PropertyStore::recalculateDerivedForPropertyId (spec §14.2
+    // console-command category).
+    'App\Console\Commands\BackfillPropertyOutstandingMortgage',
 
     // ---- Spec §14.2 permanent allowlist ----
     // Observer (risk recalculation side effects), the factory, domain events,
