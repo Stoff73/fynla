@@ -11,7 +11,6 @@ use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\SicknessIllnessPolicy;
 use App\Models\User;
@@ -19,6 +18,7 @@ use App\Services\Benefits\ChildBenefitService;
 use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\UKTaxCalculator;
 use Carbon\Carbon;
 
@@ -27,7 +27,8 @@ class UserProfileService
     public function __construct(
         private readonly CrossModuleAssetAggregator $assetAggregator,
         private readonly UKTaxCalculator $taxCalculator,
-        private readonly ChildBenefitService $childBenefitService
+        private readonly ChildBenefitService $childBenefitService,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -193,13 +194,8 @@ class UserProfileService
         $totalSection24Credit = 0;
 
         // Get all BTL properties where user is either primary owner OR joint owner
-        $btlProperties = Property::where('property_type', 'buy_to_let')
-            ->where(function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->orWhere('joint_owner_id', $user->id);
-            })
-            ->with('mortgages')
-            ->get();
+        $btlProperties = $this->propertyStore->forUserByType($user, 'buy_to_let');
+        $btlProperties->load('mortgages');
 
         foreach ($btlProperties as $property) {
             // Pass user ID so calculateTaxPosition returns the correct ownership share
@@ -715,10 +711,7 @@ class UserProfileService
 
         // 2. Property Expenses (mortgage + council tax + utilities + maintenance)
         // Include properties owned by user OR where user is the joint owner
-        $properties = Property::where(function ($query) use ($user) {
-            $query->where('user_id', $user->id)
-                ->orWhere('joint_owner_id', $user->id);
-        })->get();
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
         foreach ($properties as $property) {
             $totalMonthlyExpense = 0;
             $breakdown = [];

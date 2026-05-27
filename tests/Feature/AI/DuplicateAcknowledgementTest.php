@@ -13,7 +13,6 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\AI\DuplicateAcknowledgement;
-use App\Services\Onboarding\AssetCaptureEntityExtractor;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -30,7 +29,7 @@ uses(RefreshDatabase::class);
  */
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
-    $this->builder = new DuplicateAcknowledgement(new AssetCaptureEntityExtractor);
+    $this->builder = app(DuplicateAcknowledgement::class);
     $this->user = User::factory()->create();
 });
 

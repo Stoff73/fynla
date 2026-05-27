@@ -9,9 +9,9 @@ use App\Models\Chattel;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\UKTaxCalculator;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
@@ -21,7 +21,8 @@ class PersonalAccountsService
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private readonly UKTaxCalculator $taxCalculator
+        private readonly UKTaxCalculator $taxCalculator,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -339,8 +340,7 @@ class PersonalAccountsService
         }
 
         // Properties - individual line items (include joint properties)
-        $properties = Property::forUserOrJoint($user->id)
-            ->get();
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
         foreach ($properties as $property) {
             $propertyLabel = $property->address_line_1;
             if ($property->property_type) {
