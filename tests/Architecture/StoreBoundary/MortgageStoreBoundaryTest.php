@@ -16,13 +16,14 @@ declare(strict_types=1);
  */
 
 use PHPUnit\Framework\Assert;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 it('enforces MortgageStore as the only write path for Mortgage', function () {
     $allowlist = [
-        // PR 1 — initial transition allowlist (trimmed in subsequent PRs)
-        'app/Http/Controllers/Api/MortgageController.php',         // PR 2 will trim
-        'app/Http/Controllers/Api/PreviewController.php',          // PR 2 will trim
-        'app/Http/Controllers/Api/PropertyController.php',         // PR 2 will trim (mortgages()->delete() cascade)
+        // PR 2 trimmed: MortgageController + PreviewController now route through MortgageStore.
+        'app/Http/Controllers/Api/PropertyController.php',         // PR 4 will trim (mortgages()->delete() cascade in destroy)
         'app/Agents/CoordinatingAgent.php',                        // PR 3 will trim
         'app/Services/Property/MortgageService.php',               // PR 4 will trim (createFromPropertyData)
         'app/Services/Documents/DocumentProcessor.php',            // PR 4 will trim

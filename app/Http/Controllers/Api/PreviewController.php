@@ -13,10 +13,11 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\Holding;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
@@ -444,8 +445,8 @@ class PreviewController extends Controller
      * Seed properties
      *
      * SP1 Pass 4 PR 2: Property creates routed through PropertyStore with
-     * IngestSource::SEEDER. Mortgage seeding remains a direct Mortgage::create
-     * until Pass 5 introduces MortgageStore.
+     * IngestSource::SEEDER. SP1 Pass 5 PR 2: Mortgage seeding routed through
+     * MortgageStore (see seedMortgages below).
      */
     private function seedProperties(User $user, array $properties): void
     {
@@ -460,11 +461,16 @@ class PreviewController extends Controller
 
     /**
      * Seed mortgages
+     *
+     * SP1 Pass 5 PR 2: routed through MortgageStore::create with IngestSource::SEEDER,
+     * mirroring the Pass 4 PropertyStore pattern above.
      */
     private function seedMortgages(User $user, array $mortgages): void
     {
         // Get the user's first property for association
         $property = Property::where('user_id', $user->id)->first();
+
+        $store = app(MortgageStore::class);
 
         foreach ($mortgages as $mortgage) {
             $mortgageData = array_merge($mortgage, [
@@ -476,7 +482,8 @@ class PreviewController extends Controller
                 $mortgageData['property_id'] = $property->id;
             }
 
-            Mortgage::create($mortgageData);
+            $canonical = MortgageNormaliser::fromForm($mortgageData, $user);
+            $store->create($canonical, $user, IngestSource::SEEDER);
         }
     }
 
