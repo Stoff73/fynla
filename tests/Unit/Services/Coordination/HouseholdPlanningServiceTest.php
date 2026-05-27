@@ -8,6 +8,7 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Coordination\HouseholdPlanningService;
+use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
 
 function createHouseholdService(): HouseholdPlanningService
@@ -28,7 +29,7 @@ function createHouseholdService(): HouseholdPlanningService
         'annual_allowance' => 60000,
     ]);
 
-    return new HouseholdPlanningService($taxConfig);
+    return new HouseholdPlanningService($taxConfig, app(PropertyStore::class));
 }
 
 function createMarriedCouple(): array

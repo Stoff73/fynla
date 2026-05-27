@@ -79,6 +79,20 @@ class PropertyStore
             ->get();
     }
 
+    /**
+     * Properties held in a specific trust.
+     *
+     * Trust-scoped read for TrustAssetAggregatorService and any future trust-context consumer.
+     * Distinct from forUser/forUserWithJointOwner — those scope by user; this scopes by the
+     * trust_id FK on properties. Used during trust reporting and IHT trust-asset aggregation.
+     */
+    public function forTrust(int $trustId): Collection
+    {
+        return Property::query()
+            ->where('trust_id', $trustId)
+            ->get();
+    }
+
     // ---------- Writes ----------
 
     public function create(array $data, User $user, IngestSource $source): Property
