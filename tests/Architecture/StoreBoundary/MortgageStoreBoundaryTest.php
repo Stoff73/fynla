@@ -24,18 +24,15 @@ it('enforces MortgageStore as the only write path for Mortgage', function () {
     $allowlist = [
         // PR 2 trimmed: MortgageController + PreviewController now route through MortgageStore.
         // PR 3 trimmed: CoordinatingAgent::handleCreateMortgage now routes through MortgageStore.
-        //               Residual: handleCreateProperty mortgage auto-create (line ~2547) — PR 4 will trim.
-        'app/Agents/CoordinatingAgent.php',                        // PR 4 will trim (handleCreateProperty mortgage auto-create)
-        'app/Http/Controllers/Api/PropertyController.php',         // PR 4 will trim (mortgages()->delete() cascade in destroy)
-        'app/Services/Property/MortgageService.php',               // PR 4 will trim (createFromPropertyData)
-        'app/Services/Documents/DocumentProcessor.php',            // PR 4 will trim
-        'app/Services/Onboarding/OnboardingService.php',           // PR 4 will trim
-        'app/Services/Onboarding/AssetCaptureEntityExtractor.php', // PR 4 will trim
-        'database/seeders/PreviewUserSeeder.php',                  // PR 4 will trim
-        'database/seeders/ChrisUserSeeder.php',                    // PR 4 will trim
-        'database/seeders/LifecycleTestSeeder.php',                // PR 4 will trim if used
+        // PR 4 trimmed: MortgageService::createFromPropertyData, OnboardingService, both seeders
+        //               (PreviewUserSeeder, ChrisUserSeeder), CoordinatingAgent::handleCreateProperty
+        //               residual auto-create, and PropertyController cascade-delete in destroy.
+        //               DocumentProcessor and AssetCaptureEntityExtractor never had direct Mortgage
+        //               writes (no patterns matched) so they were never on the list.
+        //               LifecycleTestSeeder also confirmed clean (no mortgage refs).
         'app/Console/Commands/EncryptExistingData.php',            // PR 8 LOCKED — pre-existing migration command
         'app/Console/Commands/ResetPreviewData.php',               // PR 8 LOCKED — admin reset
+        'database/seeders/PreviewUserSeeder.php',                  // PR 8 LOCKED — deleteUserData pre-seed bulk cleanup (not a user-facing write path; persona reset is admin-style)
     ];
 
     $patterns = [

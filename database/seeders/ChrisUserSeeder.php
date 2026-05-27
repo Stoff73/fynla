@@ -17,7 +17,6 @@ use App\Models\Investment\RiskProfile;
 use App\Models\ISAAllowanceTracking;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
 use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
@@ -26,6 +25,8 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
@@ -137,23 +138,23 @@ class ChrisUserSeeder extends Seeder
             IngestSource::SEEDER
         );
 
-        Mortgage::updateOrCreate(
-            ['property_id' => $mainResidence->id, 'lender_name' => 'Halifax'],
-            [
-                'user_id' => $userId,
-                'country' => 'United Kingdom',
-                'mortgage_type' => 'repayment',
-                'outstanding_balance' => 200000.00,
-                'interest_rate' => 4.5000,
-                'rate_type' => 'fixed',
-                'monthly_payment' => 1100.00,
-                'start_date' => '2026-03-25',
-                'maturity_date' => '2051-03-25',
-                'remaining_term_months' => 300,
-                'ownership_type' => 'individual',
-                'ownership_percentage' => 100.00,
-            ]
-        );
+        // Main residence mortgage — routed through MortgageStore (PR 4).
+        $mainMortgageCanonical = MortgageNormaliser::fromForm([
+            'property_id' => $mainResidence->id,
+            'lender_name' => 'Halifax',
+            'country' => 'United Kingdom',
+            'mortgage_type' => 'repayment',
+            'outstanding_balance' => 200000.00,
+            'interest_rate' => 4.5000,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 1100.00,
+            'start_date' => '2026-03-25',
+            'maturity_date' => '2051-03-25',
+            'remaining_term_months' => 300,
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+        ], $chris);
+        app(MortgageStore::class)->updateOrCreate($mainMortgageCanonical, $chris, IngestSource::SEEDER);
 
         // ── Property 2: Buy-to-Let (joint with "wife") ───────
         $btl = app(PropertyStore::class)->updateOrCreate(
@@ -176,23 +177,23 @@ class ChrisUserSeeder extends Seeder
             IngestSource::SEEDER
         );
 
-        Mortgage::updateOrCreate(
-            ['property_id' => $btl->id, 'lender_name' => 'To be completed'],
-            [
-                'user_id' => $userId,
-                'country' => 'United Kingdom',
-                'mortgage_type' => 'repayment',
-                'outstanding_balance' => 3500.00,
-                'interest_rate' => 0.0000,
-                'rate_type' => 'fixed',
-                'monthly_payment' => 0.00,
-                'start_date' => '2026-04-01',
-                'maturity_date' => '2051-04-01',
-                'remaining_term_months' => 300,
-                'ownership_type' => 'joint',
-                'ownership_percentage' => 50.00,
-            ]
-        );
+        // Buy-to-let mortgage — routed through MortgageStore (PR 4).
+        $btlMortgageCanonical = MortgageNormaliser::fromForm([
+            'property_id' => $btl->id,
+            'lender_name' => 'To be completed',
+            'country' => 'United Kingdom',
+            'mortgage_type' => 'repayment',
+            'outstanding_balance' => 3500.00,
+            'interest_rate' => 0.0000,
+            'rate_type' => 'fixed',
+            'monthly_payment' => 0.00,
+            'start_date' => '2026-04-01',
+            'maturity_date' => '2051-04-01',
+            'remaining_term_months' => 300,
+            'ownership_type' => 'joint',
+            'ownership_percentage' => 50.00,
+        ], $chris);
+        app(MortgageStore::class)->updateOrCreate($btlMortgageCanonical, $chris, IngestSource::SEEDER);
 
         // ── Savings: Cash ISA ─────────────────────────────────
         app(SavingsStore::class)->updateOrCreate(

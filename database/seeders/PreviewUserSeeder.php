@@ -39,6 +39,8 @@ use App\Models\StatePension;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
@@ -754,25 +756,28 @@ class PreviewUserSeeder extends Seeder
                 }
             }
 
-            // Single-record pattern: Store FULL balances directly (no splitting)
-            Mortgage::create([
-                'user_id' => $user->id,
+            // Single-record pattern: Store FULL balances directly (no splitting).
+            // Routed through MortgageStore::updateOrCreate (PR 4) for idempotency on reseed.
+            // Match key: (user_id, property_id, lender_name).
+            $canonical = MortgageNormaliser::fromForm([
                 'property_id' => $propertyId,
-                'lender_name' => $mort['lender_name'] ?? '',
-                'outstanding_balance' => $totalBalance, // FULL balance
+                'lender_name' => $mort['lender_name'] ?? 'To be completed',
+                'outstanding_balance' => $totalBalance,
                 'original_loan_amount' => $mort['original_amount'] ?? null,
                 'mortgage_type' => $mort['mortgage_type'] ?? 'repayment',
                 'interest_rate' => $mort['interest_rate'] ?? null,
                 'rate_type' => $mort['rate_type'] ?? 'fixed',
                 'rate_fix_end_date' => $mort['fixed_rate_end_date'] ?? null,
-                'monthly_payment' => $totalPayment, // FULL payment
+                'monthly_payment' => $totalPayment ?? 0.00,
                 'remaining_term_months' => $mort['remaining_term_months'] ?? null,
                 'start_date' => $mort['mortgage_start_date'] ?? null,
                 'ownership_type' => $ownershipType,
                 'ownership_percentage' => $ownershipPercentage,
                 'joint_owner_id' => $jointOwnerId,
                 'joint_owner_name' => $jointOwnerName,
-            ]);
+            ], $user);
+
+            app(MortgageStore::class)->updateOrCreate($canonical, $user, IngestSource::SEEDER);
             // Single-record pattern: NO reciprocal mortgage for spouse
         }
     }
