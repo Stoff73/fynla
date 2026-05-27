@@ -19,9 +19,12 @@
 - [x] **PR #396** — Pass 4 PR 5b: NetWorth/Mobile/CrossModule read consumers (merge `e718e23`). 2 primary-only sites (NetWorthService) with `->where('user_id')` filter; 5 joint-aware sites (CrossModuleAssetAggregator) using `forUserWithJointOwner` without filter; 1 helper-mediated site (MobileDashboardAggregator) via new `sumPropertyJointOwnerShares` helper mirroring savings sibling. Both reviewers APPROVE clean. PR 5a trap NOT re-introduced.
 - [x] **PR #397** — Pass 4 PR 5c: Coordination/Trust read consumers + new `PropertyStore::forTrust($trustId)` (merge `97c4365`). 3 sites routed in HouseholdPlanningService (2 primary-only via `forUserByType + where(user_id)`, 1 joint-aware via `forUserWithJointOwner`), 1 polymorphic loop deferred as documented residual (`:737` `$assetTypes = [Property::class, ...]` array — refactor to JointAssetFinder service when all 5 entity stores exist). 1 trust-scoped site in TrustAssetAggregatorService via new `forTrust` method. 3 unit tests for `forTrust` (match / empty / null exclusion). Both reviewers APPROVE clean.
 - [x] **PR #398** — Pass 4 PR 5d: AI + UserProfile read consumers (merge `02a9711`). 7 sites across 5 files. 1 primary-only (ProfileCompletenessChecker), 6 joint-aware including: `->load('mortgages')` lazy-eager-load pattern (AdvicePromptBuilder:819 + UserProfileService:197) and SQL `whereRaw` postcode normalisation → PHP Collection filter (DuplicateAcknowledgement:367). Implementer dispatch truncated on formatter import-removal; main thread completed the work directly. Both reviewers APPROVE clean.
+- [x] **PR #399** — Pass 4 PR 5e: Tax + Documents read consumers (merge `d76e809`). Final cluster of PR 5. 1 real site (IncomeDefinitionsService:88 — buy-to-let rental income via `forUserByType`). 2 class-name-only residuals kept (DocumentTypeDetector + PropertyMapper — `Property::class` dispatch keys for the upload field-mapper registry). Handled directly without subagent dispatch given the tiny scope. **PR 5 COMPLETE.**
 
 ### PRs remaining (in order)
-- [ ] **PR 5** — Point read consumers at PropertyStore (sub-clustered). Plan §9. **5a + 5b + 5c + 5d DONE.** Remaining: 5e Tax/Documents (IncomeDefinitionsService = 1 site, DocumentTypeDetector + FieldMappers\PropertyMapper = class-name-only residuals). Smallest cluster — handled directly without subagent dispatch.
+- [ ] **PR 6** — Canonical derived columns + snapshot table. Plan §10. Adds `current_value_gbp`, `equity_gbp`, `loan_to_value_pct` columns + `PropertyValueSnapshot` table + `PropertyDerivedColumnCalculator` service + `BackfillPropertyDerivedColumns` artisan command + 2 snapshot policies. Includes migrations. Bigger PR than 5a-e.
+- [ ] **PR 7** — Tier-cap test for property. Plan §11. PropertyTierCapTest with 5 cases. Enforcement seam already wired in PR 1.
+- [ ] **PR 8** — Lock-down + parity + audit + `PropertyStore.md`. Plan §12. Reword boundary to LOCKED framing, PropertyAuditIngestSourceTest, PropertyThreeIngestParityTest (incl. `tenants_in_common` case), PropertyStore.md. §16 close-out IN-LINE.
 
 ### ⚠️ CRITICAL — PropertyStore::forUser is joint-aware (5a review-loop discovery)
 
@@ -54,7 +57,7 @@ For consumers that originally used `Property::forUserOrJoint($userId)` (joint-aw
 | 1 | Savings | DONE (locked PR 8) |
 | 2 | Reference data R1-R4 | DONE (locked 26 PRs) |
 | 3 | Pensions (DC/DB/State/InputHistory) | DONE (8 PRs + close-out PR #385) |
-| **4** | **Properties** | **4/8 PRs (this track)** |
+| **4** | **Properties** | **7/8 PRs (this track) — PR 5 COMPLETE** |
 | 5 | Liabilities (incl. mortgages) | not started — no plan |
 | 6 | Investments | not started — no plan |
 | 7 | Income + Expenditure | not started — no plan |
