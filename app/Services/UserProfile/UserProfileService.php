@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Benefits\ChildBenefitService;
 use App\Services\Property\PropertyService;
 use App\Services\Shared\CrossModuleAssetAggregator;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\UKTaxCalculator;
@@ -29,6 +30,7 @@ class UserProfileService
         private readonly UKTaxCalculator $taxCalculator,
         private readonly ChildBenefitService $childBenefitService,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -518,7 +520,7 @@ class UserProfileService
     private function calculateLiabilitiesSummary(User $user): array
     {
         // Get mortgages from both Mortgage table and Estate\Liability table (type='mortgage')
-        $mortgageRecords = $user->mortgages; // From mortgages table
+        $mortgageRecords = $this->mortgageStore->forUserPrimaryOnly($user); // From mortgages table
         $mortgageLiabilities = $user->liabilities->where('liability_type', 'mortgage'); // From liabilities table
 
         $mortgagesTotal = $mortgageRecords->sum('outstanding_balance') +
