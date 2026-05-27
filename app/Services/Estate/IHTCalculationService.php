@@ -8,12 +8,12 @@ use App\Models\Estate\Gift;
 use App\Models\Estate\IHTCalculation;
 use App\Models\Estate\IHTProfile;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\Goals\LifeEventService;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Settings\AssumptionsService;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\TaxConfigService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -48,7 +48,8 @@ class IHTCalculationService
         private readonly AssumptionsService $assumptionsService,
         private readonly InvestmentProjectionService $investmentProjectionService,
         private readonly FutureValueCalculator $futureValueCalculator,
-        private readonly LifeEventService $lifeEventService
+        private readonly LifeEventService $lifeEventService,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -991,11 +992,11 @@ class IHTCalculationService
     ): float {
         $propertyGrowthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
 
-        $currentPropertyValue = (float) Property::where('user_id', $user->id)->sum('current_value');
+        $currentPropertyValue = (float) $this->propertyStore->forUser($user)->sum('current_value');
 
         // Include spouse properties if data sharing enabled
         if ($dataSharingEnabled && $spouse) {
-            $currentPropertyValue += (float) Property::where('user_id', $spouse->id)->sum('current_value');
+            $currentPropertyValue += (float) $this->propertyStore->forUser($spouse)->sum('current_value');
         }
 
         if ($yearsToProject <= 0) {
@@ -1327,18 +1328,14 @@ class IHTCalculationService
      */
     private function hasMainResidence(User $user, ?User $spouse): bool
     {
-        $userHasMainRes = Property::where('user_id', $user->id)
-            ->where('property_type', 'main_residence')
-            ->exists();
+        $userHasMainRes = $this->propertyStore->forUserByType($user, 'main_residence')->isNotEmpty();
 
         if ($userHasMainRes) {
             return true;
         }
 
         if ($spouse) {
-            return Property::where('user_id', $spouse->id)
-                ->where('property_type', 'main_residence')
-                ->exists();
+            return $this->propertyStore->forUserByType($spouse, 'main_residence')->isNotEmpty();
         }
 
         return false;
