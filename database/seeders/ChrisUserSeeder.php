@@ -19,7 +19,6 @@ use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
 use App\Models\OnboardingProgress;
-use App\Models\Property;
 use App\Models\ProtectionProfile;
 use App\Models\RetirementProfile;
 use App\Models\Role;
@@ -28,6 +27,7 @@ use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -117,8 +117,8 @@ class ChrisUserSeeder extends Seeder
         );
 
         // ── Property 1: Main Residence ────────────────────────
-        $mainResidence = Property::updateOrCreate(
-            ['user_id' => $userId, 'address_line_1' => '14 Maple Avenue'],
+        $mainResidence = app(PropertyStore::class)->updateOrCreate(
+            ['address_line_1' => '14 Maple Avenue'],
             [
                 'property_type' => 'main_residence',
                 'ownership_type' => 'individual',
@@ -132,7 +132,9 @@ class ChrisUserSeeder extends Seeder
                 'current_value' => 350000.00,
                 'valuation_date' => '2026-03-25',
                 'outstanding_mortgage' => 200000.00,
-            ]
+            ],
+            $chris,
+            IngestSource::SEEDER
         );
 
         Mortgage::updateOrCreate(
@@ -154,8 +156,8 @@ class ChrisUserSeeder extends Seeder
         );
 
         // ── Property 2: Buy-to-Let (joint with "wife") ───────
-        $btl = Property::updateOrCreate(
-            ['user_id' => $userId, 'address_line_1' => '19 Worth Court'],
+        $btl = app(PropertyStore::class)->updateOrCreate(
+            ['address_line_1' => '19 Worth Court'],
             [
                 'property_type' => 'buy_to_let',
                 'ownership_type' => 'joint',
@@ -169,7 +171,9 @@ class ChrisUserSeeder extends Seeder
                 'valuation_date' => '2026-04-01',
                 'monthly_rental_income' => 900.00,
                 'outstanding_mortgage' => 3500.00,
-            ]
+            ],
+            $chris,
+            IngestSource::SEEDER
         );
 
         Mortgage::updateOrCreate(

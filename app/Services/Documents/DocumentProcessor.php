@@ -23,8 +23,10 @@ use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
 use App\Services\Documents\FieldMappers\ProtectionMapper;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\PensionNormaliser;
+use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -425,8 +427,12 @@ class DocumentProcessor
                     $mapper = new FieldMappers\PropertyMapper;
                     foreach ($sheet['properties'] ?? [$sheet['account'] ?? []] as $propertyData) {
                         $mapped = $mapper->map($propertyData);
-                        $mapped['user_id'] = $user->id;
-                        $model = Property::create($mapped);
+                        $canonical = app(PropertyNormaliser::class)->fromUpload($mapped);
+                        $model = app(PropertyStore::class)->create(
+                            $canonical,
+                            $user,
+                            IngestSource::UPLOAD
+                        );
                         $results[] = [
                             'sheet_name' => $sheet['sheet_name'],
                             'category' => $category,

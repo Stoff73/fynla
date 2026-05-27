@@ -42,6 +42,7 @@ use App\Services\Stores\IngestSource;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -638,8 +639,7 @@ class PreviewUserSeeder extends Seeder
             }
 
             // Single-record pattern: Store FULL value directly (no splitting)
-            $property = Property::create([
-                'user_id' => $user->id,
+            $property = app(PropertyStore::class)->create([
                 'property_type' => $prop['property_type'] ?? 'main_residence',
                 'current_value' => $totalValue, // FULL value
                 'purchase_price' => $prop['purchase_price'] ?? null,
@@ -667,7 +667,7 @@ class PreviewUserSeeder extends Seeder
                 'tenant_name' => $prop['tenant_name'] ?? null,
                 'lease_start_date' => $prop['lease_start_date'] ?? null,
                 'lease_end_date' => $prop['lease_end_date'] ?? null,
-            ]);
+            ], $user, IngestSource::SEEDER);
 
             $propertyMap[$prop['id']] = $property->id;
             // Single-record pattern: NO reciprocal property for spouse
