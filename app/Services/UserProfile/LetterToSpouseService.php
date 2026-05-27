@@ -236,7 +236,11 @@ class LetterToSpouseService
      */
     private function generateRealEstateInfo(User $user): ?string
     {
-        $properties = $this->propertyStore->forUser($user);
+        // Primary-owner-only — letter is about $user's directly-owned properties.
+        // PropertyStore::forUser is joint-aware; filter back down to preserve the
+        // pre-PR-5a semantics where joint-only-as-secondary properties were excluded.
+        $properties = $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id);
 
         if ($properties->isEmpty()) {
             return null;

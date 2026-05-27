@@ -992,11 +992,21 @@ class IHTCalculationService
     ): float {
         $propertyGrowthRate = ($assumptions['property_growth_rate'] ?? self::DEFAULT_PROPERTY_GROWTH_RATE) / 100;
 
-        $currentPropertyValue = (float) $this->propertyStore->forUser($user)->sum('current_value');
+        // PropertyStore::forUser is joint-aware (user_id = ? OR joint_owner_id = ?).
+        // Filter to primary-owner-only here to preserve the pre-PR-5a single-count semantics:
+        // a joint property A+B is summed under A (primary) ONCE — never double-counted under
+        // both A and B in the data-sharing branch. Mirrors SavingsReadConsumerParityTest pattern.
+        $currentPropertyValue = (float) $this->propertyStore
+            ->forUser($user)
+            ->where('user_id', $user->id)
+            ->sum('current_value');
 
         // Include spouse properties if data sharing enabled
         if ($dataSharingEnabled && $spouse) {
-            $currentPropertyValue += (float) $this->propertyStore->forUser($spouse)->sum('current_value');
+            $currentPropertyValue += (float) $this->propertyStore
+                ->forUser($spouse)
+                ->where('user_id', $spouse->id)
+                ->sum('current_value');
         }
 
         if ($yearsToProject <= 0) {
@@ -1328,14 +1338,23 @@ class IHTCalculationService
      */
     private function hasMainResidence(User $user, ?User $spouse): bool
     {
-        $userHasMainRes = $this->propertyStore->forUserByType($user, 'main_residence')->isNotEmpty();
+        // PropertyStore::forUserByType is joint-aware. Filter to primary-owner-only so the
+        // RNRB-eligibility check matches the pre-PR-5a semantics: a user qualifies only when
+        // they are the primary owner of a main_residence record, not merely a joint owner.
+        $userHasMainRes = $this->propertyStore
+            ->forUserByType($user, 'main_residence')
+            ->where('user_id', $user->id)
+            ->isNotEmpty();
 
         if ($userHasMainRes) {
             return true;
         }
 
         if ($spouse) {
-            return $this->propertyStore->forUserByType($spouse, 'main_residence')->isNotEmpty();
+            return $this->propertyStore
+                ->forUserByType($spouse, 'main_residence')
+                ->where('user_id', $spouse->id)
+                ->isNotEmpty();
         }
 
         return false;

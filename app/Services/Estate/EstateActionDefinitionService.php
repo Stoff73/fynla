@@ -340,8 +340,13 @@ class EstateActionDefinitionService
     {
         $total = 0.0;
 
-        // Properties
-        $total += (float) $this->propertyStore->forUser($user)->sum('current_value');
+        // Properties — primary-owner-only (filter the joint-aware Collection), matching
+        // the Savings line below and the pre-PR-5a behaviour. PropertyStore::forUser returns
+        // user_id = ? OR joint_owner_id = ?; appending where('user_id', $user->id) restores
+        // single-count semantics for joint properties.
+        $total += (float) $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id)
+            ->sum('current_value');
 
         // Investment accounts
         $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');

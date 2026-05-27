@@ -207,9 +207,14 @@ class LetterEstateValidationService
     {
         $warnings = [];
 
-        // Property check
+        // Property check — primary-owner-only count (filter the joint-aware Collection).
+        // PropertyStore::forUser returns user_id = ? OR joint_owner_id = ?; appending
+        // where('user_id', $user->id) restores the pre-PR-5a single-count semantics so
+        // the warning text doesn't list properties the user isn't primarily on.
         $letterRealEstate = trim($letter->real_estate_info ?? '');
-        $propertyCount = $this->propertyStore->forUser($user)->count();
+        $propertyCount = $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id)
+            ->count();
 
         if ($propertyCount > 0 && $letterRealEstate === '') {
             $warnings[] = [
