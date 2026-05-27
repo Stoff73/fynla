@@ -70,7 +70,7 @@ beforeEach(function () {
         ]);
 
     $taxCalculator = new UKTaxCalculator($mockTaxConfig);
-    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig));
+    $childBenefitService = new ChildBenefitService($mockTaxConfig, new IncomeDefinitionsService($mockTaxConfig, app(PropertyStore::class)));
     $this->service = new UserProfileService($aggregator, $taxCalculator, $childBenefitService, app(PropertyStore::class));
 
     // Create a household

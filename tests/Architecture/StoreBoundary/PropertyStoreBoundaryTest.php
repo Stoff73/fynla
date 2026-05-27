@@ -66,8 +66,11 @@ $propertyConsumers = [
     //   HouseholdPlanningService (3 of 4 sites), TrustAssetAggregatorService.
     //   Added new PropertyStore::forTrust(int) read method for trust-scoped queries.
     'App\Http\Controllers\Api\MortgageController',
-    // Cluster 5d (this PR) routed: AdvicePromptBuilder (2 sites), DuplicateAcknowledgement,
-    //   PersonalAccountsService, ProfileCompletenessChecker, UserProfileService (2 sites).
+    // Cluster 5d (PR #398, merged 02a9711) routed: AdvicePromptBuilder (2 sites),
+    //   DuplicateAcknowledgement, PersonalAccountsService, ProfileCompletenessChecker,
+    //   UserProfileService (2 sites).
+    // Cluster 5e (this PR — final cluster of PR 5) routed: IncomeDefinitionsService
+    //   (1 site — buy-to-let rental income via forUserByType).
     // HouseholdPlanningService — three read sites (273/394/922) routed through
     // PropertyStore in PR 5c. Residual: :739 polymorphic joint-asset detection
     // loop iterates over Property::class alongside SavingsAccount /
@@ -75,9 +78,11 @@ $propertyConsumers = [
     // loop symmetry. Refactor to a JointAssetFinder service when all 5 entity
     // stores exist. Deferred from PR 5c.
     'App\Services\Coordination\HouseholdPlanningService',
+    // DocumentTypeDetector + PropertyMapper carry class-name-only references
+    // (`Property::class` used as dispatch keys for the upload field-mapper
+    // registry) — not query/mutation sites. Permanent residuals.
     'App\Services\Documents\DocumentTypeDetector',
     'App\Services\Documents\FieldMappers\PropertyMapper',
-    'App\Services\Tax\IncomeDefinitionsService',
 
     // SP1 Pass 4 PR 2 documented residuals — write paths now routed through
     // PropertyStore (POST/PUT/DELETE on /api/properties; PreviewController

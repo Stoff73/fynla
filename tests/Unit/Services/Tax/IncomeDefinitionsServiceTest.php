@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\DCPension;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Services\Tax\IncomeDefinitionsService;
 use App\Services\TaxConfigService;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -11,7 +12,7 @@ use Database\Seeders\TaxConfigurationSeeder;
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
     $this->taxConfig = app(TaxConfigService::class);
-    $this->service = new IncomeDefinitionsService($this->taxConfig);
+    $this->service = new IncomeDefinitionsService($this->taxConfig, app(PropertyStore::class));
 });
 
 afterEach(function () {
