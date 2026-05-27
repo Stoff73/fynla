@@ -618,23 +618,23 @@ class OnboardingService
                 $monthlyRental = $propertyData['monthly_rental_income'] ?? 0;
 
                 // Create property record via PropertyStore (IngestSource::FORM — onboarding payload is form-shape).
-                // Note: annual_rental_income is a users column, not a properties column; omit from store payload.
-                $property = app(PropertyStore::class)->create(
-                    [
-                        'property_type' => $propertyData['property_type'],
-                        'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
-                        'address_line_1' => $propertyData['address_line_1'],
-                        'address_line_2' => $propertyData['address_line_2'] ?? null,
-                        'city' => $propertyData['city'] ?? null,
-                        'postcode' => $propertyData['postcode'] ?? null,
-                        'country' => $propertyData['country'] ?? 'United Kingdom',
-                        'current_value' => $propertyData['current_value'],
-                        'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
-                        'monthly_rental_income' => $monthlyRental,
-                    ],
-                    $user,
-                    IngestSource::FORM
-                );
+                // Mirror the savings sibling below: normalise via fromForm() before the store call so future
+                // form-field drift (alias keys, enum variants) is canonicalised at the seam rather than failing
+                // validation deeper. annual_rental_income is a users column, not a properties column; omit it.
+                $canonical = app(PropertyNormaliser::class)->fromForm([
+                    'property_type' => $propertyData['property_type'],
+                    'ownership_type' => $propertyData['ownership_type'] ?? 'individual',
+                    'address_line_1' => $propertyData['address_line_1'],
+                    'address_line_2' => $propertyData['address_line_2'] ?? null,
+                    'city' => $propertyData['city'] ?? null,
+                    'postcode' => $propertyData['postcode'] ?? null,
+                    'country' => $propertyData['country'] ?? 'United Kingdom',
+                    'current_value' => $propertyData['current_value'],
+                    'outstanding_mortgage' => $propertyData['outstanding_mortgage'] ?? 0,
+                    'monthly_rental_income' => $monthlyRental,
+                ]);
+
+                $property = app(PropertyStore::class)->create($canonical, $user, IngestSource::FORM);
 
                 // Accumulate rental income for updating user's total rental income
                 if ($monthlyRental > 0) {
