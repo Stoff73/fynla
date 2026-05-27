@@ -15,9 +15,25 @@
 - [x] **PR #388** — Pass 4 PR 2: HTTP form requests + cross-store tier-limit Option A alignment (merge `b8cbec5`)
 - [x] **PR #389** — Pass 4 PR 3: Fyn AI write tools + DB::transaction atomicity (merge `ba42683`)
 - [x] **PR #390** — Pass 4 PR 4: upload + onboarding + seeders at PropertyStore (merge `df357e9`). Surfaced + disclosed 2 pre-existing bug fixes (MigrateEstateToNetWorth current_valuation→current_value; OnboardingService annual_rental_income drop). In-flight Minor #1 fix added PropertyNormaliser::fromForm seam in OnboardingService (commit `3074029`).
+- [x] **PR #395** — Pass 4 PR 5a: Estate/IHT read consumers + PropertyReadConsumerParityTest (merge `262ad96`). Code-quality review caught a Major regression — `PropertyStore::forUser` is JOINT-AWARE (returns `user_id = ? OR joint_owner_id = ?`), silently broadening 7 sites that originally used `Property::where('user_id', $userId)`. Fix appends `->where('user_id', $user->id)` to the Collection chain for primary-only consumers. 7-case parity test locks the contract for 5b/5c/5d/5e.
 
 ### PRs remaining (in order)
-- [ ] **PR 5** — Point read consumers at PropertyStore (sub-clustered). Plan §9. ~21 service files. Likely sub-cluster: 5a Estate/IHT, 5b NetWorth/Mobile, 5c Coordination/Trust, 5d AI/Profile, 5e Tax/Documents. Biggest PR of Pass 4.
+- [ ] **PR 5** — Point read consumers at PropertyStore (sub-clustered). Plan §9. **5a DONE.** Remaining: 5b NetWorth/Mobile (NetWorthService + MobileDashboardAggregator + CrossModuleAssetAggregator), 5c Coordination/Trust (HouseholdPlanningService + TrustAssetAggregatorService), 5d AI/Profile (AdvicePromptBuilder + DuplicateAcknowledgement + PersonalAccountsService + UserProfileService + ProfileCompletenessChecker), 5e Tax/Documents (IncomeDefinitionsService + DocumentTypeDetector + FieldMappers\PropertyMapper).
+
+### ⚠️ CRITICAL — PropertyStore::forUser is joint-aware (5a review-loop discovery)
+
+`PropertyStore::forUser(User $user): Collection` calls `Property::forUserOrJoint($user->id)->get()` internally — returns `WHERE user_id = ? OR joint_owner_id = ?`. Same applies to `forUserByType`.
+
+**For any consumer that originally used `Property::where('user_id', $userId)` (primary-only), chain `->where('user_id', $user->id)` onto the Collection to restore primary-only semantics.** Pattern:
+
+```php
+// Pre-PR-5a: Property::where('user_id', $userId)->sum('current_value')
+// Post: $propertyStore->forUser($user)->where('user_id', $user->id)->sum('current_value')
+```
+
+For consumers that originally used `Property::forUserOrJoint($userId)` (joint-aware, typically followed by `calculateUserShare`), use `forUserWithJointOwner($user)` and DO NOT add the filter.
+
+`PropertyReadConsumerParityTest` locks 7 cases covering both patterns.
 - [ ] **PR 6** — Canonical derived columns + snapshot table. Plan §10. `current_value_gbp`, `equity_gbp`, `loan_to_value_pct` + PropertyValueSnapshot table + PropertyDerivedColumnCalculator + BackfillPropertyDerivedColumns command + 2 snapshot policies.
 - [ ] **PR 7** — Tier-cap test for property. Plan §11. PropertyTierCapTest with 5 cases. Enforcement seam already wired in PR 1.
 - [ ] **PR 8** — Lock-down + parity + audit + Store.md. Plan §12. Reword boundary to LOCKED framing, PropertyAuditIngestSourceTest, PropertyThreeIngestParityTest (incl. tenants_in_common case), PropertyStore.md. §16 close-out IN-LINE.
