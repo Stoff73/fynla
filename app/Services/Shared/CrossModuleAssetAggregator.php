@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Shared;
 
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
@@ -39,6 +39,7 @@ class CrossModuleAssetAggregator
     public function __construct(
         private readonly SavingsStore $savingsStore,
         private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -226,12 +227,12 @@ class CrossModuleAssetAggregator
     public function getMortgages(int $userId): Collection
     {
         $user = User::findOrFail($userId);
-        $directMortgages = Mortgage::forUserOrJoint($userId)->get();
+        $directMortgages = $this->mortgageStore->forUser($user);
 
-        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id');
-        $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
-            ->whereNotIn('id', $directMortgages->pluck('id'))
-            ->get();
+        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id')->toArray();
+        $propertyMortgages = $this->mortgageStore->forUser($user)
+            ->whereNotIn('id', $directMortgages->pluck('id')->toArray())
+            ->whereIn('property_id', $propertyIds);
 
         return $directMortgages->concat($propertyMortgages);
     }
@@ -245,12 +246,12 @@ class CrossModuleAssetAggregator
     public function calculateMortgageTotal(int $userId): float
     {
         $user = User::findOrFail($userId);
-        $directMortgages = Mortgage::forUserOrJoint($userId)->get();
+        $directMortgages = $this->mortgageStore->forUser($user);
 
-        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id');
-        $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
-            ->whereNotIn('id', $directMortgages->pluck('id'))
-            ->get();
+        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id')->toArray();
+        $propertyMortgages = $this->mortgageStore->forUser($user)
+            ->whereNotIn('id', $directMortgages->pluck('id')->toArray())
+            ->whereIn('property_id', $propertyIds);
 
         return $directMortgages->concat($propertyMortgages)
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $userId));
@@ -279,7 +280,7 @@ class CrossModuleAssetAggregator
                 'total' => $this->calculateCashTotal($userId),
             ],
             'mortgages' => [
-                'count' => Mortgage::forUserOrJoint($userId)->count(),
+                'count' => $this->mortgageStore->forUser($user)->count(),
                 'total' => $this->calculateMortgageTotal($userId),
             ],
         ];
