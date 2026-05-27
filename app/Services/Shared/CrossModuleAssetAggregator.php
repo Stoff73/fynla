@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Shared;
 
 use App\Models\Investment\InvestmentAccount;
+use App\Models\Mortgage;
 use App\Models\User;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
@@ -222,17 +223,24 @@ class CrossModuleAssetAggregator
     /**
      * Get all mortgages for a user.
      *
-     * Single-record pattern: Query mortgages where user is owner OR joint_owner.
+     * Two-leg pattern (matches Pass 4 Property sibling):
+     *   1. Direct mortgages where user is owner OR joint_owner (joint-aware via MortgageStore).
+     *   2. Mortgages on the user's properties that are NOT owned by the user — the
+     *      cross-link case where a shared property has a mortgage held by a different
+     *      party (e.g. one spouse's mortgage on a jointly-owned home). This leg is
+     *      INTENTIONALLY unscoped by mortgage owner and stays as a raw Eloquent read
+     *      because MortgageStore's user-scoped contract cannot express it.
+     *      Reads are not policed by MortgageStoreBoundaryTest (writes only).
      */
     public function getMortgages(int $userId): Collection
     {
         $user = User::findOrFail($userId);
         $directMortgages = $this->mortgageStore->forUser($user);
 
-        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id')->toArray();
-        $propertyMortgages = $this->mortgageStore->forUser($user)
-            ->whereNotIn('id', $directMortgages->pluck('id')->toArray())
-            ->whereIn('property_id', $propertyIds);
+        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id');
+        $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
+            ->whereNotIn('id', $directMortgages->pluck('id'))
+            ->get();
 
         return $directMortgages->concat($propertyMortgages);
     }
@@ -240,18 +248,19 @@ class CrossModuleAssetAggregator
     /**
      * Calculate total mortgage liabilities (user's share).
      *
-     * Single-record pattern: Sum user's share of all mortgages where user
-     * is owner OR joint_owner.
+     * Two-leg pattern — see getMortgages() docblock for rationale on the unscoped
+     * cross-link leg. User-share calculation handles non-owner mortgages by
+     * returning 0.0 via CalculatesOwnershipShare::calculateUserMortgageShare.
      */
     public function calculateMortgageTotal(int $userId): float
     {
         $user = User::findOrFail($userId);
         $directMortgages = $this->mortgageStore->forUser($user);
 
-        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id')->toArray();
-        $propertyMortgages = $this->mortgageStore->forUser($user)
-            ->whereNotIn('id', $directMortgages->pluck('id')->toArray())
-            ->whereIn('property_id', $propertyIds);
+        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id');
+        $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
+            ->whereNotIn('id', $directMortgages->pluck('id'))
+            ->get();
 
         return $directMortgages->concat($propertyMortgages)
             ->sum(fn ($mortgage) => $this->calculateUserMortgageShare($mortgage, $userId));
