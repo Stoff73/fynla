@@ -2661,7 +2661,8 @@ class CoordinatingAgent extends BaseAgent
             return [
                 'error' => true,
                 'error_type' => 'validation_failed',
-                'message' => 'Could not save the mortgage — '.json_encode($e->errors),
+                'errors' => $e->errors,
+                'message' => 'Validation failed for mortgage.',
             ];
         } catch (TierLimitExceededException $e) {
             return [
