@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Mortgage;
 use App\Models\Property;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
@@ -21,6 +22,14 @@ it('properties:backfill-derived populates derived columns on legacy rows', funct
         'current_value_gbp' => null,
         'equity_gbp' => null,
         'loan_to_value_pct' => null,
+    ]);
+
+    // Pass 5 PR 6: canonical source for outstanding mortgage is MortgageStore.
+    // Seed a mortgage so the backfill recalculates against the same canonical sum.
+    Mortgage::factory()->create([
+        'user_id' => $user->id,
+        'property_id' => $property->id,
+        'outstanding_balance' => 150000,
     ]);
 
     $this->artisan('properties:backfill-derived-columns')

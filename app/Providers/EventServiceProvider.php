@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\Mortgage\MortgageCreated;
+use App\Events\Mortgage\MortgageDeleted;
+use App\Events\Mortgage\MortgageRestored;
+use App\Events\Mortgage\MortgageUpdated;
+use App\Listeners\Mortgage\RecalculatePropertyOutstandingMortgage;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\CriticalIllnessPolicy;
@@ -52,6 +57,18 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+        ],
+        MortgageCreated::class => [
+            RecalculatePropertyOutstandingMortgage::class,
+        ],
+        MortgageUpdated::class => [
+            RecalculatePropertyOutstandingMortgage::class,
+        ],
+        MortgageDeleted::class => [
+            RecalculatePropertyOutstandingMortgage::class,
+        ],
+        MortgageRestored::class => [
+            RecalculatePropertyOutstandingMortgage::class,
         ],
     ];
 

@@ -70,6 +70,7 @@ class Property extends Model
         'equity_gbp_calculated_at',
         'loan_to_value_pct',
         'loan_to_value_pct_calculated_at',
+        'outstanding_mortgage_calculated_at',
     ];
 
     protected $casts = [
@@ -101,6 +102,7 @@ class Property extends Model
         'equity_gbp_calculated_at' => 'datetime',
         'loan_to_value_pct' => 'decimal:2',
         'loan_to_value_pct_calculated_at' => 'datetime',
+        'outstanding_mortgage_calculated_at' => 'datetime',
     ];
 
     /**
