@@ -14,9 +14,9 @@ use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\StructuredLogging;
@@ -45,6 +45,7 @@ class MobileDashboardAggregator
         private readonly GoalsAgent $goalsAgent,
         private readonly DashboardAggregator $dashboardAggregator,
         private readonly SavingsStore $savingsStore,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -314,7 +315,7 @@ class MobileDashboardAggregator
             $investmentValue = $this->sumUserShares($user->investmentAccounts, $userId);
 
             // Also include joint assets where user is the joint_owner_id
-            $propertyValue += $this->sumJointOwnerShares(Property::class, $userId);
+            $propertyValue += $this->sumPropertyJointOwnerShares($user, $userId);
             $savingsValue += $this->sumSavingsJointOwnerShares($user, $userId);
             $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
 
@@ -424,6 +425,22 @@ class MobileDashboardAggregator
 
         foreach ($this->savingsStore->forUser($user)->filter(fn ($a) => $a->joint_owner_id === $userId) as $account) {
             $total += $this->calculateUserShare($account, $userId);
+        }
+
+        return $total;
+    }
+
+    /**
+     * Sum property joint-owner shares via PropertyStore, filtering to records
+     * where the user is the joint_owner_id (avoids double-counting with
+     * the primary-owner path that reads via $user->properties relation).
+     */
+    private function sumPropertyJointOwnerShares(User $user, int $userId): float
+    {
+        $total = 0.0;
+
+        foreach ($this->propertyStore->forUser($user)->filter(fn ($p) => $p->joint_owner_id === $userId) as $property) {
+            $total += $this->calculateUserShare($property, $userId);
         }
 
         return $total;
