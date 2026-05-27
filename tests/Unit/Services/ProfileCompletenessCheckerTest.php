@@ -13,7 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->checker = new ProfileCompletenessChecker;
+    $this->checker = app(ProfileCompletenessChecker::class);
 });
 
 describe('ProfileCompletenessChecker - Married Users', function () {

@@ -66,8 +66,8 @@ $propertyConsumers = [
     //   HouseholdPlanningService (3 of 4 sites), TrustAssetAggregatorService.
     //   Added new PropertyStore::forTrust(int) read method for trust-scoped queries.
     'App\Http\Controllers\Api\MortgageController',
-    'App\Services\AI\AdvicePromptBuilder',
-    'App\Services\AI\DuplicateAcknowledgement',
+    // Cluster 5d (this PR) routed: AdvicePromptBuilder (2 sites), DuplicateAcknowledgement,
+    //   PersonalAccountsService, ProfileCompletenessChecker, UserProfileService (2 sites).
     // HouseholdPlanningService — three read sites (273/394/922) routed through
     // PropertyStore in PR 5c. Residual: :739 polymorphic joint-asset detection
     // loop iterates over Property::class alongside SavingsAccount /
@@ -78,9 +78,6 @@ $propertyConsumers = [
     'App\Services\Documents\DocumentTypeDetector',
     'App\Services\Documents\FieldMappers\PropertyMapper',
     'App\Services\Tax\IncomeDefinitionsService',
-    'App\Services\UserProfile\PersonalAccountsService',
-    'App\Services\UserProfile\ProfileCompletenessChecker',
-    'App\Services\UserProfile\UserProfileService',
 
     // SP1 Pass 4 PR 2 documented residuals — write paths now routed through
     // PropertyStore (POST/PUT/DELETE on /api/properties; PreviewController
