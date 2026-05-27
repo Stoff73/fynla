@@ -23,8 +23,10 @@ uses(TestCase::class);
 it('enforces MortgageStore as the only write path for Mortgage', function () {
     $allowlist = [
         // PR 2 trimmed: MortgageController + PreviewController now route through MortgageStore.
+        // PR 3 trimmed: CoordinatingAgent::handleCreateMortgage now routes through MortgageStore.
+        //               Residual: handleCreateProperty mortgage auto-create (line ~2547) — PR 4 will trim.
+        'app/Agents/CoordinatingAgent.php',                        // PR 4 will trim (handleCreateProperty mortgage auto-create)
         'app/Http/Controllers/Api/PropertyController.php',         // PR 4 will trim (mortgages()->delete() cascade in destroy)
-        'app/Agents/CoordinatingAgent.php',                        // PR 3 will trim
         'app/Services/Property/MortgageService.php',               // PR 4 will trim (createFromPropertyData)
         'app/Services/Documents/DocumentProcessor.php',            // PR 4 will trim
         'app/Services/Onboarding/OnboardingService.php',           // PR 4 will trim
