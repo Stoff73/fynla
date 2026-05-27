@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Estate\Trust;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
@@ -123,6 +124,54 @@ it('PropertyStore::forUser returns properties where user is primary or joint own
 
     expect($store->forUser($alice)->count())->toBe(2);
     expect($store->forUser($bob)->count())->toBe(1);
+});
+
+it('PropertyStore::forTrust returns properties matching trust_id', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $trust = Trust::factory()->create(['user_id' => $user->id]);
+
+    Property::factory(2)->create([
+        'user_id' => $user->id,
+        'trust_id' => $trust->id,
+        'ownership_type' => 'trust',
+    ]);
+
+    $collection = app(PropertyStore::class)->forTrust($trust->id);
+
+    expect($collection)->toHaveCount(2);
+    expect($collection->pluck('trust_id')->unique()->values()->all())->toBe([$trust->id]);
+});
+
+it('PropertyStore::forTrust returns empty Collection when trust has no properties', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $trust = Trust::factory()->create(['user_id' => $user->id]);
+
+    $collection = app(PropertyStore::class)->forTrust($trust->id);
+
+    expect($collection)->toHaveCount(0);
+});
+
+it('PropertyStore::forTrust does NOT return properties where trust_id is null', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $trust = Trust::factory()->create(['user_id' => $user->id]);
+
+    // One trust-held property
+    Property::factory()->create([
+        'user_id' => $user->id,
+        'trust_id' => $trust->id,
+        'ownership_type' => 'trust',
+    ]);
+    // Three non-trust (trust_id is null) properties
+    Property::factory(3)->create([
+        'user_id' => $user->id,
+        'trust_id' => null,
+        'ownership_type' => 'individual',
+    ]);
+
+    $collection = app(PropertyStore::class)->forTrust($trust->id);
+
+    expect($collection)->toHaveCount(1);
+    expect($collection->first()->trust_id)->toBe($trust->id);
 });
 
 it('PropertyStore::delete soft-deletes; restore brings the row back', function () {

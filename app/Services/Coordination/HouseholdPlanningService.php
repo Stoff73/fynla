@@ -18,6 +18,7 @@ use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\CalculatesOwnershipShare;
@@ -39,7 +40,8 @@ class HouseholdPlanningService
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -268,7 +270,10 @@ class HouseholdPlanningService
 
         // NRB/RNRB transfers to surviving spouse on first death
         $nrbTransferred = $nrb; // Full NRB transfers if not used
-        $hasMainResidence = $deceased->properties()->where('property_type', 'main_residence')->exists();
+        $hasMainResidence = $this->propertyStore
+            ->forUserByType($deceased, 'main_residence')
+            ->where('user_id', $deceased->id)
+            ->isNotEmpty();
         $hasDirectDescendants = $deceased->familyMembers()->whereIn('relationship', ['child', 'grandchild', 'step_child'])->exists();
         $qualifiesForRNRB = $hasMainResidence && $hasDirectDescendants;
         $rnrbTransferred = $qualifiesForRNRB ? $rnrb : 0.0; // RNRB transfers only if main residence passes to direct descendants
@@ -388,9 +393,10 @@ class HouseholdPlanningService
     {
         $userId = $user->id;
 
-        // Properties
-        $properties = Property::forUserOrJoint($userId)
-            ->get();
+        // Properties — JOINT-AWARE: forUserWithJointOwner() is 1:1 with the prior
+        // forUserOrJoint(); calculateUserShare downstream handles the split,
+        // so NO single-owner where('user_id') post-filter here (PR 5c).
+        $properties = $this->propertyStore->forUserWithJointOwner($user);
         $propertyValue = $properties->sum(fn ($p) => $this->calculateUserShare($p, $userId));
 
         // Savings accounts — JOINT-AWARE: forUser() is 1:1 with the prior
@@ -917,7 +923,10 @@ class HouseholdPlanningService
         $rnrb = (float) ($ihtConfig['residence_nil_rate_band'] ?? TaxDefaults::RNRB);
         $ihtRate = (float) ($ihtConfig['rate'] ?? 0.40);
 
-        $hasMainResidence = $user->properties()->where('property_type', 'main_residence')->exists();
+        $hasMainResidence = $this->propertyStore
+            ->forUserByType($user, 'main_residence')
+            ->where('user_id', $user->id)
+            ->isNotEmpty();
         $hasDirectDescendants = $user->familyMembers()->whereIn('relationship', ['child', 'grandchild', 'step_child'])->exists();
         $qualifiesForRNRB = $hasMainResidence && $hasDirectDescendants;
         $effectiveRNRB = $qualifiesForRNRB ? $rnrb : 0.0;

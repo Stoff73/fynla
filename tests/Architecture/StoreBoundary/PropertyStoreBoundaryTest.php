@@ -60,16 +60,24 @@ $propertyConsumers = [
     //   EstateActionDefinitionService, IHTCalculationService,
     //   LetterEstateValidationService, LetterToSpouseService,
     //   UserProfileService Estate/IHT consumer paths.
-    // Cluster 5b (this PR) routes:
+    // Cluster 5b (PR #396, merged e718e23) routed:
     //   NetWorthService, MobileDashboardAggregator, CrossModuleAssetAggregator.
+    // Cluster 5c (this PR) routes:
+    //   HouseholdPlanningService (3 of 4 sites), TrustAssetAggregatorService.
+    //   Added new PropertyStore::forTrust(int) read method for trust-scoped queries.
     'App\Http\Controllers\Api\MortgageController',
     'App\Services\AI\AdvicePromptBuilder',
     'App\Services\AI\DuplicateAcknowledgement',
+    // HouseholdPlanningService — three read sites (273/394/922) routed through
+    // PropertyStore in PR 5c. Residual: :739 polymorphic joint-asset detection
+    // loop iterates over Property::class alongside SavingsAccount /
+    // InvestmentAccount / CashAccount / Chattel. Routing one model out breaks
+    // loop symmetry. Refactor to a JointAssetFinder service when all 5 entity
+    // stores exist. Deferred from PR 5c.
     'App\Services\Coordination\HouseholdPlanningService',
     'App\Services\Documents\DocumentTypeDetector',
     'App\Services\Documents\FieldMappers\PropertyMapper',
     'App\Services\Tax\IncomeDefinitionsService',
-    'App\Services\Trust\TrustAssetAggregatorService',
     'App\Services\UserProfile\PersonalAccountsService',
     'App\Services\UserProfile\ProfileCompletenessChecker',
     'App\Services\UserProfile\UserProfileService',
