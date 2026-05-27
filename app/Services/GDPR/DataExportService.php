@@ -8,12 +8,14 @@ use App\Models\AuditLog;
 use App\Models\DataExport;
 use App\Models\User;
 use App\Services\Audit\AuditService;
+use App\Services\Stores\MortgageStore;
 use Illuminate\Support\Facades\Storage;
 
 class DataExportService
 {
     public function __construct(
-        private readonly AuditService $auditService
+        private readonly AuditService $auditService,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -145,7 +147,7 @@ class DataExportService
 
     private function exportMortgages(User $user): array
     {
-        return $user->mortgages()->get()->map(fn ($m) => $m->toArray())->toArray();
+        return $this->mortgageStore->forUserPrimaryOnly($user)->map(fn ($m) => $m->toArray())->toArray();
     }
 
     private function exportSavingsAccounts(User $user): array
