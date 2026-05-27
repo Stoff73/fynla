@@ -15,6 +15,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Property\MortgageService;
 use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
 use App\Services\Stores\MortgageStore;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
@@ -138,6 +139,16 @@ class MortgageController extends Controller
             $mortgage = $this->mortgageStore->create($canonical, $user, IngestSource::FORM);
         } catch (StoreValidationException $e) {
             return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mortgage limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
         }
 
         $mortgageResource = (new MortgageResource($mortgage->refresh()))->additional([

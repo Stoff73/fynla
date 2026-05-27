@@ -120,3 +120,39 @@ it('returns 422 on invalid mortgage_type', function () {
     // Form-request validation will catch this BEFORE the store sees it.
     $response->assertStatus(422);
 });
+
+it('returns 403 with structured payload when free-tier mortgage cap is exceeded', function () {
+    // Default user factory creates tier1 (unlimited); recreate as free-tier for this cap test.
+    $freeUser = User::factory()->create(['tier' => 'free']);
+    $freeProperty = Property::factory()->create(['user_id' => $freeUser->id]);
+    Sanctum::actingAs($freeUser);
+
+    // Free-tier cap is 10 per TierConfigurationSeeder; create 10 then attempt 11th.
+    for ($i = 1; $i <= 10; $i++) {
+        Mortgage::factory()->create([
+            'user_id' => $freeUser->id,
+            'property_id' => $freeProperty->id,
+        ]);
+    }
+
+    $response = $this->postJson("/api/properties/{$freeProperty->id}/mortgages", [
+        'lender_name' => 'Eleventh',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 100000,
+        'monthly_payment' => 600,
+        'start_date' => '2020-01-01',
+        'maturity_date' => '2045-01-01',
+        'remaining_term_months' => 240,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertStatus(403)
+        ->assertJson([
+            'success' => false,
+            'error' => [
+                'entity_key' => 'mortgage',
+                'hard_limit' => 10,
+            ],
+        ]);
+});
