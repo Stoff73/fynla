@@ -55,16 +55,19 @@ $propertyConsumers = [
     // LifecycleTestSeeder uses Property factory for test scaffolding;
     // factory writes are not ingest events.
     'Database\Seeders\LifecycleTestSeeder',
-    // PR 5 removes: read consumers (~21 services + Mortgage relationship reads)
+    // PR 5 removes: read consumers (~21 services + Mortgage relationship reads).
+    // Cluster 5a (PR #395, merged 262ad96) routed:
+    //   EstateActionDefinitionService, IHTCalculationService,
+    //   LetterEstateValidationService, LetterToSpouseService,
+    //   UserProfileService Estate/IHT consumer paths.
+    // Cluster 5b (this PR) routes:
+    //   NetWorthService, MobileDashboardAggregator, CrossModuleAssetAggregator.
     'App\Http\Controllers\Api\MortgageController',
     'App\Services\AI\AdvicePromptBuilder',
     'App\Services\AI\DuplicateAcknowledgement',
     'App\Services\Coordination\HouseholdPlanningService',
     'App\Services\Documents\DocumentTypeDetector',
     'App\Services\Documents\FieldMappers\PropertyMapper',
-    'App\Services\Mobile\MobileDashboardAggregator',
-    'App\Services\NetWorth\NetWorthService',
-    'App\Services\Shared\CrossModuleAssetAggregator',
     'App\Services\Tax\IncomeDefinitionsService',
     'App\Services\Trust\TrustAssetAggregatorService',
     'App\Services\UserProfile\PersonalAccountsService',
