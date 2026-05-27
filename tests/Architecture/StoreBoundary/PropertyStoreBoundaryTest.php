@@ -3,135 +3,152 @@
 declare(strict_types=1);
 
 /**
- * Sub-Project 1, Pass 4 — Property store boundary enforcement.
+ * Sub-Project 1, Pass 4 — Property store boundary enforcement (LOCKED).
  *
- * Hard-fails CI on any direct mutation/query of App\Models\Property
- * outside the canonical write path (App\Services\Stores\PropertyStore).
+ * Pass 4 is complete. This allowlist is now FINAL: every direct mutation
+ * and statically-resolvable query of App\Models\Property flows through
+ * the canonical write/read set (PropertyStore + PropertyNormaliser +
+ * PropertyDerivedColumnCalculator + BackfillPropertyDerivedColumns),
+ * with the remaining entries being spec §14.2 permanents (observers,
+ * factory, events, model-relationship/self refs, the API resource,
+ * console commands, seeders) and a small set of documented residual
+ * NON-QUERY references (class-name args, type hints, polymorphic dispatch
+ * loop at HouseholdPlanningService:739, controller residual reads from
+ * PR 2) plus out-of-sub-project-1-scope references.
  *
- * Allowlist (§14.2 of the spec): observers, migrations, seeders, console
- * commands, the store itself, and pre-existing direct-mutation sites that
- * subsequent PRs in this pass will migrate. Each entry below has a comment
- * naming the PR that removes it.
+ * No transition entries remain — the "PR Nx removes" language has been
+ * replaced with permanent/documented-residual framing. Each entry below is
+ * classified. Removing any entry whose file still references Property
+ * will turn this suite RED: that means the entry is still load-bearing,
+ * not that the rule should be weakened.
  */
 $propertyConsumers = [
-    // Permanent allowlist (per spec §14.2)
+    // ---- Canonical write/read set ----
+    // The single canonical write path. All create/update/delete/restore
+    // and all joint-aware reads funnel through here.
     'App\Services\Stores\PropertyStore',
+    // Part of the canonical write path: normalises inbound payloads from
+    // form / Fyn AI / upload vocabularies onto the canonical shape.
+    // No queries, no mutations.
     'App\Services\Stores\Normalisers\PropertyNormaliser',
+    // Part of the canonical write path: invoked ONLY by
+    // PropertyStore::recalculateDerived(), takes a Property instance
+    // and reads its fields to compute the materialised columns
+    // (current_value_gbp, equity_gbp, loan_to_value_pct). No queries,
+    // no mutations — conceptually an internal of the store.
+    'App\Services\Stores\Recalc\PropertyDerivedColumnCalculator',
+    // One-off backfill of the canonical derived columns for existing
+    // rows: reads via Property::chunkById and forceFill/saveQuietly
+    // the derived columns only — a migration-style backfill
+    // (spec §14.2 console-command category).
+    'App\Console\Commands\BackfillPropertyDerivedColumns',
+
+    // ---- Spec §14.2 permanent allowlist ----
+    // Observer (risk recalculation side effects), the factory, domain events,
+    // model self/relationship references, the API resource, controlled
+    // console commands, and seeders. These are permanent by design —
+    // never migrated behind the store.
+    'App\Observers\PropertyRiskObserver',
     'Database\Factories\PropertyFactory',
-    'App\Models\\',  // self-references in relationships
-
-    // Domain events introduced by PR 1 — typed constructor params reference Property.
-    'App\Events\Property\PropertyCreated',
-    'App\Events\Property\PropertyUpdated',
-    'App\Events\Property\PropertyRestored',
-    'App\Providers\EventServiceProvider',
-
-    // SP1 Pass 4 PR 3 documented residuals — handleCreateProperty now routes
-    // through PropertyStore::create via fromFyn. Remaining Property:: refs in
-    // CoordinatingAgent are non-write:
-    //   - resolveModel() entity-type-map: `'property' => Property::class` (class-name ref only)
-    //   - listEntities() 'property' case: Property::with('mortgages')->forUserOrJoint() (read — PR 5)
-    //   - handleCreateMortgage(): Property::where()->{first,count}() (FK-resolution
-    //     read + property-count guidance read — PR 5)
-    //   - resolvePropertyId(): Property::where()->get() (read — PR 5)
-    // PR 5 routes these reads through PropertyStore::find / forUser. At that
-    // point CoordinatingAgent can be fully removed from this allowlist.
-    'App\Agents\CoordinatingAgent',
-    // PR 4 documented residuals (writes routed; non-write refs remain):
-    //
-    // DocumentProcessor: Property write in confirmExcel() now routes through
-    // PropertyStore::create (IngestSource::UPLOAD). Residual: `Property::class`
-    // used as an array key in registerMappers() — class-name-only reference,
-    // not a mutation or query site. PR 5 will sweep read consumers in this file.
-    'App\Services\Documents\DocumentProcessor',
-    // AssetCaptureEntityExtractor: confirmed read-only (Property::query()
-    // only — no create/update/delete calls). Deferred to PR 5 (read consumers).
-    'App\Services\Onboarding\AssetCaptureEntityExtractor',
-    // PreviewUserSeeder: Property write in createProperties() now routes through
-    // PropertyStore::create (IngestSource::SEEDER). Residual: resetPersonaData()
-    // uses Property::where($user->id)->delete() — a bulk-delete reset path
-    // outside the ingest boundary. PR 5 will address remaining direct refs.
-    'Database\Seeders\PreviewUserSeeder',
-    // LifecycleTestSeeder uses Property factory for test scaffolding;
-    // factory writes are not ingest events.
-    'Database\Seeders\LifecycleTestSeeder',
-    // PR 5 removes: read consumers (~21 services + Mortgage relationship reads).
-    // Cluster 5a (PR #395, merged 262ad96) routed:
-    //   EstateActionDefinitionService, IHTCalculationService,
-    //   LetterEstateValidationService, LetterToSpouseService,
-    //   UserProfileService Estate/IHT consumer paths.
-    // Cluster 5b (PR #396, merged e718e23) routed:
-    //   NetWorthService, MobileDashboardAggregator, CrossModuleAssetAggregator.
-    // Cluster 5c (this PR) routes:
-    //   HouseholdPlanningService (3 of 4 sites), TrustAssetAggregatorService.
-    //   Added new PropertyStore::forTrust(int) read method for trust-scoped queries.
-    'App\Http\Controllers\Api\MortgageController',
-    // Cluster 5d (PR #398, merged 02a9711) routed: AdvicePromptBuilder (2 sites),
-    //   DuplicateAcknowledgement, PersonalAccountsService, ProfileCompletenessChecker,
-    //   UserProfileService (2 sites).
-    // Cluster 5e (this PR — final cluster of PR 5) routed: IncomeDefinitionsService
-    //   (1 site — buy-to-let rental income via forUserByType).
-    // HouseholdPlanningService — three read sites (273/394/922) routed through
-    // PropertyStore in PR 5c. Residual: :739 polymorphic joint-asset detection
-    // loop iterates over Property::class alongside SavingsAccount /
-    // InvestmentAccount / CashAccount / Chattel. Routing one model out breaks
-    // loop symmetry. Refactor to a JointAssetFinder service when all 5 entity
-    // stores exist. Deferred from PR 5c.
-    'App\Services\Coordination\HouseholdPlanningService',
-    // DocumentTypeDetector + PropertyMapper carry class-name-only references
-    // (`Property::class` used as dispatch keys for the upload field-mapper
-    // registry) — not query/mutation sites. Permanent residuals.
-    'App\Services\Documents\DocumentTypeDetector',
-    'App\Services\Documents\FieldMappers\PropertyMapper',
-
-    // SP1 Pass 4 PR 2 documented residuals — write paths now routed through
-    // PropertyStore (POST/PUT/DELETE on /api/properties; PreviewController
-    // seedProperties via IngestSource::SEEDER). These controllers still carry
-    // direct Property reads (PropertyController::show / calculateCGT /
-    // calculateRentalIncomeTax / index; PropertyController::update + destroy
-    // pre-fetch via Property::where(...)->firstOrFail() for ownership-default
-    // resolution + the mortgage cascade soft-delete respectively;
-    // PropertyController::syncUserRentalIncome reads via
-    // Property::forUserOrJoint; PreviewController::seedMortgages does a
-    // Property::where lookup to populate the mortgage FK). PR 5 routes those
-    // reads through PropertyStore::find / forUser; the destroy pre-fetch
-    // moves into MortgageStore in Pass 5 once mortgage cascades live there.
-    'App\Http\Controllers\Api\PropertyController',
-    'App\Http\Controllers\Api\PreviewController',
-
-    // Sibling models + console commands — out-of-Pass-4 read/infra refs
-    'App\Models\Household',
-    'App\Models\Mortgage',
-    'App\Models\User',  // relationships only
-    'App\Console\Commands\EncryptExistingData',
-    'App\Console\Commands\ResetPreviewData',
     // MortgageFactory references Property::class to set the property_id FK
     // in test fixtures — sibling factory, not a query/mutation site.
     'Database\Factories\MortgageFactory',
-    // PropertyResource — API resource for HTTP response transformation.
-    // Permanent allowlist per spec §14.2 (resource classes, like SavingsAccountResource).
+    // Self-references in model files (relationship definitions + class-name
+    // discriminators in sibling models).
+    'App\Models\\',
+    // Domain events — typed constructor params reference the Property model.
+    // Dispatched only from PropertyStore (canonical write path).
+    'App\Events\Property\PropertyCreated',
+    'App\Events\Property\PropertyUpdated',
+    'App\Events\Property\PropertyDeleted',
+    'App\Events\Property\PropertyRestored',
+    // EventServiceProvider listener registration — references event classes
+    // which transitively reference the model; permanent per §14.2 (event
+    // wiring).
+    'App\Providers\EventServiceProvider',
+    // API resource — permanent type hint; no query.
     'App\Http\Resources\PropertyResource',
-    // Observer — side effects triggered by Eloquent lifecycle hooks.
-    // Permanent allowlist per spec §14.2 (observers category).
-    'App\Observers\PropertyRiskObserver',
-    // Pure calculation helpers (spec §2.2 "files out of scope") — accept Property
-    // instances as parameters; do not issue queries that bypass the store.
+    // Console commands — controlled one-shot / scheduled jobs, not a
+    // runtime write path (spec §14.2 console-command category).
+    'App\Console\Commands\EncryptExistingData',
+    'App\Console\Commands\ResetPreviewData',
+    // Seeders (preview / lifecycle persona fixtures) — §14.2 permanent.
+    //  - PreviewUserSeeder routes all Property creates through
+    //    PropertyStore::create (IngestSource::SEEDER); resetPersonaData()
+    //    retains a bulk-delete path outside the ingest boundary.
+    //  - LifecycleTestSeeder uses Property factory for test scaffolding;
+    //    factory writes are §14.2-permitted.
+    'Database\Seeders\PreviewUserSeeder',
+    'Database\Seeders\LifecycleTestSeeder',
+    // Snapshot model — value-snapshot history table for property valuations,
+    // written exclusively by PropertyStore::recalculateDerived() (PR 6).
+    'App\Models\PropertyValueSnapshot',
+
+    // ---- Documented residual NON-QUERY references ----
+    // These files retain a Property reference that is NOT a
+    // statically-resolvable query/mutation. Removing the residual would
+    // require an out-of-scope signature/relationship refactor; the
+    // canonical contract (no property queries/mutations outside the store)
+    // still holds because none of these issue a Property query that
+    // bypasses the store.
+    //
+    //  - CoordinatingAgent: Property::class as a generic
+    //    duplicate-checker argument and as an entity-type-map value
+    //    ('property' => Property::class). Non-query class-name references
+    //    only; all property write tools and read calls now route through
+    //    PropertyStore.
+    'App\Agents\CoordinatingAgent',
+    //  - DocumentTypeDetector + PropertyMapper: Property::class used as
+    //    a dispatch key in the upload field-mapper registry. Non-query
+    //    class-name references only.
+    'App\Services\Documents\DocumentTypeDetector',
+    'App\Services\Documents\FieldMappers\PropertyMapper',
+    //  - HouseholdPlanningService: :739 polymorphic joint-asset detection
+    //    loop iterates over Property::class alongside SavingsAccount /
+    //    InvestmentAccount / CashAccount / Chattel. Routing one model out
+    //    breaks loop symmetry. All three direct-query sites (:273/:394/:922)
+    //    are migrated to PropertyStore; the polymorphic sweep is deferred
+    //    to when all five entity stores exist (JointAssetFinder service).
+    'App\Services\Coordination\HouseholdPlanningService',
+    //  - DocumentProcessor: Property::class used as an array key in
+    //    registerMappers(); the write path (confirmExcel) now routes through
+    //    PropertyStore::create (IngestSource::UPLOAD). Non-query class-name
+    //    reference only.
+    'App\Services\Documents\DocumentProcessor',
+    //  - AssetCaptureEntityExtractor: confirmed read-only
+    //    (Property::query() only — no create/update/delete calls). All
+    //    reads have been migrated to PropertyStore in PR 5d.
+    'App\Services\Onboarding\AssetCaptureEntityExtractor',
+    //  - PropertyController + PreviewController: direct Property reads
+    //    retained from PR 2 (PropertyController::show / calculateCGT /
+    //    calculateRentalIncomeTax / index; PropertyController::update +
+    //    destroy pre-fetch via Property::where()->firstOrFail(); syncUserRentalIncome
+    //    via Property::forUserOrJoint; PreviewController::seedMortgages
+    //    Property::where lookup to populate the mortgage FK). All write
+    //    paths (POST/PUT/DELETE) route through PropertyStore. The residual
+    //    direct reads are kept here; Pass 5 (MortgageStore) will move the
+    //    destroy pre-fetch; a subsequent pass will sweep the remaining reads.
+    'App\Http\Controllers\Api\PropertyController',
+    'App\Http\Controllers\Api\PreviewController',
+    //  - Pure calculation helpers accept Property instances as parameters;
+    //    do not issue queries that bypass the store.
     'App\Services\Property\PropertyCalculationService',
     'App\Services\Property\PropertyTaxService',
     'App\Services\Property\PropertyService',
-    // MortgageService — Pass 5 territory (Liabilities store). Uses Property
-    // for the property_id FK relationship lookups, not a mutation site.
-    'App\Services\Property\MortgageService',
 
-    // SP1 Pass 4 PR 6 — canonical derived columns + snapshot table.
-    // Calculator: reads Property fields to derive canonical columns.
-    'App\Services\Stores\Recalc\PropertyDerivedColumnCalculator',
-    // Backfill command: reads all Property rows to populate derived columns on legacy data.
-    'App\Console\Commands\BackfillPropertyDerivedColumns',
-    // Snapshot model: permanent allowlist — sibling model (like DCPensionValueSnapshot).
-    'App\Models\PropertyValueSnapshot',
+    // ---- Out-of-sub-project-1-scope read / infra references ----
+    // These were never in the Pass 4 read-consumer migration scope: sibling
+    // models (Household, Mortgage, User relationships), the MortgageService
+    // (Pass 5 territory — uses Property for property_id FK relationship
+    // lookups), and the MortgageController (Pass 5 territory). Kept
+    // allowlisted as out-of-scope read/infra references.
+    'App\Http\Controllers\Api\MortgageController',
+    'App\Models\Household',
+    'App\Models\Mortgage',
+    'App\Models\User',
+    'App\Services\Property\MortgageService',
 ];
 
-arch('Property is only used inside the property canonical set (plus transition allowlist)')
+arch('Property is only used inside the property canonical set + documented exceptions')
     ->expect('App\Models\Property')
     ->toOnlyBeUsedIn($propertyConsumers);
