@@ -7,13 +7,17 @@ namespace App\Services\Estate;
 use App\Models\Chattel;
 use App\Models\Estate\Will;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\PropertyStore;
 use App\Traits\StructuredLogging;
 
 class LetterEstateValidationService
 {
     use StructuredLogging;
+
+    public function __construct(
+        private readonly PropertyStore $propertyStore,
+    ) {}
 
     /**
      * Validate letter to spouse content against estate planning data.
@@ -203,9 +207,14 @@ class LetterEstateValidationService
     {
         $warnings = [];
 
-        // Property check
+        // Property check — primary-owner-only count (filter the joint-aware Collection).
+        // PropertyStore::forUser returns user_id = ? OR joint_owner_id = ?; appending
+        // where('user_id', $user->id) restores the pre-PR-5a single-count semantics so
+        // the warning text doesn't list properties the user isn't primarily on.
         $letterRealEstate = trim($letter->real_estate_info ?? '');
-        $propertyCount = Property::where('user_id', $user->id)->count();
+        $propertyCount = $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id)
+            ->count();
 
         if ($propertyCount > 0 && $letterRealEstate === '') {
             $warnings[] = [

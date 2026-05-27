@@ -16,9 +16,9 @@ use App\Models\EstateActionDefinition;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\FormatsCurrency;
@@ -39,7 +39,8 @@ class EstateActionDefinitionService
     use StructuredLogging;
 
     public function __construct(
-        private readonly TaxConfigService $taxConfig
+        private readonly TaxConfigService $taxConfig,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -339,8 +340,13 @@ class EstateActionDefinitionService
     {
         $total = 0.0;
 
-        // Properties
-        $total += (float) Property::where('user_id', $user->id)->sum('current_value');
+        // Properties — primary-owner-only (filter the joint-aware Collection), matching
+        // the Savings line below and the pre-PR-5a behaviour. PropertyStore::forUser returns
+        // user_id = ? OR joint_owner_id = ?; appending where('user_id', $user->id) restores
+        // single-count semantics for joint properties.
+        $total += (float) $this->propertyStore->forUser($user)
+            ->where('user_id', $user->id)
+            ->sum('current_value');
 
         // Investment accounts
         $total += (float) InvestmentAccount::where('user_id', $user->id)->sum('current_value');
