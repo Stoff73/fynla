@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-28 — session 2 — **SP1 DEFERRED; PIVOTING TO CoALA.** CSJ decision 2026-05-28: pause SP1 after Pass 6 PR 5a (clean state — InvestmentAccount write-path complete) and pivot to the CoALA initiative, starting with a test-stabilisation block. Rationale + evidence: `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`. Active branch is now `coala` (off `dev` at `88ee9c4`). SP1 resume point preserved below (Pass 6 PR 5b) for when SP1 is picked back up.*
+*Last updated: 2026-05-28 — session 3 (end-of-day) — **SP1 DEFERRED; PIVOTING TO CoALA.** CSJ decision 2026-05-28: pause SP1 after Pass 6 PR 5a (clean state — InvestmentAccount write-path complete) and pivot to the CoALA initiative, starting with a test-stabilisation block. Rationale + evidence: `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`. Active branch is now `coala` (off `dev` at `88ee9c4`). SP1 resume point preserved below (Pass 6 PR 5b) for when SP1 is picked back up. Test-stabilisation Phase 0 is NEARLY done — 1 FLAKY failure remains (audit-context test); full diagnostic + reproduction probe in handover `May/May29Updates/handover-2026-05-29-session-1.md`.*
 
 ---
 
@@ -8,12 +8,14 @@
 
 **Branch:** `coala` (off `dev`). **Decision doc:** `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`.
 
-**Phase 0 — test-stabilisation (prerequisite, IN PROGRESS):** get `dev`'s suite green before CoALA code lands (CoALA's cutover safety leans on a clean regression baseline). Fix the 3 known red areas + batch the small canonical-drift follow-ups:
-- [ ] `tests/Feature/Api/MortgageControllerTest.php` — failing (Pass 5 PR 2 tier-gate-seeder gap). Diagnose + fix.
-- [ ] `MortgageTierCapTest` — `loan_to_value_pct` out-of-range. Diagnose + fix.
-- [ ] `tests/Architecture/Phase03ArchitectureTest.php` — 2 stale `NetWorthService` assertions (since Pass 4 PropertyStore). Update assertions to current structure.
-- [ ] `stocks_shares`→`stocks_and_shares` drift: `RetirementIncomeService.php:392`, `InvestmentAccountFactory.php:58` (Investment module only — NOT Savings).
-- [ ] LISA bucketing: `ISATracker.php` + `ISAAllowanceOptimizer.php` key off `account_type='lifetime_isa'` (non-existent enum) → should read `isa_type='lifetime'`.
+**Phase 0 — test-stabilisation (prerequisite, NEARLY DONE — 1 flaky failure left):** get `dev`'s suite green before CoALA code lands (CoALA's cutover safety leans on a clean regression baseline).
+- [x] `tests/Feature/Api/MortgageControllerTest.php` — fixed session 2 (added `TierConfigurationSeeder` to setUp). Green in full suite.
+- [x] `MortgageTierCapTest` — green in full suite (runs #3/#4 confirm 0 mortgage failures).
+- [x] `tests/Architecture/Phase03ArchitectureTest.php` — 2 stale `NetWorthService` assertions updated (session 2).
+- [x] `stocks_shares`→`stocks_and_shares` drift: fixed session 2 (`RetirementIncomeService.php:392`, `InvestmentAccountFactory.php:58`).
+- [x] `tests/Feature/Mobile/MobileScaffoldTest.php` — fixed session 3 (`088c86c`): assertion `url('/m/app')`→`url('/m/landing')` to match blade.
+- [ ] **FLAKY (BLOCKS "suite green"):** `tests/Feature/Stores/InvestmentAccountHttpIntegrationTest.php` "records FORM audit context" — ~30–50% flaky null audit row in the FULL suite only (subsets always pass). Partially diagnosed (created event fires, shouldAudit inputs OK, row still absent) → leading theory is a leaked duplicate `Hargreaves Lansdown` account making `->first()` pick the wrong id. **Full diagnostic + probe code + reproduction loop in `May/May29Updates/handover-2026-05-29-session-1.md`.**
+- [ ] LISA bucketing: `ISATracker.php` + `ISAAllowanceOptimizer.php` key off `account_type='lifetime_isa'` (non-existent enum) → should read `isa_type='lifetime'`. (Deferred — real user-facing calc, needs own test.)
 - [ ] (optional) preview-spouse tier-cap latent risk (`PreviewController.php:673`).
 
 **Then — CoALA phases** (per `fynla-coala-implementation-plan.md` v0.4 + `May/May27Updates/PRD-coala-phase-{1..6}-*.md`): Phase 5 cost-telemetry PR first (standalone) → Phase 1 semantic memory → 2 → 3 → 4 → 5(full) → 6. Stakeholder re-review at end of Phase 5.

@@ -58,3 +58,9 @@
 ### Boundary lock-down pattern (now verified 4×)
 - R4 → R3 → R2 → R1 all locked at `[Store, Factory]` for greenfield entities, or `[Store, AuditModel, Factory]` for entities with a model-on-model audit relation (R1 is the only one with this — `TaxConfigurationAudit::belongsTo(TaxConfiguration::class)`). Pattern is now stable.
 - `TaxConfigService` was the unique R1 challenge — it has a typed property + typed return on `getModel()`, so just removing `TaxConfiguration::` static calls wasn't enough. Removing the dead `getModel()` method + its property finished the migration.
+
+## 2026-05-28 — flaky audit-context test (InvestmentAccountHttpIntegrationTest)
+- Symptom: ~30–50% null CREATED audit row in the FULL Unit+Feature suite only; `tests/Feature/` alone and `tests/Unit/ + target` always pass. Deterministic test order → true non-determinism.
+- RULED OUT (via temporary probe in Auditable.php, captured in a failing run): listener-detached (created event DID fire on real Dispatcher), config-leak (`audit.in_tests`=true at fire), preview-leak (auth user null, not preview). shouldAudit SHOULD return true yet row absent.
+- LEADING THEORY: leaked duplicate `Hargreaves Lansdown` account (factory default provider) → test's `InvestmentAccount::where('provider','Hargreaves Lansdown')->first()` (no orderBy) returns wrong id whose CREATED audit doesn't exist. Probe v2 (hl_count/hl_first_id) staged but not yet reproduced. Full repro recipe in May/May29Updates/handover-2026-05-29-session-1.md.
+- Gotcha reinforced: never run two `pest` processes concurrently (shared `laravel_testing` DB corruption); `--testsuite=Unit,Feature` reproduces full-suite ordering minus Eval/Browser.

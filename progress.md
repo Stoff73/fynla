@@ -98,3 +98,11 @@
 - Branch: coala (off dev) — SP1 DEFERRED, pivoting to CoALA
 - WIP commit: b774538 (test-stabilisation: 15/17 suite failures fixed)
 - Pick up at: apply MobileScaffold fix (assert /m/landing not /m/app) + diagnose InvestmentAccountHttpIntegrationTest isolation bug → final full-suite green → then CoALA
+
+## 2026-05-28 — session 3 (end-of-day)
+- Handover: [[handover-2026-05-29-session-1]]
+- Branch: coala
+- Commits this session: 1 (`088c86c` test(mobile): MobileScaffoldTest iframe assertion → /m/landing)
+- Status: clean (probe in Auditable.php was reverted, not committed)
+- Test-stabilisation Phase 0: MobileScaffold FIXED. 1 flaky failure remains — InvestmentAccountHttpIntegrationTest "records FORM audit context" (~30–50% null-audit in full suite only; subsets pass).
+- Next: re-add the audit probe (handover has the code), loop --testsuite=Unit,Feature until fail, check hl_count for a leaked duplicate Hargreaves account, fix, REVERT probe, confirm 0 failed 2–3×. Then start CoALA Phase 5 (cost-telemetry) → Phase 1.
