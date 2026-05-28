@@ -22,6 +22,8 @@ use App\Services\Documents\FieldMappers\InvestmentAccountMapper;
 use App\Services\Documents\FieldMappers\LifeInsuranceMapper;
 use App\Services\Documents\FieldMappers\ProtectionMapper;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
@@ -388,7 +390,11 @@ class DocumentProcessor
                         $accountData['user_id'] = $user->id;
 
                         if ($category === 'investment_holdings') {
-                            $account = InvestmentAccount::create($accountData);
+                            $account = app(InvestmentAccountStore::class)->create(
+                                app(InvestmentAccountNormaliser::class)->fromUpload($accountData, $user),
+                                $user,
+                                IngestSource::UPLOAD
+                            );
                         } else {
                             $canonical = app(PensionNormaliser::class)->fromUploadDc($accountData);
                             $account = app(PensionStore::class)->createDc(

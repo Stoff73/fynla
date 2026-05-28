@@ -25,7 +25,9 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\PensionStore;
 use App\Services\Stores\PropertyStore;
@@ -237,9 +239,12 @@ class ChrisUserSeeder extends Seeder
         );
 
         // ── Investment Account: Vanguard S&S ISA ──────────────
-        $investmentAccount = InvestmentAccount::updateOrCreate(
-            ['user_id' => $userId, 'provider' => 'Vanguard', 'account_type' => 'isa'],
-            [
+        $investmentAccount = app(InvestmentAccountStore::class)->updateOrCreate(
+            app(InvestmentAccountNormaliser::class)->fromForm([
+                'user_id' => $chris->id,
+                'account_name' => 'Vanguard Stocks & Shares ISA',
+                'provider' => 'Vanguard',
+                'account_type' => 'isa',
                 'ownership_type' => 'individual',
                 'ownership_percentage' => 100.00,
                 'company_country' => 'United Kingdom',
@@ -264,7 +269,9 @@ class ChrisUserSeeder extends Seeder
                 'include_in_retirement' => false,
                 'scheme_status' => 'active',
                 'grant_currency' => 'GBP',
-            ]
+            ], $chris),
+            $chris,
+            IngestSource::SEEDER
         );
 
         // Holdings (only active — skip soft-deleted)

@@ -18,17 +18,16 @@ uses(TestCase::class);
 
 it('enforces InvestmentAccountStore as the only write path for InvestmentAccount', function () {
     $allowlist = [
-        // removed in PR 4 (upload routing)
-        'app/Services/Documents/DocumentProcessor.php',
-
-        // removed in PR 4 (onboarding routing)
-        'app/Services/Onboarding/OnboardingService.php',
-
-        // removed in PR 4 (seeder routing)
+        // LOCKED (SP1 Pass 6 PR 4) — PreviewUserSeeder::deleteUserData()
+        // uses InvestmentAccount::where('user_id', $userId)->delete() for bulk
+        // pre-seed cleanup. This is a seeder-admin operation (spec §14.2 seeder
+        // category), mirroring MortgageStoreBoundaryTest's treatment of the same
+        // seeder. Migrating to per-record InvestmentAccountStore::delete would be
+        // audit-noisy (one audit row per account per persona) and would require a
+        // new bulk-cleanup store method out of scope here. The per-record create()
+        // at line 894 IS routed through the store; only the bulk-delete remains.
+        // Kept allowlisted, documented here permanently.
         'database/seeders/PreviewUserSeeder.php',
-
-        // removed in PR 4 (seeder routing)
-        'database/seeders/ChrisUserSeeder.php',
     ];
 
     $patterns = [
