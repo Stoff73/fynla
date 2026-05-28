@@ -57,6 +57,11 @@ final class InvestmentAccountNormaliser
             }
         }
 
+        // Fyn maps optional fields to explicit nulls above; strip them so they
+        // do not override NOT NULL DB defaults on insert. fromForm/fromUpload
+        // are untouched, preserving the ability to clear a column on update.
+        $mapped = array_filter($mapped, static fn ($v) => $v !== null);
+
         return self::normalise($mapped, $user);
     }
 
@@ -102,14 +107,6 @@ final class InvestmentAccountNormaliser
             }
         }
 
-        // include_in_retirement is NOT NULL in the DB; default to false when absent or null.
-        if (! isset($data['include_in_retirement']) || $data['include_in_retirement'] === null) {
-            $data['include_in_retirement'] = false;
-        }
-
-        // Strip null values so DB NOT NULL defaults are not overridden on insert.
-        // Required fields (user_id, ownership_type, ownership_percentage) are always
-        // set to non-null values above before this filter runs.
-        return array_filter($data, static fn ($v) => $v !== null);
+        return $data;
     }
 }
