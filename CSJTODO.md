@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-28 — session 2 — **SP1 Pass 6 (Investments) EXECUTION STARTED**. PR 1 (InvestmentAccountStore facade) shipped — PR #415 merge `15f6673`. 8/19 → still 8/19 stores (PR 1 is the facade; InvestmentAccount store completes when its read-routing PRs land). Continuing PR 2 (HTTP routing).*
+*Last updated: 2026-05-28 — session 2 — **SP1 Pass 6 (Investments) EXECUTION STARTED**. PR 1 (facade) + PR 2 (HTTP+seeder routing) shipped — PR #415 `15f6673`, PR #416 `babcd53`. Continuing PR 3 (Fyn AI write tools). 2 pre-existing follow-ups found (see "Follow-ups found 2026-05-28" below).*
 
 ---
 
@@ -23,7 +23,7 @@
 
 **16 PRs planned:**
 - [x] **PR #415** — Pass 6 PR 1: InvestmentAccountStore facade + boundary + normaliser + events + tier-cap (merge `15f6673`, commit `9f24bb8`). 10 files / 934 LOC. Leaner mirror of MortgageStore (no derived/snapshot logic — that's PR 10). `ENTITY_KEY='investment'` (plan's `investment_account` was a stale audit claim — existing seeder key is `'investment'=2 free/null tier1+`; no seeder change). Event signatures mirror real `app/Events/Mortgage/*` `(entity,[changes,]user,source)`, NOT the plan's stale `(entity,int $userId)` prose. updateOrCreate idempotency tuple `(user_id, account_name, account_type)`. Boundary SOFT with 7 allowlisted write sites (CoordinatingAgent/InvestmentController/PreviewController/DocumentProcessor/OnboardingService/PreviewUserSeeder/ChrisUserSeeder), each annotated with removal PR. 27 tests green (13 store + 6 events + 8 normaliser). Both Opus reviewers APPROVE clean. Dedicated tier-cap test deferred to PR 11 (mirrors Pass 5 MortgageTierCapTest→PR7).
-- [ ] **PR 2** — HTTP form requests through InvestmentAccountStore
+- [x] **PR #416** — Pass 6 PR 2: HTTP form requests through InvestmentAccountStore (merge `babcd53`, commit `81e627c`). 7 files / +255-66. `InvestmentController` storeAccount/updateAccount/toggleRetirementInclusion/destroyAccount + `PreviewController::seedInvestmentAccounts` routed through store (FORM / SEEDER). StoreValidationException→422, TierLimitExceededException→403, store-`find`+ownership-404 guard. All Holding write blocks left verbatim (PR 6/7). storeAccount keeps outer DB::transaction for account+holdings atomicity. validateCanonical `account_name` loosened `required`→`sometimes|nullable` (not in StoreInvestmentAccountRequest; DB col nullable). Boundary trimmed (5 sites remain: CoordinatingAgent/DocumentProcessor/OnboardingService/PreviewUserSeeder/ChrisUserSeeder). New InvestmentAccountHttpIntegrationTest (7 cases). 264 tests green; both Opus reviewers APPROVE (3 Minor, all pre-existing/dormant-latent).
 - [ ] **PR 3** — Fyn AI write tools through InvestmentAccountStore
 - [ ] **PR 4** — Upload + onboarding + seeders + MigrateEstateToNetWorth
 - [ ] **PR 5a** — Investment-internal Analytics/AssetLocation/Fees + InvestmentReadConsumerParityTest
@@ -46,6 +46,11 @@
 - Q8: Currency round-trip — defer or implement (proposed: defer, GBP-only)
 
 **Estimated execution:** 7-10 days at Pass 5 cadence.
+
+### Follow-ups found 2026-05-28 (pre-existing — NOT Pass 6 deliverables)
+
+- [ ] **`MortgageControllerTest` is RED on `dev`** — 7 failures / 11 pass (verified 2026-05-28). Root cause: Pass 5 PR 2 routed Mortgage create/update through `MortgageStore`→`DbTierGate`→`TierConfigurationStore::forTier()->firstOrFail()`, but `tests/Feature/Api/MortgageControllerTest.php` never seeds `TierConfigurationSeeder`, so POST-create 404s ("Endpoint not found" via the global ModelNotFoundException handler). Targeted-test runs in Pass 5 missed it (full suite not run). **Fix:** add `$this->seed(TierConfigurationSeeder::class)` (or equivalent) to that file's `beforeEach`, mirroring what Pass 6 PR 2 did for `InvestmentControllerTest`/`InvestmentModuleTest`. Trivial; do as a standalone bug-fix PR off dev.
+- [ ] **Latent: preview spouse created without `is_preview_user`** (`PreviewController.php:673`) + nullable tier → resolves toward free/cap-2. Dormant today (every persona's spouse has 0 investment accounts), but a future persona JSON giving a spouse 3+ investment accounts would throw `TierLimitExceededException` mid-`DB::transaction` and abort the persona seed (now that `seedInvestmentAccounts` routes through the tier-gated store). Fix when/if it bites: set `is_preview_user => true` on the seeded spouse, OR add a seeder-context tier-cap bypass.
 
 ### Deploy gate (outstanding from Pass 5)
 
