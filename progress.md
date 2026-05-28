@@ -92,3 +92,9 @@
 - Branch: dev (tip c972fff → handover commit d2b4b1c)
 - WIP commit: none (tree clean after PR 8 merge)
 - Pick up at: update spec doc for Pass 4 close-out, then start Pass 5 (Liabilities) — brainstorm vs plan-write CSJ decision
+
+## 2026-05-28 — session 2 (context-handover tripwire)
+- Handover: [[handover-2026-05-28-session-2-clear]]
+- Branch: coala (off dev) — SP1 DEFERRED, pivoting to CoALA
+- WIP commit: b774538 (test-stabilisation: 15/17 suite failures fixed)
+- Pick up at: apply MobileScaffold fix (assert /m/landing not /m/app) + diagnose InvestmentAccountHttpIntegrationTest isolation bug → final full-suite green → then CoALA
