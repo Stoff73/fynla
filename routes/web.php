@@ -584,6 +584,51 @@ Route::get('/calculators', function () {
         ->header('Vary', 'Accept-Encoding');
 });
 
+// ─── Save Tax campaign ───────────────────────────────────────────────────────
+// /savetax          = quick-registration questionnaire funnel (entry gate)
+// /savetax/v2       = mockup: gradient bg + continue-required flow
+// /savetax/plan     = converted Vue SaveTaxCampaignPage (destination after funnel)
+// /savetax/plan/v2  = mockup: savings panel + Fyn chat toggle
+// /savetax/plan/v3  = mockup: green register button
+// More-specific routes MUST be declared before /savetax.
+
+Route::get('/savetax/plan/v3', function () {
+    ob_start();
+    include public_path('pages/savetax-plan-v3.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'no-store');
+});
+
+Route::get('/savetax/v2', function () {
+    ob_start();
+    include public_path('pages/savetax-v2.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'no-store');
+});
+
+Route::get('/savetax/plan/v2', function () {
+    ob_start();
+    include public_path('pages/savetax-plan-v2.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'no-store');
+});
+
+Route::get('/savetax/plan', function () {
+    ob_start();
+    include public_path('pages/savetax-plan.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+        ->header('Vary', 'Accept-Encoding');
+});
+
+Route::get('/savetax', function () {
+    ob_start();
+    include public_path('pages/savetax.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=60')
+        ->header('Vary', 'Accept-Encoding');
+});
+
 // SP3 — mobile-first iframe scaffold. MUST be declared BEFORE the SPA catch-all
 // so phone visitors get the dedicated host + isolated mobile SPA instead of the
 // desktop Vue shell. /m = device-frame host; /m/landing = HTML landing (designer
