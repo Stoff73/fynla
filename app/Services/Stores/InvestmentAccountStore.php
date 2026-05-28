@@ -79,10 +79,11 @@ class InvestmentAccountStore
      */
     public function create(array $canonical, User $user, IngestSource $source): InvestmentAccount
     {
-        // The normaliser paths set user_id, but updateOrCreate delegates here with
-        // raw match+data (no user_id). Inject it so validateCanonical is satisfied
-        // on every create path — mirrors SavingsStore/PensionStore.
-        $canonical['user_id'] ??= $user->id;
+        // The store owns user_id at this write boundary: force it to the acting
+        // user so a caller's canonical can never persist a foreign user_id, and so
+        // the updateOrCreate path (raw match+data, no user_id) satisfies
+        // validateCanonical. Mirrors SavingsStore/PensionStore.
+        $canonical['user_id'] = $user->id;
 
         $this->validateCanonical($canonical, partial: false);
         $this->enforceTierCap($user);
