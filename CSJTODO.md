@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-27 — session 5 end — **SP1 Pass 5 (Mortgages) FULLY CLOSED** at PR 8 merge `e4d8039`. All 8 Pass 5 PRs shipped (#403-#414); 8/19 entity stores complete. **SP1 Pass 6 (Investments) plan WRITTEN** at `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (commit `1b3a900`, 768 lines, 16 PRs). Execution starts next session.*
+*Last updated: 2026-05-28 — session 2 — **SP1 Pass 6 (Investments) EXECUTION STARTED**. PR 1 (InvestmentAccountStore facade) shipped — PR #415 merge `15f6673`. 8/19 → still 8/19 stores (PR 1 is the facade; InvestmentAccount store completes when its read-routing PRs land). Continuing PR 2 (HTTP routing).*
 
 ---
 
@@ -22,7 +22,7 @@
 5. **Polymorphic Holdings** — `morphTo('holdable')` accepting InvestmentAccount OR DCPension.
 
 **16 PRs planned:**
-- [ ] **PR 1** — InvestmentAccountStore facade + boundary + normaliser + events + tier-cap
+- [x] **PR #415** — Pass 6 PR 1: InvestmentAccountStore facade + boundary + normaliser + events + tier-cap (merge `15f6673`, commit `9f24bb8`). 10 files / 934 LOC. Leaner mirror of MortgageStore (no derived/snapshot logic — that's PR 10). `ENTITY_KEY='investment'` (plan's `investment_account` was a stale audit claim — existing seeder key is `'investment'=2 free/null tier1+`; no seeder change). Event signatures mirror real `app/Events/Mortgage/*` `(entity,[changes,]user,source)`, NOT the plan's stale `(entity,int $userId)` prose. updateOrCreate idempotency tuple `(user_id, account_name, account_type)`. Boundary SOFT with 7 allowlisted write sites (CoordinatingAgent/InvestmentController/PreviewController/DocumentProcessor/OnboardingService/PreviewUserSeeder/ChrisUserSeeder), each annotated with removal PR. 27 tests green (13 store + 6 events + 8 normaliser). Both Opus reviewers APPROVE clean. Dedicated tier-cap test deferred to PR 11 (mirrors Pass 5 MortgageTierCapTest→PR7).
 - [ ] **PR 2** — HTTP form requests through InvestmentAccountStore
 - [ ] **PR 3** — Fyn AI write tools through InvestmentAccountStore
 - [ ] **PR 4** — Upload + onboarding + seeders + MigrateEstateToNetWorth
