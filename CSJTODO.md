@@ -1,10 +1,32 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-28 — session 2 — **SP1 Pass 6 (Investments) — PRs 1-5a SHIPPED (5 PRs)**. Write-path COMPLETE (1-4) + first read cluster + parity contract (5a). PR 1 `15f6673` (#415), PR 2 `babcd53` (#416), PR 3 `10c4603` (#417), PR 4 `df1de8f` (#418), PR 5a `5ad4a91` (#419). All InvestmentAccount writes route through the store (boundary ready to LOCK in PR 12); InvestmentReadConsumerParityTest established as the 5b-5e contract. **NEXT SESSION: PR 5b** (Goals/ModelPortfolio/Performance reads) — follow the I-1 convention (prefer `User $user` signatures over in-method `User::find`+guards; see PR #419 note). 5 pre-existing follow-ups logged below. dev tip after this session's docs commit; csjones NOT redeployed (still pre-Pass-4-PR6 per deploy gate).*
+*Last updated: 2026-05-28 — session 2 — **SP1 DEFERRED; PIVOTING TO CoALA.** CSJ decision 2026-05-28: pause SP1 after Pass 6 PR 5a (clean state — InvestmentAccount write-path complete) and pivot to the CoALA initiative, starting with a test-stabilisation block. Rationale + evidence: `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`. Active branch is now `coala` (off `dev` at `88ee9c4`). SP1 resume point preserved below (Pass 6 PR 5b) for when SP1 is picked back up.*
 
 ---
 
-## 🎯 Active track: SP1 Pass 6 (Investments)
+## 🟡 ACTIVE TRACK (2026-05-28): CoALA initiative + test-stabilisation
+
+**Branch:** `coala` (off `dev`). **Decision doc:** `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`.
+
+**Phase 0 — test-stabilisation (prerequisite, IN PROGRESS):** get `dev`'s suite green before CoALA code lands (CoALA's cutover safety leans on a clean regression baseline). Fix the 3 known red areas + batch the small canonical-drift follow-ups:
+- [ ] `tests/Feature/Api/MortgageControllerTest.php` — failing (Pass 5 PR 2 tier-gate-seeder gap). Diagnose + fix.
+- [ ] `MortgageTierCapTest` — `loan_to_value_pct` out-of-range. Diagnose + fix.
+- [ ] `tests/Architecture/Phase03ArchitectureTest.php` — 2 stale `NetWorthService` assertions (since Pass 4 PropertyStore). Update assertions to current structure.
+- [ ] `stocks_shares`→`stocks_and_shares` drift: `RetirementIncomeService.php:392`, `InvestmentAccountFactory.php:58` (Investment module only — NOT Savings).
+- [ ] LISA bucketing: `ISATracker.php` + `ISAAllowanceOptimizer.php` key off `account_type='lifetime_isa'` (non-existent enum) → should read `isa_type='lifetime'`.
+- [ ] (optional) preview-spouse tier-cap latent risk (`PreviewController.php:673`).
+
+**Then — CoALA phases** (per `fynla-coala-implementation-plan.md` v0.4 + `May/May27Updates/PRD-coala-phase-{1..6}-*.md`): Phase 5 cost-telemetry PR first (standalone) → Phase 1 semantic memory → 2 → 3 → 4 → 5(full) → 6. Stakeholder re-review at end of Phase 5.
+
+---
+
+## ⏸️ DEFERRED: SP1 Pass 6 (Investments) — PAUSED at PR 5a (resume point)
+
+**Paused 2026-05-28 by CSJ.** InvestmentAccount **write-path is COMPLETE** (PRs 1-4: all writes route through the store, boundary green). PR 5a added the read parity contract. State is stable + shippable; unrouted reads are consistency-debt, not bugs (boundary polices writes only; CI green). **Resume at Pass 6 PR 5b** (Goals/ModelPortfolio/Performance reads) following the I-1 convention (prefer `User $user` signatures over in-method `User::find`+guards — see PR #419 note). Then 5c-5e, 6-7 (Holding cross-module store), 8 (satellites), 9 (RebalancingAction), 10 (derived columns), 11 (tier-cap tests), 12 (lock-down). Passes 7-14 (income, expenditure, protection, family, goals, business, trusts, chattels, wills, LPAs, unsecured liabilities) not started. Shipped this session: PR 1 `15f6673` (#415), PR 2 `babcd53` (#416), PR 3 `10c4603` (#417), PR 4 `df1de8f` (#418), PR 5a `5ad4a91` (#419).
+
+---
+
+## 🎯 (PAUSED) SP1 Pass 6 (Investments) — plan reference
 
 **Plan:** `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (768 lines, written 2026-05-27 session 5 after Pass 5 closure; CSJ-approved full Investment surface scope).
 
