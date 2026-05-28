@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\AuditLog;
+use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
+use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
+use Laravel\Sanctum\Sanctum;
+
+beforeEach(function () {
+    $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
+    config(['audit.in_tests' => true]);
+    $this->user = User::factory()->create(['tier' => 'tier1']);
+    Sanctum::actingAs($this->user);
+});
+
+it('creates an investment account via POST and records FORM audit context', function () {
+    $payload = [
+        'account_type' => 'gia',
+        'account_name' => 'General Investment Account',
+        'provider' => 'Hargreaves Lansdown',
+        'current_value' => 50000.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ];
+
+    $response = $this->postJson('/api/investment/accounts', $payload);
+
+    $response->assertCreated();
+    $this->assertDatabaseHas('investment_accounts', [
+        'user_id' => $this->user->id,
+        'provider' => 'Hargreaves Lansdown',
+        'account_type' => 'gia',
+    ]);
+
+    $account = InvestmentAccount::where('provider', 'Hargreaves Lansdown')->first();
+    $auditRow = AuditLog::where('model_type', InvestmentAccount::class)
+        ->where('model_id', $account->id)
+        ->where('action', AuditLog::ACTION_CREATED)
+        ->latest('id')
+        ->first();
+    expect($auditRow)->not->toBeNull();
+    expect($auditRow->metadata['ingest_source'] ?? null)->toBe('form');
+});
+
+it('updates an investment account via PUT', function () {
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $this->user->id,
+        'current_value' => 30000.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response = $this->putJson("/api/investment/accounts/{$account->id}", [
+        'current_value' => 35000.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertOk();
+    expect((float) $account->fresh()->current_value)->toEqual(35000.00);
+});
+
+it('toggles include_in_retirement via PATCH', function () {
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $this->user->id,
+        'include_in_retirement' => false,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response = $this->patchJson("/api/investment/accounts/{$account->id}/toggle-retirement");
+
+    $response->assertOk();
+    expect($account->fresh()->include_in_retirement)->toBeTrue();
+
+    $this->patchJson("/api/investment/accounts/{$account->id}/toggle-retirement")->assertOk();
+    expect($account->fresh()->include_in_retirement)->toBeFalse();
+});
+
+it('soft-deletes an investment account via DELETE', function () {
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $this->user->id,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response = $this->deleteJson("/api/investment/accounts/{$account->id}");
+
+    $response->assertOk();
+    $this->assertSoftDeleted('investment_accounts', ['id' => $account->id]);
+});
+
+it('returns 403 with structured payload when free-tier investment cap is exceeded', function () {
+    $freeUser = User::factory()->create(['tier' => 'free']);
+    Sanctum::actingAs($freeUser);
+
+    InvestmentAccount::factory(2)->create([
+        'user_id' => $freeUser->id,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response = $this->postJson('/api/investment/accounts', [
+        'account_type' => 'gia',
+        'provider' => 'Third Account',
+        'current_value' => 1000.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertStatus(403)
+        ->assertJson([
+            'success' => false,
+            'error' => [
+                'entity_key' => 'investment',
+            ],
+        ]);
+});
+
+it('rejects update from non-owner (404)', function () {
+    $other = User::factory()->create(['tier' => 'tier1']);
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $other->id,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response = $this->putJson("/api/investment/accounts/{$account->id}", [
+        'current_value' => 999999.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertStatus(404);
+});
+
+it('rejects delete from non-owner (404)', function () {
+    $other = User::factory()->create(['tier' => 'tier1']);
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $other->id,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $this->deleteJson("/api/investment/accounts/{$account->id}")
+        ->assertStatus(404);
+});

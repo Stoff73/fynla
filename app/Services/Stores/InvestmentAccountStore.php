@@ -220,7 +220,7 @@ class InvestmentAccountStore
 
         $rules = [
             'user_id' => $req.'integer|exists:users,id',
-            'account_name' => $req.'string|max:255',
+            'account_name' => 'sometimes|nullable|string|max:255',
             'account_type' => $req.'in:isa,gia,nsi,onshore_bond,offshore_bond,vct,eis,private_company,crowdfunding,saye,csop,emi,unapproved_options,rsu,other',
             'ownership_type' => $req.'in:individual,joint',
             'ownership_percentage' => ($partial ? 'sometimes|' : 'required|').ValidationLimits::percentageRules(false),

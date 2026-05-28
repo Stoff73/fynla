@@ -21,12 +21,6 @@ it('enforces InvestmentAccountStore as the only write path for InvestmentAccount
         // removed in PR 3 (Fyn routing)
         'app/Agents/CoordinatingAgent.php',
 
-        // removed in PR 2 (HTTP routing)
-        'app/Http/Controllers/Api/InvestmentController.php',
-
-        // removed in PR 2/4 (seeder routing)
-        'app/Http/Controllers/Api/PreviewController.php',
-
         // removed in PR 4 (upload routing)
         'app/Services/Documents/DocumentProcessor.php',
 
