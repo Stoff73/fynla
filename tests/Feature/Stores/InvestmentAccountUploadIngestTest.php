@@ -66,25 +66,25 @@ it('updateOrCreate through the store is idempotent for the ChrisUserSeeder canon
     $user = User::factory()->create(['tier' => 'tier1']);
     $store = app(InvestmentAccountStore::class);
 
-    $build = static fn (float $value): array => InvestmentAccountNormaliser::fromForm([
-        'user_id' => $user->id,
+    // Mirrors ChrisUserSeeder: match on (provider, account_type), data carries
+    // the stable account_name and the per-reseed values.
+    $match = ['provider' => 'Vanguard', 'account_type' => 'isa'];
+    $build = static fn (float $value): array => [
         'account_name' => 'Vanguard Stocks & Shares ISA',
-        'provider' => 'Vanguard',
-        'account_type' => 'isa',
         'ownership_type' => 'individual',
         'ownership_percentage' => 100.00,
         'country' => 'United Kingdom',
         'current_value' => $value,
         'isa_type' => 'stocks_and_shares',
-    ], $user);
+    ];
 
-    $first = $store->updateOrCreate($build(95000.00), $user, IngestSource::SEEDER);
+    $first = $store->updateOrCreate($match, $build(95000.00), $user, IngestSource::SEEDER);
     expect($first->wasRecentlyCreated)->toBeTrue();
     expect(InvestmentAccount::where('user_id', $user->id)->count())->toBe(1);
 
-    // Second reseed with the same match keys (user_id, account_name, account_type)
-    // must UPDATE the existing row, not insert a duplicate.
-    $second = $store->updateOrCreate($build(110000.00), $user, IngestSource::SEEDER);
+    // Second reseed with the same match keys must UPDATE the existing row, not
+    // insert a duplicate.
+    $second = $store->updateOrCreate($match, $build(110000.00), $user, IngestSource::SEEDER);
 
     expect($second->id)->toBe($first->id);
     expect(InvestmentAccount::where('user_id', $user->id)->count())->toBe(1);

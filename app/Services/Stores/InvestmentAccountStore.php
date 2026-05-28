@@ -79,6 +79,11 @@ class InvestmentAccountStore
      */
     public function create(array $canonical, User $user, IngestSource $source): InvestmentAccount
     {
+        // The normaliser paths set user_id, but updateOrCreate delegates here with
+        // raw match+data (no user_id). Inject it so validateCanonical is satisfied
+        // on every create path — mirrors SavingsStore/PensionStore.
+        $canonical['user_id'] ??= $user->id;
+
         $this->validateCanonical($canonical, partial: false);
         $this->enforceTierCap($user);
 
@@ -122,42 +127,27 @@ class InvestmentAccountStore
     }
 
     /**
-     * Find-or-create by (user_id, account_name, account_type) — idempotent for seeders.
+     * Find-or-create scoped to the user, matched on the caller-supplied $match
+     * keys — idempotent for seeders. The explicit match (vs a hardcoded
+     * account_name match) is required because account_name is nullable: legacy
+     * rows seeded before account_name existed carry NULL, so a hardcoded
+     * account_name match would never find them and would insert a duplicate on
+     * reseed. Mirrors SavingsStore::updateOrCreate / PensionStore::updateOrCreateDc.
      *
-     * @param  array<string, mixed>  $canonical
+     * @param  array<string, mixed>  $match  Scoping keys (user_id is always added)
+     * @param  array<string, mixed>  $data  Values to set on match or create
      */
-    public function updateOrCreate(array $canonical, User $user, IngestSource $source): InvestmentAccount
+    public function updateOrCreate(array $match, array $data, User $user, IngestSource $source): InvestmentAccount
     {
-        $this->validateCanonical($canonical, partial: false);
+        $existing = InvestmentAccount::where('user_id', $user->id)
+            ->where($match)
+            ->first();
 
-        return AuditLog::withContext(
-            ['ingest_source' => $source->value],
-            fn () => DB::transaction(function () use ($canonical, $user, $source) {
-                $existing = InvestmentAccount::where('user_id', $user->id)
-                    ->where('account_name', $canonical['account_name'])
-                    ->where('account_type', $canonical['account_type'])
-                    ->first();
+        if ($existing) {
+            return $this->update($existing->id, $data, $user, $source);
+        }
 
-                if ($existing) {
-                    $existing->fill($canonical);
-                    $changes = [];
-                    foreach ($existing->getDirty() as $field => $newValue) {
-                        $changes[$field] = [$existing->getOriginal($field), $newValue];
-                    }
-                    $existing->save();
-                    $fresh = $existing->fresh();
-                    event(new InvestmentAccountUpdated($fresh, $changes, $user, $source));
-
-                    return $fresh;
-                }
-
-                $this->enforceTierCap($user);
-                $account = InvestmentAccount::create($canonical);
-                event(new InvestmentAccountCreated($account, $user, $source));
-
-                return $account;
-            })
-        );
+        return $this->create(array_merge($match, $data), $user, $source);
     }
 
     public function delete(int $id, User $user, IngestSource $source, bool $force = false): void
