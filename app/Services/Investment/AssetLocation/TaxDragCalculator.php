@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Investment\AssetLocation;
 
 use App\Models\Investment\Holding;
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
 use App\Services\Risk\RiskPreferenceService;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\TaxConfigService;
 use App\Services\UKTaxCalculator;
 
@@ -25,7 +26,8 @@ class TaxDragCalculator
     public function __construct(
         private readonly UKTaxCalculator $taxCalculator,
         private readonly TaxConfigService $taxConfig,
-        private readonly RiskPreferenceService $riskPreferenceService
+        private readonly RiskPreferenceService $riskPreferenceService,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -325,15 +327,17 @@ class TaxDragCalculator
      */
     public function calculatePortfolioTaxDrag(int $userId, array $userTaxProfile): array
     {
-        // Wave 2.6 (REVIEW §4 High #21 / CLAUDE.md Rule #7): use the
-        // `forUserOrJoint` scope so joint-owned investment accounts are
-        // included in the user's portfolio tax-drag total. The previous
-        // `where('user_id', $userId)` silently dropped joint accounts
-        // where the user was the secondary owner — understating their
-        // tax drag and breaking the dashboard total.
-        $accounts = InvestmentAccount::forUserOrJoint($userId)
-            ->with('holdings')
-            ->get();
+        // Joint-aware — matches pre-PR-5a forUserOrJoint semantics; routed through store (SP1 Pass 6 PR 5a)
+        $user = User::find($userId);
+        if (! $user) {
+            return [
+                'total_portfolio_value' => 0,
+                'total_annual_tax_drag' => 0,
+                'average_tax_drag_percent' => 0,
+                'accounts' => [],
+            ];
+        }
+        $accounts = $this->investmentAccountStore->forUser($user)->load('holdings');
 
         $totalValue = 0;
         $totalTaxDrag = 0;
