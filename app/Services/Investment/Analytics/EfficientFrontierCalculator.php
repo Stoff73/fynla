@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Investment\Analytics;
 
-use App\Models\Investment\InvestmentAccount;
+use App\Models\User;
 use App\Services\Investment\Utilities\MatrixOperations;
 use App\Services\Investment\Utilities\StatisticalFunctions;
+use App\Services\Stores\InvestmentAccountStore;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +30,8 @@ class EfficientFrontierCalculator
         private CovarianceMatrixCalculator $covCalculator,
         private CorrelationMatrixCalculator $corrCalculator,
         private MatrixOperations $matrix,
-        private StatisticalFunctions $stats
+        private StatisticalFunctions $stats,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     // =========================================================================
@@ -49,10 +51,15 @@ class EfficientFrontierCalculator
         float $riskFreeRate = 0.045,
         int $numPoints = 50
     ): array {
-        // Get user's holdings
-        $accounts = InvestmentAccount::where('user_id', $userId)
-            ->with('holdings')
-            ->get();
+        // Get user's holdings (primary-only — matches pre-PR-5a where('user_id') semantics)
+        $user = User::find($userId);
+        if (! $user) {
+            return [
+                'success' => false,
+                'message' => 'User not found',
+            ];
+        }
+        $accounts = $this->investmentAccountStore->forUserPrimaryOnly($user)->load('holdings');
 
         if ($accounts->isEmpty()) {
             return [
