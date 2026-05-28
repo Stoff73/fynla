@@ -57,6 +57,11 @@ final class InvestmentAccountNormaliser
             }
         }
 
+        // Fyn maps optional fields to explicit nulls above; strip them so they
+        // do not override NOT NULL DB defaults on insert. fromForm/fromUpload
+        // are untouched, preserving the ability to clear a column on update.
+        $mapped = array_filter($mapped, static fn ($v) => $v !== null);
+
         return self::normalise($mapped, $user);
     }
 

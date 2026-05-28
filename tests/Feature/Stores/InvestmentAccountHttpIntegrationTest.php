@@ -64,6 +64,50 @@ it('updates an investment account via PUT', function () {
     expect((float) $account->fresh()->current_value)->toEqual(35000.00);
 });
 
+it('clears joint_owner_id when switching a joint account to individual via PUT', function () {
+    $spouse = User::factory()->create(['tier' => 'tier1']);
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $this->user->id,
+        'ownership_type' => 'joint',
+        'ownership_percentage' => 50.00,
+        'joint_owner_id' => $spouse->id,
+    ]);
+
+    $response = $this->putJson("/api/investment/accounts/{$account->id}", [
+        'current_value' => 40000.00,
+        'ownership_type' => 'individual',
+    ]);
+
+    $response->assertOk();
+
+    $fresh = $account->fresh();
+    expect($fresh->ownership_type)->toBe('individual');
+    expect($fresh->joint_owner_id)->toBeNull();
+    expect((float) $fresh->ownership_percentage)->toEqual(100.00);
+});
+
+it('preserves include_in_retirement on a partial update that omits the field', function () {
+    $account = InvestmentAccount::factory()->gia()->create([
+        'user_id' => $this->user->id,
+        'current_value' => 30000.00,
+        'include_in_retirement' => true,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response = $this->putJson("/api/investment/accounts/{$account->id}", [
+        'current_value' => 36000.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $response->assertOk();
+
+    $fresh = $account->fresh();
+    expect((float) $fresh->current_value)->toEqual(36000.00);
+    expect($fresh->include_in_retirement)->toBeTrue();
+});
+
 it('toggles include_in_retirement via PATCH', function () {
     $account = InvestmentAccount::factory()->gia()->create([
         'user_id' => $this->user->id,

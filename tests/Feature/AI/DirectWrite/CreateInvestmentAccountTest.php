@@ -6,12 +6,14 @@ use App\Agents\CoordinatingAgent;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Database\Seeders\TierConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
+    $this->seed(TierConfigurationSeeder::class);
 });
 
 it('create_investment_account persists an InvestmentAccount row directly', function (): void {
@@ -54,7 +56,7 @@ it('create_investment_account maps personal_investment_account to gia', function
 });
 
 it('create_investment_account passes through specialised types unchanged', function (): void {
-    $user = User::factory()->create(['is_preview_user' => false]);
+    $user = User::factory()->create(['is_preview_user' => false, 'tier' => 'tier1']);
 
     foreach (['vct', 'eis', 'private_company', 'crowdfunding', 'saye'] as $type) {
         $result = app(CoordinatingAgent::class)->executeTool('create_investment_account', [
