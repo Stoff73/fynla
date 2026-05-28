@@ -18,9 +18,6 @@ uses(TestCase::class);
 
 it('enforces InvestmentAccountStore as the only write path for InvestmentAccount', function () {
     $allowlist = [
-        // removed in PR 3 (Fyn routing)
-        'app/Agents/CoordinatingAgent.php',
-
         // removed in PR 4 (upload routing)
         'app/Services/Documents/DocumentProcessor.php',
 

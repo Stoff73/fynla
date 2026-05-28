@@ -102,6 +102,14 @@ final class InvestmentAccountNormaliser
             }
         }
 
-        return $data;
+        // include_in_retirement is NOT NULL in the DB; default to false when absent or null.
+        if (! isset($data['include_in_retirement']) || $data['include_in_retirement'] === null) {
+            $data['include_in_retirement'] = false;
+        }
+
+        // Strip null values so DB NOT NULL defaults are not overridden on insert.
+        // Required fields (user_id, ownership_type, ownership_percentage) are always
+        // set to non-null values above before this filter runs.
+        return array_filter($data, static fn ($v) => $v !== null);
     }
 }
