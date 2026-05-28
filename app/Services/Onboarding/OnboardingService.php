@@ -10,7 +10,6 @@ use App\Models\Estate\Liability;
 use App\Models\Estate\Will;
 use App\Models\FamilyMember;
 use App\Models\IncomeProtectionPolicy;
-use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
 use App\Models\OnboardingProgress;
 use App\Models\RetirementProfile;
@@ -18,7 +17,9 @@ use App\Models\SpousePermission;
 use App\Models\User;
 use App\Services\Cache\CacheInvalidationService;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
 use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
 use App\Services\Stores\PropertyStore;
@@ -705,19 +706,23 @@ class OnboardingService
                         ?? User::find($userId)?->familyMembers()->where('relationship', 'spouse')->first()?->linked_user_id;
                 }
 
-                InvestmentAccount::create([
-                    'user_id' => $userId,
-                    'provider' => $investmentData['institution'],
-                    'account_type' => $accountType,
-                    'country' => $investmentData['country'] ?? 'United Kingdom',
-                    'current_value' => $currentValue,
-                    'ownership_type' => $ownershipType,
-                    'ownership_percentage' => $ownershipPercentage,
-                    'joint_owner_id' => $jointOwnerId,
-                    'isa_subscription_current_year' => $isaAllowanceUsed,
-                    'tax_year' => $this->taxConfig->getTaxYear(),
-                    'isa_type' => $accountType === 'isa' ? 'stocks_and_shares' : null,
-                ]);
+                app(InvestmentAccountStore::class)->create(
+                    app(InvestmentAccountNormaliser::class)->fromForm([
+                        'user_id' => $userId,
+                        'provider' => $investmentData['institution'],
+                        'account_type' => $accountType,
+                        'country' => $investmentData['country'] ?? 'United Kingdom',
+                        'current_value' => $currentValue,
+                        'ownership_type' => $ownershipType,
+                        'ownership_percentage' => $ownershipPercentage,
+                        'joint_owner_id' => $jointOwnerId,
+                        'isa_subscription_current_year' => $isaAllowanceUsed,
+                        'tax_year' => $this->taxConfig->getTaxYear(),
+                        'isa_type' => $accountType === 'isa' ? 'stocks_and_shares' : null,
+                    ], User::findOrFail($userId)),
+                    User::findOrFail($userId),
+                    IngestSource::FORM
+                );
             }
         }
 

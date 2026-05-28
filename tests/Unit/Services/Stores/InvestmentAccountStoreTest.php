@@ -145,17 +145,27 @@ it('soft-deletes and restores an investment account', function () {
 });
 
 it('updateOrCreate creates a new account when no match exists', function () {
-    $canonical = makeCanonical($this->user->id, ['account_name' => 'New GIA', 'account_type' => 'gia']);
-
-    $account = $this->store->updateOrCreate($canonical, $this->user, IngestSource::SEEDER);
+    $account = $this->store->updateOrCreate(
+        match: ['provider' => 'Vanguard', 'account_type' => 'gia'],
+        data: [
+            'account_name' => 'New GIA',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+            'current_value' => 10000.00,
+            'country' => 'United Kingdom',
+        ],
+        user: $this->user,
+        source: IngestSource::SEEDER,
+    );
 
     expect($account->wasRecentlyCreated)->toBeTrue();
     expect(InvestmentAccount::where('account_name', 'New GIA')->count())->toBe(1);
 });
 
-it('updateOrCreate updates an existing account matched by (user_id, account_name, account_type)', function () {
+it('updateOrCreate updates an existing account matched by the supplied keys', function () {
     $existing = InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
+        'provider' => 'Halifax',
         'account_name' => 'Halifax ISA',
         'account_type' => 'isa',
         'current_value' => 10000.00,
@@ -163,14 +173,50 @@ it('updateOrCreate updates an existing account matched by (user_id, account_name
         'ownership_percentage' => 100.00,
     ]);
 
-    $canonical = makeCanonical($this->user->id, [
-        'account_name' => 'Halifax ISA',
-        'account_type' => 'isa',
-        'current_value' => 20000.00,
-    ]);
-
-    $result = $this->store->updateOrCreate($canonical, $this->user, IngestSource::SEEDER);
+    $result = $this->store->updateOrCreate(
+        match: ['provider' => 'Halifax', 'account_type' => 'isa'],
+        data: ['current_value' => 20000.00],
+        user: $this->user,
+        source: IngestSource::SEEDER,
+    );
 
     expect($result->id)->toBe($existing->id);
     expect((float) $result->current_value)->toEqual(20000.0);
+    expect(InvestmentAccount::where('user_id', $this->user->id)->count())->toBe(1);
+});
+
+it('updateOrCreate matches a legacy NULL-account_name row and updates it in place (no duplicate)', function () {
+    // Regression for the PR 4 review bug: the old hardcoded-account_name match
+    // could never find rows seeded before account_name existed (account_name
+    // NULL), so a reseed inserted a duplicate. Matching on (provider, account_type)
+    // finds the legacy row and fills in account_name in place.
+    $legacy = InvestmentAccount::factory()->create([
+        'user_id' => $this->user->id,
+        'provider' => 'Vanguard',
+        'account_name' => null,
+        'account_type' => 'isa',
+        'current_value' => 95000.00,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ]);
+
+    $result = $this->store->updateOrCreate(
+        match: ['provider' => 'Vanguard', 'account_type' => 'isa'],
+        // data carries every field create() requires, so under the buggy
+        // hardcoded-account_name match this would successfully INSERT a second
+        // £95k row (the doubling symptom) rather than erroring — making the
+        // count assertion the precise regression guard.
+        data: [
+            'account_name' => 'Vanguard Stocks & Shares ISA',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+            'current_value' => 95000.00,
+        ],
+        user: $this->user,
+        source: IngestSource::SEEDER,
+    );
+
+    expect($result->id)->toBe($legacy->id);
+    expect($result->account_name)->toBe('Vanguard Stocks & Shares ISA');
+    expect(InvestmentAccount::where('user_id', $this->user->id)->count())->toBe(1);
 });

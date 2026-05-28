@@ -90,6 +90,7 @@ it('dispatches InvestmentAccountRestored on restore', function () {
 it('dispatches InvestmentAccountUpdated from updateOrCreate on an existing record', function () {
     InvestmentAccount::factory()->create([
         'user_id' => $this->user->id,
+        'provider' => 'Vanguard',
         'account_name' => 'Events ISA',
         'account_type' => 'isa',
         'current_value' => 10000,
@@ -97,10 +98,12 @@ it('dispatches InvestmentAccountUpdated from updateOrCreate on an existing recor
         'ownership_percentage' => 100.00,
     ]);
 
-    $canonical = makeEventCanonical($this->user->id);
-    $canonical['current_value'] = 20000;
-
-    $this->store->updateOrCreate($canonical, $this->user, IngestSource::SEEDER);
+    $this->store->updateOrCreate(
+        match: ['provider' => 'Vanguard', 'account_type' => 'isa'],
+        data: ['current_value' => 20000],
+        user: $this->user,
+        source: IngestSource::SEEDER,
+    );
 
     Event::assertDispatched(InvestmentAccountUpdated::class, function ($event) {
         return isset($event->changes['current_value']);
@@ -108,11 +111,18 @@ it('dispatches InvestmentAccountUpdated from updateOrCreate on an existing recor
 });
 
 it('dispatches InvestmentAccountCreated from updateOrCreate on a new record', function () {
-    $canonical = makeEventCanonical($this->user->id);
-    $canonical['account_name'] = 'Brand New GIA';
-    $canonical['account_type'] = 'gia';
-
-    $this->store->updateOrCreate($canonical, $this->user, IngestSource::SEEDER);
+    $this->store->updateOrCreate(
+        match: ['provider' => 'Vanguard', 'account_type' => 'gia'],
+        data: [
+            'account_name' => 'Brand New GIA',
+            'ownership_type' => 'individual',
+            'ownership_percentage' => 100.00,
+            'current_value' => 10000.00,
+            'country' => 'United Kingdom',
+        ],
+        user: $this->user,
+        source: IngestSource::SEEDER,
+    );
 
     Event::assertDispatched(InvestmentAccountCreated::class);
 });
