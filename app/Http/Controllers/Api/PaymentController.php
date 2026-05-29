@@ -813,10 +813,19 @@ class PaymentController extends Controller
         $tier = app(TierResolver::class)->resolve($user);
         $paymentEnabled = config('app.payment_enabled', false);
 
+        // Tier capability + count caps for the resolved tier, so the frontend can
+        // drive matrix-based nav gating and surface count-cap limits up front
+        // (single source of truth — tier_configurations; SP2 spec §6, §8.3).
+        $tierConfig = $this->tierStore->forTier($tier);
+        $countCaps = $tierConfig->count_caps ?? [];
+        $capabilityMatrix = $tierConfig->capability_matrix ?? [];
+
         if (! $subscription) {
             return response()->json([
                 'has_subscription' => false,
                 'tier' => $tier,
+                'count_caps' => $countCaps,
+                'capability_matrix' => $capabilityMatrix,
                 'payment_enabled' => $paymentEnabled,
             ]);
         }
@@ -824,6 +833,8 @@ class PaymentController extends Controller
         return response()->json([
             'has_subscription' => true,
             'tier' => $tier,
+            'count_caps' => $countCaps,
+            'capability_matrix' => $capabilityMatrix,
             'plan' => $subscription->plan,
             'status' => $subscription->status,
             'billing_cycle' => $subscription->billing_cycle,

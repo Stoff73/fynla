@@ -314,6 +314,17 @@
         @close="closeAccountModal"
       />
     </Teleport>
+
+    <!-- Tier count-cap reached -->
+    <Teleport to="body">
+      <LimitReachedModal
+        :show="showLimitModal"
+        entity-label="cash accounts"
+        :cap="tierCountCap('savings_account') || 0"
+        :tier-label="tierLabel"
+        @close="showLimitModal = false"
+      />
+    </Teleport>
     </div>
   </AppLayout>
 </template>
@@ -323,6 +334,8 @@ import { mapState, mapActions, mapGetters } from 'vuex';
 import estateService from '@/services/estateService';
 import userProfileService from '@/services/userProfileService';
 import currencyMixin from '@/mixins/currencyMixin';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import AccountSummaryPanel from '@/components/Cash/AccountSummaryPanel.vue';
 import CashInsightsPanel from '@/components/Cash/CashInsightsPanel.vue';
 import CashActionsPanel from '@/components/Cash/CashActionsPanel.vue';
@@ -343,9 +356,10 @@ export default {
     SaveAccountModal,
     SavingsAccountDetailInline,
     ModuleStatusBar,
+    LimitReachedModal,
   },
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, tierLimitMixin],
 
   data() {
     return {
@@ -353,6 +367,7 @@ export default {
       creditCardsLoading: false,
       selectedAccount: null,
       showAccountModal: false,
+      showLimitModal: false,
       editingAccount: null,
       defaultAccountType: '',
       // Financial commitments from user profile API
@@ -612,6 +627,14 @@ export default {
     },
 
     openAddAccountModal(accountType) {
+      // All cash products (current / savings / ISA / NS&I) count against the
+      // single `savings_account` cap. At cap, show the upgrade modal instead of
+      // an add form that would fail server-side. Preview users bypass (their
+      // writes are intercepted separately).
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('savings_account', this.accounts.length)) {
+        this.showLimitModal = true;
+        return;
+      }
       this.editingAccount = null;
       this.defaultAccountType = accountType;
       this.showAccountModal = true;

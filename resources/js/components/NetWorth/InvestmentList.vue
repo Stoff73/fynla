@@ -34,7 +34,7 @@
         </svg>
         <p>No investment accounts found</p>
         <p class="empty-subtitle">Add your first investment account to track your portfolio</p>
-        <button v-preview-disabled="'add'" @click="editingAccount = null; showAccountForm = true;" class="add-first-button">
+        <button v-preview-disabled="'add'" @click="openAddAccountModal" class="add-first-button">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -118,7 +118,7 @@
               <button
                 v-preview-disabled="'add'"
                 type="button"
-                @click="editingAccount = null; showAccountForm = true;"
+                @click="openAddAccountModal"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors whitespace-nowrap bg-raspberry-500 text-white hover:bg-raspberry-600"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,6 +224,17 @@
       />
     </Teleport>
 
+    <!-- Tier count-cap reached -->
+    <Teleport to="body">
+      <LimitReachedModal
+        :show="showLimitModal"
+        entity-label="investment accounts"
+        :cap="tierCountCap('investment') || 0"
+        :tier-label="tierLabel"
+        @close="showLimitModal = false"
+      />
+    </Teleport>
+
     <!-- Document Upload Modal -->
     <Teleport to="body">
       <DocumentUploadModal
@@ -272,14 +283,16 @@ import FeeBreakdown from '@/components/Investment/FeeBreakdown.vue';
 import TaxEfficiencyPanel from '@/components/Investment/TaxEfficiencyPanel.vue';
 import RiskMismatchWarning from '@/components/Investment/RiskMismatchWarning.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
 import riskService from '@/services/riskService';
 import { currencyMixin } from '@/mixins/currencyMixin';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 
 import logger from '@/utils/logger';
 export default {
   name: 'InvestmentList',
 
-  mixins: [currencyMixin],
+  mixins: [currencyMixin, tierLimitMixin],
 
   components: {
     InvestmentProjections,
@@ -294,12 +307,14 @@ export default {
     TaxEfficiencyPanel,
     RiskMismatchWarning,
     ModuleStatusBar,
+    LimitReachedModal,
   },
 
   data() {
     return {
       selectedAccount: null,
       showAccountForm: false,
+      showLimitModal: false,
       showUploadModal: false,
       editingAccount: null,
       successMessage: null,
@@ -488,6 +503,15 @@ export default {
       // In preview mode, update the selected account locally
       // This keeps the changes visible in the UI until page refresh
       this.selectedAccount = updatedAccount;
+    },
+
+    openAddAccountModal() {
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('investment', this.accounts.length)) {
+        this.showLimitModal = true;
+        return;
+      }
+      this.editingAccount = null;
+      this.showAccountForm = true;
     },
 
     closeAccountForm() {
