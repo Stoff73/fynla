@@ -365,11 +365,6 @@ trait HasAiGuardrails
             return 'student';
         }
 
-        // Trialing users get the trial tier regardless of plan slug
-        if ($subscription->isTrialing()) {
-            return 'trial';
-        }
-
         return $subscription->plan ?? 'student';
     }
 
