@@ -22,6 +22,7 @@ use App\Services\Payment\ReferralService;
 use App\Services\Payment\RevolutService;
 use App\Services\Payment\RevolutSubscriptionService;
 use App\Services\Stores\TierConfigurationStore;
+use App\Services\Tiers\TierResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -809,24 +810,23 @@ class PaymentController extends Controller
     {
         $user = $request->user();
         $subscription = $user->subscription;
-
+        $tier = app(TierResolver::class)->resolve($user);
         $paymentEnabled = config('app.payment_enabled', false);
 
         if (! $subscription) {
             return response()->json([
                 'has_subscription' => false,
+                'tier' => $tier,
                 'payment_enabled' => $paymentEnabled,
             ]);
         }
 
         return response()->json([
             'has_subscription' => true,
+            'tier' => $tier,
             'plan' => $subscription->plan,
-            'billing_cycle' => $subscription->billing_cycle,
             'status' => $subscription->status,
-            'trial_ends_at' => $subscription->trial_ends_at?->toISOString(),
-            'days_remaining' => $subscription->daysLeftInTrial(),
-            'progress' => $subscription->trialProgress(),
+            'billing_cycle' => $subscription->billing_cycle,
             'amount' => $subscription->amount,
             'current_period_start' => $subscription->current_period_start?->toISOString(),
             'current_period_end' => $subscription->current_period_end?->toISOString(),
