@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-28 — session 3 (end-of-day) — **SP1 DEFERRED; PIVOTING TO CoALA.** CSJ decision 2026-05-28: pause SP1 after Pass 6 PR 5a (clean state — InvestmentAccount write-path complete) and pivot to the CoALA initiative, starting with a test-stabilisation block. Rationale + evidence: `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`. Active branch is now `coala` (off `dev` at `88ee9c4`). SP1 resume point preserved below (Pass 6 PR 5b) for when SP1 is picked back up. Test-stabilisation Phase 0 is NEARLY done — 1 FLAKY failure remains (audit-context test); full diagnostic + reproduction probe in handover `May/May29Updates/handover-2026-05-29-session-1.md`.*
+*Last updated: 2026-05-30 — session 1 (end-of-day) — **CoALA Phase 5 PR 1 + PR 2 BUILT (on branches, pushed to origin, NOT merged).** Test-stabilisation Phase 0 DONE (audit flake fixed session 5 `bb415be`; SavingsAgent flake + 8 strict_types fixed this session, `7384aea`). PR 1 (prompt-cache + GBP cost telemetry) = `feat/coala-cost-telemetry` `d390f67`. PR 2 (ground mechanical write-safety gate) = `feat/coala-ground-gate` `383796c`. NEW flake found: `ActuarialLifeTableAdminTest` (order-dependent, passes alone) — see Known issues. Full arc: `May/May30Updates/handover-2026-05-30-session-1.md`. **CoALA PRs target `coala`, not dev (CSJ decision).** SP1 resume point preserved below.*
 
 ---
 
@@ -8,17 +8,31 @@
 
 **Branch:** `coala` (off `dev`). **Decision doc:** `May/May28Updates/SP1-vs-CoALA-prioritisation-review-2026-05-28.md`.
 
-**Phase 0 — test-stabilisation (prerequisite, NEARLY DONE — 1 flaky failure left):** get `dev`'s suite green before CoALA code lands (CoALA's cutover safety leans on a clean regression baseline).
-- [x] `tests/Feature/Api/MortgageControllerTest.php` — fixed session 2 (added `TierConfigurationSeeder` to setUp). Green in full suite.
-- [x] `MortgageTierCapTest` — green in full suite (runs #3/#4 confirm 0 mortgage failures).
+**Phase 0 — test-stabilisation (prerequisite, DONE):** `dev`/`coala` suite green baseline before CoALA code lands.
+- [x] `tests/Feature/Api/MortgageControllerTest.php` — fixed session 2 (added `TierConfigurationSeeder` to setUp).
+- [x] `MortgageTierCapTest` — green in full suite.
 - [x] `tests/Architecture/Phase03ArchitectureTest.php` — 2 stale `NetWorthService` assertions updated (session 2).
-- [x] `stocks_shares`→`stocks_and_shares` drift: fixed session 2 (`RetirementIncomeService.php:392`, `InvestmentAccountFactory.php:58`).
-- [x] `tests/Feature/Mobile/MobileScaffoldTest.php` — fixed session 3 (`088c86c`): assertion `url('/m/app')`→`url('/m/landing')` to match blade.
-- [ ] **FLAKY (BLOCKS "suite green"):** `tests/Feature/Stores/InvestmentAccountHttpIntegrationTest.php` "records FORM audit context" — ~30–50% flaky null audit row in the FULL suite only (subsets always pass). Partially diagnosed (created event fires, shouldAudit inputs OK, row still absent) → leading theory is a leaked duplicate `Hargreaves Lansdown` account making `->first()` pick the wrong id. **Full diagnostic + probe code + reproduction loop in `May/May29Updates/handover-2026-05-29-session-1.md`.**
+- [x] `stocks_shares`→`stocks_and_shares` drift: fixed session 2.
+- [x] `tests/Feature/Mobile/MobileScaffoldTest.php` — fixed session 3 (`088c86c`).
+- [x] `InvestmentAccountHttpIntegrationTest` audit flake — FIXED session 5 `bb415be` (user_id-scoped the audit lookup).
+- [x] `SavingsAgentGoalsTest` behind-schedule flake — FIXED session 1 (2026-05-30) `7384aea` (pinned `start_date`; root cause = GoalFactory random start_date flipping time-based `is_on_track` ~10%).
+- [x] Architecture strict_types — FIXED `7384aea`: `declare(strict_types=1)` added to 8 content-pipeline files (HeyGen/ImageRenderer/FFmpeg/ArticleScraper + Approval/Article/PipelineAsset/PipelineRun). Arch suite 117/0.
 - [ ] LISA bucketing: `ISATracker.php` + `ISAAllowanceOptimizer.php` key off `account_type='lifetime_isa'` (non-existent enum) → should read `isa_type='lifetime'`. (Deferred — real user-facing calc, needs own test.)
 - [ ] (optional) preview-spouse tier-cap latent risk (`PreviewController.php:673`).
 
-**Then — CoALA phases** (per `fynla-coala-implementation-plan.md` v0.4 + `May/May27Updates/PRD-coala-phase-{1..6}-*.md`): Phase 5 cost-telemetry PR first (standalone) → Phase 1 semantic memory → 2 → 3 → 4 → 5(full) → 6. Stakeholder re-review at end of Phase 5.
+**CoALA Phase 5 (per `fynla-coala-implementation-plan.md` v0.4 §8 internal sequencing):**
+- [x] **Item 1 — prompt-cache hit/miss + GBP cost telemetry** (PR 1). `feat/coala-cost-telemetry` `d390f67` (pushed). `AiCostCalculator` + `config/ai_pricing.php` + `HasAiChat::costTelemetryMetadata()`. 12 tests.
+- [x] **Item 2 — `ground` mechanical write-safety gate** (PR 2). `feat/coala-ground-gate` `383796c` (pushed, stacks on stabilisation). `GroundGate` rejects WRITE_TOOLS in advice persona at dispatch; audited `status:stripped`. 10 tests + drift guards.
+- [ ] **Item 3 — typed `Action` enum + dispatcher refactor** (wrap flat tool catalogue in `reason|retrieve|learn|ground`). NOT started. Plan lines 293–327.
+- [ ] Items 4–8: `FynLoop` service → planner LLM call → concurrent-turn queue → resumption check → per-action cost-attribution table + admin dashboard.
+- [ ] **Two-Fyn A/B collapse decision** (plan §"Two-Fyn collapse") — DEFERRED to CSJ; plan recommends Option B. Ground gate built additively so not yet forced.
+- [ ] **Open the 3 feature→coala PRs** when ready for review/merge (telemetry, stabilisation, ground-gate). All pushed to origin.
+- Phase 1 semantic memory → 2 → 3 → 4 → 5(full) → 6. Stakeholder re-review at end of Phase 5.
+
+**Known issues:**
+- [ ] **NEW flake: `tests/Feature/Admin/ActuarialLifeTableAdminTest`** — order-dependent (fails ~once per full `Unit,Feature` run, passes in isolation). Different from the SavingsAgent flake. Suite now has ≥2 known order-dependent flakes → systemic test-isolation sweep worth scheduling (scoped queries / shared state / Carbon leaks). Diagnose via systematic-debugging.
+- [ ] **`config/ai_pricing.php` rates are derived placeholders** (USD list × 0.79 FX) — VERIFY against live provider pricing before relying on `gbp_cost` for FCA/board reporting.
+- [ ] **No stream-mock test harness** for the AI chat loop — PR 1 persistence + PR 2 in-loop gate execution lack e2e coverage (unit coverage solid). Building one is its own task.
 
 ---
 
