@@ -115,3 +115,9 @@
   2. Pure freemium signup — spec + plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*.md`), NO code yet. Awaiting execution-approach choice.
 - Commits this session: 4 (2 Revolut fix, 2 freemium docs).
 - Next: CSJ picks execution approach for the freemium plan → start PR1 (registration → tier='free', no trial).
+
+## 2026-05-29 — session 5 (context-handover tripwire)
+- Handover: [[handover-2026-05-29-session-5-clear]]
+- Branch: coala
+- WIP commit: none (tree clean; gate fixes in 19d758b/bb415be/5c018dd, merge 2e1dbb0)
+- Pick up at: branch feat/coala-cost-telemetry off coala → CoALA Phase 5 PR 1 (prompt-cache + GBP cost telemetry in HasAiChat; capture cache_creation tokens + gbp_cost via config/ai_pricing.php). CoALA test-stab gate is CLOSED (4072 passed, 0 failed).
