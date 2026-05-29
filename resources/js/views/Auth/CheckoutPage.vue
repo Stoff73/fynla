@@ -115,6 +115,9 @@
             <!-- Payment Error -->
             <div v-if="paymentError" class="bg-raspberry-100 border border-raspberry-600/20 rounded-lg p-4 mb-4">
               <p class="text-body-sm text-raspberry-600">{{ paymentError }}</p>
+              <button @click="reinitializeCheckout" class="mt-2 text-sm text-raspberry-700 underline hover:no-underline">
+                Try again
+              </button>
             </div>
 
             <!-- Widget Container -->
@@ -419,17 +422,45 @@ export default {
             if (discountCode) {
               payload.discount_code = discountCode;
             }
-            const response = await api.post(endpoint, payload);
-            // Store the internal UUID for confirmPayment call
-            // CRITICAL: onSuccess's orderId is the TOKEN, not the UUID
-            this.revolutOrderId = response.data.order_id;
-            // Store upgrade details for display
-            if (this.isUpgrade && response.data.upgrade_amount) {
-              this.upgradeAmount = response.data.upgrade_amount;
-              this.monthsRemaining = response.data.months_remaining;
+
+            // Retry transient server/network failures here: api.js does not
+            // retry POSTs, and an unhandled rejection leaves the user stranded
+            // on the widget's spinner with no feedback. A brief backend blip
+            // should recover silently rather than failing the payment.
+            const maxAttempts = 3;
+            let lastError = null;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              try {
+                const response = await api.post(endpoint, payload);
+                this.paymentError = null;
+                // Store the internal UUID for confirmPayment call
+                // CRITICAL: onSuccess's orderId is the TOKEN, not the UUID
+                this.revolutOrderId = response.data.order_id;
+                // Store upgrade details for display
+                if (this.isUpgrade && response.data.upgrade_amount) {
+                  this.upgradeAmount = response.data.upgrade_amount;
+                  this.monthsRemaining = response.data.months_remaining;
+                }
+                // Return token to widget as { publicId }
+                return { publicId: response.data.token };
+              } catch (err) {
+                lastError = err;
+                const status = err.status ?? err.response?.status ?? null;
+                const transient = status === null || status >= 500 || status === 429;
+                if (attempt < maxAttempts && transient) {
+                  await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                  continue;
+                }
+                break;
+              }
             }
-            // Return token to widget as { publicId }
-            return { publicId: response.data.token };
+
+            // All attempts failed — surface a clear, recoverable error (with a
+            // "Try again" action) instead of an infinite spinner in the widget.
+            this.paymentError = lastError?.message
+              || 'We could not start your payment. Please try again.';
+            logger.error('create-order failed', lastError);
+            throw lastError || new Error('create-order failed');
           },
           onSuccess: () => {
             // orderId in callback is the ORDER TOKEN (not UUID) per Revolut docs
@@ -519,8 +550,10 @@ export default {
           return;
         } catch (err) {
           const state = err.response?.data?.state;
-          // If Revolut state hasn't settled yet, wait and retry
-          if (attempt < maxRetries && (state === 'pending' || state === 'processing' || err.response?.status === 400)) {
+          const status = err.status ?? err.response?.status ?? null;
+          // Retry while Revolut's state is still settling, or on a transient
+          // server/network failure (api.js does not retry this POST).
+          if (attempt < maxRetries && (state === 'pending' || state === 'processing' || status === 400 || status >= 500 || status === null)) {
             await new Promise(resolve => setTimeout(resolve, delayMs));
             continue;
           }
