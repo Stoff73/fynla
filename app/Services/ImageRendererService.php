@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Article;
-use App\Models\Asset;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
@@ -44,11 +43,11 @@ class ImageRendererService
             $process->setTimeout(60);
             $process->run();
 
-            if (!$process->isSuccessful()) {
-                throw new \Exception("Pillow render failed for {$templateType}: " . $process->getErrorOutput());
+            if (! $process->isSuccessful()) {
+                throw new \Exception("Pillow render failed for {$templateType}: ".$process->getErrorOutput());
             }
 
-            $asset = Asset::create([
+            $asset = PipelineAsset::create([
                 'article_id' => $article->id,
                 'kind' => 'image',
                 'template_type' => $templateType,
@@ -78,11 +77,13 @@ class ImageRendererService
 
         // Round-robin: pick the variant whose file appears LEAST often in the assets table
         $usageCounts = collect($variants)->mapWithKeys(function ($v) {
-            $count = Asset::where('variant', $v['file'])->count();
+            $count = PipelineAsset::where('variant', $v['file'])->count();
+
             return [$v['file'] => $count];
         });
 
         $leastUsedFile = $usageCounts->sort()->keys()->first();
+
         return collect($variants)->firstWhere('file', $leastUsedFile);
     }
 

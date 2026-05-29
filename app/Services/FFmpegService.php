@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Article;
-use App\Models\Asset;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
@@ -13,11 +12,11 @@ use Symfony\Component\Process\Process;
  */
 class FFmpegService
 {
-    public function cutClips(Article $article, Asset $videoAsset, array $timestamps): array
+    public function cutClips(Article $article, PipelineAsset $videoAsset, array $timestamps): array
     {
         $assets = [];
         $sourceVideo = $videoAsset->local_path;
-        $outDir = dirname($sourceVideo) . '/clips';
+        $outDir = dirname($sourceVideo).'/clips';
         @mkdir($outDir, 0755, true);
 
         foreach ($timestamps as $i => $ts) {
@@ -48,12 +47,13 @@ class FFmpegService
                 $process->setTimeout(120);
                 $process->run();
 
-                if (!$process->isSuccessful()) {
-                    Log::channel('pipeline')->error("FFmpeg failed for clip $i $aspect[ratio]: " . $process->getErrorOutput());
+                if (! $process->isSuccessful()) {
+                    Log::channel('pipeline')->error("FFmpeg failed for clip $i $aspect[ratio]: ".$process->getErrorOutput());
+
                     continue;
                 }
 
-                $assets[] = Asset::create([
+                $assets[] = PipelineAsset::create([
                     'article_id' => $article->id,
                     'kind' => 'clip',
                     'template_type' => 'video_clip',
@@ -65,7 +65,8 @@ class FFmpegService
             }
         }
 
-        Log::channel('pipeline')->info("FFmpeg produced " . count($assets) . " clips for article {$article->id}");
+        Log::channel('pipeline')->info('FFmpeg produced '.count($assets)." clips for article {$article->id}");
+
         return $assets;
     }
 
@@ -78,6 +79,7 @@ class FFmpegService
         if (count($parts) === 3) {
             return ((int) $parts[0]) * 3600 + ((int) $parts[1]) * 60 + (int) $parts[2];
         }
+
         return (int) $ts;
     }
 }
