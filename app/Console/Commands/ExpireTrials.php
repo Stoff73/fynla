@@ -11,13 +11,10 @@ class ExpireTrials extends Command
 {
     protected $signature = 'trials:expire';
 
-    protected $description = 'Expire trials and cancelled subscriptions that have passed their end date';
+    protected $description = 'Expire cancelled subscriptions that have passed their current period end date';
 
     public function handle(TrialService $trialService): int
     {
-        $trialCount = $trialService->expireTrials();
-        $this->info("Expired {$trialCount} trial(s).");
-
         $cancelledCount = $trialService->expireCancelledSubscriptions();
         $this->info("Expired {$cancelledCount} cancelled subscription(s).");
 

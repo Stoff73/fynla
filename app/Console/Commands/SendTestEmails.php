@@ -12,7 +12,6 @@ use App\Mail\SpouseAccountCreated;
 use App\Mail\SpouseAccountLinked;
 use App\Mail\SubscriptionCancellation;
 use App\Mail\SubscriptionRenewalReminder;
-use App\Mail\TrialExpirationReminder;
 use App\Mail\VerificationCode;
 use App\Models\Payment;
 use App\Models\Subscription;
@@ -45,7 +44,6 @@ class SendTestEmails extends Command
         $templates = [
             'verification' => fn () => $this->sendVerification($recipient, $user),
             'payment' => fn () => $this->sendPayment($recipient, $user),
-            'trial' => fn () => $this->sendTrial($recipient, $user),
             'renewal' => fn () => $this->sendRenewal($recipient, $user),
             'cancellation' => fn () => $this->sendCancellation($recipient, $user),
             'spouse-created' => fn () => $this->sendSpouseCreated($recipient, $user, $spouse),
@@ -101,11 +99,6 @@ class SendTestEmails extends Command
 
         $paymentUser = $payment->user ?? $user;
         Mail::to($to)->send(new PaymentConfirmation($paymentUser, $payment));
-    }
-
-    private function sendTrial(string $to, User $user): void
-    {
-        Mail::to($to)->send(new TrialExpirationReminder($user, 2));
     }
 
     private function sendRenewal(string $to, User $user): void

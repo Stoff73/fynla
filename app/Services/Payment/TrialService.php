@@ -10,33 +10,6 @@ use Carbon\Carbon;
 
 class TrialService
 {
-    public function expireTrials(): int
-    {
-        $now = Carbon::now();
-
-        $expired = Subscription::where('status', 'trialing')
-            ->where('trial_ends_at', '<', $now)
-            ->with('user')
-            ->get();
-
-        $expiredIds = $expired->pluck('id');
-        $userIds = $expired->pluck('user_id');
-
-        // Bulk update for performance. Note: bypasses Eloquent observers (Auditable).
-        // Acceptable because trial expiry is logged via this command's output.
-        Subscription::whereIn('id', $expiredIds)->update([
-            'status' => 'expired',
-            'data_retention_starts_at' => $now,
-        ]);
-        // Reset the legacy billing-compat column AND the canonical gating
-        // column. tier => null means "resolve via TierResolver" → 'free'
-        // (§5.2 / nullable-default semantics); a tier subscriber whose
-        // trial expired must lose tier access, not keep it forever.
-        User::whereIn('id', $userIds)->update(['plan' => 'free', 'tier' => null]);
-
-        return $expired->count();
-    }
-
     /**
      * Expire cancelled subscriptions whose current_period_end has passed.
      *
@@ -62,7 +35,8 @@ class TrialService
         $expiredIds = $expired->pluck('id');
         $userIds = $expired->pluck('user_id');
 
-        // Bulk update for performance (same trade-off as expireTrials)
+        // Bulk update for performance. Note: bypasses Eloquent observers
+        // (Auditable); acceptable because expiry is logged via command output.
         Subscription::whereIn('id', $expiredIds)->update([
             'status' => 'expired',
             'data_retention_starts_at' => $now,
