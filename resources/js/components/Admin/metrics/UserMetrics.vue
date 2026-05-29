@@ -30,9 +30,6 @@
       <!-- Snapshot Cards -->
       <SnapshotCards v-if="snapshot" :data="snapshot" />
 
-      <!-- Trial Breakdown -->
-      <TrialBreakdown v-if="trials" :data="trials" />
-
       <!-- Plan Breakdown -->
       <PlanBreakdown v-if="plans && plans.length" :data="plans" />
 
@@ -82,7 +79,6 @@
 <script>
 import adminService from '@/services/adminService';
 import SnapshotCards from './SnapshotCards.vue';
-import TrialBreakdown from './TrialBreakdown.vue';
 import PlanBreakdown from './PlanBreakdown.vue';
 import ActivityCharts from './ActivityCharts.vue';
 import ActivityTable from './ActivityTable.vue';
@@ -100,7 +96,6 @@ export default {
 
   components: {
     SnapshotCards,
-    TrialBreakdown,
     PlanBreakdown,
     ActivityCharts,
     ActivityTable,
@@ -112,7 +107,6 @@ export default {
       activityLoading: false,
       error: null,
       snapshot: null,
-      trials: null,
       plans: null,
       activity: null,
       engagement: null,
@@ -137,16 +131,14 @@ export default {
       this.error = null;
 
       try {
-        const [snapshotRes, trialsRes, plansRes, activityRes, engagementRes] = await Promise.all([
+        const [snapshotRes, plansRes, activityRes, engagementRes] = await Promise.all([
           adminService.getUserMetricsSnapshot(),
-          adminService.getUserMetricsTrials(),
           adminService.getUserMetricsPlans(),
           adminService.getUserMetricsActivity(this.activePeriod, DEFAULT_RANGES[this.activePeriod]),
           adminService.getUserMetricsEngagement(),
         ]);
 
         this.snapshot = snapshotRes.data;
-        this.trials = trialsRes.data;
         this.plans = plansRes.data;
         this.activity = Array.isArray(activityRes.data) ? activityRes.data : [];
         this.engagement = engagementRes.data;
