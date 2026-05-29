@@ -23,6 +23,7 @@ use App\Http\Middleware\InsightsSeoMetaInjector;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\PreventRequestsDuringMaintenance;
 use App\Http\Middleware\PreviewWriteInterceptor;
+use App\Http\Middleware\RebasePublicPageUrls;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\RedirectPhoneToMobile;
 use App\Http\Middleware\SanitizeInput;
@@ -86,6 +87,7 @@ class Kernel extends HttpKernel
             VerifyCsrfToken::class,
             SubstituteBindings::class,
             RedirectPhoneToMobile::class,
+            RebasePublicPageUrls::class,
         ],
 
         'api' => [

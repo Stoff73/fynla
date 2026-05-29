@@ -30,6 +30,11 @@
 
 ## 🎯 (PAUSED) SP1 Pass 6 (Investments) — plan reference
 
+> **Other open dev backlog** (carried over from the pre-pivot CSJTODO; NOT the active track):
+> - Revolut checkout spinner — FIXED + DEPLOYED (prod + dev), PR #422/#421. See `reference_prod_forge_uncached_config.md`.
+> - Pure freemium signup — spec+plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*`); execution status to confirm post-pivot (trial→Free conversion already run on prod 2026-05-29).
+> - Shipped on dev/prod 2026-05-29 (this chat): public marketing pages + savetax funnel + Chart.js self-host + PipelineAsset rename (PRs #420/#432/#433/#434/#435/#436 → main/prod).
+
 **Plan:** `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (768 lines, written 2026-05-27 session 5 after Pass 5 closure; CSJ-approved full Investment surface scope).
 
 **Scope:** All 6 Investment models — InvestmentAccount, Holding, InvestmentGoal, RiskProfile, InvestmentScenario, RebalancingAction. Largest entity surface in SP1 (173 InvestmentAccount refs alone). On Pass 6 close-out: SP1 = 14/19 stores shipped.

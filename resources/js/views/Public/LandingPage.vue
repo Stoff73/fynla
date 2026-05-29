@@ -417,7 +417,19 @@
           </div>
         </div>
 
-        <div class="text-center mt-6">
+        <!-- Latest news banner -->
+        <div v-if="latestNewsArticle" class="max-w-6xl mx-auto mt-4">
+          <router-link
+            :to="'/news/' + latestNewsArticle.slug"
+            class="group flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 hover:shadow-md transition-shadow no-underline"
+          >
+            <span class="flex-shrink-0 text-xs font-bold uppercase tracking-wide text-raspberry-500">Latest news</span>
+            <span class="w-px h-4 bg-light-gray flex-shrink-0"></span>
+            <span class="text-sm text-horizon-500 font-medium truncate group-hover:text-raspberry-500 transition-colors">{{ latestNewsArticle.title }}</span>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-5">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">
             See all insights &rarr;
           </router-link>
@@ -446,7 +458,19 @@
             </div>
           </router-link>
         </div>
-        <div class="text-center mt-6">
+        <!-- Latest news banner -->
+        <div v-if="latestNewsArticle" class="max-w-5xl mx-auto mt-4">
+          <router-link
+            :to="'/news/' + latestNewsArticle.slug"
+            class="group flex items-center gap-3 bg-white rounded-2xl px-5 py-3.5 hover:shadow-md transition-shadow no-underline"
+          >
+            <span class="flex-shrink-0 text-xs font-bold uppercase tracking-wide text-raspberry-500">Latest news</span>
+            <span class="w-px h-4 bg-light-gray flex-shrink-0"></span>
+            <span class="text-sm text-horizon-500 font-medium truncate group-hover:text-raspberry-500 transition-colors">{{ latestNewsArticle.title }}</span>
+          </router-link>
+        </div>
+
+        <div class="text-center mt-5">
           <router-link to="/insights" class="text-sm font-semibold text-horizon-500 hover:text-raspberry-500">See all insights &rarr;</router-link>
         </div>
       </div>
@@ -493,6 +517,7 @@ import PersonaSelectionModal from '@/components/Preview/PersonaSelectionModal.vu
 import ReviewCarousel from '@/components/Public/ReviewCarousel.vue';
 
 import logger from '@/utils/logger';
+import newsService from '@/services/newsService';
 
 const insightImages = import.meta.glob('@/assets/insights/*.{jpg,png,webp}', { eager: true, import: 'default' });
 
@@ -523,6 +548,7 @@ export default {
       chatInput: '',
       fynDetailsOpen: false,
       videoPlaying: false,
+      latestNewsArticle: null,
     };
   },
 
@@ -546,6 +572,16 @@ export default {
       } catch (e) {
         // non-fatal — hero hides if nothing returned
       }
+    }
+
+    try {
+      const data = await newsService.list({ page: 1 });
+      const articles = data?.data ?? data?.articles ?? (Array.isArray(data) ? data : null);
+      if (Array.isArray(articles) && articles.length) {
+        this.latestNewsArticle = articles[0];
+      }
+    } catch {
+      // non-fatal
     }
   },
 

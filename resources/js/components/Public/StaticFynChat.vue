@@ -9,30 +9,34 @@
     </div>
 
     <!-- Messages area -->
-    <div ref="scrollEl" class="flex-1 overflow-y-auto space-y-4 p-6">
+    <div ref="scrollEl" class="flex-1 overflow-y-auto space-y-3 p-6">
       <!-- Welcome message -->
       <div class="flex justify-start">
-        <div class="max-w-[85%] rounded-lg px-3 py-2 bg-savannah-100 border border-light-gray">
+        <div class="max-w-[85%] rounded-lg rounded-bl-sm px-3 py-2 bg-savannah-100 border border-light-gray">
           <p class="text-sm leading-relaxed text-horizon-500">Hi! I'm Fyn, your financial companion. I can help you understand your finances, answer questions about pensions, tax, savings, and more.</p>
         </div>
       </div>
 
       <!-- Second message -->
       <div class="flex justify-start">
-        <div class="max-w-[85%] rounded-lg px-3 py-2 bg-savannah-100 border border-light-gray">
+        <div class="max-w-[85%] rounded-lg rounded-bl-sm px-3 py-2 bg-savannah-100 border border-light-gray">
           <p class="text-sm leading-relaxed text-horizon-500 mb-2">Register for free to start chatting with me. I'll help you:</p>
           <ul class="text-sm text-horizon-500 space-y-1 list-disc list-inside ml-1">
             <li>Set up your financial dashboard</li>
             <li>Get personalised recommendations</li>
             <li>Answer your financial questions</li>
           </ul>
-          <router-link
-            :to="registerLink"
-            class="mt-3 inline-block px-3 py-1.5 bg-raspberry-500 hover:bg-raspberry-600 text-white text-sm font-semibold rounded-lg transition-colors no-underline"
-          >
-            Register now to ask Fyn
-          </router-link>
         </div>
+      </div>
+
+      <!-- CTA below second message — visually distinct from the bubble -->
+      <div class="flex justify-start pl-1">
+        <router-link
+          :to="registerLink"
+          class="inline-block px-4 py-2 bg-spring-500 hover:bg-spring-600 text-white text-sm font-semibold rounded-lg transition-colors no-underline shadow-sm"
+        >
+          Register now to ask Fyn
+        </router-link>
       </div>
 
       <!-- Suggested prompts — hidden when responseMessage is set (interactive campaign mode) -->
@@ -52,21 +56,26 @@
       <!-- Conversation turns (interactive mode only) -->
       <template v-for="(turn, i) in turns" :key="i">
         <div v-if="turn.role === 'user'" class="flex justify-end">
-          <div class="max-w-[85%] rounded-lg px-3 py-2 bg-raspberry-500 text-white">
+          <div class="max-w-[85%] rounded-lg rounded-br-sm px-3 py-2 bg-raspberry-500 text-white">
             <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ turn.text }}</p>
           </div>
         </div>
-        <div v-else class="flex justify-start">
-          <div class="max-w-[85%] rounded-lg px-3 py-2 bg-savannah-100 border border-light-gray">
-            <p class="text-sm leading-relaxed text-horizon-500 mb-2">{{ turn.text }}</p>
+        <template v-else>
+          <div class="flex justify-start">
+            <div class="max-w-[85%] rounded-lg rounded-bl-sm px-3 py-2 bg-savannah-100 border border-light-gray">
+              <p class="text-sm leading-relaxed text-horizon-500">{{ turn.text }}</p>
+            </div>
+          </div>
+          <!-- CTA sits outside the bubble so it reads as a call-to-action, not message text -->
+          <div class="flex justify-start pl-1">
             <router-link
               :to="registerLink"
-              class="inline-block px-3 py-1.5 bg-raspberry-500 hover:bg-raspberry-600 text-white text-sm font-semibold rounded-lg transition-colors no-underline"
+              class="inline-block px-4 py-2 bg-spring-500 hover:bg-spring-600 text-white text-sm font-semibold rounded-lg transition-colors no-underline shadow-sm"
             >
               Register now to ask Fyn
             </router-link>
           </div>
-        </div>
+        </template>
       </template>
     </div>
 

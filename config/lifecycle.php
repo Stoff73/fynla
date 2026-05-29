@@ -1,10 +1,7 @@
 <?php
 
 declare(strict_types=1);
-use App\Services\Lifecycle\Campaigns\CancelledTrialerCampaign;
 use App\Services\Lifecycle\Campaigns\ChurnedSubscriberCampaign;
-use App\Services\Lifecycle\Campaigns\EmptyTrialerCampaign;
-use App\Services\Lifecycle\Campaigns\EngagedTrialerCampaign;
 use App\Services\Lifecycle\Campaigns\LapsedSubscriberCampaign;
 
 return [
@@ -13,11 +10,8 @@ return [
     // Campaigns are registered here. The engine resolves them via container
     // and sorts by priority() at runtime.
     'campaigns' => [
-        CancelledTrialerCampaign::class,
         ChurnedSubscriberCampaign::class,
         LapsedSubscriberCampaign::class,
-        EmptyTrialerCampaign::class,
-        EngagedTrialerCampaign::class,
     ],
 
     // Timing knobs (all in days)

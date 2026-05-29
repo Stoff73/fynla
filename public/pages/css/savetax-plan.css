@@ -1,0 +1,922 @@
+/**
+ * savetax-plan.css — page-specific styles for /savetax/plan
+ *
+ * Rules here are page-specific only.
+ * Design tokens live in global.css (:root) — never redefine :root here.
+ * Nav and footer rules live in global.css — never duplicate them here.
+ */
+
+/* ===================================================================
+   CAMPAIGN BODY — makes room for the docked Fyn panel on desktop
+   =================================================================== */
+.campaign-body {
+  /* no special treatment on mobile — panel is hidden */
+}
+
+/* ===================================================================
+   CAMPAIGN INNER — shared inner-content wrapper across all sections
+   =================================================================== */
+.campaign-inner {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* ===================================================================
+   HERO  [.campaign-hero]
+   bg-gradient-to-r from-horizon-500 to-raspberry-500
+   =================================================================== */
+.campaign-hero {
+  background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+  overflow: hidden;
+  padding: 3rem 0;
+}
+
+.campaign-hero__heading {
+  font-size: clamp(2.25rem, 8vw, 3.75rem);
+  font-weight: 900;
+  color: var(--white);
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+.campaign-hero__heading-accent {
+  color: var(--raspberry-300);
+}
+
+.campaign-hero__subtext {
+  font-size: 1.125rem;
+  color: var(--white-70);
+  max-width: 42rem;
+  line-height: 1.625;
+}
+
+/* ===================================================================
+   ALLOWANCES SECTION  [.allowances-section]
+   bg-eggshell-500
+   =================================================================== */
+.allowances-section {
+  background: var(--eggshell-500);
+  padding: 3.5rem 0;
+}
+
+.allowances-section__intro {
+  margin-bottom: 2.5rem;
+}
+
+.allowances-section__label {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--raspberry-500);
+  margin-bottom: 0.5rem;
+}
+
+.allowances-section__heading {
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  line-height: 1.25;
+}
+
+.allowances-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+.allowances-col__header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+}
+
+.allowances-col__header--horizon {
+  border-bottom: 2px solid var(--horizon-500);
+}
+
+.allowances-col__header--raspberry {
+  border-bottom: 2px solid var(--raspberry-500);
+}
+
+.allowances-col__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+
+/* Allowance list — min-height reserved so JS-updated list doesn't cause CLS */
+.allowances-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 12rem;
+}
+
+.allowance-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--horizon-200);
+}
+
+.allowance-item:last-child {
+  border-bottom: none;
+}
+
+.allowance-item__text {
+  flex: 1;
+}
+
+.allowance-item__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--horizon-500);
+  margin-bottom: 0.125rem;
+}
+
+.allowance-item__note {
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+  line-height: 1.4;
+}
+
+.allowance-item__amount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.allowances-section__footer-text {
+  margin-top: 3rem;
+  font-size: 1rem;
+  color: var(--neutral-600);
+  line-height: 1.6;
+}
+
+/* ===================================================================
+   MEANING SECTION  [.meaning-section]
+   bg-horizon-500
+   =================================================================== */
+.meaning-section {
+  background: var(--horizon-500);
+  padding: 3.5rem 0;
+}
+
+.meaning-section__heading {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 2rem;
+}
+
+.meaning-section__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.meaning-section__total-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--white-70);
+  margin-bottom: 0.5rem;
+}
+
+.meaning-section__total {
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 900;
+  color: var(--white);
+  line-height: 1;
+}
+
+.meaning-section__body {
+  font-size: 0.9375rem;
+  color: var(--white-70);
+  line-height: 1.625;
+  margin-bottom: 1.5rem;
+}
+
+.meaning-section__cta {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 2.75rem;
+}
+
+.meaning-section__cta:hover {
+  background: var(--raspberry-600);
+}
+
+/* ===================================================================
+   EXAMPLES SECTION  [.examples-section]
+   bg-light-pink-100
+   =================================================================== */
+.examples-section {
+  background: var(--light-pink-100);
+  padding: 3.5rem 0;
+}
+
+.examples-section__intro {
+  margin-bottom: 2.5rem;
+}
+
+.examples-section__label {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--horizon-500);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.examples-section__heading {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  line-height: 1.25;
+}
+
+.examples-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+.example-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.example-card__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+  margin-bottom: 0.75rem;
+}
+
+.example-card__body {
+  font-size: 0.9375rem;
+  color: var(--neutral-600);
+  line-height: 1.625;
+}
+
+.examples-section__footer {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.examples-section__footer-text {
+  font-size: 0.9375rem;
+  color: var(--neutral-600);
+  margin-bottom: 0.75rem;
+}
+
+.examples-section__cta {
+  display: inline-block;
+  padding: 0.75rem 1.75rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 2.75rem;
+}
+
+.examples-section__cta:hover {
+  background: var(--spring-600);
+}
+
+/* ===================================================================
+   FYN PANEL  [.fyn-panel]
+   Fixed right column — desktop only.
+   Starts with [hidden]; JS removes the attribute on load.
+   =================================================================== */
+.fyn-panel {
+  /* Hidden by default — [hidden] in global.css wins (display:none !important).
+     JS removes the attribute on DOMContentLoaded when viewport >= 1024px.
+     The display:none here acts as a CSS-level guard for mobile, complementing
+     the JS guard. Both must pass for the panel to show. */
+  display: none;
+  position: fixed;
+  top: 4rem; /* 64px — height of the sticky nav */
+  right: 0;
+  bottom: 0;
+  width: 356px;
+  background: var(--white);
+  border-left: 1px solid var(--light-gray);
+  box-shadow: -4px 0 20px var(--black-10);
+  flex-direction: column;
+  z-index: 40;
+}
+
+.fyn-panel__inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Header */
+.fyn-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--light-gray);
+  flex-shrink: 0;
+}
+
+.fyn-panel__avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to bottom right, var(--horizon-500), var(--raspberry-500));
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fyn-panel__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--horizon-500);
+}
+
+.fyn-panel__status {
+  font-size: 0.75rem;
+  color: var(--neutral-400);
+}
+
+/* Messages area */
+.fyn-panel__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.fyn-panel__message {
+  max-width: 90%;
+}
+
+.fyn-panel__message--fyn {
+  align-self: flex-start;
+}
+
+.fyn-panel__message--fyn p {
+  background: var(--eggshell-500);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--horizon-500);
+  line-height: 1.5;
+}
+
+/* Bubble that wraps intro text + list + CTA together */
+.fyn-panel__message--fyn .fyn-panel__bubble {
+  background: var(--eggshell-500);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--horizon-500);
+  line-height: 1.5;
+}
+
+.fyn-panel__message--user {
+  align-self: flex-end;
+}
+
+.fyn-panel__message--user p {
+  background: var(--horizon-500);
+  color: var(--white);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.fyn-panel__register-list {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.fyn-panel__register-list li {
+  font-size: 0.875rem;
+  color: var(--neutral-600);
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.fyn-panel__register-cta {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 2.5rem;
+}
+
+.fyn-panel__register-cta:hover {
+  background: var(--spring-600);
+}
+
+/* Suggested prompts */
+.fyn-panel__prompts {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--light-gray);
+  flex-shrink: 0;
+}
+
+.fyn-panel__prompts-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--neutral-400);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.fyn-panel__prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fyn-panel__prompt {
+  font-size: 0.8125rem;
+  color: var(--neutral-500);
+  background: var(--eggshell-500);
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 0.625rem;
+  line-height: 1.4;
+  /* Display only — not interactive */
+}
+
+/* Compose area */
+.fyn-panel__compose {
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--light-gray);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.fyn-panel__input {
+  flex: 1;
+  border: 1px solid var(--horizon-200);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  color: var(--horizon-500);
+  background: var(--eggshell-500);
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+
+.fyn-panel__input:focus {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 1px;
+}
+
+.fyn-panel__send {
+  padding: 0.5rem 0.875rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  min-height: 2.5rem;
+  min-width: 5rem;
+}
+
+.fyn-panel__send:hover {
+  background: var(--spring-600);
+}
+
+/* ===================================================================
+   RESPONSIVE — md and lg breakpoints
+   =================================================================== */
+@media (min-width: 640px) {
+  .campaign-inner {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .allowances-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .examples-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .meaning-section__grid {
+    grid-template-columns: 1fr 2fr;
+    gap: 3rem;
+    align-items: start;
+  }
+}
+
+@media (min-width: 1024px) {
+
+  /* Campaign body shifts left to make room for the fixed chat panel */
+  .campaign-body {
+    margin-right: 356px;
+  }
+
+  /* Left edge must align with the Fynla logo in the nav.
+     Nav uses: max-width 80rem, margin: 0 auto, padding-left: 1rem.
+     Logo left edge = max(1rem, (100vw − 80rem) / 2) + 1rem padding.
+     Replicating that here keeps content left-aligned with the logo. */
+  .campaign-body .campaign-inner {
+    max-width: none;
+    margin-left: max(1rem, calc((100vw - 80rem) / 2));
+    margin-right: 1.5rem;
+    padding-left: 1rem;
+    padding-right: 1.5rem;
+  }
+
+  .campaign-hero {
+    padding: 4rem 0;
+  }
+
+  .allowances-section {
+    padding: 4rem 0;
+  }
+
+  .meaning-section {
+    padding: 4rem 0;
+  }
+
+  .examples-section {
+    padding: 4rem 0;
+  }
+
+  /* Show the Fyn panel on desktop only.
+     [hidden] has display:none !important in global.css — JS must remove the
+     attribute before this display:flex rule can take effect.
+     The base .fyn-panel rule has display:none; this overrides it to flex
+     only at 1024px+. The [hidden] attribute (managed by JS) is the
+     primary guard; this media query is the CSS-level guard. */
+  .fyn-panel {
+    display: flex;
+  }
+
+  /* Hero two-column at lg+ */
+  .sp-hero {
+    padding: 4rem 0;
+  }
+
+  .sp-hero__inner {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 3rem;
+  }
+
+  .sp-hero__copy {
+    flex: 1;
+  }
+
+  .sp-hero__savings-card {
+    width: 340px;
+    flex-shrink: 0;
+  }
+
+  .sp-savings-amount__figure {
+    font-size: 2.75rem;
+  }
+}
+
+/* ===================================================================
+   HERO V2 — two-column layout with inline savings card
+   sp- prefix = savetax-plan (avoids collision with global names)
+   =================================================================== */
+
+.sp-hero {
+  padding: 2.5rem 0;
+}
+
+.sp-hero__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+/* Organic CTA — register button shown only to search/direct visitors */
+.sp-hero__organic-cta {
+  margin-top: 1.75rem;
+}
+
+.sp-hero__register-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 3rem;
+  border: 2px solid var(--white-40);
+}
+
+.sp-hero__register-btn:hover {
+  background: var(--raspberry-600);
+}
+
+/* ===================================================================
+   SAVINGS CARD  [.sp-hero__savings-card]
+   =================================================================== */
+
+.sp-hero__savings-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+}
+
+/* ===================================================================
+   SAVINGS AMOUNT
+   =================================================================== */
+
+.sp-savings-amount {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sp-savings-amount__up-to {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--white-70);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
+}
+
+.sp-savings-amount__figure {
+  font-size: clamp(2.5rem, 8vw, 3.25rem);
+  font-weight: 900;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.sp-savings-amount__label {
+  font-size: 0.875rem;
+  color: var(--white-70);
+  line-height: 1.4;
+}
+
+/* ===================================================================
+   CTA BLOCK
+   =================================================================== */
+
+.sp-cta-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.sp-cta-block__copy {
+  font-size: 0.9375rem;
+  color: var(--white-70);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.sp-cta-block__register-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 3rem;
+}
+
+.sp-cta-block__register-btn:hover {
+  background: var(--spring-600);
+}
+
+/* ===================================================================
+   FYN TOGGLE
+   =================================================================== */
+
+.sp-fyn-toggle {
+  background: none;
+  border: none;
+  color: var(--white-70);
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.sp-fyn-toggle:hover {
+  color: var(--white);
+}
+
+.sp-fyn-toggle:focus-visible {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ===================================================================
+   INLINE FYN CHAT  [.sp-fyn-chat]
+   =================================================================== */
+
+.sp-fyn-chat {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sp-fyn-chat__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sp-fyn-chat__bubble {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+}
+
+.sp-fyn-chat__bubble--fyn p {
+  font-size: 0.875rem;
+  color: var(--white);
+  line-height: 1.5;
+  margin-bottom: 0.375rem;
+}
+
+.sp-fyn-chat__bubble--fyn p:last-child {
+  margin-bottom: 0;
+}
+
+.sp-fyn-chat__list {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.375rem;
+}
+
+.sp-fyn-chat__list li {
+  font-size: 0.875rem;
+  color: var(--white);
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.sp-fyn-chat__cta-row {
+  margin-top: 0.5rem;
+}
+
+.sp-fyn-chat__cta-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.625rem 1.25rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-button);
+  transition: background 0.15s ease;
+  min-height: 2.5rem;
+  text-align: center;
+}
+
+.sp-fyn-chat__cta-link:hover {
+  background: var(--spring-600);
+}
+
+.sp-fyn-chat__compose {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sp-fyn-chat__input {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.15);
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+
+.sp-fyn-chat__input::placeholder {
+  color: var(--white-70);
+}
+
+.sp-fyn-chat__input:focus {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 1px;
+}
+
+.sp-fyn-chat__send {
+  padding: 0.5rem 0.875rem;
+  background: var(--spring-500);
+  color: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-button);
+  font-family: var(--font-primary);
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  min-height: 2.5rem;
+  min-width: 5.5rem;
+  cursor: pointer;
+}
+
+.sp-fyn-chat__send:hover {
+  background: var(--spring-600);
+}
+
+.sp-fyn-chat__send:focus-visible {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
+}
+
+/* md+: hero two-column */
+@media (min-width: 768px) {
+  .sp-hero__inner {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 3rem;
+  }
+
+  .sp-hero__copy {
+    flex: 1;
+  }
+
+  .sp-hero__savings-card {
+    width: 320px;
+    flex-shrink: 0;
+  }
+
+  .sp-savings-amount__figure {
+    font-size: 2.75rem;
+  }
+}

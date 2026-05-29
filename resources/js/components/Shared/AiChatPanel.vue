@@ -333,7 +333,7 @@
         <div v-if="previewCta" class="mb-2">
           <router-link
             :to="previewCta.route"
-            class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-raspberry-500 rounded-lg hover:bg-raspberry-600 transition-colors"
+            class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-spring-500 rounded-lg hover:bg-spring-600 transition-colors"
           >
             {{ previewCta.label }}
           </router-link>

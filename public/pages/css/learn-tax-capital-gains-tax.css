@@ -1,0 +1,5 @@
+/**
+ * Capital Gains Tax page — page-specific styles.
+ * Inherits all guide layout from learn-tax-pension-annual-allowance.css.
+ */
+@import url('learn-tax-pension-annual-allowance.css');

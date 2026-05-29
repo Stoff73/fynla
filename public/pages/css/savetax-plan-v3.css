@@ -1,0 +1,15 @@
+/**
+ * savetax-plan-v3.css — v3 mockup overrides for /savetax/plan/v3
+ *
+ * Loaded AFTER savetax-plan.css — overrides only.
+ * Change: savings card "Register for free" button is spring green (not raspberry).
+ */
+
+/* Right savings card register button — green instead of raspberry */
+.sp-cta-block__register-btn {
+  background: var(--spring-500);
+}
+
+.sp-cta-block__register-btn:hover {
+  background: var(--spring-600);
+}

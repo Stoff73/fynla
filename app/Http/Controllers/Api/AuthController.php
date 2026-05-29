@@ -25,7 +25,6 @@ use App\Services\Auth\SessionService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Payment\ReferralService;
-use App\Services\Payment\TrialService;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -48,7 +47,6 @@ class AuthController extends Controller
         private readonly MFAService $mfaService,
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
-        private readonly TrialService $trialService,
         private readonly ConsentService $consentService,
         private readonly TierConfigurationStore $tierStore,
         private readonly TierResolver $tierResolver,
@@ -548,12 +546,11 @@ class AuthController extends Controller
                 'pending_id' => $pending->id,
             ]);
 
-            // Start trial — use selected plan or default to 'standard'
-            $plan = ($pending->plan && in_array($pending->plan, ['student', 'standard', 'pro']))
-                ? $pending->plan
-                : 'standard';
-            $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
-            $this->trialService->startTrial($user, $plan, $billingCycle);
+            // Pure freemium: new users start on the Free tier immediately.
+            // No trial, no Subscription row — TierResolver resolves tier='free'
+            // to the Free tier and DbTierGate enforces free-tier caps. A
+            // Subscription is created only on first payment (upgrade).
+            $user->update(['tier' => 'free']);
 
             // Record GDPR consents accepted at registration. The form footer
             // says "By creating an account, you agree to our Terms of Service

@@ -1,0 +1,473 @@
+/**
+ * savetax.css — page-specific styles for /savetax questionnaire funnel
+ *
+ * Do NOT redefine :root here — global.css owns all design tokens.
+ * Do NOT add nav or footer rules here — global.css owns those.
+ * These rules are page-specific to the 5-screen questionnaire flow only.
+ */
+
+/* Local extensions — tokens not present in global.css */
+:root {
+  --raspberry-50:  #FDF0F4;
+  --raspberry-100: #FAD6E0;
+  /* Override --shadow-md with a simpler value for card option hover */
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,.09);
+}
+
+/* ===================================================================
+   SHELL — body + card layout
+   =================================================================== */
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* qr-card: on mobile it fills the full viewport (flex column, flex:1).
+   On desktop (sm+) it becomes a centred floating card. */
+.qr-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
+.qr-main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  background: linear-gradient(to right, var(--horizon-500), var(--raspberry-500));
+}
+
+/* Question text white for contrast on the navy→raspberry gradient */
+.qr-main .qr-q {
+  color: var(--white);
+}
+
+.qr-main .qr-q-sub {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Transparent option cards so the gradient shows through; solid white when selected */
+.qr-main .qr-opt {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.qr-main .qr-opt.sel {
+  background: var(--white);
+}
+
+/* ===================================================================
+   HEADER — minimal funnel header (not site-header / site-nav)
+   =================================================================== */
+
+.qr-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--white);
+}
+
+.qr-header__row {
+  display: flex;
+  align-items: center;
+  height: 3.25rem;
+  padding: 0 1rem;
+  gap: 0.75rem;
+}
+
+/* ===================================================================
+   BACK BUTTON
+   =================================================================== */
+
+.qr-back {
+  width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border: none;
+  background: var(--horizon-100);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.qr-back:hover {
+  background: var(--horizon-200);
+}
+
+.qr-back.invisible {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.qr-back svg {
+  display: block;
+}
+
+/* ===================================================================
+   LOGO (funnel header — text only, no image)
+   =================================================================== */
+
+.qr-logo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.qr-logo img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
+/* ===================================================================
+   STEP LABEL
+   =================================================================== */
+
+.qr-step {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--horizon-400);
+  white-space: nowrap;
+  min-width: 2.75rem;
+  text-align: right;
+}
+
+/* ===================================================================
+   PROGRESS BAR
+   =================================================================== */
+
+/* Rounded pill progress bar — sits over the boundary between the white
+   header and the gradient question area (translateY shifts it down 50%
+   so half overlaps each background). */
+.qr-progress {
+  height: 20px;
+  background: var(--light-pink-100);
+  border-radius: var(--radius-full);
+  margin: 0.25rem 1rem 0;
+  transform: translateY(50%);
+  position: relative;
+  z-index: 51;
+  overflow: hidden;
+}
+
+.qr-progress__fill {
+  height: 100%;
+  /* Light→dark raspberry gradient (matches Dashboard allowance bars) */
+  background: linear-gradient(to right, var(--raspberry-300), var(--raspberry-600));
+  border-radius: var(--radius-full); /* rounded right edge restored */
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
+  position: relative;
+  z-index: 2; /* fill renders ABOVE the tick dividers so it covers them */
+}
+
+/* Stage-divider ticks injected by JS into .qr-progress.
+   Rendered behind the fill (z-index:1) so they vanish as the fill advances. */
+.qr-progress__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--white);
+  /* Right edge of the tick sits exactly on the section boundary, so when the
+     fill width hits that percentage the tick is fully covered (not half). */
+  transform: translateX(-100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ===================================================================
+   SCREENS — slide animation
+   =================================================================== */
+
+.qr-screen {
+  position: absolute;
+  inset: 0;
+  padding: 2rem 1.25rem 1.5rem;
+  overflow-y: auto;
+  display: none;
+}
+
+.qr-screen.is-active {
+  display: block;
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.qr-screen.from-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ===================================================================
+   QUESTION HEADING
+   =================================================================== */
+
+.qr-q {
+  font-size: clamp(1.375rem, 5.5vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+.qr-q-sub {
+  font-size: 0.9375rem;
+  color: var(--horizon-400);
+  line-height: 1.5;
+  margin-bottom: 1.75rem;
+}
+
+/* ===================================================================
+   OPTION CARDS — single-select
+   =================================================================== */
+
+.qr-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.qr-opt {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 3.75rem;
+  padding: 1rem 1.125rem;
+  background: var(--white);
+  border: 2px solid var(--horizon-200);
+  border-radius: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--horizon-500);
+  text-align: left;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.qr-opt:hover {
+  border-color: var(--horizon-300);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.qr-opt:focus-visible {
+  outline: 3px solid var(--raspberry-500);
+  outline-offset: 2px;
+}
+
+.qr-opt.sel {
+  border-color: var(--raspberry-500);
+  background: var(--raspberry-50);
+  color: var(--horizon-600);
+}
+
+.qr-opt--multi.sel {
+  border-color: var(--raspberry-500);
+  background: var(--raspberry-50);
+}
+
+.qr-opt__label {
+  flex: 1;
+}
+
+/* ===================================================================
+   INCOME BADGE
+   =================================================================== */
+
+.qr-opt__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--horizon-400);
+  background: var(--horizon-100);
+  border-radius: var(--radius-full);
+  padding: 0.125rem 0.5rem;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.qr-opt.sel .qr-opt__badge {
+  background: var(--raspberry-100);
+  color: var(--raspberry-600);
+}
+
+/* ===================================================================
+   CHECKMARK — animated reveal on selection
+   =================================================================== */
+
+.qr-opt__check {
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--radius-full);
+  background: var(--raspberry-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.15s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.qr-opt.sel .qr-opt__check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.qr-opt__check svg {
+  display: block;
+}
+
+/* ===================================================================
+   PAIR GRID — Q3 spouse Yes/No as two square rounded boxes side-by-side
+   =================================================================== */
+
+.qr-options--pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.qr-opt--square {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 7rem;
+  padding: 1rem;
+  gap: 0.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.qr-opt--square .qr-opt__label {
+  flex: none;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.qr-opt--square .qr-opt__check {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+/* ===================================================================
+   ASSETS GRID — multi-select (Q5)
+   =================================================================== */
+
+.qr-options--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.qr-options--grid .qr-opt {
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 5.5rem;
+  padding: 1rem;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.qr-options--grid .qr-opt__check {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+}
+
+.qr-asset-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* ===================================================================
+   FOOTER — sticky bottom CTA bar
+   =================================================================== */
+
+.qr-footer {
+  background: var(--white);
+  border-top: 1px solid var(--light-gray);
+  padding: 1rem 1.25rem;
+  /* Safe area for iOS home indicator */
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ===================================================================
+   CONTINUE BUTTON
+   =================================================================== */
+
+.qr-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 3.5rem;
+  background: var(--raspberry-500);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+}
+
+.qr-btn:hover:not(:disabled) {
+  background: var(--raspberry-600);
+}
+
+.qr-btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.qr-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.qr-btn:focus-visible {
+  outline: 3px solid var(--violet-500);
+  outline-offset: 2px;
+}
+
+/* ===================================================================
+   DESKTOP — card layout (sm: 640px+)
+   =================================================================== */
+
+@media (min-width: 640px) {
+  body {
+    background: var(--horizon-500);
+    align-items: center;
+    justify-content: center;
+    min-height: 100svh;
+  }
+
+  .qr-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--eggshell-500);
+    border-radius: 1.5rem;
+    box-shadow: 0 24px 64px var(--horizon-500-30);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: min(700px, 90svh);
+    flex: initial;
+  }
+}

@@ -106,3 +106,12 @@
 - Status: clean (probe in Auditable.php was reverted, not committed)
 - Test-stabilisation Phase 0: MobileScaffold FIXED. 1 flaky failure remains — InvestmentAccountHttpIntegrationTest "records FORM audit context" (~30–50% null-audit in full suite only; subsets pass).
 - Next: re-add the audit probe (handover has the code), loop --testsuite=Unit,Feature until fail, check hl_count for a leaked duplicate Hargreaves account, fix, REVERT probe, confirm 0 failed 2–3×. Then start CoALA Phase 5 (cost-telemetry) → Phase 1.
+
+## 2026-05-29 — session 1 (context-clear)
+- Handover: [[handover-2026-05-29-session-1-clear]]
+- Branch: pureFreemium (off dev)
+- Parallel to SP1 Pass 6. Two tracks this session:
+  1. Revolut checkout spinner — FIXED + DEPLOYED to prod+dev (root cause: prod config uncached → forge/no-password DB fallback). PR #421 (dev), #422 (main).
+  2. Pure freemium signup — spec + plan written (`docs/superpowers/{specs,plans}/2026-05-29-pure-freemium-signup*.md`), NO code yet. Awaiting execution-approach choice.
+- Commits this session: 4 (2 Revolut fix, 2 freemium docs).
+- Next: CSJ picks execution approach for the freemium plan → start PR1 (registration → tier='free', no trial).

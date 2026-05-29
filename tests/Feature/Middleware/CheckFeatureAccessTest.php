@@ -71,16 +71,6 @@ it('allows pro user to access all tiers', function () {
     expect($this->middleware->handle(makeRequest($user), passThrough(), 'pro')->getStatusCode())->toBe(200);
 });
 
-it('allows trial users to access all tiers', function () {
-    $user = User::factory()->create();
-    Subscription::factory()->plan('student')->trialing()->create(['user_id' => $user->id]);
-    $user->load('subscription');
-
-    $response = $this->middleware->handle(makeRequest($user), passThrough(), 'pro');
-
-    expect($response->getStatusCode())->toBe(200);
-});
-
 it('allows preview users to access all tiers', function () {
     $user = User::factory()->create(['is_preview_user' => true]);
 

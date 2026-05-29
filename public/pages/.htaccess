@@ -1,0 +1,24 @@
+# Fynla public pages — static asset caching
+# Applies to CSS, JS, and images served from /pages/
+
+# Long cache for versioned CSS and JS (bust with ?v= query string in HTML)
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+  </FilesMatch>
+  <FilesMatch "\.(png|jpg|jpeg|webp|gif|svg|ico|mp4)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>
+
+# Gzip compression for text assets
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/css application/javascript text/html text/plain
+</IfModule>
+
+# Alternative compression for servers using mod_gzip
+<IfModule mod_gzip.c>
+  mod_gzip_on Yes
+  mod_gzip_dechunk Yes
+  mod_gzip_item_include file \.(css|js|html)$
+</IfModule>
