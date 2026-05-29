@@ -10,14 +10,26 @@ use Database\Seeders\RolesPermissionsSeeder;
 use Database\Seeders\SubscriptionPlanSeeder;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    // Freeze "now" to a mid-month date. The proration setups use
+    // now()->subMonths(N); on month-end dates (29th–31st) Carbon overflows the
+    // non-existent target day (e.g. 29 May - 3mo → invalid 29 Feb → rolls to
+    // 1 Mar), which makes diffInMonths off by one and the assertions flaky by
+    // calendar date. The 15th is clear of every short-month boundary.
+    Carbon::setTestNow(Carbon::parse('2026-06-15 12:00:00'));
+
     $this->seed(TaxConfigurationSeeder::class);
     $this->seed(RolesPermissionsSeeder::class);
     $this->seed(SubscriptionPlanSeeder::class);
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 describe('POST /api/payment/upgrade', function () {

@@ -33,19 +33,20 @@ it('returns featured article and two supporting articles', function () {
         ->and($response['data']['supporting'])->toHaveCount(2);
 });
 
-it('returns null featured with supporting articles when nothing flagged is_featured', function () {
-    // InsightController::featured() deliberately does NOT auto-promote the
-    // latest published article. It only surfaces an explicitly is_featured=true
-    // article (see the comment on InsightController::featured). Supporting
-    // articles still come through.
+it('falls back to the latest published article as featured when nothing flagged is_featured', function () {
+    // InsightController::featured() falls back to the most-recently-published
+    // article when none is explicitly flagged, so the homepage hero always has
+    // content (see the comment on InsightController::featured). The remaining
+    // published articles fill the supporting slots.
     $latest = InsightArticle::factory()->published()->create(['published_at' => now()->subHour()]);
-    InsightArticle::factory()->published()->create(['published_at' => now()->subDay()]);
+    $older = InsightArticle::factory()->published()->create(['published_at' => now()->subDay()]);
 
     $response = $this->getJson('/api/insights/featured')->assertOk();
 
-    expect($response['data']['featured'])->toBeNull()
-        ->and($response['data']['supporting'])->toHaveCount(2)
-        ->and($response['data']['supporting'][0]['slug'])->toBe($latest->slug);
+    expect($response['data']['featured']['slug'])->toBe($latest->slug)
+        ->and($response['data']['featured']['is_featured'])->toBeFalse()
+        ->and($response['data']['supporting'])->toHaveCount(1)
+        ->and($response['data']['supporting'][0]['slug'])->toBe($older->slug);
 });
 
 it('returns a published article by slug', function () {
