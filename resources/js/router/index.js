@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
+import api from '@/services/api';
 import analyticsService from '@/services/analyticsService';
 import { capabilityForRoute, isRouteGated } from '@/constants/tierAccess';
 import { hasConsent } from '@/utils/cookieConsent';
@@ -1518,8 +1519,20 @@ router.beforeEach(async (to, from, next) => {
     // access (verb teaser/none) shows the teaser/upgrade page rather than being
     // blocked. Everything else is accessible. Defence-in-depth — the backend is
     // the primary enforcement; if the matrix isn't loaded yet, allow through.
-    if (requiresAuth && isAuthenticated && !isPreviewMode && to.path !== '/teaser') {
-      const matrix = store.state.auth?.subscriptionData?.capability_matrix;
+    if (requiresAuth && isAuthenticated && !isPreviewMode && to.path !== '/teaser' && capabilityForRoute(to.path, to.query)) {
+      let matrix = store.state.auth?.subscriptionData?.capability_matrix;
+      // On a fresh full-page load the trial-status hasn't been fetched yet, so
+      // the matrix is missing — fetch it once before deciding, otherwise a
+      // gated URL opened directly (or refreshed) would skip the teaser.
+      if (!matrix) {
+        try {
+          const resp = await api.get('/payment/trial-status');
+          store.commit('auth/setSubscriptionData', resp.data);
+          matrix = resp.data?.capability_matrix;
+        } catch (e) {
+          // Allow through — the backend is the primary enforcement.
+        }
+      }
       if (matrix && isRouteGated(to.path, to.query, matrix)) {
         next({ path: '/teaser', query: { module: capabilityForRoute(to.path, to.query) } });
         return;
