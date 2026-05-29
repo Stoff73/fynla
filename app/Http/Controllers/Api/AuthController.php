@@ -25,7 +25,6 @@ use App\Services\Auth\SessionService;
 use App\Services\GDPR\ConsentService;
 use App\Services\LifeStage\LifeStageService;
 use App\Services\Payment\ReferralService;
-use App\Services\Payment\TrialService;
 use App\Services\Stores\TierConfigurationStore;
 use App\Services\Tiers\TierResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -48,7 +47,6 @@ class AuthController extends Controller
         private readonly MFAService $mfaService,
         private readonly SessionService $sessionService,
         private readonly AuditService $auditService,
-        private readonly TrialService $trialService,
         private readonly ConsentService $consentService,
         private readonly TierConfigurationStore $tierStore,
         private readonly TierResolver $tierResolver,
