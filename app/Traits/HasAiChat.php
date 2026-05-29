@@ -24,6 +24,7 @@ use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
@@ -249,6 +250,10 @@ trait HasAiChat
         $totalInputTokens = 0;
         $totalOutputTokens = 0;
         $totalCachedTokens = 0;
+        // CoALA Phase 5 PR 1 (FR-M12) — cache-creation (write-through/MISS)
+        // tokens, distinct from $totalCachedTokens (cache-read/HIT). Anthropic
+        // reports both; xAI surfaces no cache-creation equivalent (stays 0).
+        $totalCacheCreationTokens = 0;
         $toolCallsSummary = [];
         // Full, uncompressed tool round-trips for the admin AI-Audit view.
         // tool_calls = what the model emitted; tool_results = what the tool
@@ -370,6 +375,10 @@ trait HasAiChat
                         if (isset($response->usage->promptTokensDetails->cachedTokens)) {
                             $totalCachedTokens += $response->usage->promptTokensDetails->cachedTokens;
                         }
+                        // CoALA Phase 5 PR 1 (FR-M12) — xAI's OpenAI-compatible
+                        // usage shape exposes cached-read tokens only; there is
+                        // no separate cache-creation tier, so cache-miss stays 0
+                        // for xAI turns (costed as regular input below).
                     }
 
                     // Build content blocks from accumulated text
@@ -429,6 +438,14 @@ trait HasAiChat
                                     ?? $usage->cache_read_input_tokens
                                     ?? 0;
                                 $totalCachedTokens += (int) $cacheRead;
+
+                                // CoALA Phase 5 PR 1 (FR-M12) — write-through
+                                // (MISS) tokens written to the cache on this
+                                // turn. Distinct cost tier from a read hit.
+                                $cacheCreation = $usage->cacheCreationInputTokens
+                                    ?? $usage->cache_creation_input_tokens
+                                    ?? 0;
+                                $totalCacheCreationTokens += (int) $cacheCreation;
                             }
                         } elseif ($event instanceof RawContentBlockStartEvent) {
                             if ($event->contentBlock instanceof TextBlock) {
@@ -781,6 +798,23 @@ trait HasAiChat
                 : 0;
         }
 
+        // CoALA Phase 5 PR 1 (FR-M11/M12/M13) — establish the prompt-cache
+        // hit/miss + GBP-cost baseline on EVERY LLM turn, before Phase 1's
+        // assembler rewrites land. Distinct from the legacy hit-rate block
+        // above: these are absolute hit/miss token counts plus the costed
+        // GBP figure, emitted whether or not any caching occurred.
+        $messageMetadata = array_merge(
+            $messageMetadata,
+            $this->costTelemetryMetadata(
+                $model,
+                $isXai,
+                $totalInputTokens,
+                $totalOutputTokens,
+                $totalCachedTokens,
+                $totalCacheCreationTokens,
+            ),
+        );
+
         // Persist the verbatim effective system prompt that was sent to
         // the provider this turn ($systemPrompt is the same value passed
         // as the `system` message above, so it includes the static base
@@ -952,6 +986,51 @@ trait HasAiChat
     }
 
     // ─── Message Persistence & History ────────────────────────────────
+
+    /**
+     * Assemble the per-turn cost-telemetry metadata fragment
+     * (CoALA Phase 5 PR 1 — FR-M11/M12/M13).
+     *
+     * Normalises the two providers' token semantics before costing:
+     *   - Anthropic reports `input_tokens` EXCLUDING cache read/creation,
+     *     so the captured input total is already the regular billable input.
+     *   - xAI folds cached reads INTO `prompt_tokens` and has no separate
+     *     cache-creation tier, so regular input = prompt − cached (clamped
+     *     at 0) and the miss count is always 0.
+     *
+     * @return array{cache_hit_tokens: int, cache_miss_tokens: int, gbp_cost: float, gbp_cost_priced: bool}
+     */
+    protected function costTelemetryMetadata(
+        string $model,
+        bool $isXai,
+        int $totalInputTokens,
+        int $totalOutputTokens,
+        int $totalCacheReadTokens,
+        int $totalCacheCreationTokens,
+    ): array {
+        // cache-read = HIT, cache-creation = MISS (write-through).
+        $cacheHitTokens = $totalCacheReadTokens;
+        $cacheMissTokens = $isXai ? 0 : $totalCacheCreationTokens;
+
+        $regularInputTokens = $isXai
+            ? max(0, $totalInputTokens - $totalCacheReadTokens)
+            : $totalInputTokens;
+
+        $cost = app(AiCostCalculator::class)->compute(
+            model: $model,
+            inputTokens: $regularInputTokens,
+            outputTokens: $totalOutputTokens,
+            cacheReadTokens: $cacheHitTokens,
+            cacheCreationTokens: $cacheMissTokens,
+        );
+
+        return [
+            'cache_hit_tokens' => $cacheHitTokens,
+            'cache_miss_tokens' => $cacheMissTokens,
+            'gbp_cost' => $cost['gbp_cost'],
+            'gbp_cost_priced' => $cost['priced'],
+        ];
+    }
 
     // ─── Message Persistence ─────────────────────────────────────────
 
