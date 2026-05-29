@@ -1,0 +1,270 @@
+/**
+ * Fynla public pages — features page stylesheet
+ *
+ * Page-specific styles for public/pages/features.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ * Review carousel and CTA band styles live in global.css MODULE STYLES.
+ * No :root redefinition here — global.css owns all tokens.
+ */
+
+/* ===================================================================
+   FEATURES HERO  [id=hero]
+   Critical above-fold rules are inlined in features.php <style>.
+   Nothing is duplicated here — any hero additions that are NOT
+   above-fold can go below.
+   =================================================================== */
+
+/* ===================================================================
+   COMPARISON SECTION  [id=comparison]
+   =================================================================== */
+.feat-compare {
+  background: var(--eggshell-500);
+  padding: 3.5rem 0;
+}
+.feat-compare__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+.feat-compare__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: var(--horizon-500);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────── */
+.feat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.feat-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.feat-legend__label {
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+}
+
+/* ── Harvey dots ─────────────────────────────────────────────────── */
+.feat-dot {
+  display: inline-block;
+  width: 1.5rem;        /* 24px */
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+/* Legend dots are slightly smaller */
+.feat-legend__item .feat-dot {
+  width: 1rem;
+  height: 1rem;
+}
+.feat-dot--full  { background: var(--spring-500); }
+.feat-dot--half  { background: linear-gradient(to right, var(--spring-500) 50%, var(--horizon-500-20) 50%); }
+.feat-dot--empty {
+  background: var(--horizon-500-20);
+  border: 2px solid var(--horizon-200);
+}
+
+/* ── Table scroll wrapper ────────────────────────────────────────── */
+.feat-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+/* ── Table ───────────────────────────────────────────────────────── */
+.feat-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0.5rem 0;
+  min-width: 40rem; /* prevents columns collapsing on very narrow screens */
+}
+
+/* Column widths */
+.feat-col--feature { width: 34%; }
+.feat-col--fynla   { width: 16.5%; }
+.feat-col--other   { width: 16.5%; }
+
+/* ── Table header cells ─────────────────────────────────────────── */
+.feat-th {
+  padding: 1.25rem 1rem;
+  text-align: center;
+}
+.feat-th--feature {
+  text-align: left;
+  padding-left: 1.25rem;
+}
+.feat-th__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.25;
+}
+.feat-th__label--feature { color: var(--horizon-500); }
+.feat-th__label--fynla   { color: var(--raspberry-500); }
+.feat-th__link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--horizon-500);
+  line-height: 1.25;
+  transition: color 0.15s ease;
+  display: inline-block;
+}
+.feat-th__link:hover { color: var(--raspberry-500); }
+
+/* ── Section label rows ─────────────────────────────────────────── */
+.feat-section-row { vertical-align: top; }
+.feat-section-label {
+  padding: 1.5rem 1.25rem 0.5rem;
+}
+.feat-section-label__text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--neutral-500);
+}
+
+/* ── Column top/mid/bot connectors for Fynla & other column styling ─ */
+/* These cells form a continuous coloured column that wraps each section */
+
+.feat-col-top {
+  padding: 0;
+}
+/* First section top = rounded top corners */
+.feat-col-top--fynla {
+  background: var(--light-pink-100);
+  border-top: 3px solid var(--light-pink-200);
+  border-left: 3px solid var(--light-pink-200);
+  border-right: 3px solid var(--light-pink-200);
+  border-radius: 1rem 1rem 0 0;
+}
+.feat-col-top--other {
+  background: var(--light-blue-100);
+  border-radius: 1rem 1rem 0 0;
+}
+/* Continuation sections — no rounded top because column continues from above */
+.feat-col-top--cont.feat-col-top--fynla {
+  background: var(--light-pink-100);
+  border-top: 1px solid var(--light-pink-200);
+  border-left: 3px solid var(--light-pink-200);
+  border-right: 3px solid var(--light-pink-200);
+  border-radius: 0;
+}
+.feat-col-top--cont.feat-col-top--other {
+  background: var(--light-blue-100);
+  border-radius: 0;
+}
+
+/* ── Data cells ─────────────────────────────────────────────────── */
+.feat-cell {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+  text-align: center;
+}
+.feat-cell--feature {
+  text-align: left;
+  border-bottom: 1px solid var(--horizon-200);
+}
+.feat-cell--fynla {
+  background: var(--light-pink-100);
+  border-left: 3px solid var(--light-pink-200);
+  border-right: 3px solid var(--light-pink-200);
+}
+.feat-cell--other {
+  background: var(--light-blue-100);
+}
+/* Mid cells (within a section) */
+.feat-cell--mid { border-bottom: 1px solid var(--horizon-200); }
+/* Last row in each section (not the overall last) */
+.feat-cell--border-b { border-bottom: 1px solid var(--horizon-200); }
+/* Last row overall — rounded bottom on fynla column */
+.feat-cell--bot.feat-cell--fynla {
+  background: var(--light-pink-100);
+  border-left: 3px solid var(--light-pink-200);
+  border-right: 3px solid var(--light-pink-200);
+  border-bottom: 3px solid var(--light-pink-200);
+  border-radius: 0 0 1rem 1rem;
+}
+.feat-cell--bot.feat-cell--other {
+  background: var(--light-blue-100);
+  border-radius: 0 0 1rem 1rem;
+}
+
+/* Row hover — highlight all cells in the hovered row */
+.feat-row:hover .feat-cell { background: var(--white); }
+.feat-row:hover .feat-cell--fynla {
+  background: var(--white);
+  border-left-color: var(--light-pink-200);
+  border-right-color: var(--light-pink-200);
+}
+
+/* ── Feature name / description ─────────────────────────────────── */
+.feat-cell__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--horizon-500);
+  line-height: 1.3;
+}
+.feat-cell__desc {
+  font-size: 0.8rem;
+  color: var(--neutral-500);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+/* ── Footnote ────────────────────────────────────────────────────── */
+.feat-footnote {
+  font-size: 0.875rem;
+  color: var(--neutral-500);
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+/* ── Compare links ───────────────────────────────────────────────── */
+.feat-compare-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 1rem;
+  margin-top: 0.5rem;
+}
+.feat-compare-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--raspberry-500);
+  transition: color 0.15s ease;
+}
+.feat-compare-link:hover { color: var(--raspberry-600); }
+.feat-compare-sep {
+  color: var(--neutral-500);
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 640px) {
+  .feat-hero__cta {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (min-width: 1024px) {
+  .feat-compare__inner { padding-left: 2rem; padding-right: 2rem; }
+  .feat-compare { padding: 5rem 0; }
+}

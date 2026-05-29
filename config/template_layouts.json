@@ -1,0 +1,343 @@
+{
+  "_README": "Layout spec per template variant. Pillow renderer reads this at runtime to overlay text. Coordinates are top-left anchored. max_lines truncates text if it would wrap beyond the limit.",
+  "_font_family": "Selawik",
+  "_font_files": {
+    "Selawik-Black": "/app/fonts/selawik/SelawikBlack.ttf",
+    "Selawik-Bold": "/app/fonts/selawik/SelawikBold.ttf",
+    "Selawik": "/app/fonts/selawik/Selawik.ttf"
+  },
+  "_brand_colors": {
+    "primary_pink": "#E83E6D",
+    "navy": "#1F2A44",
+    "cream": "#F7F6F4",
+    "mint": "#20B486",
+    "white": "#FFFFFF"
+  },
+  "square_stat_card": {
+    "_dimensions": [
+      1080,
+      1080
+    ],
+    "variants": [
+      {
+        "file": "v1_general.png",
+        "topic": "default",
+        "character": "coffee gazelle",
+        "fields": [
+          {
+            "name": "headline",
+            "x": 50,
+            "y": 200,
+            "max_width": 900,
+            "max_lines": 2,
+            "font": "Selawik-Black",
+            "size": 80,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subheadline",
+            "x": 50,
+            "y": 400,
+            "max_width": 500,
+            "font": "Selawik-Bold",
+            "size": 42,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2
+          },
+          {
+            "name": "cta",
+            "x": 50,
+            "y": 850,
+            "max_width": 540,
+            "font": "Selawik-Bold",
+            "size": 36,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      },
+      {
+        "file": "v2_keys.png",
+        "topic": "mortgages",
+        "character": "keys gazelle",
+        "fields": [
+          {
+            "name": "headline",
+            "x": 50,
+            "y": 200,
+            "max_width": 900,
+            "max_lines": 2,
+            "font": "Selawik-Black",
+            "size": 80,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subheadline",
+            "x": 50,
+            "y": 400,
+            "max_width": 390,
+            "font": "Selawik-Bold",
+            "size": 42,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2
+          },
+          {
+            "name": "cta",
+            "x": 50,
+            "y": 850,
+            "max_width": 540,
+            "font": "Selawik-Bold",
+            "size": 36,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      },
+      {
+        "file": "v3_solo.png",
+        "topic": "default",
+        "character": "solo gazelle",
+        "fields": [
+          {
+            "name": "headline",
+            "x": 50,
+            "y": 180,
+            "max_width": 900,
+            "max_lines": 2,
+            "font": "Selawik-Black",
+            "size": 88,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subheadline",
+            "x": 50,
+            "y": 400,
+            "max_width": 550,
+            "font": "Selawik-Bold",
+            "size": 44,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2
+          },
+          {
+            "name": "cta",
+            "x": 50,
+            "y": 850,
+            "max_width": 540,
+            "font": "Selawik-Bold",
+            "size": 36,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      }
+    ]
+  },
+  "story_card": {
+    "_dimensions": [
+      1080,
+      1920
+    ],
+    "variants": [
+      {
+        "file": "v1_keys.png",
+        "topic": "mortgages",
+        "character": "keys gazelle",
+        "fields": [
+          {
+            "name": "hook",
+            "x": 60,
+            "y": 210,
+            "max_width": 920,
+            "max_lines": 1,
+            "font": "Selawik-Black",
+            "size": 88,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subhook",
+            "x": 60,
+            "y": 325,
+            "max_width": 920,
+            "font": "Selawik-Bold",
+            "size": 46,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2,
+            "max_lines": 2
+          },
+          {
+            "name": "cta",
+            "x": 60,
+            "y": 1480,
+            "max_width": 920,
+            "font": "Selawik-Bold",
+            "size": 56,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      },
+      {
+        "file": "v2_general.png",
+        "topic": "default",
+        "character": "arms crossed gazelle",
+        "fields": [
+          {
+            "name": "hook",
+            "x": 60,
+            "y": 210,
+            "max_width": 920,
+            "max_lines": 1,
+            "font": "Selawik-Black",
+            "size": 88,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subhook",
+            "x": 60,
+            "y": 325,
+            "max_width": 920,
+            "font": "Selawik-Bold",
+            "size": 46,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2,
+            "max_lines": 2
+          },
+          {
+            "name": "cta",
+            "x": 60,
+            "y": 1480,
+            "max_width": 920,
+            "font": "Selawik-Bold",
+            "size": 56,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      }
+    ]
+  },
+  "youtube_thumbnail": {
+    "_dimensions": [
+      1920,
+      1080
+    ],
+    "variants": [
+      {
+        "file": "v1_general.png",
+        "topic": "default",
+        "character": "arms crossed gazelle",
+        "fields": [
+          {
+            "name": "headline",
+            "x": 40,
+            "y": 280,
+            "max_width": 1100,
+            "font": "Selawik-Black",
+            "size": 130,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subheadline",
+            "x": 40,
+            "y": 620,
+            "max_width": 1100,
+            "font": "Selawik-Bold",
+            "size": 60,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2
+          },
+          {
+            "name": "cta",
+            "x": 40,
+            "y": 920,
+            "max_width": 1000,
+            "font": "Selawik-Bold",
+            "size": 48,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      },
+      {
+        "file": "v2_keys.png",
+        "topic": "mortgages",
+        "character": "keys gazelle",
+        "fields": [
+          {
+            "name": "headline",
+            "x": 40,
+            "y": 280,
+            "max_width": 1100,
+            "font": "Selawik-Black",
+            "size": 130,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subheadline",
+            "x": 40,
+            "y": 620,
+            "max_width": 1100,
+            "font": "Selawik-Bold",
+            "size": 60,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2
+          },
+          {
+            "name": "cta",
+            "x": 40,
+            "y": 920,
+            "max_width": 1000,
+            "font": "Selawik-Bold",
+            "size": 48,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      },
+      {
+        "file": "v3_treats.png",
+        "topic": "wealth",
+        "character": "ice cream gazelle",
+        "fields": [
+          {
+            "name": "headline",
+            "x": 40,
+            "y": 280,
+            "max_width": 1100,
+            "font": "Selawik-Black",
+            "size": 130,
+            "color": "#FFFFFF",
+            "line_spacing": 1.05
+          },
+          {
+            "name": "subheadline",
+            "x": 40,
+            "y": 620,
+            "max_width": 1100,
+            "font": "Selawik-Bold",
+            "size": 60,
+            "color": "#F7F6F4",
+            "line_spacing": 1.2
+          },
+          {
+            "name": "cta",
+            "x": 40,
+            "y": 920,
+            "max_width": 1000,
+            "font": "Selawik-Bold",
+            "size": 48,
+            "color": "#FFFFFF",
+            "line_spacing": 1.2
+          }
+        ]
+      }
+    ]
+  }
+}

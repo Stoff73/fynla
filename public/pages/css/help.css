@@ -1,0 +1,159 @@
+/**
+ * Fynla public pages — help page stylesheet
+ *
+ * Page-specific styles for public/pages/help.php only.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ * The hero (.help-hero) is defined inline in help.php critical CSS.
+ */
+
+/* ===================================================================
+   HELP BODY — two-column layout wrapper  [id=help-body]
+   =================================================================== */
+.help-body { background: var(--eggshell-500); padding: 3rem 0; }
+.help-body__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+  display: flex; flex-direction: column; gap: 2rem;
+}
+
+/* ===================================================================
+   SIDEBAR TABLE OF CONTENTS  [aside.help-toc]
+   =================================================================== */
+.help-toc { width: 100%; }
+.help-toc__card {
+  background: var(--white); border-radius: var(--radius-lg);
+  border: 1px solid var(--light-gray); padding: 1.5rem;
+  position: sticky; top: 5rem; /* below the 4rem sticky nav */
+}
+.help-toc__heading {
+  font-size: 0.875rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--neutral-500); margin-bottom: 1rem;
+}
+.help-toc__list { display: flex; flex-direction: column; gap: 0.125rem; }
+.help-toc__link {
+  display: block; font-size: 0.875rem; color: var(--neutral-500);
+  padding: 0.375rem 0.625rem; border-radius: var(--radius-md);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.help-toc__link:hover { background: var(--eggshell-500); color: var(--horizon-500); }
+.help-toc__link.is-active {
+  background: var(--light-pink-100); color: var(--raspberry-500); font-weight: 600;
+}
+
+/* ===================================================================
+   MAIN SECTIONS COLUMN  [div.help-sections]
+   =================================================================== */
+.help-sections { display: flex; flex-direction: column; gap: 0; flex: 1; }
+
+/* ===================================================================
+   INDIVIDUAL HELP SECTION  [section.help-section]
+   =================================================================== */
+.help-section {
+  background: var(--white); border-radius: var(--radius-lg);
+  border: 1px solid var(--light-gray); padding: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+.help-section__heading {
+  font-size: clamp(1.125rem, 3vw, 1.375rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem; border-bottom: 2px solid var(--light-gray);
+}
+.help-section__body { margin-bottom: 1.25rem; }
+.help-section__body:last-child { margin-bottom: 0; }
+
+.help-section__subheading {
+  font-size: 1rem; font-weight: 600; color: var(--horizon-500);
+  margin-bottom: 0.5rem;
+}
+.help-section__text {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.7;
+  margin-bottom: 0.625rem;
+}
+.help-section__text:last-child { margin-bottom: 0; }
+
+/* Lists inside sections */
+.help-section__list {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.7;
+  display: flex; flex-direction: column; gap: 0.375rem;
+  padding-left: 1.25rem;
+}
+.help-section__list li { list-style: disc; }
+.help-section__list--ordered li { list-style: decimal; }
+.help-section__list strong { color: var(--horizon-500); font-weight: 600; }
+
+/* Note / callout box */
+.help-section__note {
+  font-size: 0.8125rem; color: var(--neutral-500); background: var(--eggshell-500);
+  border-left: 3px solid var(--raspberry-500); padding: 0.75rem 1rem;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0; margin-top: 0.75rem;
+}
+
+/* ===================================================================
+   INLINE FAQ INSIDE HELP SECTION  [.help-inline-faq]
+   Reuses the .faq__* classes from global.css for the accordion.
+   This wrapper just provides top spacing and a subtle tint.
+   =================================================================== */
+.help-inline-faq {
+  background: var(--eggshell-500); border-radius: var(--radius-lg);
+  padding: 1rem; margin-top: 1rem;
+}
+.help-inline-faq .faq__list { gap: 0.5rem; }
+
+/* ===================================================================
+   SUPPORT CARD  [.help-support-card]
+   =================================================================== */
+.help-support-card {
+  background: linear-gradient(to right, var(--horizon-500), var(--horizon-600));
+  border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.help-support-card__heading {
+  font-size: 1.125rem; font-weight: 700; color: var(--white);
+}
+.help-support-card__body {
+  font-size: 0.875rem; color: var(--white-70); line-height: 1.625;
+}
+.help-support-card__link {
+  display: inline-flex; align-items: center;
+  font-size: 0.875rem; font-weight: 600; color: var(--raspberry-300);
+  text-decoration: underline; transition: color 0.15s ease;
+}
+.help-support-card__link:hover { color: var(--light-pink-200); }
+
+/* Notice box */
+.help-notice-card {
+  background: var(--light-pink-100); border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+}
+.help-notice-card__heading {
+  font-size: 0.9375rem; font-weight: 700; color: var(--horizon-500);
+  margin-bottom: 0.5rem;
+}
+.help-notice-card__body {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625;
+}
+
+/* Inline text link */
+.help-link {
+  color: var(--raspberry-500); text-decoration: underline;
+  transition: color 0.15s ease;
+}
+.help-link:hover { color: var(--raspberry-600); }
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+
+/* Tablet and up: side-by-side layout */
+@media (min-width: 768px) {
+  .help-body__inner {
+    flex-direction: row; align-items: flex-start; gap: 2rem;
+  }
+  .help-toc { width: 16rem; flex-shrink: 0; }
+  .help-sections { flex: 1; min-width: 0; }
+}
+
+@media (min-width: 1024px) {
+  .help-body__inner { padding-left: 2rem; padding-right: 2rem; }
+  .help-toc { width: 18rem; }
+  .help-section { padding: 2rem; }
+}
