@@ -113,7 +113,7 @@
         });
         if (status) status.textContent = 'Loading your demo…';
 
-        fetch('/api/preview/login/' + personaId, {
+        fetch((window.FYNLA_BASE||'')+'/api/preview/login/' + personaId, {
           method: 'POST',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           credentials: 'same-origin'
@@ -125,7 +125,7 @@
           .then(function (data) {
             /* Store token so Vue router auth guard finds it on /dashboard */
             if (data.token) sessionStorage.setItem('auth_token', data.token);
-            window.location.href = '/dashboard';
+            window.location.href = (window.FYNLA_BASE||'')+'/dashboard';
           })
           .catch(function () {
             if (status) status.textContent = 'Something went wrong — please try again.';

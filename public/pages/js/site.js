@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
       link.textContent = 'Loading demo…';
       link.setAttribute('aria-disabled', 'true');
 
-      fetch('/api/preview/login/' + personaId, {
+      fetch((window.FYNLA_BASE||'')+'/api/preview/login/' + personaId, {
         method: 'POST',
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         credentials: 'same-origin'
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!data.token) throw new Error('No token in response');
           /* Store the Sanctum token exactly where the Vue app expects it */
           sessionStorage.setItem('auth_token', data.token);
-          window.location.href = '/dashboard';
+          window.location.href = (window.FYNLA_BASE||'')+'/dashboard';
         })
         .catch(function () {
           /* Fallback to register if the preview API is unavailable */

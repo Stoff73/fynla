@@ -113,7 +113,7 @@
   }
 
   function fetchAllowances() {
-    fetch('/api/public/tax-allowances', {
+    fetch((window.FYNLA_BASE||'')+'/api/public/tax-allowances', {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     })
@@ -183,11 +183,11 @@
     var input   = document.getElementById(inputId);
     var sendBtn = document.getElementById(sendId);
     if (input) {
-      input.addEventListener('click', function () { window.location.href = '/register?from=savetax'; });
-      input.addEventListener('focus', function () { window.location.href = '/register?from=savetax'; });
+      input.addEventListener('click', function () { window.location.href = (window.FYNLA_BASE||'')+'/register?from=savetax'; });
+      input.addEventListener('focus', function () { window.location.href = (window.FYNLA_BASE||'')+'/register?from=savetax'; });
     }
     if (sendBtn) {
-      sendBtn.addEventListener('click', function () { window.location.href = '/register?from=savetax'; });
+      sendBtn.addEventListener('click', function () { window.location.href = (window.FYNLA_BASE||'')+'/register?from=savetax'; });
     }
   }
 

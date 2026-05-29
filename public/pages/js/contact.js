@@ -52,7 +52,7 @@
       /* AJAX submission */
       var data = new FormData(form);
 
-      fetch('/contact-submit', {
+      fetch((window.FYNLA_BASE||'')+'/contact-submit', {
         method:      'POST',
         body:        data,
         headers:     { 'X-Requested-With': 'XMLHttpRequest' },
