@@ -8,11 +8,11 @@ use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Estate\Liability;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Property;
 use App\Models\SavingsAccount;
 use App\Models\User;
 use App\Services\Shared\CrossModuleAssetAggregator;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -22,7 +22,8 @@ class NetWorthService
     use CalculatesOwnershipShare;
 
     public function __construct(
-        private CrossModuleAssetAggregator $assetAggregator
+        private CrossModuleAssetAggregator $assetAggregator,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -325,7 +326,7 @@ class NetWorthService
         }
 
         // Get property items
-        $properties = Property::where('user_id', $userId)->get();
+        $properties = $this->propertyStore->forUser($user)->where('user_id', $userId);
         $propertyItems = $properties->map(function ($property) {
             $name = $property->address_line_1 ?: $property->property_type;
 
@@ -464,9 +465,10 @@ class NetWorthService
         $jointAssets = [];
 
         // Get joint properties
-        $properties = Property::where('user_id', $userId)
+        $properties = $this->propertyStore
+            ->forUser($user)
+            ->where('user_id', $userId)
             ->where('ownership_type', 'joint')
-            ->get()
             ->map(function ($property) {
                 return [
                     'type' => 'property',

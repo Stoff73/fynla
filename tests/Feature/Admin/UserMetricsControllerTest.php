@@ -41,7 +41,6 @@ describe('UserMetricsController', function () {
                 ->assertJsonStructure([
                     'total_registered',
                     'active_subscribers',
-                    'on_trial',
                     'never_paid',
                 ]);
 
@@ -60,39 +59,6 @@ describe('UserMetricsController', function () {
             $response = $this->getJson('/api/admin/user-metrics/snapshot');
 
             $response->assertStatus(401);
-        });
-    });
-
-    describe('trials endpoint', function () {
-        it('returns trial breakdown for admin user', function () {
-            // Create a trialing subscription
-            $user = User::factory()->create(['is_preview_user' => false]);
-            Subscription::factory()->trialing()->create([
-                'user_id' => $user->id,
-                'trial_ends_at' => now()->addDays(5),
-            ]);
-
-            $response = $this->withToken($this->adminToken)
-                ->getJson('/api/admin/user-metrics/trials');
-
-            $response->assertOk()
-                ->assertJsonStructure([
-                    'four_plus_days',
-                    'three_days',
-                    'two_days',
-                    'one_day',
-                    'expiring_today',
-                    'expired',
-                ]);
-
-            expect($response->json('four_plus_days'))->toBeGreaterThanOrEqual(1);
-        });
-
-        it('returns 403 for non-admin user', function () {
-            $response = $this->withToken($this->regularToken)
-                ->getJson('/api/admin/user-metrics/trials');
-
-            $response->assertStatus(403);
         });
     });
 
@@ -175,7 +141,6 @@ describe('UserMetricsController', function () {
                     'registrations',
                     'conversions',
                     'cancellations',
-                    'trial_expired',
                     'revenue',
                 ]);
             }

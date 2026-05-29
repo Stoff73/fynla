@@ -10,10 +10,13 @@ use App\Events\Property\PropertyRestored;
 use App\Events\Property\PropertyUpdated;
 use App\Models\AuditLog;
 use App\Models\Property;
+use App\Models\PropertyValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
+use App\Services\Stores\Recalc\PropertyDerivedColumnCalculator;
+use App\Services\Stores\Snapshots\SnapshotPolicies;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -25,6 +28,8 @@ class PropertyStore
     public function __construct(
         private readonly PropertyNormaliser $normaliser,
         private readonly TierGate $tierGate,
+        private readonly PropertyDerivedColumnCalculator $derivedCalc,
+        private readonly SnapshotPolicies $snapshotPolicies,
     ) {}
 
     // ---------- Reads ----------
@@ -79,6 +84,20 @@ class PropertyStore
             ->get();
     }
 
+    /**
+     * Properties held in a specific trust.
+     *
+     * Trust-scoped read for TrustAssetAggregatorService and any future trust-context consumer.
+     * Distinct from forUser/forUserWithJointOwner — those scope by user; this scopes by the
+     * trust_id FK on properties. Used during trust reporting and IHT trust-asset aggregation.
+     */
+    public function forTrust(int $trustId): Collection
+    {
+        return Property::query()
+            ->where('trust_id', $trustId)
+            ->get();
+    }
+
     // ---------- Writes ----------
 
     public function create(array $data, User $user, IngestSource $source): Property
@@ -88,8 +107,11 @@ class PropertyStore
 
         $attributes = array_merge($data, ['user_id' => $user->id]);
 
-        $property = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($attributes) {
-            return Property::create($attributes);
+        $property = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($attributes, $user, $source) {
+            $property = Property::create($attributes);
+            $this->recalculateDerived($property, $user, $source, 'create');
+
+            return $property;
         }));
 
         event(new PropertyCreated($property, $user, $source));
@@ -102,12 +124,14 @@ class PropertyStore
         $property = Property::where('id', $id)->where('user_id', $user->id)->firstOrFail();
         $this->validateCanonical($data);
 
-        $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data) {
+        $result = AuditLog::withContext(['ingest_source' => $source->value], fn () => DB::transaction(function () use ($property, $data, $user, $source) {
             $property->fill($data);
             $dirty = $property->getDirty();
             $property->save();
+            $fresh = $property->fresh();
+            $this->recalculateDerived($fresh, $user, $source, 'update');
 
-            return ['fresh' => $property->fresh(), 'dirty' => $dirty];
+            return ['fresh' => $fresh, 'dirty' => $dirty];
         }));
 
         event(new PropertyUpdated($result['fresh'], $result['dirty'], $user, $source));
@@ -142,6 +166,99 @@ class PropertyStore
         event(new PropertyRestored($property, $user));
 
         return $property;
+    }
+
+    // ---------- Derived columns + snapshots ----------
+
+    /**
+     * Public recalc entry point — called by cross-store recalc listeners
+     * (e.g. RecalculatePropertyOutstandingMortgage). System-context: no
+     * user scoping required because recalc is a back-end operation.
+     *
+     * Loop-prevention invariant (Pass 5 PR 6): this method MUST NOT dispatch
+     * Property events that could feed back into the Mortgage event chain.
+     * The internal `recalculateDerived` persists via `saveQuietly`, which
+     * bypasses Eloquent events.
+     */
+    public function recalculateDerivedForPropertyId(int $propertyId): void
+    {
+        $property = Property::find($propertyId);
+        if ($property === null) {
+            return;
+        }
+
+        $this->recalculateDerived($property, null, null, 'cross_store_recalc');
+    }
+
+    /**
+     * Persists derived columns via `forceFill + saveQuietly`. Observer-dedup
+     * note: NetWorthCacheObserver / RecommendationCacheObserver / PropertyRiskObserver
+     * already fire from the originating store write (create/update) OR from the
+     * originating Mortgage write that triggered the cross-store listener. The
+     * derived-column write is a second persistence step that must NOT re-trigger
+     * those observers — `saveQuietly` enforces that. Cache invalidation is not
+     * lost because the originating write already fired the relevant observers.
+     */
+    private function recalculateDerived(Property $property, ?User $user, ?IngestSource $source, string $reason): void
+    {
+        $derived = $this->derivedCalc->calculate($property, $user);
+        $now = now();
+
+        $oldValues = [
+            'current_value_gbp' => $property->current_value_gbp !== null ? (float) $property->current_value_gbp : null,
+            'equity_gbp' => $property->equity_gbp !== null ? (float) $property->equity_gbp : null,
+        ];
+
+        // Pass 5 PR 6 — persist via saveQuietly to avoid firing Property events
+        // during cross-store recalc. Loop-prevention invariant + observer dedup
+        // (see method docblock).
+        $property->forceFill([
+            'current_value_gbp' => $derived['current_value_gbp'],
+            'current_value_gbp_calculated_at' => $now,
+            'equity_gbp' => $derived['equity_gbp'],
+            'equity_gbp_calculated_at' => $now,
+            'loan_to_value_pct' => $derived['loan_to_value_pct'],
+            'loan_to_value_pct_calculated_at' => $now,
+            'outstanding_mortgage' => $derived['outstanding_mortgage'],
+            'outstanding_mortgage_calculated_at' => $now,
+        ])->saveQuietly();
+
+        // Cross-store recalc (source === null) skips snapshot writes — the
+        // originating Mortgage write already produced its own audit trail and
+        // the property-side metric movement is implicit. A user-driven property
+        // write (source !== null) still captures the snapshot.
+        if ($source === null) {
+            return;
+        }
+
+        $policies = [
+            'current_value_gbp' => $this->snapshotPolicies->propertyValue(),
+            'equity_gbp' => $this->snapshotPolicies->propertyEquity(),
+        ];
+
+        foreach ($policies as $column => $policy) {
+            // A null derived value means the metric is not applicable — recording
+            // a snapshot would spuriously fire on every write (null short-circuits
+            // shouldSnapshot to true). Skip until the metric materialises.
+            if ($derived[$column] === null) {
+                continue;
+            }
+
+            if (! $policy->shouldSnapshot($oldValues[$column], $derived[$column])) {
+                continue;
+            }
+
+            PropertyValueSnapshot::create([
+                'property_id' => $property->id,
+                'column_name' => $column,
+                'value' => $derived[$column],
+                'currency' => 'GBP',
+                'value_gbp' => $derived[$column],
+                'taken_at' => $now,
+                'trigger_reason' => $reason,
+                'ingest_source' => $source->value,
+            ]);
+        }
     }
 
     // ---------- Internal ----------

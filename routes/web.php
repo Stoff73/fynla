@@ -30,8 +30,6 @@ Route::get('/insights/{slug}', function () {
 // URLs are built via URL::temporarySignedRoute() in the lifecycle campaigns
 // (see app/Services/Lifecycle/Campaigns/*.php) and validated on hit.
 Route::middleware('signed')->prefix('lifecycle')->group(function () {
-    Route::get('/restart-trial', [LifecycleActionController::class, 'restartTrial'])
-        ->name('lifecycle.restart-trial');
     Route::get('/apply-discount', [LifecycleActionController::class, 'applyDiscount'])
         ->name('lifecycle.apply-discount');
     Route::get('/feedback', [LifecycleActionController::class, 'feedback'])

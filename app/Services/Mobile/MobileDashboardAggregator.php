@@ -13,10 +13,10 @@ use App\Agents\SavingsAgent;
 use App\Models\BusinessInterest;
 use App\Models\Chattel;
 use App\Models\Investment\InvestmentAccount;
-use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\Dashboard\DashboardAggregator;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use App\Traits\StructuredLogging;
@@ -45,6 +45,8 @@ class MobileDashboardAggregator
         private readonly GoalsAgent $goalsAgent,
         private readonly DashboardAggregator $dashboardAggregator,
         private readonly SavingsStore $savingsStore,
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -314,7 +316,7 @@ class MobileDashboardAggregator
             $investmentValue = $this->sumUserShares($user->investmentAccounts, $userId);
 
             // Also include joint assets where user is the joint_owner_id
-            $propertyValue += $this->sumJointOwnerShares(Property::class, $userId);
+            $propertyValue += $this->sumPropertyJointOwnerShares($user, $userId);
             $savingsValue += $this->sumSavingsJointOwnerShares($user, $userId);
             $investmentValue += $this->sumJointOwnerShares(InvestmentAccount::class, $userId);
 
@@ -332,7 +334,7 @@ class MobileDashboardAggregator
 
             // Calculate liabilities
             $mortgageBalance = $this->sumMortgageShares($user->mortgages, $userId);
-            $mortgageBalance += $this->sumJointMortgageShares($userId);
+            $mortgageBalance += $this->sumMortgageJointOwnerShares($user, $userId);
 
             $liabilityBalance = (float) $user->liabilities->sum('current_balance');
 
@@ -430,6 +432,22 @@ class MobileDashboardAggregator
     }
 
     /**
+     * Sum property joint-owner shares via PropertyStore, filtering to records
+     * where the user is the joint_owner_id (avoids double-counting with
+     * the primary-owner path that reads via $user->properties relation).
+     */
+    private function sumPropertyJointOwnerShares(User $user, int $userId): float
+    {
+        $total = 0.0;
+
+        foreach ($this->propertyStore->forUser($user)->filter(fn ($p) => $p->joint_owner_id === $userId) as $property) {
+            $total += $this->calculateUserShare($property, $userId);
+        }
+
+        return $total;
+    }
+
+    /**
      * Sum user's share of mortgages (where user is primary owner).
      */
     private function sumMortgageShares($mortgages, int $userId): float
@@ -444,14 +462,15 @@ class MobileDashboardAggregator
     }
 
     /**
-     * Sum user's share of mortgages where user is joint_owner_id.
+     * Sum mortgage joint-owner shares via MortgageStore, filtering to records
+     * where the user is the joint_owner_id (avoids double-counting with
+     * the primary-owner path that reads via $user->mortgages relation).
      */
-    private function sumJointMortgageShares(int $userId): float
+    private function sumMortgageJointOwnerShares(User $user, int $userId): float
     {
-        $mortgages = Mortgage::where('joint_owner_id', $userId)->get();
         $total = 0.0;
 
-        foreach ($mortgages as $mortgage) {
+        foreach ($this->mortgageStore->forUser($user)->filter(fn ($m) => $m->joint_owner_id === $userId) as $mortgage) {
             $total += $this->calculateUserMortgageShare($mortgage, $userId);
         }
 

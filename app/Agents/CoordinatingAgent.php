@@ -56,6 +56,10 @@ use App\Services\PrerequisiteGateService;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\Exceptions\TierLimitExceededException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
+use App\Services\Stores\Normalisers\MortgageNormaliser;
 use App\Services\Stores\Normalisers\PensionNormaliser;
 use App\Services\Stores\Normalisers\PropertyNormaliser;
 use App\Services\Stores\Normalisers\SavingsAccountNormaliser;
@@ -2199,7 +2203,7 @@ class CoordinatingAgent extends BaseAgent
         };
 
         $isaType = match ($accountType) {
-            'stocks_shares_isa' => 'stocks_shares',
+            'stocks_shares_isa' => 'stocks_and_shares',
             'lifetime_isa' => 'lifetime',
             default => null,
         };
@@ -2275,7 +2279,24 @@ class CoordinatingAgent extends BaseAgent
             $payload['employer_is_listed'] = (bool) $input['employer_is_listed'];
         }
 
-        $account = DB::transaction(fn () => InvestmentAccount::create($payload));
+        $canonical = InvestmentAccountNormaliser::fromFyn($payload, $user);
+
+        try {
+            $account = app(InvestmentAccountStore::class)->create($canonical, $user, IngestSource::FYN_AI);
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for investment account.',
+            ];
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_exceeded',
+                'message' => "You've reached the investment account limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
+            ];
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2285,7 +2306,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'investment_account',
             'entity_id' => $account->id,
             'name' => $account->account_name,
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys(array_diff_key($canonical, ['user_id' => null])),
             'message' => "I've added your \"{$account->account_name}\" investment account.",
         ];
     }
@@ -2501,10 +2522,12 @@ class CoordinatingAgent extends BaseAgent
         $canonical = app(PropertyNormaliser::class)->fromFyn($toolInput);
 
         // Mortgage auto-create — flagged via has_mortgage OR by legacy
-        // outstanding_mortgage / mortgage_outstanding_balance fields. The
-        // mortgage write stays inline until Pass 5 routes it through MortgageStore.
-        // Wrap both writes in DB::transaction so a mortgage failure rolls back the
-        // property — atomicity invariant carried over from the pre-PR handler.
+        // outstanding_mortgage / mortgage_outstanding_balance fields. Routed
+        // through MortgageStore (Pass 5 PR 4). Both writes stay wrapped in
+        // DB::transaction so a mortgage failure rolls back the property —
+        // atomicity invariant carried over from the pre-PR handler. Nested
+        // DB::transaction (the store opens its own) is safe under Laravel
+        // savepoints.
         $mortgageBalance = $input['mortgage_outstanding_balance'] ?? $input['outstanding_mortgage'] ?? null;
         $hasMortgage = ! empty($input['has_mortgage'])
             || (is_numeric($mortgageBalance) && (float) $mortgageBalance > 0);
@@ -2520,12 +2543,12 @@ class CoordinatingAgent extends BaseAgent
                 if ($hasMortgage) {
                     $rate = $input['mortgage_interest_rate'] ?? $input['mortgage_rate'] ?? null;
                     $mortgagePayload = [
-                        'user_id' => $user->id,
                         'property_id' => $property->id,
-                        'lender_name' => $input['mortgage_lender'] ?? null,
+                        'lender_name' => $input['mortgage_lender'] ?? 'To be completed',
                         'mortgage_type' => $input['mortgage_type'] ?? 'repayment',
                         'rate_type' => $input['mortgage_rate_type'] ?? 'fixed',
                         'outstanding_balance' => is_numeric($mortgageBalance) ? (float) $mortgageBalance : 0,
+                        'monthly_payment' => 0,
                         'ownership_type' => $ownershipType,
                         'ownership_percentage' => $ownershipPct,
                     ];
@@ -2542,7 +2565,11 @@ class CoordinatingAgent extends BaseAgent
                         $mortgagePayload['maturity_date'] = $input['mortgage_maturity_date'];
                     }
 
-                    Mortgage::create($mortgagePayload);
+                    // Route through MortgageStore (PR 4). Nested DB::transaction is safe
+                    // (Laravel uses savepoints), and TierLimitExceededException /
+                    // StoreValidationException bubble up to the outer catch blocks.
+                    $mortgageCanonical = MortgageNormaliser::fromFyn($mortgagePayload, $user);
+                    app(MortgageStore::class)->create($mortgageCanonical, $user, IngestSource::FYN_AI);
                 }
 
                 return $property;
@@ -2651,7 +2678,24 @@ class CoordinatingAgent extends BaseAgent
             }
         }
 
-        $mortgage = DB::transaction(fn () => Mortgage::create($payload));
+        $canonical = MortgageNormaliser::fromFyn($payload, $user);
+
+        try {
+            $mortgage = app(MortgageStore::class)->create($canonical, $user, IngestSource::FYN_AI);
+        } catch (StoreValidationException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'validation_failed',
+                'errors' => $e->errors,
+                'message' => 'Validation failed for mortgage.',
+            ];
+        } catch (TierLimitExceededException $e) {
+            return [
+                'error' => true,
+                'error_type' => 'tier_limit_exceeded',
+                'message' => "You've reached the mortgage limit for your current plan ({$e->hardLimit}). Upgrade to add more.",
+            ];
+        }
 
         $this->invalidateUserCache($user->id);
 
@@ -2661,7 +2705,7 @@ class CoordinatingAgent extends BaseAgent
             'entity_type' => 'mortgage',
             'entity_id' => $mortgage->id,
             'name' => $mortgage->lender_name ?? 'Mortgage',
-            'persisted_fields' => array_keys(array_diff_key($payload, ['user_id' => null])),
+            'persisted_fields' => array_keys(array_diff_key($canonical, ['user_id' => null])),
             'message' => "I've added the mortgage on \"{$property->address_line_1}\".",
         ];
     }

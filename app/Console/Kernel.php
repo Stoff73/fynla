@@ -17,7 +17,6 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('trials:send-reminders')->dailyAt('09:00');
         $schedule->command('subscriptions:send-renewal-reminders')->dailyAt('09:00');
         $schedule->command('data-retention:send-warnings')->dailyAt('09:00');
         $schedule->command('trials:expire')->dailyAt('00:05');

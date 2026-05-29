@@ -10,11 +10,11 @@ use App\Models\Goal;
 use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\Onboarding\AssetCaptureEntityExtractor;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 
 /**
@@ -40,6 +40,8 @@ final class DuplicateAcknowledgement
 {
     public function __construct(
         private readonly AssetCaptureEntityExtractor $extractor,
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -364,22 +366,21 @@ final class DuplicateAcknowledgement
             $type = (string) ($entity['property_type'] ?? '');
             $postcode = (string) ($entity['postcode'] ?? '');
 
-            $query = Property::query()
-                ->where(function ($q) use ($user) {
-                    $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
-                })
+            $properties = $this->propertyStore->forUserWithJointOwner($user)
                 ->where('property_type', $type)
-                ->where('created_at', '>', $cutoff);
+                ->where(fn ($p) => $p->created_at > $cutoff);
 
             if ($postcode !== '') {
                 // Postcode lookups must ignore spaces — extractor strips them
                 // ("M1 1AA" → "M11AA") but DB rows often store them with the
                 // space ("M1 1AA"). Compare on the normalised form.
                 $needle = strtoupper((string) preg_replace('/\s+/u', '', $postcode));
-                $query->whereRaw("UPPER(REPLACE(postcode, ' ', '')) = ?", [$needle]);
+                $properties = $properties->filter(
+                    fn ($p) => strtoupper((string) preg_replace('/\s+/u', '', (string) $p->postcode)) === $needle
+                );
             }
 
-            $row = $query->latest('id')->first();
+            $row = $properties->sortByDesc('id')->first();
             if ($row === null) {
                 continue;
             }
@@ -465,13 +466,10 @@ final class DuplicateAcknowledgement
 
         foreach ($extracted as $entity) {
             $lender = (string) ($entity['lender_name'] ?? $entity['provider'] ?? '');
-            $row = Mortgage::query()
-                ->where(function ($q) use ($user) {
-                    $q->where('user_id', $user->id)->orWhere('joint_owner_id', $user->id);
-                })
+            $row = $this->mortgageStore->forUser($user)
                 ->where('lender_name', $lender)
-                ->where('created_at', '>', $cutoff)
-                ->latest('id')
+                ->where(fn ($m) => $m->created_at > $cutoff)
+                ->sortByDesc('id')
                 ->first();
             if ($row === null) {
                 continue;

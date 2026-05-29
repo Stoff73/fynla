@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 
@@ -46,6 +47,12 @@ class Mortgage extends Model
         'joint_owner_id',
         'joint_owner_name',
         'notes',
+        'outstanding_balance_gbp',
+        'monthly_payment_gbp',
+        'current_ltv_pct',
+        'outstanding_balance_gbp_calculated_at',
+        'monthly_payment_gbp_calculated_at',
+        'current_ltv_pct_calculated_at',
     ];
 
     protected $hidden = [
@@ -69,6 +76,12 @@ class Mortgage extends Model
         'monthly_interest_portion' => 'decimal:2',
         'remaining_term_months' => 'integer',
         'ownership_percentage' => 'decimal:2',
+        'outstanding_balance_gbp' => 'decimal:2',
+        'monthly_payment_gbp' => 'decimal:2',
+        'current_ltv_pct' => 'decimal:4',
+        'outstanding_balance_gbp_calculated_at' => 'datetime',
+        'monthly_payment_gbp_calculated_at' => 'datetime',
+        'current_ltv_pct_calculated_at' => 'datetime',
     ];
 
     /**
@@ -93,6 +106,14 @@ class Mortgage extends Model
     public function jointOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'joint_owner_id')->withTrashed();
+    }
+
+    /**
+     * Get the value snapshots for this mortgage.
+     */
+    public function snapshots(): HasMany
+    {
+        return $this->hasMany(MortgageValueSnapshot::class);
     }
 
     /**

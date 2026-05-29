@@ -14,6 +14,7 @@ use App\Services\Protection\CoverageGapAnalyzer;
 use App\Services\Protection\ProtectionDataReadinessService;
 use App\Services\Protection\RecommendationEngine;
 use App\Services\Protection\ScenarioBuilder;
+use App\Services\Stores\MortgageStore;
 use App\Services\UserProfile\ProfileCompletenessChecker;
 
 class ProtectionAgent extends BaseAgent
@@ -28,7 +29,8 @@ class ProtectionAgent extends BaseAgent
         private readonly ScenarioBuilder $scenarioBuilder,
         private readonly ProfileCompletenessChecker $completenessChecker,
         private readonly RecommendationPersonaliser $personaliser,
-        private readonly ProtectionDataReadinessService $readinessService
+        private readonly ProtectionDataReadinessService $readinessService,
+        private readonly MortgageStore $mortgageStore
     ) {}
 
     /**
@@ -142,7 +144,7 @@ class ProtectionAgent extends BaseAgent
                     (int) $user->date_of_birth->diffInYears(now()) : 40;
 
                 // Calculate debt breakdown
-                $mortgageDebt = $user->mortgages()->sum('outstanding_balance');
+                $mortgageDebt = $this->mortgageStore->forUserPrimaryOnly($user)->sum('outstanding_balance');
                 $otherDebt = $user->liabilities()->sum('current_balance');
 
                 // Check profile completeness

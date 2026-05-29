@@ -64,6 +64,13 @@ class Property extends Model
         'monthly_maintenance_reserve',
         'other_monthly_costs',
         'notes',
+        'current_value_gbp',
+        'current_value_gbp_calculated_at',
+        'equity_gbp',
+        'equity_gbp_calculated_at',
+        'loan_to_value_pct',
+        'loan_to_value_pct_calculated_at',
+        'outstanding_mortgage_calculated_at',
     ];
 
     protected $casts = [
@@ -89,6 +96,13 @@ class Property extends Model
         'other_monthly_costs' => 'decimal:2',
         'ownership_percentage' => 'decimal:2',
         'lease_remaining_years' => 'integer',
+        'current_value_gbp' => 'decimal:2',
+        'current_value_gbp_calculated_at' => 'datetime',
+        'equity_gbp' => 'decimal:2',
+        'equity_gbp_calculated_at' => 'datetime',
+        'loan_to_value_pct' => 'decimal:2',
+        'loan_to_value_pct_calculated_at' => 'datetime',
+        'outstanding_mortgage_calculated_at' => 'datetime',
     ];
 
     /**

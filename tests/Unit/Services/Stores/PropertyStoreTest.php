@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\Estate\Trust;
 use App\Models\Property;
+use App\Models\PropertyValueSnapshot;
 use App\Models\User;
 use App\Services\Stores\Exceptions\StoreValidationException;
 use App\Services\Stores\IngestSource;
+use App\Services\Stores\MortgageStore;
 use App\Services\Stores\PropertyStore;
 use Database\Seeders\TaxConfigurationSeeder;
 use Database\Seeders\TierConfigurationSeeder;
@@ -123,6 +126,110 @@ it('PropertyStore::forUser returns properties where user is primary or joint own
 
     expect($store->forUser($alice)->count())->toBe(2);
     expect($store->forUser($bob)->count())->toBe(1);
+});
+
+it('PropertyStore::forTrust returns properties matching trust_id', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $trust = Trust::factory()->create(['user_id' => $user->id]);
+
+    Property::factory(2)->create([
+        'user_id' => $user->id,
+        'trust_id' => $trust->id,
+        'ownership_type' => 'trust',
+    ]);
+
+    $collection = app(PropertyStore::class)->forTrust($trust->id);
+
+    expect($collection)->toHaveCount(2);
+    expect($collection->pluck('trust_id')->unique()->values()->all())->toBe([$trust->id]);
+});
+
+it('PropertyStore::forTrust returns empty Collection when trust has no properties', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $trust = Trust::factory()->create(['user_id' => $user->id]);
+
+    $collection = app(PropertyStore::class)->forTrust($trust->id);
+
+    expect($collection)->toHaveCount(0);
+});
+
+it('PropertyStore::forTrust does NOT return properties where trust_id is null', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $trust = Trust::factory()->create(['user_id' => $user->id]);
+
+    // One trust-held property
+    Property::factory()->create([
+        'user_id' => $user->id,
+        'trust_id' => $trust->id,
+        'ownership_type' => 'trust',
+    ]);
+    // Three non-trust (trust_id is null) properties
+    Property::factory(3)->create([
+        'user_id' => $user->id,
+        'trust_id' => null,
+        'ownership_type' => 'individual',
+    ]);
+
+    $collection = app(PropertyStore::class)->forTrust($trust->id);
+
+    expect($collection)->toHaveCount(1);
+    expect($collection->first()->trust_id)->toBe($trust->id);
+});
+
+it('create materialises current_value_gbp + writes initial snapshot', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $store = app(PropertyStore::class);
+
+    $property = $store->create([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+        'current_value' => 350000,
+        'outstanding_mortgage' => 100000,
+    ], $user, IngestSource::FORM);
+
+    // Pass 5 PR 6: outstanding_mortgage is canonically derived from MortgageStore.
+    // Seed a mortgage via the store so the cross-store recalc reconciles equity_gbp.
+    app(MortgageStore::class)->create([
+        'property_id' => $property->id,
+        'user_id' => $user->id,
+        'lender_name' => 'Test Bank',
+        'mortgage_type' => 'repayment',
+        'outstanding_balance' => 100000,
+        'monthly_payment' => 600,
+        'ownership_type' => 'individual',
+        'ownership_percentage' => 100.00,
+    ], $user, IngestSource::FORM);
+
+    expect((string) $property->fresh()->current_value_gbp)->toBe('350000.00');
+    expect((string) $property->fresh()->equity_gbp)->toBe('250000.00');
+    expect((string) $property->fresh()->loan_to_value_pct)->toBe('28.57');
+
+    expect(PropertyValueSnapshot::where('property_id', $property->id)->count())
+        ->toBeGreaterThanOrEqual(2);  // current_value_gbp + equity_gbp
+});
+
+it('update fires snapshot only when policy threshold exceeded', function () {
+    $user = User::factory()->create(['tier' => 'tier1']);
+    $store = app(PropertyStore::class);
+
+    $property = $store->create([
+        'property_type' => 'main_residence',
+        'ownership_type' => 'individual',
+        'current_value' => 350000,
+        'outstanding_mortgage' => 100000,
+    ], $user, IngestSource::FORM);
+
+    $initialSnapshots = PropertyValueSnapshot::where('property_id', $property->id)->count();
+
+    // Small change: below £1,000 absolute + below 0.5% relative — should not fire.
+    $store->update($property->id, ['current_value' => 350500], $user, IngestSource::FORM);
+    expect(PropertyValueSnapshot::where('property_id', $property->id)->count())
+        ->toBe($initialSnapshots);
+
+    // Big change: well above £1,000 — should fire.
+    $store->update($property->id, ['current_value' => 425000], $user, IngestSource::FORM);
+    expect(PropertyValueSnapshot::where('property_id', $property->id)->count())
+        ->toBeGreaterThan($initialSnapshots);
 });
 
 it('PropertyStore::delete soft-deletes; restore brings the row back', function () {

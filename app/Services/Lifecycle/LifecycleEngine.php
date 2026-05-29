@@ -158,9 +158,10 @@ class LifecycleEngine
     }
 
     /**
-     * Candidate set for the "after trial end" eligibility check used by
-     * CancelledTrialerCampaign and EmptyTrialerCampaign. Cached per engine
-     * instance because both campaigns hit it in the same run.
+     * Candidate set for the legacy "after trial end" eligibility check.
+     * Orphaned by the pure-freemium trial removal (its only callers — the
+     * cancelled/empty trialer campaigns — were deleted); retained pending a
+     * follow-up cleanup. Cached per engine instance.
      */
     public function trialAfterEndCandidates(): Collection
     {

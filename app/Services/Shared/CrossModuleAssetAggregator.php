@@ -6,8 +6,9 @@ namespace App\Services\Shared;
 
 use App\Models\Investment\InvestmentAccount;
 use App\Models\Mortgage;
-use App\Models\Property;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Traits\CalculatesOwnershipShare;
 use Illuminate\Support\Collection;
@@ -38,6 +39,8 @@ class CrossModuleAssetAggregator
 
     public function __construct(
         private readonly SavingsStore $savingsStore,
+        private readonly PropertyStore $propertyStore,
+        private readonly MortgageStore $mortgageStore,
     ) {}
 
     /**
@@ -78,8 +81,9 @@ class CrossModuleAssetAggregator
      */
     public function getPropertyAssets(int $userId): Collection
     {
-        return Property::forUserOrJoint($userId)
-            ->get()
+        $user = User::findOrFail($userId);
+
+        return $this->propertyStore->forUserWithJointOwner($user)
             ->map(function ($property) use ($userId) {
                 $userShare = $this->calculateUserShare($property, $userId);
                 $fullValue = $this->getFullValue($property);
@@ -183,8 +187,9 @@ class CrossModuleAssetAggregator
      */
     public function calculatePropertyTotal(int $userId): float
     {
-        return Property::forUserOrJoint($userId)
-            ->get()
+        $user = User::findOrFail($userId);
+
+        return $this->propertyStore->forUserWithJointOwner($user)
             ->sum(fn ($property) => $this->calculateUserShare($property, $userId));
     }
 
@@ -218,13 +223,21 @@ class CrossModuleAssetAggregator
     /**
      * Get all mortgages for a user.
      *
-     * Single-record pattern: Query mortgages where user is owner OR joint_owner.
+     * Two-leg pattern (matches Pass 4 Property sibling):
+     *   1. Direct mortgages where user is owner OR joint_owner (joint-aware via MortgageStore).
+     *   2. Mortgages on the user's properties that are NOT owned by the user — the
+     *      cross-link case where a shared property has a mortgage held by a different
+     *      party (e.g. one spouse's mortgage on a jointly-owned home). This leg is
+     *      INTENTIONALLY unscoped by mortgage owner and stays as a raw Eloquent read
+     *      because MortgageStore's user-scoped contract cannot express it.
+     *      Reads are not policed by MortgageStoreBoundaryTest (writes only).
      */
     public function getMortgages(int $userId): Collection
     {
-        $directMortgages = Mortgage::forUserOrJoint($userId)->get();
+        $user = User::findOrFail($userId);
+        $directMortgages = $this->mortgageStore->forUser($user);
 
-        $propertyIds = Property::forUserOrJoint($userId)->pluck('id');
+        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id');
         $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
             ->whereNotIn('id', $directMortgages->pluck('id'))
             ->get();
@@ -235,14 +248,16 @@ class CrossModuleAssetAggregator
     /**
      * Calculate total mortgage liabilities (user's share).
      *
-     * Single-record pattern: Sum user's share of all mortgages where user
-     * is owner OR joint_owner.
+     * Two-leg pattern — see getMortgages() docblock for rationale on the unscoped
+     * cross-link leg. User-share calculation handles non-owner mortgages by
+     * returning 0.0 via CalculatesOwnershipShare::calculateUserMortgageShare.
      */
     public function calculateMortgageTotal(int $userId): float
     {
-        $directMortgages = Mortgage::forUserOrJoint($userId)->get();
+        $user = User::findOrFail($userId);
+        $directMortgages = $this->mortgageStore->forUser($user);
 
-        $propertyIds = Property::forUserOrJoint($userId)->pluck('id');
+        $propertyIds = $this->propertyStore->forUserWithJointOwner($user)->pluck('id');
         $propertyMortgages = Mortgage::whereIn('property_id', $propertyIds)
             ->whereNotIn('id', $directMortgages->pluck('id'))
             ->get();
@@ -258,9 +273,11 @@ class CrossModuleAssetAggregator
      */
     public function getAssetBreakdown(int $userId): array
     {
+        $user = User::findOrFail($userId);
+
         return [
             'property' => [
-                'count' => Property::forUserOrJoint($userId)->count(),
+                'count' => $this->propertyStore->forUserWithJointOwner($user)->count(),
                 'total' => $this->calculatePropertyTotal($userId),
             ],
             'investment' => [
@@ -268,11 +285,11 @@ class CrossModuleAssetAggregator
                 'total' => $this->calculateInvestmentTotal($userId),
             ],
             'cash' => [
-                'count' => $this->savingsStore->forUser(User::findOrFail($userId))->count(),
+                'count' => $this->savingsStore->forUser($user)->count(),
                 'total' => $this->calculateCashTotal($userId),
             ],
             'mortgages' => [
-                'count' => Mortgage::forUserOrJoint($userId)->count(),
+                'count' => $this->mortgageStore->forUser($user)->count(),
                 'total' => $this->calculateMortgageTotal($userId),
             ],
         ];

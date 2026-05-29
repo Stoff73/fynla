@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\PendingRegistration;
+use App\Models\Subscription;
 use App\Models\User;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Support\Facades\Hash;
 
 beforeEach(function () {
     $this->seed(TaxConfigurationSeeder::class);
@@ -166,4 +168,30 @@ it('requires minimum password length for registration', function () {
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['password']);
+});
+
+it('creates a free-tier user with no trial on verified registration', function () {
+    $pending = PendingRegistration::create([
+        'first_name' => 'Free',
+        'surname' => 'Signup',
+        'email' => 'free.signup@example.com',
+        'password' => Hash::make('Password1!'),
+        'verification_code' => '123456',
+        'verification_attempts' => 0,
+        'signup_source' => 'web',
+    ]);
+
+    $response = $this->postJson('/api/auth/verify-code', [
+        'type' => 'registration',
+        'pending_id' => $pending->id,
+        'code' => '123456',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson(['success' => true]);
+
+    $user = User::where('email', 'free.signup@example.com')->firstOrFail();
+    expect($user->tier)->toBe('free');
+    expect($user->trial_ends_at)->toBeNull();
+    expect(Subscription::where('user_id', $user->id)->exists())->toBeFalse();
 });

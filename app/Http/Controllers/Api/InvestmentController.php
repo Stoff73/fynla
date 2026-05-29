@@ -31,6 +31,11 @@ use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\Investment\DiversificationAnalyzer;
 use App\Services\Investment\InvestmentProjectionService;
 use App\Services\Investment\ReturnCalculationService;
+use App\Services\Stores\Exceptions\StoreValidationException;
+use App\Services\Stores\Exceptions\TierLimitExceededException;
+use App\Services\Stores\IngestSource;
+use App\Services\Stores\InvestmentAccountStore;
+use App\Services\Stores\Normalisers\InvestmentAccountNormaliser;
 use App\Traits\CalculatesOwnershipShare;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -61,7 +66,8 @@ class InvestmentController extends Controller
         private readonly DiversificationAnalyzer $diversificationAnalyzer,
         private readonly ReturnCalculationService $returnCalculationService,
         private readonly LifeEventIntegrationService $lifeEventIntegration,
-        private readonly GoalStrategyService $goalStrategy
+        private readonly GoalStrategyService $goalStrategy,
+        private readonly InvestmentAccountStore $investmentAccountStore,
     ) {}
 
     /**
@@ -375,46 +381,62 @@ class InvestmentController extends Controller
 
         $account = null;
 
-        DB::transaction(function () use ($validated, $holdings, &$account) {
-            $account = InvestmentAccount::create($validated);
+        $canonical = InvestmentAccountNormaliser::fromForm($validated, $user);
 
-            if (! empty($holdings)) {
-                $hasCashHolding = false;
+        try {
+            DB::transaction(function () use ($canonical, $user, $holdings, &$account) {
+                $account = $this->investmentAccountStore->create($canonical, $user, IngestSource::FORM);
 
-                foreach ($holdings as $holdingData) {
-                    $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
+                if (! empty($holdings)) {
+                    $hasCashHolding = false;
 
-                    if (($holdingData['asset_type'] ?? '') === 'cash') {
-                        $hasCashHolding = true;
+                    foreach ($holdings as $holdingData) {
+                        $currentValue = ($account->current_value * $holdingData['allocation_percent']) / 100;
+
+                        if (($holdingData['asset_type'] ?? '') === 'cash') {
+                            $hasCashHolding = true;
+                        }
+
+                        $account->holdings()->create([
+                            'holdable_type' => InvestmentAccount::class,
+                            'holdable_id' => $account->id,
+                            'security_name' => $holdingData['security_name'],
+                            'asset_type' => $holdingData['asset_type'],
+                            'allocation_percent' => $holdingData['allocation_percent'],
+                            'cost_basis' => $holdingData['cost_basis'] ?? null,
+                            'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
+                            'current_value' => $currentValue,
+                        ]);
                     }
 
-                    $account->holdings()->create([
-                        'holdable_type' => InvestmentAccount::class,
-                        'holdable_id' => $account->id,
-                        'security_name' => $holdingData['security_name'],
-                        'asset_type' => $holdingData['asset_type'],
-                        'allocation_percent' => $holdingData['allocation_percent'],
-                        'cost_basis' => $holdingData['cost_basis'] ?? null,
-                        'ocf_percent' => $holdingData['ocf_percent'] ?? 0,
-                        'current_value' => $currentValue,
-                    ]);
+                    // Auto-create cash holding for remainder — only if user didn't already add one
+                    $totalAllocated = collect($holdings)->sum('allocation_percent');
+                    if ($totalAllocated < 100 && ! $hasCashHolding) {
+                        $remainderPercent = 100 - $totalAllocated;
+                        $account->holdings()->create([
+                            'holdable_type' => InvestmentAccount::class,
+                            'holdable_id' => $account->id,
+                            'security_name' => 'Cash',
+                            'asset_type' => 'cash',
+                            'allocation_percent' => $remainderPercent,
+                            'current_value' => ($account->current_value * $remainderPercent) / 100,
+                        ]);
+                    }
                 }
-
-                // Auto-create cash holding for remainder — only if user didn't already add one
-                $totalAllocated = collect($holdings)->sum('allocation_percent');
-                if ($totalAllocated < 100 && ! $hasCashHolding) {
-                    $remainderPercent = 100 - $totalAllocated;
-                    $account->holdings()->create([
-                        'holdable_type' => InvestmentAccount::class,
-                        'holdable_id' => $account->id,
-                        'security_name' => 'Cash',
-                        'asset_type' => 'cash',
-                        'allocation_percent' => $remainderPercent,
-                        'current_value' => ($account->current_value * $remainderPercent) / 100,
-                    ]);
-                }
-            }
-        });
+            });
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        } catch (TierLimitExceededException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Investment account limit reached for your current plan.',
+                'error' => [
+                    'entity_key' => $e->entityKey,
+                    'current_count' => $e->currentCount,
+                    'hard_limit' => $e->hardLimit,
+                ],
+            ], 403);
+        }
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);
@@ -451,10 +473,10 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can update
-        $account = InvestmentAccount::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $account = $this->investmentAccountStore->find($id, $user);
+        if ($account === null || $account->user_id !== $user->id) {
+            return $this->notFoundResponse('Investment account');
+        }
 
         $validated = $request->validated();
 
@@ -513,8 +535,13 @@ class InvestmentController extends Controller
         $holdings = $validated['holdings'] ?? null;
         unset($validated['holdings']);
 
-        // Single-record pattern: Update directly (no reciprocal update)
-        $account->update($validated);
+        $canonical = InvestmentAccountNormaliser::fromForm($validated, $user);
+
+        try {
+            $account = $this->investmentAccountStore->update($id, $canonical, $user, IngestSource::FORM);
+        } catch (StoreValidationException $e) {
+            return $this->validationErrorResponse('Validation failed', $e->errors);
+        }
 
         // Sync holdings if provided
         if ($holdings !== null) {
@@ -590,14 +617,17 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can toggle
-        $account = InvestmentAccount::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $account = $this->investmentAccountStore->find($id, $user);
+        if ($account === null || $account->user_id !== $user->id) {
+            return $this->notFoundResponse('Investment account');
+        }
 
-        // Toggle the flag
-        $account->include_in_retirement = ! $account->include_in_retirement;
-        $account->save();
+        $account = $this->investmentAccountStore->update(
+            $id,
+            ['include_in_retirement' => ! $account->include_in_retirement],
+            $user,
+            IngestSource::FORM
+        );
 
         // Clear caches
         $this->investmentAgent->clearCache($user->id);
@@ -628,18 +658,17 @@ class InvestmentController extends Controller
     {
         $user = $request->user();
 
-        // Only primary owner can delete
-        $account = InvestmentAccount::where('user_id', $user->id)
-            ->where('id', $id)
-            ->firstOrFail();
+        $account = $this->investmentAccountStore->find($id, $user);
+        if ($account === null || $account->user_id !== $user->id) {
+            return $this->notFoundResponse('Investment account');
+        }
 
         $jointOwnerId = $account->joint_owner_id;
 
         // Soft-delete holdings first (polymorphic — no SQL CASCADE on soft-delete)
         $account->holdings()->delete();
 
-        // Then soft-delete the account
-        $account->delete();
+        $this->investmentAccountStore->delete($id, $user, IngestSource::FORM);
 
         // Clear cache
         $this->investmentAgent->clearCache($user->id);

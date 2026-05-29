@@ -7,6 +7,7 @@ namespace App\Services\Protection;
 use App\Events\Eval\GateChecked;
 use App\Models\LifeEvent;
 use App\Models\User;
+use App\Services\Stores\MortgageStore;
 
 class ProtectionDataReadinessService
 {
@@ -18,6 +19,10 @@ class ProtectionDataReadinessService
     private const LEVEL_WARNING = 'warning';
 
     private const LEVEL_INFO = 'info';
+
+    public function __construct(
+        private readonly MortgageStore $mortgageStore,
+    ) {}
 
     /**
      * Assess data readiness for the Protection module.
@@ -356,7 +361,7 @@ class ProtectionDataReadinessService
         if (! $hasLiabilities) {
             $hasLiabilities = $user->relationLoaded('mortgages')
                 ? $user->mortgages->isNotEmpty()
-                : $user->mortgages()->exists();
+                : $this->mortgageStore->forUserPrimaryOnly($user)->isNotEmpty();
         }
 
         return $hasLiabilities;

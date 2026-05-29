@@ -27,7 +27,7 @@ class UserMetricsService
     /**
      * High-level user/subscription snapshot.
      *
-     * @return array{total_registered: int, active_subscribers: int, on_trial: int, never_paid: int}
+     * @return array{total_registered: int, active_subscribers: int, never_paid: int}
      */
     public function getSnapshot(): array
     {
@@ -37,82 +37,17 @@ class UserMetricsService
             ->whereHas('user', fn ($q) => $q->where('is_preview_user', false))
             ->count();
 
-        $onTrial = Subscription::where('status', 'trialing')
-            ->where('trial_ends_at', '>', now())
-            ->whereHas('user', fn ($q) => $q->where('is_preview_user', false))
-            ->count();
-
-        $usersWithActiveOrTrial = Subscription::whereIn('status', ['active', 'trialing'])
+        $usersWithActive = Subscription::where('status', 'active')
             ->whereHas('user', fn ($q) => $q->where('is_preview_user', false))
             ->distinct('user_id')
             ->count('user_id');
 
-        $neverPaid = $totalRegistered - $usersWithActiveOrTrial;
+        $neverPaid = $totalRegistered - $usersWithActive;
 
         return [
             'total_registered' => $totalRegistered,
             'active_subscribers' => $activeSubscribers,
-            'on_trial' => $onTrial,
             'never_paid' => max(0, $neverPaid),
-        ];
-    }
-
-    /**
-     * Break down trialing subscriptions by days remaining.
-     *
-     * @return array{four_plus_days: int, three_days: int, two_days: int, one_day: int, expiring_today: int, expired: int}
-     */
-    public function getTrialBreakdown(): array
-    {
-        $now = Carbon::now();
-
-        $baseQuery = fn () => Subscription::where('status', 'trialing')
-            ->whereHas('user', fn ($q) => $q->where('is_preview_user', false));
-
-        $fourPlusDays = $baseQuery()
-            ->where('trial_ends_at', '>', $now->copy()->addDays(3))
-            ->count();
-
-        $threeDays = $baseQuery()
-            ->where('trial_ends_at', '>', $now->copy()->addDays(2))
-            ->where('trial_ends_at', '<=', $now->copy()->addDays(3))
-            ->count();
-
-        $twoDays = $baseQuery()
-            ->where('trial_ends_at', '>', $now->copy()->addDays(1))
-            ->where('trial_ends_at', '<=', $now->copy()->addDays(2))
-            ->count();
-
-        $oneDay = $baseQuery()
-            ->where('trial_ends_at', '>', $now->copy())
-            ->where('trial_ends_at', '<=', $now->copy()->addDays(1))
-            ->count();
-
-        $expiringToday = $baseQuery()
-            ->whereDate('trial_ends_at', $now->toDateString())
-            ->count();
-
-        // Expired: status = expired, OR trialing with trial_ends_at < now, and user has no active subscription
-        $expired = Subscription::where(function ($q) use ($now) {
-            $q->where('status', 'expired')
-                ->orWhere(function ($q2) use ($now) {
-                    $q2->where('status', 'trialing')
-                        ->where('trial_ends_at', '<', $now);
-                });
-        })
-            ->whereHas('user', fn ($q) => $q->where('is_preview_user', false))
-            ->whereDoesntHave('user', function ($q) {
-                $q->whereHas('subscription', fn ($sq) => $sq->where('status', 'active'));
-            })
-            ->count();
-
-        return [
-            'four_plus_days' => $fourPlusDays,
-            'three_days' => $threeDays,
-            'two_days' => $twoDays,
-            'one_day' => $oneDay,
-            'expiring_today' => $expiringToday,
-            'expired' => $expired,
         ];
     }
 
@@ -155,7 +90,7 @@ class UserMetricsService
      *
      * @param  string  $period  One of: day, week, month, quarter, year
      * @param  int  $range  Number of period buckets to return
-     * @return array<int, array{period: string, registrations: int, conversions: int, cancellations: int, trial_expired: int, revenue: int}>
+     * @return array<int, array{period: string, registrations: int, conversions: int, cancellations: int, revenue: int}>
      */
     public function getActivity(string $period, int $range): array
     {
@@ -203,18 +138,6 @@ class UserMetricsService
                 ->where('cancelled_at', '<', $bucketEnd)
                 ->count();
 
-            $trialExpired = Subscription::where(function ($q) {
-                $q->where('status', 'expired')
-                    ->orWhere(function ($q2) {
-                        $q2->where('status', 'trialing');
-                    });
-            })
-                ->whereHas('user', fn ($q) => $q->where('is_preview_user', false))
-                ->where('trial_ends_at', '>=', $bucketStart)
-                ->where('trial_ends_at', '<', $bucketEnd)
-                ->where('trial_ends_at', '<', now())
-                ->count();
-
             $revenue = (int) Subscription::where('status', 'active')
                 ->whereHas('user', fn ($q) => $q->where('is_preview_user', false))
                 ->where('current_period_start', '>=', $bucketStart)
@@ -226,7 +149,6 @@ class UserMetricsService
                 'registrations' => $registrations,
                 'conversions' => $conversions,
                 'cancellations' => $cancellations,
-                'trial_expired' => $trialExpired,
                 'revenue' => $revenue,
             ];
         }

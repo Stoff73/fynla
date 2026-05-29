@@ -71,6 +71,17 @@
       />
     </Teleport>
 
+    <!-- Tier count-cap reached -->
+    <Teleport to="body">
+      <LimitReachedModal
+        :show="showLimitModal"
+        entity-label="properties"
+        :cap="tierCountCap('property') || 0"
+        :tier-label="tierLabel"
+        @close="showLimitModal = false"
+      />
+    </Teleport>
+
     <!-- Success/Error Messages -->
     <div v-if="successMessage" class="notification success animate-slide-in-right">
       {{ successMessage }}
@@ -87,6 +98,8 @@ import PropertyCard from './PropertyCard.vue';
 import PropertyForm from './Property/PropertyForm.vue';
 import PropertyDetailInline from '@/components/NetWorth/Property/PropertyDetailInline.vue';
 import ModuleStatusBar from '@/components/Shared/ModuleStatusBar.vue';
+import LimitReachedModal from '@/components/Shared/LimitReachedModal.vue';
+import { tierLimitMixin } from '@/mixins/tierLimitMixin';
 import api from '@/services/api';
 
 import logger from '@/utils/logger';
@@ -98,7 +111,10 @@ export default {
     PropertyForm,
     PropertyDetailInline,
     ModuleStatusBar,
+    LimitReachedModal,
   },
+
+  mixins: [tierLimitMixin],
 
   data() {
     return {
@@ -106,6 +122,7 @@ export default {
       loading: false,
       error: null,
       showPropertyForm: false,
+      showLimitModal: false,
       selectedProperty: null,
       editingProperty: null,
       successMessage: null,
@@ -211,6 +228,10 @@ export default {
     },
 
     addProperty() {
+      if (!this.$store.getters['preview/isPreviewMode'] && this.isAtTierCap('property', this.properties.length)) {
+        this.showLimitModal = true;
+        return;
+      }
       this.editingProperty = null;
       this.showPropertyForm = true;
     },

@@ -19,7 +19,6 @@ use App\Models\IncomeProtectionPolicy;
 use App\Models\Investment\InvestmentAccount;
 use App\Models\LifeEvent;
 use App\Models\LifeInsurancePolicy;
-use App\Models\Property;
 use App\Models\User;
 use App\Services\AI\Prompts\ComplianceRules;
 use App\Services\AI\Prompts\CoreIdentity;
@@ -30,6 +29,7 @@ use App\Services\Goals\LifeEventIntegrationService;
 use App\Services\NetWorth\NetWorthService;
 use App\Services\PrerequisiteGateService;
 use App\Services\Stores\PensionStore;
+use App\Services\Stores\PropertyStore;
 use App\Services\Stores\SavingsStore;
 use App\Services\TaxConfigService;
 use App\Traits\ResolvesExpenditure;
@@ -61,6 +61,7 @@ class AdvicePromptBuilder
         private readonly TaxConfigService $taxConfig,
         private readonly PrerequisiteGateService $prerequisiteGate,
         private readonly MemoryRetrieverService $memory,
+        private readonly PropertyStore $propertyStore,
     ) {}
 
     /**
@@ -535,7 +536,7 @@ PROMPT;
             }
 
             // Property
-            $ownsProperty = Property::forUserOrJoint($user->id)->exists();
+            $ownsProperty = $this->propertyStore->forUserWithJointOwner($user)->isNotEmpty();
             $lines[] = '- Property owner: '.($ownsProperty ? 'Yes' : 'No');
 
             // Estate (IHT-specific)
@@ -815,7 +816,8 @@ PROMPT;
 
             // Properties — show total value, user's share, mortgage, and ownership with co-owner name
             if ($include('property') || $include('mortgage')) {
-                $properties = Property::with(['mortgages', 'jointOwner'])->where('user_id', $userId)->orWhere('joint_owner_id', $userId)->get();
+                $properties = $this->propertyStore->forUserWithJointOwner($user);
+                $properties->load('mortgages');
                 if ($properties->isNotEmpty()) {
                     $items = $properties->map(function ($p) use ($userId, $ownershipLabel) {
                         $totalValue = (float) $p->current_value;
