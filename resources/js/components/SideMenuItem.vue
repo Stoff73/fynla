@@ -30,7 +30,8 @@
   </button>
 
   <!-- Router link. Gated items stay fully clickable — they land on the
-       teaser/upgrade page (router guard) and carry a small "Upgrade" tag. -->
+       teaser/upgrade page (router guard). No upgrade affordance in the nav
+       itself; upgrade messaging lives only on the teaser page. -->
   <router-link
     v-else
     :to="to"
@@ -46,10 +47,6 @@
   >
     <SideMenuIcon :name="icon" class="w-5 h-5 flex-shrink-0" :class="active ? activeIconClass : ''" />
     <span v-if="!collapsed" class="ml-3 text-sm font-medium whitespace-nowrap">{{ label }}</span>
-    <span
-      v-if="!collapsed && gated"
-      class="ml-auto text-[10px] font-bold uppercase tracking-wide text-raspberry-500"
-    >Upgrade</span>
   </router-link>
 </template>
 
@@ -97,13 +94,6 @@ export default {
       default: '', // e.g. 'violet', 'spring', 'raspberry', 'light-blue', 'horizon'
     },
     muted: {
-      type: Boolean,
-      default: false,
-    },
-    // Gated = the user's tier can't fully access this module yet. The item
-    // stays clickable (lands on the teaser/upgrade page) and shows an "Upgrade"
-    // tag. Replaces the old plan-locked, non-clickable rendering.
-    gated: {
       type: Boolean,
       default: false,
     },
