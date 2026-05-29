@@ -269,7 +269,7 @@
     var dynEl    = document.getElementById('insights-dynamic');
     var staticEl = document.getElementById('insights-static');
 
-    fetch('/api/insights/featured')
+    fetch((window.FYNLA_BASE||'')+'/api/insights/featured')
       .then(function (res) {
         if (!res.ok) throw new Error('API unavailable');
         return res.json();
@@ -293,7 +293,7 @@
         var featuredTit = document.getElementById('insight-featured-title');
         var featuredSum = document.getElementById('insight-featured-summary');
 
-        featuredEl.href = '/insights/' + featured.slug;
+        featuredEl.href = (window.FYNLA_BASE||'')+'/insights/' + featured.slug;
         featuredEl.setAttribute('aria-label', featured.title);
         if (featured.image_card) {
           /* Clear any display:none set by onerror on the empty initial src="" */
@@ -411,7 +411,7 @@
         modal.querySelectorAll('.demo-persona-card').forEach(function (b) { b.disabled = true; });
         if (status) status.textContent = 'Loading your demo…';
 
-        fetch('/api/preview/login/' + personaId, {
+        fetch((window.FYNLA_BASE||'')+'/api/preview/login/' + personaId, {
           method: 'POST',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           credentials: 'same-origin'
@@ -422,7 +422,7 @@
           })
           .then(function (data) {
             if (data.token) sessionStorage.setItem('auth_token', data.token);
-            window.location.href = '/dashboard';
+            window.location.href = (window.FYNLA_BASE||'')+'/dashboard';
           })
           .catch(function () {
             if (status) status.textContent = 'Something went wrong — please try again.';

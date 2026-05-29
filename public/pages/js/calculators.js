@@ -10,7 +10,7 @@
 var taxConfig = {};
 
 function loadTaxConfig() {
-  return fetch('/api/public/tax-config')
+  return fetch((window.FYNLA_BASE||'')+'/api/public/tax-config')
     .then(function (res) { return res.json(); })
     .then(function (data) {
       taxConfig = data;
