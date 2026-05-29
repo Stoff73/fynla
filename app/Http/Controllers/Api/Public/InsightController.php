@@ -62,11 +62,10 @@ class InsightController extends Controller
 
     public function featured(): JsonResponse
     {
-        // Only surface an article as "featured" when it has been explicitly
-        // flagged is_featured=true from the admin. Doc articles can't be
-        // featured (no admin UI for it); they surface via the supporting
-        // list and the main list endpoint instead.
-        $featured = $this->articles->getFeatured();
+        // Prefer an explicitly-flagged article; fall back to the most recently
+        // published one so the homepage always has a featured article.
+        $featured = $this->articles->getFeatured()
+            ?? InsightArticle::published()->orderByDesc('published_at')->first();
 
         $supporting = InsightArticle::published()
             ->when($featured, fn ($q) => $q->where('id', '!=', $featured->id))

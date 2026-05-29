@@ -1,0 +1,232 @@
+/**
+ * Fynla public pages — net-worth-dashboard feature page stylesheet
+ *
+ * Page-specific styles for public/pages/features/net-worth-dashboard.php.
+ * Shared tokens, reset, nav, footer, and MODULE styles live in global.css.
+ * All colours use CSS custom properties — no hardcoded hex.
+ */
+
+/* ===================================================================
+   SHARED FEATURE PAGE LAYOUT
+   These classes are shared across all feature detail pages.
+   They live here in the first feature file and are symlinked in the
+   other feature CSS files by referencing this file. If you need to
+   edit layout shared across all features, edit here and mirror the
+   change to the other feat-*.css files.
+   =================================================================== */
+
+/* ── Button variants ─────────────────────────────────────────────── */
+.feat-btn-primary {
+  display: inline-flex; align-items: center;
+  padding: 0.625rem 1.5rem; min-height: 2.75rem; /* 44px touch target */
+  font-size: 0.875rem; font-weight: 600; color: var(--white);
+  background: var(--raspberry-500); border-radius: var(--radius-button);
+  border: none; transition: background 0.15s ease; white-space: nowrap;
+}
+.feat-btn-primary:hover { background: var(--raspberry-600); }
+
+.feat-btn-secondary {
+  display: inline-flex; align-items: center;
+  padding: 0.625rem 1.5rem; min-height: 2.75rem;
+  font-size: 0.875rem; font-weight: 600; color: var(--white);
+  border-bottom: 1px solid var(--white-70); transition: border-color 0.15s ease;
+}
+.feat-btn-secondary:hover { border-color: var(--white); }
+
+/* ── Section inner wrappers ──────────────────────────────────────── */
+.feat-section__inner {
+  max-width: 80rem; margin: 0 auto; padding: 0 1rem;
+}
+.feat-section__inner--narrow {
+  max-width: 48rem;
+}
+
+/* ── Section headings ────────────────────────────────────────────── */
+.feat-section__heading {
+  font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 700;
+  color: var(--horizon-500); margin-bottom: 2rem;
+}
+.feat-section__heading--center { text-align: center; }
+.feat-section__heading--white  { color: var(--white); }
+
+/* ── Card grid — 3 columns ───────────────────────────────────────── */
+.feat-cards-3 {
+  display: grid; grid-template-columns: 1fr; gap: 1.25rem;
+}
+
+/* ── Base card ───────────────────────────────────────────────────── */
+.feat-card { border-radius: var(--radius-lg); padding: 1.5rem; }
+
+.feat-card--pink {
+  background: var(--light-pink-100);
+  border: 1px solid var(--light-pink-200);
+}
+.feat-card--dark {
+  background: var(--white-8, rgba(255,255,255,0.08));
+  border: 1px solid var(--white-12, rgba(255,255,255,0.12));
+}
+
+.feat-card__title {
+  font-size: 1rem; font-weight: 700; color: var(--horizon-500); margin-bottom: 0.5rem;
+}
+.feat-card__title--white { color: var(--white); }
+
+.feat-card__body {
+  font-size: 0.875rem; color: var(--neutral-500); line-height: 1.625;
+}
+.feat-card__body--faded { color: var(--white-70); }
+
+/* ── Section backgrounds ─────────────────────────────────────────── */
+.feat-problem {
+  background: var(--eggshell-500); padding: 4rem 0;
+}
+.feat-solution {
+  background: var(--horizon-500); padding: 4rem 0;
+}
+.feat-compare-section {
+  background: var(--light-pink-100); padding: 4rem 0;
+}
+.feat-mockup {
+  background: var(--white); padding: 3rem 0;
+  border-top: 1px solid var(--light-gray); border-bottom: 1px solid var(--light-gray);
+}
+.feat-emotional {
+  background: var(--white); padding: 4rem 0;
+}
+.feat-explainer {
+  background: var(--eggshell-500); padding: 4rem 0;
+}
+
+/* ── Quote strip ─────────────────────────────────────────────────── */
+.feat-quote { background: var(--light-pink-100); padding: 3rem 0; }
+.feat-quote__inner { max-width: 48rem; margin: 0 auto; padding: 0 1rem; text-align: center; }
+.feat-quote__block { margin: 0; }
+.feat-quote__text {
+  font-size: clamp(1.125rem, 3.5vw, 1.75rem); font-weight: 600;
+  color: var(--horizon-500); font-style: italic; line-height: 1.4;
+}
+.feat-quote__text::before { content: '\201C'; color: var(--raspberry-500); margin-right: 0.125rem; }
+.feat-quote__text::after  { content: '\201D'; color: var(--raspberry-500); margin-left: 0.125rem; }
+
+/* ── Comparison table ────────────────────────────────────────────── */
+.feat-table-scroll { overflow-x: auto; border-radius: var(--radius-lg); margin-top: 0; }
+.feat-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--white); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm); border: 1px solid var(--light-gray);
+  font-size: 0.875rem;
+}
+.feat-th {
+  text-align: left; padding: 0.875rem 1rem;
+  font-weight: 700; color: var(--horizon-500);
+  border-bottom: 1px solid var(--light-gray);
+  white-space: nowrap;
+}
+.feat-th--label { color: var(--neutral-500); font-weight: 500; min-width: 12rem; }
+.feat-th--fynla { color: var(--raspberry-500); }
+.feat-tr { border-bottom: 1px solid var(--light-gray); }
+.feat-tr:last-child { border-bottom: none; }
+.feat-td { padding: 0.75rem 1rem; color: var(--neutral-500); vertical-align: middle; }
+.feat-td--label { font-weight: 600; color: var(--horizon-500); }
+.feat-td--fynla { background: var(--light-pink-50, #FDF0F4); }
+.feat-yes { color: var(--spring-600); font-weight: 600; }
+.feat-no  { color: var(--neutral-400); }
+
+/* ── Related links ───────────────────────────────────────────────── */
+.feat-related { background: var(--eggshell-500); padding: 2.5rem 0; }
+.feat-related__heading {
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--neutral-500);
+  margin-bottom: 0.75rem;
+}
+.feat-related__list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.feat-related__link {
+  display: inline-block; padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem; font-weight: 500; color: var(--horizon-500);
+  background: var(--white); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-full); transition: color 0.15s ease, border-color 0.15s ease;
+  min-height: 2.75rem; display: inline-flex; align-items: center;
+}
+.feat-related__link:hover { color: var(--raspberry-500); border-color: var(--raspberry-500); }
+
+/* ── Emotional body text ─────────────────────────────────────────── */
+.feat-emotional__body {
+  display: flex; flex-direction: column; gap: 1rem;
+  font-size: 0.9375rem; color: var(--neutral-500); line-height: 1.75;
+}
+
+/* ── Explainer box ───────────────────────────────────────────────── */
+.feat-explainer__box {
+  background: var(--white); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.feat-explainer__body { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.75; }
+
+/* ===================================================================
+   NET WORTH DASHBOARD — page-specific UI mock-up
+   =================================================================== */
+.feat-ui-card {
+  background: var(--white); border: 1px solid var(--light-gray);
+  border-radius: var(--radius-2xl); padding: 1.5rem;
+  box-shadow: var(--shadow-sm); max-width: 28rem; margin: 0 auto;
+}
+.feat-ui-card__header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+.feat-ui-card__label {
+  font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--neutral-500);
+}
+.feat-ui-card__value {
+  font-size: 1.5rem; font-weight: 700; color: var(--horizon-500);
+}
+.feat-ui-card__value--green { color: var(--spring-600); }
+
+.feat-ui-progress-track {
+  width: 100%; background: var(--savannah-100); border-radius: var(--radius-full);
+  height: 0.375rem; margin-bottom: 1rem;
+}
+.feat-ui-progress-fill {
+  height: 0.375rem; border-radius: var(--radius-full); background: var(--spring-500);
+}
+
+.feat-ui-grid2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;
+}
+.feat-ui-mini {
+  background: var(--eggshell-500); border-radius: var(--radius-lg); padding: 0.75rem;
+}
+.feat-ui-mini__label {
+  display: block; font-size: 0.75rem; color: var(--neutral-500);
+}
+.feat-ui-mini__val {
+  display: block; font-size: 0.9375rem; font-weight: 600; color: var(--horizon-500); margin-top: 0.25rem;
+}
+.feat-ui-mini__val--red { color: var(--raspberry-500); }
+
+.feat-ui-divider { border-top: 1px solid var(--light-gray); margin-bottom: 0.75rem; }
+
+.feat-ui-row-list { display: flex; flex-direction: column; gap: 0; }
+.feat-ui-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--light-gray);
+}
+.feat-ui-row:last-child { border-bottom: none; }
+.feat-ui-row__label { font-size: 0.875rem; color: var(--neutral-500); }
+.feat-ui-row__val   { font-size: 0.875rem; font-weight: 600; color: var(--horizon-500); }
+.feat-ui-row__val--red { color: var(--raspberry-500); }
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (min-width: 640px) {
+  .feat-cards-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .feat-section__inner { padding-left: 2rem; padding-right: 2rem; }
+  .feat-section__inner--narrow { padding-left: 2rem; padding-right: 2rem; }
+  .feat-cards-3 { grid-template-columns: repeat(3, 1fr); }
+}
