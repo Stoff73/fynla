@@ -18,8 +18,12 @@ class BackfillPensionDerivedColumns extends Command
 
     public function handle(PensionDerivedColumnCalculator $calc): int
     {
+        // Skip rows whose owner is soft-deleted: those accounts are retained
+        // for the GDPR restore window and purged wholesale at purge_eligible_at,
+        // so there is no value in materialising derived columns for them.
+        // whereHas('user') excludes trashed owners via the User SoftDeletes scope.
         $this->info('Backfilling DC pensions...');
-        DCPension::with('user')->chunkById(200, function ($chunk) use ($calc) {
+        DCPension::whereHas('user')->with('user')->chunkById(200, function ($chunk) use ($calc) {
             foreach ($chunk as $pension) {
                 $derived = $calc->calculateDc($pension, $pension->user);
                 $now = now();
@@ -39,7 +43,7 @@ class BackfillPensionDerivedColumns extends Command
         });
 
         $this->info('Backfilling DB pensions...');
-        DBPension::with('user')->chunkById(200, function ($chunk) use ($calc) {
+        DBPension::whereHas('user')->with('user')->chunkById(200, function ($chunk) use ($calc) {
             foreach ($chunk as $pension) {
                 $derived = $calc->calculateDb($pension, $pension->user);
                 $now = now();
@@ -53,7 +57,7 @@ class BackfillPensionDerivedColumns extends Command
         });
 
         $this->info('Backfilling State pensions...');
-        StatePension::with('user')->chunkById(200, function ($chunk) use ($calc) {
+        StatePension::whereHas('user')->with('user')->chunkById(200, function ($chunk) use ($calc) {
             foreach ($chunk as $state) {
                 $derived = $calc->calculateState($state, $state->user);
                 $now = now();

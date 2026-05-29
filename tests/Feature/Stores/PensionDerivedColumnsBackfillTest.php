@@ -36,6 +36,39 @@ it('pensions:backfill-derived populates DC derived columns on legacy rows', func
         ->and($pension->years_to_drawdown)->toBe(25);
 });
 
+it('pensions:backfill-derived skips rows whose owner is soft-deleted and still completes', function () {
+    // Live owner — should be populated.
+    $liveUser = User::factory()->create(['date_of_birth' => now()->subYears(40)]);
+    $livePension = DCPension::forceCreate([
+        'user_id' => $liveUser->id,
+        'scheme_name' => 'Live',
+        'current_fund_value' => 30000,
+        'expected_return_percent' => 5,
+        'retirement_age' => 65,
+    ]);
+
+    // Soft-deleted owner — pension is retained (restore window) but must be skipped.
+    $deletedUser = User::factory()->create(['date_of_birth' => now()->subYears(40)]);
+    $orphanPension = DCPension::forceCreate([
+        'user_id' => $deletedUser->id,
+        'scheme_name' => 'Orphan',
+        'current_fund_value' => 99000,
+        'expected_return_percent' => 5,
+        'retirement_age' => 65,
+    ]);
+    $deletedUser->delete(); // soft-delete the owner; pension row stays active
+
+    // Before the whereHas scoping this aborted with a TypeError on the null user.
+    $this->artisan('pensions:backfill-derived')->assertSuccessful();
+
+    $livePension->refresh();
+    $orphanPension->refresh();
+
+    expect((float) $livePension->current_fund_value_gbp)->toBe(30000.00)
+        ->and($orphanPension->current_fund_value_gbp)->toBeNull()
+        ->and($orphanPension->current_fund_value_gbp_calculated_at)->toBeNull();
+});
+
 it('pensions:backfill-derived populates DB derived columns', function () {
     $user = User::factory()->create();
     $pension = DBPension::forceCreate([
