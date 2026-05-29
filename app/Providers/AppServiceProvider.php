@@ -82,10 +82,40 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->assertDatabaseCredentialsLoaded();
+
         // Prevent lazy loading in non-production environments to catch N+1 query issues
         Model::preventLazyLoading(! app()->isProduction());
 
         InsightArticle::observe(InsightArticleObserver::class);
         DocumentArticle::observe(DocumentArticleObserver::class);
+    }
+
+    /**
+     * Fail fast and loudly if the production DB username resolved to the
+     * framework default ('forge'). That only happens when the .env failed to
+     * load for the request (e.g. config not cached on shared hosting), which
+     * otherwise surfaces as a cryptic, intermittent "Access denied for user
+     * 'forge'@'localhost' (using password: NO)" 500 on every authenticated
+     * request — silently breaking auth, checkout, and everything DB-backed.
+     * Caching config ("php artisan config:cache") prevents the fallback; this
+     * guard makes any recurrence instantly diagnosable instead of buried.
+     */
+    private function assertDatabaseCredentialsLoaded(): void
+    {
+        if (! app()->isProduction()) {
+            return;
+        }
+
+        $default = config('database.default');
+        $username = config("database.connections.{$default}.username");
+
+        if ($username === 'forge') {
+            throw new \RuntimeException(
+                "Database credentials failed to load: DB_USERNAME resolved to the default 'forge'. "
+                .'The .env was not loaded for this request. Run "php artisan config:cache" so the '
+                .'real credentials are baked into the cached config and can never fall back to defaults.'
+            );
+        }
     }
 }
