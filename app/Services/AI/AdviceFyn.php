@@ -148,8 +148,12 @@ final class AdviceFyn
      * tool list. Every entry here has a corresponding handler in
      * OnboardingChatDirector::captureToolSet so the handoff path can
      * dispatch it.
+     *
+     * Public so the CoALA `GroundGate` can mechanically reject these same
+     * surfaces at the dispatch boundary (defence-in-depth behind this strip)
+     * without duplicating the denylist — single source of truth.
      */
-    private const WRITE_TOOLS = [
+    public const WRITE_TOOLS = [
         'create_savings_account', 'create_investment_account', 'create_holding',
         'create_pension', 'create_property', 'create_mortgage',
         'create_protection_policy', 'create_asset', 'create_liability',

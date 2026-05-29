@@ -28,6 +28,7 @@ use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Fyn\FynTurnContext;
+use App\Services\AI\Ground\GroundGate;
 use App\Services\AI\KycGateChecker;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
@@ -566,7 +567,18 @@ trait HasAiChat
                         'status' => 'running',
                     ];
 
-                    $toolResult = $this->executeTool($functionName, $functionArgs, $user, $conversation->id);
+                    // CoALA ground gate (Phase 5 PR 2) — mechanical write-safety
+                    // boundary. In the read-only 'advice' state, a WRITE_TOOLS
+                    // surface is rejected BEFORE it can execute, even though the
+                    // advice catalogue already strips those tools (array_diff).
+                    // Defence-in-depth for the should-never-happen cases: a
+                    // hallucinated tool id, a strip-logic regression, a handoff
+                    // edge case. Audited as status:stripped; never executed.
+                    if (app(GroundGate::class)->blocksWriteSurface($functionName, $this->personaOverride)) {
+                        $toolResult = $this->rejectGroundSurface($functionName, $user, $conversation->id);
+                    } else {
+                        $toolResult = $this->executeTool($functionName, $functionArgs, $user, $conversation->id);
+                    }
 
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
                         $partialWriteCount++;
@@ -952,6 +964,39 @@ trait HasAiChat
     }
 
     // ─── Message Persistence & History ────────────────────────────────
+
+    /**
+     * Mechanically reject a write surface that reached dispatch in the
+     * read-only advice state (CoALA ground gate, Phase 5 PR 2). Writes an
+     * `ai_audit_events` chain row with status:stripped, then returns a safe
+     * tool-result observation so the LLM loop continues gracefully and can
+     * explain the limitation in words. The write is NEVER executed.
+     *
+     * @return array{success: bool, blocked: bool, message: string}
+     */
+    private function rejectGroundSurface(string $toolName, User $user, ?int $conversationId): array
+    {
+        $this->appendAuditEvent([
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+            'tool_name' => $toolName,
+            'operation' => self::operationFor($toolName),
+            'status' => 'stripped',
+            'input_summary' => ['ground_gate' => 'write_surface_denied_in_advice_mode'],
+        ]);
+
+        Log::warning('[GroundGate] Write surface rejected in advice mode', [
+            'tool' => $toolName,
+            'user_id' => $user->id,
+            'conversation_id' => $conversationId,
+        ]);
+
+        return [
+            'success' => false,
+            'blocked' => true,
+            'message' => 'That action is not available in this mode. Changes to your records are made through the data-capture flow, not the advice conversation.',
+        ];
+    }
 
     // ─── Message Persistence ─────────────────────────────────────────
 
