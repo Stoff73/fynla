@@ -599,6 +599,15 @@ Route::get('/savetax/plan/v3', function () {
         ->header('Cache-Control', 'no-store');
 });
 
+// Mobile dashboard design mockup — standalone HTML for review before
+// porting into resources/mobile/views/Dashboard.vue.
+Route::get('/m-mockup/dashboard', function () {
+    ob_start();
+    include public_path('pages/mobile-dashboard-mockup.php');
+    return response(ob_get_clean(), 200, ['Content-Type' => 'text/html; charset=utf-8'])
+        ->header('Cache-Control', 'no-store');
+});
+
 Route::get('/savetax/v2', function () {
     ob_start();
     include public_path('pages/savetax-v2.php');
