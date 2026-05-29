@@ -548,12 +548,11 @@ class AuthController extends Controller
                 'pending_id' => $pending->id,
             ]);
 
-            // Start trial — use selected plan or default to 'standard'
-            $plan = ($pending->plan && in_array($pending->plan, ['student', 'standard', 'pro']))
-                ? $pending->plan
-                : 'standard';
-            $billingCycle = in_array($pending->billing_cycle, ['monthly', 'yearly']) ? $pending->billing_cycle : 'yearly';
-            $this->trialService->startTrial($user, $plan, $billingCycle);
+            // Pure freemium: new users start on the Free tier immediately.
+            // No trial, no Subscription row — TierResolver resolves tier='free'
+            // to the Free tier and DbTierGate enforces free-tier caps. A
+            // Subscription is created only on first payment (upgrade).
+            $user->update(['tier' => 'free']);
 
             // Record GDPR consents accepted at registration. The form footer
             // says "By creating an account, you agree to our Terms of Service
