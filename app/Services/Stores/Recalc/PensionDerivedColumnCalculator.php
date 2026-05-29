@@ -24,7 +24,7 @@ class PensionDerivedColumnCalculator
      *     annual_allowance_used_gbp: ?float
      * }
      */
-    public function calculateDc(DCPension $pension, User $user): array
+    public function calculateDc(DCPension $pension, ?User $user = null): array
     {
         // Pass 3 — all DC fund values stored in GBP; currency conversion for
         // pensions lands in a later sub-project pass. _gbp == raw current_fund_value.
@@ -45,7 +45,7 @@ class PensionDerivedColumnCalculator
 
         // Years to drawdown — retirement_age vs current user age.
         $yearsToDrawdown = null;
-        if ($pension->retirement_age !== null && $user->date_of_birth !== null) {
+        if ($pension->retirement_age !== null && $user?->date_of_birth !== null) {
             $age = (int) now()->diffInYears($user->date_of_birth);
             $yearsToDrawdown = max(0, (int) $pension->retirement_age - $age);
         }
@@ -93,7 +93,7 @@ class PensionDerivedColumnCalculator
      *     spouse_pension_projected_gbp: ?float
      * }
      */
-    public function calculateDb(DBPension $pension, User $user): array
+    public function calculateDb(DBPension $pension, ?User $user = null): array
     {
         $annual = $pension->accrued_annual_pension !== null
             ? round((float) $pension->accrued_annual_pension, 2)
@@ -117,7 +117,7 @@ class PensionDerivedColumnCalculator
      *     years_to_state_pension_age: ?int
      * }
      */
-    public function calculateState(StatePension $state, User $user): array
+    public function calculateState(StatePension $state, ?User $user = null): array
     {
         $forecast = $state->state_pension_forecast_annual !== null
             ? round((float) $state->state_pension_forecast_annual, 2)
@@ -131,7 +131,7 @@ class PensionDerivedColumnCalculator
         }
 
         $years = null;
-        if ($state->state_pension_age !== null && $user->date_of_birth !== null) {
+        if ($state->state_pension_age !== null && $user?->date_of_birth !== null) {
             $age = (int) now()->diffInYears($user->date_of_birth);
             $years = max(0, (int) $state->state_pension_age - $age);
         }
