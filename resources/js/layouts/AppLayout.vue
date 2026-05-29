@@ -155,7 +155,6 @@ import { mapGetters, mapActions } from 'vuex';
 import AppNavbar from '@/components/AppNavbar.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import PreviewBanner from '@/components/Preview/PreviewBanner.vue';
-import TrialCountdownBanner from '@/components/Trial/TrialCountdownBanner.vue';
 import ScheduledDeletionBanner from '@/components/Account/ScheduledDeletionBanner.vue';
 import DataRetentionOverlay from '@/components/Payment/DataRetentionOverlay.vue';
 import InfoGuidePanel from '@/components/Shared/InfoGuidePanel.vue';
@@ -182,7 +181,6 @@ export default {
     AppNavbar,
     AppFooter,
     PreviewBanner,
-    TrialCountdownBanner,
     ScheduledDeletionBanner,
     DataRetentionOverlay,
     InfoGuidePanel,
