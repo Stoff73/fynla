@@ -737,12 +737,12 @@ class PaymentController extends Controller
 
         if ($billingCycle === 'yearly') {
             $monthlyDiff = (int) round($priceDiff / 12);
-            $monthsUsed = (int) $subscription->current_period_start->diffInMonths(now());
-            $monthsRemaining = max(1, 12 - $monthsUsed);
+            $monthsRemaining = $this->yearlyMonthsRemaining($subscription);
             $upgradeAmount = $monthlyDiff * $monthsRemaining;
         } else {
             // Monthly: charge the full month difference
             $upgradeAmount = $priceDiff;
+            $monthsRemaining = 1;
         }
 
         // Minimum charge of 1p (Revolut requires > 0)
@@ -794,11 +794,36 @@ class PaymentController extends Controller
                 'order_id' => $revolutOrder['id'],
                 'upgrade_amount' => $upgradeAmount,
                 'new_plan' => $newPlanSlug,
-                'months_remaining' => $billingCycle === 'yearly' ? (12 - (int) $subscription->current_period_start->diffInMonths(now())) : 1,
+                'months_remaining' => $monthsRemaining,
             ]);
         } catch (\Throwable $e) {
             return $this->errorResponse($e, 'Creating upgrade order');
         }
+    }
+
+    /**
+     * Whole months remaining in a yearly billing period, computed from days.
+     *
+     * Day-based on purpose: Carbon's month arithmetic clamps non-existent
+     * month-end days (e.g. 31 Jan + 1 month → 28 Feb), so the old
+     * 12 - current_period_start->diffInMonths(now()) systematically
+     * under-counted elapsed months for subscriptions started on the 29th-31st
+     * and therefore OVER-billed the proration (a 31 Mar yearly start reported
+     * 10 months remaining mid-June instead of 9). Days are unambiguous.
+     *
+     * Rounded to the nearest whole month and clamped to [1, 12]; round (not
+     * floor/ceil) is what keeps the existing 3-month → 9 and 6-month → 6
+     * proration contracts consistent.
+     */
+    private function yearlyMonthsRemaining(Subscription $subscription): int
+    {
+        $start = $subscription->current_period_start;
+        $end = $subscription->current_period_end ?? $start->copy()->addYear();
+
+        $totalDays = max(1, $start->diffInDays($end));
+        $daysRemaining = max(0, now()->diffInDays($end, false));
+
+        return max(1, min(12, (int) round($daysRemaining / ($totalDays / 12))));
     }
 
     /**
