@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import store from '@/store';
 import analyticsService from '@/services/analyticsService';
-import { getRequiredTier, hasFeatureAccess } from '@/constants/featureGating';
+import { capabilityForRoute, isRouteGated } from '@/constants/tierAccess';
 import { hasConsent } from '@/utils/cookieConsent';
 import { shouldLoadAwin, loadMasterTag as loadAwinMasterTag, unloadMasterTag as unloadAwinMasterTag } from '@/utils/awinTracking';
 
@@ -1038,6 +1038,18 @@ const routes = [
     },
   },
   {
+    path: '/teaser',
+    name: 'TierTeaser',
+    component: () => import('@/views/TierTeaserView.vue'),
+    meta: {
+      requiresAuth: true,
+      breadcrumb: [
+        { label: 'Home', path: '/dashboard' },
+        { label: 'Upgrade', path: '/teaser' },
+      ],
+    },
+  },
+  {
     path: '/planning/journeys',
     name: 'PlanningJourneys',
     component: () => import('@/views/Planning/PlanningJourneys.vue'),
@@ -1502,19 +1514,15 @@ router.beforeEach(async (to, from, next) => {
     // Redirect to dashboard if route requires advisor access
     next({ name: 'Dashboard' });
   } else {
-    // Feature gating: redirect to dashboard if user navigates to a gated route via URL
-    if (requiresAuth && isAuthenticated && !isPreviewMode) {
-      const requiredTier = getRequiredTier(to.path, to.query);
-      if (requiredTier) {
-        // Subscription data may not be in Vuex — this is defence-in-depth (backend is primary enforcement)
-        const subscriptionData = store.state.auth?.subscriptionData;
-        if (subscriptionData && subscriptionData.status !== 'trialing') {
-          const userPlan = subscriptionData.plan || 'student';
-          if (!hasFeatureAccess(userPlan, requiredTier)) {
-            next({ name: 'Dashboard' });
-            return;
-          }
-        }
+    // Feature gating (capability-matrix model): a route the user's tier can't
+    // access (verb teaser/none) shows the teaser/upgrade page rather than being
+    // blocked. Everything else is accessible. Defence-in-depth — the backend is
+    // the primary enforcement; if the matrix isn't loaded yet, allow through.
+    if (requiresAuth && isAuthenticated && !isPreviewMode && to.path !== '/teaser') {
+      const matrix = store.state.auth?.subscriptionData?.capability_matrix;
+      if (matrix && isRouteGated(to.path, to.query, matrix)) {
+        next({ path: '/teaser', query: { module: capabilityForRoute(to.path, to.query) } });
+        return;
       }
     }
     next();
