@@ -17,9 +17,6 @@
               Cancellations
             </th>
             <th class="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-              Trial Expired
-            </th>
-            <th class="px-4 py-3 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">
               Revenue
             </th>
           </tr>
@@ -42,15 +39,12 @@
             <td class="px-4 py-3 text-right text-raspberry-500">
               {{ row.cancellations ?? 0 }}
             </td>
-            <td class="px-4 py-3 text-right text-neutral-500">
-              {{ row.trial_expired ?? 0 }}
-            </td>
             <td class="px-4 py-3 text-right font-bold text-horizon-500">
               {{ formatRevenue(row.revenue) }}
             </td>
           </tr>
           <tr v-if="!data || data.length === 0">
-            <td colspan="6" class="px-4 py-8 text-center text-neutral-500">
+            <td colspan="5" class="px-4 py-8 text-center text-neutral-500">
               No activity data available
             </td>
           </tr>

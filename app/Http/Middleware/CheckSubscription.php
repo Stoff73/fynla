@@ -95,13 +95,19 @@ class CheckSubscription
             return $capabilityDenial;
         }
 
-        // User has active subscription or is trialing — allow through
-        if ($user->hasActivePlan() || $user->onTrial()) {
+        $subscription = $user->relationLoaded('subscription')
+            ? $user->subscription
+            : $user->subscription()->first();
+
+        // Pure freemium: a Free user has NO subscription row and may write —
+        // per-tier creation caps are enforced downstream by DbTierGate at the
+        // store boundary. An active (paid) subscription may also write.
+        if ($subscription === null || $subscription->isActive()) {
             return $next($request);
         }
 
-        // Expired trial or grace period — allow read-only access so users can see
-        // their data behind the plan selection modal. Writes are blocked.
+        // Remaining case: a churned PAID user whose subscription is terminal
+        // (expired/cancelled past period). Read-only + grace, then hard block.
         if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'])) {
             return $next($request);
         }
@@ -115,7 +121,7 @@ class CheckSubscription
 
         return response()->json([
             'error' => 'subscription_required',
-            'message' => 'Your trial has expired. Please subscribe to continue.',
+            'message' => 'Your subscription has expired. Please subscribe to continue.',
         ], 403);
     }
 

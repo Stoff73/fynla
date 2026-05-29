@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Mail\Lifecycle\EmptyTrialerMail;
+use App\Mail\Lifecycle\LapsedSubscriberMail;
 use App\Models\LifecycleEmailLog;
 use App\Models\User;
 use App\Services\Lifecycle\Contracts\LifecycleCampaign;
@@ -46,7 +46,7 @@ it('paces sends with configured throttle between iterations', function () {
 
         public function name(): string
         {
-            return 'empty_trialer';
+            return 'test_campaign';
         }
 
         public function priority(): int
@@ -59,9 +59,9 @@ it('paces sends with configured throttle between iterations', function () {
             return $this->users;
         }
 
-        public function mailable(User $user): EmptyTrialerMail
+        public function mailable(User $user): LapsedSubscriberMail
         {
-            return new EmptyTrialerMail($user, 'https://example.com/link');
+            return new LapsedSubscriberMail($user, 'https://example.com/link');
         }
     };
 
@@ -72,7 +72,7 @@ it('paces sends with configured throttle between iterations', function () {
     $stats = app(LifecycleEngine::class)->run();
     $elapsedMs = (microtime(true) - $started) * 1000;
 
-    expect($stats['empty_trialer']['sent'])->toBe(3);
+    expect($stats['test_campaign']['sent'])->toBe(3);
     expect($elapsedMs)->toBeGreaterThanOrEqual(150.0);
 });
 
@@ -87,7 +87,7 @@ it('skips pacing when throttle_ms is 0 so unit suites stay fast', function () {
 
         public function name(): string
         {
-            return 'empty_trialer';
+            return 'test_campaign';
         }
 
         public function priority(): int
@@ -100,9 +100,9 @@ it('skips pacing when throttle_ms is 0 so unit suites stay fast', function () {
             return $this->users;
         }
 
-        public function mailable(User $user): EmptyTrialerMail
+        public function mailable(User $user): LapsedSubscriberMail
         {
-            return new EmptyTrialerMail($user, 'https://example.com/link');
+            return new LapsedSubscriberMail($user, 'https://example.com/link');
         }
     };
 

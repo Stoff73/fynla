@@ -1169,7 +1169,6 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
 
     // User Metrics
     Route::get('/user-metrics/snapshot', [UserMetricsController::class, 'snapshot']);
-    Route::get('/user-metrics/trials', [UserMetricsController::class, 'trials']);
     Route::get('/user-metrics/plans', [UserMetricsController::class, 'plans']);
     Route::get('/user-metrics/activity', [UserMetricsController::class, 'activity']);
     Route::get('/user-metrics/engagement', [UserMetricsController::class, 'engagement']);
