@@ -4,6 +4,13 @@
 
 ---
 
+## Parallel work — 2026-05-29 (separate from SP1 Pass 6)
+
+- [x] **Revolut checkout spinner — FIXED + DEPLOYED (prod + dev).** Root cause: prod ran with config uncached → `.env` intermittently dropped DB creds → `forge`/no-password 500s → widget spun. Live-fixed prod via `config:cache`; code hardening shipped (CheckoutPage retry/error, AppServiceProvider forge guard, build.sh ends on `optimize`). main `13e88ad` (PR #422), dev (PR #421). See memory `reference_prod_forge_uncached_config.md`.
+- [ ] **Pure freemium signup — SPEC + PLAN WRITTEN, awaiting execution.** Branch `pureFreemium` (off dev). Spec `docs/superpowers/specs/2026-05-29-pure-freemium-signup-design.md`; plan `docs/superpowers/plans/2026-05-29-pure-freemium-signup.md` (6 PRs, TDD). NEXT: CSJ picks execution approach → PR1 (registration sets `tier='free'`, no trial). Big pieces: PR2 CheckSubscription rework (Free writable, DbTierGate caps), PR4 data-safe trial→Free migration. NO code yet.
+
+---
+
 ## 🎯 Active track: SP1 Pass 6 (Investments)
 
 **Plan:** `docs/superpowers/plans/2026-05-27-sub-project-1-pass-6-investments-plan.md` (768 lines, written 2026-05-27 session 5 after Pass 5 closure; CSJ-approved full Investment surface scope).
