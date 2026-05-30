@@ -18,24 +18,32 @@ use Illuminate\Support\Facades\Log;
  * Shared per-turn chat loop (CoALA Phase 5 item 4, Option B).
  *
  * Per the canonical Two-Fyn contract Fyn has one prompt and two write states.
- * Under Option B those states are thin shells over ONE loop: the shell sets a
- * {@see SessionMode} and delegates the streamed turn here. FynLoop owns the two
- * genuinely-shared pieces of a turn:
+ * Under Option B those states are thin shells over ONE loop. FynLoop owns the
+ * shared machinery of a streamed turn at two levels:
  *
- *   1. the streamed LLM turn — {@see CoordinatingAgent::chatWithPromptOverride}
- *      driven with the mode's persona, and
- *   2. the `delegate_to_capture` handoff interception — when the read-only
- *      state's LLM emits a write intent, the synthetic `handoff` SSE event is
- *      consumed here and the turn is routed through
- *      {@see OnboardingChatDirector::handleInlineCapture} into the same stream,
- *      so the user never sees the switch (INV-2.4.1).
+ *   - {@see stream()} — the raw streamed LLM turn primitive: it sets the
+ *     per-turn unified onboarding focus on THIS service's CoordinatingAgent
+ *     instance, runs {@see CoordinatingAgent::chatWithPromptOverride}, and
+ *     clears the focus afterwards. Every Fyn LLM turn (advice, asset capture,
+ *     grouped extraction, inline capture) funnels through here so the
+ *     focus-set-then-stream pairing always happens on the SAME agent instance
+ *     (CoordinatingAgent is container-transient — splitting set and stream
+ *     across two instances would silently drop the focus and the model would
+ *     fall back to the security refusal).
+ *
+ *   - {@see run()} — the advice turn: {@see stream()} in the read-only advice
+ *     persona, wrapped in {@see interceptHandoff()}. When the read-only state's
+ *     LLM emits a write intent, the synthetic `delegate_to_capture` SSE event is
+ *     consumed here and the turn is routed through
+ *     {@see OnboardingChatDirector::handleInlineCapture} into the same stream,
+ *     so the user never sees the switch (INV-2.4.1).
  *
  * The advice-mode pre-LLM bypasses (query classification, out-of-remit refusal,
  * duplicate acknowledgement, deterministic write-intent routing) stay in the
- * {@see AdviceFyn} shell — they are advice-specific, not shared
- * loop concerns. This is the conservative seam: behaviour-preserving for advice,
- * and the reusable surface the onboarding shell delegates to in the next
- * increment.
+ * {@see AdviceFyn} shell; the onboarding state machine and the
+ * per-turn post-processing (buffered content filter, gap-fill synthesis,
+ * capture-event detection) stay in {@see OnboardingChatDirector}. Only the
+ * streamed-turn primitive and the advice handoff are shared.
  *
  * Source of truth: April/April24Updates/spec/00-canonical.md.
  */
@@ -43,14 +51,63 @@ final class FynLoop
 {
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
-        private readonly OnboardingChatDirector $onboardingChatDirector,
     ) {}
 
     /**
-     * Run one streamed turn in the given mode and yield its user-visible SSE
-     * events. The streamed LLM turn is driven with the mode's persona; the
-     * `delegate_to_capture` handoff (if the model emits one) is intercepted and
-     * routed through inline capture invisibly.
+     * The raw streamed LLM turn primitive. Sets the per-turn unified onboarding
+     * focus on this service's agent instance (so the focus and the stream that
+     * reads it share one instance), streams the turn, and always clears the
+     * focus afterwards — including the generator-throw / early-abandon path.
+     *
+     * This is intentionally a thin pass-through over chatWithPromptOverride: the
+     * shells own everything else (prompts, tool lists, persona choice, and all
+     * post-processing). It exists so the focus/stream instance pairing and the
+     * clear-in-finally discipline live in exactly one place.
+     *
+     * @param  ?array<int, array<string, mixed>>  $allowedTools
+     * @param  ?array<int, array<string, mixed>>  $toolsListOverride
+     * @return \Generator<array<string, mixed>>
+     */
+    public function stream(
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        ?string $currentRoute,
+        ?string $persona,
+        ?string $systemPromptOverride = null,
+        ?array $allowedTools = null,
+        bool $persistUserMessage = true,
+        ?array $toolsListOverride = null,
+        ?string $unifiedFocus = null,
+    ): \Generator {
+        if ($unifiedFocus !== null) {
+            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
+        }
+
+        try {
+            yield from $this->coordinatingAgent->chatWithPromptOverride(
+                user: $user,
+                conversation: $conversation,
+                message: $message,
+                currentRoute: $currentRoute,
+                systemPromptOverride: $systemPromptOverride,
+                allowedTools: $allowedTools,
+                persistUserMessage: $persistUserMessage,
+                toolsListOverride: $toolsListOverride,
+                personaOverride: $persona,
+            );
+        } finally {
+            if ($unifiedFocus !== null) {
+                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+            }
+        }
+    }
+
+    /**
+     * Run one advice turn and yield its user-visible SSE events. The streamed
+     * LLM turn is driven in the mode's persona; the `delegate_to_capture`
+     * handoff (if the model emits one) is intercepted and routed through inline
+     * capture invisibly.
      *
      * @param  ?array<int, array<string, mixed>>  $allowedTools
      * @return \Generator<array<string, mixed>>
@@ -63,16 +120,13 @@ final class FynLoop
         ?string $currentRoute,
         ?array $allowedTools,
     ): \Generator {
-        $upstream = $this->coordinatingAgent->chatWithPromptOverride(
-            user: $user,
-            conversation: $conversation,
-            message: $message,
-            currentRoute: $currentRoute,
-            systemPromptOverride: null,
+        $upstream = $this->stream(
+            $user,
+            $conversation,
+            $message,
+            $currentRoute,
+            $mode->persona(),
             allowedTools: $allowedTools,
-            persistUserMessage: true,
-            toolsListOverride: null,
-            personaOverride: $mode->persona(),
         );
 
         yield from $this->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);
@@ -88,6 +142,12 @@ final class FynLoop
      *
      * The `handoff` event itself is dropped — INV-2.4.1 forbids it from reaching
      * the frontend.
+     *
+     * OnboardingChatDirector is resolved lazily here rather than constructor-
+     * injected: the director constructor-injects FynLoop (so its capture turns
+     * can use {@see stream()}), and ctor-injecting the director back would form a
+     * container cycle. The handoff branch is rare, so the late resolution costs
+     * nothing on the common path.
      *
      * @param  \Generator<array<string, mixed>>  $upstream
      * @return \Generator<array<string, mixed>>
@@ -190,7 +250,7 @@ final class FynLoop
                     'reason' => $payload['reason'] ?? null,
                 ]);
 
-                yield from $this->onboardingChatDirector->handleInlineCapture(
+                yield from app(OnboardingChatDirector::class)->handleInlineCapture(
                     $user,
                     $conversation,
                     $message,

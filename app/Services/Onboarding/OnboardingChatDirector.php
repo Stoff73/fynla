@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
+use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\RecordDuplicateChecker;
 use App\ValueObjects\CaptureContext;
@@ -56,6 +57,7 @@ final class OnboardingChatDirector
         private readonly HouseholdProvisioner $householdProvisioner,
         private readonly MemoryRetrieverService $memory,
         private readonly RecordDuplicateChecker $duplicateChecker,
+        private readonly FynLoop $fynLoop,
     ) {}
 
     /**
@@ -1301,12 +1303,13 @@ final class OnboardingChatDirector
         $captureError = null;
 
         try {
-            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+            $generator = $this->fynLoop->stream(
                 $user,
                 $conversation,
                 $message,
                 $currentRoute,
-                $systemPrompt,
+                persona: null,
+                systemPromptOverride: $systemPrompt,
                 allowedTools: null,
                 persistUserMessage: false,
                 toolsListOverride: $filtered,
@@ -1726,23 +1729,23 @@ PROMPT;
         }
 
         // Swap the coordinating agent's system prompt for this turn only.
-        // We do this by calling chat() with a short-lived prompt override —
-        // see CoordinatingAgent::chatWithPromptOverride() below.
+        // The streamed turn (and its unified-focus set/clear) runs through
+        // FynLoop::stream so the focus and the stream that reads it share one
+        // CoordinatingAgent instance — see FynLoop::stream().
         [$restrictedPrompt, $unifiedFocus] = $this->resolveUnifiedRestrictedPrompt($user, $selection, $conversation);
         $allowedTools = OnboardingPromptBuilder::toolsForFocus($selection);
-        if ($unifiedFocus !== null) {
-            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
-        }
 
         try {
-            $generator = $this->coordinatingAgent->chatWithPromptOverride(
+            $generator = $this->fynLoop->stream(
                 $user,
                 $conversation,
                 $message,
                 $currentRoute,
-                $restrictedPrompt,
-                $allowedTools,
+                persona: null,
+                systemPromptOverride: $restrictedPrompt,
+                allowedTools: $allowedTools,
                 persistUserMessage: false, // already saved at top of handleUserMessage
+                unifiedFocus: $unifiedFocus,
             );
 
             // FR-M14 — buffered sentence-level content filter.
@@ -1855,15 +1858,11 @@ PROMPT;
             ];
 
             return;
-        } finally {
-            // Always clear the unified onboarding focus — including the
-            // \Throwable path above, which returns before this point. A
-            // leaked focus would make the next advice turn on this agent
-            // build an onboarding-mode FynTurnContext.
-            if ($unifiedFocus !== null) {
-                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
-            }
         }
+        // The unified onboarding focus is set and cleared inside
+        // FynLoop::stream (on the same agent instance it streams on), so no
+        // focus-clear is needed here — FynLoop's own finally covers the
+        // generator-throw path.
 
         // Record the step in onboarding_progress (best-effort — tool calls
         // that actually created records already persisted their own rows).
@@ -2380,9 +2379,6 @@ PROMPT;
         $unifiedFocus = FynPromptMode::isUnified()
             ? ($this->inferFocusesFromEntityTypes($context->entityTypes)[0] ?? null)
             : null;
-        if ($unifiedFocus !== null) {
-            $this->coordinatingAgent->setUnifiedOnboardingFocus($unifiedFocus);
-        }
 
         /** @var list<array<string, mixed>> $llmEmittedFills */
         $llmEmittedFills = [];
@@ -2390,53 +2386,45 @@ PROMPT;
         /** @var list<array{type: string, id: int|string|null, name: string}> $recordsCreated */
         $recordsCreated = [];
 
-        try {
-            // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
-            // chat() turn that emitted delegate_to_capture already saved the
-            // user message. Re-saving from inside the inline-capture turn would
-            // produce a duplicate row in ai_messages.
-            $generator = $this->coordinatingAgent->chatWithPromptOverride(
-                user: $user,
-                conversation: $conversation,
-                message: $message,
-                currentRoute: $currentRoute,
-                systemPromptOverride: null,
-                allowedTools: $allowedTools,
-                persistUserMessage: false,
-                toolsListOverride: null,
-                personaOverride: 'data_capture',
-            );
+        // S0.5.t: persistUserMessage MUST be false — the outer Advice Fyn
+        // chat() turn that emitted delegate_to_capture already saved the
+        // user message. Re-saving from inside the inline-capture turn would
+        // produce a duplicate row in ai_messages. The streamed turn (and its
+        // unified-focus set/clear) runs through FynLoop::stream so the focus
+        // and the stream that reads it share one CoordinatingAgent instance.
+        $generator = $this->fynLoop->stream(
+            $user,
+            $conversation,
+            $message,
+            $currentRoute,
+            persona: 'data_capture',
+            allowedTools: $allowedTools,
+            persistUserMessage: false,
+            unifiedFocus: $unifiedFocus,
+        );
 
-            foreach ($generator as $event) {
-                $type = $event['type'] ?? '';
+        foreach ($generator as $event) {
+            $type = $event['type'] ?? '';
 
-                if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
-                    continue;
-                }
-
-                if ($type === 'fill_form') {
-                    $llmEmittedFills[] = (array) ($event['fields'] ?? []);
-                }
-
-                // Track every record persisted by a create_* / direct-write handler
-                // so the closing capture_complete event carries the full list.
-                if ($type === 'entity_created') {
-                    $recordsCreated[] = [
-                        'type' => (string) ($event['entity_type'] ?? ''),
-                        'id' => $event['entity_id'] ?? null,
-                        'name' => (string) ($event['name'] ?? ''),
-                    ];
-                }
-
-                yield $event;
+            if (in_array($type, ['onboarding_layout_change', 'quick_replies'], true)) {
+                continue;
             }
-        } finally {
-            // Always clear the carried focus — including the generator-throw
-            // path — so the next advice turn on this agent is not misframed
-            // as onboarding capture.
-            if ($unifiedFocus !== null) {
-                $this->coordinatingAgent->setUnifiedOnboardingFocus(null);
+
+            if ($type === 'fill_form') {
+                $llmEmittedFills[] = (array) ($event['fields'] ?? []);
             }
+
+            // Track every record persisted by a create_* / direct-write handler
+            // so the closing capture_complete event carries the full list.
+            if ($type === 'entity_created') {
+                $recordsCreated[] = [
+                    'type' => (string) ($event['entity_type'] ?? ''),
+                    'id' => $event['entity_id'] ?? null,
+                    'name' => (string) ($event['name'] ?? ''),
+                ];
+            }
+
+            yield $event;
         }
 
         yield from $this->emitGapFillFromCaptureContext(
