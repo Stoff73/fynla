@@ -22,13 +22,13 @@ use App\Models\AiAdviceLog;
 use App\Models\AiConversation;
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\Actions\ActionDispatcher;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Fyn\FynTurnContext;
-use App\Services\AI\Ground\GroundGate;
 use App\Services\AI\KycGateChecker;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
@@ -567,17 +567,25 @@ trait HasAiChat
                         'status' => 'running',
                     ];
 
-                    // CoALA ground gate (Phase 5 PR 2) — mechanical write-safety
-                    // boundary. In the read-only 'advice' state, a WRITE_TOOLS
-                    // surface is rejected BEFORE it can execute, even though the
-                    // advice catalogue already strips those tools (array_diff).
-                    // Defence-in-depth for the should-never-happen cases: a
-                    // hallucinated tool id, a strip-logic regression, a handoff
-                    // edge case. Audited as status:stripped; never executed.
-                    if (app(GroundGate::class)->blocksWriteSurface($functionName, $this->personaOverride)) {
-                        $toolResult = $this->rejectGroundSurface($functionName, $user, $conversation->id);
+                    // CoALA typed-action dispatch (Phase 5 item 3 — supersedes
+                    // the standalone GroundGate check from PR 2). Each emitted
+                    // tool call is wrapped in a typed `ground` Action and checked
+                    // against the unified SurfaceAllowlist before it can execute.
+                    // Same mechanical write-safety boundary as PR 2 (parity-tested
+                    // against GroundGate), now expressed as a typed action so the
+                    // FynLoop/planner work (items 4–5) shares one closed action
+                    // vocabulary. The model still emits raw tool calls here; the
+                    // planner that emits typed actions directly lands later.
+                    // In the read-only 'advice' state a WRITE_TOOLS surface is
+                    // denied BEFORE execution (audited status:stripped); reads and
+                    // the onboarding/legacy write states pass through unchanged.
+                    $dispatcher = app(ActionDispatcher::class);
+                    $action = $dispatcher->classify($functionName, $functionArgs);
+
+                    if (! $dispatcher->isSurfaceAllowed($action->surface(), $this->personaOverride)) {
+                        $toolResult = $this->rejectGroundSurface($action->surface(), $user, $conversation->id);
                     } else {
-                        $toolResult = $this->executeTool($functionName, $functionArgs, $user, $conversation->id);
+                        $toolResult = $this->executeTool($action->surface(), $action->args(), $user, $conversation->id);
                     }
 
                     if (isset($toolResult['created']) && $toolResult['created'] === true) {
