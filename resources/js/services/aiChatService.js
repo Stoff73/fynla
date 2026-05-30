@@ -156,6 +156,23 @@ const aiChatService = {
     },
 
     /**
+     * Resumption check (FR-M9) — the user's most recent unfinished conversation,
+     * if any, surfaced on chat open.
+     */
+    async getResumption() {
+        const response = await api.get('/ai-chat/resumption');
+        return response.data;
+    },
+
+    /**
+     * Acknowledge a resumption (continue OR start fresh — both clear it).
+     */
+    async clearResumption(conversationId) {
+        const response = await api.delete(`/ai-chat/conversations/${conversationId}/resumption`);
+        return response.data;
+    },
+
+    /**
      * Get the current user's onboarding status. Used by the chat panel
      * on open to decide whether to call /start or resume an existing
      * onboarding conversation.

@@ -40,6 +40,12 @@ const state = {
     // components watch this getter to surface a re-consent prompt; the
     // existing /settings GDPR consent UI handles the actual re-grant.
     consentRequired: false,
+    // FR-M14 — true while the planner runs (before any content), so the UI can
+    // show "Fyn is thinking…". Cleared on the first content token or done.
+    thinking: false,
+    // FR-M9 — { conversation_id, message } when the user has an unfinished
+    // conversation to resume; surfaced as a prompt on chat open.
+    pendingResumption: null,
 };
 
 const getters = {
@@ -64,6 +70,8 @@ const getters = {
     previewCta: (state) => state.previewCta,
     isOnboardingActive: (state) => state.isOnboardingActive,
     consentRequired: (state) => state.consentRequired,
+    thinking: (state) => state.thinking,
+    pendingResumption: (state) => state.pendingResumption,
 };
 
 const mutations = {
@@ -104,6 +112,14 @@ const mutations = {
 
     SET_STREAMING(state, streaming) {
         state.streaming = streaming;
+    },
+
+    SET_THINKING(state, thinking) {
+        state.thinking = thinking;
+    },
+
+    SET_PENDING_RESUMPTION(state, pending) {
+        state.pendingResumption = pending;
     },
 
     SET_STREAMING_TEXT(state, text) {
@@ -447,7 +463,15 @@ const actions = {
                         const event = JSON.parse(line.slice(6));
 
                         switch (event.type) {
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
 
@@ -720,6 +744,7 @@ const actions = {
                 commit('SET_ERROR', 'Fyn couldn\'t generate a response. This can happen with longer conversations — try starting a new one.');
             }
             commit('SET_STREAMING', false);
+            commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
 
@@ -783,7 +808,15 @@ const actions = {
                         const event = JSON.parse(line.slice(6));
 
                         switch (event.type) {
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
                             case 'title':
@@ -863,6 +896,7 @@ const actions = {
             commit('SET_ERROR', 'Connection lost. Please try again.');
         } finally {
             commit('SET_STREAMING', false);
+            commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
             if (streamedToCompletion) {
@@ -881,6 +915,42 @@ const actions = {
             commit('SET_MESSAGE_STATUS', { id: messageId, status: 'cancelled' });
         } catch (error) {
             logger.error('Failed to cancel queued message:', error);
+        }
+    },
+
+    /**
+     * FR-M9 — on chat open, check for an unfinished conversation to resume.
+     */
+    async fetchResumption({ commit }) {
+        try {
+            const { data } = await aiChatService.getResumption();
+            if (data?.has_pending) {
+                commit('SET_PENDING_RESUMPTION', {
+                    conversationId: data.conversation_id,
+                    message: data.message,
+                });
+            } else {
+                commit('SET_PENDING_RESUMPTION', null);
+            }
+        } catch (e) {
+            // Non-fatal — resumption is an enhancement, not a blocker.
+            logger.debug('[chat] resumption check failed', e);
+        }
+    },
+
+    /**
+     * FR-M9 — acknowledge the resumption (continue OR start fresh both clear it
+     * server-side and dismiss the prompt).
+     */
+    async acknowledgeResumption({ commit, state }) {
+        const pending = state.pendingResumption;
+        commit('SET_PENDING_RESUMPTION', null);
+        if (pending?.conversationId) {
+            try {
+                await aiChatService.clearResumption(pending.conversationId);
+            } catch (e) {
+                logger.debug('[chat] clearResumption failed', e);
+            }
         }
     },
 
@@ -944,7 +1014,15 @@ const actions = {
                         const event = JSON.parse(line.slice(6));
 
                         switch (event.type) {
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
 
@@ -1019,6 +1097,7 @@ const actions = {
             }
         } finally {
             commit('SET_STREAMING', false);
+            commit('SET_THINKING', false);
             commit('SET_STREAMING_TEXT', '');
             commit('SET_ABORT_CONTROLLER', null);
         }
@@ -1175,7 +1254,15 @@ const actions = {
                                 }
                                 return;
 
+                            case 'thinking':
+                                // FR-M14 — planner is running; show "Fyn is thinking…".
+                                commit('SET_THINKING', true);
+                                break;
+
                             case 'content':
+                                if (state.thinking) {
+                                    commit('SET_THINKING', false);
+                                }
                                 commit('APPEND_STREAMING_TEXT', event.text);
                                 break;
 
