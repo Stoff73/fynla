@@ -13,6 +13,7 @@ use App\Models\AiConversation;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Loop\ConcurrentTurnQueue;
+use App\Services\AI\Loop\ResumptionService;
 use App\Services\Eval\EvalTraceCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -33,6 +34,7 @@ class AiChatController extends Controller
         private readonly AdviceFyn $adviceFyn,
         private readonly ConsentService $consentService,
         private readonly ConcurrentTurnQueue $queue,
+        private readonly ResumptionService $resumption,
     ) {}
 
     /**
@@ -275,6 +277,14 @@ class AiChatController extends Controller
                     ob_flush();
                 }
                 flush();
+
+                // FR-M9 — a fatal mid-stream error leaves the turn unfinished;
+                // record a resumption so the next session can offer to pick it up.
+                $this->resumption->flag(
+                    $conversation,
+                    'fatal_error',
+                    'We hit a snag while answering last time — want to pick up where we left off?',
+                );
             } finally {
                 // Eval trace hand-off (P0.1). The bypass-preview-mode token
                 // gate has already filtered out non-eval traffic via
@@ -455,6 +465,47 @@ class AiChatController extends Controller
             'status' => 'cancelled',
             'message_id' => $turn->id,
         ]);
+    }
+
+    /**
+     * Resumption check (FR-M9). The user's most recent conversation that ended
+     * without finishing, if any — surfaced on chat open as "last time we didn't
+     * finish — continue, or start fresh?".
+     *
+     * GET /api/ai-chat/resumption
+     */
+    public function getResumption(Request $request): JsonResponse
+    {
+        $conversation = $this->resumption->latestForUser($request->user()->id);
+
+        if ($conversation === null) {
+            return response()->json(['success' => true, 'data' => ['has_pending' => false]]);
+        }
+
+        $pending = $this->resumption->pending($conversation) ?? [];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'has_pending' => true,
+                'conversation_id' => $conversation->id,
+                'reason' => $pending['reason'] ?? null,
+                'message' => $pending['message'] ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * Acknowledge a resumption (continue OR start fresh both clear the flag).
+     *
+     * DELETE /api/ai-chat/conversations/{id}/resumption
+     */
+    public function clearResumption(Request $request, int $id): JsonResponse
+    {
+        $conversation = AiConversation::forUser($request->user()->id)->findOrFail($id);
+        $this->resumption->clear($conversation);
+
+        return response()->json(['success' => true]);
     }
 
     /**

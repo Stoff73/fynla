@@ -1379,6 +1379,9 @@ Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(f
     Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage']);
     // FR-M7 scenario 4 — cancel a still-queued turn before it streams.
     Route::delete('/conversations/{id}/messages/{messageId}', [AiChatController::class, 'cancelQueuedMessage']);
+    // FR-M9 — resumption surface: read the pending resumption, or clear it.
+    Route::get('/resumption', [AiChatController::class, 'getResumption']);
+    Route::delete('/conversations/{id}/resumption', [AiChatController::class, 'clearResumption']);
     Route::post('/conversations/{id}/action', [AiChatController::class, 'action']);
     // Fyn-driven onboarding flow (backend-authoritative state machine)
     Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
