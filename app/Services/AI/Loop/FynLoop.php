@@ -13,6 +13,7 @@ use App\Services\AI\Cost\AiCostAttributionService;
 use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\HandoffContract;
 use App\Services\AI\HandoffPayloadValidator;
+use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Log;
@@ -85,6 +86,7 @@ final class FynLoop
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
         private readonly Planner $planner,
+        private readonly FynMemoryStore $memory,
     ) {}
 
     /**
@@ -161,6 +163,11 @@ final class FynLoop
     ): \Generator {
         $retrieveCount = 0;
         $cap = $this->cycleCap($mode);
+        // FR-M2 — the planner reasons with memory: procedural corpus + the user's
+        // recalled episodes + (once authored) the episodic-capture rubric. Empty
+        // layers when nothing is authored yet, so behaviour is unchanged until
+        // the stores have content.
+        $plannerSystem = $this->plannerSystemPrompt($user);
 
         // FR-M14 — surface "Fyn is thinking…" while the planner runs, before any
         // reasoner output exists.
@@ -168,7 +175,7 @@ final class FynLoop
 
         for ($cycle = 1; $cycle <= $cap; $cycle++) {
             $action = $this->planner->plan(
-                self::PLANNER_SYSTEM_PROMPT,
+                $plannerSystem,
                 [['role' => 'user', 'content' => $message]],
             );
 
@@ -182,7 +189,12 @@ final class FynLoop
                     return;
 
                 case ActionType::Learn:
-                    // Phase 2 episodic store absent — no-op, re-plan.
+                    // FR-M2 — the planner decided this turn is worth remembering
+                    // (it applied the rubric). Write the episode, then re-plan.
+                    if ($action->store() === 'episodic') {
+                        $this->recordEpisode($user, $conversation, $action->payload());
+                    }
+
                     continue 2;
 
                 case ActionType::Retrieve:
@@ -227,6 +239,46 @@ final class FynLoop
             'fyn.cycle_cap.'.$mode->value,
             config('fyn.cycle_cap.default', self::CYCLE_CAP),
         );
+    }
+
+    /**
+     * The planner's system prompt, layered with memory (FR-M2): the procedural
+     * corpus, the user's recalled episodes, and the episodic-capture rubric.
+     * Each layer is empty until authored, so this equals the bare planner prompt
+     * while the stores are empty.
+     */
+    private function plannerSystemPrompt(User $user): string
+    {
+        $layers = array_values(array_filter([
+            self::PLANNER_SYSTEM_PROMPT,
+            $this->memory->proceduralContext(),
+            $this->memory->recallContext($user->id),
+        ], static fn (string $layer): bool => trim($layer) !== ''));
+
+        $rubric = $this->memory->rubric();
+        if ($rubric !== '') {
+            $layers[] = "## Episodic capture rubric — apply this to decide whether to emit a `learn` action\n\n".$rubric;
+        }
+
+        return implode("\n\n", $layers);
+    }
+
+    /**
+     * FR-M2 — persist a planner-decided episode to episodic memory. Guarded:
+     * a memory write must never break a turn.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function recordEpisode(User $user, AiConversation $conversation, array $payload): void
+    {
+        try {
+            $this->memory->writeEpisode($user->id, $conversation->id, $payload);
+        } catch (\Throwable $e) {
+            Log::warning('[FynLoop] episode write failed', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

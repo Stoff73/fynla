@@ -8,7 +8,9 @@ use App\Models\TierConfiguration;
 use App\Models\User;
 use App\Services\AI\Loop\FynLoop;
 use App\Services\AI\Loop\SessionMode;
+use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\TaxConfigService;
+use Illuminate\Support\Facades\File;
 use Tests\Support\Fyn\FynStreamHarness;
 
 /**
@@ -98,6 +100,31 @@ it('records reasoner + planner cost-attribution rows and emits thinking (FR-M11/
         'action_type' => 'reason',
         'session_mode' => 'advice',
     ]);
+});
+
+it('writes an episode when the planner emits a learn action (FR-M2)', function () {
+    [$user, $conversation] = fynLoopUser();
+    $base = sys_get_temp_dir().'/fyn-loop-mem-'.uniqid();
+    config(['fyn.memory.episodic_path' => $base]);
+
+    FynStreamHarness::fake()
+        ->toolTurn('plan', ['action_type' => 'learn', 'store' => 'episodic', 'payload' => ['summary' => 'User wants to retire at 60.']])
+        ->toolTurn('plan', ['action_type' => 'reason', 'prompt_template_id' => 'advice_default'])
+        ->textTurn('Noted — I will remember that.')
+        ->bind();
+
+    iterator_to_array(
+        app(FynLoop::class)->run(SessionMode::Advice, $user, $conversation, 'I want to retire at 60', null, null),
+        preserve_keys: false,
+    );
+
+    $episodes = app(FynMemoryStore::class)->recall($user->id);
+
+    expect($episodes)->toHaveCount(1)
+        ->and($episodes[0]['body'])->toContain('retire at 60')
+        ->and($episodes[0]['meta']['conversation_id'])->toBe($conversation->id);
+
+    File::deleteDirectory($base);
 });
 
 it('emits the canonical defer response on a no_action plan', function () {
