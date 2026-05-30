@@ -44,8 +44,11 @@ class AiChatController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // FR-M10 — paused (idle) conversations stay in history so the user can
+        // return to them; sending reopens them. Only soft-deleted / archived
+        // conversations drop out.
         $conversations = AiConversation::forUser($request->user()->id)
-            ->active()
+            ->whereIn('status', ['active', 'paused'])
             ->orderByDesc('last_message_at')
             ->limit(50)
             ->get(['id', 'title', 'message_count', 'last_message_at', 'created_at']);
@@ -160,6 +163,11 @@ class AiChatController extends Controller
         }
 
         $conversation = AiConversation::forUser($user->id)->findOrFail($id);
+
+        // FR-M10 — sending reopens a paused (idle) conversation.
+        if ($conversation->status === 'paused') {
+            $conversation->update(['status' => 'active']);
+        }
 
         $message = $request->input('message');
         $currentRoute = $request->input('current_route');

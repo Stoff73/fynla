@@ -27,6 +27,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('registrations:cleanup')->hourly();
         $schedule->command('sessions:cleanup')->dailyAt('02:00');
         $schedule->command('audit:purge')->weeklyOn(0, '03:00');
+        // CoALA Phase 5 FR-M10 — pause + consolidate conversations idle 3+ min.
+        $schedule->command('ai:conversations:summarise-stale --idle-minutes=3 --pause')
+            ->everyThreeMinutes()
+            ->withoutOverlapping();
         $schedule->command('notifications:daily-insight')->dailyAt('08:00');
         $schedule->command('lifecycle:run-daily')->dailyAt('08:30');
         $schedule->command('notifications:policy-renewals')->dailyAt('09:00');
