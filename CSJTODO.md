@@ -1,6 +1,6 @@
 # CSJTODO — Fynla
 
-*Last updated: 2026-05-30 — session 1 (end-of-day) — **CoALA Phase 5 PR 1 + PR 2 BUILT (on branches, pushed to origin, NOT merged).** Test-stabilisation Phase 0 DONE (audit flake fixed session 5 `bb415be`; SavingsAgent flake + 8 strict_types fixed this session, `7384aea`). PR 1 (prompt-cache + GBP cost telemetry) = `feat/coala-cost-telemetry` `d390f67`. PR 2 (ground mechanical write-safety gate) = `feat/coala-ground-gate` `383796c`. NEW flake found: `ActuarialLifeTableAdminTest` (order-dependent, passes alone) — see Known issues. Full arc: `May/May30Updates/handover-2026-05-30-session-1.md`. **CoALA PRs target `coala`, not dev (CSJ decision).** SP1 resume point preserved below.*
+*Last updated: 2026-05-30 — session 2 (context-clear) — **CoALA Phase 5 items 1–3 BUILT + item 4 STARTED.** Item 1 (telemetry) `feat/coala-cost-telemetry` `d390f67` (pushed). Item 2 (ground gate) `feat/coala-ground-gate` `d0e50cd` (pushed). Item 3 (typed Action enum + dispatcher) `feat/coala-action-enum` `28d5ebe` (NOT pushed; amended to fix a Pint-stripped import that would've fatalled advice-mode tool calls). Item 4 (FynLoop, Option B approved): SessionMode + stream-mock harness on `feat/coala-fynloop` `aa92fca` (NOT pushed) — the FynLoop extraction itself is NOT started. Test-stab: both flakes fixed + ProtectionWorkflowTest modernised, all on `fix/coala-test-stabilisation` `f7c8081` (+2, NOT pushed). Full arc: `May/May30Updates/handover-2026-05-30-session-2-clear.md`. **CoALA PRs target `coala`, not dev. Nothing pushed this session (CSJ steer). Pint-strip-import gotcha shipped a fatal — always `grep -c "use …;"` after adding imports.** SP1 resume point preserved below.*
 
 ---
 
@@ -22,17 +22,20 @@
 
 **CoALA Phase 5 (per `fynla-coala-implementation-plan.md` v0.4 §8 internal sequencing):**
 - [x] **Item 1 — prompt-cache hit/miss + GBP cost telemetry** (PR 1). `feat/coala-cost-telemetry` `d390f67` (pushed). `AiCostCalculator` + `config/ai_pricing.php` + `HasAiChat::costTelemetryMetadata()`. 12 tests.
-- [x] **Item 2 — `ground` mechanical write-safety gate** (PR 2). `feat/coala-ground-gate` `383796c` (pushed, stacks on stabilisation). `GroundGate` rejects WRITE_TOOLS in advice persona at dispatch; audited `status:stripped`. 10 tests + drift guards.
-- [ ] **Item 3 — typed `Action` enum + dispatcher refactor** (wrap flat tool catalogue in `reason|retrieve|learn|ground`). NOT started. Plan lines 293–327.
-- [ ] Items 4–8: `FynLoop` service → planner LLM call → concurrent-turn queue → resumption check → per-action cost-attribution table + admin dashboard.
-- [ ] **Two-Fyn A/B collapse decision** (plan §"Two-Fyn collapse") — DEFERRED to CSJ; plan recommends Option B. Ground gate built additively so not yet forced.
-- [ ] **Open the 3 feature→coala PRs** when ready for review/merge (telemetry, stabilisation, ground-gate). All pushed to origin.
+- [x] **Item 2 — `ground` mechanical write-safety gate** (PR 2). `feat/coala-ground-gate` `d0e50cd` (pushed, stacks on stabilisation). `GroundGate` rejects WRITE_TOOLS in advice persona at dispatch; audited `status:stripped`. 10 tests + drift guards.
+- [x] **Item 3 — typed `Action` enum + dispatcher refactor** (DONE 2026-05-30 sess 2). `feat/coala-action-enum` `28d5ebe` (NOT pushed; off ground-gate). `app/Services/AI/Actions/`: `ActionType`/`Action`/`ToolActionMapper`/`SurfaceAllowlist`/`ActionDispatcher`. `HasAiChat:577` seam rewired GroundGate→ActionDispatcher (typed `ground` Action; SurfaceAllowlist byte-parity with GroundGate). 26 tests. **Amended to fix a Pint-stripped `ActionDispatcher` import** (would've fatalled advice-mode tool calls — caught by the new harness).
+- [~] **Item 4 — `FynLoop` (Option B approved)** — STARTED, not finished. `feat/coala-fynloop` `aa92fca` (NOT pushed; off action-enum). Done: `SessionMode` enum + **stream-mock harness** (`tests/Support/Fyn/`, drives the real loop with scripted SDK turns). **The FynLoop extraction (route AdviceFyn → then OnboardingChatDirector through one shared loop) is NOT started** — next action. No planner (item 5).
+- [ ] Items 5–8: planner LLM call → concurrent-turn queue → resumption check → per-action cost-attribution table + admin dashboard.
+- [x] **Two-Fyn A/B collapse decision** — RESOLVED: CSJ approved **Option B** (shared loop + thin shells; canonical contract preserved). Do not propose Option A.
+- [ ] **Open the feature→coala PRs** when ready (telemetry, stabilisation, ground-gate, action-enum, fynloop). cost-telemetry + ground-gate pushed; the rest are local-only.
 - Phase 1 semantic memory → 2 → 3 → 4 → 5(full) → 6. Stakeholder re-review at end of Phase 5.
 
 **Known issues:**
-- [ ] **NEW flake: `tests/Feature/Admin/ActuarialLifeTableAdminTest`** — order-dependent (fails ~once per full `Unit,Feature` run, passes in isolation). Different from the SavingsAgent flake. Suite now has ≥2 known order-dependent flakes → systemic test-isolation sweep worth scheduling (scoped queries / shared state / Carbon leaks). Diagnose via systematic-debugging.
+- [x] **`ActuarialLifeTableAdminTest` flake — FIXED** (`7b07b1b` on stabilisation). Was random-factory-data collision on `UNIQUE(age,gender,table_year)` (~1.53%), NOT order-dependent. Both this-session "flakes" were random-data, not bleed.
+- [x] **`ProtectionWorkflowTest` (4 failing on the ground-gate base) — FIXED** (`f7c8081` on stabilisation). Stale: readiness gate needs user income/dob/marital; tax-config memo needs `forgetInstance`; `adequacy_score` is now an insights array; CI policy soft-deletes. Integration 30/0.
 - [ ] **`config/ai_pricing.php` rates are derived placeholders** (USD list × 0.79 FX) — VERIFY against live provider pricing before relying on `gbp_cost` for FCA/board reporting.
-- [ ] **No stream-mock test harness** for the AI chat loop — PR 1 persistence + PR 2 in-loop gate execution lack e2e coverage (unit coverage solid). Building one is its own task.
+- [x] **Stream-mock harness — BUILT** (`aa92fca`). `tests/Support/Fyn/{FynStreamHarness,ScriptedAnthropicClient}`. Closes the item-1/item-2 e2e gap; `bind()` forces anthropic (prod=xai; loop is provider-agnostic). An xAI variant is a future nicety.
+- [ ] **Pint-strip-import hazard** — Pint strips unused imports on PostToolUse; adding import + usage in separate edits loses the import (shipped a fatal this session). Always `grep -c "use …;"` after, or add usage first.
 
 ---
 

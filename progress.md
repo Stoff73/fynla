@@ -121,3 +121,11 @@
 - Branch: coala
 - WIP commit: none (tree clean; gate fixes in 19d758b/bb415be/5c018dd, merge 2e1dbb0)
 - Pick up at: branch feat/coala-cost-telemetry off coala → CoALA Phase 5 PR 1 (prompt-cache + GBP cost telemetry in HasAiChat; capture cache_creation tokens + gbp_cost via config/ai_pricing.php). CoALA test-stab gate is CLOSED (4072 passed, 0 failed).
+
+## 2026-05-30 — session 2 (context-clear)
+- Handover: [[handover-2026-05-30-session-2-clear]]
+- Branch: feat/coala-fynloop
+- Commits this session: 5 — actuarial flake fix (7b07b1b) + ProtectionWorkflowTest modernise (f7c8081) on fix/coala-test-stabilisation; CoALA item 3 typed Action enum + dispatcher (28d5ebe, amended) on feat/coala-action-enum; item 4 SessionMode (2b68b3c) + stream-mock harness (aa92fca) on feat/coala-fynloop.
+- Status: 0 uncommitted. Nothing pushed (CSJ steer). action-enum + fynloop are NEW unpushed branches.
+- Harness caught a shipped fatal in item 3 (Pint-stripped ActionDispatcher import → live seam unresolvable); fixed.
+- Next: FynLoop extraction — route AdviceFyn::handle through a shared Loop\FynLoop (Option B, no planner). TDD against tests/Feature/Fyn/FynStreamHarnessTest; full sign-off needs Fyn eval suite + browser.
