@@ -195,13 +195,15 @@
           </div>
           <div
             v-else
-            :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
+            :class="msg.role === 'user' ? 'flex flex-col items-end' : 'flex justify-start'"
           >
             <div
               :class="[
                 'max-w-[85%] rounded-lg px-3 py-2 text-sm',
                 msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm',
                 messageClass(msg),
+                msg.status === 'queued' ? 'opacity-50' : '',
+                msg.status === 'processing' ? 'animate-pulse' : '',
               ]"
             >
               <AiMessageContent
@@ -211,6 +213,17 @@
               />
               <span v-else>{{ msg.content }}</span>
             </div>
+            <!-- FR-M7 — a turn queued behind an in-flight one can be cancelled
+                 before it streams. Text affordance only (the chat is a Rule #16
+                 icon-banned surface). -->
+            <button
+              v-if="msg.role === 'user' && msg.status === 'queued'"
+              type="button"
+              class="mt-1 text-xs font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
+              @click="handleCancelQueued(msg.id)"
+            >
+              Waiting — cancel
+            </button>
           </div>
         </div>
 
@@ -800,7 +813,15 @@ export default {
             'sendMessage',
             'abortStreaming',
             'postAction',
+            'cancelQueued',
         ]),
+
+        /**
+         * FR-M7 — cancel a queued turn from its "Waiting — cancel" affordance.
+         */
+        async handleCancelQueued(messageId) {
+            await this.cancelQueued(messageId);
+        },
 
         /**
          * Phase 10 — skip-link click handler. Posts {action: 'skip'} to the
