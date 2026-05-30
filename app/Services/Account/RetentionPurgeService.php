@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Account;
 
 use App\Models\User;
+use App\Services\AI\Memory\FynMemoryStore;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -37,6 +38,10 @@ class RetentionPurgeService
 
             // ─── Phase 2: Delete uploaded documents from disk ───
             $this->deleteDocumentFiles($userId);
+
+            // ─── Phase 2b: Delete the user's episodic memory (CoALA markdown
+            // store) — GDPR right to erasure (FR-M2 / fyn-memory/episodic). ───
+            app(FynMemoryStore::class)->forget($userId);
 
             // ─── Phase 3: Delete polymorphic holdings ───
             $count = $this->deleteHoldings($userId);

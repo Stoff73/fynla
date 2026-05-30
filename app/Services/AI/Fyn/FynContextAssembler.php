@@ -6,6 +6,7 @@ namespace App\Services\AI\Fyn;
 
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Onboarding\OnboardingPromptBuilder;
@@ -30,6 +31,7 @@ final class FynContextAssembler
         private readonly AdvicePromptBuilder $advice,
         private readonly MemoryRetrieverService $memory,
         private readonly TaxConfigService $taxConfig,
+        private readonly FynMemoryStore $memoryStore,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -56,6 +58,18 @@ final class FynContextAssembler
         $known = $this->memory->renderKnownFactsBlock($ctx->user, $ctx->conversation);
         if ($known !== '') {
             $lines[] = $known;
+        }
+
+        // CoALA durable memory (FR-M2): the procedural corpus shapes HOW Fyn
+        // answers; recalled episodes are WHAT Fyn remembers about this user. Both
+        // are empty until authored / accrued, so this is a no-op today.
+        $procedural = $this->memoryStore->proceduralContext();
+        if ($procedural !== '') {
+            $lines[] = "<procedures>\n{$procedural}\n</procedures>";
+        }
+        $remembered = $this->memoryStore->recallContext($ctx->user->id);
+        if ($remembered !== '') {
+            $lines[] = "<remembered>\n{$remembered}\n</remembered>";
         }
 
         if ($has(ContextBucket::POSITION)) {
