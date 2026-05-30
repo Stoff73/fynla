@@ -39,4 +39,19 @@ return [
         'advice' => (int) env('FYN_CYCLE_CAP_ADVICE', 8),
         'onboarding' => (int) env('FYN_CYCLE_CAP_ONBOARDING', 8),
     ],
+
+    /*
+     * CoALA memory stores (markdown). Procedural = CSJ-authored procedures;
+     * episodic = Fyn-agent-written episodes governed by the rubric; semantic =
+     * Phase 1 (future). See fyn-memory/README.md. The loop's retrieve/learn
+     * actions read/write these paths once the adapters are wired.
+     */
+    'memory' => [
+        'root' => base_path('fyn-memory'),
+        'procedural_path' => base_path('fyn-memory/procedural'),
+        'episodic_rubric' => base_path('fyn-memory/episodic/RUBRIC.md'),
+        'episodic_template' => base_path('fyn-memory/episodic/_TEMPLATE.md'),
+        'episodic_path' => base_path('fyn-memory/episodic/episodes'),
+        'semantic_path' => base_path('fyn-memory/semantic'),
+    ],
 ];
