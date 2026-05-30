@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AI\Actions\ActionType;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Cost\AiCostAttributionService;
+use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\HandoffContract;
 use App\Services\AI\HandoffPayloadValidator;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -159,12 +160,20 @@ final class FynLoop
         bool $persistUserMessage = true,
     ): \Generator {
         $retrieveCount = 0;
+        $cap = $this->cycleCap($mode);
 
-        for ($cycle = 1; $cycle <= self::CYCLE_CAP; $cycle++) {
+        // FR-M14 — surface "Fyn is thinking…" while the planner runs, before any
+        // reasoner output exists.
+        yield ['type' => 'thinking'];
+
+        for ($cycle = 1; $cycle <= $cap; $cycle++) {
             $action = $this->planner->plan(
                 self::PLANNER_SYSTEM_PROMPT,
                 [['role' => 'user', 'content' => $message]],
             );
+
+            // FR-M11 — attribute the planner's own LLM call (stage=planner).
+            $this->recordPlannerCost($mode, $user, $conversation, $action->type, $cycle);
 
             switch ($action->type) {
                 case ActionType::NoAction:
@@ -209,6 +218,18 @@ final class FynLoop
     }
 
     /**
+     * The planning cycle cap for this turn's mode (FR-S2 — configurable per
+     * session_mode, falling back to the global default).
+     */
+    private function cycleCap(SessionMode $mode): int
+    {
+        return (int) config(
+            'fyn.cycle_cap.'.$mode->value,
+            config('fyn.cycle_cap.default', self::CYCLE_CAP),
+        );
+    }
+
+    /**
      * Stream the reasoner: the streamed LLM turn in the mode's persona, wrapped
      * in the delegate_to_capture handoff interception.
      *
@@ -247,6 +268,53 @@ final class FynLoop
     {
         yield ['type' => 'content', 'text' => self::NO_ACTION_MESSAGE];
         yield ['type' => 'done'];
+    }
+
+    /**
+     * FR-M11 — attribute the planner's own LLM call (stage=planner). Its token
+     * usage is captured on the Planner during the call. Guarded — telemetry must
+     * never break a turn.
+     */
+    private function recordPlannerCost(
+        SessionMode $mode,
+        User $user,
+        AiConversation $conversation,
+        ActionType $actionType,
+        int $cycle,
+    ): void {
+        try {
+            $usage = $this->planner->lastUsage;
+
+            $cost = app(AiCostCalculator::class)->compute(
+                model: (string) ($usage['model'] ?? ''),
+                inputTokens: (int) ($usage['input'] ?? 0),
+                outputTokens: (int) ($usage['output'] ?? 0),
+                cacheReadTokens: (int) ($usage['cache_read'] ?? 0),
+                cacheCreationTokens: (int) ($usage['cache_creation'] ?? 0),
+            );
+
+            app(AiCostAttributionService::class)->record([
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'session_mode' => $mode->value,
+                'action_type' => $actionType->value,
+                'stage' => 'planner',
+                'cycle_id' => $cycle,
+                'procedural_version' => (string) config('fyn.prompt_architecture', 'unified'),
+                'model' => (string) ($usage['model'] ?? ''),
+                'input_tokens' => (int) ($usage['input'] ?? 0),
+                'output_tokens' => (int) ($usage['output'] ?? 0),
+                'cache_hit_tokens' => (int) ($usage['cache_read'] ?? 0),
+                'cache_miss_tokens' => (int) ($usage['cache_creation'] ?? 0),
+                'gbp_cost' => $cost['gbp_cost'],
+                'gbp_cost_priced' => $cost['priced'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[FynLoop] planner cost attribution failed', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

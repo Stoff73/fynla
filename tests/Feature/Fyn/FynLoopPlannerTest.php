@@ -68,7 +68,7 @@ it('plans reason then streams the reasoner answer through the loop', function ()
     ]);
 });
 
-it('records a reasoner cost-attribution row tagged to the action (FR-M11)', function () {
+it('records reasoner + planner cost-attribution rows and emits thinking (FR-M11/M14)', function () {
     [$user, $conversation] = fynLoopUser();
 
     FynStreamHarness::fake()
@@ -76,15 +76,25 @@ it('records a reasoner cost-attribution row tagged to the action (FR-M11)', func
         ->textTurn('Your total net worth is £250,000.')
         ->bind();
 
-    iterator_to_array(
+    $events = iterator_to_array(
         app(FynLoop::class)->run(SessionMode::Advice, $user, $conversation, 'net worth?', null, null),
         preserve_keys: false,
     );
 
+    // FR-M14 — a thinking event is surfaced while the planner runs.
+    expect(collect($events)->pluck('type'))->toContain('thinking');
+
+    // FR-M11 — both the reasoner turn AND the planner's own call are attributed.
     $this->assertDatabaseHas('ai_cost_attribution', [
         'conversation_id' => $conversation->id,
         'user_id' => $user->id,
         'stage' => 'reasoner',
+        'action_type' => 'reason',
+        'session_mode' => 'advice',
+    ]);
+    $this->assertDatabaseHas('ai_cost_attribution', [
+        'conversation_id' => $conversation->id,
+        'stage' => 'planner',
         'action_type' => 'reason',
         'session_mode' => 'advice',
     ]);

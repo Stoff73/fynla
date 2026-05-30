@@ -128,7 +128,7 @@ it('allows sendMessage to stream when ai_chat consent is granted', function (): 
     $response->assertOk();
     $events = parseSseEvents($response->streamedContent());
 
-    expect($events->pluck('type')->all())->toBe(['content', 'done']);
+    expect($events->pluck('type')->all())->toBe(['thinking', 'content', 'done']);
     expect($events->pluck('type')->filter(fn ($t) => $t === 'consent_required'))->toBeEmpty();
 });
 
@@ -218,7 +218,7 @@ it('emits consent_required SSE and closes the stream when consent is withdrawn m
 
     // First content event got through, then consent_required, then nothing
     // (no 'second' content, no 'done').
-    expect($types)->toBe(['content', 'consent_required']);
+    expect($types)->toBe(['thinking', 'content', 'consent_required']);
 
     $consentEvent = $events->firstWhere('type', 'consent_required');
     expect($consentEvent['required'] ?? null)->toBe('ai_chat');
@@ -264,7 +264,7 @@ it('queries hasConsent at most once across a fast SSE stream (W1-L perf cache)',
 
     $response->assertOk();
     $events = parseSseEvents($response->streamedContent());
-    expect($events->count())->toBe(26); // 25 chunks + done
+    expect($events->count())->toBe(27); // thinking + 25 chunks + done
 
     // 1 call only: the entry-point gate at sendMessage line 149.
     $spy->shouldHaveReceived('hasConsent')->once();

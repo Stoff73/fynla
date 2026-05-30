@@ -28,4 +28,15 @@ return [
         'depth_cap' => (int) env('FYN_QUEUE_DEPTH_CAP', 3),
         'ttl_minutes' => (int) env('FYN_QUEUE_TTL_MINUTES', 10),
     ],
+
+    /*
+     * Planning cycle cap per session mode (CoALA Phase 5 — FR-M6 / FR-S2).
+     * Bounds planner→action iterations per turn; FynLoop reads the cap for the
+     * turn's session_mode, falling back to `default`.
+     */
+    'cycle_cap' => [
+        'default' => (int) env('FYN_CYCLE_CAP', 8),
+        'advice' => (int) env('FYN_CYCLE_CAP_ADVICE', 8),
+        'onboarding' => (int) env('FYN_CYCLE_CAP_ONBOARDING', 8),
+    ],
 ];

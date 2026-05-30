@@ -57,6 +57,14 @@ final class Planner
     private const PLAN_DESCRIPTION = 'Choose the single next action for this turn. Emit exactly one action_type and only that variant\'s fields.';
 
     /**
+     * Token usage of the most recent {@see plan()} call, so FynLoop can attribute
+     * the planner's own LLM call into the cost ledger (FR-M11). Reset on each call.
+     *
+     * @var array{input: int, output: int, cache_read: int, cache_creation: int, model: string}
+     */
+    public array $lastUsage = ['input' => 0, 'output' => 0, 'cache_read' => 0, 'cache_creation' => 0, 'model' => ''];
+
+    /**
      * Make one forced `plan` tool call over the active provider and return the
      * chosen typed Action.
      *
@@ -66,6 +74,7 @@ final class Planner
     {
         $provider = $this->resolveProvider();
         $model ??= $this->resolveModel($provider);
+        $this->lastUsage = ['input' => 0, 'output' => 0, 'cache_read' => 0, 'cache_creation' => 0, 'model' => $model];
 
         // The planner runs on every advice turn ("replace dispatch now"), so a
         // provider failure (timeout, 5xx, missing key) must NEVER break the turn.
@@ -110,6 +119,15 @@ final class Planner
                 $accumulatedJson = '';
             } elseif ($event instanceof RawContentBlockDeltaEvent && $event->delta instanceof InputJSONDelta) {
                 $accumulatedJson .= $event->delta->partialJSON ?? '';
+            } elseif ($event instanceof RawMessageStartEvent) {
+                $usage = $event->message->usage ?? null;
+                if ($usage !== null) {
+                    $this->lastUsage['input'] += (int) ($usage->inputTokens ?? 0);
+                    $this->lastUsage['cache_read'] += (int) ($usage->cacheReadInputTokens ?? 0);
+                    $this->lastUsage['cache_creation'] += (int) ($usage->cacheCreationInputTokens ?? 0);
+                }
+            } elseif ($event instanceof RawMessageDeltaEvent) {
+                $this->lastUsage['output'] += (int) ($event->usage->outputTokens ?? 0);
             }
         }
 
@@ -128,6 +146,7 @@ final class Planner
             'max_completion_tokens' => self::MAX_TOKENS,
             'temperature' => 0,
             'stream' => true,
+            'stream_options' => ['include_usage' => true],
             'tools' => [self::planToolOpenAi()],
             'tool_choice' => ['type' => 'function', 'function' => ['name' => 'plan']],
         ];
@@ -137,6 +156,12 @@ final class Planner
         $accumulatedJson = '';
 
         foreach ($stream as $response) {
+            if (isset($response->usage)) {
+                $this->lastUsage['input'] += (int) ($response->usage->promptTokens ?? $response->usage->prompt_tokens ?? 0);
+                $this->lastUsage['output'] += (int) ($response->usage->completionTokens ?? $response->usage->completion_tokens ?? 0);
+                $this->lastUsage['cache_read'] += (int) ($response->usage->promptTokensDetails->cachedTokens ?? 0);
+            }
+
             $delta = $response->choices[0]->delta ?? null;
             if ($delta === null) {
                 continue;
