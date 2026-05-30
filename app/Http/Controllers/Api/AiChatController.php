@@ -11,12 +11,14 @@ use App\Http\Traits\SanitizedErrorResponse;
 use App\Models\AiConversation;
 use App\Models\UserConsent;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\Loop\ConcurrentTurnQueue;
 use App\Services\Eval\EvalTraceCollector;
 use App\Services\GDPR\ConsentService;
 use App\Services\Onboarding\OnboardingChatDirector;
 use App\Services\Onboarding\OnboardingStateMachine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -29,6 +31,7 @@ class AiChatController extends Controller
         private readonly OnboardingChatDirector $onboardingDirector,
         private readonly AdviceFyn $adviceFyn,
         private readonly ConsentService $consentService,
+        private readonly ConcurrentTurnQueue $queue,
     ) {}
 
     /**
@@ -158,6 +161,32 @@ class AiChatController extends Controller
         $message = $request->input('message');
         $currentRoute = $request->input('current_route');
 
+        // CoALA Phase 5 item 6 (FR-M7) — concurrent-turn queue. A per-conversation
+        // lock marks the in-flight turn. If one is already streaming, this turn is
+        // queued (or rejected past the depth cap) instead of opening a second
+        // stream; the frontend renders it greyed and streams it once the in-flight
+        // turn finishes (frontend-driven transport). The 5-minute lock TTL
+        // auto-clears if a stream dies without releasing, so a conversation can
+        // never wedge permanently.
+        $inflightLock = Cache::lock('fyn:inflight:'.$conversation->id, 300);
+
+        if (! $inflightLock->get()) {
+            if ($this->queue->isFull($conversation)) {
+                return response()->json([
+                    'error' => 'queue_full',
+                    'message' => 'You have a few messages already waiting — let Fyn answer those first.',
+                ], 429);
+            }
+
+            $queued = $this->queue->enqueue($conversation, $message);
+
+            return response()->json([
+                'status' => 'queued',
+                'message_id' => $queued->id,
+                'queue_position' => $this->queue->queuedDepth($conversation),
+            ], 202);
+        }
+
         // Two-way dispatch after the Sprint 0 two-Fyn collapse:
         //   1. Onboarding (mid-flow users with a saved step) → OnboardingChatDirector
         //      — the deterministic state machine (handleInlineCapture handles
@@ -172,7 +201,7 @@ class AiChatController extends Controller
             && $user->onboarding_fyn_step !== null
             && (bool) config('onboarding.fyn_flow_enabled', true);
 
-        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding) {
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock) {
             try {
                 $generator = $inOnboarding
                     ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute)
@@ -254,6 +283,11 @@ class AiChatController extends Controller
                 // controller insulated from token-shape details — see the
                 // listener for the security gate.
                 app(EvalTraceCollector::class)->persistForConversation($conversation->id);
+
+                // FR-M7 — release the in-flight lock so a queued (or next) turn
+                // for this conversation can stream. The frontend, on `done`,
+                // streams the next queued turn (frontend-driven transport).
+                $inflightLock->release();
             }
         }, 200, [
             'Content-Type' => 'text/event-stream',
