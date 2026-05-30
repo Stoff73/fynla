@@ -15,4 +15,17 @@ return [
      * Defaults to unified. Fail-safe: any unrecognised value is legacy.
      */
     'prompt_architecture' => env('FYN_PROMPT_ARCH', 'unified'),
+
+    /*
+     * Concurrent-turn queue (CoALA Phase 5 item 6 — FR-M7 / FR-S3).
+     *
+     * When a user sends a turn while another is still streaming, it is queued.
+     * `depth_cap` bounds how many turns may wait (further sends are rejected);
+     * `ttl_minutes` is how long a queued turn lives before it is swept to
+     * `expired` (e.g. the user closed the tab mid-queue).
+     */
+    'queue' => [
+        'depth_cap' => (int) env('FYN_QUEUE_DEPTH_CAP', 3),
+        'ttl_minutes' => (int) env('FYN_QUEUE_TTL_MINUTES', 10),
+    ],
 ];

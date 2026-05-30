@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\AiMessageStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class AiMessage extends Model
     protected $fillable = [
         'conversation_id',
         'role',
+        'status',
         'content',
         'persona',
         'system_prompt',
@@ -28,6 +30,7 @@ class AiMessage extends Model
     ];
 
     protected $casts = [
+        'status' => AiMessageStatus::class,
         'tool_calls' => 'array',
         'tool_results' => 'array',
         'input_tokens' => 'integer',
