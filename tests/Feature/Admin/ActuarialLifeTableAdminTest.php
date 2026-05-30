@@ -15,7 +15,13 @@ beforeEach(function () {
 });
 
 it('lists actuarial life table rows', function () {
-    ActuarialLifeTable::factory()->count(3)->create();
+    // Distinct ages so the three rows can never collide on the
+    // UNIQUE(age, gender, table_year) key (the factory randomises age + gender
+    // within a fixed table_year, so count(3) alone is a ~1.5% flake).
+    ActuarialLifeTable::factory()
+        ->count(3)
+        ->sequence(['age' => 60], ['age' => 65], ['age' => 70])
+        ->create();
 
     $this->getJson('/api/admin/actuarial-life-tables')
         ->assertOk()
