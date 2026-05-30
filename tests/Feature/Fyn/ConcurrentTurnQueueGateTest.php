@@ -122,3 +122,21 @@ it('returns 409 busy when another turn holds the in-flight lock', function () {
     // Still queued — not consumed.
     expect($queued->fresh()->status)->toBe(AiMessageStatus::Queued);
 });
+
+it('cancels a queued turn (200)', function () {
+    [, $conversation] = gateConversation();
+    $queued = app(ConcurrentTurnQueue::class)->enqueue($conversation, 'cancel me');
+
+    $response = $this->deleteJson("/api/ai-chat/conversations/{$conversation->id}/messages/{$queued->id}");
+
+    $response->assertOk()->assertJson(['status' => 'cancelled']);
+    expect($queued->fresh()->status)->toBe(AiMessageStatus::Cancelled);
+});
+
+it('returns 409 not_cancellable for a message that is not queued', function () {
+    [, $conversation] = gateConversation();
+
+    $response = $this->deleteJson("/api/ai-chat/conversations/{$conversation->id}/messages/99999");
+
+    $response->assertStatus(409)->assertJson(['error' => 'not_cancellable']);
+});

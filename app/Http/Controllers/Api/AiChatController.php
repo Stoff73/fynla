@@ -429,6 +429,35 @@ class AiChatController extends Controller
     }
 
     /**
+     * Cancel a turn that is still queued (FR-M7 scenario 4).
+     *
+     * DELETE /api/ai-chat/conversations/{id}/messages/{messageId}
+     *
+     * Only a still-`queued` turn can be cancelled — once it is `processing`
+     * (or terminal) the request is a no-op (409). The queue pop skips cancelled
+     * rows, so the turn is simply never answered.
+     */
+    public function cancelQueuedMessage(Request $request, int $id, int $messageId): JsonResponse
+    {
+        $user = $request->user();
+        $conversation = AiConversation::forUser($user->id)->findOrFail($id);
+
+        $turn = $conversation->messages()->where('id', $messageId)->first();
+
+        if ($turn === null || ! $this->queue->cancel($turn)) {
+            return response()->json([
+                'error' => 'not_cancellable',
+                'message' => 'That message is no longer waiting and cannot be cancelled.',
+            ], 409);
+        }
+
+        return response()->json([
+            'status' => 'cancelled',
+            'message_id' => $turn->id,
+        ]);
+    }
+
+    /**
      * Backend-initiated first turn of the Fyn onboarding flow.
      *
      * POST /api/ai-chat/onboarding/start
