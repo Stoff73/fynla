@@ -139,6 +139,8 @@ arch('services are organized by module')
         'App\Services\AI\Fyn\ContextBucket',
         // CoALA Phase 5 item 3: ActionType is a string-backed enum (5 cases), not a class
         'App\Services\AI\Actions\ActionType',
+        // CoALA Phase 5 item 4: SessionMode is a string-backed enum (2 cases), not a class
+        'App\Services\AI\Loop\SessionMode',
     ])
     ->and('App\Services\Protection')
     ->toBeClasses()
