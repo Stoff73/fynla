@@ -155,6 +155,7 @@ final class FynLoop
         string $message,
         ?string $currentRoute,
         ?array $allowedTools,
+        bool $persistUserMessage = true,
     ): \Generator {
         $retrieveCount = 0;
 
@@ -182,7 +183,7 @@ final class FynLoop
                         continue 2;
                     }
 
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
 
                     return;
 
@@ -193,7 +194,7 @@ final class FynLoop
                     // emits and GroundGate-gates the tool itself. v1 ships one
                     // reasoning template = today's default prompt (no override),
                     // so the reason path is byte-identical to the pre-planner turn.
-                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools);
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
 
                     return;
             }
@@ -218,6 +219,7 @@ final class FynLoop
         string $message,
         ?string $currentRoute,
         ?array $allowedTools,
+        bool $persistUserMessage = true,
     ): \Generator {
         $upstream = $this->stream(
             $user,
@@ -226,6 +228,7 @@ final class FynLoop
             $currentRoute,
             $mode->persona(),
             allowedTools: $allowedTools,
+            persistUserMessage: $persistUserMessage,
         );
 
         yield from $this->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);

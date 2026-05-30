@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Agents\CoordinatingAgent;
+use App\Enums\AiMessageStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AI\SendAiChatMessageRequest;
 use App\Http\Traits\SanitizedErrorResponse;
@@ -287,6 +288,136 @@ class AiChatController extends Controller
                 // FR-M7 — release the in-flight lock so a queued (or next) turn
                 // for this conversation can stream. The frontend, on `done`,
                 // streams the next queued turn (frontend-driven transport).
+                $inflightLock->release();
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    /**
+     * Stream a turn that was queued behind an in-flight one (FR-M7).
+     *
+     * POST /api/ai-chat/conversations/{id}/messages/{messageId}/stream
+     *
+     * The frontend calls this on the previous stream's `done` event
+     * (frontend-driven transport). The queued ai_messages row already holds the
+     * user's turn, so the dispatch runs with persistUserMessage:false to avoid a
+     * duplicate row; the row transitions queued → processing → answered, keeping
+     * a stable message id for the frontend bubble.
+     *
+     * Mirrors sendMessage's stream contract (consent gate, in-flight lock,
+     * consent re-check loop, eval-trace hand-off) for the queued turn — keep the
+     * two in sync.
+     */
+    public function streamQueuedMessage(Request $request, int $id, int $messageId): StreamedResponse|JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT)) {
+            return response()->json([
+                'error' => 'consent_required',
+                'required' => 'ai_chat',
+            ], 403);
+        }
+
+        $conversation = AiConversation::forUser($user->id)->findOrFail($id);
+
+        $queued = $conversation->messages()
+            ->where('id', $messageId)
+            ->where('status', AiMessageStatus::Queued->value)
+            ->first();
+
+        if ($queued === null) {
+            return response()->json([
+                'error' => 'not_queued',
+                'message' => 'That message is no longer waiting to be answered.',
+            ], 409);
+        }
+
+        $inflightLock = Cache::lock('fyn:inflight:'.$conversation->id, 300);
+        if (! $inflightLock->get()) {
+            return response()->json([
+                'error' => 'busy',
+                'message' => 'Another turn is still in progress — try again in a moment.',
+            ], 409);
+        }
+
+        // Pop the queued turn to processing; release the lock if anything below
+        // the stream open fails.
+        $queued->update(['status' => AiMessageStatus::Processing]);
+
+        $message = $queued->content;
+        $currentRoute = $request->input('current_route');
+        $inOnboarding = $user->onboarding_completed === false
+            && $user->onboarding_fyn_step !== null
+            && (bool) config('onboarding.fyn_flow_enabled', true);
+
+        return new StreamedResponse(function () use ($user, $conversation, $message, $currentRoute, $inOnboarding, $inflightLock, $queued) {
+            try {
+                // persistUserMessage:false — the queued row IS the user turn.
+                $generator = $inOnboarding
+                    ? $this->onboardingDirector->handleUserMessage($user, $conversation, $message, $currentRoute, false)
+                    : $this->adviceFyn->handle($user, $conversation, $message, $currentRoute, false);
+
+                $consentRecheckInterval = (float) config('ai_chat.consent_recheck_interval_seconds', 2.0);
+                $lastConsentCheckAt = microtime(true);
+                $consentValid = true;
+
+                foreach ($generator as $event) {
+                    $now = microtime(true);
+                    if ($now - $lastConsentCheckAt >= $consentRecheckInterval) {
+                        $consentValid = $this->consentService->hasConsent($user, UserConsent::TYPE_AI_CHAT);
+                        $lastConsentCheckAt = $now;
+                    }
+
+                    if (! $consentValid) {
+                        echo 'data: '.json_encode([
+                            'type' => 'consent_required',
+                            'required' => 'ai_chat',
+                        ])."\n\n";
+
+                        if (ob_get_level() > 0) {
+                            ob_flush();
+                        }
+                        flush();
+
+                        return;
+                    }
+
+                    echo 'data: '.json_encode($event)."\n\n";
+
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+            } catch (\Exception $e) {
+                Log::error('[AiChatController] Queued-turn streaming error', [
+                    'user_id' => $user->id,
+                    'conversation_id' => $conversation->id,
+                    'message_id' => $queued->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                echo 'data: '.json_encode([
+                    'type' => 'error',
+                    'message' => 'An unexpected error occurred. Please try again.',
+                ])."\n\n";
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            } finally {
+                app(EvalTraceCollector::class)->persistForConversation($conversation->id);
+
+                // The queued turn has been answered; release the in-flight lock
+                // so the frontend can stream the next queued turn (if any).
+                $this->queue->completeTurn($queued);
                 $inflightLock->release();
             }
         }, 200, [

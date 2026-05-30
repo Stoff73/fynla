@@ -86,3 +86,39 @@ it('streams an uncontended turn and releases the in-flight lock', function () {
     // The lock is free again — a fresh acquire succeeds.
     expect(Cache::lock('fyn:inflight:'.$conversation->id, 5)->get())->toBeTrue();
 });
+
+it('streams a queued turn (2c) without duplicating the user row and marks it answered', function () {
+    [, $conversation] = gateConversation();
+    $queued = app(ConcurrentTurnQueue::class)->enqueue($conversation, 'what is my net worth');
+
+    $response = $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages/{$queued->id}/stream");
+
+    $response->assertOk();
+    $response->streamedContent(); // drive the finally{} (completeTurn + release)
+
+    // Same row, now answered (stable id) — and NOT a second user row.
+    expect($queued->fresh()->status)->toBe(AiMessageStatus::Answered)
+        ->and($conversation->messages()->where('role', 'user')->count())->toBe(1)
+        // Lock released so the next queued turn can stream.
+        ->and(Cache::lock('fyn:inflight:'.$conversation->id, 5)->get())->toBeTrue();
+});
+
+it('returns 409 not_queued for a message that is not queued', function () {
+    [, $conversation] = gateConversation();
+
+    $response = $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages/99999/stream");
+
+    $response->assertStatus(409)->assertJson(['error' => 'not_queued']);
+});
+
+it('returns 409 busy when another turn holds the in-flight lock', function () {
+    [, $conversation] = gateConversation();
+    $queued = app(ConcurrentTurnQueue::class)->enqueue($conversation, 'q');
+    Cache::lock('fyn:inflight:'.$conversation->id, 300)->get();
+
+    $response = $this->postJson("/api/ai-chat/conversations/{$conversation->id}/messages/{$queued->id}/stream");
+
+    $response->assertStatus(409)->assertJson(['error' => 'busy']);
+    // Still queued — not consumed.
+    expect($queued->fresh()->status)->toBe(AiMessageStatus::Queued);
+});

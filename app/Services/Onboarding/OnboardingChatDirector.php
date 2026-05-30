@@ -94,12 +94,16 @@ final class OnboardingChatDirector
         User $user,
         AiConversation $conversation,
         string $message,
-        ?string $currentRoute = null
+        ?string $currentRoute = null,
+        bool $persistUserMessage = true
     ): \Generator {
         // Persist the user message immediately so the conversation history
         // reflects the real interaction even if the rest of this generator
-        // fails.
-        $this->saveMessage($conversation, 'user', $message);
+        // fails. Skipped when re-streaming an already-persisted queued turn
+        // (FR-M7 concurrent-turn queue) so we don't duplicate the user row.
+        if ($persistUserMessage) {
+            $this->saveMessage($conversation, 'user', $message);
+        }
 
         // Phase 11 — OnboardingFactExtractor runs speculatively on every
         // user message and parks structured facts into

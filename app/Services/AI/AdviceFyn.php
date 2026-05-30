@@ -206,6 +206,7 @@ final class AdviceFyn
         AiConversation $conversation,
         string $message,
         ?string $currentRoute = null,
+        bool $persistUserMessage = true,
     ): \Generator {
         // S0.14 — short-circuit non-financial topics with the canonical
         // refusal. The classifier only flags out_of_remit when no advice
@@ -244,11 +245,13 @@ final class AdviceFyn
             // honest — chatWithPromptOverride would normally do this, but
             // we're short-circuiting that path. Persist the assistant refusal
             // alongside it so the next turn's history loader sees both.
-            $conversation->messages()->create([
-                'role' => 'user',
-                'content' => $message,
-                'persona' => 'advice',
-            ]);
+            if ($persistUserMessage) {
+                $conversation->messages()->create([
+                    'role' => 'user',
+                    'content' => $message,
+                    'persona' => 'advice',
+                ]);
+            }
 
             $conversation->messages()->create([
                 'role' => 'assistant',
@@ -286,11 +289,13 @@ final class AdviceFyn
         if ($intent !== null && $this->duplicateChecker->alreadyExists($user, $intent, $message)) {
             $ack = $this->duplicateAcknowledgement->build($user, $intent, $message);
 
-            $conversation->messages()->create([
-                'role' => 'user',
-                'content' => $message,
-                'persona' => 'advice',
-            ]);
+            if ($persistUserMessage) {
+                $conversation->messages()->create([
+                    'role' => 'user',
+                    'content' => $message,
+                    'persona' => 'advice',
+                ]);
+            }
 
             $conversation->messages()->create([
                 'role' => 'assistant',
@@ -317,11 +322,13 @@ final class AdviceFyn
             // purpose (it normally rides on top of an Advice-Fyn turn that
             // already saved the user message). On this deterministic path
             // there IS no preceding advice turn, so we save it here.
-            $conversation->messages()->create([
-                'role' => 'user',
-                'content' => $message,
-                'persona' => 'advice',
-            ]);
+            if ($persistUserMessage) {
+                $conversation->messages()->create([
+                    'role' => 'user',
+                    'content' => $message,
+                    'persona' => 'advice',
+                ]);
+            }
 
             $captureContext = CaptureContext::fromArray([
                 'reason' => $intent['reason'],
@@ -361,6 +368,7 @@ final class AdviceFyn
             $message,
             $currentRoute,
             $this->buildToolList($user),
+            $persistUserMessage,
         );
     }
 

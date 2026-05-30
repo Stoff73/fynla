@@ -1371,6 +1371,9 @@ Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(f
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])
         ->middleware('idempotent');
+    // FR-M7 — stream a turn that was queued behind an in-flight one
+    // (frontend-driven transport; called on the previous stream's `done`).
+    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage']);
     Route::post('/conversations/{id}/action', [AiChatController::class, 'action']);
     // Fyn-driven onboarding flow (backend-authoritative state machine)
     Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
