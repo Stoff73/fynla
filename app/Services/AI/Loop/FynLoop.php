@@ -9,6 +9,7 @@ use App\Models\AiConversation;
 use App\Models\User;
 use App\Services\AI\Actions\ActionType;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\Cost\AiCostAttributionService;
 use App\Services\AI\HandoffContract;
 use App\Services\AI\HandoffPayloadValidator;
 use App\Services\Onboarding\OnboardingChatDirector;
@@ -184,6 +185,7 @@ final class FynLoop
                     }
 
                     yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
 
@@ -195,6 +197,7 @@ final class FynLoop
                     // reasoning template = today's default prompt (no override),
                     // so the reason path is byte-identical to the pre-planner turn.
                     yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools, $persistUserMessage);
+                    $this->recordTurnCost($mode, $user, $conversation, $action->type, $cycle);
 
                     return;
             }
@@ -244,6 +247,58 @@ final class FynLoop
     {
         yield ['type' => 'content', 'text' => self::NO_ACTION_MESSAGE];
         yield ['type' => 'done'];
+    }
+
+    /**
+     * FR-M11 — record the reasoner turn's spend against the action that drove it.
+     * The cost telemetry (cache hit/miss + gbp_cost) was computed and stored on
+     * the assistant message by HasAiChat (item 1); we read it back and tag it
+     * with the action context the planner decided, so spend is attributable by
+     * action_type / session_mode / stage. Telemetry must never break a turn —
+     * the answer has already streamed by the time this runs — so it is fully
+     * guarded.
+     */
+    private function recordTurnCost(
+        SessionMode $mode,
+        User $user,
+        AiConversation $conversation,
+        ActionType $actionType,
+        int $cycle,
+    ): void {
+        try {
+            $message = $conversation->messages()
+                ->where('role', 'assistant')
+                ->latest('id')
+                ->first();
+
+            if ($message === null) {
+                return;
+            }
+
+            $meta = $message->metadata ?? [];
+
+            app(AiCostAttributionService::class)->record([
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'session_mode' => $mode->value,
+                'action_type' => $actionType->value,
+                'stage' => 'reasoner',
+                'cycle_id' => $cycle,
+                'procedural_version' => (string) config('fyn.prompt_architecture', 'unified'),
+                'model' => (string) ($message->model_used ?? ''),
+                'input_tokens' => (int) ($message->input_tokens ?? 0),
+                'output_tokens' => (int) ($message->output_tokens ?? 0),
+                'cache_hit_tokens' => (int) ($meta['cache_hit_tokens'] ?? 0),
+                'cache_miss_tokens' => (int) ($meta['cache_miss_tokens'] ?? 0),
+                'gbp_cost' => (float) ($meta['gbp_cost'] ?? 0),
+                'gbp_cost_priced' => (bool) ($meta['gbp_cost_priced'] ?? false),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[FynLoop] cost attribution failed', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

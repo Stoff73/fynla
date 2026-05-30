@@ -68,6 +68,28 @@ it('plans reason then streams the reasoner answer through the loop', function ()
     ]);
 });
 
+it('records a reasoner cost-attribution row tagged to the action (FR-M11)', function () {
+    [$user, $conversation] = fynLoopUser();
+
+    FynStreamHarness::fake()
+        ->toolTurn('plan', ['action_type' => 'reason', 'prompt_template_id' => 'advice_default'])
+        ->textTurn('Your total net worth is £250,000.')
+        ->bind();
+
+    iterator_to_array(
+        app(FynLoop::class)->run(SessionMode::Advice, $user, $conversation, 'net worth?', null, null),
+        preserve_keys: false,
+    );
+
+    $this->assertDatabaseHas('ai_cost_attribution', [
+        'conversation_id' => $conversation->id,
+        'user_id' => $user->id,
+        'stage' => 'reasoner',
+        'action_type' => 'reason',
+        'session_mode' => 'advice',
+    ]);
+});
+
 it('emits the canonical defer response on a no_action plan', function () {
     [$user, $conversation] = fynLoopUser();
 
