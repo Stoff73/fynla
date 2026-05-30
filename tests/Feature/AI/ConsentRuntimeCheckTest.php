@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Anthropic\Client;
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\User;
@@ -10,6 +11,8 @@ use App\Services\GDPR\ConsentService;
 use Database\Seeders\TaxConfigurationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Tests\Support\Fyn\ScriptedAnthropicClient;
 
 uses(RefreshDatabase::class);
 
@@ -35,6 +38,15 @@ function grantAiChatConsent(User $user): void
  */
 function bindAdviceFynStubGenerator(callable $generatorFactory): void
 {
+    // The planner (FynLoop item 5) runs before the reasoner on every advice
+    // turn. Pin the provider to Anthropic and bind an empty scripted client so
+    // the real Planner's call returns no tool input and degrades to a default
+    // reason — fast, deterministic, no network. (The suite's default provider is
+    // xAI via the env; a real call would add ~2s latency and trip the in-stream
+    // consent re-check window under test.)
+    Cache::put('ai_provider', 'anthropic');
+    app()->instance(Client::class, new ScriptedAnthropicClient([]));
+
     test()->mock(CoordinatingAgent::class, function ($mock) use ($generatorFactory) {
         $mock->shouldReceive('chatWithPromptOverride')
             ->andReturnUsing($generatorFactory);

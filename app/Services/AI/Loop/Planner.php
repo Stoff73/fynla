@@ -11,25 +11,33 @@ use Anthropic\Messages\RawContentBlockStartEvent;
 use Anthropic\Messages\ToolUseBlock;
 use App\Services\AI\Actions\Action;
 use App\Services\AI\Actions\ActionType;
+use App\Services\AI\XaiClient;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * CoALA Phase 5 item 5 — the planner LLM call (plan §"Decision loop", FR-M6).
  *
- * One call. One typed {@see Action} back. The planner is forced (toolChoice) to
- * emit a single `plan` tool_use whose input names the action it has chosen and
- * carries that variant's typed fields. {@see plan()} streams that one tool call
- * over the same `app(Client::class)` path the reasoner uses — so the existing
- * `FynStreamHarness` (tests/Support/Fyn) scripts it with `toolTurn('plan', [...])`
- * and the whole planner is exercised without a network call.
+ * One call. One typed {@see Action} back. The planner is forced (tool choice) to
+ * emit a single `plan` tool call whose input names the action it has chosen and
+ * carries that variant's typed fields.
+ *
+ * Provider-agnostic, exactly like the reasoner: {@see plan()} resolves the active
+ * provider (xAI / Anthropic) the same way HasAiGuardrails::getAiProviderForLoop
+ * does, and forces the `plan` tool over that provider's streaming API — xAI via
+ * `XaiClient->chat()->createStreamed` (OpenAI-shaped tool calls), Anthropic via
+ * `app(Client::class)->messages->createStream`. The two paths differ only in
+ * wire shape; both decode to the same `{action_type, ...fields}` payload. In
+ * tests the `FynStreamHarness` / `ScriptedXaiClient` (tests/Support/Fyn) script
+ * the forced call so the whole planner runs without a network call.
  *
  * The planner only chooses the action TYPE and its fields. The write-safety
  * decision is NOT made here — a `ground` action is gated downstream by the
  * GroundGate / SurfaceAllowlist before any tool runs. The cycle cap, planning
- * budget, and dispatch of the returned action live in {@see FynLoop} (item 5
- * increment 2), not in the planner.
+ * budget, and dispatch of the returned action live in {@see FynLoop}.
  *
- * Graceful degradation: a malformed or unrecognised `plan` payload falls back to
- * a default `reason` action (answer the user normally) rather than a hard error,
+ * Graceful degradation: a malformed or unrecognised plan payload falls back to a
+ * default `reason` action (answer the user normally) rather than a hard error,
  * so a planner hiccup degrades to today's single-call behaviour instead of
  * dropping the turn.
  */
@@ -46,19 +54,52 @@ final class Planner
     /** A planner action is a few tokens; it never needs a large budget. */
     private const MAX_TOKENS = 1024;
 
+    private const PLAN_DESCRIPTION = 'Choose the single next action for this turn. Emit exactly one action_type and only that variant\'s fields.';
+
     /**
-     * Make one forced `plan` tool_use call and return the chosen typed Action.
+     * Make one forced `plan` tool call over the active provider and return the
+     * chosen typed Action.
      *
      * @param  array<int, array<string, mixed>>  $messages  Provider-shaped chat history for the planner call.
      */
-    public function plan(string $system, array $messages, string $model): Action
+    public function plan(string $system, array $messages, ?string $model = null): Action
+    {
+        $provider = $this->resolveProvider();
+        $model ??= $this->resolveModel($provider);
+
+        // The planner runs on every advice turn ("replace dispatch now"), so a
+        // provider failure (timeout, 5xx, missing key) must NEVER break the turn.
+        // Degrade to a default reason action — the reasoner then answers as it
+        // did before the planner existed — rather than letting the exception
+        // propagate and error the whole chat.
+        try {
+            $input = $provider === 'xai'
+                ? $this->planViaXai($system, $messages, $model)
+                : $this->planViaAnthropic($system, $messages, $model);
+        } catch (\Throwable $e) {
+            Log::warning('[Planner] plan call failed — degrading to default reason', [
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+
+            return Action::reason(self::DEFAULT_REASON_TEMPLATE);
+        }
+
+        return $this->toAction($input);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @return array<string, mixed>
+     */
+    private function planViaAnthropic(string $system, array $messages, string $model): array
     {
         $stream = app(Client::class)->messages->createStream(
             maxTokens: self::MAX_TOKENS,
             model: $model,
             system: $system,
             messages: $messages,
-            tools: [self::planTool()],
+            tools: [self::planToolAnthropic()],
             toolChoice: ['type' => 'tool', 'name' => 'plan'],
         );
 
@@ -72,13 +113,78 @@ final class Planner
             }
         }
 
-        $input = [];
-        if ($accumulatedJson !== '') {
-            $decoded = json_decode($accumulatedJson, true);
-            $input = is_array($decoded) ? $decoded : [];
+        return $this->decode($accumulatedJson);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @return array<string, mixed>
+     */
+    private function planViaXai(string $system, array $messages, string $model): array
+    {
+        $params = [
+            'model' => $model,
+            'messages' => array_merge([['role' => 'system', 'content' => $system]], $messages),
+            'max_completion_tokens' => self::MAX_TOKENS,
+            'temperature' => 0,
+            'stream' => true,
+            'tools' => [self::planToolOpenAi()],
+            'tool_choice' => ['type' => 'function', 'function' => ['name' => 'plan']],
+        ];
+
+        $stream = app(XaiClient::class)->chat()->createStreamed($params);
+
+        $accumulatedJson = '';
+
+        foreach ($stream as $response) {
+            $delta = $response->choices[0]->delta ?? null;
+            if ($delta === null) {
+                continue;
+            }
+
+            foreach (($delta->toolCalls ?? []) as $toolCall) {
+                $accumulatedJson .= $toolCall->function->arguments ?? '';
+            }
         }
 
-        return $this->toAction($input);
+        return $this->decode($accumulatedJson);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decode(string $json): array
+    {
+        if ($json === '') {
+            return [];
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Resolve the active provider the same way the reasoner does
+     * (HasAiGuardrails::getAiProviderForLoop) so the planner and reasoner always
+     * agree on the provider within a turn.
+     */
+    private function resolveProvider(): string
+    {
+        $version = (int) Cache::get('ai_provider_version', 0);
+
+        if ($version > 0) {
+            return (string) Cache::get("ai_provider:v{$version}", config('services.ai_provider', 'anthropic'));
+        }
+
+        return (string) Cache::get('ai_provider', config('services.ai_provider', 'anthropic'));
+    }
+
+    private function resolveModel(string $provider): string
+    {
+        return $provider === 'xai'
+            ? (string) config('services.xai.chat_model', 'grok-4.3')
+            : (string) config('services.anthropic.chat_model', 'claude-haiku-4-5-20251001');
     }
 
     /**
@@ -133,36 +239,59 @@ final class Planner
     }
 
     /**
-     * The `plan` tool the planner is forced to call. The closed action vocabulary
-     * mirrors {@see ActionType}; the per-variant fields
-     * mirror {@see Action}'s named constructors.
-     *
      * @return array<string, mixed>
      */
-    private static function planTool(): array
+    private static function planToolAnthropic(): array
     {
         return [
             'name' => 'plan',
-            'description' => 'Choose the single next action for this turn. Emit exactly one action_type and only that variant\'s fields.',
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'action_type' => [
-                        'type' => 'string',
-                        'enum' => ['reason', 'retrieve', 'learn', 'ground', 'no_action'],
-                        'description' => 'reason: answer the user now. retrieve: recall from memory. learn: write to memory. ground: run a tool / write surface. no_action: stop, come back later.',
-                    ],
-                    'prompt_template_id' => ['type' => 'string', 'description' => 'reason only — which reasoning template to stream.'],
-                    'working_memory_fields' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'reason only — working-memory fields the reasoner needs.'],
-                    'store' => ['type' => 'string', 'enum' => ['episodic', 'semantic'], 'description' => 'retrieve / learn only — which memory store.'],
-                    'query' => ['type' => 'string', 'description' => 'retrieve only — what to recall.'],
-                    'filters' => ['type' => 'object', 'description' => 'retrieve only — optional filters.'],
-                    'payload' => ['type' => 'object', 'description' => 'learn only — what to persist.'],
-                    'surface' => ['type' => 'string', 'description' => 'ground only — the tool / write surface to invoke.'],
-                    'args' => ['type' => 'object', 'description' => 'ground only — arguments for the surface.'],
-                ],
-                'required' => ['action_type'],
+            'description' => self::PLAN_DESCRIPTION,
+            'input_schema' => self::planSchema(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function planToolOpenAi(): array
+    {
+        return [
+            'type' => 'function',
+            'function' => [
+                'name' => 'plan',
+                'description' => self::PLAN_DESCRIPTION,
+                'parameters' => self::planSchema(),
             ],
+        ];
+    }
+
+    /**
+     * The closed action vocabulary mirrors {@see ActionType};
+     * the per-variant fields mirror {@see Action}'s named constructors. Shared by
+     * both providers' tool definitions so they can never drift.
+     *
+     * @return array<string, mixed>
+     */
+    private static function planSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'action_type' => [
+                    'type' => 'string',
+                    'enum' => ['reason', 'retrieve', 'learn', 'ground', 'no_action'],
+                    'description' => 'reason: answer the user now. retrieve: recall from memory. learn: write to memory. ground: run a tool / write surface. no_action: stop, come back later.',
+                ],
+                'prompt_template_id' => ['type' => 'string', 'description' => 'reason only — which reasoning template to stream.'],
+                'working_memory_fields' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'reason only — working-memory fields the reasoner needs.'],
+                'store' => ['type' => 'string', 'enum' => ['episodic', 'semantic'], 'description' => 'retrieve / learn only — which memory store.'],
+                'query' => ['type' => 'string', 'description' => 'retrieve only — what to recall.'],
+                'filters' => ['type' => 'object', 'description' => 'retrieve only — optional filters.'],
+                'payload' => ['type' => 'object', 'description' => 'learn only — what to persist.'],
+                'surface' => ['type' => 'string', 'description' => 'ground only — the tool / write surface to invoke.'],
+                'args' => ['type' => 'object', 'description' => 'ground only — arguments for the surface.'],
+            ],
+            'required' => ['action_type'],
         ];
     }
 }

@@ -7,6 +7,7 @@ namespace App\Services\AI\Loop;
 use App\Agents\CoordinatingAgent;
 use App\Models\AiConversation;
 use App\Models\User;
+use App\Services\AI\Actions\ActionType;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\HandoffContract;
 use App\Services\AI\HandoffPayloadValidator;
@@ -15,11 +16,11 @@ use App\ValueObjects\CaptureContext;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Shared per-turn chat loop (CoALA Phase 5 item 4, Option B).
+ * Shared per-turn chat loop (CoALA Phase 5 items 4 + 5, Option B).
  *
  * Per the canonical Two-Fyn contract Fyn has one prompt and two write states.
  * Under Option B those states are thin shells over ONE loop. FynLoop owns the
- * shared machinery of a streamed turn at two levels:
+ * shared machinery of a streamed turn at three levels:
  *
  *   - {@see stream()} — the raw streamed LLM turn primitive: it sets the
  *     per-turn unified onboarding focus on THIS service's CoordinatingAgent
@@ -31,26 +32,57 @@ use Illuminate\Support\Facades\Log;
  *     across two instances would silently drop the focus and the model would
  *     fall back to the security refusal).
  *
- *   - {@see run()} — the advice turn: {@see stream()} in the read-only advice
- *     persona, wrapped in {@see interceptHandoff()}. When the read-only state's
- *     LLM emits a write intent, the synthetic `delegate_to_capture` SSE event is
- *     consumed here and the turn is routed through
- *     {@see OnboardingChatDirector::handleInlineCapture} into the same stream,
- *     so the user never sees the switch (INV-2.4.1).
+ *   - {@see run()} — the advice turn: the planner (item 5, FR-M6) decides the
+ *     single next action, then this loop dispatches it. Option A: the planner
+ *     ROUTES; the reasoner keeps its own tool-use loop. A `reason` (or `ground`)
+ *     action runs the streamed reasoner — {@see stream()} in the read-only
+ *     advice persona, wrapped in {@see interceptHandoff()}; `ground` surfaces
+ *     stay emergent inside the reasoner, GroundGate-gated there. `no_action`
+ *     emits the canonical defer response. `retrieve` / `learn` are no-ops until
+ *     the Phase 1 / Phase 2 memory stores exist; they re-plan within the
+ *     retrieve budget / cycle cap.
+ *
+ *   - {@see interceptHandoff()} — when the read-only state's LLM emits a write
+ *     intent, the synthetic `delegate_to_capture` SSE event is consumed here and
+ *     the turn is routed through {@see OnboardingChatDirector::handleInlineCapture}
+ *     into the same stream, so the user never sees the switch (INV-2.4.1).
  *
  * The advice-mode pre-LLM bypasses (query classification, out-of-remit refusal,
  * duplicate acknowledgement, deterministic write-intent routing) stay in the
- * {@see AdviceFyn} shell; the onboarding state machine and the
- * per-turn post-processing (buffered content filter, gap-fill synthesis,
- * capture-event detection) stay in {@see OnboardingChatDirector}. Only the
- * streamed-turn primitive and the advice handoff are shared.
+ * {@see AdviceFyn} shell and run BEFORE this loop, so they never
+ * incur a planner call; the onboarding state machine and the per-turn
+ * post-processing stay in {@see OnboardingChatDirector}.
  *
  * Source of truth: April/April24Updates/spec/00-canonical.md.
  */
 final class FynLoop
 {
+    /** Hard cap on planning steps per turn (plan §"Decision loop", FR-M6). */
+    private const CYCLE_CAP = 8;
+
+    /** Planning budget: at most this many `retrieve` actions per turn (FR-M6). */
+    private const RETRIEVE_BUDGET = 3;
+
+    /**
+     * The planner's system prompt. It only decides the next action via the
+     * forced `plan` tool — it never writes prose. v1 ships one reasoning
+     * template, so for a normal question the planner chooses `reason`.
+     */
+    private const PLANNER_SYSTEM_PROMPT = <<<'PROMPT'
+        You are Fyn's turn planner. Read the user's latest message and choose the single next action for this turn by calling the `plan` tool exactly once.
+
+        - For a normal question, request, or anything you can answer or act on now, choose `reason`.
+        - Choose `no_action` only when you genuinely cannot proceed this turn.
+
+        Do not write any prose. Emit exactly one `plan` tool call.
+        PROMPT;
+
+    /** Canonical defer response when the loop cannot produce an answer (FR-M6 scenario 7). */
+    private const NO_ACTION_MESSAGE = 'I need a little more time on this — let me come back to you.';
+
     public function __construct(
         private readonly CoordinatingAgent $coordinatingAgent,
+        private readonly Planner $planner,
     ) {}
 
     /**
@@ -104,15 +136,82 @@ final class FynLoop
     }
 
     /**
-     * Run one advice turn and yield its user-visible SSE events. The streamed
-     * LLM turn is driven in the mode's persona; the `delegate_to_capture`
-     * handoff (if the model emits one) is intercepted and routed through inline
-     * capture invisibly.
+     * Run one advice turn and yield its user-visible SSE events.
+     *
+     * The planner (FR-M6) is consulted first and returns one typed action; the
+     * loop dispatches it. Under Option A the planner only routes: a `reason` or
+     * `ground` action runs the streamed reasoner (which keeps its own tool-use
+     * loop and GroundGate); `no_action` emits the canonical defer response;
+     * `retrieve` / `learn` no-op and re-plan (their memory stores do not exist
+     * until Phases 1 / 2), bounded by the retrieve budget and the cycle cap.
      *
      * @param  ?array<int, array<string, mixed>>  $allowedTools
      * @return \Generator<array<string, mixed>>
      */
     public function run(
+        SessionMode $mode,
+        User $user,
+        AiConversation $conversation,
+        string $message,
+        ?string $currentRoute,
+        ?array $allowedTools,
+    ): \Generator {
+        $retrieveCount = 0;
+
+        for ($cycle = 1; $cycle <= self::CYCLE_CAP; $cycle++) {
+            $action = $this->planner->plan(
+                self::PLANNER_SYSTEM_PROMPT,
+                [['role' => 'user', 'content' => $message]],
+            );
+
+            switch ($action->type) {
+                case ActionType::NoAction:
+                    yield from $this->emitNoAction();
+
+                    return;
+
+                case ActionType::Learn:
+                    // Phase 2 episodic store absent — no-op, re-plan.
+                    continue 2;
+
+                case ActionType::Retrieve:
+                    // Phase 1 / 2 stores absent — no-op. Re-plan within the
+                    // retrieve budget; once it is spent, fall through to
+                    // answering rather than looping to the cap.
+                    if (++$retrieveCount < self::RETRIEVE_BUDGET) {
+                        continue 2;
+                    }
+
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools);
+
+                    return;
+
+                case ActionType::Reason:
+                case ActionType::Ground:
+                    // Option A — the reasoner owns its own tool-use loop, so a
+                    // ground decision also routes to the streamed reasoner, which
+                    // emits and GroundGate-gates the tool itself. v1 ships one
+                    // reasoning template = today's default prompt (no override),
+                    // so the reason path is byte-identical to the pre-planner turn.
+                    yield from $this->reason($mode, $user, $conversation, $message, $currentRoute, $allowedTools);
+
+                    return;
+            }
+        }
+
+        // Cycle cap exhausted (only reachable via repeated learn/retrieve
+        // no-ops). Emit the canonical defer response (FR-M6 scenario 7).
+        yield from $this->emitNoAction();
+    }
+
+    /**
+     * Stream the reasoner: the streamed LLM turn in the mode's persona, wrapped
+     * in the delegate_to_capture handoff interception.
+     *
+     * @param  ?array<int, array<string, mixed>>  $allowedTools
+     * @return \Generator<array<string, mixed>>
+     */
+    private function reason(
         SessionMode $mode,
         User $user,
         AiConversation $conversation,
@@ -130,6 +229,18 @@ final class FynLoop
         );
 
         yield from $this->interceptHandoff($upstream, $user, $conversation, $message, $currentRoute);
+    }
+
+    /**
+     * Emit the canonical defer response for a `no_action` decision (or an
+     * exhausted cycle cap). Plain text, no glyphs (Rule #16).
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    private function emitNoAction(): \Generator
+    {
+        yield ['type' => 'content', 'text' => self::NO_ACTION_MESSAGE];
+        yield ['type' => 'done'];
     }
 
     /**

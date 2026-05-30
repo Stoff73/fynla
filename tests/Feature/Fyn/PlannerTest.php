@@ -4,7 +4,22 @@ declare(strict_types=1);
 
 use App\Services\AI\Actions\ActionType;
 use App\Services\AI\Loop\Planner;
+use App\Services\AI\XaiClient;
+use Illuminate\Support\Facades\Cache;
 use Tests\Support\Fyn\FynStreamHarness;
+use Tests\Support\Fyn\ScriptedXaiClient;
+
+/**
+ * Bind the planner's xAI provider path to a scripted client that replays a
+ * single forced-`plan` tool call carrying $input.
+ *
+ * @param  array<string, mixed>  $input
+ */
+function bindXaiPlan(array $input): void
+{
+    Cache::put('ai_provider', 'xai');
+    app()->instance(XaiClient::class, new ScriptedXaiClient([ScriptedXaiClient::planToolCall($input)]));
+}
 
 /**
  * CoALA Phase 5 item 5 — planner LLM call (FR-M6), increment 1.
@@ -78,4 +93,33 @@ it('degrades an unknown action_type to a default reason action (graceful planner
 
     expect($action->type)->toBe(ActionType::Reason)
         ->and($action->promptTemplateId())->toBe(Planner::DEFAULT_REASON_TEMPLATE);
+});
+
+it('parses a reason plan via the xAI provider path', function () {
+    bindXaiPlan(['action_type' => 'reason', 'prompt_template_id' => 'advice_default']);
+
+    $action = app(Planner::class)->plan('system', [], 'grok-test');
+
+    expect($action->type)->toBe(ActionType::Reason)
+        ->and($action->promptTemplateId())->toBe('advice_default');
+});
+
+it('parses a ground plan via the xAI provider path', function () {
+    bindXaiPlan(['action_type' => 'ground', 'surface' => 'create_savings_account', 'args' => ['provider' => 'Halifax']]);
+
+    $action = app(Planner::class)->plan('system', [], 'grok-test');
+
+    expect($action->type)->toBe(ActionType::Ground)
+        ->and($action->surface())->toBe('create_savings_account')
+        ->and($action->args())->toBe(['provider' => 'Halifax']);
+});
+
+it('resolves the xAI model from config when none is passed', function () {
+    bindXaiPlan(['action_type' => 'no_action']);
+
+    // No model arg — Planner must resolve it from the active provider's config
+    // rather than blowing up. (We only assert it parsed; model is provider-internal.)
+    $action = app(Planner::class)->plan('system', []);
+
+    expect($action->type)->toBe(ActionType::NoAction);
 });
