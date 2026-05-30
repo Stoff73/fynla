@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Save More on Tax — Your UK Tax Allowances Guide | Fynla</title>
   <meta name="description" content="See every UK tax allowance for 2026/27 — Personal Allowance, ISA, pension, and more. Understand your position and keep more of what you earn with Fynla." />

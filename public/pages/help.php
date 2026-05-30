@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Help &amp; Documentation â€” Using Fynla | Fynla</title>
   <meta name="description" content="Comprehensive guide to using Fynla â€” getting started, dashboard overview, protection module, estate planning, retirement, investments, savings, family management, and troubleshooting." />
