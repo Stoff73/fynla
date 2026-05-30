@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActionDefinitionController;
 use App\Http\Controllers\Api\Admin\ActuarialLifeTableController;
+use App\Http\Controllers\Api\Admin\AiCostDashboardController;
 use App\Http\Controllers\Api\Admin\CurrencyRateController;
 use App\Http\Controllers\Api\Admin\DocumentArticleController;
 use App\Http\Controllers\Api\Admin\EvalRecordingController;
@@ -1259,6 +1260,8 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/do
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     Route::get('news-subscribers', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
     Route::get('news-subscribers/export', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
+    // FR-M15 — per-action AI cost-attribution dashboard data.
+    Route::get('ai-cost-dashboard', [AiCostDashboardController::class, 'index']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
