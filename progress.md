@@ -129,3 +129,10 @@
 - Status: 0 uncommitted. Nothing pushed (CSJ steer). action-enum + fynloop are NEW unpushed branches.
 - Harness caught a shipped fatal in item 3 (Pint-stripped ActionDispatcher import → live seam unresolvable); fixed.
 - Next: FynLoop extraction — route AdviceFyn::handle through a shared Loop\FynLoop (Option B, no planner). TDD against tests/Feature/Fyn/FynStreamHarnessTest; full sign-off needs Fyn eval suite + browser.
+
+## 2026-06-02 — session 1 (end-of-day, for 2026-06-01 work)
+- Handover: [[handover-2026-06-02-session-1]]
+- Branch: feat/coala-phase1-semantic-memory
+- Commits this session: 55
+- Shipped: CoALA pointer registry (Phase 4 core) + full Phase 2 episodic SQL+md hybrid; pushed; PR #439 → coala
+- Next: CSJ review of PR #439, then decide semantic_snapshot_id wiring, then "finish Phase 4"
