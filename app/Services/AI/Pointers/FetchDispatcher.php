@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AI\Pointers;
 
 use App\Models\AiMessage;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use Throwable;
 
 /**
@@ -14,7 +15,10 @@ use Throwable;
  */
 final class FetchDispatcher
 {
-    public function __construct(private readonly FetchHandlerRegistry $handlers) {}
+    public function __construct(
+        private readonly FetchHandlerRegistry $handlers,
+        private readonly FetchProvenanceCollector $collector,
+    ) {}
 
     public function run(Pointer $pointer, FetchContext $ctx, ?AiMessage $message = null): ?FetchResult
     {
@@ -25,6 +29,8 @@ final class FetchDispatcher
 
             return null;
         }
+
+        $this->collector->record($result->provenance($pointer->pointerId, $pointer->handler));
 
         if ($message !== null) {
             $this->recordProvenance($message, $result->provenance($pointer->pointerId, $pointer->handler));

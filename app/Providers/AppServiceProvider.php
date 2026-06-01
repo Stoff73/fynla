@@ -10,6 +10,7 @@ use App\Models\Insights\InsightArticle;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandlerRegistry;
 use App\Services\AI\Pointers\Handlers\RecommendationHandler;
@@ -76,7 +77,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(PointerRegistry::class);
-        $this->app->singleton(FetchDispatcher::class);
+        // FetchDispatcher depends on the request-scoped FetchProvenanceCollector,
+        // so it must re-resolve per request (a singleton would capture a stale collector).
+        $this->app->bind(FetchDispatcher::class);
+
+        // Request-scoped provenance accumulator — one instance per request, reset per turn.
+        $this->app->scoped(FetchProvenanceCollector::class);
 
         // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(

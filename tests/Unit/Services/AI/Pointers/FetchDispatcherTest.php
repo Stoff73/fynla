@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AiMessage;
 use App\Models\User;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Pointers\FetchContext;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandler;
@@ -52,7 +53,7 @@ function pointer(string $handler): Pointer
 }
 
 it('runs the handler and returns its result', function (): void {
-    $d = new FetchDispatcher(new FetchHandlerRegistry([okHandler()]));
+    $d = new FetchDispatcher(new FetchHandlerRegistry([okHandler()]), new FetchProvenanceCollector);
     $user = User::factory()->create();
     $res = $d->run(pointer('ok'), new FetchContext($user, 'what is my isa allowance'));
     expect($res)->not->toBeNull()
@@ -60,13 +61,13 @@ it('runs the handler and returns its result', function (): void {
 });
 
 it('returns null and does not throw when the handler fails', function (): void {
-    $d = new FetchDispatcher(new FetchHandlerRegistry([boomHandler()]));
+    $d = new FetchDispatcher(new FetchHandlerRegistry([boomHandler()]), new FetchProvenanceCollector);
     $user = User::factory()->create();
     expect($d->run(pointer('boom'), new FetchContext($user, 'x')))->toBeNull();
 });
 
 it('records provenance onto an AiMessage metadata when given one', function (): void {
-    $d = new FetchDispatcher(new FetchHandlerRegistry([okHandler()]));
+    $d = new FetchDispatcher(new FetchHandlerRegistry([okHandler()]), new FetchProvenanceCollector);
     $user = User::factory()->create();
     $msg = AiMessage::factory()->create(['role' => 'assistant']);
 
