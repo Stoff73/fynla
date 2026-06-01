@@ -66,8 +66,14 @@ final class SemanticCorpusLoader
         }
 
         $meta = Yaml::parse($m[1]);
-        $meta = is_array($meta) ? $meta : [];
+        if (! is_array($meta)) {
+            throw new RuntimeException("Semantic corpus: frontmatter must be a YAML mapping ({$path}).");
+        }
+
         $body = trim($m[2]);
+        if ($body === '') {
+            throw new RuntimeException("Semantic corpus: empty body ({$path}).");
+        }
 
         $require = function (string $key) use ($meta, $path): mixed {
             if (! array_key_exists($key, $meta) || $meta[$key] === null || $meta[$key] === '') {
@@ -115,6 +121,9 @@ final class SemanticCorpusLoader
      */
     private function parseDate(mixed $value): Carbon
     {
+        if ($value === '' || $value === null) {
+            throw new RuntimeException('Semantic corpus: date value must not be empty — use a real date or omit it (valid_to: null).');
+        }
         if (is_int($value)) {
             return Carbon::createFromTimestamp($value);
         }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\AI\Memory\SemanticCorpusLoader;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 
 function writeFact(string $dir, string $category, string $name, string $frontmatter, string $body = 'A fact body.'): void
@@ -57,4 +58,40 @@ it('skips .gitkeep and the template', function (): void {
     copy(base_path('fyn-memory/semantic/_TEMPLATE.md'), "$this->corpus/_TEMPLATE.md");
 
     expect(app(SemanticCorpusLoader::class)->all())->toBe([]);
+});
+
+it('rejects version below 1', function (): void {
+    writeFact($this->corpus, 'fca', 'a', "fact_id: fca-a\ncategory: fca\ntitle: A\nsource: COBS\nversion: 0\nvalid_from: 2024-04-06");
+    expect(fn () => app(SemanticCorpusLoader::class)->all())->toThrow(RuntimeException::class, 'version');
+});
+
+it('rejects a file with no frontmatter', function (): void {
+    @mkdir("$this->corpus/fca", 0777, true);
+    file_put_contents("$this->corpus/fca/x.md", "no frontmatter here\n");
+    expect(fn () => app(SemanticCorpusLoader::class)->all())->toThrow(RuntimeException::class, 'frontmatter');
+});
+
+it('rejects frontmatter that is not a mapping', function (): void {
+    @mkdir("$this->corpus/fca", 0777, true);
+    file_put_contents("$this->corpus/fca/x.md", "---\njust a scalar\n---\n\nbody\n");
+    expect(fn () => app(SemanticCorpusLoader::class)->all())->toThrow(RuntimeException::class, 'mapping');
+});
+
+it('rejects an empty body', function (): void {
+    @mkdir("$this->corpus/fca", 0777, true);
+    file_put_contents("$this->corpus/fca/x.md", "---\nfact_id: fca-a\ncategory: fca\ntitle: A\nsource: COBS\nversion: 1\nvalid_from: 2024-04-06\n---\n\n");
+    expect(fn () => app(SemanticCorpusLoader::class)->all())->toThrow(RuntimeException::class, 'empty body');
+});
+
+it('rejects an empty date string', function (): void {
+    writeFact($this->corpus, 'fca', 'a', "fact_id: fca-a\ncategory: fca\ntitle: A\nsource: COBS\nversion: 1\nvalid_from: 2024-04-06\nvalid_to: \"\"");
+    expect(fn () => app(SemanticCorpusLoader::class)->all())->toThrow(RuntimeException::class, 'date value must not be empty');
+});
+
+it('parses a bare ISO date (YAML int timestamp) and effectiveOn honours the window', function (): void {
+    writeFact($this->corpus, 'fca', 'a', "fact_id: fca-a\ncategory: fca\ntitle: A\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01\nvalid_to: 2020-12-31");
+    $fact = app(SemanticCorpusLoader::class)->all()['fca-a'];
+    expect($fact->effectiveOn(Carbon::parse('2020-06-15')))->toBeTrue()
+        ->and($fact->effectiveOn(Carbon::parse('2021-01-01')))->toBeFalse()
+        ->and($fact->effectiveOn(Carbon::parse('2019-12-31')))->toBeFalse();
 });
