@@ -33,7 +33,7 @@
   <!-- External stylesheets (synchronous - render-blocking is intentional;
        all styles live in these files, no inline fallback needed) -->
   <link rel="stylesheet" href="/pages/css/global.css?v=113" />
-  <link rel="stylesheet" href="/pages/css/index.css?v=112" />
+  <link rel="stylesheet" href="/pages/css/index.css?v=116" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -77,7 +77,7 @@
           with clear recommendations from our proprietary Fynla Brain&reg;
         </p>
         <div class="hero__cta">
-          <a href="/register" class="btn-cta-primary">Get started</a>
+          <a href="/register" class="btn-cta-primary">Get started for free</a>
           <p class="hero__sublinks">
             <a href="#meet-fyn" class="hero__sublink" id="scroll-meet-fyn">Meet Fyn</a>
             <span class="hero__sublink-sep" aria-hidden="true">|</span>
@@ -87,22 +87,13 @@
           </p>
         </div>
 
-        <!-- Mobile caption panels (hidden above 640px by CSS) -->
+        <!-- Mobile hero panel (hidden above 640px by CSS).
+             Translucent white card holding the Fynla Brain, mirroring the level
+             card on /m-mockup/dashboard — it overlaps down onto the eggshell
+             tray below for the same straddle effect. -->
         <div class="hero__mobile-panels" aria-hidden="true">
-          <div class="hero__panel hero__panel--brain">
-            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="112" height="112" loading="lazy" />
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial view.</p>
-            <p class="hero__panel-body">Use Fynla to securely centralise and view all your financial data.</p>
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial brain.</p>
-            <p class="hero__panel-body">Our proprietary brain does the calculations<br />so you don't have to.</p>
-          </div>
-          <div class="hero__panel">
-            <p class="hero__panel-title">One financial voice.</p>
-            <p class="hero__panel-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
+          <div class="hero__brain-card">
+            <img src="/images/Website/Fyn-Brain-Animation-Whitev2M.gif" alt="" width="176" height="176" loading="lazy" />
           </div>
         </div>
 
@@ -132,6 +123,24 @@
             <p class="hero__caption-title">One financial voice.</p>
             <p class="hero__caption-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
           </div>
+        </div>
+      </div>
+
+      <!-- Eggshell tray (mobile only) — sits at the bottom of the hero so the
+           translucent brain card above overlaps onto it. Holds the three value
+           props on an eggshell background, matching /m-mockup/dashboard. -->
+      <div class="hero__mobile-eggshell" aria-hidden="true">
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial view.</p>
+          <p class="hero__panel-body">Use Fynla to securely centralise and view all your financial data.</p>
+        </div>
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial brain.</p>
+          <p class="hero__panel-body">Our proprietary brain does the calculations so you don't have to.</p>
+        </div>
+        <div class="hero__panel">
+          <p class="hero__panel-title">One financial voice.</p>
+          <p class="hero__panel-body">We will give you clear, simple and tailored advice to help your financial freedom.</p>
         </div>
       </div>
     </section>
