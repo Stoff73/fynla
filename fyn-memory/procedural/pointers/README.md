@@ -12,9 +12,11 @@ they contain ROUTING ONLY. No fetch code, no values, no numbers, no figures.
 
 Fetch logic and live values belong in code. The frontmatter `handler` field names a
 registered `FetchHandler` id. The loader is **fail-closed**: if the named handler is not
-registered in code, the pointer is silently ignored (never used). Adding a new pointer
-that references an unregistered handler has no effect until the corresponding code
-handler is registered in a dev PR.
+registered in code, `PointerRegistry::all()` THROWS and `php artisan fyn:pointers:reindex`
+exits non-zero. A pointer that references a not-yet-built handler does NOT sit inert — it
+HARD-BREAKS corpus load, which degrades the whole chat tool catalogue. Therefore you must
+add the code handler (and bind it in `AppServiceProvider`) BEFORE shipping a markdown
+pointer that references it.
 
 ## The three modes
 
@@ -28,8 +30,10 @@ handler is registered in a dev PR.
 
 - **Add or change routing** — edit or add a `.md` file in this directory; submit a markdown PR.
   No code change required.
-- **Add NEW fetch capability** — you must also register a `FetchHandler` in code (a dev PR).
-  The markdown pointer is inert until its handler exists.
+- **Add NEW fetch capability** — register the `FetchHandler` in code and bind it in
+  `AppServiceProvider` FIRST (a dev PR), then add the markdown pointer that references it.
+  Shipping the markdown pointer before its handler exists is fail-closed: corpus load throws
+  and `fyn:pointers:reindex` fails (non-zero exit). The pointer is not inert — it breaks load.
 
 ## Template
 

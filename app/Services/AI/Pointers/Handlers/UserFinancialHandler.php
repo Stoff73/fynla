@@ -23,7 +23,8 @@ final class UserFinancialHandler implements FetchHandler
     {
         $summary = $this->advice->buildExistingRecordsSummary($ctx->user, null);
 
-        // Source version = newest record touch, so provenance reflects data freshness.
+        // Source version = the user record's last-updated timestamp (a coarse freshness
+        // proxy; a true newest-record-touch across all record types is a follow-up).
         $version = (string) ($ctx->user->updated_at?->toDateString() ?? 'unknown');
 
         return FetchResult::make($summary, 'user records', $version);

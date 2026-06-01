@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Agents\CoordinatingAgent;
+use App\Models\User;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiToolDefinitions;
@@ -74,6 +76,60 @@ it('exposes the same pointer tools on Anthropic and xAI catalogues', function ()
 
     expect($anthropic)->toContain('fetch_position');
     expect($xai)->toContain('fetch_position');
+
+    File::deleteDirectory($dir);
+});
+
+it('executes a tool-mode pointer through executeTool to its bound user_financial handler', function (): void {
+    $dir = sys_get_temp_dir().'/ptr-'.uniqid();
+    config(['fyn.memory.pointers_path' => $dir]);
+    @mkdir($dir, 0777, true);
+    file_put_contents("$dir/uf.md", "---\npointer_id: position\ntopic: position\ntriggers: [x]\nmode: tool\nhandler: user_financial\nsource_label: user records\nversion: 1\n---\n\nFetch the user's position.\n");
+    app()->forgetInstance(PointerRegistry::class);
+
+    $user = User::factory()->create();
+
+    $result = app(CoordinatingAgent::class)->executeTool('fetch_position', [], $user);
+
+    expect($result['success'])->toBeTrue();
+    expect($result)->toHaveKey('value');
+    expect($result['value'])->toBeString();
+
+    File::deleteDirectory($dir);
+});
+
+it('executes a dashed pointer_id called by its underscored fetch_ tool name', function (): void {
+    $dir = sys_get_temp_dir().'/ptr-'.uniqid();
+    config(['fyn.memory.pointers_path' => $dir]);
+    @mkdir($dir, 0777, true);
+    file_put_contents("$dir/mp.md", "---\npointer_id: my-position\ntopic: my position\ntriggers: [x]\nmode: tool\nhandler: user_financial\nsource_label: user records\nversion: 1\n---\n\nFetch the user's position.\n");
+    app()->forgetInstance(PointerRegistry::class);
+
+    $user = User::factory()->create();
+
+    $result = app(CoordinatingAgent::class)->executeTool('fetch_my_position', [], $user);
+
+    expect($result['success'])->toBeTrue();
+    expect($result)->toHaveKey('value');
+    expect($result['value'])->toBeString();
+
+    File::deleteDirectory($dir);
+});
+
+it('falls through safely to the unknown_tool default for an unmatched fetch_ name', function (): void {
+    $dir = sys_get_temp_dir().'/ptr-'.uniqid();
+    config(['fyn.memory.pointers_path' => $dir]);
+    @mkdir($dir, 0777, true);
+    file_put_contents("$dir/uf.md", "---\npointer_id: position\ntopic: position\ntriggers: [x]\nmode: tool\nhandler: user_financial\nsource_label: user records\nversion: 1\n---\n\nFetch the user's position.\n");
+    app()->forgetInstance(PointerRegistry::class);
+
+    $user = User::factory()->create();
+
+    $result = app(CoordinatingAgent::class)->executeTool('fetch_does_not_exist', [], $user);
+
+    expect($result['error'])->toBeTrue();
+    expect($result['error_type'])->toBe('unknown_tool');
+    expect($result['message'])->toBe('Unknown tool: fetch_does_not_exist');
 
     File::deleteDirectory($dir);
 });
