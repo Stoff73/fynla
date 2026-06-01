@@ -373,6 +373,7 @@ cd ~/www/csjones.co/fynla-app
 git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
 php artisan migrate --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
+php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex
 ```
 
 6. Smoke test `https://csjones.co/fynla`
@@ -401,6 +402,7 @@ ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
 php artisan migrate --force
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
+php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex
 ```
 
 7. Smoke test `https://fynla.org`
