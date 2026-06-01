@@ -27,6 +27,11 @@ class AiMessage extends Model
         'output_tokens',
         'model_used',
         'metadata',
+        'procedural_version',
+        'semantic_snapshot_id',
+        'fetch_provenance',
+        'blob_md_path',
+        'blob_md_sha256',
     ];
 
     protected $casts = [
@@ -36,6 +41,8 @@ class AiMessage extends Model
         'input_tokens' => 'integer',
         'output_tokens' => 'integer',
         'metadata' => 'array',
+        'procedural_version' => 'array',
+        'fetch_provenance' => 'array',
     ];
 
     public function conversation(): BelongsTo
