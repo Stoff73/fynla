@@ -7,10 +7,13 @@ namespace App\Services\AI\Fyn;
 use App\Models\User;
 use App\Services\AI\AdvicePromptBuilder;
 use App\Services\AI\Memory\FynMemoryStore;
+use App\Services\AI\Memory\SemanticFact;
+use App\Services\AI\Memory\SemanticRetriever;
 use App\Services\AI\MemoryRetrieverService;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
+use Illuminate\Support\Carbon;
 
 /**
  * Builds the dynamic <context>…</context> + <user_message>…</user_message>
@@ -32,6 +35,7 @@ final class FynContextAssembler
         private readonly MemoryRetrieverService $memory,
         private readonly TaxConfigService $taxConfig,
         private readonly FynMemoryStore $memoryStore,
+        private readonly SemanticRetriever $semantic,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -70,6 +74,18 @@ final class FynContextAssembler
         $remembered = $this->memoryStore->recallContext($ctx->user->id);
         if ($remembered !== '') {
             $lines[] = "<remembered>\n{$remembered}\n</remembered>";
+        }
+
+        // CoALA Phase 1 — semantic knowledge corpus (additive; the static prompt's
+        // compliance backbone is untouched). Sparse retrieval over the current
+        // user message; effective-dated to today. Empty until the corpus is authored.
+        $knowledgeFacts = $this->semantic->retrieve($ctx->message, Carbon::now());
+        if ($knowledgeFacts !== []) {
+            $blocks = array_map(
+                static fn (SemanticFact $f): string => "### {$f->title} (source: {$f->source})\n{$f->body}",
+                $knowledgeFacts,
+            );
+            $lines[] = "<knowledge>\n".implode("\n\n", $blocks)."\n</knowledge>";
         }
 
         if ($has(ContextBucket::POSITION)) {
