@@ -53,5 +53,7 @@ return [
         'episodic_template' => base_path('fyn-memory/episodic/_TEMPLATE.md'),
         'episodic_path' => base_path('fyn-memory/episodic/episodes'),
         'semantic_path' => base_path('fyn-memory/semantic'),
+        'semantic_index' => storage_path('app/memory/semantic/index.json'),
+        'semantic_top_k' => (int) env('FYN_SEMANTIC_TOP_K', 4),
     ],
 ];
