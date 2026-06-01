@@ -89,7 +89,11 @@ final class FynContextAssembler
         }
         if ($knowledgeFacts !== []) {
             $blocks = array_map(
-                static fn (SemanticFact $f): string => "### {$f->title} (source: {$f->source})\n{$f->body}",
+                static function (SemanticFact $f): string {
+                    $heading = $f->source !== '' ? "### {$f->title} (source: {$f->source})" : "### {$f->title}";
+
+                    return "{$heading}\n{$f->body}";
+                },
                 $knowledgeFacts,
             );
             $lines[] = "<knowledge>\n".implode("\n\n", $blocks)."\n</knowledge>";
