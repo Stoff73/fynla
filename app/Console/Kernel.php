@@ -54,6 +54,12 @@ class Kernel extends ConsoleKernel
         // conversation whose index is missing or behind the latest
         // message. Idle-minutes default keeps in-flight chats out.
         $schedule->command('ai:conversations:summarise-stale')->everyThirtyMinutes();
+
+        // CoALA Phase 2 — FCA SYSC 9.1 episodic retention.
+        // Nightly orphan reconcile (flag only) + weekly cold-archive of >12mo
+        // blobs. Purge (6-year hard delete) is manual / --force only.
+        $schedule->command('fyn:episodic:reconcile')->daily();
+        $schedule->command('fyn:episodic:cold-archive')->weekly();
     }
 
     /**
