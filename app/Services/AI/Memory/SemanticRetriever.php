@@ -44,12 +44,16 @@ final class SemanticRetriever
 
         usort($scored, fn (array $a, array $b): int => $b['score'] <=> $a['score'] ?: strcmp($a['fact']->factId, $b['fact']->factId));
 
-        $topK = (int) config('fyn.memory.semantic_top_k', 4);
+        $topK = max(0, (int) config('fyn.memory.semantic_top_k', 4));
 
         return array_map(fn (array $r): SemanticFact => $r['fact'], array_slice($scored, 0, $topK));
     }
 
-    /** Deterministic provenance id for the returned set (audit trail). */
+    /**
+     * Deterministic provenance id for the returned set (audit trail).
+     *
+     * @param  list<SemanticFact>  $facts
+     */
     public function snapshotId(array $facts): string
     {
         $pairs = array_map(fn (SemanticFact $f): string => $f->factId.'@'.$f->version, $facts);

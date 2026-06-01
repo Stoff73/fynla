@@ -59,3 +59,19 @@ it('returns nothing for a query with no usable terms', function (): void {
 
     expect(app(SemanticRetriever::class)->retrieve('a to', Carbon::now()))->toBe([]); // terms <3 chars dropped
 });
+
+it('respects the categories filter', function (): void {
+    writeFact2($this->corpus, 'fca', 'r1', "fact_id: fca-r1\ncategory: fca\ntitle: FCA rule\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'Regulated advice matters.');
+    writeFact2($this->corpus, 'product', 'p1', "fact_id: prod-p1\ncategory: product\ntitle: Product rule\nsource: ref\nversion: 1", 'Product advice matters.');
+
+    $hits = app(SemanticRetriever::class)->retrieve('advice matters', Carbon::now(), ['fca']);
+
+    expect($hits)->toHaveCount(1)->and($hits[0]->factId)->toBe('fca-r1');
+});
+
+it('returns [] when top_k is misconfigured to zero or negative', function (): void {
+    config(['fyn.memory.semantic_top_k' => -1]);
+    writeFact2($this->corpus, 'fca', 'a', "fact_id: fca-a\ncategory: fca\ntitle: Advice\nsource: COBS\nversion: 1\nvalid_from: 2020-01-01", 'Regulated advice.');
+
+    expect(app(SemanticRetriever::class)->retrieve('advice', Carbon::now()))->toBe([]);
+});
