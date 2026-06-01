@@ -12,6 +12,8 @@ it('loads the real shipped corpus without throwing (deploy-time fail-closed gate
 it('contains no £ figures in any semantic fact (v0.5 — figures are procedural pointers, not frozen facts)', function (): void {
     $facts = app(SemanticCorpusLoader::class)->all();
 
+    expect($facts)->toBeArray(); // baseline assertion so the guard is never zero-assertion/risky
+
     foreach ($facts as $fact) {
         expect($fact->body)->not->toMatch(
             '/£\s?\d/',
