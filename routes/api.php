@@ -1161,6 +1161,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         // S0.12 — hash-chain audit endpoints.
         Route::get('/chain', [AiAuditController::class, 'chain']);
         Route::get('/chain/verify', [AiAuditController::class, 'verifyChain']);
+        // CoALA Phase 2 (Task 13) — read-only episodic memory endpoints (admin).
+        Route::get('/episodes', [AiAuditController::class, 'episodes']);
+        Route::get('/episodes/{id}', [AiAuditController::class, 'episode']);
+        Route::post('/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
 
     // Database backup - list (read-only, no rate limit)
@@ -1406,6 +1410,10 @@ Route::middleware(['auth:sanctum', 'advisor'])
         Route::put('activities/{id}', 'updateActivity');
         Route::get('reviews-due', 'reviewsDue');
         Route::get('reports', 'reports');
+        // CoALA Phase 2 (Task 13) — advisor-scoped read-only episodic memory.
+        Route::get('clients/{clientId}/episodes', [AiAuditController::class, 'clientEpisodes']);
+        Route::get('clients/{clientId}/episodes/{id}', [AiAuditController::class, 'episode']);
+        Route::post('clients/{clientId}/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
 
 // Bug Report route — authenticated users only (REVIEW Top-10 #8 / W1-M).
