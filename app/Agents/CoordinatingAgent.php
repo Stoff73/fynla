@@ -42,6 +42,9 @@ use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptCacheInvalidator;
 use App\Services\AI\AiToolDefinitions;
 use App\Services\AI\AuditChainService;
+use App\Services\AI\Pointers\FetchContext;
+use App\Services\AI\Pointers\FetchDispatcher;
+use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\ToolResultContract;
 use App\Services\AI\ToolResultContractException;
 use App\Services\Coordination\CashFlowCoordinator;
@@ -876,6 +879,21 @@ class CoordinatingAgent extends BaseAgent
             ];
         }
 
+        // CoALA pointer fetch tools — `fetch_{pointer_id}` routes through the
+        // FetchDispatcher → handler path, sharing provenance + degrade-on-failure
+        // with the pre-fetch path. Matched against toolPointers() so dashed
+        // pointer_ids (isa-annual-allowance → fetch_isa_annual_allowance) resolve
+        // correctly. No assistant AiMessage is in scope here, so provenance is
+        // recorded on the next prompt rebuild rather than this row (pass null).
+        if (str_starts_with($toolName, 'fetch_')) {
+            $pointerResult = $this->handlePointerFetch($toolName, $user);
+            if ($pointerResult !== null) {
+                $this->appendAuditCompletion($user, $conversationId, $toolName, $input, $pointerResult);
+
+                return $pointerResult;
+            }
+        }
+
         try {
             $result = match ($toolName) {
                 'navigate_to_page' => $this->handleNavigation($input),
@@ -1108,6 +1126,49 @@ class CoordinatingAgent extends BaseAgent
     private function handleNavigation(array $input): array
     {
         return ['action' => 'navigate', 'route_path' => $input['route_path'], 'description' => $input['description'] ?? ''];
+    }
+
+    /**
+     * CoALA pointer fetch — resolve a `fetch_{pointer_id}` tool call to its
+     * Pointer (matched against toolPointers() so dashed ids round-trip) and run
+     * it through the FetchDispatcher → handler. Returns the FetchResult->value
+     * as the tool result, or null when no matching tool-pointer exists (the
+     * caller then falls through to the normal unknown-tool path).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function handlePointerFetch(string $toolName, User $user): ?array
+    {
+        try {
+            $registry = app(PointerRegistry::class);
+            $pointer = null;
+            foreach ($registry->toolPointers() as $candidate) {
+                if ('fetch_'.str_replace('-', '_', $candidate->pointerId) === $toolName) {
+                    $pointer = $candidate;
+                    break;
+                }
+            }
+
+            if ($pointer === null) {
+                return null;
+            }
+
+            $result = app(FetchDispatcher::class)->run(
+                $pointer,
+                new FetchContext($user, ''),
+                null,
+            );
+
+            if ($result === null) {
+                return ['error' => true, 'error_type' => 'fetch_failed', 'message' => 'Unable to retrieve that information right now. Please try again.'];
+            }
+
+            return ['success' => true, 'value' => $result->value];
+        } catch (\Throwable $e) {
+            Log::warning('[CoordinatingAgent] Pointer fetch failed', ['tool' => $toolName, 'user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     // ─── Onboarding grouped-extraction handlers ──────────────────────
