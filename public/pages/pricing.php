@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -68,7 +68,7 @@
     .pricing-hero__subtext{font-size:1.125rem;color:var(--white-70);max-width:40rem;}
     @media(min-width:1024px){.pricing-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
-  <link rel="stylesheet" href="/pages/css/global.css?v=1"  />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113"  />
   <link rel="stylesheet" href="/pages/css/pricing.css?v=1" />
 </head>
 <body class="pricing-page">

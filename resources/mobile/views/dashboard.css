@@ -339,11 +339,16 @@
 }
 
 .md-callout__slide-stat {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 900;
   margin: 0;
-  line-height: 1;
+  line-height: 1.05;
   color: var(--raspberry-600);
+  /* Stat values like "£130,000" must not clip inside the expanded card */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .md-callout__slide-area {
   font-size: 0.6875rem;

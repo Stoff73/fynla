@@ -83,7 +83,7 @@
     @media(min-width:1024px){.learn-hero__inner{padding-left:2rem;padding-right:2rem;}}
   </style>
 
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/learn.css?v=1" />
 </head>
 <body>

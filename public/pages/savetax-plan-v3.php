@@ -25,7 +25,7 @@
   <link rel="alternate" hreflang="x-default" href="https://fynla.org/savetax/plan" />
 
   <!-- Blocking CSS — base styles then v3 overrides (green register button) -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=3" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/savetax-plan.css?v=3" />
   <link rel="stylesheet" href="/pages/css/savetax-plan-v3.css?v=1" />
 

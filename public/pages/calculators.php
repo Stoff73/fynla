@@ -50,7 +50,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
 
   <!-- Blocking CSS — same-server, negligible render penalty, prevents FOUC -->
-  <link rel="stylesheet" href="/pages/css/global.css?v=2" />
+  <link rel="stylesheet" href="/pages/css/global.css?v=113" />
   <link rel="stylesheet" href="/pages/css/calculators.css?v=1" />
 </head>
 <body class="calc-page-body">
