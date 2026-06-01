@@ -60,6 +60,11 @@ php artisan migrate && php artisan db:seed
 | `php artisan trials:expire` | Expire ended trial subscriptions |
 | `php artisan sessions:cleanup` | Clean up orphaned user sessions |
 | `php artisan registrations:cleanup` | Remove stale pending registrations |
+| `php artisan fyn:episodic:backfill-blobs` | One-shot idempotent backfill of episodic .md blobs for legacy ai_messages rows |
+| `php artisan fyn:episodic:cold-archive` | Move episodic blobs older than 12 months to cold storage (scheduled weekly) |
+| `php artisan fyn:episodic:reconcile` | Flag orphan episodic blobs with no matching ai_messages row (scheduled daily) |
+| `php artisan fyn:episodic:purge --force` | Hard-delete episodes older than 6 years (FCA SYSC 9.1); dry-run without --force |
+| `php artisan fyn:user:erase {user} --force` | GDPR erasure of a user's episodic rows + blobs (hot + cold); dry-run without --force |
 
 ## Architecture
 
@@ -372,6 +377,7 @@ ssh -p 18765 -i ~/.ssh/fynlaDev u163-ptanegf9edny@ssh.csjones.co
 cd ~/www/csjones.co/fynla-app
 git pull origin dev                          # pulls all PHP / JS source / .htaccess templates
 php artisan migrate --force
+php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && composer dump-autoload -o && php artisan optimize
 php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex
 ```
@@ -401,6 +407,7 @@ Only after dev is tested and green:
 ssh -p 18765 -i ~/.ssh/production u2783-hrf1k8bpfg02@ssh.fynla.org
 cd ~/www/fynla.org/public_html
 php artisan migrate --force
+php artisan fyn:episodic:backfill-blobs    # one-time after the Phase 2 episode-columns migration; idempotent thereafter
 php artisan cache:clear && php artisan config:clear && php artisan view:clear && php artisan route:clear && php artisan optimize
 php artisan fyn:semantic:reindex && php artisan fyn:pointers:reindex
 ```
