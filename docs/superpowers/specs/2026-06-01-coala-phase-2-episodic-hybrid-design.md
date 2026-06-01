@@ -116,6 +116,8 @@ Extend `AuditChainService` so `row_hash = SHA256(prev_hash ‖ canonical(sql_col
 
 One-shot, idempotent. For each existing `ai_messages` row with `system_prompt`/`assembled_context` but no `blob_md_path`: write the `.md` blob via `EpisodeBlobWriter`, populate `blob_md_path` + `blob_md_sha256`. Does **not** re-chain historical audit entries (documented). Batched, resumable (skips rows that already have `blob_md_path`). After backfill, the live write path stops writing the LONGTEXT columns.
 
+**Accessibility guarantee (CSJ requirement):** backfilled episodes are first-class retrievable through the episodic memory system — because they carry `blob_md_path` + `blob_md_sha256`, they appear in `EpisodeRetriever::findEpisodes`, render in `EpisodeProjection::detail` (lazy blob load, hot|cold), and show in both UI surfaces exactly like live episodes. The only difference from post-cutover episodes is that their `ai_audit_events` entry is not chain-linked to the blob SHA (history is not rewritten). Integrity of a backfilled blob is still verifiable **standalone**: recompute SHA-256 of the `.md` and compare to the stored `blob_md_sha256`. The `verify-chain` command reports backfilled entries as "blob present, standalone-verified, pre-extension (not chain-linked)" rather than failing them — a distinct, honest status, not an error. A test asserts a backfilled episode is retrievable and standalone-verifiable end-to-end.
+
 ### 6. Retrieval + projection
 
 - `EpisodeRetriever::findEpisodes(int $clientId, int $limit, ?Carbon $since): Collection` — SQL-only list path; typed; alongside `MemoryRetrieverService` (not replacing it).
