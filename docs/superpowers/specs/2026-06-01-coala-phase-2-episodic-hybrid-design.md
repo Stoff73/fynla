@@ -104,13 +104,16 @@ Path sharding: `storage/app/episodic/{YYYY}/{MM}/{DD}/{conversation_id}/{message
 
 The blob resolver (`EpisodeBlobLocator`) checks `episodic/` then `episodic-cold/`.
 
-### 4. Cross-medium hash chain
+### 4. Cross-medium hash chain — per-turn episode event, versioned hash (CSJ decision)
 
-Extend `AuditChainService` so `row_hash = SHA256(prev_hash ‖ canonical(sql_columns) ‖ blob_md_sha256)`.
+**Why not the master plan's "add `blob_md_sha256` to the existing `row_hash`":** `ai_audit_events` is a **per-tool-dispatch** chain, not per-turn. Its hash covers an invariant-pinned field set (INV-2.10.2: `user_id, conversation_id, tool_name, operation, status, input_summary, result_summary, entity_type, entity_id`). A turn produces 0..N audit events — a pure-reasoning turn produces none, so there is no anchor row for that turn's blob SHA. And adding a field to the canonicalised serialisation changes the JSON for **every** row, so `verifyChain()` could no longer reproduce any existing row's hash — it breaks the whole chain, not just new rows. Rejected.
 
-- **Backward-compatible:** pre-cutover and backfilled rows have `blob_md_sha256 = null`, hashed as the empty string, so existing chain entries continue to verify unchanged. Only entries written *after* the extension incorporate a non-null blob SHA.
-- `AiAuditVerifyChainCommand` updated: for each entry with a non-null `blob_md_path`, fetch the `.md` (hot or cold), recompute SHA-256, and fail verification on missing / modified / mismatched blobs. Cold-archived blobs must remain reachable by the verifier.
-- This is the highest-risk change. It ships with a dedicated test suite proving: (a) the existing chain stays green across the extension, (b) a tampered blob breaks verification at that row, (c) a missing blob is distinguishable (operational vs tamper) in the failure report, (d) cold-archived blobs still verify.
+**Design (Option 1):** append **one `ai_audit_events` row per persisted episode** — `tool_name = '__episode__'`, `operation = 'persist'`, `entity_type = 'ai_message'`, `entity_id = {message_id}` — using a **new hash-scheme version (v2)** whose hashed payload additionally binds `blob_md_sha256`, `semantic_snapshot_id`, and a sorted digest of `fetch_provenance`. So every turn (even tool-less) gets one signed, sequenced attestation: "turn T persisted blob X, served facts-snapshot Y, fetched provenance Z."
+
+- **Versioned hash in `AuditChainService`:** a `hash_scheme` discriminator. v1 = the exact current serialisation (`HASHED_FIELDS`, unchanged). v2 = v1 fields **plus** `blob_md_sha256 ‖ semantic_snapshot_id ‖ provenance_digest`, used only for `__episode__` rows. `verifyChain()` selects the scheme per row (by a persisted `hash_scheme` column, default `1` for all existing rows). Existing tool-dispatch rows are **byte-for-byte unchanged** and verify green. INV-2.10.2 gets a **v2 addendum** documenting the episode-event scheme — not a rewrite of v1.
+- **Migration:** add `hash_scheme TINYINT NOT NULL DEFAULT 1` to `ai_audit_events`; backfill existing rows to `1`. New `__episode__` events write `2`.
+- `AiAuditVerifyChainCommand` updated: when verifying a v2 `__episode__` row, fetch the referenced `.md` (hot or cold), recompute SHA-256, and fail on missing / modified / mismatched blobs. Cold-archived blobs must remain reachable by the verifier. Operational-vs-tamper distinction recorded in the failure report (`{path, expected_sha, actual_state}`).
+- **Highest-risk change.** Dedicated test suite proving: (a) the existing v1 chain stays green across the v2 addition (no reserialisation of v1 rows), (b) a tampered blob breaks verification at its `__episode__` row, (c) a missing blob is distinguishable (operational vs tamper) in the report, (d) cold-archived blobs still verify, (e) a tool-less turn still gets exactly one `__episode__` attestation row, (f) the chain links v1 tool-dispatch rows and v2 episode rows in a single linear sequence.
 
 ### 5. Backfill — `fyn:episodic:backfill-blobs`
 
@@ -157,7 +160,7 @@ Shared constraints: `<AppLayout>` (Rule #14); palette tokens + `designSystem.js`
 ## Invariants this phase must preserve
 
 - Atomic write protocol — no exception (tmp→fsync→rename→commit; orphan on crash, never reused).
-- Hash chain spans DB + filesystem; `ai:audit:verify-chain` fetches + re-hashes blobs; existing chain stays green.
+- Hash chain spans DB + filesystem via per-turn v2 `__episode__` events; v1 tool-dispatch rows are serialised byte-for-byte as today (never re-hashed); `ai:audit:verify-chain` fetches + re-hashes blobs for v2 rows; the existing chain stays green. INV-2.10.2 v1 is unchanged; a v2 addendum documents the episode-event scheme.
 - Date-sharded path is a contract (retention/erase depend on it); never flat.
 - GDPR erasure spans both media; partial erasure is a regulatory failure.
 - Verbatim episodic capture is mandatory every turn (the recall summary is additive, never a replacement — FCA SYSC 9.1).
@@ -167,4 +170,4 @@ Shared constraints: `<AppLayout>` (Rule #14); palette tokens + `designSystem.js`
 
 ## Decomposition note
 
-Large enough that the implementation plan will likely sequence as: (S1) columns + collector + snapshot wiring; (S2) blob writer + atomic protocol; (S3) hash-chain extension + verify (dedicated suite); (S4) backfill; (S5) retrieval + projection; (S6) retention + GDPR erase; (S7) advisor UI; (S8) admin UI. Each independently testable; the `writing-plans` skill will turn this into the task breakdown.
+Large enough that the implementation plan will likely sequence as: (S1) columns + collector + snapshot wiring; (S2) blob writer + atomic protocol; (S3) versioned hash chain — `hash_scheme` column + v2 `__episode__` episode event + verify-chain blob re-hashing (dedicated suite); (S4) backfill; (S5) retrieval + projection; (S6) retention + GDPR erase; (S7) advisor UI; (S8) admin UI. Each independently testable; the `writing-plans` skill will turn this into the task breakdown.
