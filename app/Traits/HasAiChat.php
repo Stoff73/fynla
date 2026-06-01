@@ -25,12 +25,16 @@ use App\Models\User;
 use App\Services\AI\Actions\ActionDispatcher;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\AdvicePromptBuilder;
+use App\Services\AI\AuditChainService;
 use App\Services\AI\Cost\AiCostCalculator;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynPromptMode;
 use App\Services\AI\Fyn\FynSystemPrompt;
 use App\Services\AI\Fyn\FynTurnContext;
 use App\Services\AI\KycGateChecker;
+use App\Services\AI\Memory\Episodic\EpisodeBlobData;
+use App\Services\AI\Memory\Episodic\EpisodeBlobWriter;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
 use App\Services\AI\XaiClient;
@@ -872,6 +876,11 @@ trait HasAiChat
 
         $assistantMessage = $this->saveMessage($conversation, 'assistant', $sanitisedResponse, $assistantExtra);
 
+        // CoALA Phase 2 — persist the verbatim episode blob, flush the turn's
+        // fetch-provenance onto the assistant row, and append the signed
+        // __episode__ attestation. Additive + resilient: never breaks the turn.
+        $this->persistEpisode($assistantMessage, $conversation, $user, $systemPrompt, $this->assembledContext ?? '', $model, $fullToolCalls ?: null, $fullToolResults ?: null);
+
         // Update conversation token usage
         $conversation->incrementTokenUsage($totalInputTokens, $totalOutputTokens);
         $conversation->update(['model_used' => $model]);
@@ -916,6 +925,68 @@ trait HasAiChat
             'input_tokens' => $totalInputTokens,
             'output_tokens' => $totalOutputTokens,
         ];
+    }
+
+    /**
+     * CoALA Phase 2 — persist the verbatim episode blob, flush the turn's
+     * fetch-provenance onto the assistant row, and append the signed
+     * __episode__ attestation to the audit chain. Resilient: any failure is
+     * reported and swallowed — the verbatim ai_messages columns remain as the
+     * forensic fallback, and a blob/audit error must never break the chat turn.
+     */
+    private function persistEpisode(
+        AiMessage $assistant,
+        AiConversation $conversation,
+        User $user,
+        string $systemPrompt,
+        string $assembledContext,
+        ?string $model,
+        ?array $toolCalls,
+        ?array $toolResults
+    ): void {
+        try {
+            $collector = app(FetchProvenanceCollector::class);
+            $provenance = $collector->all();
+            $collector->reset();
+
+            $data = new EpisodeBlobData(
+                episodeId: (string) $assistant->id,
+                conversationId: $conversation->id,
+                clientId: $user->id,
+                timestamp: ($assistant->created_at ?? now())->utc()->toIso8601String(),
+                persona: $this->personaOverride,
+                module: null,
+                proceduralVersion: null,
+                semanticSnapshotId: null,
+                modelUsed: $model,
+                systemPrompt: $systemPrompt,
+                assembledContext: $assembledContext,
+                reasoningTrace: null,
+                toolCalls: $toolCalls,
+                toolResults: $toolResults,
+            );
+
+            $ref = app(EpisodeBlobWriter::class)->write($assistant, $data);
+
+            $assistant->update([
+                'blob_md_path' => $ref->path,
+                'blob_md_sha256' => $ref->sha256,
+                'fetch_provenance' => $provenance !== [] ? $provenance : null,
+            ]);
+
+            app(AuditChainService::class)->appendEpisode([
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'entity_id' => $assistant->id,
+                'blob_md_sha256' => $ref->sha256,
+                'blob_md_path' => $ref->path,
+                'semantic_snapshot_id' => null,
+                'fetch_provenance' => $provenance,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+            // never break the turn — verbatim columns remain the fallback
+        }
     }
 
     // ─── Prompt Building ─────────────────────────────────────────────
