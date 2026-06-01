@@ -56,3 +56,22 @@ it('omits <knowledge> when nothing matches', function (): void {
 
     expect(app(FynContextAssembler::class)->build($ctx))->not->toContain('<knowledge>');
 });
+
+it('degrades to no knowledge block when the corpus is malformed (turn still builds)', function (): void {
+    // beforeEach already wrote a valid fca fact; add a broken file so loader->all() throws.
+    file_put_contents("{$this->corpus}/fca/broken.md", "no frontmatter at all\n");
+    $ctx = FynTurnContext::make(
+        user: $this->user,
+        message: 'Should I do a defined benefit pension transfer?',
+        currentRoute: '/dashboard',
+        mode: 'advice',
+        onboardingFocus: null,
+        isPreview: false,
+        classification: ['primary' => 'general'],
+    );
+
+    $out = app(FynContextAssembler::class)->build($ctx);
+
+    expect($out)->not->toContain('<knowledge>')   // degraded, not thrown
+        ->and($out)->toContain('<context>');        // the rest of the prompt still built
+});

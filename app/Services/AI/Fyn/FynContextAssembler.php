@@ -77,9 +77,16 @@ final class FynContextAssembler
         }
 
         // CoALA Phase 1 — semantic knowledge corpus (additive; the static prompt's
-        // compliance backbone is untouched). Sparse retrieval over the current
-        // user message; effective-dated to today. Empty until the corpus is authored.
-        $knowledgeFacts = $this->semantic->retrieve($ctx->message, Carbon::now());
+        // compliance backbone is untouched). A malformed corpus must NOT take down
+        // the whole turn — fyn:semantic:reindex is the fail-closed gate at deploy;
+        // at runtime we degrade to no knowledge block (the backbone still covers
+        // the user). Sparse, effective-dated to today.
+        try {
+            $knowledgeFacts = $this->semantic->retrieve($ctx->message, Carbon::now());
+        } catch (\Throwable $e) {
+            report($e);
+            $knowledgeFacts = [];
+        }
         if ($knowledgeFacts !== []) {
             $blocks = array_map(
                 static fn (SemanticFact $f): string => "### {$f->title} (source: {$f->source})\n{$f->body}",
