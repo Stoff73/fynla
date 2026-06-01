@@ -10,6 +10,9 @@ use App\Services\AI\Memory\FynMemoryStore;
 use App\Services\AI\Memory\SemanticFact;
 use App\Services\AI\Memory\SemanticRetriever;
 use App\Services\AI\MemoryRetrieverService;
+use App\Services\AI\Pointers\FetchContext;
+use App\Services\AI\Pointers\FetchDispatcher;
+use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\Prompts\UserContentSanitiser;
 use App\Services\Onboarding\OnboardingPromptBuilder;
 use App\Services\TaxConfigService;
@@ -36,6 +39,8 @@ final class FynContextAssembler
         private readonly TaxConfigService $taxConfig,
         private readonly FynMemoryStore $memoryStore,
         private readonly SemanticRetriever $semantic,
+        private readonly PointerRegistry $pointers,
+        private readonly FetchDispatcher $dispatcher,
     ) {}
 
     public function build(FynTurnContext $ctx, ?callable $orchestrateAnalysis = null): string
@@ -97,6 +102,25 @@ final class FynContextAssembler
                 $knowledgeFacts,
             );
             $lines[] = "<knowledge>\n".implode("\n\n", $blocks)."\n</knowledge>";
+        }
+
+        // CoALA pointer registry — live data fetched at the moment of need (v0.5).
+        // Additive sibling to <knowledge>; a fetch error degrades to no entry, never
+        // breaks the turn. Lazy: only pointers whose triggers match the query fire.
+        try {
+            $liveBlocks = [];
+            foreach ($this->pointers->matchPrefetch($ctx->message) as $pointer) {
+                $res = $this->dispatcher->run($pointer, new FetchContext($ctx->user, $ctx->message));
+                if ($res !== null) {
+                    $liveBlocks[] = "### {$pointer->topic} (source: {$res->sourceLabel}, as of {$res->sourceVersion})\n{$res->value}";
+                }
+            }
+        } catch (\Throwable $e) {
+            report($e);
+            $liveBlocks = [];
+        }
+        if ($liveBlocks !== []) {
+            $lines[] = "<live_data>\n".implode("\n\n", $liveBlocks)."\n</live_data>";
         }
 
         if ($has(ContextBucket::POSITION)) {
