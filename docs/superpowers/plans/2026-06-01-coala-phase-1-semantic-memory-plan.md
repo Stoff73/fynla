@@ -10,6 +10,14 @@
 
 ---
 
+## v0.5 amendment (2026-06-01) — pointer model; this plan narrowed
+
+After Task 6 shipped, CSJ established the canonical **pointer model** (`fynla-coala-implementation-plan.md` → "v0.5 amendment"): memory holds **pointers, not copies**. Consequences for THIS plan:
+
+- **Task 6 (product corpus) is SUPERSEDED and reverted** (commit `4b4c584`). Product/tax/allowance *figures* are never frozen into the corpus — they ride a **procedural pointer** to the live source (`TaxConfigService` / `tax_product_reference`). The pointer **registry** is the heart of *procedural* memory (Phase 4), a separate follow-on effort — NOT part of this Phase 1.
+- **Phase 1 now = source-less semantic substrate only:** the `fca` + `house_view` corpus + loader + retriever + reindex + `<knowledge>` wiring. Tasks 1–5, 7, 8, 9 stand unchanged. Task 10's content focuses on `fca`/`house_view` (no figure-bearing product facts).
+- Tasks 1–5 already built (loader/retriever/reindex) remain valid — they load source-less facts and will also serve as the loader pattern the pointer registry reuses.
+
 ## Decisions locked (CSJ, 2026-06-01)
 
 1. **Static prompt = Option A (additive).** `FynSystemPrompt::text()` stays byte-identical; the compliance backbone remains baked in. Semantic memory is an *additional* per-turn `<knowledge>` channel for deeper/conditional knowledge — never the sole carrier of compliance text.
@@ -670,7 +678,9 @@ git commit -m "feat(coala): fyn:semantic:reindex validate+cache command (Phase 1
 
 ---
 
-### Task 6: Product corpus generator (`tax_product_reference` → `.md`)
+### Task 6: Product corpus generator (`tax_product_reference` → `.md`) — ❌ SUPERSEDED / REVERTED (v0.5)
+
+> **DO NOT IMPLEMENT.** Superseded by the v0.5 pointer model and reverted (`4b4c584`). Freezing `tax_product_reference` figures into `.md` is exactly what the pointer model forbids. Product/tax/allowance figures ride a **procedural pointer** to the live source instead — that's a Phase 4 (procedural pointer registry) deliverable, planned separately. The original task text is kept below for history only.
 
 **Files:**
 - Create: `app/Console/Commands/FynSemanticGenerateProducts.php`
