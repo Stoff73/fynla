@@ -89,11 +89,12 @@ After each fetch, append `{ pointer_id, handler, source_label, source_version, d
 ---
 
 ## 5. v1 scope (the proof)
-Ship the **full mechanism** (corpus + `PointerRegistry` loader + `FetchHandler` interface + `FetchDispatcher` + both trigger modes + `<live_data>` block + provenance recorder + a validate/reindex command) plus **two proof handlers**:
-1. **`tax_allowance`** (`TaxAllowanceHandler`) — ISA / pension annual allowances via `TaxConfigService`. The canonical "never freeze £20,000" case. Registered in `both` modes. Proves the "add reach / single source of truth" half.
-2. **`user_financial`** (`UserFinancialHandler`) — **formalises the existing** `AdvicePromptBuilder::buildFinancialContext` / `buildExistingRecordsSummary` fetch behind a handler. Proves the "formalise what exists" half, and demonstrates a model/engine-backed source (not just config).
+Ship the **full mechanism** (corpus + `PointerRegistry` loader + `FetchHandler` interface + `FetchDispatcher` + both trigger modes + `<live_data>` block + provenance recorder + a validate/reindex command) plus **three proof handlers**, one per source archetype:
+1. **`tax_allowance`** (`TaxAllowanceHandler`) — ISA / pension annual allowances via `TaxConfigService`. The canonical "never freeze £20,000" case; a **config-lookup** source. Registered in `both` modes. Proves the "add reach / single source of truth" half.
+2. **`user_financial`** (`UserFinancialHandler`) — **formalises the existing** `AdvicePromptBuilder::buildFinancialContext` / `buildExistingRecordsSummary` fetch behind a handler; a **model/builder** source. Proves the "formalise what exists" half.
+3. **`recommendations`** (`RecommendationHandler`) — fetches Fyn's **live recommendations** for the user via the existing recommendation engine (the plan pins the exact entry point — e.g. `CoordinatingAgent` / the module agents' `generateRecommendations` / `RecommendationEngine`); an **engine-run** (compute-on-demand) source, the heaviest archetype. Registered primarily as `tool` mode (recommendations are an explicit "what should I do?" ask, not blanket pre-fetch), demonstrating an engine-backed handler down the LLM tool path. Proves the third source type and that heavy fetches stay lazy/LLM-gated.
 
-Each ships with a `fyn-memory/procedural/pointers/*.md` pointer routing to it.
+Together the three exercise every source archetype (config / model / engine) and both trigger modes. Each ships with a `fyn-memory/procedural/pointers/*.md` pointer routing to it.
 
 ---
 
@@ -109,7 +110,7 @@ Each ships with a `fyn-memory/procedural/pointers/*.md` pointer routing to it.
 
 ## 7. Testing strategy
 - **Loader (fail-closed):** duplicate id, malformed frontmatter, unknown mode, **unknown handler**, missing triggers for prefetch mode → each throws; valid corpus loads + indexes.
-- **Handlers:** `tax_allowance` returns the live `TaxConfigService` allowance + correct `sourceVersion` (active tax year); `user_financial` returns the formalized financial summary for a seeded user; both produce a stable `digest`.
+- **Handlers:** `tax_allowance` returns the live `TaxConfigService` allowance + correct `sourceVersion` (active tax year); `user_financial` returns the formalized financial summary for a seeded user; `recommendations` returns live engine recommendations for a seeded user with a `sourceVersion`; all three produce a stable `digest`.
 - **Dispatcher:** routes pointer→handler, returns `FetchResult`, records provenance; a throwing handler degrades (no entry, no exception escapes).
 - **Pre-fetch integration:** a query matching `triggers` injects a `<live_data>` block with the live value; a non-matching query omits it; provenance lands on `ai_messages.metadata`.
 - **Tool integration:** a `tool`-mode pointer appears in the catalogue; an LLM tool-call routes through the dispatcher to the same handler (driven via the existing stream-mock harness `tests/Support/Fyn`).
@@ -121,7 +122,7 @@ Each ships with a `fyn-memory/procedural/pointers/*.md` pointer routing to it.
 - **The full "route everything through the registry" refactor** (decision 1) — existing assembler/tool wiring keeps working alongside; migrating it wholesale is a later phase.
 - **Phase-2 episodic-blob provenance** — v1 records on `ai_messages.metadata`; the richer blob integration follows Phase 2.
 - **Declarative (no-code) handlers** — explicitly rejected for v1 (injection risk); all handlers are code.
-- **Beyond the two proof handlers** — more handlers (other engines, more config domains) grow the registry incrementally by dev PR; new routings grow by content PR.
+- **Beyond the three proof handlers** — more handlers (other engines, more config domains) grow the registry incrementally by dev PR; new routings grow by content PR.
 
 ---
 
