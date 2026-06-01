@@ -4,6 +4,15 @@ A git-tracked corpus of durable, category-organised domain knowledge that Fyn
 may draw on when answering user questions. Phase 1 builds the global corpus;
 per-user distilled facts are a reserved future layer (see below).
 
+> **v0.5 (canonical) — source-less knowledge only.** Semantic memory holds only
+> knowledge with **no live owner**: `fca` rule narrative and `house_view` stances.
+> Anything that has an authoritative live source — tax/allowance/product *figures*
+> (`TaxConfigService`), user data, recommendations — is **never frozen here**; it
+> is reached at the moment of need via a **pointer in `procedural/`** to that live
+> source. The `tax` / `allowance` / `product` categories therefore hold *narrative
+> only* (how a regime works), and the live number rides a procedural pointer. See
+> `fynla-coala-implementation-plan.md` → "v0.5 amendment" and `../procedural/README.md`.
+
 ## What this is
 
 Each file in the corpus encodes **one discrete fact** about the financial

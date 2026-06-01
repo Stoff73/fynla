@@ -4,8 +4,29 @@
 when a situation matches. Procedural memory shapes *reasoning and sequencing* —
 it is **never** a write-permission gate (that boundary lives in code, FR-M4).
 
+## The heart: the pointer registry (v0.5)
+
+**Memory holds pointers, not copies.** The core of procedural memory is the
+**pointer registry** — typed fetch-skills that route Fyn to the *live* source for
+any piece of data that has an authoritative owner, so nothing is duplicated or
+goes stale. A pointer carries the *route*, never the value:
+
+```
+topic/trigger   → "ISA annual subscription allowance"
+source          → tax_config | model_query | service_call | engine_run | md_fact
+fetch           → TaxConfigService::getISAAllowances()
+effective_dating→ owned by the source (the source must serve the current figure)
+```
+
+So the £20,000 lives only in `TaxConfigService`; the user's balance only in their
+records; a recommendation only as a live engine call. Fyn fetches at the moment of
+need (lazily, gated by the turn's classification). Each fetch is recorded on the
+turn's **episode** for audit provenance. A pointer *fetches* — it never widens
+write permission.
+
 ## What belongs here
 
+- **Pointers** — which live source owns a piece of data + how to fetch it (the registry above).
 - Multi-step playbooks ("how to talk a user through an emergency-fund gap").
 - Sequencing rules ("always confirm marital status before an IHT estimate").
 - Tone / framing conventions for a given topic.
@@ -13,9 +34,10 @@ it is **never** a write-permission gate (that boundary lives in code, FR-M4).
 
 ## What does NOT belong here
 
-- Facts about a specific user → that's **episodic** / semantic.
+- The **values** themselves → fetched live via a pointer; never frozen here.
+- Facts about a specific user → fetched live (a pointer to their records); the durable *episode* lives in **episodic**.
 - Write-safety / tool allowlists → those stay in `SurfaceAllowlist` (code).
-- Tax values / numbers → those stay in `TaxConfigService`.
+- Tax values / numbers → those stay in `TaxConfigService` (a pointer routes to it; the number is never copied here).
 
 ## Authoring a procedure
 

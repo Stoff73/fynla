@@ -10,9 +10,13 @@ stores live here:
 
 | Store | What it holds | Who writes it | State |
 |-------|---------------|---------------|-------|
-| **procedural/** | *How* Fyn does things — the rules, playbooks and procedures it follows | **CSJ authors** (committed markdown) | scaffolded here |
-| **episodic/** | *What happened* — salient per-interaction episodes | **The Fyn agent writes**, guided by `episodic/RUBRIC.md` (which CSJ authors) | scaffolded here |
-| **semantic/** | *Facts* — durable knowledge distilled from episodes | Phase 1 (future) | placeholder |
+| **procedural/** | *How* Fyn does things — at its **heart the pointer registry** (which live source owns each piece of data + how to fetch it), plus playbooks / overlays / workflows / tool-schemas | **CSJ authors** (committed markdown) | scaffolded here |
+| **episodic/** | *What happened* — salient per-interaction episodes + **fetch provenance** (what was fetched, from which source@version) | **The Fyn agent writes**, guided by `episodic/RUBRIC.md` (which CSJ authors) | scaffolded here |
+| **semantic/** | *Source-less* durable knowledge — FCA & house-view **narrative only**. Anything with a live owner (tax numbers, product limits, user data, recommendations) is a **pointer in procedural/**, never frozen here | **CSJ authors** (committed markdown) | Phase 1 (in progress) |
+
+## The pointer model (v0.5, 2026-06-01 — canonical)
+
+**Memory holds pointers, not copies.** Fyn never freezes data that has a live authoritative source. The £20,000 ISA allowance lives in `TaxConfigService`; a user's balance lives in their account records; a recommendation is generated live by the engine. Memory holds a **pointer** — a typed fetch-skill saying *which source owns it and how to fetch it at the moment of need* — and the agent fetches live. This keeps the context clean, the figures current, and drift near-zero. The pointer registry is the heart of procedural memory; semantic memory is only for knowledge with **no** live owner. See `fynla-coala-implementation-plan.md` → "v0.5 amendment".
 
 ## Layout
 
