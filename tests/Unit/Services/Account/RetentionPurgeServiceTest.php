@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\User;
 use App\Services\Account\RetentionPurgeService;
 use App\Services\AI\Memory\FynMemoryStore;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 it('every table in deletion order has a user_id column', function () {
     $svc = app(RetentionPurgeService::class);
@@ -40,4 +43,38 @@ it('forgets the user\'s episodic memory on purge (GDPR right to erasure, FR-M2)'
     expect($store->recall($user->id))->toBe([]);
 
     File::deleteDirectory($base);
+});
+
+it('erases the user\'s Phase 2 episodic blobs (hot + cold) on scheduled purge (GDPR right to erasure)', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $conversation = AiConversation::factory()->create(['user_id' => $user->id]);
+
+    $hotPath = 'episodic/2026/06/01/'.$conversation->id.'/hotmsg.md';
+    $coldPath = 'episodic/2026/05/01/'.$conversation->id.'/coldmsg.md';
+    $coldActual = str_replace('episodic/', 'episodic-cold/', $coldPath);
+
+    // Hot blob lives at the addressed path; cold blob lives under episodic-cold/.
+    Storage::disk('local')->put($hotPath, '# system prompt + assembled context (PII)');
+    Storage::disk('local')->put($coldActual, '# system prompt + assembled context (PII)');
+
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'blob_md_path' => $hotPath,
+    ]);
+    AiMessage::factory()->create([
+        'conversation_id' => $conversation->id,
+        'blob_md_path' => $coldPath,
+    ]);
+
+    // Sanity: both blobs exist before the purge.
+    expect(Storage::disk('local')->exists($hotPath))->toBeTrue()
+        ->and(Storage::disk('local')->exists($coldActual))->toBeTrue();
+
+    app(RetentionPurgeService::class)->purgeUser($user);
+
+    // Both hot and cold forensic blobs are gone after the scheduled purge.
+    expect(Storage::disk('local')->exists($hotPath))->toBeFalse()
+        ->and(Storage::disk('local')->exists($coldActual))->toBeFalse();
 });

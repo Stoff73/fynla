@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Services\AI\Memory\Episodic\EpisodeBlobLocator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * CoALA Phase 2 — GDPR right-to-erasure for a single user's episodic memory.
@@ -53,21 +52,8 @@ final class FynUserErase extends Command
             return self::SUCCESS;
         }
 
-        $disk = Storage::disk('local');
-        $blobsDeleted = 0;
-
         // Phase 1: delete the blobs FIRST — the rows carry the paths.
-        (clone $messageQuery)
-            ->whereNotNull('blob_md_path')
-            ->chunkById(200, function ($rows) use ($locator, $disk, &$blobsDeleted): void {
-                foreach ($rows as $msg) {
-                    $resolved = $locator->resolve($msg->blob_md_path);
-                    if ($resolved !== null) {
-                        $disk->delete($resolved);
-                        $blobsDeleted++;
-                    }
-                }
-            });
+        $blobsDeleted = $locator->eraseForUser($userId);
 
         // Phase 2: delete the SQL rows — the user's ai_messages and conversations.
         $episodesDeleted = 0;
