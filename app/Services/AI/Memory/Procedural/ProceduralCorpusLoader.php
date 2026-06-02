@@ -150,17 +150,18 @@ final class ProceduralCorpusLoader
 
                 $proc = $this->parseAndValidate($file->getPathname(), File::get($file->getPathname()), $kind, $moduleFromPath);
 
-                $vk = $proc->procedureId.'@'.$proc->version;
+                $vk = $proc->procedureId.'@'.$proc->version.'|'.$proc->provider;
                 if (isset($seenVersion[$vk])) {
-                    throw new RuntimeException("Procedural corpus: duplicate {$vk} ({$file->getPathname()}).");
+                    throw new RuntimeException("Procedural corpus: duplicate {$proc->procedureId}@{$proc->version} ({$file->getPathname()}).");
                 }
                 $seenVersion[$vk] = $file->getPathname();
 
                 if ($proc->active) {
-                    if (isset($activeById[$proc->procedureId])) {
+                    $activeKey = $proc->procedureId.'|'.$proc->provider;
+                    if (isset($activeById[$activeKey])) {
                         throw new RuntimeException("Procedural corpus: multiple active versions for '{$proc->procedureId}' ({$file->getPathname()}).");
                     }
-                    $activeById[$proc->procedureId] = $file->getPathname();
+                    $activeById[$activeKey] = $file->getPathname();
                 }
 
                 $procedures[] = $proc;
@@ -223,6 +224,11 @@ final class ProceduralCorpusLoader
         }
         $active = $meta['active'];
 
+        $provider = isset($meta['provider']) ? (string) $meta['provider'] : 'anthropic';
+        if (! in_array($provider, ['anthropic', 'xai'], true)) {
+            throw new RuntimeException("Procedural corpus: unknown provider '{$provider}' ({$path}).");
+        }
+
         $effectiveFrom = $this->parseDate($require('effective_from'))->startOfDay();
         $effectiveTo = isset($meta['effective_to']) && $meta['effective_to'] !== null
             ? $this->parseDate($meta['effective_to'])->endOfDay()
@@ -237,6 +243,7 @@ final class ProceduralCorpusLoader
             effectiveFrom: $effectiveFrom,
             effectiveTo: $effectiveTo,
             body: $body,
+            provider: $provider,
         );
     }
 
