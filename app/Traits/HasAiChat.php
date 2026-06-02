@@ -35,6 +35,7 @@ use App\Services\AI\KycGateChecker;
 use App\Services\AI\Memory\Episodic\EpisodeBlobData;
 use App\Services\AI\Memory\Episodic\EpisodeBlobWriter;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
 use App\Services\AI\QueryClassifier;
 use App\Services\AI\StructuredResponseValidator;
 use App\Services\AI\XaiClient;
@@ -949,6 +950,10 @@ trait HasAiChat
             $provenance = $collector->all();
             $collector->reset();
 
+            $snapshotHolder = app(SemanticSnapshotHolder::class);
+            $semanticSnapshotId = $snapshotHolder->get();
+            $snapshotHolder->reset();
+
             $data = new EpisodeBlobData(
                 episodeId: (string) $assistant->id,
                 conversationId: $conversation->id,
@@ -957,7 +962,7 @@ trait HasAiChat
                 persona: $this->personaOverride,
                 module: null,
                 proceduralVersion: null,
-                semanticSnapshotId: null,
+                semanticSnapshotId: $semanticSnapshotId,
                 modelUsed: $model,
                 systemPrompt: $systemPrompt,
                 assembledContext: $assembledContext,
@@ -980,7 +985,7 @@ trait HasAiChat
                 'entity_id' => $assistant->id,
                 'blob_md_sha256' => $ref->sha256,
                 'blob_md_path' => $ref->path,
-                'semantic_snapshot_id' => null,
+                'semantic_snapshot_id' => $semanticSnapshotId,
                 'fetch_provenance' => $provenance,
             ]);
         } catch (\Throwable $e) {
