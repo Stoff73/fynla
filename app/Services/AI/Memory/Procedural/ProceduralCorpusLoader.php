@@ -52,23 +52,27 @@ final class ProceduralCorpusLoader
         }
         $this->lastStatCheck = $now;
 
-        $sig = $this->signature();
-
-        if ($this->corpus !== null && $this->signature === $sig) {
-            return $this->corpus;
-        }
-
-        // Cold instance: try the cross-request cache before re-parsing.
-        if ($this->corpus === null) {
-            $cached = Cache::get(self::CACHE_KEY);
-            if ($cached instanceof ProceduralCorpus && Cache::get(self::SIG_KEY) === $sig) {
-                $this->signature = $sig;
-
-                return $this->corpus = $cached;
-            }
-        }
-
+        // Everything that touches the filesystem or cache is inside the degrade
+        // path: signature() stats every .md file, and a file deleted mid-request
+        // during a concurrent corpus swap (deploy git pull / rsync) would raise
+        // from getMTime(). load() must never break a chat turn — degrade instead.
         try {
+            $sig = $this->signature();
+
+            if ($this->corpus !== null && $this->signature === $sig) {
+                return $this->corpus;
+            }
+
+            // Cold instance: try the cross-request cache before re-parsing.
+            if ($this->corpus === null) {
+                $cached = Cache::get(self::CACHE_KEY);
+                if ($cached instanceof ProceduralCorpus && Cache::get(self::SIG_KEY) === $sig) {
+                    $this->signature = $sig;
+
+                    return $this->corpus = $cached;
+                }
+            }
+
             $fresh = $this->parse();
         } catch (Throwable $e) {
             report($e);

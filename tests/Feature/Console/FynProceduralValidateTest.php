@@ -47,5 +47,7 @@ it('exits non-zero and reports the offending file on an invalid corpus', functio
         'version' => 2, 'active' => true, 'effective_from' => '2026-06-02',
     ]);
 
-    $this->artisan('fyn:procedural:validate')->assertExitCode(1);
+    $this->artisan('fyn:procedural:validate')
+        ->expectsOutputToContain('multiple active versions')
+        ->assertExitCode(1);
 });

@@ -184,3 +184,28 @@ it('load() populates the cross-request cache', function (): void {
     expect(Cache::has('fyn:procedural:corpus'))->toBeTrue()
         ->and(Cache::has('fyn:procedural:corpus:sig'))->toBeTrue();
 });
+
+it('a cold instance adopts the cross-request cache', function (): void {
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    app(ProceduralCorpusLoader::class)->load(); // populates the Laravel cache
+
+    // Fresh instance ($this->corpus === null) must adopt the cached corpus
+    // (signature unchanged) via the cold-cache branch, not start empty.
+    app()->forgetInstance(ProceduralCorpusLoader::class);
+    expect(app(ProceduralCorpusLoader::class)->load()->all())->toHaveCount(1);
+});
+
+it('load() never throws when statting the corpus raises mid-scan', function (): void {
+    config(['fyn.memory.procedural_reload_interval' => 0]);
+    writeProc($this->corpus, 'tool_schema', 'retirement', 'x', validFrontmatter());
+    $loader = app(ProceduralCorpusLoader::class);
+    expect($loader->load()->all())->toHaveCount(1); // last-good populated
+
+    // Simulate a concurrent corpus swap: a file vanishes between enumeration
+    // and stat, so the filesystem layer raises. load() must degrade, not throw.
+    // partialMock so only allFiles is overridden — isDirectory and the afterEach
+    // deleteDirectory still hit the real filesystem.
+    File::partialMock()->shouldReceive('allFiles')->andThrow(new RuntimeException('file vanished mid-scan'));
+
+    expect($loader->load()->all())->toHaveCount(1); // degraded to last-good
+});
