@@ -12,6 +12,7 @@ use App\Observers\InsightArticleObserver;
 use App\Services\AI\AdviceFyn;
 use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
 use App\Services\AI\Memory\Episodic\SemanticSnapshotHolder;
+use App\Services\AI\Memory\Procedural\ProceduralCorpusLoader;
 use App\Services\AI\Pointers\FetchDispatcher;
 use App\Services\AI\Pointers\FetchHandlerRegistry;
 use App\Services\AI\Pointers\Handlers\RecommendationHandler;
@@ -87,6 +88,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Request-scoped semantic-snapshot holder — assembler stamps, persistEpisode reads.
         $this->app->scoped(SemanticSnapshotHolder::class);
+
+        // Procedural corpus loader — singleton so the in-memory corpus + 60s
+        // re-stat throttle persist within a request (and across requests under Octane).
+        $this->app->singleton(ProceduralCorpusLoader::class);
 
         // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(
