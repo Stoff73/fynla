@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Services\AI\Fyn\FynContextAssembler;
 use App\Services\AI\Fyn\FynTurnContext;
+use App\Services\AI\Memory\FynMemoryStore;
 use Database\Seeders\TaxConfigurationSeeder;
+use Illuminate\Support\Facades\File;
 
 beforeEach(function (): void {
     // FynContextAssembler resolves TaxConfigService (scoped singleton). The
@@ -34,6 +36,26 @@ it('always emits IDENTITY: profile + current page + name + tax year', function (
         ->and($out)->toContain('Chris')
         ->and($out)->toContain('Situation: advice')
         ->and($out)->not->toContain('<financial_context>'); // POSITION excluded on factual
+});
+
+it('injects recalled episodic memory into the reasoner context (FR-M2)', function (): void {
+    $base = sys_get_temp_dir().'/fyn-asm-mem-'.uniqid();
+    config(['fyn.memory.episodic_path' => $base]);
+    app(FynMemoryStore::class)
+        ->writeEpisode($this->user->id, 1, ['summary' => 'User is risk-averse on the pension.']);
+
+    $ctx = FynTurnContext::make(
+        user: $this->user, message: 'How is my pension?', currentRoute: '/dashboard',
+        mode: 'advice', onboardingFocus: null, isPreview: false,
+        classification: ['primary' => 'billing'],
+    );
+
+    $out = app(FynContextAssembler::class)->build($ctx);
+
+    expect($out)->toContain('<remembered>')
+        ->and($out)->toContain('risk-averse on the pension');
+
+    File::deleteDirectory($base);
 });
 
 it('emits POSITION + READINESS on a non-factual advice turn', function (): void {

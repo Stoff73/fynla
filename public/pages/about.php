@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>About Fynla | UK Personal Finance Platform Built by Experts</title>
   <meta name="description" content="Fynla was built by financial professionals with 40+ years' combined experience. Learn how we're making professional-grade financial planning accessible to everyone in the UK." />

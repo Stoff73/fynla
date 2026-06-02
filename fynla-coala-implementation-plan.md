@@ -1,6 +1,6 @@
 # Fynla CoALA implementation plan
 
-**Status:** Revised v0.4 (decision loop + concurrent-turn + two-Fyn collapse decision, 2026-05-26)
+**Status:** Revised v0.5 (procedural pointer registry — memory holds pointers, not copies; 2026-06-01). Prior: v0.4 (decision loop + concurrent-turn + two-Fyn collapse decision, 2026-05-26)
 **Owner:** Chris
 **Plan kind:** Primary build artifact (spec: CoALA paper, Sumers et al. 2023, arXiv:2309.02427; PRD: Fyn product framing — separate doc)
 
@@ -29,6 +29,17 @@ v0.1 was written as if Fyn were close to greenfield. It isn't. The Two-Fyn unifi
 - **Concurrent-turn policy.** Second user message during an in-flight turn is queued (depth cap 3) as an `ai_messages` row with `status: queued`, rendered in a greyed state in the chat UI with a cancel affordance. After the first turn completes and is written to episodic memory, the queue pops and the next message runs as a normal turn. Three visual states: `queued` (greyed), `processing` (italic/pulsing), `answered` (normal). Edge case: if turn 1 ends with `pending_questions` populated, the planner must recognise turn 2 is NOT an answer to those questions (the user couldn't see them yet when they typed) and handle gracefully.
 - **Half-finished session resumption.** Typed `pending_resumption` JSON column on `ai_conversations`. Predicates that trigger writing it: `onboarding_fyn_step != null`, last assistant turn had unanswered `pending_questions`, last user turn was a write-intent with no successful tool dispatch, conversation hit a fatal mid-stream error (`ai_abort_events`), or queued message status remained `queued` past session end. On login / new conversation: scan and surface "Earlier you asked about X but we didn't finish — resume?".
 - **Two-Fyn collapse decision** (new "Two-Fyn collapse: full merge vs. shared loop" section below). The canonical contract today specifies one prompt, two write states enforced at dispatch + tool-gating. v0.4 documents the option to collapse to a single code path where the write boundary moves into the typed `Action` enum's `ground` surface gate. **This is a revision of the canonical contract, not a restoration.** Trade-off table provided; final choice deferred to a separate CSJ decision, not assumed.
+
+**v0.5 amendment (2026-06-01) — the procedural pointer registry: memory holds pointers, not copies.**
+
+The single most important canonical change since v0.4 (CSJ decision). Memory must never *duplicate* data that already has a live authoritative source. Freezing a tax figure, a product limit, a user's balance, or a recommendation into an `.md` fact creates drift, staleness, and duplicated maintenance — unacceptable for a financial product where "the number must be current" is a regulatory expectation, not a nicety.
+
+- **The heart of procedural memory is now the *pointer registry*.** A pointer is a typed fetch-skill — `{ topic/trigger, source (md_fact | tax_config | model_query | service_call | engine_run), fetch (the exact call/key), effective_dating (owned by the source) }`. It tells the agent *which live source owns a piece of information and how to fetch it at the moment of need*; it does **not** carry the value. Procedural memory remains "how Fyn does things" — the pointer registry is the core of that "how"; overlays / workflows / tool schemas are the rest.
+- **Semantic memory narrows to *source-less* durable knowledge only** — FCA rule narrative and house-view stances that have no live DB/service owner. Anything with a live owner (UK tax/allowance numbers → `TaxConfigService`; product limits → `tax_product_reference` / `TaxConfigService`; user info, accounts, values, plans, recommendations, decision traces → the models / engines / episodic store) is reached via a **pointer**, never frozen as a semantic fact.
+- **This mostly *formalises* what Fyn already does.** `FynContextAssembler` already injects live `<financial_context>`, `<existing_records>`, and the tax year per turn; `AdviceFyn` already reads the recommendation engine, risk module, and every account live. v0.5 makes that principle explicit and universal, and routes it through a *named registry* in procedural memory rather than implicit assembler/tool wiring.
+- **Provenance, not snapshots, keeps it auditable.** Because data is fetched live, each turn's *episode* records what was fetched + the source's version/`as-of` at that instant (extends the `semantic_snapshot_id` field to a fetch-provenance record). Fresh AND reconstructable for FCA: "on date T, Fyn served figure F from source S@vN."
+- **Fetching is lazy and triggered** — a pointer fires only when the query needs it (gated by the existing classification / context-bucket system), so this does not run every engine every turn.
+- **Consequences for the phases:** Phase 1 (semantic) sheds tax/allowance/product *figures* — it becomes FCA-narrative + house-view, plus the pointer *targets*. Phase 4 (procedural) leads with the pointer registry. The episode-provenance field is a Phase 2 column. The write-safety boundary is unaffected (still code — `SurfaceAllowlist` / `ground` gate; a pointer fetches, it never widens write permission).
 
 The CoALA framing itself is unchanged — memory modules, typed action space, plan/execute loop. It remains the right architecture for Fyn. The plan just has to start from where the code is, not where it was a year ago.
 
@@ -75,9 +86,9 @@ flowchart TB
   classDef external fill:#D1FAE5,stroke:#20B486,stroke-width:1px,color:#1F2A44
 
   subgraph LT["Long-term memory (persistent)"]
-    Sem[Semantic memory<br/>.md corpus + embeddings<br/>tax / fca / product / house_view]
-    Epi[Episodic memory<br/>SQL + .md blobs<br/>verbatim per turn]
-    Proc[Procedural memory<br/>.md corpus<br/>overlays / workflows / tool schemas]
+    Sem[Semantic memory<br/>.md corpus, sparse<br/>fca / house_view narrative only]
+    Epi[Episodic memory<br/>SQL + .md blobs<br/>verbatim per turn + fetch provenance]
+    Proc[Procedural memory<br/>.md corpus<br/>pointer registry • overlays / workflows / tool schemas]
   end
 
   WM[Working memory<br/>per-turn VO<br/>session_mode • cycle_count • pending_questions]
@@ -215,6 +226,8 @@ Episodic memory *exists*. The CoALA additions are: `procedural_version` column, 
 
 #### Semantic memory
 
+> **v0.5:** Semantic memory holds only **source-less** durable knowledge — FCA rule narrative and house-view stances with no live DB/service owner. Data with a live owner (tax/allowance/product *figures*, user data, recommendations) is **not** a semantic fact; it is reached via a procedural **pointer** to the live source (see the v0.5 amendment). The schema below still applies to the `fca` and `house_view` categories; `tax` / `allowance` / `product` hold *narrative only* (no figures), with pointers carrying the live numbers.
+
 Versioned, temporally bounded reference data, stored as a git-tracked `.md` corpus.
 
 ```yaml
@@ -255,6 +268,8 @@ This is the **largest genuine gap**. Phase 1 stands up the `.md` corpus + in-mem
 This is the difference between "RAG that mostly works" and "RAG that's safe to advise from".
 
 #### Procedural memory
+
+> **v0.5:** The **heart of procedural memory is the pointer registry** — the typed fetch-skills that route the agent to live sources (`tax_config` / `model_query` / `service_call` / `engine_run` / `md_fact`) for any data that has an authoritative owner, so nothing is duplicated or frozen (see the v0.5 amendment). Overlays / workflows / tool schemas (below) are the rest of procedural memory; the registry is its core. A pointer fetches data — it never widens write permission (that boundary stays in code, `SurfaceAllowlist` / `ground` gate).
 
 Workflow and prompt definitions, version-controlled. Stored as a git-tracked `.md` corpus loaded into memory at boot.
 

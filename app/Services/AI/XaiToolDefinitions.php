@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Constants\UpdateRecordAllowlist;
+use App\Services\AI\Pointers\Pointer;
+use App\Services\AI\Pointers\PointerRegistry;
 
 /**
  * xAI-optimised tool definitions with strict function calling.
@@ -47,7 +49,38 @@ class XaiToolDefinitions
             );
         }
 
+        // CoALA pointer tools — read-only `fetch_{pointer_id}` tools mirroring
+        // the Anthropic catalogue so tool-name parity holds across providers.
+        // Exposed in preview mode too (read-only). Degrades to none on error.
+        $tools = array_merge($tools, $this->pointerTools());
+
         return $tools;
+    }
+
+    /**
+     * CoALA pointer tools in OpenAI function-calling shape.
+     *
+     * One tool per tool/both-mode pointer in the registry, name
+     * `fetch_{pointer_id}` (dashes → underscores), description = pointer
+     * body, empty parameter schema. Degrades to no pointer tools on any
+     * registry error so the catalogue never breaks.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function pointerTools(): array
+    {
+        try {
+            $pointers = app(PointerRegistry::class)->toolPointers();
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        return array_map(fn (Pointer $pointer): array => $this->wrapTool(
+            'fetch_'.str_replace('-', '_', $pointer->pointerId),
+            $pointer->body,
+            [],
+            [],
+        ), $pointers);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────

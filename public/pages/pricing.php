@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/images/logos/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/logos/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing â€” Simple, Transparent Plans | Fynla</title>
   <meta name="description" content="Start with a 7-day free trial on any Fynla plan. Student, Standard, Family, and Pro plans for UK financial planning. No credit card required to start." />

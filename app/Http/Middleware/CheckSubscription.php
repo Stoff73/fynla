@@ -101,8 +101,15 @@ class CheckSubscription
 
         // Pure freemium: a Free user has NO subscription row and may write —
         // per-tier creation caps are enforced downstream by DbTierGate at the
-        // store boundary. An active (paid) subscription may also write.
-        if ($subscription === null || $subscription->isActive()) {
+        // store boundary. A user on a trial, or with an active (paid)
+        // subscription, may also write. A trial is a live grant of access:
+        // 'trialing' is the source of truth (the lifecycle — webhooks /
+        // ConvertTrialUsersToFree — transitions the status away when the trial
+        // actually ends), so we do NOT gate it on trial_ends_at, which the
+        // PaymentController leaves null on a freshly-created trial row.
+        if ($subscription === null
+            || $subscription->status === 'trialing'
+            || $subscription->isActive()) {
             return $next($request);
         }
 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ActionDefinitionController;
 use App\Http\Controllers\Api\Admin\ActuarialLifeTableController;
+use App\Http\Controllers\Api\Admin\AiCostDashboardController;
 use App\Http\Controllers\Api\Admin\CurrencyRateController;
 use App\Http\Controllers\Api\Admin\DocumentArticleController;
 use App\Http\Controllers\Api\Admin\EvalRecordingController;
@@ -1160,6 +1161,10 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')-
         // S0.12 — hash-chain audit endpoints.
         Route::get('/chain', [AiAuditController::class, 'chain']);
         Route::get('/chain/verify', [AiAuditController::class, 'verifyChain']);
+        // CoALA Phase 2 (Task 13) — read-only episodic memory endpoints (admin).
+        Route::get('/episodes', [AiAuditController::class, 'episodes']);
+        Route::get('/episodes/{id}', [AiAuditController::class, 'episode']);
+        Route::post('/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
 
     // Database backup - list (read-only, no rate limit)
@@ -1259,6 +1264,8 @@ Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin/do
 Route::middleware(['auth:sanctum', 'permission:admin.access'])->prefix('admin')->group(function () {
     Route::get('news-subscribers', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'index']);
     Route::get('news-subscribers/export', [App\Http\Controllers\Api\Admin\NewsSubscriberController::class, 'export']);
+    // FR-M15 — per-action AI cost-attribution dashboard data.
+    Route::get('ai-cost-dashboard', [AiCostDashboardController::class, 'index']);
 });
 
 // Retirement Action Definitions (admin-configurable plan actions)
@@ -1371,6 +1378,14 @@ Route::middleware(['auth:sanctum', 'throttle:20,1'])->prefix('ai-chat')->group(f
     Route::delete('/conversations/{id}', [AiChatController::class, 'destroy']);
     Route::post('/conversations/{id}/messages', [AiChatController::class, 'sendMessage'])
         ->middleware('idempotent');
+    // FR-M7 — stream a turn that was queued behind an in-flight one
+    // (frontend-driven transport; called on the previous stream's `done`).
+    Route::post('/conversations/{id}/messages/{messageId}/stream', [AiChatController::class, 'streamQueuedMessage']);
+    // FR-M7 scenario 4 — cancel a still-queued turn before it streams.
+    Route::delete('/conversations/{id}/messages/{messageId}', [AiChatController::class, 'cancelQueuedMessage']);
+    // FR-M9 — resumption surface: read the pending resumption, or clear it.
+    Route::get('/resumption', [AiChatController::class, 'getResumption']);
+    Route::delete('/conversations/{id}/resumption', [AiChatController::class, 'clearResumption']);
     Route::post('/conversations/{id}/action', [AiChatController::class, 'action']);
     // Fyn-driven onboarding flow (backend-authoritative state machine)
     Route::get('/onboarding/status', [AiChatController::class, 'getOnboardingStatus']);
@@ -1395,6 +1410,10 @@ Route::middleware(['auth:sanctum', 'advisor'])
         Route::put('activities/{id}', 'updateActivity');
         Route::get('reviews-due', 'reviewsDue');
         Route::get('reports', 'reports');
+        // CoALA Phase 2 (Task 13) — advisor-scoped read-only episodic memory.
+        Route::get('clients/{clientId}/episodes', [AiAuditController::class, 'clientEpisodes']);
+        Route::get('clients/{clientId}/episodes/{id}', [AiAuditController::class, 'episode']);
+        Route::post('clients/{clientId}/episodes/{id}/verify', [AiAuditController::class, 'verifyEpisode']);
     });
 
 // Bug Report route — authenticated users only (REVIEW Top-10 #8 / W1-M).

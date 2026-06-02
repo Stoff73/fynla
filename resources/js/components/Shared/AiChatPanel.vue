@@ -135,6 +135,28 @@
       :class="messagesContainerClasses"
       :style="messagesContainerStyle"
     >
+      <!-- FR-M9 — resumption prompt: surfaced on open when a previous turn
+           didn't finish. Continue or start fresh; both clear it server-side. -->
+      <div v-if="pendingResumption" class="mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
+        <p class="text-sm text-horizon-500">{{ pendingResumption.message || 'Last time we didn’t finish — want to pick up where we left off?' }}</p>
+        <div class="mt-2 flex gap-2">
+          <button
+            type="button"
+            class="px-3 py-1.5 text-xs font-semibold rounded-md bg-raspberry-500 text-white hover:bg-raspberry-600 transition-colors"
+            @click="handleResume"
+          >
+            Continue
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1.5 text-xs font-medium rounded-md bg-light-gray text-horizon-500 hover:bg-savannah-100 transition-colors"
+            @click="handleStartFresh"
+          >
+            Start fresh
+          </button>
+        </div>
+      </div>
+
       <!-- Loading state (modal-only initial fetch spinner) -->
       <div v-if="loading" class="flex items-center justify-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-raspberry-600"></div>
@@ -195,13 +217,16 @@
           </div>
           <div
             v-else
-            :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'"
+            :class="msg.role === 'user' ? 'flex flex-col items-end' : 'flex justify-start'"
           >
             <div
               :class="[
                 'max-w-[85%] rounded-lg px-3 py-2 text-sm',
                 msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm',
                 messageClass(msg),
+                msg.status === 'queued' ? 'opacity-50' : '',
+                msg.status === 'processing' ? 'animate-pulse' : '',
+                msg.status === 'cancelled' ? 'line-through opacity-40' : '',
               ]"
             >
               <AiMessageContent
@@ -211,6 +236,17 @@
               />
               <span v-else>{{ msg.content }}</span>
             </div>
+            <!-- FR-M7 — a turn queued behind an in-flight one can be cancelled
+                 before it streams. Text affordance only (the chat is a Rule #16
+                 icon-banned surface). -->
+            <button
+              v-if="msg.role === 'user' && msg.status === 'queued'"
+              type="button"
+              class="mt-1 text-xs font-medium text-neutral-500 hover:text-raspberry-500 transition-colors"
+              @click="handleCancelQueued(msg.id)"
+            >
+              Waiting — cancel
+            </button>
           </div>
         </div>
 
@@ -453,6 +489,7 @@ export default {
             'previewCta',
             'onboardingLayout',
             'isOnboardingActive',
+            'pendingResumption',
         ]),
 
         // True once the user has sent at least one message in this
@@ -800,7 +837,36 @@ export default {
             'sendMessage',
             'abortStreaming',
             'postAction',
+            'cancelQueued',
+            'fetchResumption',
+            'acknowledgeResumption',
         ]),
+
+        /**
+         * FR-M7 — cancel a queued turn from its "Waiting — cancel" affordance.
+         */
+        async handleCancelQueued(messageId) {
+            await this.cancelQueued(messageId);
+        },
+
+        /**
+         * FR-M9 — resume the unfinished conversation: clear the flag and load it.
+         */
+        async handleResume() {
+            const conversationId = this.pendingResumption?.conversationId;
+            await this.acknowledgeResumption();
+            if (conversationId) {
+                this.loadConversation(conversationId);
+            }
+        },
+
+        /**
+         * FR-M9 — start fresh: clear the flag and open a new conversation.
+         */
+        async handleStartFresh() {
+            await this.acknowledgeResumption();
+            this.startNewConversation();
+        },
 
         /**
          * Phase 10 — skip-link click handler. Posts {action: 'skip'} to the
@@ -936,6 +1002,9 @@ export default {
 
         async onOpen() {
             analyticsService.trackChatOpened();
+
+            // FR-M9 — surface any unfinished conversation to resume (non-blocking).
+            this.fetchResumption();
 
             const s = () => this.$store.state.aiChat;
 

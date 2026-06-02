@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
+use App\Services\AI\Pointers\Pointer;
+use App\Services\AI\Pointers\PointerRegistry;
 use Illuminate\Support\Facades\Cache;
 
 class AiToolDefinitions
@@ -34,6 +36,14 @@ class AiToolDefinitions
             );
         }
 
+        // CoALA pointer tools — each tool/both-mode pointer becomes a
+        // `fetch_{pointer_id}` tool whose description is the pointer body.
+        // These are read-only fetches (provenance + degrade-on-failure
+        // shared with the pre-fetch path) so they are exposed in preview
+        // mode too. Wrapped defensively in pointerTools() — a corrupt
+        // corpus must never break the catalogue.
+        $tools = array_merge($tools, $this->pointerTools());
+
         // Return tools in native format (name, description, parameters)
         // The HasAiChat trait handles provider-specific wrapping:
         // - xAI/OpenAI: wraps in {type: "function", function: {name, description, parameters}}
@@ -48,6 +58,38 @@ class AiToolDefinitions
             'description' => $tool['description'],
             'input_schema' => $tool['parameters'],
         ], $tools);
+    }
+
+    /**
+     * CoALA pointer tools in native (name/description/parameters) shape.
+     *
+     * One tool per tool/both-mode pointer in the registry:
+     *   - name: `fetch_{pointer_id}` with dashes → underscores
+     *   - description: the pointer body (the LLM-facing "when to use")
+     *   - parameters: minimal empty object (the handler reads the user/query)
+     *
+     * Degrades to no pointer tools on any registry error — the catalogue
+     * must never break because the pointer corpus is malformed.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function pointerTools(): array
+    {
+        try {
+            $pointers = app(PointerRegistry::class)->toolPointers();
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        return array_map(static fn (Pointer $pointer): array => [
+            'name' => 'fetch_'.str_replace('-', '_', $pointer->pointerId),
+            'description' => $pointer->body,
+            'parameters' => [
+                'type' => 'object',
+                'properties' => (object) [],
+                'additionalProperties' => false,
+            ],
+        ], $pointers);
     }
 
     private function navigationTools(): array

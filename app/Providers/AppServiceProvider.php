@@ -10,6 +10,13 @@ use App\Models\Insights\InsightArticle;
 use App\Observers\DocumentArticleObserver;
 use App\Observers\InsightArticleObserver;
 use App\Services\AI\AdviceFyn;
+use App\Services\AI\Memory\Episodic\FetchProvenanceCollector;
+use App\Services\AI\Pointers\FetchDispatcher;
+use App\Services\AI\Pointers\FetchHandlerRegistry;
+use App\Services\AI\Pointers\Handlers\RecommendationHandler;
+use App\Services\AI\Pointers\Handlers\TaxAllowanceHandler;
+use App\Services\AI\Pointers\Handlers\UserFinancialHandler;
+use App\Services\AI\Pointers\PointerRegistry;
 use App\Services\AI\XaiClient;
 use App\Services\Lifecycle\LifecycleDiscountCodeGenerator;
 use App\Services\Lifecycle\LifecycleEngine;
@@ -56,6 +63,26 @@ class AppServiceProvider extends ServiceProvider
                 return new Client(apiKey: $apiKey);
             });
         }
+
+        // CoALA pointer registry — FetchHandlerRegistry has no zero-arg constructor so
+        // it must be bound explicitly with its three proof handlers injected. PointerRegistry
+        // and FetchDispatcher each depend on FetchHandlerRegistry and auto-wire once it is
+        // resolvable, so plain singleton() calls are sufficient for them.
+        $this->app->singleton(FetchHandlerRegistry::class, function ($app) {
+            return new FetchHandlerRegistry([
+                $app->make(TaxAllowanceHandler::class),
+                $app->make(UserFinancialHandler::class),
+                $app->make(RecommendationHandler::class),
+            ]);
+        });
+
+        $this->app->singleton(PointerRegistry::class);
+        // FetchDispatcher depends on the request-scoped FetchProvenanceCollector,
+        // so it must re-resolve per request (a singleton would capture a stale collector).
+        $this->app->bind(FetchDispatcher::class);
+
+        // Request-scoped provenance accumulator — one instance per request, reset per turn.
+        $this->app->scoped(FetchProvenanceCollector::class);
 
         // TierGate — SP2: DB-backed, admin-editable, defence-in-depth
         $this->app->bind(
